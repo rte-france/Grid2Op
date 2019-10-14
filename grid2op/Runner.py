@@ -77,7 +77,10 @@ except (ModuleNotFoundError, ImportError):
     from Agent import DoNothingAgent, Agent
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
-# at the same time. This might require a lot of work, but would be totally worth it!
+# at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
+
+# TODO add a more suitable logging strategy
+
 
 class DoNothingLog:
     """
@@ -418,17 +421,17 @@ class Runner(object):
     def _run_one_episode(env, agent, logger, indx, path_save=None):
         done = False
         time_step = int(0)
-        beg_ = time.time()
-        cum_reward = 0.
-        act = env.helper_action_player({})
         time_act = 0.
+        cum_reward = 0.
+        curr_timestep = 0
+
         if path_save is not None:
             path_save = os.path.abspath(path_save)
             if not os.path.exists(path_save):
                 os.mkdir(path_save)
                 logger.info("Creating path \"{}\" to save the runner".format(path_save))
 
-            this_path = os.path.join(path_save, "{}".format(indx))
+            this_path = os.path.join(path_save, "{}".format(os.path.split(env.chronics_handler.get_id())[-1]))
             if not os.path.exists(this_path):
                 os.mkdir(this_path)
                 logger.info("Creating path \"{}\" to save the episode {}".format(this_path, indx))
@@ -436,19 +439,17 @@ class Runner(object):
             this_path = None
 
         if path_save is not None:
-            with open(os.path.join(this_path, "episode_meta.json"), "w") as f:
-                dict_ = {}
-                dict_["chronics_path"] = "{}".format(env.chronics_handler.get_id())
-                dict_["chronics_max_timestep"] = "{}".format(env.chronics_handler.max_timestep())
-                dict_["grid_path"] = "{}".format(env.init_grid_path)
-                dict_["backend_type"] = "{}".format(type(env.backend).__name__)
-                dict_["chronics_path"] = "{}".format(env.chronics_handler.get_id())
-                dict_["env_type"] = "{}".format(type(env).__name__)
-                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+            dict_ = {}
+            dict_["chronics_path"] = "{}".format(env.chronics_handler.get_id())
+            dict_["chronics_max_timestep"] = "{}".format(env.chronics_handler.max_timestep())
+            dict_["grid_path"] = "{}".format(env.init_grid_path)
+            dict_["backend_type"] = "{}".format(type(env.backend).__name__)
+            dict_["env_type"] = "{}".format(type(env).__name__)
 
             with open(os.path.join(this_path, "parameters.json"), "w") as f:
-                dict_ = env.parameters.to_dict()
-                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+                dict_params = env.parameters.to_dict()
+                json.dump(obj=dict_params, fp=f, indent=4, sort_keys=True)
+
         nb_timestep_max = env.chronics_handler.max_timestep()
         efficient_storing = nb_timestep_max > 0
         nb_timestep_max = max(nb_timestep_max, 0)
@@ -460,7 +461,8 @@ class Runner(object):
         disc_lines = np.full((nb_timestep_max, env.backend.n_lines), fill_value=False, dtype=np.bool)
         disc_lines_templ = np.full((1, env.backend.n_lines), fill_value=False, dtype=np.bool)
 
-        curr_timestep = 0
+        beg_ = time.time()
+        act = env.helper_action_player({})
         while not done:
             obs, reward, done, info = env.step(act)  # should load the first time stamp
             beg__ = time.time()
@@ -494,14 +496,18 @@ class Runner(object):
                             disc_lines = np.concatenate((disc_lines, arr))
                         else:
                             disc_lines = np.concatenate((disc_lines, disc_lines_templ))
-
+        dict_["nb_timestep_played"] = time_step
+        dict_["cumulative_reward"] = cum_reward
         end_ = time.time()
 
         if path_save is not None:
-            np.save(os.path.join(this_path, "exec_times.npy"), times)
+            with open(os.path.join(this_path, "episode_meta.json"), "w") as f:
+                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+
+            np.save(os.path.join(this_path, "agent_exec_times.npy"), times)
             np.save(os.path.join(this_path, "actions.npy"), actions)
             np.save(os.path.join(this_path, "observations.npy"), observations)
-            np.save(os.path.join(this_path, "disc_lines.npy"), disc_lines)
+            np.save(os.path.join(this_path, "disc_lines_cascading_failure.npy"), disc_lines)
             np.save(os.path.join(this_path, "rewards.npy"), rewards)
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
@@ -549,12 +555,15 @@ class Runner(object):
               - "i" unique identifier of the episode
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
+              - "max_ts" : the maximum number of time steps of the chronics
 
         """
         res = [(None, None, None) for _ in range(nb_episode)]
         for i in range(nb_episode):
             cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i)
-            res[i] = (i, cum_reward, nb_time_step)
+            id_chron = self.chronics_handler.get_id()
+            max_ts = self.chronics_handler.max_timestep()
+            res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
         return res
 
     @staticmethod
@@ -564,15 +573,14 @@ class Runner(object):
         backend = runner.backendClass()
         nb_episode_this_process = len(episode_this_process)
         env, agent = runner._new_env(chronics_handler=chronics_handler, backend=backend, parameters=parameters)
-        # cum_rewards = np.full(shape=nb_episode_this_process, fill_value=np.NaN, dtype=np.float)
-        # nb_time_steps = np.full(shape=nb_episode_this_process, fill_value=np.NaN, dtype=np.int)
         res = [(None, None, None) for _ in range(nb_episode_this_process)]
         for i, p_id in enumerate(episode_this_process):
+            env.reset()
             chronics_handler.tell_id(p_id)
+            id_chron = chronics_handler.get_id()
+            max_ts = chronics_handler.max_timestep()
             cum_reward, nb_time_step = Runner._run_one_episode(env, agent, runner.logger, p_id, path_save)
-            # cum_rewards[i] = cum_reward
-            # nb_time_steps[i] = nb_time_step
-            res[i] = (p_id, cum_reward, nb_time_step)
+            res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
         return res
 
     def run_parrallel(self, nb_episode, nb_process=1, path_save=None):
@@ -609,6 +617,7 @@ class Runner(object):
                 returned list are not necessarily sorted by this value)
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
+              - "max_ts" : the maximum number of time steps of the chronics
 
         """
         if nb_process <= 0:

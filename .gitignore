@@ -145,5 +145,7 @@ data/saved_runner_par/
 data/saved_runner_seq/
 data/118
 
+*.~lock*
+
 Doxyfile
 documentation

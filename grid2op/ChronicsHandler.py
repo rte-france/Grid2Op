@@ -523,19 +523,6 @@ class GridStateFromFile(GridValue):
         vals = set(dict_convert.values())
         lend_dict_values = len(vals)
 
-        # test_toto = [el for el in order_backend if not el in vals]
-        # test_tata = [el for el in vals if not el in order_backend]
-        # test_titi = sorted(dict_convert.values())
-        # double = []
-        # for el, el_next in zip(test_titi[1:], test_titi[:-1]):
-        #     if el == el_next:
-        #         double.append(el)
-        # res = {}
-        # for k, elel in dict_convert.items():
-        #     res[k] = [el for el in order_backend if elel + "_" in el]
-        #
-        # pdb.set_trace()
-
         if len_dict_keys != len_backend:
             err_msg = "Conversion mismatch between backend data {} elements and converter data {} (keys)"
             raise IncorrectNumberOfElements(err_msg.format(len_backend, len_dict_keys))
@@ -647,6 +634,12 @@ class GridStateFromFile(GridValue):
         self.hazards = self.hazards != 0.
 
         self.curr_iter = 0
+        if self.max_iter == -1:
+            # if the number of maximum time step is not set yet, we set it to be the number of
+            # data in the chronics (number of rows of the files) -1.
+            # the -1 is present because the initial grid state doesn't count as a "time step" but is read
+            # from these data.
+            self.max_iter = self.load_p.shape[0]-1
 
     def done(self):
         """
