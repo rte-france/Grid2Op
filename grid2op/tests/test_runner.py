@@ -88,14 +88,14 @@ class TestAgent(unittest.TestCase):
     def test_3_episode(self):
         res = self.runner.run_sequential(nb_episode=3)
         assert len(res) == 3
-        for i, cum_reward, timestep in res:
+        for i, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 287
             assert np.abs(cum_reward - 5739.951023) <= self.tol_one
 
     def test_3_episode_3process(self):
         res = self.runner.run_parrallel(nb_episode=3, nb_process=3)
         assert len(res) == 3
-        for i, cum_reward, timestep in res:
+        for i, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 287
             assert np.abs(cum_reward - 5739.951023) <= self.tol_one
 
