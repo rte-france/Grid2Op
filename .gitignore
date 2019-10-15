@@ -147,5 +147,6 @@ data/118
 
 *.~lock*
 
+getting_started/saved_experiment_donothing/
 Doxyfile
 documentation

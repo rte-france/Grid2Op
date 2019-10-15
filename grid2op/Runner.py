@@ -231,6 +231,10 @@ class Runner(object):
 
     verbose: ``bool``
         If ``True`` then detailed output of each steps are written.
+
+    gridStateclass_kwargs: ``dict``
+        Additional keyword arguments used to build the :attr:`Runner.chronics_handler`
+
     """
     def __init__(self,
                  init_grid_path: str,  # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
@@ -246,6 +250,7 @@ class Runner(object):
                  backendClass=PandaPowerBackend,
                  agentClass=DoNothingAgent,  #class used to build the agent
                  verbose=False,
+                 gridStateclass_kwargs={},
                  ):
         """
         Initialize the Runner.
@@ -325,6 +330,7 @@ class Runner(object):
             raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. Please modify \"agentClass\" paramter.")
         self.agentClass = agentClass
 
+
         self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
 
         # store parameters
@@ -337,7 +343,9 @@ class Runner(object):
 
         # chronics of grid state
         self.path_chron = path_chron
-        self.chronics_handler = ChronicsHandler(chronicsClass=gridStateclass, path=self.path_chron)
+        self.gridStateclass_kwargs = gridStateclass_kwargs
+        self.chronics_handler = ChronicsHandler(chronicsClass=gridStateclass, path=self.path_chron,
+                                                **self.gridStateclass_kwargs)
 
         # the backend, used to compute powerflows
         self.backend = self.backendClass()

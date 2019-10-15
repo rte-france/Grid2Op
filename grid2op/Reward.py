@@ -119,6 +119,53 @@ class ConstantReward(Reward):
         return 0
 
 
+class FlatReward(Reward):
+    """
+    This reward return a fixed number (if there are not error) or 0 if there is an error.
+
+    """
+    def __init__(self, per_timestep=1):
+        Reward.__init__(self)
+        self.per_timestep = per_timestep
+        self.total_reward = 0
+        self.reward_min = 0
+        self.reward_max = per_timestep
+
+    def __call__(self, action, env, has_error, is_done):
+        if not has_error:
+            res = self.per_timestep
+        else:
+            res = self.reward_min
+        return res
+
+
+class IncreasingFlatReward(Reward):
+    """
+    This reward just counts the number of timestep the agent has sucessfully manage to perform.
+
+    It adds a constant reward for each time step sucessfully handled.
+
+    """
+    def __init__(self, per_timestep=1):
+        Reward.__init__(self)
+        self.per_timestep = per_timestep
+        self.total_reward = 0
+        self.reward_min = 0
+
+    def initialize(self, env):
+        if env.chronics_handler.max_timestep() > 0:
+            self.reward_max = env.chronics_handler.max_timestep() * self.per_timestep
+        else:
+            self.reward_max = np.inf
+
+    def __call__(self, action, env, has_error, is_done):
+        if not has_error:
+            res = env.nb_time_step * self.per_timestep
+        else:
+            res = self.reward_min
+        return res
+
+
 class L2RPNReward(Reward):
     """
     This is the historical :class:`Reward` used for the Learning To Run a Power Network competition.

@@ -18,7 +18,7 @@ try:
     from .Action import HelperAction, Action, TopologyAction
     from .Exceptions import *
     from .Observation import CompleteObservation, ObservationHelper
-    from .Reward import ConstantReward, RewardHelper
+    from .Reward import FlatReward, RewardHelper
     from .GameRules import GameRules, AllwaysLegal
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -28,6 +28,7 @@ except (ModuleNotFoundError, ImportError):
     from GameRules import GameRules, AllwaysLegal
 
 import pdb
+
 
 # TODO code "start from a given time step"
 class Environment:
@@ -39,7 +40,7 @@ class Environment:
                  names_chronics_to_backend=None,
                  actionClass=TopologyAction,
                  observationClass=CompleteObservation,
-                 rewardClass=ConstantReward,
+                 rewardClass=FlatReward,
                  legalActClass=AllwaysLegal):
         """
 
@@ -69,6 +70,7 @@ class Environment:
 
         # and calendar data
         self.time_stamp = None
+        self.nb_time_step = 0
 
         # specific to power system
         self.parameters = parameters
@@ -83,10 +85,6 @@ class Environment:
 
         # rules of the game
         self.game_rules = GameRules(legalActClass=legalActClass)
-
-        # reward
-        self.reward_helper = RewardHelper(rewardClass=rewardClass)
-        self.reward_helper.initialize(self)
 
         # action helper
         # action affecting the _grid that will be made by the agent
@@ -176,6 +174,10 @@ class Environment:
 
         # observation
         self.current_obs = None
+
+        # reward
+        self.reward_helper = RewardHelper(rewardClass=rewardClass)
+        self.reward_helper.initialize(self)
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
@@ -317,6 +319,7 @@ class Environment:
             self.backend.apply_action(env_modification)
             self._time_apply_act += time.time() - beg_
 
+            self.nb_time_step += 1
             try:
                 # compute the next _grid state
                 beg_ = time.time()
@@ -374,6 +377,7 @@ class Environment:
         self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
+        self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC

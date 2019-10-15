@@ -14,33 +14,30 @@ Using the *Backend* based on PandaPower, this tools is able to perform 1000 time
 (on a laptop, python3.6, Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz, SSD hardrive) :
 
 - in 30s for the IEEE 14 buses test case (included in this distribution as 
-[test_case14.json](grid2op/data/test_PandaPower/test_case14.json))
+[test_case14.json](grid2op/data/test_PandaPower/test_case14.json) )
 - in 90s for the IEEE 118 buses test case (not included)
 
 
 Official documentation: *coming soon*
 
 *   [1 Installation](#installation)
-    *   [1.1 Using Docker](#using-docker)
-    *   [1.2 Without using Docker](#without-using-docker)
+    *   [1.1 Install without Docker](#install-without-docker)
         *   [1.2.1 Requirements](#requirements)
         *   [1.2.2 Instructions](#instructions)
+    *   [1.2 Install with Docker](#install-with-docker)
 *   [2 Basic usage](#basic-usage)
     *   [2.1 Without using Docker](#without-using-docker)
-    *   [2.2 Using CLI arguments](#using-cli-arguments)
+    *   [2.2 Using Docker](#using-docker)
 *   [3 Main features of Grid2Op](#main-features-of-grid2op)
     * [3.1 Core functionalities](#core-functionalities)
-    * [3.2 Getting Started](#getting-started)
-    * [3.2 Examples](#examples)
+    * [3.2 Getting Started / Examples](#getting-started--examples)
 *   [4 Generate the documentation](#generate-the-documentation)
 *   [5 Make tests](#make-the-tests)
 *   [6 License information](#license-information)
 
 # Installation
-## Using Docker
-Support of Docker *coming soon*.
 
-## Without using Docker
+## Install without Docker
 ### Requirements:
 *   Python >= 3.6
 
@@ -82,6 +79,9 @@ pip3 install -U .
 ```
 After this, this simulator is available under the name grid2op (e.g. ```import grid2op```).
 
+## Install with Docker
+Support of Docker *coming soon*.
+
 # Basic usage
 ## Without using Docker
 Experiments can be conducted using the CLI (command line interface).
@@ -106,8 +106,6 @@ python3 -m grid2op.main --help
 # Main features of Grid2Op
 
 ## Core functionalities
-TODO
-
 Built with modulartiy in mind, Grid2Op acts as a replacement of [pypownet](https://github.com/MarvinLer/pypownet) 
 as a library used for the Learning To Run Power Network [L2RPN](https://l2rpn.chalearn.org/). 
 
@@ -122,11 +120,10 @@ when performing the compitations
 * parameters, game rules or type of actions are perfectly parametrizable
 * can adapt to any kind of input data, in various format (might require the rewriting of a class)
 
-## Getting Started
-TODO
+## Getting Started / Examples
+Some Jupyter notebook are provided as example of the use of the Grid2Op package. They are located in the 
+[getting_start](getting_started) directories. 
 
-## Examples
-TODO
 
 # Generate the documentation
 A copy of the documentation can be built: you will need Sphinx, a Documentation building tool, and a nice-looking custom [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
