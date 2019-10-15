@@ -496,8 +496,9 @@ class Runner(object):
                             disc_lines = np.concatenate((disc_lines, arr))
                         else:
                             disc_lines = np.concatenate((disc_lines, disc_lines_templ))
-        dict_["nb_timestep_played"] = time_step
-        dict_["cumulative_reward"] = cum_reward
+        if path_save is not None:
+            dict_["nb_timestep_played"] = time_step
+            dict_["cumulative_reward"] = cum_reward
         end_ = time.time()
 
         if path_save is not None:

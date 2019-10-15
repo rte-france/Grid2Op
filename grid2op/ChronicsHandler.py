@@ -591,19 +591,26 @@ class GridStateFromFile(GridValue):
         else:
             self._assert_correct(self.names_chronics_to_backend["subs"], order_backend_subs)
 
-        read_compressed = ""
+        read_compressed = ".csv"
         if not os.path.exists(os.path.join(self.path, "load_p.csv")):
             # try to read compressed data
-            if not os.path.exists(os.path.join(self.path, "load_p.csv.bz2")):
-                raise RuntimeError("GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
+            if os.path.exists(os.path.join(self.path, "load_p.csv.bz2")):
+                read_compressed = ".csv.bz2"
+            elif os.path.exists(os.path.join(self.path, "load_p.zip")):
+                read_compressed = ".zip"
+            elif os.path.exists(os.path.join(self.path, "load_p.csv.gzip")):
+                read_compressed = ".csv.gzip"
+            elif os.path.exists(os.path.join(self.path, "load_p.csv.xz")):
+                read_compressed = ".csv.xz"
             else:
-                read_compressed = ".bz2"
-        load_p = pd.read_csv(os.path.join(self.path, "load_p.csv{}".format(read_compressed)), sep=self.sep)
-        load_q = pd.read_csv(os.path.join(self.path, "load_q.csv{}".format(read_compressed)), sep=self.sep)
-        prod_p = pd.read_csv(os.path.join(self.path, "prod_p.csv{}".format(read_compressed)), sep=self.sep)
-        prod_v = pd.read_csv(os.path.join(self.path, "prod_v.csv{}".format(read_compressed)), sep=self.sep)
-        hazards = pd.read_csv(os.path.join(self.path, "hazards.csv{}".format(read_compressed)), sep=self.sep)
-        maintenance = pd.read_csv(os.path.join(self.path, "maintenance.csv{}".format(read_compressed)), sep=self.sep)
+                raise RuntimeError(
+                    "GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
+        load_p = pd.read_csv(os.path.join(self.path, "load_p{}".format(read_compressed)), sep=self.sep)
+        load_q = pd.read_csv(os.path.join(self.path, "load_q{}".format(read_compressed)), sep=self.sep)
+        prod_p = pd.read_csv(os.path.join(self.path, "prod_p{}".format(read_compressed)), sep=self.sep)
+        prod_v = pd.read_csv(os.path.join(self.path, "prod_v{}".format(read_compressed)), sep=self.sep)
+        hazards = pd.read_csv(os.path.join(self.path, "hazards{}".format(read_compressed)), sep=self.sep)
+        maintenance = pd.read_csv(os.path.join(self.path, "maintenance{}".format(read_compressed)), sep=self.sep)
 
         order_backend_loads = {el: i for i, el in enumerate(order_backend_loads)}
         order_backend_prods = {el: i for i, el in enumerate(order_backend_prods)}
@@ -789,11 +796,27 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         """
         super().initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                            names_chronics_to_backend)
-        load_p = pd.read_csv(os.path.join(self.path, "load_p_forecasted.csv"), sep=self.sep)
-        load_q = pd.read_csv(os.path.join(self.path, "load_q_forecasted.csv"), sep=self.sep)
-        prod_p = pd.read_csv(os.path.join(self.path, "prod_p_forecasted.csv"), sep=self.sep)
-        prod_v = pd.read_csv(os.path.join(self.path, "prod_v_forecasted.csv"), sep=self.sep)
-        maintenance = pd.read_csv(os.path.join(self.path, "maintenance_forecasted.csv"), sep=self.sep)
+        read_compressed = ".csv"
+        if not os.path.exists(os.path.join(self.path, "load_p.csv")):
+            # try to read compressed data
+            if os.path.exists(os.path.join(self.path, "load_p.csv.bz2")):
+                read_compressed = ".csv.bz2"
+            elif os.path.exists(os.path.join(self.path, "load_p.zip")):
+                read_compressed = ".zip"
+            elif os.path.exists(os.path.join(self.path, "load_p.csv.gzip")):
+                read_compressed = ".csv.gzip"
+            elif os.path.exists(os.path.join(self.path, "load_p.csv.xz")):
+                read_compressed = ".csv.xz"
+            else:
+                raise RuntimeError(
+                    "GridStateFromFileWithForecasts: unable to locate the data files that should be at \"{}\"".format(self.path))
+
+        load_p = pd.read_csv(os.path.join(self.path, "load_p_forecasted{}".format(read_compressed)), sep=self.sep)
+        load_q = pd.read_csv(os.path.join(self.path, "load_q_forecasted{}".format(read_compressed)), sep=self.sep)
+        prod_p = pd.read_csv(os.path.join(self.path, "prod_p_forecasted{}".format(read_compressed)), sep=self.sep)
+        prod_v = pd.read_csv(os.path.join(self.path, "prod_v_forecasted{}".format(read_compressed)), sep=self.sep)
+        maintenance = pd.read_csv(os.path.join(self.path, "maintenance_forecasted{}".format(read_compressed)),
+                                  sep=self.sep)
 
         order_backend_loads = {el: i for i, el in enumerate(order_backend_loads)}
         order_backend_prods = {el: i for i, el in enumerate(order_backend_prods)}
