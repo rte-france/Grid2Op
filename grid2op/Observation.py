@@ -54,7 +54,8 @@ except (ModuleNotFoundError, ImportError):
 # TODO make an action with the difference between the observation that would be an action.
 # TODO have a method that could do "forecast" by giving the injection by the agent, if he wants to make custom forecasts
 
-#TODO finish documentation
+# TODO finish documentation
+
 
 class ObsCH(object):
     def forecasts(self):
@@ -180,7 +181,7 @@ class Observation(ABC):
                  obs_env, action_helper,
                  seed=None):
 
-        self.parameters = parameters
+        self._parameters = parameters
         self.action_helper = action_helper
 
         # time stamp information
@@ -199,37 +200,37 @@ class Observation(ABC):
         self.dim_topo = dim_topo
 
         # to which substation is connected each element
-        self.load_to_subid = load_to_subid
-        self.gen_to_subid = gen_to_subid
-        self.lines_or_to_subid = lines_or_to_subid
-        self.lines_ex_to_subid = lines_ex_to_subid
+        self._load_to_subid = load_to_subid
+        self._gen_to_subid = gen_to_subid
+        self._lines_or_to_subid = lines_or_to_subid
+        self._lines_ex_to_subid = lines_ex_to_subid
         # which index has this element in the substation vector
-        self.load_to_sub_pos = load_to_sub_pos
-        self.gen_to_sub_pos = gen_to_sub_pos
-        self.lines_or_to_sub_pos = lines_or_to_sub_pos
-        self.lines_ex_to_sub_pos = lines_ex_to_sub_pos
+        self._load_to_sub_pos = load_to_sub_pos
+        self._gen_to_sub_pos = gen_to_sub_pos
+        self._lines_or_to_sub_pos = lines_or_to_sub_pos
+        self._lines_ex_to_sub_pos = lines_ex_to_sub_pos
         # which index has this element in the topology vector
-        self.load_pos_topo_vect = load_pos_topo_vect
-        self.gen_pos_topo_vect = gen_pos_topo_vect
-        self.lines_or_pos_topo_vect = lines_or_pos_topo_vect
-        self.lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
+        self._load_pos_topo_vect = load_pos_topo_vect
+        self._gen_pos_topo_vect = gen_pos_topo_vect
+        self._lines_or_pos_topo_vect = lines_or_pos_topo_vect
+        self._lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
 
         # for non deterministic observation that would not use default np.random module
         self.seed = seed
 
         # handles the forecasts here
-        self.forecasted_grid = []
-        self.forecasted_inj = []
+        self._forecasted_grid = []
+        self._forecasted_inj = []
 
-        self.obs_env = obs_env
+        self._obs_env = obs_env
         self.timestep_overflow = np.zeros(shape=(self.n_lines,))
 
         # 0. (line is disconnected) / 1. (line is connected)
         self.line_status = np.ones(shape=self.n_lines, dtype=np.float)
+
+        # topological vector
         self.topo_vect = np.full(shape=self.dim_topo, dtype=np.float, fill_value=1.)
 
-        # vecorized _grid
-        self.timestep_overflow = None
         # generators information
         self.prod_p = None
         self.prod_q = None
@@ -252,16 +253,10 @@ class Observation(ABC):
         # matrices
         self.connectity_matrix_ = None
         self.bus_connectivity_matrix_ = None
-        self.as_vect = None
+        self.vectorized = None
 
-        # calendar data
-        self.year = None
-        self.month = None
-        self.day = None
-        self.day_of_week = None
-        self.hour_of_day = None
-        self.minute_of_hour = None
-        self.tol_equal = 5e-1
+        # value to assess if two observations are equal
+        self._tol_equal = 5e-1
 
     def reset(self):
         # 0. (line is disconnected) / 1. (line is connected)
@@ -270,6 +265,7 @@ class Observation(ABC):
 
         # vecorized _grid
         self.timestep_overflow = None
+
         # generators information
         self.prod_p = None
         self.prod_q = None
@@ -292,7 +288,7 @@ class Observation(ABC):
         # matrices
         self.connectity_matrix_ = None
         self.bus_connectivity_matrix_ = None
-        self.as_vect = None
+        self.vectorized = None
 
         # calendar data
         self.year = None
@@ -314,7 +310,7 @@ class Observation(ABC):
                 return False
             if np.issubdtype(self.__dict__[name].dtype, np.dtype(float).type):
                 # special case of floating points, otherwise vector are never equal
-                if not np.all(np.abs(self.__dict__[name] - other.__dict__[name]) <= self.tol_equal):
+                if not np.all(np.abs(self.__dict__[name] - other.__dict__[name]) <= self._tol_equal):
                     return False
             else:
                 if not np.all(self.__dict__[name] == other.__dict__[name]):
@@ -361,20 +357,20 @@ class Observation(ABC):
         same_grid = same_grid and np.all(self.subs_info == other.subs_info)
         same_grid = same_grid and self.dim_topo == other.dim_topo
         # to which substation is connected each element
-        same_grid = same_grid and np.all(self.load_to_subid == other.load_to_subid)
-        same_grid = same_grid and np.all(self.gen_to_subid == other.gen_to_subid)
-        same_grid = same_grid and np.all(self.lines_or_to_subid == other.lines_or_to_subid)
-        same_grid = same_grid and np.all(self.lines_ex_to_subid == other.lines_ex_to_subid)
+        same_grid = same_grid and np.all(self._load_to_subid == other._load_to_subid)
+        same_grid = same_grid and np.all(self._gen_to_subid == other._gen_to_subid)
+        same_grid = same_grid and np.all(self._lines_or_to_subid == other._lines_or_to_subid)
+        same_grid = same_grid and np.all(self._lines_ex_to_subid == other._lines_ex_to_subid)
         # which index has this element in the substation vector
-        same_grid = same_grid and np.all(self.load_to_sub_pos == other.load_to_sub_pos)
-        same_grid = same_grid and np.all(self.gen_to_sub_pos == other.gen_to_sub_pos)
-        same_grid = same_grid and np.all(self.lines_or_to_sub_pos == other.lines_or_to_sub_pos)
-        same_grid = same_grid and np.all(self.lines_ex_to_sub_pos == other.lines_ex_to_sub_pos)
+        same_grid = same_grid and np.all(self._load_to_sub_pos == other._load_to_sub_pos)
+        same_grid = same_grid and np.all(self._gen_to_sub_pos == other._gen_to_sub_pos)
+        same_grid = same_grid and np.all(self._lines_or_to_sub_pos == other._lines_or_to_sub_pos)
+        same_grid = same_grid and np.all(self._lines_ex_to_sub_pos == other._lines_ex_to_sub_pos)
         # which index has this element in the topology vector
-        same_grid = same_grid and np.all(self.load_pos_topo_vect == other.load_pos_topo_vect)
-        same_grid = same_grid and np.all(self.gen_pos_topo_vect == other.gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self.lines_or_pos_topo_vect == other.lines_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self.lines_ex_pos_topo_vect == other.lines_ex_pos_topo_vect)
+        same_grid = same_grid and np.all(self._load_pos_topo_vect == other._load_pos_topo_vect)
+        same_grid = same_grid and np.all(self._gen_pos_topo_vect == other._gen_pos_topo_vect)
+        same_grid = same_grid and np.all(self._lines_or_pos_topo_vect == other._lines_or_pos_topo_vect)
+        same_grid = same_grid and np.all(self._lines_ex_pos_topo_vect == other._lines_ex_pos_topo_vect)
         if not same_grid:
             return False
 
@@ -432,7 +428,7 @@ class Observation(ABC):
 
         :param backend: an instance of Backend
         :type backend: :class:`grid2op.Backend`
-        :param timestep_overflow:
+        :param _timestep_overflow:
         :param chronics_handler:
         :return:
         """
@@ -479,25 +475,25 @@ class Observation(ABC):
 
         :return:
         """
-        if time_step >= len(self.forecasted_inj):
+        if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
 
-        if self.forecasted_grid[time_step] is None:
+        if self._forecasted_grid[time_step] is None:
             # initialize the "simulation environment" with the proper injections
-            self.forecasted_grid[time_step] = self.obs_env.copy()
-            timestamp, inj_forecasted = self.forecasted_inj[time_step]
+            self._forecasted_grid[time_step] = self._obs_env.copy()
+            timestamp, inj_forecasted = self._forecasted_inj[time_step]
             inj_action = self.action_helper(inj_forecasted)
-            self.forecasted_grid[time_step].init(inj_action, time_stamp=timestamp,
-                                                 timestep_overflow=self.timestep_overflow)
+            self._forecasted_grid[time_step].init(inj_action, time_stamp=timestamp,
+                                                  timestep_overflow=self.timestep_overflow)
 
-        return self.forecasted_grid[time_step].simulate(action)
+        return self._forecasted_grid[time_step].simulate(action)
 
     def copy(self):
-        obs_env = self.obs_env
-        self.obs_env = None
+        obs_env = self._obs_env
+        self._obs_env = None
         res = copy.deepcopy(self)
-        self.obs_env = obs_env
-        res.obs_env = obs_env.copy()
+        self._obs_env = obs_env
+        res._obs_env = obs_env.copy()
         return res
 
 
@@ -515,12 +511,15 @@ class CompleteObservation(Observation):
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
                              obs_env=obs_env,action_helper=action_helper,
                              seed=seed)
+        self.dictionnarized = None
+        self.connectity_matrix_ = None
+        self.bus_connectity_matrix_ = None
 
     def _reset_matrices(self):
         self.connectity_matrix_ = None
-        self.topo_obj_bus = None
-        self.as_vect = None
-        self.as_dict = None
+        self.bus_connectity_matrix_ = None
+        self.vectorized = None
+        self.dictionnarized = None
 
     def update(self, env):
         # reset the matrices
@@ -547,17 +546,17 @@ class CompleteObservation(Observation):
         self.p_ex, self.q_ex, self.v_ex, self.a_ex = env.backend.lines_ex_info()
 
         # handles forecasts here
-        self.forecasted_inj = env.chronics_handler.forecasts()
-        for i in range(len(self.forecasted_grid)):
+        self._forecasted_inj = env.chronics_handler.forecasts()
+        for i in range(len(self._forecasted_grid)):
             # in the action, i assign the lat topology known, it's a choice here...
-            self.forecasted_grid[i]["setbus"] = self.topo_vect
+            self._forecasted_grid[i]["setbus"] = self.topo_vect
 
-        self.forecasted_grid = [None for _ in self.forecasted_inj]
+        self._forecasted_grid = [None for _ in self._forecasted_inj]
 
     def to_vect(self):
         #TODO fix bug when action not initalized, return nan in this case
-        if self.as_vect is None:
-            self.as_vect = np.concatenate((
+        if self.vectorized is None:
+            self.vectorized = np.concatenate((
                 (self.year, ),
                 (self.month, ),
                 (self.day, ),
@@ -582,7 +581,7 @@ class CompleteObservation(Observation):
                 self.timestep_overflow.flatten(),
                 self.topo_vect.flatten()
                               ))
-        return self.as_vect
+        return self.vectorized
 
     def from_vect(self, vect):
         """
@@ -630,30 +629,30 @@ class CompleteObservation(Observation):
         self.topo_vect = self.topo_vect.astype(np.int)
 
     def to_dict(self):
-        if self.as_dict is None:
-            self.as_dict = {}
-            self.as_dict["timestep_overflow"] = self.timestep_overflow
-            self.as_dict["line_status"] = self.line_status
-            self.as_dict["topo_vect"] = self.topo_vect
-            self.as_dict["loads"] = {}
-            self.as_dict["loads"]["p"] = self.load_p
-            self.as_dict["loads"]["q"] = self.load_q
-            self.as_dict["loads"]["v"] = self.load_v
-            self.as_dict["prods"] = {}
-            self.as_dict["prods"]["p"] = self.prod_p
-            self.as_dict["prods"]["q"] = self.prod_q
-            self.as_dict["prods"]["v"] = self.prod_v
-            self.as_dict["lines_or"] = {}
-            self.as_dict["lines_or"]["p"] = self.p_or
-            self.as_dict["lines_or"]["q"] = self.q_or
-            self.as_dict["lines_or"]["v"] = self.v_or
-            self.as_dict["lines_or"]["a"] = self.a_or
-            self.as_dict["lines_ex"] = {}
-            self.as_dict["lines_ex"]["p"] = self.p_ex
-            self.as_dict["lines_ex"]["q"] = self.q_ex
-            self.as_dict["lines_ex"]["v"] = self.v_ex
-            self.as_dict["lines_ex"]["a"] = self.a_ex
-        return self.as_dict
+        if self.dictionnarized is None:
+            self.dictionnarized = {}
+            self.dictionnarized["_timestep_overflow"] = self.timestep_overflow
+            self.dictionnarized["line_status"] = self.line_status
+            self.dictionnarized["_topo_vect"] = self.topo_vect
+            self.dictionnarized["loads"] = {}
+            self.dictionnarized["loads"]["p"] = self.load_p
+            self.dictionnarized["loads"]["q"] = self.load_q
+            self.dictionnarized["loads"]["v"] = self.load_v
+            self.dictionnarized["prods"] = {}
+            self.dictionnarized["prods"]["p"] = self.prod_p
+            self.dictionnarized["prods"]["q"] = self.prod_q
+            self.dictionnarized["prods"]["v"] = self.prod_v
+            self.dictionnarized["lines_or"] = {}
+            self.dictionnarized["lines_or"]["p"] = self.p_or
+            self.dictionnarized["lines_or"]["q"] = self.q_or
+            self.dictionnarized["lines_or"]["v"] = self.v_or
+            self.dictionnarized["lines_or"]["a"] = self.a_or
+            self.dictionnarized["lines_ex"] = {}
+            self.dictionnarized["lines_ex"]["p"] = self.p_ex
+            self.dictionnarized["lines_ex"]["q"] = self.q_ex
+            self.dictionnarized["lines_ex"]["v"] = self.v_ex
+            self.dictionnarized["lines_ex"]["a"] = self.a_ex
+        return self.dictionnarized
 
     def connectity_matrix(self):
         """
@@ -663,7 +662,7 @@ class CompleteObservation(Observation):
         For two objects (lines extremity, generator unit, load) i,j :
             - if i and j are connected on the same substation:
                 - if `conn_mat[i,j] = 0` it means the objects id'ed i and j are not connected to the same bus.
-                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus.
+                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus, are both end of the same powerline
             - if i and j are not connected on the same substation then`conn_mat[i,j] = 0` except if i and j are the two extremities of the same power line, in this case `conn_mat[i,j] = 1`.
 
         By definition, the diagonal is made of 0.
@@ -691,8 +690,8 @@ class CompleteObservation(Observation):
                 beg_ += nb_obj
             # connect the objects together with the lines (both ends of a lines are connected together)
             for q_id in range(self.n_lines):
-                self.connectity_matrix_[self.lines_or_pos_topo_vect[q_id], self.lines_ex_pos_topo_vect[q_id]] = 1
-                self.connectity_matrix_[self.lines_ex_pos_topo_vect[q_id], self.lines_or_pos_topo_vect[q_id]] = 1
+                self.connectity_matrix_[self._lines_or_pos_topo_vect[q_id], self._lines_ex_pos_topo_vect[q_id]] = 1
+                self.connectity_matrix_[self._lines_ex_pos_topo_vect[q_id], self._lines_or_pos_topo_vect[q_id]] = 1
 
         return self.connectity_matrix_
 
@@ -711,33 +710,39 @@ class CompleteObservation(Observation):
         if self.bus_connectivity_matrix_ is None:
             # computes the number of buses in the powergrid.
             nb_bus = 0
-            nb_bus_per_sub = np.zeros(self.subs_info)
+            nb_bus_per_sub = np.zeros(self.subs_info.shape[0])
             beg_ = 0
             end_ = 0
             for sub_id, nb_obj in enumerate(self.subs_info):
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
 
-                tmp = len(np.unique(self.topo_vect[beg_:end_])[0])
+                tmp = len(np.unique(self.topo_vect[beg_:end_]))
                 nb_bus_per_sub[sub_id] = tmp
                 nb_bus += tmp
 
                 beg_ += nb_obj
 
             # define the bus_connectivity_matrix
-            self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus),dtype=np.float)
+            self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=np.float)
+            np.fill_diagonal(self.bus_connectivity_matrix_, 1)
+            
             for q_id in range(self.n_lines):
-                bus_or = self.lines_or_pos_topo_vect[q_id]
-                sub_id_or = self.lines_or_to_subid[q_id]
+                bus_or = int(self.topo_vect[self._lines_or_pos_topo_vect[q_id]])
+                sub_id_or = int(self._lines_or_to_subid[q_id])
 
-                bus_ex = self.lines_ex_pos_topo_vect[q_id]
-                sub_id_ex = self.lines_ex_to_subid[q_id]
+                bus_ex = int(self.topo_vect[self._lines_ex_pos_topo_vect[q_id]])
+                sub_id_ex = int(self._lines_ex_to_subid[q_id])
 
-                bus_id_or = np.sum(nb_bus_per_sub[:sub_id_or])+(bus_or-1)
-                bus_id_ex = np.sum(nb_bus_per_sub[:sub_id_ex])+(bus_ex-1)
+                # try:
+                bus_id_or = int(np.sum(nb_bus_per_sub[:sub_id_or])+(bus_or-1))
+                bus_id_ex = int(np.sum(nb_bus_per_sub[:sub_id_ex])+(bus_ex-1))
+
                 self.bus_connectivity_matrix_[bus_id_or, bus_id_ex] = 1
                 self.bus_connectivity_matrix_[bus_id_ex, bus_id_or] = 1
-        return self.topo_obj_bus
+                # except:
+                #     pdb.set_trace()
+        return self.bus_connectivity_matrix_
 
     def size(self):
         """
@@ -766,11 +771,11 @@ class ObservationHelper:
                  rewardClass=None,
                  observationClass=CompleteObservation):
         """
-        Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend`
+        Env: requires :attr:`grid2op.Environment._parameters` and :attr:`grid2op.Environment.backend`
 
         Parameters
         ----------
-        parameters
+        _parameters
         n_gen
         n_load
         n_lines
@@ -795,7 +800,7 @@ class ObservationHelper:
         # TODO DOCUMENTATION !!!
 
         self.parameters = copy.deepcopy(env.parameters)
-        # for the observation, I switch betwween the parameters for the environment and for the simulation
+        # for the observation, I switch betwween the _parameters for the environment and for the simulation
         self.parameters.ENV_DC = self.parameters.FORECAST_DC
 
         if rewardClass is None:

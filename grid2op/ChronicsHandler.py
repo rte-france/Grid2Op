@@ -553,14 +553,14 @@ class GridStateFromFile(GridValue):
         The first row of these csv is understood as the name of the object concerned by the column. Either this name is
         present in the :class:`grid2op.Backend`, in this case no modification is performed, or in case the name
         is not found in the backend and in this case it must be specified in the "names_chronics_to_backend"
-        parameters how to understand it. See the help of :func:`GridValue.initialize` for more information
+        _parameters how to understand it. See the help of :func:`GridValue.initialize` for more information
         about this dictionnary.
 
         All files should have the same number of rows.
 
         Parameters
         ----------
-        See help of :func:`GridValue.initialize` for a detailed help about the parameters.
+        See help of :func:`GridValue.initialize` for a detailed help about the _parameters.
 
         Returns
         -------
@@ -787,7 +787,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
         Parameters
         ----------
-        See help of :func:`GridValue.initialize` for a detailed help about the parameters.
+        See help of :func:`GridValue.initialize` for a detailed help about the _parameters.
 
         Returns
         -------

@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--path_chronics', type=str, default=DEFAULT_CHRONICS_DATA,
                         help='Path where the chronics (temporal variation of loads and production usually are located)')
     parser.add_argument('--path_parameters', default=None,
-                        help='Path where the parameters of the game are stored')
+                        help='Path where the _parameters of the game are stored')
 
     args = parser.parse_args()
 

@@ -185,7 +185,7 @@ class Action(object):
         *full_topo_vect* resulting of the concatenation of the topology vector for each substation
         (see :attr:`Action._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
         :attr:`Action._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *topo_vect\[ action._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
+        More formally, if *_topo_vect\[ action._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
         second bus of the substation.
 
     _gen_pos_topo_vect: :class:`numpy.array`, dtype:int
@@ -1230,7 +1230,7 @@ class Action(object):
         Parameters
         ----------
         _sentinel: ``None``
-            Used to prevent positional parameters. Internal, do not use.
+            Used to prevent positional _parameters. Internal, do not use.
 
         load_id: ``int``
             ID of the load we want to inspect
@@ -1293,7 +1293,7 @@ class Action(object):
         ------
         Grid2OpException
             If _sentinel is modified, or if None of the arguments are set or alternatively if 2 or more of the
-            parameters are being set.
+            _parameters are being set.
 
         """
         if _sentinel is not None:
@@ -1518,7 +1518,7 @@ class TopologyAction(Action):
 # TODO have something that output a dict like "i want to change this element", with its name accessible here
 class HelperAction:
     """
-    :class:`HelperAction` should be instanciated by an :class:`Environment` with its parameters coming from a properly
+    :class:`HelperAction` should be instanciated by an :class:`Environment` with its _parameters coming from a properly
     set up :class:`Backend` (ie a Backend instance with a loaded powergrid. See :func:`grid2op.Backend.load_grid` for
     more information).
 
@@ -1564,37 +1564,37 @@ class HelperAction:
 
     load_to_sub_pos: :class:`numpy.array`, dtype:int
         The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`HelperAction.subs_info`\[i\]. For a given load of id *l*, :attr:`HelperAction.load_to_sub_pos`\[l\] is the index
+        :attr:`HelperAction.subs_info`\[i\]. For a given load of id *l*, :attr:`HelperAction._load_to_sub_pos`\[l\] is the index
         of the load *l* in the vector *sub_topo_vect*. This means that, if
         *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
         then load of id *l* is connected to the second bus of the substation.
 
     gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_to_sub_pos` but for generators.
+        same as :attr:`HelperAction._load_to_sub_pos` but for generators.
 
     lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_to_sub_pos`  but for "origin" end of powerlines.
+        same as :attr:`HelperAction._load_to_sub_pos`  but for "origin" end of powerlines.
 
     lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_to_sub_pos` but for "extremity" end of powerlines.
+        same as :attr:`HelperAction._load_to_sub_pos` but for "extremity" end of powerlines.
 
     load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`HelperAction.load_to_sub_pos` but it gives the position in the vector representing
+        It has a similar role as :attr:`HelperAction._load_to_sub_pos` but it gives the position in the vector representing
         the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
         *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend.load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`HelperAction.load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *topo_vect\[ backend.load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
+        (see :attr:`Backend._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
+        :attr:`HelperAction._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
+        More formally, if *_topo_vect\[ backend._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
         second bus of the substation.
 
     gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_pos_topo_vect` but for generators.
+        same as :attr:`HelperAction._load_pos_topo_vect` but for generators.
 
     lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_pos_topo_vect` but for "origin" end of powerlines.
+        same as :attr:`HelperAction._load_pos_topo_vect` but for "origin" end of powerlines.
 
     lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_pos_topo_vect` but for "extremity" end of powerlines.
+        same as :attr:`HelperAction._load_pos_topo_vect` but for "extremity" end of powerlines.
 
     name_load: :class:`numpy.array`, dtype:str
         ordered name of the loads in the helper. This is mainly use to make sure the "chronics" are used properly.
@@ -1621,7 +1621,7 @@ class HelperAction:
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
                  game_rules, actionClass=Action):
         """
-        All parameters (name_prod, name_load, name_line, subs_info, etc.) are used to fill the attributes having the
+        All _parameters (name_prod, name_load, name_line, subs_info, etc.) are used to fill the attributes having the
         same name. See :class:`HelperAction` for more information.
 
         Parameters

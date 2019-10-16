@@ -17,7 +17,7 @@ with:
     :class:`grid2op.Agent` (and especially its method :func:`grid2op.Agent.act`) and amount of time spent in the
     :class:`grid2op.Environment`
 
-  - "parameters.json": is a representation as json of a the :class:`grid2op.Parameters` used for this episode
+  - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters` used for this episode
   - "rewards.npy" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
     reward at index `i` is the one observed by the agent at time `i` and **NOT** the reward sent by the
     :class:`grid2op.Environment` after the action has been implemented.
@@ -208,7 +208,7 @@ class Runner(object):
         corresponds to using default values.
 
     parameters: :class:`grid2op.Parameters`
-        Type of parameters used. This is an instance (object) of type :class:`grid2op.Parameters` initialized from
+        Type of _parameters used. This is an instance (object) of type :class:`grid2op.Parameters` initialized from
         :attr:`Runner.parameters_path`
 
     path_chron: ``str``
@@ -333,11 +333,11 @@ class Runner(object):
 
         self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
 
-        # store parameters
+        # store _parameters
         self.init_grid_path = init_grid_path
         self.names_chronics_to_backend = names_chronics_to_backend
 
-        # game parameters
+        # game _parameters
         self.parameters_path = parameters_path
         self.parameters = Parameters(parameters_path)
 
@@ -454,7 +454,7 @@ class Runner(object):
             dict_["backend_type"] = "{}".format(type(env.backend).__name__)
             dict_["env_type"] = "{}".format(type(env).__name__)
 
-            with open(os.path.join(this_path, "parameters.json"), "w") as f:
+            with open(os.path.join(this_path, "_parameters.json"), "w") as f:
                 dict_params = env.parameters.to_dict()
                 json.dump(obj=dict_params, fp=f, indent=4, sort_keys=True)
 

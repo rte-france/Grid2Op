@@ -670,7 +670,7 @@ class TestTopoAction(unittest.TestCase):
 #                                   _lines_ex_pos_topo_vect=self.backend._lines_ex_pos_topo_vect)
 #
 #
-#         # parameters for the environment
+#         # _parameters for the environment
 #         self.env_params = Parameters()
 #
 #         # used for init an env too
@@ -688,7 +688,7 @@ class TestTopoAction(unittest.TestCase):
 #         env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
 #                           backend=self.backend,
 #                           chronics_handler=self.chronics_handler,
-#                           parameters=self.env_params)
+#                           _parameters=self.env_params)
 #
 #         disco, infos = self.backend.next_grid_state(env, is_dc=False)
 #         assert not infos
@@ -699,7 +699,7 @@ class TestTopoAction(unittest.TestCase):
 #         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
 #                           backend=self.backend,
 #                           chronics_handler=self.chronics_handler,
-#                           parameters=self.env_params)
+#                           _parameters=self.env_params)
 #         self.backend.load_grid(self.path_matpower, case_file)
 #         disco, infos = self.backend.next_grid_state(env, is_dc=False)
 #         assert len(infos) == 1  # check that i have only one overflow
@@ -712,7 +712,7 @@ class TestTopoAction(unittest.TestCase):
 #         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
 #                           backend=self.backend,
 #                           chronics_handler=self.chronics_handler,
-#                           parameters=self.env_params)
+#                           _parameters=self.env_params)
 #         disco, infos = self.backend.next_grid_state(env, is_dc=False)
 #         assert not infos # check that don't simulate a cascading failure
 #         assert np.sum(disco) == 0
@@ -727,7 +727,7 @@ class TestTopoAction(unittest.TestCase):
 #         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
 #                           backend=self.backend,
 #                           chronics_handler=self.chronics_handler,
-#                           parameters=self.env_params)
+#                           _parameters=self.env_params)
 #         self.backend.load_grid(self.path_matpower, case_file)
 #         disco, infos = self.backend.next_grid_state(env, is_dc=False)
 #         assert len(infos) == 1  # check that don't simulate a cascading failure
@@ -747,7 +747,7 @@ class TestTopoAction(unittest.TestCase):
 #         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
 #                           backend=self.backend,
 #                           chronics_handler=self.chronics_handler,
-#                           parameters=self.env_params)
+#                           _parameters=self.env_params)
 #         self.backend.load_grid(self.path_matpower, case_file)
 #         disco, infos = self.backend.next_grid_state(env, is_dc=False)
 #         assert len(infos) == 1  # check that don't simulate a cascading failure
@@ -767,8 +767,8 @@ class TestTopoAction(unittest.TestCase):
 #         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
 #                           backend=self.backend,
 #                           chronics_handler=self.chronics_handler,
-#                           parameters=self.env_params)
-#         env.timestep_overflow[15] = 1
+#                           _parameters=self.env_params)
+#         env._timestep_overflow[15] = 1
 #         self.backend.load_grid(self.path_matpower, case_file)
 #         disco, infos = self.backend.next_grid_state(env, is_dc=False)
 #         assert len(infos) == 1  # check that don't simulate a cascading failure
@@ -787,8 +787,8 @@ class TestTopoAction(unittest.TestCase):
 #         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
 #                           backend=self.backend,
 #                           chronics_handler=self.chronics_handler,
-#                           parameters=self.env_params)
-#         env.timestep_overflow[15] = 2
+#                           _parameters=self.env_params)
+#         env._timestep_overflow[15] = 2
 #         self.backend.load_grid(self.path_matpower, case_file)
 #         disco, infos = self.backend.next_grid_state(env, is_dc=False)
 #         assert len(infos) == 2  # check that there is a cascading failure of length 2
@@ -808,8 +808,8 @@ class TestTopoAction(unittest.TestCase):
 
 # TODO test also the methods added for observation:
 """
-        self.line_status = copy.copy(backend.get_line_status())
-        self.topo_vect = copy.copy(backend.get_topo_vect())
+        self._line_status = copy.copy(backend.get_line_status())
+        self._topo_vect = copy.copy(backend.get_topo_vect())
         # get the values related to continuous values
         self.prod_p, self.prod_q, self.prod_v = backend.generators_info()
         self.load_p, self.load_q, self.load_v = backend.loads_info()

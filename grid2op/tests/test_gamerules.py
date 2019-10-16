@@ -34,7 +34,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # force the verbose backend
         self.adn_backend.detailed_infos_for_cascading_failures = True
 
-        # parameters for the environment
+        # _parameters for the environment
         self.env_params = Parameters()
 
         self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',

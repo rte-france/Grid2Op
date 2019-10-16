@@ -61,7 +61,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                                     "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
                                           }
 
-        # parameters for the environment
+        # _parameters for the environment
         self.env_params = Parameters()
 
         self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),

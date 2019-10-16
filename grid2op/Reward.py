@@ -82,7 +82,7 @@ class Reward(ABC):
         Returns
         -------
         res: ``float``
-            The associated reward to the input parameters.
+            The associated reward to the input _parameters.
 
         """
         pass

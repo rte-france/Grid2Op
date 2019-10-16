@@ -1,5 +1,5 @@
 """
-The challenge "learning to run a power network" offers different parameters to be customized, or to learn an
+The challenge "learning to run a power network" offers different _parameters to be customized, or to learn an
 :class:`grid2op.Agent` that will perform better for example.
 
 This class is an attempt to group them all inside one single structure.
@@ -15,9 +15,9 @@ import re
 
 class Parameters:
     """
-    Main classes representing the parameters of the game. The main paratemeters are describe bellow.
+    Main classes representing the _parameters of the game. The main paratemeters are describe bellow.
 
-    Note that changing the values of these parameters might not be enough. If these parameters are not used in the
+    Note that changing the values of these _parameters might not be enough. If these _parameters are not used in the
     :class:`grid2op.GameRules`, then modifying them will have no impact at all.
 
     Attributes
@@ -62,11 +62,11 @@ class Parameters:
     """
     def __init__(self, parameters_path=None):
         """
-        Build an object representing the parameters of the game.
+        Build an object representing the _parameters of the game.
         Parameters
         ----------
         parameters_path: ``str``, optional
-            Path where to look for parameters.
+            Path where to look for _parameters.
         """
         # if True, then it will not disconnect lines above their thermal limits
         self.NO_OVERFLOW_DISCONNECTION = False
@@ -102,11 +102,11 @@ class Parameters:
                         dict_ = json.load(f)
                     self._init_from_json(dict_)
                 else:
-                    warn_msg = "Parameters: the file {} is not a supported file for loading parameters. Continuing with default parameters."
+                    warn_msg = "Parameters: the file {} is not a supported file for loading _parameters. Continuing with default _parameters."
                     warnings.warn(warn_msg.format(parameters_path))
 
             else:
-                warn_msg = "Parameters: the file {} is not found. Continuing with default parameters."
+                warn_msg = "Parameters: the file {} is not found. Continuing with default _parameters."
                 warnings.warn(warn_msg.format(parameters_path))
 
     @staticmethod
@@ -134,7 +134,7 @@ class Parameters:
         Parameters
         ----------
         dict_: ``dict``
-            The dictionnary representing the parameters to load.
+            The dictionnary representing the _parameters to load.
 
         Returns
         -------
@@ -166,16 +166,16 @@ class Parameters:
 
         ignored_keys = dict_.keys() - self.__dict__.keys()
         if len(ignored_keys):
-            warnings.warn("Parameters: The parameters \"{}\" used to build the Grid2Op.Parameters class are not recognized and will be ignored.".format(ignored_keys))
+            warnings.warn("Parameters: The _parameters \"{}\" used to build the Grid2Op.Parameters class are not recognized and will be ignored.".format(ignored_keys))
 
     def to_dict(self):
         """
-        Serialize all the parameters as a dictionnary; Usefull to write it in json format.
+        Serialize all the _parameters as a dictionnary; Usefull to write it in json format.
 
         Returns
         -------
         res: ``dict``
-            A representation of these parameters in the form of a dictionnary.
+            A representation of these _parameters in the form of a dictionnary.
 
         """
         res = {}
@@ -192,7 +192,7 @@ class Parameters:
     @staticmethod
     def init_from_json(json_path):
         """
-        Initializes the parameters from a json path.
+        Initializes the _parameters from a json path.
 
         Parameters
         ----------
@@ -202,7 +202,7 @@ class Parameters:
         Returns
         -------
         res: :class:`Parameters`
-            The parameters initialized
+            The _parameters initialized
 
         """
         with open(json_path) as f:

@@ -88,37 +88,37 @@ class Backend(ABC):
 
     load_to_sub_pos: :class:`numpy.array`, dtype:int
         The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`Backend.subs_info`\[i\]. For a given load of id *l*, :attr:`Backend.load_to_sub_pos`\[l\] is the index
+        :attr:`Backend.subs_info`\[i\]. For a given load of id *l*, :attr:`Backend._load_to_sub_pos`\[l\] is the index
         of the load *l* in the vector *sub_topo_vect*. This means that, if
         *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
         then load of id *l* is connected to the second bus of the substation.
 
     gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_to_sub_pos` but for generators.
+        same as :attr:`Backend._load_to_sub_pos` but for generators.
 
     lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_to_sub_pos`  but for "origin" end of powerlines.
+        same as :attr:`Backend._load_to_sub_pos`  but for "origin" end of powerlines.
 
     lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_to_sub_pos` but for "extremity" end of powerlines.
+        same as :attr:`Backend._load_to_sub_pos` but for "extremity" end of powerlines.
 
     load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`Backend.load_to_sub_pos` but it gives the position in the vector representing
+        It has a similar role as :attr:`Backend._load_to_sub_pos` but it gives the position in the vector representing
         the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
         *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend.load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`Backend.load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *topo_vect\[ backend.load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
+        (see :attr:`Backend._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
+        :attr:`Backend._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
+        More formally, if *_topo_vect\[ backend._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
         second bus of the substation.
 
     gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_pos_topo_vect` but for generators.
+        same as :attr:`Backend._load_pos_topo_vect` but for generators.
 
     lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_pos_topo_vect` but for "origin" end of powerlines.
+        same as :attr:`Backend._load_pos_topo_vect` but for "origin" end of powerlines.
 
     lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_pos_topo_vect` but for "extremity" end of powerlines.
+        same as :attr:`Backend._load_pos_topo_vect` but for "extremity" end of powerlines.
 
     _grid: (its type depends on the backend, precisely)
         is a representation of the powergrid that can be called and manipulated by the backend.
@@ -785,7 +785,7 @@ class Backend(ABC):
         :param bus_id:
         :return: the substation to which an object connected to bus with id `bus_id` is connected to.
         """
-        raise Grid4RLException("This backend doesn't allow to get the substation from the bus id.")
+        raise Grid2OpException("This backend doesn't allow to get the substation from the bus id.")
 
     @abstractmethod
     def _disconnect_line(self, id):
