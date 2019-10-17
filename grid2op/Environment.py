@@ -352,6 +352,7 @@ class Environment:
         except StopIteration:
             # episode is over
             is_done = True
+
         return self.current_obs, self._get_reward(action, has_error, is_done), self._is_done(has_error, is_done),\
                {"disc_lines": disc_lines}
 

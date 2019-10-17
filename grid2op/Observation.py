@@ -4,7 +4,7 @@ the :class:`grid2op.Environment`. One of them is the :class:`grid2op.Reward` tha
 performed. The second main input received from the environment is the :class:`Observation`. This is gives the Agent
 partial, noisy, or complete information about the current state of the environment. This module implement a generic
 :class:`Observation`  class and an example of a complete observation in the case of the Learning
-To Run a Power Network (`l2RPN <https://l2rpn.chalearn.org/>`_ (l2RPN) ) competition.
+To Run a Power Network (`l2RPN <https://l2rpn.chalearn.org/>`_ ) competition.
 
 Compared to other Reinforcement Learning problems the L2PRN competition allows another flexibility. Today, when
 operating a powergrid, operators have "forecasts" at their disposal. We wanted to make them available in the
@@ -82,7 +82,6 @@ class ObsEnv(object):
         self.reward_helper = reward_helper
         self.obsClass = obsClass
         self.parameters = parameters
-
         self.dim_topo = np.sum(self.backend.subs_elements)
         self.time_stamp = None
 
@@ -155,7 +154,11 @@ class ObsEnv(object):
         return self.current_obs, reward, has_error, {}
 
     def _get_reward(self, action, has_error, is_done):
-        return self.reward_helper(action, self, has_error, is_done)
+        if has_error:
+            res = self.reward_helper.range()[0]
+        else:
+            res = self.reward_helper(action, self, has_error, is_done)
+        return res
 
     def get_obs(self):
         """
@@ -223,6 +226,7 @@ class Observation(ABC):
         self._forecasted_inj = []
 
         self._obs_env = obs_env
+
         self.timestep_overflow = np.zeros(shape=(self.n_lines,))
 
         # 0. (line is disconnected) / 1. (line is connected)
@@ -237,7 +241,7 @@ class Observation(ABC):
         self.prod_v = None
         # loads information
         self.load_p = None
-        self.prod_q = None
+        self.load_q = None
         self.load_v = None
         # lines origin information
         self.p_or = None
@@ -249,6 +253,8 @@ class Observation(ABC):
         self.q_ex = None
         self.v_ex = None
         self.a_ex = None
+        # lines relative flows
+        self.rho = None
 
         # matrices
         self.connectity_matrix_ = None
@@ -284,6 +290,8 @@ class Observation(ABC):
         self.q_ex = None
         self.v_ex = None
         self.a_ex = None
+        # lines relative flows
+        self.rho = None
 
         # matrices
         self.connectity_matrix_ = None
@@ -485,7 +493,6 @@ class Observation(ABC):
             inj_action = self.action_helper(inj_forecasted)
             self._forecasted_grid[time_step].init(inj_action, time_stamp=timestamp,
                                                   timestep_overflow=self.timestep_overflow)
-
         return self._forecasted_grid[time_step].simulate(action)
 
     def copy(self):
@@ -552,6 +559,7 @@ class CompleteObservation(Observation):
             self._forecasted_grid[i]["setbus"] = self.topo_vect
 
         self._forecasted_grid = [None for _ in self._forecasted_inj]
+        self.rho = env.backend.get_relative_flow(self)
 
     def to_vect(self):
         #TODO fix bug when action not initalized, return nan in this case
@@ -577,6 +585,7 @@ class CompleteObservation(Observation):
                 self.q_ex.flatten(),
                 self.v_ex.flatten(),
                 self.a_ex.flatten(),
+                self.rho.flatten(),
                 self.line_status.flatten(),
                 self.timestep_overflow.flatten(),
                 self.topo_vect.flatten()
@@ -620,6 +629,7 @@ class CompleteObservation(Observation):
         self.q_ex = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
         self.v_ex = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
         self.a_ex = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.rho = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
 
         self.line_status = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
         self.line_status = self.line_status.astype(np.bool)
@@ -652,6 +662,7 @@ class CompleteObservation(Observation):
             self.dictionnarized["lines_ex"]["q"] = self.q_ex
             self.dictionnarized["lines_ex"]["v"] = self.v_ex
             self.dictionnarized["lines_ex"]["a"] = self.a_ex
+            self.dictionnarized["rho"] = self.rho
         return self.dictionnarized
 
     def connectity_matrix(self):
@@ -726,7 +737,7 @@ class CompleteObservation(Observation):
             # define the bus_connectivity_matrix
             self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=np.float)
             np.fill_diagonal(self.bus_connectivity_matrix_, 1)
-            
+
             for q_id in range(self.n_lines):
                 bus_or = int(self.topo_vect[self._lines_or_pos_topo_vect[q_id]])
                 sub_id_or = int(self._lines_or_to_subid[q_id])
@@ -758,7 +769,7 @@ class CompleteObservation(Observation):
 
         :return: the size of the flatten observation vector.
         """
-        return 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_lines + 2*self.n_lines + self.dim_topo
+        return 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_lines + 3*self.n_lines + self.dim_topo
 
 
 class ObservationHelper:
@@ -807,8 +818,8 @@ class ObservationHelper:
             self.rewardClass = env.rewardClass
         else:
             self.rewardClass = rewardClass
+
         # helpers
-        self.reward_helper = RewardHelper(rewardClass)
         self.action_helper_env = env.helper_action_env
         self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
 
@@ -856,7 +867,6 @@ class ObservationHelper:
                                                lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect,
                                                obs_env=self.obs_env,
                                                action_helper=self.action_helper_env)
-
         self.seed = None
         self.n = self.empty_obs.size()
 
@@ -864,6 +874,7 @@ class ObservationHelper:
         if self.seed is not None:
             # in this case i have specific seed set. So i force the seed to be deterministic.
             self.seed = np.random.randint(4294967295)
+
         res = self.observationClass(parameters = self.parameters,
                                     n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
                                     subs_info=self.subs_info, dim_topo=self.dim_topo,

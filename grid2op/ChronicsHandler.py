@@ -61,6 +61,9 @@ import pdb
 
 # TODO sous echantillonner ou sur echantilloner les scenario
 # TODO max_iter is not properly handled in the example of GridValue now
+# TODO add a class to sample "online" the data.
+
+
 class GridValue(ABC):
     """
     This is the base class for every kind of data for the _grid.

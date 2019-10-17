@@ -328,7 +328,6 @@ class PandaPowerBackend(Backend):
         if not isinstance(action, Action):
             raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not {}".format(action.__class__))
 
-
         # change the injection if needed
         dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect = action()
         for k in self._vars_action:
@@ -388,6 +387,9 @@ class PandaPowerBackend(Backend):
                         # now assign the proper bus to each element
                         for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
                             self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_substations
+                            if table == "line" or table == "trafo":
+                                # I connect it if it was disconnected
+                                self._grid[table]["in_service"].iloc[row_id] = True
                     beg_ += nb_obj
 
         # change line status if needed

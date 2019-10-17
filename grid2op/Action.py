@@ -21,7 +21,7 @@ understands its return type.
 
 In this module we derived two action class:
 
-  - :class:`FullAction` represents an type of action that can act on all the above mentionned objects
+  - :class:`Action` represents an type of action that can act on all the above mentionned objects
   - :class:`TopologyAction` restricts the modification to line status modification and bus reconfiguration at substations.
 
 
@@ -369,7 +369,7 @@ class Action(object):
         """
         Test the equality of two actions.
 
-        2 actions are said to be identical if the have the same impact on the powergrid. This is unlrelated to their
+        2 actions are said to be identical if the have the same impact on the powergrid. This is unrelated to their
         respective class. For example, if an Action is of class :class:`Action` and doesn't act on the injection, it
         can be equal to a an Action of derived class :class:`TopologyAction` (if the topological modification are the
         same of course).
@@ -657,7 +657,7 @@ class Action(object):
         if "set_status" in dict_:
             # the action will disconnect a powerline
             # note that if a powerline is already disconnected, it does nothing
-            # this action can both deconnect or reconnect a powerlines
+            # this action can both disconnect or reconnect a powerlines
             if dict_["set_status"] is not None:
                 if len(dict_["set_status"]) != self._n_lines:
                     raise InvalidNumberOfLines(
@@ -824,7 +824,8 @@ class Action(object):
             **NB**: length of vector here are NOT check in this function. This method can be "chained" and only on the final
             action, when used, eg. in the Backend, i checked.
 
-            **NB**: If a powerline is disconnected, on maintenance, or suffer an outage, the associated will be ignored.
+            **NB**: If a powerline is disconnected, on maintenance, or suffer an outage, the associated "set_bus" will
+            be ignored.
             Disconnection has the priority on anything. This priority is given because in case of hazard, the hazard has
             the priority over the possible actions.
 

@@ -54,7 +54,7 @@ try:
     from .Action import HelperAction, Action, TopologyAction
     from .Exceptions import *
     from .Observation import CompleteObservation, ObservationHelper, Observation
-    from .Reward import ConstantReward, RewardHelper, Reward
+    from .Reward import FlatReward, RewardHelper, Reward
     from .GameRules import GameRules, AllwaysLegal, LegalAction
     from .Environment import Environment
     from .ChronicsHandler import ChronicsHandler, GridStateFromFile, GridValue
@@ -67,7 +67,7 @@ except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
     from Exceptions import *
     from Observation import CompleteObservation, ObservationHelper, Observation
-    from Reward import ConstantReward, RewardHelper, Reward
+    from Reward import FlatReward, RewardHelper, Reward
     from GameRules import GameRules, AllwaysLegal, LegalAction
     from Environment import Environment
     from ChronicsHandler import ChronicsHandler, GridStateFromFile, GridValue
@@ -243,7 +243,7 @@ class Runner(object):
                  names_chronics_to_backend=None,
                  actionClass=TopologyAction,
                  observationClass=CompleteObservation,
-                 rewardClass=ConstantReward,
+                 rewardClass=FlatReward,
                  legalActClass=AllwaysLegal,
                  envClass=Environment,
                  gridStateclass=GridStateFromFile, #type of chronics to use. For example GridStateFromFile if forecasts are not used, or GridStateFromFileWithForecasts otherwise
@@ -475,6 +475,14 @@ class Runner(object):
             obs, reward, done, info = env.step(act)  # should load the first time stamp
             beg__ = time.time()
             act = agent.act(obs, reward, done)
+            # try:
+            #     act = agent.act(obs, reward, done)
+            # except AmbiguousAction as except_:
+            #     reward = env.reward_helper.range()[0]
+            #     done = True
+            #     info = {"previous_info": info, "ambiguous_action": "{}".format(except_)}
+            #     pdb.set_trace()
+
             end__ = time.time()
             time_act += end__ - beg__
             cum_reward += reward
@@ -493,7 +501,7 @@ class Runner(object):
                         if arr is not None:
                             disc_lines[curr_timestep, :] = arr
                 else:
-                    # completely inefficient way of write
+                    # completely inefficient way of writing
                     times = np.concatenate((times, (end__ - beg__, )))
                     rewards = np.concatenate((rewards, (reward, )))
                     actions = np.concatenate((actions, act.to_vect()))

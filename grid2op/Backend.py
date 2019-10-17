@@ -645,13 +645,27 @@ class Backend(ABC):
         For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
 
         :param obs: the current observation in which the powerflow is done. This can be use for example in case of DLR implementation.
-        :type obs: Observation
+        :type obs: :class:`grid2op.Observation`
 
         :return: An array giving the thermal limit of the powerlines.
         :rtype: np.array, dtype:float
         """
         pass
 
+    def get_relative_flow(self, obs=None):
+        """
+        This method return the relative flows, *eg.* the current flow divided by the thermal limits. It has a pretty
+        straightforward default implementation, but it can be overriden for example for transformer if the limits are
+        on the lower voltage side or on the upper voltage level.
+
+        :param obs:
+        :type obs: :class:`grid2op.Observation`
+
+        :return:
+        """
+        num_ = self.get_line_flow()
+        denom_ = self.get_thermal_limit(obs=obs)
+        return num_ / denom_
 
     def get_line_overflow(self, obs=None):
         """
