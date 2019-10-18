@@ -235,11 +235,12 @@ class PowerLineSwitch(GreedyAgent):
             if not observation.line_status[i]:
                 # so the action consisted in reconnecting the powerline
                 # i need to say on which bus
-                name_element = self.action_space.name_line[i]
-                action = self.action_space.set_bus(name_element, 1, extremity="or", type_element="line",
-                                                   previous_action=action)
-                action = self.action_space.set_bus(name_element, 1, extremity="ex", type_element="line",
-                                                   previous_action=action)
+                action = action.update({"set_bus": {"lines_or": [(i, 1)], "lines_ex": [(i, 1)]}})
+                # name_element = self.action_space.name_line[i]
+                # action = self.action_space.set_bus(name_element, 1, extremity="or", type_element="line",
+                #                                    previous_action=action)
+                # action = self.action_space.set_bus(name_element, 1, extremity="ex", type_element="line",
+                #                                    previous_action=action)
             res.append(action)
         return res
 

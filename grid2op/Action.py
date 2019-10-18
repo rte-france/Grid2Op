@@ -49,16 +49,16 @@ except ModuleNotFoundError:
 except ImportError:
     from Exceptions import *
 
-# TODO code "reduce" multiple action
-# TODO code "json" serialization
-# TODO code "convert_for" and "convert_from" to be able to change the backend
-# TODO have something that output a dict like "i want to change this element" (with a simpler API than the update stuff)
-# TODO time delay somewhere
+# TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
+# ambiguous at all, same with "set" then "change")
 
-# TODO have some kind of utilities functions to change some elements more easily, for example, reconnecting to bus 1
-# both ends of a powerline
+# TODO code "json" serialization
+# TODO code "convert_for" and "convert_from" to be able to change the backend (should be handled by the backend directly)
+# TODO have something that output a dict like "i want to change this element" (with a simpler API than the update stuff)
+# TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
+
 
 class Action(object):
     """
@@ -365,6 +365,34 @@ class Action(object):
         self._subs_impacted = None
         self._lines_impacted = None
 
+    def get_set_status_vect(self):
+        """
+        Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`.
+
+        **NB** this vector is not the internal vector of this action, but corresponds to "do nothing" action.
+
+        Returns
+        -------
+        res: :class:`numpy.array`, dtype:np.int
+            A vector that doesn't affect the grid, but can be used in "set_status"
+
+        """
+        return np.full(shape=self._n_lines, fill_value=0, dtype=np.int)
+
+    def get_change_status_vect(self):
+        """
+        Computes and return a vector that can be used in the "change_status" keyword if building an :class:`Action`
+
+        **NB** this vector is not the internal vector of this action, but corresponds to "do nothing" action.
+
+        Returns
+        -------
+        res: :class:`numpy.array`, dtype:np.bool
+            A vector that doesn't affect the grid, but can be used in "change_status"
+
+        """
+        return np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
+
     def __eq__(self, other) -> bool:
         """
         Test the equality of two actions.
@@ -576,28 +604,39 @@ class Action(object):
                 if "loads" in ddict_:
                     tmp = ddict_["loads"]
                     handled = True
-                    for (l_id, bus) in tmp:
-                        self._set_topo_vect[self._load_pos_topo_vect[l_id]] = bus
+                    for (c_id, bus) in tmp:
+                        if c_id >= self._n_lines:
+                            raise AmbiguousAction("Load {} doesn't exist".format(c_id))
+                        self._set_topo_vect[self._load_pos_topo_vect[c_id]] = bus
                         # print("self._load_pos_topo_vect[l_id] {}".format(self._load_pos_topo_vect[l_id]))
                 if "generators" in ddict_:
                     tmp = ddict_["generators"]
                     handled = True
                     for (g_id, bus) in tmp:
+                        if g_id >= self._n_gen:
+                            raise AmbiguousAction("Generator {} doesn't exist".format(g_id))
                         self._set_topo_vect[self._gen_pos_topo_vect[g_id]] = bus
                 if "lines_or" in ddict_:
                     tmp = ddict_["lines_or"]
                     handled = True
                     for (l_id, bus) in tmp:
+                        if l_id >= self._n_lines:
+                            raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
                         self._set_topo_vect[self._lines_or_pos_topo_vect[l_id]] = bus
                 if "lines_ex" in ddict_:
                     tmp = ddict_["lines_ex"]
                     handled = True
                     for (l_id, bus) in tmp:
+                        if l_id >= self._n_lines:
+                            raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
                         self._set_topo_vect[self._lines_ex_pos_topo_vect[l_id]] = bus
                 if "substations" in ddict_:
                     handled = True
                     tmp = ddict_["substations"]
                     for (s_id, arr) in tmp:
+                        if s_id >= self._subs_info.shape[0]:
+                            raise AmbiguousAction("Substation {} doesn't exist".format(s_id))
+
                         s_id = int(s_id)
                         beg_ = int(np.sum(self._subs_info[:s_id]))
                         end_ = int(beg_ + self._subs_info[s_id])
@@ -658,15 +697,19 @@ class Action(object):
             # the action will disconnect a powerline
             # note that if a powerline is already disconnected, it does nothing
             # this action can both disconnect or reconnect a powerlines
-            if dict_["set_status"] is not None:
-                if len(dict_["set_status"]) != self._n_lines:
-                    raise InvalidNumberOfLines(
-                        "This \"set_status\" action acts on {} lines while there are {} in the _grid".format(
-                            len(dict_["set_status"]), self._n_lines))
-                sel_ = dict_["set_status"] != 0
+            if isinstance(dict_["set_status"], np.ndarray):
+                if dict_["set_status"] is not None:
+                    if len(dict_["set_status"]) != self._n_lines:
+                        raise InvalidNumberOfLines(
+                            "This \"set_status\" action acts on {} lines while there are {} in the _grid".format(
+                                len(dict_["set_status"]), self._n_lines))
+                    sel_ = dict_["set_status"] != 0
 
-                # update the line status vector
-                self._set_line_status[sel_] = dict_["set_status"][sel_].astype(np.int)
+                    # update the line status vector
+                    self._set_line_status[sel_] = dict_["set_status"][sel_].astype(np.int)
+            else:
+                for l_id, status_ in dict_["set_status"]:
+                    self._set_line_status[l_id] = status_
 
     def _digest_hazards(self, dict_):
         if "hazards" in dict_:
@@ -882,7 +925,7 @@ class Action(object):
 
           - It has an ambiguous behaviour concerning the topology of some substations
 
-            - the status of some bus for some element is both *changed* (:code:`self._change_bus_vect[i] = True` for
+            - the state of some bus for some element is both *changed* (:code:`self._change_bus_vect[i] = True` for
               some *i*) and *set* (:code:`self._set_topo_vect[i]` for the same *i* is not 0)
             - :code:`self._set_topo_vect` has not the same dimension as the number of elements on the powergrid
             - :code:`self._change_bus_vect` has not the same dimension as the number of elements on the powergrid
@@ -1152,7 +1195,7 @@ class Action(object):
             for l_id, id_in_topo in enumerate(self._lines_ex_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
-                    objt_type = "line (origin)"
+                    objt_type = "line (extremity)"
                     array_subid = self._lines_ex_to_subid
         substation_id = array_subid[obj_id]
         return obj_id, objt_type, substation_id
@@ -1202,7 +1245,7 @@ class Action(object):
             for id_, k in enumerate(self._change_bus_vect):
                 if k:
                     obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
-                    res.append("\t \t - switch bus of {} {} [on substation {}]".format(obj_id, objt_type, substation_id))
+                    res.append("\t \t - switch bus of {} {} [on substation {}]".format(objt_type, obj_id, substation_id))
         else:
             res.append("\t - NOT switch anything in the topology")
 
@@ -1211,10 +1254,10 @@ class Action(object):
             for id_, k in enumerate(self._set_topo_vect):
                 if k > 0:
                     obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
-                    res.append("\t \t - assign bus {} to {} {} [on substation {}]".format(k, obj_id, objt_type, substation_id))
+                    res.append("\t \t - assign bus {} to {} {} [on substation {}]".format(k, objt_type, obj_id, substation_id))
                 if k < 0:
                     obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
-                    res.append("\t - disconnect {} {} (on substation {})".format(k, objt_type, obj_id, substation_id))
+                    res.append("\t - disconnect {} {} [on substation {}]".format(k, objt_type, obj_id, substation_id))
         else:
             res.append("\t - NOT force any particular bus configuration")
 
@@ -1792,11 +1835,11 @@ class HelperAction:
         name_element: ``str``
             The name of the element you want to change the bus
         extremity: ``str``
-            "or" or "ext" for origin or extremity, ignored if element is not a powerline.
+            "or" or "ex" for origin or extremity, ignored if element is not a powerline.
         substation: ``int``, optional
             Its substation ID, if you know it will increase the performance. Otherwise the method will search it.
         type_element: ``int``, optional
-            Type of the element to look for. It is here to
+            Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
         previous_action: :class:`Action`, optional
             The (optional) action to update. It should be of the same type as :attr:`HelperAction.actionClass`
 
@@ -1879,11 +1922,11 @@ class HelperAction:
             elif name_element in self.name_line:
                 to_subid, to_sub_pos, to_name = self._extract_database_powerline(extremity)
             else:
-                Grid2OpException(
+                AmbiguousAction(
                     "Element \"{}\" not found in the powergrid".format(
                         name_element))
         else:
-            raise Grid2OpException("unknown type_element specifier \"{}\". type_element should be \"line\" or \"load\" or \"gen\"".format(extremity))
+            raise AmbiguousAction("unknown type_element specifier \"{}\". type_element should be \"line\" or \"load\" or \"gen\"".format(extremity))
 
         my_id = None
         for i, nm in enumerate(to_name):
@@ -1891,7 +1934,7 @@ class HelperAction:
                 my_id = i
                 break
         if my_id is None:
-            raise Grid2OpException("Element \"{}\" not found in the powergrid".format(name_element))
+            raise AmbiguousAction("Element \"{}\" not found in the powergrid".format(name_element))
         my_sub_id = to_subid[my_id]
 
         dict_ = action.effect_on(substation_id=my_sub_id)
@@ -1922,7 +1965,7 @@ class HelperAction:
             Its substation ID, if you know it will increase the performance. Otherwise the method will search it.
 
         type_element: ``str``, optional
-            Type of the element to look for. It is here to
+            Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
 
         previous_action: :class:`Action`, optional
             The (optional) action to update. It should be of the same type as :attr:`HelperAction.actionClass`
@@ -1960,6 +2003,45 @@ class HelperAction:
         res.update({"set_bus": {"substations": [(my_sub_id, dict_["set_bus"])]}})
         return res
 
+    def reconnect_powerline(self, l_id, bus_or, bus_ex, previous_action=None):
+        """
+        Build the valid not ambiguous action consisting in reconnecting a powerline.
+
+        Parameters
+        ----------
+        l_id: `int`
+            the powerline id to be reconnected
+        bus_or: `int`
+            the bus to which connect the origin end of the powerline
+        bus_ex: `int`
+            the bus to which connect the extremity end the powerline
+
+        Returns
+        -------
+
+        """
+        if previous_action is None:
+            res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
+                               subs_info=self.subs_info, dim_topo=self.dim_topo,
+                               load_to_subid=self.load_to_subid,
+                               gen_to_subid=self.gen_to_subid,
+                               lines_or_to_subid=self.lines_or_to_subid,
+                               lines_ex_to_subid=self.lines_ex_to_subid,
+                               load_to_sub_pos=self.load_to_sub_pos,
+                               gen_to_sub_pos=self.gen_to_sub_pos,
+                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
+                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                               load_pos_topo_vect=self.load_pos_topo_vect,
+                               gen_pos_topo_vect=self.gen_pos_topo_vect,
+                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
+                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+        else:
+            res = previous_action
+        res.update({"set_status": [(l_id, 1)],
+                    "set_bus": {"lines_or": [(l_id, bus_or)], "lines_ex": [(l_id, bus_ex)]}
+                    })
+        return res
+
     def size(self):
         """
         The size of any action converted to vector.
@@ -1969,3 +2051,27 @@ class HelperAction:
             The size of the action space.
         """
         return self.n
+
+    def get_set_status_vect(self):
+        """
+        Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`
+
+        Returns
+        -------
+        res: :class:`numpy.array`, dtype:np.int
+            A vector that doesn't affect the grid, but can be used in "set_status"
+
+        """
+        return self.template_act.get_set_status_vect()
+
+    def get_change_status_vect(self):
+        """
+        Computes and return a vector that can be used in the "change_status" keyword if building an :class:`Action`
+
+        Returns
+        -------
+        res: :class:`numpy.array`, dtype:np.bool
+            A vector that doesn't affect the grid, but can be used in "change_status"
+
+        """
+        return self.template_act.get_change_status_vect()

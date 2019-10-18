@@ -24,7 +24,7 @@ except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
     from Exceptions import *
     from Observation import CompleteObservation, ObservationHelper
-    from Reward import ConstantReward, RewardHelper
+    from Reward import FlatReward, RewardHelper
     from GameRules import GameRules, AllwaysLegal
 
 import pdb

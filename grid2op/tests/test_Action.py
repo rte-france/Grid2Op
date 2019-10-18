@@ -52,7 +52,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # self.backend._grid.delete()
 
     def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        return np.max(np.abs(pred - true)) <= self.tolvect
 
     def test_instanciate_action(self):
         """
@@ -284,7 +284,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
                                      "set_bus": {"substations": [(id_2, arr2)]}})
         res = action.__str__()
-        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t - switch bus of 4 line (origin) [on substation 1]\n\t \t - switch bus of 0 load [on substation 1]\n\t \t - switch bus of 1 generator [on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to 18 line (origin) [on substation 12]\n\t \t - assign bus 1 to 19 line (origin) [on substation 12]\n\t \t - assign bus 2 to 9 load [on substation 12]\n\t \t - assign bus 2 to 12 line (origin) [on substation 12]'
+        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
         assert res == act_str
 
     def test_to_vect(self):
