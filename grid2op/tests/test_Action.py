@@ -13,6 +13,8 @@ from Action import HelperAction
 from GameRules import GameRules
 
 # TODO test that "twice change" is reset to normal. when i update an action twice, nothing is done.
+# TODO test for all class of Action
+
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):

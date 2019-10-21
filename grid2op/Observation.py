@@ -17,7 +17,6 @@ This forecasted powergrid used:
 
 This functionality was originally attached to the Environment and could only be used to simulate the effect of an action
 on this unique time step. We wanted in this recoding to change that:
-
   - in an RL setting, an :class:`grid2op.Agent` should not be able to look directly at the :class:`grid2op.Environment`.
     The only information about the Environment the Agent should have is through the :class:`grid2op.Observation` and
     the :class:`grid2op.Reward`. Having this principle implemented will help enforcing this principle.
@@ -58,6 +57,9 @@ except (ModuleNotFoundError, ImportError):
 
 
 class ObsCH(object):
+    """
+    This class is reserved to internal use. Do not attempt to do anything with it.
+    """
     def forecasts(self):
         return []
 
@@ -66,7 +68,10 @@ class ObsEnv(object):
     """
     This class is an 'Emulator' of a :class:`grid2op.Environment` used to be able to 'simulate' forecasted grid states.
     It should not be used outside of an :class:`grid2op.Observation` instance, or one of its derivative.
+
     It contains only the most basic element of an Environment. See :class:`grid2op.Environment` for more details.
+
+    This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self, backend_instanciated, parameters, reward_helper, obsClass, action_helper):
         self.timestep_overflow = None  # TODO
@@ -88,6 +93,14 @@ class ObsEnv(object):
         self.chronics_handler = ObsCH()
 
     def copy(self):
+        """
+        Implement the deep copy of this instance.
+
+        Returns
+        -------
+        res: :class:`ObsEnv`
+            A deep copy of this instance.
+        """
         backend = self.backend
         self.backend = None
         res = copy.deepcopy(self)
@@ -98,15 +111,24 @@ class ObsEnv(object):
     def init(self, new_state_action, time_stamp, timestep_overflow):
         """
         Initialize a "forecasted grid state" based on the new injections, possibly new topological modifications etc.
+
         Parameters
         ----------
         new_state_action: :class:`grid2op.Action`
-            The action that is performed on the powergrid to get the forecast at the current date.
-        time_stamp
-        timestep_overflow
+            The action that is performed on the powergrid to get the forecast at the current date. This "action" is
+            NOT performed by the user, it's performed internally by the Observation to have a "forecasted" powergrid
+            with the forecasted values present in the chronics.
+
+        time_stamp: ``datetime.datetime``
+            The time stamp of the forecast, as a datetime.datetime object. NB this is not the time stamp at which the
+            forecast is produced, but the time stamp of the powergrid forecasted.
+
+        timestep_overflow: ``numpy.ndarray``
+            The see :attr:`grid2op.Env.timestep_overflow` for a better description of this argument.
 
         Returns
         -------
+        ``None``
 
         """
         if self.is_init:
@@ -118,6 +140,32 @@ class ObsEnv(object):
         self.timestep_overflow = timestep_overflow
 
     def simulate(self, action):
+        """
+        This function is the core method of the :class:`ObsEnv`. It allows to perform a simulation of what would
+        give and action if it were to be implemented on the "forecasted" powergrid.
+
+        It has the same signature as :func:`grid2op.Environment.step`
+
+        Parameters
+        ----------
+        action: :class:`grid2op.Action`
+            The action to test
+
+        Returns
+        -------
+        observation: :class:`grid2op.Observation`
+            agent's observation of the current environment
+
+        reward: ``float``
+            amount of reward returned after previous action
+
+        done: ``bool``
+            whether the episode has ended, in which case further step() calls will return undefined results
+
+        info: ``dict``
+            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+
+        """
         has_error = True
         tmp_backend = self.backend.copy()
         is_done = False
@@ -162,9 +210,12 @@ class ObsEnv(object):
 
     def get_obs(self):
         """
-        Return the observations of the current environment made by the agent.
-        This function is called after the
-        :return:
+        Method to retrieve the "forecasted grid" as a valid observation object.
+
+        Returns
+        -------
+        res: :class:`grid2op.Observation.Observation`
+            The observation available.
         """
         res = self.current_obs
         return res
@@ -174,7 +225,104 @@ class Observation(ABC):
     """
     Basic class representing an observation.
 
-    All observation must derive from this class and implement all its abstract method
+    All observation must derive from this class and implement all its abstract methods.
+
+    Attributes
+    ----------
+    action_helper: :class:`grid2op.Action.HelperAction`
+        A reprensentation of the possible action space.
+
+    year: ``int``
+        The current year
+
+    month: ``int``
+        The current month (0 = january, 11 = december)
+
+    day: ``int``
+        The current day of the month
+
+    hour_of_day: ``int``
+        The current hour of the day
+
+    minute_of_hour: ``int``
+        The current minute of the current hour
+
+    day_of_week: ``int``
+        The current day of the week. Monday = 0, Sunday = 6
+
+    n_lines: :class:`int`
+        number of powerline in the powergrid
+
+    n_gen: :class:`int`
+        number of generators in the powergrid
+
+    n_load: :class:`int`
+        number of loads in the powergrid
+
+    subs_info: :class:`numpy.array`, dtype:int
+        for each substation, gives the number of elements connected to it
+
+    dim_topo: ``int``
+        The number of objects (= powerline extremity, load or generator) on the powergrid.
+
+    prod_p: :class:`numpy.ndarray`, dtype:float
+        The active production value of each generator
+
+    prod_q: :class:`numpy.ndarray`, dtype:float
+        The reactive production value of each generator
+
+    prod_v: :class:`numpy.ndarray`, dtype:float
+        The voltage magnitude of the bus to which each generator is connected
+
+    load_p: :class:`numpy.ndarray`, dtype:float
+        The active load value of each consumption
+
+    load_q: :class:`numpy.ndarray`, dtype:float
+        The reactive load value of each consumption
+
+    load_v: :class:`numpy.ndarray`, dtype:float
+        The voltage magnitude of the bus to which each consumption is connected
+
+    p_or: :class:`numpy.ndarray`, dtype:float
+        The active power flow at the origin end of each powerline
+
+    q_or: :class:`numpy.ndarray`, dtype:float
+        The reactive power flow at the origin end of each powerline
+
+    v_or: :class:`numpy.ndarray`, dtype:float
+        The voltage magnitude at the bus to which the origin end of each powerline is connected
+
+    a_or: :class:`numpy.ndarray`, dtype:float
+        The current flow at the origin end of each powerline
+
+    p_ex: :class:`numpy.ndarray`, dtype:float
+        The active power flow at the extremity end of each powerline
+
+    q_ex: :class:`numpy.ndarray`, dtype:float
+        The reactive power flow at the extremity end of each powerline
+
+    v_ex: :class:`numpy.ndarray`, dtype:float
+        The voltage magnitude at the bus to which the extremity end of each powerline is connected
+
+    a_ex: :class:`numpy.ndarray`, dtype:float
+        The current flow at the extremity end of each powerline
+
+    rho: :class:`numpy.ndarray`, dtype:float
+        The capacity of each powerline. It is defined at the observed current flow divided by the thermal limit of each
+        powerline.
+
+    connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
+        The connectivityt matrix (if computed, or None) see definition of :func:`connectivity_matrix` for
+        more information
+
+    bus_connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
+        The bus_connectivity_matrix_ matrix (if computed, or None) see definition of :func:`bus_connectivity_matrix`
+        for more information
+
+    vectorized: :class:`numpy.ndarray`, dtype:float
+        The vector representation of this Observation (if computed, or None) see definition of
+        :func:`to_vect` for more information.
+
     """
     def __init__(self, parameters,
                  n_gen, n_load, n_lines, subs_info, dim_topo,
@@ -257,7 +405,7 @@ class Observation(ABC):
         self.rho = None
 
         # matrices
-        self.connectity_matrix_ = None
+        self.connectivity_matrix_ = None
         self.bus_connectivity_matrix_ = None
         self.vectorized = None
 
@@ -407,7 +555,6 @@ class Observation(ABC):
             return False
         return True
 
-
     @abstractmethod
     def update(self, env):
         """
@@ -440,7 +587,6 @@ class Observation(ABC):
         :param chronics_handler:
         :return:
         """
-        #TODO finish documentation
         pass
 
     @abstractmethod
@@ -449,39 +595,110 @@ class Observation(ABC):
         Convert this instance of Observation to a numpy array.
         The size of the array is always the same and is determined by the `size` method.
 
-        :return: this action as a 1d vector
-        :rtype np.array, dtype:float
+        This method is an "abstract" method, and should be overridden each time the base class :class:`Observation`
+        is overidden.
+
+        Returns
+        -------
+        res: ``numpyp.ndarray``
+            The respresentation of this action as a numpy array
+
         """
         pass
 
     @abstractmethod
     def from_vect(self, vect):
         """
+        Convert a observation, represented as a vector, into an observation object.
+
+        This method is an "abstract" method, and should be overridden each time the base class :class:`Observation`
+        is overridden.
+
+
+        Only the size is checked. If it does not match, an :class:`grid2op.Exceptions.AmbiguousAction` is thrown.
+        Otherwise the component of the vector are coerced into the proper type silently.
+
+        It may results in an non deterministic behaviour if the input vector is not a real action, or cannot be
+        converted to one.
 
         Parameters
         ----------
-        vect
+        vect: ``numpy.ndarray``
+            A vector representing an Action.
 
         Returns
         -------
+        ``None``
 
         """
         pass
-
 
     @abstractmethod
     def size(self):
         """
         When the action is converted to a vector, this method return its size.
+
         NB that it is a requirement that converting an observation gives a vector of a fixed size throughout a training.
-        :return:
+
+        Returns
+        -------
+        size: ``int``
+            The size of the Action.
+
         """
         pass
+
+    def connectivity_matrix(self):
+        """
+        Computes and return the "connectivity matrix" `con_mat`.
+        if "_dim_topo = 2 * _n_lines + n_prod + n_conso"
+        It is a matrix of size _dim_topo, _dim_topo, with values 0 or 1.
+        For two objects (lines extremity, generator unit, load) i,j :
+
+            - if i and j are connected on the same substation:
+                - if `conn_mat[i,j] = 0` it means the objects id'ed i and j are not connected to the same bus.
+                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus, are both end
+                  of the same powerline
+
+            - if i and j are not connected on the same substation then`conn_mat[i,j] = 0` except if i and j are
+              the two extremities of the same power line, in this case `conn_mat[i,j] = 1`.
+
+        By definition, the diagonal is made of 0.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``, shape:_dim_topo,_dim_topo, dtype:float
+            The connectivity matrix, as defined above
+        """
+        raise NotImplementedError("This method is not implemented")
+
+    def bus_connectivity_matrix(self):
+        """
+        If we denote by `nb_bus` the total number bus of the powergrid.
+
+        The `bus_connectivity_matrix` will have a size nb_bus, nb_bus and will be made of 0 and 1.
+
+        If `bus_connectivity_matrix[i,j] = 1` then at least a power line connects bus i and bus j.
+        Otherwise, nothing connects it.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``, shape:nb_bus,nb_bus dtype:float
+            The bus connectivity matrix
+        """
+        raise NotImplementedError("This method is not implemented. ")
 
     def simulate(self, action, time_step=0):
         """
 
-        :return:
+        Parameters
+        ----------
+        action
+        time_step
+
+        Returns
+        -------
+
         """
         if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
@@ -595,8 +812,13 @@ class CompleteObservation(Observation):
     def from_vect(self, vect):
         """
 
-        :param vect:
-        :return:
+        Parameters
+        ----------
+        vect
+
+        Returns
+        -------
+
         """
         # reset the matrices
         self._reset_matrices()
@@ -639,6 +861,12 @@ class CompleteObservation(Observation):
         self.topo_vect = self.topo_vect.astype(np.int)
 
     def to_dict(self):
+        """
+
+        Returns
+        -------
+
+        """
         if self.dictionnarized is None:
             self.dictionnarized = {}
             self.dictionnarized["_timestep_overflow"] = self.timestep_overflow
@@ -665,24 +893,30 @@ class CompleteObservation(Observation):
             self.dictionnarized["rho"] = self.rho
         return self.dictionnarized
 
-    def connectity_matrix(self):
+    def connectivity_matrix(self):
         """
         Computes and return the "connectivity matrix" `con_mat`.
         if "_dim_topo = 2 * _n_lines + n_prod + n_conso"
         It is a matrix of size _dim_topo, _dim_topo, with values 0 or 1.
         For two objects (lines extremity, generator unit, load) i,j :
+
             - if i and j are connected on the same substation:
                 - if `conn_mat[i,j] = 0` it means the objects id'ed i and j are not connected to the same bus.
-                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus, are both end of the same powerline
-            - if i and j are not connected on the same substation then`conn_mat[i,j] = 0` except if i and j are the two extremities of the same power line, in this case `conn_mat[i,j] = 1`.
+                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus, are both end
+                  of the same powerline
+
+            - if i and j are not connected on the same substation then`conn_mat[i,j] = 0` except if i and j are
+              the two extremities of the same power line, in this case `conn_mat[i,j] = 1`.
 
         By definition, the diagonal is made of 0.
 
-        :return: the connectivity matrix
-        :rtype np.array, shape:_dim_topo,_dim_topo, dtype:float
+        Returns
+        -------
+        res: ``numpy.ndarray``, shape:_dim_topo,_dim_topo, dtype:float
+            The connectivity matrix, as defined above
         """
-        if self.connectity_matrix_ is None:
-            self.connectity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo),dtype=np.float)
+        if self.connectivity_matrix_ is None:
+            self.connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo),dtype=np.float)
             # fill it by block for the objects
             beg_ = 0
             end_ = 0
@@ -711,11 +945,14 @@ class CompleteObservation(Observation):
         If we denote by `nb_bus` the total number bus of the powergrid.
 
         The `bus_connectivity_matrix` will have a size nb_bus, nb_bus and will be made of 0 and 1.
+
         If `bus_connectivity_matrix[i,j] = 1` then at least a power line connects bus i and bus j.
         Otherwise, nothing connects it.
 
-        :return: the bus connectivity matrix
-        :rtype np.array, shape:nb_bus,nb_bus dtype:float
+        Returns
+        -------
+        res: ``numpy.ndarray``, shape:nb_bus,nb_bus dtype:float
+            The bus connectivity matrix
         """
         # TODO voir avec Antoine pour les r,x,h ici !! (surtout les x)
         if self.bus_connectivity_matrix_ is None:
@@ -917,3 +1154,18 @@ class ObservationHelper:
         :return:
         """
         return self.n
+
+    def from_vect(self, obs):
+        """
+        Convert a observation, represented as a vector to a valid :class:`Observation` instance
+        Parameters
+        ----------
+        obs
+
+        Returns
+        -------
+
+        """
+        res = copy.deepcopy(self.empty_obs)
+        res.from_vect(obs)
+        return res

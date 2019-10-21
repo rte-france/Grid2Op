@@ -276,5 +276,86 @@ class TopologyGreedy(GreedyAgent):
         return res
 
 
+class MLAgent(Agent):
+    """
+    This Agent class has the particularity to handle only vector reprensetation of :class:`grid2op.Action` and
+    :class:`grid2op.Observation`. It is particularly suited for building Machine Learning Agents.
 
+    Attributes
+    ----------
+    do_nothing_vect: `numpy.array`, dtype:np.float
+        The representation of the "do nothing" Action as a numpy vector.
+
+    """
+    def __init__(self, action_space):
+        Agent.__init__(self, action_space)
+        self.do_nothing_vect = action_space({}).to_vect()
+
+    def convert_from_vect(self, act):
+        """
+        Helper to convert an action, represented as a numpy array as an :class:`grid2op.Action` instance.
+
+        Parameters
+        ----------
+        act: ``numppy.ndarray``
+            An action cast as an :class:`grid2op.Action` instance.
+
+        Returns
+        -------
+        res: :class:`grid2op.Action.Action`
+            The `act` parameters converted into a proper :class:`grid2op.Action.Action` object.
+        """
+        res = self.action_space({})
+        res.from_vect(act)
+        return res
+
+    def act(self, observation, reward, done=False):
+        """
+        Overloading of the method `act` to deal with vectors representation of :class:`grid2op.Observation` and
+        :class:`grid2op.Action` rather than with class.
+
+        Parameters
+        ----------
+        observation: :class:`grid2op.Observation.Observation`
+            The current observation of the :class:`grid2op.Environment`
+
+        reward: ``float``
+            The current reward. This is the reward obtained by the previous action
+
+        done: ``bool``
+            Whether the episode has ended or not. Used to maintain gym compatibility
+
+        Returns
+        -------
+        res: :class:`grid2op.Action`
+            The action chosen by the bot / controler / agent.
+
+        """
+        obs = observation.to_vect()
+        act = self._ml_act(obs, reward, done=done)
+        return self.convert_from_vect(act)
+
+    def _ml_act(self, observation, reward, done=False):
+        """
+        The method to modify that is able to handle numpy array representation of both action and observation.
+        It should be overidden for ML agents using the :class:`MLAgent`.
+
+        Parameters
+        ----------
+        observation: ``numppy.ndarray``
+            The current observation of the game, represented as a numpy array vector.
+
+        reward: ``float``
+            The current reward. This is the reward obtained by the previous action
+
+        done: ``bool``
+            Whether the episode has ended or not. Used to maintain gym compatibility
+
+        Returns
+        -------
+        res: ``numppy.ndarray``
+            The action taken at time t, represented as a numpy array vector.
+        """
+
+        return self.do_nothing_vect
 

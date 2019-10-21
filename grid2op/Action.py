@@ -1137,9 +1137,11 @@ class Action(object):
             self._dict_inj["load_q"] = load_q
 
         self._set_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._n_lines
+        self._set_line_status = self._set_line_status.astype(np.int)
         self._switch_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._dim_topo
         self._switch_line_status = self._switch_line_status.astype(np.bool)
         self._set_topo_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._dim_topo
+        self._set_topo_vect = self._set_topo_vect.astype(np.int)
         self._change_bus_vect = vect[prev_:]; prev_ += self._dim_topo
         self._change_bus_vect = self._change_bus_vect.astype(np.bool)
 
@@ -1532,17 +1534,20 @@ class TopologyAction(Action):
 
         """
         self.reset()
-        if vect.shape[1] != self.size():
+        # pdb.set_trace()
+        if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
         prev_ = 0
         next_ = self._n_lines
 
-        self.set_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._n_lines
-        self.switch_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._dim_topo
-        self.switch_line_status = self.switch_line_status.astype(np.bool)
-        self.set_topo_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._dim_topo
-        self.change_bus_vect = vect[prev_:]; prev_ += self._dim_topo
-        self.change_bus_vect = self.change_bus_vect.astype(np.bool)
+        self._set_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._n_lines
+        self._set_line_status = self._set_line_status.astype(np.int)
+        self._switch_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._dim_topo
+        self._switch_line_status = self._switch_line_status.astype(np.bool)
+        self._set_topo_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._dim_topo
+        self._set_topo_vect = self._set_topo_vect.astype(np.int)
+        self._change_bus_vect = vect[prev_:]; prev_ += self._dim_topo
+        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
 
         self._check_for_ambiguity()
 
@@ -1556,6 +1561,192 @@ class TopologyAction(Action):
         self.reset()
         # TODO code the sampling now
         # TODO test it !!!
+        return self
+
+
+class PowerLineSet(Action):
+    """
+    This class is here to model only a subpart of Topological actions, the one consisting in topological switching.
+    It will throw an "AmbiguousAction" error it someone attempt to change injections in any ways.
+
+    It has the same attributes as its base class :class:`Action`.
+
+    It is also here to show an example on how to implement a valid class deriving from :class:`Action`.
+
+    **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
+    reconnecting a powerline cannot be considered "ambiguous". We have to
+    """
+    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
+                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect):
+        """
+        See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
+        in this constructor.
+        """
+        Action.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
+                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect)
+
+        # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
+        # modification injection.
+        self.authorized_keys = set([k for k in self.authorized_keys
+                                    if k != "injection" and k != "set_bus" and \
+                                    k != "change_bus" and k != "change_status"])
+
+    def __call__(self):
+        """
+        Compare to the ancestor :func:`Action.__call__` this type of Action doesn't allow to change the injections.
+        The only difference is in the returned value *dict_injection* that is always an empty dictionnary.
+
+        Returns
+        -------
+        dict_injection: :class:`dict`
+            This dictionnary is always empty
+
+        set_line_status: :class:`numpy.array`, dtype:int
+            This array is :attr:`Action._set_line_status`
+
+        switch_line_status: :class:`numpy.array`, dtype:bool
+            This array is :attr:`Action._switch_line_status`, it is never modified
+
+        set_topo_vect: :class:`numpy.array`, dtype:int
+            This array is :attr:`Action._set_topo_vect`, it is never modified
+
+        change_bus_vect: :class:`numpy.array`, dtype:bool
+            This array is :attr:`Action._change_bus_vect`, it is never modified
+        """
+        if self._dict_inj:
+            raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
+        self._check_for_ambiguity()
+        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect
+
+    def update(self, dict_):
+        """
+        As its original implementation, this method allows to modify the way a dictionnary can be mapped to a valid
+        :class:`Action`.
+
+        It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
+        doesn't update the :attr:`Action._dict_inj`. It raises a warning if attempting to change them.
+
+        Parameters
+        ----------
+        dict_: :class:`dict`
+            See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
+            "injection", "change bus", "set bus", or "change status" are irrelevant for this subclass.
+
+        Returns
+        -------
+        self: :class:`PowerLineSet`
+            Return object itself thus allowing mutiple call to "update" to be chained.
+        """
+
+        self.as_vect = None
+        if dict_ is not None:
+            for kk in dict_.keys():
+                if kk not in self.authorized_keys:
+                    warn = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
+                    warn = warn.format(kk, self.authorized_keys)
+                    warnings.warn(warn)
+
+            self._digest_set_status(dict_)
+            self._digest_hazards(dict_)
+            self._digest_maintenance(dict_)
+        self.disambiguate_reconnection()
+
+        return self
+
+    def size(self):
+        """
+        Compare to the base class, this action has a shorter size, as all information about injections are ignored.
+        Returns
+        -------
+        size: ``int``
+            The size of :class:`PowerLineSet` converted to an array.
+        """
+        return self._n_lines
+
+    def to_vect(self):
+        """
+        See :func:`Action.to_vect` for a detailed description of this method.
+
+        This method has the same behaviour as its base class, except it doesn't require any information about the
+        injections to be sent, thus being more efficient from a memory footprint perspective.
+
+        Returns
+        -------
+        as_vect: :class:`numpy.array`, dtype:float
+            The instance of this action converted to a vector.
+        """
+        if self.as_vect is None:
+            self.as_vect = self._set_line_status.flatten().astype(np.float)
+            if self.as_vect.shape[0] != self.size():
+                raise AmbiguousAction("PowerLineSwitch has not the proper shape.")
+
+        return self.as_vect
+
+    def from_vect(self, vect):
+        """
+        See :func:`Action.from_vect` for a detailed description of this method.
+
+        Nothing more is made except the initial vector is (much) smaller.
+
+        Parameters
+        ----------
+        vect: :class:`numpy.array`, dtype:float
+            A vector reprenseting an instance of :class:`.`
+
+        Returns
+        -------
+
+        """
+        self.reset()
+        # pdb.set_trace()
+        if vect.shape[0] != self.size():
+            raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+        prev_ = 0
+        next_ = self._n_lines
+
+        self._set_line_status = vect[prev_:next_]
+        self._set_line_status = self._set_line_status.astype(np.int)
+        self.disambiguate_reconnection()
+
+        self._check_for_ambiguity()
+
+    def disambiguate_reconnection(self):
+        """
+        As this class doesn't allow to perform any topology change, when a powerline is reconnected, it's necessarily
+        on the first bus of the substation.
+
+        So it's not ambiguous in this case. We have to implement this logic here, and that is what is done in this
+        function.
+
+        """
+        sel_ = self._set_line_status == 1
+        if np.any(sel_):
+            self._set_topo_vect[self._lines_ex_pos_topo_vect[sel_]] = 1
+            self._set_topo_vect[self._lines_or_pos_topo_vect[sel_]] = 1
+
+    def sample(self):
+        """
+        Sample a PowerlineSwitch Action.
+
+        By default, this sampling will act on one random powerline, and it will either
+        disconnect it or reconnect it each with equal probability.
+
+        Returns
+        -------
+        res: :class:`PowerLineSwitch`
+            The sampled action
+        """
+        self.reset()
+        i = np.random.randint(0, self.size())  # the powerline on which we can act
+        val = 2*np.random.randint(0, 2) - 1  # the action: +1 reconnect it, -1 disconnect it
+        self._set_line_status[i] = val
+        if val == 1:
+            self._set_topo_vect[self._lines_ex_pos_topo_vect[i]] = 1
+            self._set_topo_vect[self._lines_or_pos_topo_vect[i]] = 1
         return self
 
 

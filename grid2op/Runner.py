@@ -249,6 +249,7 @@ class Runner(object):
                  gridStateclass=GridStateFromFile, #type of chronics to use. For example GridStateFromFile if forecasts are not used, or GridStateFromFileWithForecasts otherwise
                  backendClass=PandaPowerBackend,
                  agentClass=DoNothingAgent,  #class used to build the agent
+                 agentInstance=None,
                  verbose=False,
                  gridStateclass_kwargs={},
                  ):
@@ -294,6 +295,10 @@ class Runner(object):
         agentClass: ``type``, optional
             Used to initialize :attr:`Runner.agentClass`.
 
+        agentInstance: :class:`grid2op.Agent.Agent`
+            Used to initialize the agent. Note that either :attr:`agentClass` or :attr:`agentInstance` is used
+            at the same time. If both ot them are ``None`` or both of them are "not ``None``" it throw an error.
+
         verbose: ``bool``, optional
             Used to initialize :attr:`Runner.verbose`.
         """
@@ -326,10 +331,22 @@ class Runner(object):
             raise RuntimeError("Impossible to create a runner without a backend class derived from grid2op.GridValue. Please modify \"backendClass\" paramter.")
         self.backendClass = backendClass
 
-        if not issubclass(agentClass, Agent):
-            raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. Please modify \"agentClass\" paramter.")
-        self.agentClass = agentClass
-
+        if agentClass is not None:
+            if agentInstance is not None:
+                raise RuntimeError("Impossible to build the backend. Only one of AgentClass or agentInstance can be used (both are not None).")
+            if not issubclass(agentClass, Agent):
+                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. Please modify \"agentClass\" parameter.")
+            self.agentClass = agentClass
+            self._useclass = True
+            self.agent = None
+        elif agentInstance is not None:
+            if not isinstance(agentInstance, Agent):
+                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. Please modify \"agentInstance\" parameter.")
+            self.agentClass = None
+            self._useclass = False
+            self.agent = agentInstance
+        else:
+            raise RuntimeError("Impossible to build the backend. Either AgentClass or agentInstance must be provided and both are None.")
 
         self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
 
@@ -353,9 +370,6 @@ class Runner(object):
         # build the environment
         self.env = None
 
-        # build the agent
-        self.agent = None
-
         # miscellaneous
         self.verbose = verbose
 
@@ -369,7 +383,10 @@ class Runner(object):
                       observationClass=self.observationClass,
                       rewardClass=self.rewardClass,
                       legalActClass=self.legalActClass)
-        agent = self.agentClass(res.helper_action_player)
+        if self._useclass:
+            agent = self.agentClass(res.helper_action_player)
+        else:
+            agent = self.agent
         return res, agent
 
     def make_env(self):
