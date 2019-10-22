@@ -48,6 +48,10 @@ import pdb
 # TODO given a bus, returns the names of the elements connected to it
 # TODO given a substation, returns the name of the elements connected to it
 # TODO given to substations, returns the name of the powerlines connecting them, if any
+
+# TODO URGENT: if chronics are "loop through" multiple times, only last results are saved. :-/
+
+
 class Backend(ABC):
     """
     This is a base class for each :class:`Backend` object.

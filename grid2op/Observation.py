@@ -17,6 +17,7 @@ This forecasted powergrid used:
 
 This functionality was originally attached to the Environment and could only be used to simulate the effect of an action
 on this unique time step. We wanted in this recoding to change that:
+
   - in an RL setting, an :class:`grid2op.Agent` should not be able to look directly at the :class:`grid2op.Environment`.
     The only information about the Environment the Agent should have is through the :class:`grid2op.Observation` and
     the :class:`grid2op.Reward`. Having this principle implemented will help enforcing this principle.
@@ -316,8 +317,8 @@ class Observation(ABC):
         more information
 
     bus_connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
-        The bus_connectivity_matrix_ matrix (if computed, or None) see definition of :func:`bus_connectivity_matrix`
-        for more information
+        The `bus_connectivity_matrix_` matrix (if computed, or None) see definition of
+          :func:`Observation.bus_connectivity_matrix` for more information
 
     vectorized: :class:`numpy.ndarray`, dtype:float
         The vector representation of this Observation (if computed, or None) see definition of
@@ -413,6 +414,11 @@ class Observation(ABC):
         self._tol_equal = 5e-1
 
     def reset(self):
+        """
+        Reset the :class:`Observation` to a blank state, where everything is set to either ``None`` or to its default
+        value.
+
+        """
         # 0. (line is disconnected) / 1. (line is connected)
         self.line_status = np.ones(shape=self.n_lines, dtype=np.float)
         self.topo_vect = np.full(shape=self.dim_topo, dtype=np.float, fill_value=1.)
@@ -442,7 +448,7 @@ class Observation(ABC):
         self.rho = None
 
         # matrices
-        self.connectity_matrix_ = None
+        self.connectivity_matrix_ = None
         self.bus_connectivity_matrix_ = None
         self.vectorized = None
 
@@ -690,14 +696,34 @@ class Observation(ABC):
 
     def simulate(self, action, time_step=0):
         """
+        This method is used to simulate the effect of an action on a forecasted powergrid state. It has the same return
+        value as the :func:`grid2op.Environment.Environment.step` function.
+
 
         Parameters
         ----------
-        action
-        time_step
+        action: :class:`grid2op.Action.Action`
+            The action to simulate
+
+        time_step: ``int``
+            The time step of the forecasted grid to perform the action on. If no forecast are available for this
+            time step, a :class:`grid2op.Exceptions.NoForecastAvailable` is thrown.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.NoForecastAvailable`
+            if no forecast are available for the time_step querried.
 
         Returns
         -------
+            observation: :class:`grid2op.Observation.Observation`
+                agent's observation of the current environment
+            reward: ``float``
+                amount of reward returned after previous action
+            done: ``bool``
+                whether the episode has ended, in which case further step() calls will return undefined results
+            info: ``dict``
+                contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 
         """
         if time_step >= len(self._forecasted_inj):
@@ -713,6 +739,15 @@ class Observation(ABC):
         return self._forecasted_grid[time_step].simulate(action)
 
     def copy(self):
+        """
+        Make a (deep) copy of the observation.
+
+        Returns
+        -------
+        res: :class:`Observation`
+            The deep copy of the observation
+
+        """
         obs_env = self._obs_env
         self._obs_env = None
         res = copy.deepcopy(self)
@@ -722,6 +757,22 @@ class Observation(ABC):
 
 
 class CompleteObservation(Observation):
+    """
+    This class represent a complete observation, where everything on the powergrid can be observed without
+    any noise.
+
+    This is the only :class:`Observation` implemented (and used) in Grid2Op. Other type of observation, for other
+    usage can of course be implemented following this example.
+
+    It has the same attributes as the :class:`Observation` class. Only one is added here.
+
+    Attributes
+    ----------
+    dictionnarized: ``dict``
+        The representation of the action in a form of a dictionnary. See the definition of
+        :func:`CompleteObservation.to_dict` for a description of this dictionnary.
+
+    """
     def __init__(self, parameters, n_gen, n_load, n_lines, subs_info, dim_topo,
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
@@ -736,8 +787,6 @@ class CompleteObservation(Observation):
                              obs_env=obs_env,action_helper=action_helper,
                              seed=seed)
         self.dictionnarized = None
-        self.connectity_matrix_ = None
-        self.bus_connectity_matrix_ = None
 
     def _reset_matrices(self):
         self.connectity_matrix_ = None
@@ -746,6 +795,15 @@ class CompleteObservation(Observation):
         self.dictionnarized = None
 
     def update(self, env):
+        """
+        This use the environement to update properly the Observation.
+
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            The environment from which to update this observation.
+
+        """
         # reset the matrices
         self._reset_matrices()
         self.reset()
@@ -779,6 +837,9 @@ class CompleteObservation(Observation):
         self.rho = env.backend.get_relative_flow(self)
 
     def to_vect(self):
+
+        # TODO explain in which order the object are given.
+        
         #TODO fix bug when action not initalized, return nan in this case
         if self.vectorized is None:
             self.vectorized = np.concatenate((
@@ -820,6 +881,8 @@ class CompleteObservation(Observation):
         -------
 
         """
+        # TODO explain that some conversion are done silently from float to int or bool!!
+
         # reset the matrices
         self._reset_matrices()
 
@@ -996,6 +1059,7 @@ class CompleteObservation(Observation):
         """
         Return the size of the flatten observation vector.
         For this CompletObservation:
+
             - 6 calendar data
             - each generator is caracterized by 3 values: p, q and v
             - each load is caracterized by 3 values: p, q and v

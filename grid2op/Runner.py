@@ -448,7 +448,6 @@ class Runner(object):
         time_step = int(0)
         time_act = 0.
         cum_reward = 0.
-        curr_timestep = 0
 
         if path_save is not None:
             path_save = os.path.abspath(path_save)
@@ -509,20 +508,20 @@ class Runner(object):
             if path_save is not None:
                 if efficient_storing:
                     # efficient way of writing
-                    times[curr_timestep] = end__ - beg__
-                    rewards[curr_timestep] = reward
-                    actions[curr_timestep, :] = act.to_vect()
-                    observations[curr_timestep, :] = obs.to_vect()
+                    times[time_step-1] = end__ - beg__
+                    rewards[time_step-1] = reward
+                    actions[time_step-1, :] = act.to_vect()
+                    observations[time_step-1, :] = obs.to_vect()
                     if "disc_lines" in info:
                         arr = info["disc_lines"]
                         if arr is not None:
-                            disc_lines[curr_timestep, :] = arr
+                            disc_lines[time_step-1, :] = arr
                 else:
                     # completely inefficient way of writing
                     times = np.concatenate((times, (end__ - beg__, )))
                     rewards = np.concatenate((rewards, (reward, )))
                     actions = np.concatenate((actions, act.to_vect()))
-                    observations = np.concatenate((observations, act.to_vect()))
+                    observations = np.concatenate((observations, obs.to_vect()))
                     if "disc_lines" in info:
                         arr = info["disc_lines"]
                         if arr is not None:

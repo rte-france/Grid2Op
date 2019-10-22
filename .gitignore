@@ -145,6 +145,8 @@ data/saved_runner_par/
 data/saved_runner_seq/
 data/118
 getting_started/saved.h5
+getting_started/trained_agent_log/
+getting_started/*.h5
 *.~lock*
 
 getting_started/saved_experiment_donothing/

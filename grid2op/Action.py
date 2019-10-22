@@ -1265,6 +1265,109 @@ class Action(object):
 
         return "\n".join(res)
 
+    def as_dict(self):
+        """
+        Represent an action "as a" dictionnary. This dictionnary is usefull to further inspect on which elements
+        the actions had an impact. It is not recommended to use it as a way to serialize actions.
+
+        The following keys (all optional) are present in the results:
+
+          * `load_p`: if the action modifies the active loads.
+          * `load_q`: if the action modifies the reactive loads.
+          * `prod_p`: if the action modifies the active productions of generators.
+          * `prod_v`: if the action modifies the voltage setpoint of generators.
+          * `set_line_status` if the action tries to **set** the status of some powerlines. If present, this is a
+            a dictionnary with keys:
+
+              * `nb_connected`: number of powerlines that are reconnected
+              * `nb_disconnected`: number of powerlines that are disconnected
+              * `connected_id`: the id of the powerlines reconnected
+              * `disconnected_id`: the ids of the powerlines disconnected
+
+          * `switch_line_status`: if the action tries to **change** the status of some powelrines. If present, this
+            is a dictionnary with keys:
+
+              * `nb_changed`: number of powerlines having their status changed
+              * `changed_id`: the ids of the powerlines that are changed
+
+          * `change_bus_vect`: if the action tries to **change** the topology of some substations. If present, this
+            is a dictionnary with keys:
+
+              * `nb_modif_subs`: number of substations impacted by the action
+              * `modif_subs_id`: ids of the substations impacted by the action
+              * `change_bus_vect`: details the objects that are modified. It is itself a dictionnary that represents for
+                each impacted substations (keys) the modification of the objects connected to it.
+
+          * `set_bus_vect`: if the action tries to **set** the topology of some substations. If present, this is a
+            dictionnary with keys:
+
+              * `nb_modif_subs`: number of substations impacted by the action
+              * `modif_subs_id`: the ids of the substations impacted by the action
+              * `set_bus_vect`: details the objects that are modified. It is also a dictionnary that representes for
+                each impacted substations (keys) how the elements connected to it are impacted (their "new" bus)
+
+        Returns
+        -------
+        res: ``dict``
+            The action represented as a dictionnary. See above for a description of it.
+        """
+        res = {}
+
+        # saving the injections
+        for k in ["load_p", "prod_p", "load_q", "prod_q"]:
+            if k in self._dict_inj:
+                res[k] = self._dict_inj[k]
+
+        # handles actions on force line status
+        if np.any(self._set_line_status != 0):
+            res["set_line_status"] = {}
+            res["set_line_status"]["nb_connected"] = np.sum(self._set_line_status == 1)
+            res["set_line_status"]["nb_disconnected"] = np.sum(self._set_line_status == -1)
+            res["set_line_status"]["connected_id"] = np.where(self._set_line_status == 1)[0]
+            res["set_line_status"]["disconnected_id"] = np.where(self._set_line_status == -1)[0]
+
+        # handles action on swtich line status
+        if np.sum(self._switch_line_status):
+            res["switch_line_status"] = {}
+            res["switch_line_status"]["nb_changed"] = np.sum(self._switch_line_status)
+            res["switch_line_status"]["changed_id"] = np.where(self._switch_line_status)[0]
+
+        # handles topology change
+        if np.any(self._change_bus_vect):
+            res["change_bus_vect"] = {}
+            res["change_bus_vect"]["nb_modif_objects"] = np.sum(self._change_bus_vect)
+            all_subs = set()
+            for id_, k in enumerate(self._change_bus_vect):
+                if k:
+                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
+                    sub_id = "{}".format(substation_id)
+                    if not sub_id in res["change_bus_vect"]:
+                        res["change_bus_vect"][sub_id] = {}
+                    res["change_bus_vect"][sub_id]["{}".format(obj_id)] = {"type": objt_type}
+                    all_subs.add(sub_id)
+
+            res["change_bus_vect"]["nb_modif_subs"] = len(all_subs)
+            res["change_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+
+        # handles topology set
+        if np.any(self._set_topo_vect):
+            res["set_bus_vect"] = {}
+            res["set_bus_vect"]["nb_modif_objects"] = np.sum(self._set_topo_vect)
+            all_subs = set()
+            for id_, k in enumerate(self._set_topo_vect):
+                if k !=  0:
+                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
+                    sub_id = "{}".format(substation_id)
+                    if not sub_id in res["set_bus_vect"]:
+                        res["set_bus_vect"][sub_id] = {}
+                    res["set_bus_vect"][sub_id]["{}".format(obj_id)] = {"type": objt_type, "new_bus": k}
+                    all_subs.add(sub_id)
+
+            res["set_bus_vect"]["nb_modif_subs"] = len(all_subs)
+            res["set_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+
+        return res
+
     def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
         Return the effect of this action on a give unique load, generator unit, powerline of substation.
@@ -2266,3 +2369,22 @@ class HelperAction:
 
         """
         return self.template_act.get_change_status_vect()
+
+    def from_vect(self, act):
+        """
+        Convert an action, represented as a vector to a valid :class:`Action` instance
+
+        Parameters
+        ----------
+        act: ``numpy.ndarray``
+            A action represented as a vector
+
+        Returns
+        -------
+        res: :class:`grid2op.Action.Action`
+            The corresponding action as an :class:`Action` instance
+
+        """
+        res = copy.deepcopy(self.template_act)
+        res.from_vect(act)
+        return res

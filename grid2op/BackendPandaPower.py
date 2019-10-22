@@ -1,7 +1,7 @@
 """
 This module presents an example of an implementation of a `grid2op.Backend` when using the powerflow
-implementation "pandapower" available at `PandaPower https://www.pandapower.org/`_ for more details about this backend.
-This file is provided as an example.
+implementation "pandapower" available at `PandaPower <https://www.pandapower.org/>`_ for more details about
+this backend. This file is provided as an example of a proper :class:`grid2op.Backend.Backend` implementation.
 
 This backend currently does not work with 3 winding transformers and other exotic object.
 """
