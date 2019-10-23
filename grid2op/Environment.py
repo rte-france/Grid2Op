@@ -32,6 +32,9 @@ import pdb
 
 # TODO code "start from a given time step"
 class Environment:
+    """
+    blablabla
+    """
     def __init__(self,
                  init_grid_path: str,
                  chronics_handler,
@@ -43,6 +46,7 @@ class Environment:
                  rewardClass=FlatReward,
                  legalActClass=AllwaysLegal):
         """
+        TODO
 
         Parameters
         ----------

@@ -38,6 +38,8 @@ from Runner import Runner
 
 DEBUG = True
 
+#TODO test that a runner save the stuff correctly
+
 
 class TestAgent(unittest.TestCase):
     def setUp(self):

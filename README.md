@@ -30,10 +30,10 @@ Official documentation: *coming soon*
     *   [2.2 Using Docker](#using-docker)
 *   [3 Main features of Grid2Op](#main-features-of-grid2op)
     * [3.1 Core functionalities](#core-functionalities)
-    * [3.2 Getting Started / Examples](#getting-started--examples)
-*   [4 Generate the documentation](#generate-the-documentation)
-*   [5 Make tests](#make-the-tests)
-*   [6 License information](#license-information)
+    * [3.2 Generate the documentation](#generate-the-documentation)
+    * [3.3 Getting Started / Examples](#getting-started--examples)
+*   [4 Make tests](#make-the-tests)
+*   [5 License information](#license-information)
 
 # Installation
 
@@ -61,6 +61,7 @@ If you have any trouble with this step, please refer to [the official webpage of
 #### (Optional, recommended) Step 1bis: Create a virtual environment
 ```bash
 pip3 install -U virtualenv
+cd Grid2Op
 python3 -m virtualenv venv_grid2op
 ```
 
@@ -75,7 +76,8 @@ This should create a folder Grid2Op with the current sources.
 Finally, run the following Python command to install the current simulator (including the Python libraries dependencies):
 ```
 cd Grid2Op/
-pip3 install -U .
+source venv_grid2op/bin/activate
+pip install -U .
 ```
 After this, this simulator is available under the name grid2op (e.g. ```import grid2op```).
 
@@ -89,7 +91,7 @@ Experiments can be conducted using the CLI (command line interface).
 ### Using CLI arguments
 CLI can be used to run simulations:
 ```bash
-python3 -m grid2op.main
+python -m grid2op.main
 ```
 
 This will evaluate a *DoNothing* policy (eg. simulating and *Agent* that does not perform
@@ -97,7 +99,7 @@ any action on the powergrid, on the IEEE case 14 for 3 epochs each of 287 time s
 
 For more information:
 ```bash
-python3 -m grid2op.main --help
+python -m grid2op.main --help
 ```
 
 ## Using Docker
@@ -120,22 +122,46 @@ when performing the compitations
 * parameters, game rules or type of actions are perfectly parametrizable
 * can adapt to any kind of input data, in various format (might require the rewriting of a class)
 
-## Getting Started / Examples
-Some Jupyter notebook are provided as example of the use of the Grid2Op package. They are located in the 
-[getting_start](getting_started) directories. 
-
-
-# Generate the documentation
-A copy of the documentation can be built: you will need Sphinx, a Documentation building tool, and a nice-looking custom [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
+## Generate the documentation
+A copy of the documentation can be built: you will need Sphinx, a Documentation building tool, and a nice-looking custom
+ [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
 ```bash
-pip3 install sphinx sphinx_rtd_theme
+pip3 install sphinx
 ```
 This installs both the Sphinx package and the custom template. Then, the documentation can be built with the command:
 ```
 make html
 ```
-This will create a "documentation" subdirectory and the main entry point of the document will be located at [index.html](documentation/html/index.html).
+This will create a "documentation" subdirectory and the main entry point of the document will be located at 
+[index.html](documentation/html/index.html).
 
+It is recommended to build this documentation locally, for convenience.
+For example, the  "getting started" notebooks referenced some pages of the help.
+
+
+## Getting Started / Examples
+Some Jupyter notebook are provided as example of the use of the Grid2Op package. They are located in the 
+[getting_start](getting_started) directories. 
+
+These notebooks will help you in understanding how this framework is used and cover the most
+interesting part of this framework:
+
+* [0_basic_functionalities](getting_started/0_basic_functionalities.ipynb) covers the basics 
+  of reinforcement learning (only the main concepts), how they are implemented in the
+  Grid2Op framework. It also covers how to create a valid environment and how to use the 
+  `grid2op.main` function to assess how well an agent is performing.
+* [1_Observation_Agents](getting_started/1_Observation_Agents.ipynb) details how to create 
+  an "expert agent" that will take pre defined actions based on the observation it gets from 
+  the environment. This Notebook also covers the functioning of the Observation class.
+* [2_Action_GridManipulation](getting_started/2_Action_GridManipulation.ipynb) demonstrates 
+  how to use the Action class and how to manipulate the powergrid.
+* [3_TrainingAnAgent](getting_started/3_TrainingAnAgent.ipynb) shows how to get started with 
+  reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
+  available on [his blog](https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368) 
+  or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
+  be adapted (only minor changes, most of them to fit the shape of the data) 
+  and a (D)DQN will be trained on this problem.
+  
 # Make the tests
 Some tests (unit test, non regression test etc.) are provided with this package. They are located at grid2op/tests.
 
@@ -154,4 +180,5 @@ Copyright 2019 RTE France
 
     RTE: http://www.rte-france.com
 
-This Source Code is subject to the terms of the Mozilla Public License (MPL) v2 also available at https://www.mozilla.org/en-US/MPL/2.0/
+This Source Code is subject to the terms of the Mozilla Public License (MPL) v2 also available 
+[here](https://www.mozilla.org/en-US/MPL/2.0/)

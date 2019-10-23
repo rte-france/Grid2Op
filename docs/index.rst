@@ -30,8 +30,9 @@ Main module content
    intro
    quickstart
    grid2op
+   makeenv
 
-Main Classes' Documentation
+Technical Documentation
 ----------------------------
 
 .. toctree::

@@ -789,8 +789,8 @@ class CompleteObservation(Observation):
         self.dictionnarized = None
 
     def _reset_matrices(self):
-        self.connectity_matrix_ = None
-        self.bus_connectity_matrix_ = None
+        self.connectivity_matrix_ = None
+        self.bus_connectivity_matrix_ = None
         self.vectorized = None
         self.dictionnarized = None
 
@@ -839,7 +839,7 @@ class CompleteObservation(Observation):
     def to_vect(self):
 
         # TODO explain in which order the object are given.
-        
+
         #TODO fix bug when action not initalized, return nan in this case
         if self.vectorized is None:
             self.vectorized = np.concatenate((
@@ -994,14 +994,14 @@ class CompleteObservation(Observation):
                             tmp[obj1, obj2] = 1
                             tmp[obj2, obj1] = 1
 
-                self.connectity_matrix_[beg_:end_, beg_:end_] = tmp
+                self.connectivity_matrix_[beg_:end_, beg_:end_] = tmp
                 beg_ += nb_obj
             # connect the objects together with the lines (both ends of a lines are connected together)
             for q_id in range(self.n_lines):
-                self.connectity_matrix_[self._lines_or_pos_topo_vect[q_id], self._lines_ex_pos_topo_vect[q_id]] = 1
-                self.connectity_matrix_[self._lines_ex_pos_topo_vect[q_id], self._lines_or_pos_topo_vect[q_id]] = 1
+                self.connectivity_matrix_[self._lines_or_pos_topo_vect[q_id], self._lines_ex_pos_topo_vect[q_id]] = 1
+                self.connectivity_matrix_[self._lines_ex_pos_topo_vect[q_id], self._lines_or_pos_topo_vect[q_id]] = 1
 
-        return self.connectity_matrix_
+        return self.connectivity_matrix_
 
     def bus_connectivity_matrix(self):
         """

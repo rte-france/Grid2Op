@@ -33,65 +33,84 @@ class Grid2OpException(RuntimeError):
         return res
 
 
+# Unknown environment at creating
+class UnknownEnv(Grid2OpException):
+    """
+    This exception indicate that a bad argument has been sent to the :func:`grid2op.make` function.
+
+    It does not recognize the name of the :class:`grid2op.Environment.Environment`.
+    """
+    pass
+
+
 # Exception bad environment configured
 class EnvError(Grid2OpException):
     """
-    This exception indicate that the :class:`grid2op.Environment` is poorly configured.
+    This exception indicate that the :class:`grid2op.Environment.Environment` is poorly configured.
 
-    It is for example thrown when assessing if a backend is properly set up with :func:`grid2op.Backend.assert_grid_correct`
+    It is for example thrown when assessing if a backend is properly set up with
+    :func:`grid2op.Backend.Backend.assert_grid_correct`
     """
     pass
 
 
 class IncorrectNumberOfLoads(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of loads of the powergrid.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of
+    loads of the powergrid.
     """
     pass
 
 
 class IncorrectNumberOfGenerators(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of generators of the powergrid.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of
+    generators of the powergrid.
     """
     pass
 
 
 class IncorrectNumberOfLines(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of powerlines of the powergrid.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of
+     powerlines of the powergrid.
     """
     pass
 
 
 class IncorrectNumberOfSubstation(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of substation of the powergrid.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total
+    number of substation of the powergrid.
     """
     pass
 
 
 class IncorrectNumberOfElements(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number of elements of the powergrid.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number
+    of elements of the powergrid.
     """
     pass
 
 class IncorrectPositionOfLoads(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of loads at a substation.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of
+    loads at a substation.
     """
     pass
 
 
 class IncorrectPositionOfGenerators(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of generators at a substation.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of
+    generators at a substation.
     """
     pass
 class IncorrectPositionOfLines(EnvError):
     """
-    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of power lines at a substation.
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of
+    power lines at a substation.
     """
     pass
 
@@ -101,9 +120,11 @@ class IllegalAction(Grid2OpException):
     """
     This exception indicate that the :class:`grid2op.Action` is illegal.
 
-    It is for example thrown when an :class:`grid2op.Agent` tries to perform an action against the rule. This is handled in :func:`grid2op.Environment.step`
+    It is for example thrown when an :class:`grid2op.Agent` tries to perform an action against the rule.
+    This is handled in :func:`grid2op.Environment.Environment.step`
 
-    An :class:`grid2op.Action` is said to be **illegal** depending on some rules implemented in :func:`grid2op.HelperAction.is_legal` method.
+    An :class:`grid2op.Action` is said to be **illegal** depending on some rules implemented in
+    :func:`grid2op.Action.HelperAction.is_legal` method.
     An action can be legal in some context, but illegal in others.
 
     """
@@ -112,49 +133,56 @@ class IllegalAction(Grid2OpException):
 
 class OnProduction(IllegalAction):
     """
-    This is a more precise exception than :class:`IllegalAction` indicating that the action is illegal due to setting wrong values to generators.
+    This is a more precise exception than :class:`IllegalAction` indicating that the action is illegal due to
+    setting wrong values to generators.
     """
     pass
 
 
 class VSetpointModified(OnProduction):
     """
-    This is a more precise exception than :class:`OnProduction` indicating that the action is illegal because the setpoint voltage magnitude of a production has been changed.
+    This is a more precise exception than :class:`OnProduction` indicating that the action is illegal because the
+     setpoint voltage magnitude of a production has been changed.
     """
     pass
 
 
 class ActiveSetPointAbovePmax(OnProduction):
     """
-    This is a more precise exception than :class:`OnProduction` indicating that the action is illegal because the setpoint active power of a production is set to be higher than Pmax.
+    This is a more precise exception than :class:`OnProduction` indicating that the action is illegal because the
+    setpoint active power of a production is set to be higher than Pmax.
     """
     pass
 
 
 class ActiveSetPointBelowPmin(OnProduction):
     """
-    This is a more precise exception than :class:`OnProduction` indicating that the action is illegal because the setpoint active power of a production is set to be lower than Pmin.
+    This is a more precise exception than :class:`OnProduction` indicating that the action is illegal because the
+    setpoint active power of a production is set to be lower than Pmin.
     """
     pass
 
 
 class OnLoad(IllegalAction):
     """
-    This is a more precise exception than :class:`IllegalAction` indicating that the action is illegal due to setting wrong values to loads.
+    This is a more precise exception than :class:`IllegalAction` indicating that the action is illegal due to
+    setting wrong values to loads.
     """
     pass
 
 
 class OnLines(IllegalAction):
     """
-    This is a more precise exception than :class:`IllegalAction` indicating that the action is illegal due to setting wrong values to lines (reconnection impossible, disconnection impossible etc).
+    This is a more precise exception than :class:`IllegalAction` indicating that the action is illegal due to setting
+     wrong values to lines (reconnection impossible, disconnection impossible etc).
     """
     pass
 
 
 class InvalidReconnection(OnLines):
     """
-    This is a more precise exception than :class:`OnLines` indicating that the :class:`grid2op.Agent` tried to reconnect a powerline illegally.
+    This is a more precise exception than :class:`OnLines` indicating that the :class:`grid2op.Agent` tried to
+    reconnect a powerline illegally.
     """
     pass
 
@@ -162,12 +190,16 @@ class InvalidReconnection(OnLines):
 # ambiguous action
 class AmbiguousAction(Grid2OpException):
     """
-    This exception indicate that the :class:`grid2op.Action` is ambiguous. It could be understood differently according to the backend used.
+    This exception indicate that the :class:`grid2op.Action` is ambiguous. It could be understood differently according
+    to the backend used.
 
-    Such a kind of action are forbidden in this package. These kind of exception are mainly thrown by the :class:`grid2op.Action` in
+    Such a kind of action are forbidden in this package. These kind of exception are mainly thrown by the
+    :class:`grid2op.Action.Action` in
     the :func:`grid2op.Action.update` and :func:`grid2op.Action.__call__` methods.
 
-    As opposed to a :class:`IllegalAction` an :class:`AmbiguousAction` is forbidden for all the backend, in all the scenarios.
+    As opposed to a :class:`IllegalAction` an :class:`AmbiguousAction` is forbidden for all the backend,
+    in all the scenarios.
+
     It doesn't depend on the implemented rules.
     """
     pass
@@ -175,49 +207,56 @@ class AmbiguousAction(Grid2OpException):
 
 class InvalidLineStatus(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action` is ambiguous due to powerlines manipulation.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action` is
+    ambiguous due to powerlines manipulation.
     """
     pass
 
 
 class UnrecognizedAction(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action` is ambiguous due to the bad formatting of the action.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action` is
+    ambiguous due to the bad formatting of the action.
     """
     pass
 
 
 class InvalidNumberOfLoads(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action` is ambiguous because an incorrect number of loads tries to be modified.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    is ambiguous because an incorrect number of loads tries to be modified.
     """
     pass
 
 
 class InvalidNumberOfGenerators(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action` is ambiguous because an incorrect number of generator tries to be modified.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    is ambiguous because an incorrect number of generator tries to be modified.
     """
     pass
 
 
 class InvalidNumberOfLines(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action` is ambiguous because an incorrect number of lines tries to be modified.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    is ambiguous because an incorrect number of lines tries to be modified.
     """
     pass
 
 
 class InvalidNumberOfObjectEnds(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action` is ambiguous because an incorrect number of object at a substation try to be modified.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    is ambiguous because an incorrect number of object at a substation try to be modified.
     """
     pass
 
 
 class InvalidBusStatus(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action` try to bot "set" and "switch" some bus to which an object is connected.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    try to bot "set" and "switch" some bus to which an object is connected.
     """
     pass
 
@@ -225,14 +264,16 @@ class InvalidBusStatus(AmbiguousAction):
 # powerflow exception
 class DivergingPowerFlow(Grid2OpException):
     """
-    This exception indicate that the :class:`grid2op.Backend` is not able to find a valid solution to the physical _grid it represents.
+    This exception indicate that the :class:`grid2op.Backend.Backend` is not able to find a valid solution to the
+     physical _grid it represents.
 
     This divergence can be due to:
 
       - the system is not feasible: there is no solution to Kirchhoff's law given the state
       - the powergrid is not connex
       - there is a "voltage collapse" : the voltages are ill conditioned making the _grid un realistic.
-      - the method to solve the powerflow fails to find a valid solution. In this case, adopting a different :class:`grid2op.Backend` might solve the problem.
+      - the method to solve the powerflow fails to find a valid solution. In this case, adopting a different
+        :class:`grid2op.Backend.Backend` might solve the problem.
     """
     pass
 
@@ -241,16 +282,17 @@ class DivergingPowerFlow(Grid2OpException):
 # Functionality not implemented by the observation
 class NoForecastAvailable(Grid2OpException):
     """
-    This exception is mainly raised by the :class:`grid2op.Observation`. It specifies the :class:`grid2op.Agent` that the :class:`grid2op.GridValue` doesn't produce any forecasts.
+    This exception is mainly raised by the :class:`grid2op.Observation`. It specifies the :class:`grid2op.Agent.Agent`
+    that the :class:`grid2op.ChronicsHandler.GridValue` doesn't produce any forecasts.
 
-    In that case it is not possible to use the :func:`grid2op.Observation.forecasts` method.
+    In that case it is not possible to use the :func:`grid2op.Observation.Observation.forecasts` method.
     """
     pass
 
 # Chronics
 class ChronicsError(Grid2OpException):
     """
-    Base class of all error regarding the chronics and the gridValue (see :class:`grid2op.GridValue` for
+    Base class of all error regarding the chronics and the gridValue (see :class:`grid2op.ChronicsHandler.GridValue` for
     more information)
     """
     pass
