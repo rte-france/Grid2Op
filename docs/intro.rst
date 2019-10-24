@@ -15,4 +15,4 @@ Any other tools that is able to perform power flow computation can be used as a 
 play the game or to accelerate the training. Instructions and method to implement
 a new backend are available in the :class:`Grid2Op.Backend` documentation.
 
-TO be continued
+TO be continued (package still under development)

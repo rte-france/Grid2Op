@@ -8,10 +8,11 @@ to solve security issues.
 
 This version of Grid2Op relies on an open source powerflow solver ([PandaPower](https://www.pandapower.org/)),
 but is also compatible with other *Backend*. If you have at your disposal another powerflow solver, 
-the documentation of [grid2op/Backend.py](grid2op/Backend.py).
+the documentation of [grid2op/Backend.py](grid2op/Backend.py) can help you integrate it into a proper "Backend"
+and have Grid2Op using this powerflow instead of PandaPower.
 
 Using the *Backend* based on PandaPower, this tools is able to perform 1000 timesteps 
-(on a laptop, python3.6, Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz, SSD hardrive) :
+[on a laptop, python3.6, Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz, SSD hardrive] :
 
 - in 30s for the IEEE 14 buses test case (included in this distribution as 
 [test_case14.json](grid2op/data/test_PandaPower/test_case14.json) )
@@ -116,9 +117,10 @@ Its main features are:
 * allows for grid modifications (active and reactive load values, generator voltages setpoints and active production)
 * allows for maintenance operations and powergrid topological changes
 * can adopt any powergrid modeling, especially Alternating Current (AC) and Direct Current (DC) approximation to 
-when performing the compitations
+  when performing the compitations
 * supports changes of powerflow solvers, actions, observations to better suit any need in performing power system operations modeling
-* has an RL-focused interface, compatible with [OpenAI-gym](https://gym.openai.com/) (Coming soon)
+* has an RL-focused interface, compatible with [OpenAI-gym](https://gym.openai.com/): same interface for the
+  Environment class.
 * parameters, game rules or type of actions are perfectly parametrizable
 * can adapt to any kind of input data, in various format (might require the rewriting of a class)
 
