@@ -90,7 +90,7 @@ if __name__ == "__main__":
         path_parameter = str(args.path_parameters)
     else:
         path_parameter = None
-    if args.path_casefile is None and args.path_chronics is None:
+    if args.path_casefile == DEFAULT_TEST_CASE and args.path_chronics == DEFAULT_CHRONICS_DATA:
         names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
                                                "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
                                                "5_C201.84": 'load_4_4',
@@ -127,7 +127,8 @@ if __name__ == "__main__":
                nb_episode=args.nb_episode,
                path_casefile=args.path_casefile,
                path_chronics=args.path_chronics,
-               path_parameters=path_parameter
+               path_parameters=path_parameter,
+               names_chronics_to_backend=names_chronics_to_backend
                )
     print("The results are:")
     for chron_name, cum_reward, nb_time_step, max_ts in res:
