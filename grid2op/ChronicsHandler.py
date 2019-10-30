@@ -513,7 +513,7 @@ class GridStateFromFile(GridValue):
 
         # for the two following vector, the convention is the following: False(line is disconnected) / True(line is connected)
         self.hazards = None   # numpy array representing the outage (unplanned), same size as the number of powerlines on the _grid.
-        self.maintenance = None  # numpy array representing the maintenance (planned withdrawal of a powerline), same size as the number of powerlines on the _grid.
+        self.maintenance = None  # numpy array representing the _maintenance (planned withdrawal of a powerline), same size as the number of powerlines on the _grid.
 
         self.current_index = -1
         self.sep = sep
@@ -549,7 +549,7 @@ class GridStateFromFile(GridValue):
           - a file named "prod_p.csv" used to initialize :attr:`GridStateFromFile.prod_p`
           - a file named "prod_v.csv" used to initialize :attr:`GridStateFromFile.prod_v`
           - a file named "hazards.csv" used to initialize :attr:`GridStateFromFile.hazards`
-          - a file named "maintenance.csv" used to initialize :attr:`GridStateFromFile.maintenance`
+          - a file named "_maintenance.csv" used to initialize :attr:`GridStateFromFile._maintenance`
 
         All these csv must have the same separator specified by :attr:`GridStateFromFile.sep`.
 
@@ -639,7 +639,7 @@ class GridStateFromFile(GridValue):
         self.hazards = copy.deepcopy(hazards.values[:, np.argsort(order_backend_hazards)])
         self.maintenance = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
-        # there are maintenance and hazards only if the value in the file is not 0.
+        # there are _maintenance and hazards only if the value in the file is not 0.
         self.maintenance = self.maintenance != 0.
         self.hazards = self.hazards != 0.
 
@@ -699,8 +699,8 @@ class GridStateFromFile(GridValue):
 
         Parameters
         ----------
-        backend: :class:`grid2op.Backend`
-            The backend used by the :class:`grid2op.Environment`
+        backend: :class:`grid2op.Backend.Backend`
+            The backend used by the :class:`grid2op.Environment.Environment`
 
         Returns
         -------
@@ -767,7 +767,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         Array used to store the forecasts of the generator voltage magnitude setpoint.
 
     maintenance_forecast: ``numpy.ndarray``, dtype: ``float``
-        Array used to store the forecasts of the maintenance operations.
+        Array used to store the forecasts of the _maintenance operations.
 
     """
     def __init__(self, path, sep=";", time_interval=timedelta(minutes=5), max_iter=-1):
@@ -842,7 +842,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self.prod_v_forecast = copy.deepcopy(prod_v.values[:, np.argsort(order_backend_prod_v)])
         self.maintenance_forecast = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
-        # there are maintenance and hazards only if the value in the file is not 0.
+        # there are _maintenance and hazards only if the value in the file is not 0.
         self.maintenance_forecast = self.maintenance != 0.
 
     def check_validity(self, backend):
@@ -859,7 +859,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_generators, len(self.prod_v)))
 
         if self.maintenance_forecast.shape[1] != backend.n_lines:
-            raise IncorrectNumberOfLines("for the maintenance. It should be {} but is in fact {}".format(backend.n_lines, len(self.maintenance)))
+            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}".format(backend.n_lines, len(self.maintenance)))
 
         n = self.load_p.shape[0]
         for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "outage"],
@@ -1091,11 +1091,15 @@ class ChronicsHandler:
     real_data: :class:`GridValue`
         An instance of type given by :attr:`ChronicsHandler.chronicsClass`.
 
+    seed: ``float``
+        Seed to use for reproducible experiments (currently not implemented)
     """
     def __init__(self, chronicsClass=ChangeNothing, time_interval=timedelta(minutes=5), max_iter=-1,
                  **kwargs):
+        if not isinstance(chronicsClass, type):
+            raise Grid2OpException("Parameter \"chronicsClass\" used to build the ChronicsHandler should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(type(legalActClass)))
         if not issubclass(chronicsClass, GridValue):
-            raise ChronicsError("ChronicsHandler: the \"chronicsClass\" argument should be a derivative of the \"Grid2Op.GridValue\" type.")
+            raise ChronicsError("ChronicsHandler: the \"chronicsClass\" argument should be a derivative of the \"Grid2Op.GridValue\" type and not {}.".format(type(chronicsClass)))
         self.chronicsClass = chronicsClass
         self.kwargs = kwargs
         self.max_iter = max_iter
@@ -1103,6 +1107,7 @@ class ChronicsHandler:
         self.real_data = None
         self.real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
                                             **self.kwargs)
+        self.seed = None
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -1195,3 +1200,16 @@ class ChronicsHandler:
 
         """
         return self.real_data.get_id()
+
+    def seed(self, seed):
+        """
+        Use to set the seed in case of non determinitics chronics.
+
+        Attributes
+        -----------
+        seed: ``float``
+            The seed to set
+
+        """
+        self.seed = seed
+        #TODO set seed in the data

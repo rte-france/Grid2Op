@@ -138,6 +138,10 @@ class Backend(ABC):
 
     name_subs: :class:`numpy.array`, dtype:str
         ordered name of the substation in the _grid. This is mainly use to make sure the "chronics" are used properly.
+
+    thermal_limit_a: :class:`numpy.array`, dtype:float
+        Thermal limit of the powerline in amps for each powerline. Thie thermal limit is relevant on only one
+        side of the powerline: the same side returned by :func:`Backend.get_line_overflow`
     """
     def __init__(self, detailed_infos_for_cascading_failures=True):
         """
@@ -185,6 +189,9 @@ class Backend(ABC):
         self.name_prods = None
         self.name_lines = None
         self.name_subs = None
+
+        # thermal limit setting, in ampere, at the same "side" of the powerline than self.get_line_overflow
+        self.thermal_limit_a = None
 
     def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
         """
@@ -464,12 +471,12 @@ class Backend(ABC):
             raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
         if np.any(~np.isfinite(tmp)):
             raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
-        tmp = self.get_thermal_limit(obs=None)
+        tmp = self.get_thermal_limit()
         if tmp.shape[0] != self.n_lines:
             raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
         if np.any(~np.isfinite(tmp)):
             raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
-        tmp = self.get_line_overflow(obs=None)
+        tmp = self.get_line_overflow()
         if tmp.shape[0] != self.n_lines:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
         if np.any(~np.isfinite(tmp)):
@@ -508,7 +515,7 @@ class Backend(ABC):
             raise EnvError("Some components of \"backend.get_topo_vect()\" are not finite. This should be integer.")
 
     @abstractmethod
-    def load_grid(self, path, filename):
+    def load_grid(self, path, filename=None):
         """
         Load the powergrid.
         It should first define self._grid.
@@ -521,7 +528,7 @@ class Backend(ABC):
         :type path: :class:`string`
 
         :param filename: the filename of the powergrid
-        :type filename: :class:`string`
+        :type filename: :class:`string`, optional
 
         :return: ``None``
         """
@@ -548,7 +555,7 @@ class Backend(ABC):
         The help of :class:`grid2op.Action` or the code in Action.py file give more information about the implementation of this method.
 
         :param action: the action to be implemented on the powergrid.
-        :type action: :class:`grid2op.Action`
+        :type action: :class:`grid2op.Action.Action`
 
         :return: ``None``
         """
@@ -631,13 +638,11 @@ class Backend(ABC):
         """
         pass
 
-    @abstractmethod
-    def get_thermal_limit(self, obs=None):
+    def set_thermal_limit(self, env):
         """
-        Gives the thermal limit (in amps) for each powerline of the _grid. Only one value per powerline is returned.
+        Upade the new thermal limit in case of DLR for example.
 
-        It is assumed that both *_get_line_flow* and *_get_thermal_limit* gives the value of the same end of the powerline.
-        See the help of *_get_line_flow* for a more detailed description of this problem.
+        By default it does nothing.
 
         Depending on the operational strategy, it is also possible to implement some
         `Dynamic Line Rating <https://en.wikipedia.org/wiki/Dynamic_line_rating_for_electric_utilities>`_ (DLR)
@@ -646,32 +651,49 @@ class Backend(ABC):
         weather condition are accessible by the backend. Our methodology doesn't make any assumption on the method
         used to get these thermal limits.
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
 
-        :param obs: the current observation in which the powerflow is done. This can be use for example in case of DLR implementation.
-        :type obs: :class:`grid2op.Observation`
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            The environment used to compute the thermal limit
+
+        Returns
+        -------
+        ``None``
+        """
+
+        pass
+
+    def get_thermal_limit(self):
+        """
+        Gives the thermal limit (in amps) for each powerline of the _grid. Only one value per powerline is returned.
+
+        It is assumed that both :func:`Backend.get_line_flow` and *_get_thermal_limit* gives the value of the same end of the powerline.
+        See the help of *_get_line_flow* for a more detailed description of this problem.
+
+        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
 
         :return: An array giving the thermal limit of the powerlines.
         :rtype: np.array, dtype:float
         """
-        pass
+        return self.thermal_limit_a
 
-    def get_relative_flow(self, obs=None):
+    def get_relative_flow(self):
         """
         This method return the relative flows, *eg.* the current flow divided by the thermal limits. It has a pretty
         straightforward default implementation, but it can be overriden for example for transformer if the limits are
         on the lower voltage side or on the upper voltage level.
 
-        :param obs:
-        :type obs: :class:`grid2op.Observation`
-
-        :return:
+        Returns
+        -------
+        res: ``numpy.ndarray``, dtype: float
+            The relative flow in each powerlines of the grid.
         """
         num_ = self.get_line_flow()
-        denom_ = self.get_thermal_limit(obs=obs)
+        denom_ = self.get_thermal_limit()
         return num_ / denom_
 
-    def get_line_overflow(self, obs=None):
+    def get_line_overflow(self):
         """
         faster accessor to the line that are on overflow.
 
@@ -683,7 +705,7 @@ class Backend(ABC):
         :return: An array saying if a powerline is overflow or not
         :rtype: np.array, dtype:bool
         """
-        th_lim = self.get_thermal_limit(obs=obs)
+        th_lim = self.get_thermal_limit()
         flow = self.get_line_flow()
         return flow > th_lim
 
@@ -850,7 +872,7 @@ class Backend(ABC):
         Note that it **DOESNT** update the environment with the disconnected lines.
 
         :param env: the environment in which the powerflow is ran.
-        :type env: :class:`grid2op.Environment`
+        :type env: :class:`grid2op.Environment.Environment`
 
         :param is_dc: mode of power flow (AC : False, DC: is_dc is True)
         :type is_dc: bool
@@ -878,7 +900,7 @@ class Backend(ABC):
         while True:
             # simulate the cascading failure
             lines_flows = self.get_line_flow()
-            thermal_limits = self.get_thermal_limit(env.get_obs())
+            thermal_limits = self.get_thermal_limit()
             lines_status = self.get_line_status()
 
             # a) disconnect lines on hard overflow
@@ -962,7 +984,6 @@ class Backend(ABC):
 
             p_bus[self.lines_ex_to_subid[i], topo_vect[self.lines_ex_pos_topo_vect[i]]-1] += p_ex[i]
             q_bus[self.lines_ex_to_subid[i], topo_vect[self.lines_ex_pos_topo_vect[i]]-1] += q_ex[i]
-
 
         for i in range(self.n_generators):
             # for substations

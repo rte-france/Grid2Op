@@ -213,7 +213,7 @@ class Action(object):
             disconnected, it will reconnect it.
 
     _dict_inj: ``dict``
-        Represents the modification of the injection (productions and loads) of the power _grid. This dictionnary can
+        Represents the modification of the _injection (productions and loads) of the power _grid. This dictionnary can
         have the optional keys:
 
             - "load_p" to set the active load values (this is a np array with the same size as the number of load
@@ -345,15 +345,15 @@ class Action(object):
         self._lines_or_pos_topo_vect = lines_or_pos_topo_vect
         self._lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
 
-        self.authorized_keys = {"injection",
-                                "hazards", "maintenance", "set_status", "change_status",
+        self.authorized_keys = {"_injection",
+                                "hazards", "_maintenance", "set_status", "change_status",
                                 "set_bus", "change_bus"}
 
         # False(line is disconnected) / True(line is connected)
         self._set_line_status = np.full(shape=n_lines, fill_value=0, dtype=np.int)
         self._switch_line_status = np.full(shape=n_lines, fill_value=False, dtype=np.bool)
 
-        # injection change
+        # _injection change
         self._dict_inj = {}
 
         # topology changed
@@ -398,7 +398,7 @@ class Action(object):
         Test the equality of two actions.
 
         2 actions are said to be identical if the have the same impact on the powergrid. This is unrelated to their
-        respective class. For example, if an Action is of class :class:`Action` and doesn't act on the injection, it
+        respective class. For example, if an Action is of class :class:`Action` and doesn't act on the _injection, it
         can be equal to a an Action of derived class :class:`TopologyAction` (if the topological modification are the
         same of course).
 
@@ -538,7 +538,7 @@ class Action(object):
         self._set_line_status = np.full(shape=self._n_lines, fill_value=0, dtype=np.int)
         self._switch_line_status = np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
 
-        # injection change
+        # _injection change
         self._dict_inj = {}
 
         # topology changed
@@ -586,9 +586,9 @@ class Action(object):
 
     def _digest_injection(self, dict_):
         # I update the action
-        if "injection" in dict_:
-            if dict_["injection"] is not None:
-                tmp_d = dict_["injection"]
+        if "_injection" in dict_:
+            if dict_["_injection"] is not None:
+                tmp_d = dict_["_injection"]
                 for k in ["load_p", "prod_p", "load_q", "prod_q"]:
                     if k in tmp_d:
                         self._dict_inj[k] = tmp_d[k]
@@ -738,29 +738,29 @@ class Action(object):
                 self._ignore_topo_action_if_disconnection(tmp)
 
     def _digest_maintenance(self, dict_):
-        if "maintenance" in dict_:
+        if "_maintenance" in dict_:
             # set the values of the power lines to "disconnected" for element being "False"
             # does nothing to the others
-            # a maintenance operation will never reconnect a powerline
+            # a _maintenance operation will never reconnect a powerline
 
-            # if len(dict_["maintenance"]) != self._n_lines:
-            #     raise InvalidNumberOfLines("This action acts on {} lines while there are {} in the _grid".format(len(dict_["maintenance"]), self._n_lines))
+            # if len(dict_["_maintenance"]) != self._n_lines:
+            #     raise InvalidNumberOfLines("This action acts on {} lines while there are {} in the _grid".format(len(dict_["_maintenance"]), self._n_lines))
 
-            if dict_["maintenance"] is not None:
-                tmp = dict_["maintenance"]
+            if dict_["_maintenance"] is not None:
+                tmp = dict_["_maintenance"]
                 try:
                     tmp = np.array(tmp)
                 except:
                     raise AmbiguousAction(
-                        "You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" is castable into a numpy ndarray")
+                        "You ask to perform _maintenance on powerlines, this can only be done if \"_maintenance\" is castable into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self._n_lines:
                         raise InvalidNumberOfLines(
-                            "This \"maintenance\" action acts on {} lines while there are {} in the _grid".format(
+                            "This \"_maintenance\" action acts on {} lines while there are {} in the _grid".format(
                                 len(tmp), self._n_lines))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     raise AmbiguousAction(
-                        "You can only ask to perform lines maintenance with int or boolean numpy array vector.")
+                        "You can only ask to perform lines _maintenance with int or boolean numpy array vector.")
                 self._set_line_status[tmp] = -1
                 self._ignore_topo_action_if_disconnection(tmp)
 
@@ -797,8 +797,8 @@ class Action(object):
         This method also reset the attributes :attr:`Action.as_vect` :attr:`Action._lines_impacted` and
         :attr:`Action._subs_impacted` to ``None`` regardless of the argument in input.
 
-        If an action consist in "reconnecting" a powerline, and this same powerline is affected by a maintenance or a
-        hazard, it will be erased without any warning. "hazards" and "maintenance" have the priority. This is a
+        If an action consist in "reconnecting" a powerline, and this same powerline is affected by a _maintenance or a
+        hazard, it will be erased without any warning. "hazards" and "_maintenance" have the priority. This is a
         requirements for all proper :class:`Action` subclass.
 
         Parameters
@@ -806,7 +806,7 @@ class Action(object):
         dict_: :class:`dict`
             If it's ``None`` or empty it does nothing. Otherwise, it can contain the following (optional) keys:
 
-            - "*injection*" if the action will modify the injections (generator setpoint / load value - active or
+            - "*_injection*" if the action will modify the injections (generator setpoint / load value - active or
               reactive) of the powergrid. It has optionally one of the following keys:
 
                     - "load_p" to set the active load values (this is a np array with the same size as the number of
@@ -818,16 +818,16 @@ class Action(object):
 
             - "*hazards*": represents the hazards that the line might suffer (boolean vector) False: no hazard, nothing
               is done, True: an hazard, the powerline is disconnected
-            - "*maintenance*": represents the maintenance operation performed on each powerline (boolean vector) False:
-              no maintenance, nothing is done, True: a maintenance is scheduled, the powerline is disconnected
+            - "*_maintenance*": represents the _maintenance operation performed on each powerline (boolean vector) False:
+              no _maintenance, nothing is done, True: a _maintenance is scheduled, the powerline is disconnected
             - "*set_status*": a vector (int or float) to set the status of the powerline status (connected /
               disconnected) with the following interpretation:
 
                 - 0 : nothing is changed,
                 - -1 : disconnect the powerline,
                 - +1 : reconnect the powerline. If an action consist in "reconnect" a powerline, and this same
-                  powerline is affected by a maintenance or a hazard, it will be erased without any warning. "hazards"
-                  and "maintenance" have the priority.
+                  powerline is affected by a _maintenance or a hazard, it will be erased without any warning. "hazards"
+                  and "_maintenance" have the priority.
 
             - "change_status": a vector (bool) to change the status of the powerline. This vector should be interpreted
               as:
@@ -867,7 +867,7 @@ class Action(object):
             **NB**: length of vector here are NOT check in this function. This method can be "chained" and only on the final
             action, when used, eg. in the Backend, i checked.
 
-            **NB**: If a powerline is disconnected, on maintenance, or suffer an outage, the associated "set_bus" will
+            **NB**: If a powerline is disconnected, on _maintenance, or suffer an outage, the associated "set_bus" will
             be ignored.
             Disconnection has the priority on anything. This priority is given because in case of hazard, the hazard has
             the priority over the possible actions.
@@ -946,7 +946,7 @@ class Action(object):
         if np.any(self._set_line_status[self._switch_line_status] != 0):
             raise InvalidLineStatus("You asked to change the status (connected / disconnected) of a powerline by"
                                     " using the keyword \"change_status\" and set this same line state in \"set_status\""
-                                    " (or \"hazard\" or \"maintenance\"). This ambiguous behaviour is not supported")
+                                    " (or \"hazard\" or \"_maintenance\"). This ambiguous behaviour is not supported")
         # check size
         if "load_p" in self._dict_inj:
             if len(self._dict_inj["load_p"]) != self._n_load:
@@ -1518,9 +1518,9 @@ class TopologyAction(Action):
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect)
 
-        # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
-        # modification injection.
-        self.authorized_keys = set([k for k in self.authorized_keys if k != "injection"])
+        # the _injection keys is not authorized, meaning it will send a warning is someone try to implement some
+        # modification _injection.
+        self.authorized_keys = set([k for k in self.authorized_keys if k != "_injection"])
 
     def __call__(self):
         """
@@ -1545,7 +1545,7 @@ class TopologyAction(Action):
             This array is :attr:`Action._change_bus_vect`
         """
         if self._dict_inj:
-            raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
+            raise AmbiguousAction("You asked to modify the _injection with an action of class \"TopologyAction\".")
         self._check_for_ambiguity()
         return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect
 
@@ -1561,7 +1561,7 @@ class TopologyAction(Action):
         ----------
         dict_: :class:`dict`
             See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
-            "injection" part are irrelevant for this subclass.
+            "_injection" part are irrelevant for this subclass.
 
         Returns
         -------
@@ -1692,10 +1692,10 @@ class PowerLineSet(Action):
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect)
 
-        # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
-        # modification injection.
+        # the _injection keys is not authorized, meaning it will send a warning is someone try to implement some
+        # modification _injection.
         self.authorized_keys = set([k for k in self.authorized_keys
-                                    if k != "injection" and k != "set_bus" and \
+                                    if k != "_injection" and k != "set_bus" and \
                                     k != "change_bus" and k != "change_status"])
 
     def __call__(self):
@@ -1721,7 +1721,7 @@ class PowerLineSet(Action):
             This array is :attr:`Action._change_bus_vect`, it is never modified
         """
         if self._dict_inj:
-            raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
+            raise AmbiguousAction("You asked to modify the _injection with an action of class \"TopologyAction\".")
         self._check_for_ambiguity()
         return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect
 
@@ -1737,7 +1737,7 @@ class PowerLineSet(Action):
         ----------
         dict_: :class:`dict`
             See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
-            "injection", "change bus", "set bus", or "change status" are irrelevant for this subclass.
+            "_injection", "change bus", "set bus", or "change status" are irrelevant for this subclass.
 
         Returns
         -------
@@ -1947,7 +1947,7 @@ class HelperAction:
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
         action (see :func:`Action.size`) or to sample a new Action (see :func:`Action.sample`)
 
-    game_rules: :class:`grid2op.GameRules`
+    game_rules: :class:`grid2op.GameRules.`
         Class specifying the rules of the game, used to check the legality of the actions.
 
     n: ``int``
@@ -1964,11 +1964,11 @@ class HelperAction:
 
         Parameters
         ----------
-        actionClass: :class:`Action`
+        actionClass: ``type``
             Note that this parameter expected a class, and not an object of the class. It is used to return the
-            appropriate action type
+            appropriate action type.
 
-        game_rules: :class:`grid2op.GameRules`
+        game_rules: :class:`grid2op.GameRules.GameRules`
             Class specifying the rules of the game, used to check the legality of the actions.
 
         """
@@ -2037,7 +2037,7 @@ class HelperAction:
             is there a test performed on the legality of the action. **NB** When an object of class :class:`Action` is
             used, it is automatically tested for ambiguity. If this parameter is set to ``True`` then a legality test
             is performed. An action can be illegal if the environment doesn't allow it, for example if an agent tries
-            to reconnect a powerline during a maintenance.
+            to reconnect a powerline during a _maintenance.
 
         env: :class:`grid2op.Environment`, optional
             An environment used to perform a legality check.

@@ -93,7 +93,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
-                                      "injection": {"load_p": new_vect, "load_q": new_vect2},
+                                      "_injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_status": change_status_orig,
                                      "set_status": set_status_orig})
 

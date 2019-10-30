@@ -23,7 +23,7 @@ class LegalAction(ABC):
         """
         As opposed to "ambiguous action", "illegal action" are not illegal per se.
         They are legal or not on a certain environment. For example, disconnecting
-        a powerline that has been cut off for maintenance is illegal. Saying to action to both disconnect a
+        a powerline that has been cut off for _maintenance is illegal. Saying to action to both disconnect a
         powerline and assign it to bus 2 on it's origin end is ambiguous, and not tolerated in Grid2Op.
 
         Parameters
@@ -120,6 +120,10 @@ class DefaultRules(LookParam, PreventReconection):
 
 
 class GameRules(object):
+    """
+    Class that defin the rules of the game.
+
+    """
     def __init__(self, legalActClass=AllwaysLegal):
         """
 
@@ -129,7 +133,9 @@ class GameRules(object):
             The class that will be used to tell if the actions are legal or not. The class must be given, and not
             an object of this class. It should derived from :class:`LegalAction`.
         """
+        if not isinstance(legalActClass, type):
+            raise Grid2OpException("Parameter \"legalActClass\" used to build the GameRules should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(type(rewardClass)))
+
         if not issubclass(legalActClass, LegalAction):
-            raise Grid2OpException("Gamerules: legalActClass should be initialize with a class deriving from LegalAction")
+            raise Grid2OpException("Gamerules: legalActClass should be initialize with a class deriving from LegalAction and not {}".format(type(legalActClass)))
         self.legal_action = legalActClass()
-        pass

@@ -102,7 +102,7 @@ class PandaPowerBackend(Backend):
         self._pf_init = "results"
         self._nb_bus_before = 0
 
-        self.thermal_limit = None
+        self.thermal_limit_a = None
 
         self._iref_slack = -1
         self._id_bus_added = -1
@@ -307,8 +307,8 @@ class PandaPowerBackend(Backend):
                                 self._grid.bus["vn_kv"][self._grid.trafo["lv_bus"].values]))
         self._nb_bus_before = self.get_nb_active_bus()
 
-        self.thermal_limit = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
-                                                    self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
+        self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
+                                                      self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
 
         self.p_or = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
         self.q_or = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
@@ -328,7 +328,7 @@ class PandaPowerBackend(Backend):
         if not isinstance(action, Action):
             raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not {}".format(action.__class__))
 
-        # change the injection if needed
+        # change the _injection if needed
         dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect = action()
         for k in self._vars_action:
             if k in dict_injection:
@@ -521,14 +521,6 @@ class PandaPowerBackend(Backend):
         :return:
         """
         return self.a_or
-
-    def get_thermal_limit(self, obs=None):
-        """
-        To avoid the concatenation of multiple rows of a dataframe, this values is stored. Note that this backend
-        doesn't implement any kind of Dynamic Line Rating strategy at the moment, as the observation is totally
-        neglected.
-        """
-        return self.thermal_limit
 
     def _disconnect_line(self, id):
         if id < self._number_true_line:

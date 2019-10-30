@@ -52,7 +52,7 @@ except (ModuleNotFoundError, ImportError):
 # TODO refactor, Observation and Action, they are really close in their actual form, especially the Helpers, if
 # TODO that make sense.
 # TODO make an action with the difference between the observation that would be an action.
-# TODO have a method that could do "forecast" by giving the injection by the agent, if he wants to make custom forecasts
+# TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
 
 # TODO finish documentation
 
@@ -484,7 +484,7 @@ class Observation(ABC):
         Test the equality of two actions.
 
         2 actions are said to be identical if the have the same impact on the powergrid. This is unlrelated to their
-        respective class. For example, if an Action is of class :class:`Action` and doesn't act on the injection, it
+        respective class. For example, if an Action is of class :class:`Action` and doesn't act on the _injection, it
         can be equal to a an Action of derived class :class:`TopologyAction` (if the topological modification are the
         same of course).
 
@@ -834,7 +834,7 @@ class CompleteObservation(Observation):
             self._forecasted_grid[i]["setbus"] = self.topo_vect
 
         self._forecasted_grid = [None for _ in self._forecasted_inj]
-        self.rho = env.backend.get_relative_flow(self)
+        self.rho = env.backend.get_relative_flow()
 
     def to_vect(self):
 
@@ -1074,6 +1074,10 @@ class CompleteObservation(Observation):
 
 
 class ObservationHelper:
+    """
+    Helper that provides usefull functions to manipulate :class:`Observation`.
+
+    """
     def __init__(self,
                  n_gen, n_load, n_lines, subs_info,
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
@@ -1214,20 +1218,30 @@ class ObservationHelper:
 
     def size(self):
         """
-        Size if the observation vector would be flatten
-        :return:
+        Size if the observation vector would be flatten. That's also the dimension of the observation space.
+
+        Returns
+        -------
+        size: ``int``
+            The size defined above.
+
         """
         return self.n
 
     def from_vect(self, obs):
         """
         Convert a observation, represented as a vector to a valid :class:`Observation` instance
+
         Parameters
         ----------
-        obs
+        obs: ``numpy.ndarray``
+            The observation (represented as a numpy array) to convert to
+            :class:`grid2op.Observation.Observation` instance.
 
         Returns
         -------
+        res: :class:`grid2op.Observation.Observation`
+            The converted observation (converted from vector to :class:`grid2op.Observation.Observation` )
 
         """
         res = copy.deepcopy(self.empty_obs)

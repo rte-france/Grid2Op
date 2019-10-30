@@ -69,7 +69,7 @@ class Reward(ABC):
         action: :class:`grid2op.Action`
             Action that has been submitted by the :class:`grid2op.Agent`
 
-        env: :class:`grid2op.Environment`
+        env: :class:`grid2op.Environment.Environment`
             An environment instance properly initialized.
 
         has_error: ``bool``
@@ -192,7 +192,7 @@ class L2RPNReward(Reward):
     @staticmethod
     def __get_lines_capacity_usage(env):
         ampere_flows = np.abs(env.backend.get_line_flow())
-        thermal_limits = np.abs(env.backend.get_thermal_limit(env.get_obs()))
+        thermal_limits = np.abs(env.backend.get_thermal_limit())
         relative_flow = np.divide(ampere_flows, thermal_limits)
 
         x = np.minimum(relative_flow, 1)
