@@ -77,7 +77,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         :return:
         """
         new_vect = np.random.randn(self.helper_action.n_load)
-        action = self.helper_action({"_injection": {"load_p": new_vect}})
+        action = self.helper_action({"injection": {"load_p": new_vect}})
         self.compare_vect(action._dict_inj["load_p"], new_vect)
         for i in range(self.helper_action.n_load):
             assert action.effect_on(load_id=i)["new_p"] == new_vect[i]
@@ -89,7 +89,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         """
         new_vect = np.random.randn(self.helper_action.n_load)
         new_vect2 = np.random.randn(self.helper_action.n_load)
-        action = self.helper_action({"_injection": {"load_p": new_vect, "load_q": new_vect2}})
+        action = self.helper_action({"injection": {"load_p": new_vect, "load_q": new_vect2}})
         assert self.compare_vect(action._dict_inj["load_p"], new_vect)
         assert self.compare_vect(action._dict_inj["load_q"], new_vect2)
         for i in range(self.helper_action.n_load):
@@ -378,7 +378,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
-                                      "_injection": {"load_p": new_vect, "load_q": new_vect2},
+                                      "injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_status": change_status_orig,
                                      "set_status": set_status_orig})
         dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect = action()
@@ -446,6 +446,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.sum(aff_subs) == 2
         assert aff_subs[id_1]
         assert aff_subs[id_2]
+
 
 if __name__ == "__main__":
     unittest.main()

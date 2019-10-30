@@ -283,10 +283,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
-        # check that _maintenance vector is properly taken into account
+        # check that maintenance vector is properly taken into account
         maintenance = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
         maintenance[19] = True
-        action = self.action_env({"_maintenance": maintenance})  # update the action
+        action = self.action_env({"maintenance": maintenance})  # update the action
 
         # apply the action here
         self.backend.apply_action(action)
@@ -312,7 +312,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
-        # check that _maintenance vector is properly taken into account
+        # check that maintenance vector is properly taken into account
         maintenance = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
         maintenance[17] = True
         action = self.action_env({"hazards": maintenance})  # update the action
@@ -339,14 +339,14 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
-        # check that _maintenance vector is properly taken into account
+        # check that maintenance vector is properly taken into account
         maintenance = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
         maintenance[19] = True
 
         disc = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
         disc[17] = True
 
-        action = self.action_env({"hazards": disc, "_maintenance": maintenance})  # update the action
+        action = self.action_env({"hazards": disc, "maintenance": maintenance})  # update the action
         # apply the action here
         self.backend.apply_action(action)
 
@@ -409,7 +409,7 @@ class TestTopoAction(unittest.TestCase):
         conv = self.backend.runpf()
         init_amps_flow = self.backend.get_line_flow()
 
-        # check that _maintenance vector is properly taken into account
+        # check that maintenance vector is properly taken into account
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_=1
         action = self.helper_action({"set_bus": {"substations": [(id_, arr)]}})
@@ -457,7 +457,7 @@ class TestTopoAction(unittest.TestCase):
         conv = self.backend.runpf()
         init_amps_flow = self.backend.get_line_flow()
 
-        # check that _maintenance vector is properly taken into account
+        # check that maintenance vector is properly taken into account
         arr = np.array([False, False, False, True, True, True], dtype=np.bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations": [(id_, arr)]}})
@@ -508,7 +508,7 @@ class TestTopoAction(unittest.TestCase):
         conv = self.backend.runpf()
         init_amps_flow = np.array([el for el in self.backend.get_line_flow()])
 
-        # check that _maintenance vector is properly taken into account
+        # check that maintenance vector is properly taken into account
         arr = np.array([False, False, False, True, True, True], dtype=np.bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations": [(id_, arr)]}})
@@ -577,7 +577,7 @@ class TestTopoAction(unittest.TestCase):
 
 
     def test_topo_change_2sub(self):
-        # check that _maintenance vector is properly taken into account
+        # check that maintenance vector is properly taken into account
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
