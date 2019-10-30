@@ -22,7 +22,7 @@ copyright = '2019, RTE France'
 author = 'Benjamin Donnot'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.2.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,6 +41,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.napoleon',
     'sphinxcontrib_trio',
+     "sphinx_rtd_theme"
     # 'details',
     #'exception_hierarchy'
 ]
@@ -59,7 +60,8 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_experimental_html5_writer = True
-html_theme = 'basic' # 'alabaster'
+html_theme = "sphinx_rtd_theme" #"alabaster" #'basic' # 'alabaster'
+highlight_language = 'python3'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

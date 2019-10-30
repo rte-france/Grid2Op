@@ -91,12 +91,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.env_params = Parameters()
 
         self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=self.env_params,
+                               backend=self.backend,
+                               chronics_handler=self.chronics_handler,
+                               parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass)
-
 
     def test_0_load_properly(self):
         # this test aims at checking that everything in setUp is working properly, eg that "ObsEnv" class has enough

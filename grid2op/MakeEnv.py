@@ -1,5 +1,5 @@
 """
-The function defin in this module is the easiest and most convenient ways to create a valid
+The function define in this module is the easiest and most convenient ways to create a valid
 :class:`grid2op.Environment.Environment`.
 
 To get started with such an environment, you can simply do:
@@ -11,7 +11,13 @@ You can consult the different notebooks in the `getting_stared` directory of thi
 how to use it.
 
 Created Environment should behave exactly like a gym environment. If you notice any unwanted behavior, please address
-an issue in the official grid2op repository: `Grid2Op <https://github.com/rte-france/Grid2Op>`
+an issue in the official grid2op repository: `Grid2Op <https://github.com/rte-france/Grid2Op>`_
+
+The environment created with this method should be fully compatible with the gym framework: if you are developing
+a new algorithm of "Reinforcement Learning" and you used the openai gym framework to do so, you can port your code
+in a few minutes (basically this consists in adapting the input and output dimension of your Agent) and make it work
+with a Grid2Op environment. An example of such modifications is exposed in the getting_started/ notebooks.
+
 """
 import os
 import pkg_resources
@@ -21,7 +27,7 @@ from .Backend import Backend
 from .BackendPandaPower import PandaPowerBackend
 from .Parameters import Parameters
 from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
-from .Action import HelperAction, Action, TopologyAction
+from .Action import Action, TopologyAction
 from .Exceptions import *
 from .Observation import CompleteObservation, Observation
 from .Reward import FlatReward, Reward
@@ -120,6 +126,8 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
             if not isinstance(res, defaultClassApp):
                 raise EnvError(msg_error)
         else:
+            if not isinstance(res, type):
+                raise EnvError("Parameter \"{}\" should be a type and not an instance. It means that you provided an object instead of the class to build it.".format(name))
             # I must create a class, i check whether it's a subclass
             if not issubclass(res, defaultClassApp):
                 raise EnvError(msg_error)

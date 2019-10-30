@@ -537,6 +537,11 @@ class GridStateFromFile(GridValue):
             if not el in vals:
                 raise ChronicsError("Impossible to find element \"{}\" in the original converter data".format(el))
 
+    def _assert_correct_second_stage(self, pandas_name, dict_convert, key, extra=""):
+        for i, el in enumerate(pandas_name):
+            if not el in dict_convert[key]:
+                raise ChronicsError("Element named {} is found in the chronics (position {}) is not found on the matching dictionnary \"names_chronics_to_backend\" for {} {} data".format(el, i, key, extra))
+
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
         """
@@ -619,16 +624,27 @@ class GridStateFromFile(GridValue):
         order_backend_prods = {el: i for i, el in enumerate(order_backend_prods)}
         order_backend_lines = {el: i for i, el in enumerate(order_backend_lines)}
 
+        self._assert_correct_second_stage(load_p.columns, self.names_chronics_to_backend, "loads", "active")
         order_chronics_load_p = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
                                           for el in load_p.columns]).astype(np.int)
+
+        self._assert_correct_second_stage(load_q.columns, self.names_chronics_to_backend, "loads", "reactive")
         order_backend_load_q = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
                                          for el in load_q.columns]).astype(np.int)
+
+        self._assert_correct_second_stage(prod_p.columns, self.names_chronics_to_backend, "prods", "active")
         order_backend_prod_p = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
                                          for el in prod_p.columns]).astype(np.int)
+
+        self._assert_correct_second_stage(prod_v.columns, self.names_chronics_to_backend, "prods", "voltage magnitude")
         order_backend_prod_v = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
                                          for el in prod_v.columns]).astype(np.int)
+
+        self._assert_correct_second_stage(hazards.columns, self.names_chronics_to_backend, "lines", "hazards")
         order_backend_hazards = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
                                           for el in hazards.columns]).astype(np.int)
+
+        self._assert_correct_second_stage(maintenance.columns, self.names_chronics_to_backend, "lines", "maintenance")
         order_backend_maintenance = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
                                               for el in maintenance.columns]).astype(np.int)
 
@@ -752,7 +768,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
     To have more advanced forecasts, this class could be overridden.
 
-    Parameters
+    Attributes
     ----------
     load_p_forecast: ``numpy.ndarray``, dtype: ``float``
         Array used to store the forecasts of the load active values.

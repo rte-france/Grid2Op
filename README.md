@@ -128,7 +128,7 @@ Its main features are:
 A copy of the documentation can be built: you will need Sphinx, a Documentation building tool, and a nice-looking custom
  [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
 ```bash
-pip3 install sphinx
+pip3 install sphinx sphinx-rtd-theme
 ```
 This installs both the Sphinx package and the custom template. Then, the documentation can be built with the command:
 ```
