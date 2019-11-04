@@ -421,7 +421,7 @@ class Runner(object):
             agent = self.agent
         return res, agent
 
-    def make_env(self):
+    def init_env(self):
         """
         Function used to initialized the environment and the agent.
         It is called by :func:`Runner.reset`.
@@ -444,7 +444,7 @@ class Runner(object):
 
         """
         if self.env is None:
-            self.make_env()
+            self.init_env()
         else:
             self.env.reset()
 

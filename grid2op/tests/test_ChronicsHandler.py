@@ -60,7 +60,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
                      self.order_backend_lines, self.order_backend_subs)
         _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = [18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
 
     def test_chronicsloading_secondtimestep(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
@@ -69,7 +69,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         _ = chron_handl.next_time_step()  # should load the first time stamp
         _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = [18.8, 85.1, 44.3, 7.1, 10.2, 27.1, 8.2, 3.2, 5.7, 11.8, 13.8]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
 
     def test_done(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
@@ -78,7 +78,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         for i in range(288):
             _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         assert chron_handl.done()
 
     def test_stopiteration(self):
@@ -88,7 +88,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         for i in range(288):
             _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         try:
             res = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")
@@ -107,11 +107,11 @@ class TestLoadingChronicsHandler(unittest.TestCase):
                      self.order_backend_lines, self.order_backend_subs)
         _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = [18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         for i in range(287):
             _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         try:
             _, res = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")
@@ -239,7 +239,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
         _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6])  # what is written on the file
         backend_th = vect[self.id_chron_to_back_load]  # what should be in backend
-        assert self.compare_vect(res["_injection"]['load_p'], backend_th)
+        assert self.compare_vect(res["injection"]['load_p'], backend_th)
 
     def test_chronicsloading_secondtimestep(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
@@ -250,7 +250,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
         _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([18.8, 85.1, 44.3, 7.1, 10.2, 27.1, 8.2, 3.2, 5.7, 11.8, 13.8])
         vect = vect[self.id_chron_to_back_load]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
 
     def test_done(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
@@ -261,7 +261,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
             _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
         vect = vect[self.id_chron_to_back_load]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         assert chron_handl.done()
 
     def test_stopiteration(self):
@@ -273,7 +273,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
             _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
         vect = vect[self.id_chron_to_back_load]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         try:
             res = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")
@@ -294,12 +294,12 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
         _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6])
         vect = vect[self.id_chron_to_back_load]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         for i in range(287):
             _, res = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
         vect = vect[self.id_chron_to_back_load]
-        assert self.compare_vect(res["_injection"]['load_p'], vect)
+        assert self.compare_vect(res["injection"]['load_p'], vect)
         try:
             _, res = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")

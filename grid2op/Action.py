@@ -99,7 +99,7 @@ class Action(object):
     - the third element is the switch line status vector. It is made of a vector of size :attr:`Action._n_lines` and is
       interpreted as:
 
-        - True: change the status
+        - True: change the line status
         - False: don't do anything
 
     - the fourth element set the buses to which the object is connected. It's a vector of integer with the following
@@ -265,8 +265,11 @@ class Action(object):
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect):
         """
-        This is used to create an Action instance. Preferably, :class:`Action` should be instanciated with
+        This is used to create an Action instance. Preferably, :class:`Action` should be created with
         :class:`HelperAction`.
+
+        **It is NOT recommended** to create an action with this method. Please use :func:`HelperAction.__call__` or
+        :func:`HelperAction.sample` to create a valid action.
 
         Parameters
         ----------
@@ -346,7 +349,7 @@ class Action(object):
         self._lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
 
         self.authorized_keys = {"injection",
-                                "hazards", "maintenance", "set_status", "change_status",
+                                "hazards", "maintenance", "set_line_status", "change_line_status",
                                 "set_bus", "change_bus"}
 
         # False(line is disconnected) / True(line is connected)
@@ -365,7 +368,7 @@ class Action(object):
         self._subs_impacted = None
         self._lines_impacted = None
 
-    def get_set_status_vect(self):
+    def get_set_line_status_vect(self):
         """
         Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`.
 
@@ -379,7 +382,7 @@ class Action(object):
         """
         return np.full(shape=self._n_lines, fill_value=0, dtype=np.int)
 
-    def get_change_status_vect(self):
+    def get_change_line_status_vect(self):
         """
         Computes and return a vector that can be used in the "change_status" keyword if building an :class:`Action`
 
@@ -601,38 +604,39 @@ class Action(object):
             elif isinstance(dict_["set_bus"], dict):
                 ddict_ = dict_["set_bus"]
                 handled = False
-                if "loads" in ddict_:
-                    tmp = ddict_["loads"]
+                # authorized_keys = {"loads_id", "generators_id", "lines_or_id", "lines_ex_id", "substations_id"}
+                if "loads_id" in ddict_:
+                    tmp = ddict_["loads_id"]
                     handled = True
                     for (c_id, bus) in tmp:
                         if c_id >= self._n_lines:
                             raise AmbiguousAction("Load {} doesn't exist".format(c_id))
                         self._set_topo_vect[self._load_pos_topo_vect[c_id]] = bus
                         # print("self._load_pos_topo_vect[l_id] {}".format(self._load_pos_topo_vect[l_id]))
-                if "generators" in ddict_:
-                    tmp = ddict_["generators"]
+                if "generators_id" in ddict_:
+                    tmp = ddict_["generators_id"]
                     handled = True
                     for (g_id, bus) in tmp:
                         if g_id >= self._n_gen:
                             raise AmbiguousAction("Generator {} doesn't exist".format(g_id))
                         self._set_topo_vect[self._gen_pos_topo_vect[g_id]] = bus
-                if "lines_or" in ddict_:
-                    tmp = ddict_["lines_or"]
+                if "lines_or_id" in ddict_:
+                    tmp = ddict_["lines_or_id"]
                     handled = True
                     for (l_id, bus) in tmp:
                         if l_id >= self._n_lines:
                             raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
                         self._set_topo_vect[self._lines_or_pos_topo_vect[l_id]] = bus
-                if "lines_ex" in ddict_:
-                    tmp = ddict_["lines_ex"]
+                if "lines_ex_id" in ddict_:
+                    tmp = ddict_["lines_ex_id"]
                     handled = True
                     for (l_id, bus) in tmp:
                         if l_id >= self._n_lines:
                             raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
                         self._set_topo_vect[self._lines_ex_pos_topo_vect[l_id]] = bus
-                if "substations" in ddict_:
+                if "substations_id" in ddict_:
                     handled = True
-                    tmp = ddict_["substations"]
+                    tmp = ddict_["substations_id"]
                     for (s_id, arr) in tmp:
                         if s_id >= self._subs_info.shape[0]:
                             raise AmbiguousAction("Substation {} doesn't exist".format(s_id))
@@ -643,8 +647,10 @@ class Action(object):
                         self._set_topo_vect[beg_:end_] = arr
                 if not handled:
                     msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionnary it should have"
-                    msg += " at least one of \"loads\", \"generators\", \"lines_or\", \"lines_ex\" or \"substations\""
-                    msg += " as keys. None where found."
+                    msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
+                    msg += "\"lines_ex_id\" or \"substations_id\""
+                    msg += " as keys. None where found. Current used keys are: "
+                    msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
             elif dict_["set_bus"] is None:
                 pass
@@ -659,28 +665,28 @@ class Action(object):
                 self._change_bus_vect = dict_["change_bus"]
             elif isinstance(dict_["change_bus"], dict):
                 ddict_ = dict_["change_bus"]
-                if "loads" in ddict_:
-                    tmp = ddict_["loads"]
+                if "loads_id" in ddict_:
+                    tmp = ddict_["loads_id"]
                     for l_id in tmp:
                         self._change_bus_vect[self._load_pos_topo_vect[l_id]] = not self._change_bus_vect[
                             self._load_pos_topo_vect[l_id]]
-                if "generators" in ddict_:
-                    tmp = ddict_["generators"]
+                if "generators_id" in ddict_:
+                    tmp = ddict_["generators_id"]
                     for g_id in tmp:
                         self._change_bus_vect[self._gen_pos_topo_vect[g_id]] = not self._change_bus_vect[
                             self._gen_pos_topo_vect[g_id]]
-                if "lines_or" in ddict_:
-                    tmp = ddict_["lines_or"]
+                if "lines_or_id" in ddict_:
+                    tmp = ddict_["lines_or_id"]
                     for l_id in tmp:
                         self._change_bus_vect[self._lines_or_pos_topo_vect[l_id]] = not self._change_bus_vect[
                             self._lines_or_pos_topo_vect[l_id]]
-                if "lines_ex" in ddict_:
-                    tmp = ddict_["lines_ex"]
+                if "lines_ex_id" in ddict_:
+                    tmp = ddict_["lines_ex_id"]
                     for l_id in tmp:
                         self._change_bus_vect[self._lines_ex_pos_topo_vect[l_id]] = not self._change_bus_vect[
                             self._lines_ex_pos_topo_vect[l_id]]
-                if "substations" in ddict_:
-                    tmp = ddict_["substations"]
+                if "substations_id" in ddict_:
+                    tmp = ddict_["substations_id"]
                     for (s_id, arr) in tmp:
                         s_id = int(s_id)
                         beg_ = int(np.sum(self._subs_info[:s_id]))
@@ -693,22 +699,22 @@ class Action(object):
                     "Invalid way to set the topology. dict_[\"change_bus\"] should be a numpy array or a dictionnary.")
 
     def _digest_set_status(self, dict_):
-        if "set_status" in dict_:
+        if "set_line_status" in dict_:
             # the action will disconnect a powerline
             # note that if a powerline is already disconnected, it does nothing
             # this action can both disconnect or reconnect a powerlines
-            if isinstance(dict_["set_status"], np.ndarray):
-                if dict_["set_status"] is not None:
-                    if len(dict_["set_status"]) != self._n_lines:
+            if isinstance(dict_["set_line_status"], np.ndarray):
+                if dict_["set_line_status"] is not None:
+                    if len(dict_["set_line_status"]) != self._n_lines:
                         raise InvalidNumberOfLines(
-                            "This \"set_status\" action acts on {} lines while there are {} in the _grid".format(
-                                len(dict_["set_status"]), self._n_lines))
-                    sel_ = dict_["set_status"] != 0
+                            "This \"set_line_status\" action acts on {} lines while there are {} in the grid".format(
+                                len(dict_["set_line_status"]), self._n_lines))
+                    sel_ = dict_["set_line_status"] != 0
 
                     # update the line status vector
-                    self._set_line_status[sel_] = dict_["set_status"][sel_].astype(np.int)
+                    self._set_line_status[sel_] = dict_["set_line_status"][sel_].astype(np.int)
             else:
-                for l_id, status_ in dict_["set_status"]:
+                for l_id, status_ in dict_["set_line_status"]:
                     self._set_line_status[l_id] = status_
 
     def _digest_hazards(self, dict_):
@@ -765,14 +771,14 @@ class Action(object):
                 self._ignore_topo_action_if_disconnection(tmp)
 
     def _digest_change_status(self, dict_):
-        if "change_status" in dict_:
+        if "change_line_status" in dict_:
             # the action will switch the status of the powerline
-            # for each element equal to 1 in this dict_["status"]
+            # for each element equal to 1 in this dict_["change_line_status"]
             # if the status is "disconnected" it will be transformed into "connected"
             # and if the status is "connected" it will be switched to "disconnected"
             # Lines with "0" in this vector are not impacted.
-            if dict_["change_status"] is not None:
-                tmp = dict_["change_status"]
+            if dict_["change_line_status"] is not None:
+                tmp = dict_["change_line_status"]
                 try:
                     tmp = np.array(tmp)
                 except:
@@ -781,11 +787,11 @@ class Action(object):
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self._n_lines:
                         raise InvalidNumberOfLines(
-                            "This \"change_status\" action acts on {} lines while there are {} in the _grid".format(
+                            "This \"change_line_status\" action acts on {} lines while there are {} in the _grid".format(
                                 len(tmp), self._n_lines))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
-                self._switch_line_status[dict_["change_status"]] = True
+                self._switch_line_status[dict_["change_line_status"]] = True
 
     def update(self, dict_):
         """
@@ -820,7 +826,7 @@ class Action(object):
               is done, True: an hazard, the powerline is disconnected
             - "*maintenance*": represents the maintenance operation performed on each powerline (boolean vector) False:
               no maintenance, nothing is done, True: a maintenance is scheduled, the powerline is disconnected
-            - "*set_status*": a vector (int or float) to set the status of the powerline status (connected /
+            - "*set_line_status*": a vector (int or float) to set the status of the powerline status (connected /
               disconnected) with the following interpretation:
 
                 - 0 : nothing is changed,
@@ -829,7 +835,7 @@ class Action(object):
                   powerline is affected by a maintenance or a hazard, it will be erased without any warning. "hazards"
                   and "maintenance" have the priority.
 
-            - "change_status": a vector (bool) to change the status of the powerline. This vector should be interpreted
+            - "change_line_status": a vector (bool) to change the status of the powerline. This vector should be interpreted
               as:
 
                 - False: do nothing
@@ -861,7 +867,8 @@ class Action(object):
             should be  reconnected. Otherwise, action cannot be used. Trying to apply the action to the _grid will
             lead to a "AmbiguousAction" exception.
 
-            **NB**: if for a given powerline, both switch_status and set_status is set, the action will not be usable.
+            **NB**: if for a given powerline, both switch_line_status and set_line_status is set, the action will not
+            be usable.
             This will lead to an :class:`grid2op.Exception.AmbiguousAction` exception.
 
             **NB**: length of vector here are NOT check in this function. This method can be "chained" and only on the final
@@ -1284,7 +1291,7 @@ class Action(object):
               * `connected_id`: the id of the powerlines reconnected
               * `disconnected_id`: the ids of the powerlines disconnected
 
-          * `switch_line_status`: if the action tries to **change** the status of some powelrines. If present, this
+          * `change_line_status`: if the action tries to **change** the status of some powelrines. If present, this
             is a dictionnary with keys:
 
               * `nb_changed`: number of powerlines having their status changed
@@ -1328,9 +1335,9 @@ class Action(object):
 
         # handles action on swtich line status
         if np.sum(self._switch_line_status):
-            res["switch_line_status"] = {}
-            res["switch_line_status"]["nb_changed"] = np.sum(self._switch_line_status)
-            res["switch_line_status"]["changed_id"] = np.where(self._switch_line_status)[0]
+            res["change_line_status"] = {}
+            res["change_line_status"]["nb_changed"] = np.sum(self._switch_line_status)
+            res["change_line_status"]["changed_id"] = np.where(self._switch_line_status)[0]
 
         # handles topology change
         if np.any(self._change_bus_vect):
@@ -1421,8 +1428,8 @@ class Action(object):
                 - "change_bus_ex" : whether or not the extremity end will be moved from one bus to another
                 - "set_bus_or" : the new bus where the origin will be moved
                 - "set_bus_ex" : the new bus where the extremity will be moved
-                - "set_status" : the new status of the power line
-                - "switch_status" : whether or not to switch the status of the powerline
+                - "set_line_status" : the new status of the power line
+                - "change_line_status" : whether or not to switch the status of the powerline
 
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
@@ -1484,8 +1491,8 @@ class Action(object):
             res["change_bus_ex"] = self._change_bus_vect[my_id]
             res["set_bus_ex"] = self._set_topo_vect[my_id]
             # status
-            res["set_status"] = self._set_line_status[line_id]
-            res["switch_status"] = self._switch_line_status[line_id]
+            res["set_line_status"] = self._set_line_status[line_id]
+            res["change_line_status"] = self._switch_line_status[line_id]
         else:
             res = {}
             beg_ = int(np.sum(self._subs_info[:substation_id]))
@@ -1696,7 +1703,7 @@ class PowerLineSet(Action):
         # modification injection.
         self.authorized_keys = set([k for k in self.authorized_keys
                                     if k != "injection" and k != "set_bus" and \
-                                    k != "change_bus" and k != "change_status"])
+                                    k != "change_bus" and k != "change_line_status"])
 
     def __call__(self):
         """
@@ -1737,7 +1744,7 @@ class PowerLineSet(Action):
         ----------
         dict_: :class:`dict`
             See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
-            "injection", "change bus", "set bus", or "change status" are irrelevant for this subclass.
+            "injection", "change bus", "set bus", or "change line status" are irrelevant for this subclass.
 
         Returns
         -------
@@ -1870,22 +1877,17 @@ class HelperAction:
 
     Attributes
     ----------
-    detailed_infos_for_cascading_failures: :class:`bool`
-        Whether to be verbose when computing a cascading failure.
 
     n_lines: :class:`int`
         number of powerline in the _grid
 
-    n_generators: :class:`int`
+    n_gen: :class:`int`
         number of generators in the _grid
 
-    n_loads: :class:`int`
+    n_load: :class:`int`
         number of loads in the powergrid
 
-    n_substations: :class:`int`
-        number of substation in the powergrid
-
-    subs_elements: :class:`numpy.array`, dtype:int
+    subs_info: :class:`numpy.array`, dtype:int
         for each substation, gives the number of elements connected to it
 
     load_to_subid: :class:`numpy.array`, dtype:int
@@ -2169,7 +2171,7 @@ class HelperAction:
 
         dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation, type_element, res)
         dict_["change_bus"][to_sub_pos[my_id]] = True
-        res.update({"change_bus": {"substations": [(my_sub_id, dict_["change_bus"])]}})
+        res.update({"change_bus": {"substations_id": [(my_sub_id, dict_["change_bus"])]}})
         # res.update(dict_)
         return res
 
@@ -2294,7 +2296,7 @@ class HelperAction:
 
         dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation, type_element, res)
         dict_["set_bus"][to_sub_pos[my_id]] = new_bus
-        res.update({"set_bus": {"substations": [(my_sub_id, dict_["set_bus"])]}})
+        res.update({"set_bus": {"substations_id": [(my_sub_id, dict_["set_bus"])]}})
         return res
 
     def reconnect_powerline(self, l_id, bus_or, bus_ex, previous_action=None):
@@ -2331,8 +2333,8 @@ class HelperAction:
                                lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
         else:
             res = previous_action
-        res.update({"set_status": [(l_id, 1)],
-                    "set_bus": {"lines_or": [(l_id, bus_or)], "lines_ex": [(l_id, bus_ex)]}
+        res.update({"set_line_status": [(l_id, 1)],
+                    "set_bus": {"lines_or_id": [(l_id, bus_or)], "lines_ex_id": [(l_id, bus_ex)]}
                     })
         return res
 
@@ -2346,29 +2348,29 @@ class HelperAction:
         """
         return self.n
 
-    def get_set_status_vect(self):
+    def get_set_line_status_vect(self):
         """
         Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`
 
         Returns
         -------
         res: :class:`numpy.array`, dtype:np.int
-            A vector that doesn't affect the grid, but can be used in "set_status"
+            A vector that doesn't affect the grid, but can be used in "set_line_status"
 
         """
-        return self.template_act.get_set_status_vect()
+        return self.template_act.get_set_line_status_vect()
 
-    def get_change_status_vect(self):
+    def get_change_line_status_vect(self):
         """
-        Computes and return a vector that can be used in the "change_status" keyword if building an :class:`Action`
+        Computes and return a vector that can be used in the "change_line_status" keyword if building an :class:`Action`
 
         Returns
         -------
         res: :class:`numpy.array`, dtype:np.bool
-            A vector that doesn't affect the grid, but can be used in "change_status"
+            A vector that doesn't affect the grid, but can be used in "change_line_status"
 
         """
-        return self.template_act.get_change_status_vect()
+        return self.template_act.get_change_line_status_vect()
 
     def from_vect(self, act):
         """

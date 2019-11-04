@@ -104,10 +104,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         for i in range(self.helper_action.n_lines):
             disco = np.full(shape=self.helper_action.n_lines, fill_value=0, dtype=np.int)
             disco[i] = 1
-            action = self.helper_action({"set_status": disco})
+            action = self.helper_action({"set_line_status": disco})
             for j in range(self.helper_action.n_lines):
-                assert action.effect_on(line_id=j)["set_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
-                assert action.effect_on(line_id=j)["switch_status"] == False
+                assert action.effect_on(line_id=j)["set_line_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
+                assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_disconnection_m1(self):
         """
@@ -117,10 +117,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         for i in range(self.helper_action.n_lines):
             disco = np.full(shape=self.helper_action.n_lines, fill_value=0, dtype=np.int)
             disco[i] = -1
-            action = self.helper_action({"set_status": disco})
+            action = self.helper_action({"set_line_status": disco})
             for j in range(self.helper_action.n_lines):
-                assert action.effect_on(line_id=j)["set_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
-                assert action.effect_on(line_id=j)["switch_status"] == False
+                assert action.effect_on(line_id=j)["set_line_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
+                assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_hazard(self):
         """
@@ -133,21 +133,21 @@ class TestLoadingBackendFunc(unittest.TestCase):
             action = self.helper_action({"hazards": disco})
             for j in range(self.helper_action.n_lines):
                 expected_res = -1 if j == i else 0
-                assert action.effect_on(line_id=j)["set_status"] == expected_res, "problem with line {} if line {} is disconnected".format(j, i)
-                assert action.effect_on(line_id=j)["switch_status"] == False
+                assert action.effect_on(line_id=j)["set_line_status"] == expected_res, "problem with line {} if line {} is disconnected".format(j, i)
+                assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_status(self):
         for i in range(self.helper_action.n_lines):
             disco = np.full(shape=self.helper_action.n_lines, fill_value=False, dtype=np.bool)
             disco[i] = True
-            action = self.helper_action({"change_status": disco})
+            action = self.helper_action({"change_line_status": disco})
             for j in range(self.helper_action.n_lines):
                 expected_res = j == i
-                assert action.effect_on(line_id=j)["set_status"] == 0
-                assert action.effect_on(line_id=j)["switch_status"] == expected_res
+                assert action.effect_on(line_id=j)["set_line_status"] == 0
+                assert action.effect_on(line_id=j)["change_line_status"] == expected_res
 
     def test_update_set_topo_by_dict_obj(self):
-        action = self.helper_action({"set_bus": {"loads": [(1, 3)]}})
+        action = self.helper_action({"set_bus": {"loads_id": [(1, 3)]}})
         assert action.effect_on(load_id=1)["set_bus"] == 3
         assert action.effect_on(load_id=1)["change_bus"] == False
         assert action.effect_on(load_id=0)["set_bus"] == 0
@@ -155,7 +155,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_update_set_topo_by_dict_sub(self):
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
-        action = self.helper_action({"set_bus": {"substations": [(1, arr)]}})
+        action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["set_bus_or"] == 1
         assert action.effect_on(line_id=3)["set_bus_or"] == 1
         assert action.effect_on(line_id=4)["set_bus_or"] == 2
@@ -169,7 +169,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_update_set_topo_by_dict_sub2(self):
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         arr3 = np.array([1, 2, 1, 2, 1, 2], dtype=np.int)
-        action = self.helper_action({"set_bus": {"substations": [(3, arr3), (1, arr)]}})
+        action = self.helper_action({"set_bus": {"substations_id": [(3, arr3), (1, arr)]}})
         assert action.effect_on(line_id=2)["set_bus_or"] == 1
         assert action.effect_on(line_id=3)["set_bus_or"] == 1
         assert action.effect_on(line_id=4)["set_bus_or"] == 2
@@ -182,7 +182,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # TODO maybe assert different stuff here, for the first modification
 
     def test_update_change_bus_by_dict_obj(self):
-        action = self.helper_action({"change_bus": {"loads": [1]}})
+        action = self.helper_action({"change_bus": {"loads_id": [1]}})
         assert action.effect_on(load_id=1)["set_bus"] == 0
         assert action.effect_on(load_id=1)["change_bus"] == True
         assert action.effect_on(load_id=0)["set_bus"] == 0
@@ -190,7 +190,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_update_change_bus_by_dict_sub(self):
         arr = np.array([True, True, True, False, False, False], dtype=np.bool)
-        action = self.helper_action({"change_bus": {"substations": [(1, arr)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["change_bus_or"] == True
         assert action.effect_on(line_id=3)["change_bus_or"] == True
         assert action.effect_on(line_id=4)["change_bus_or"] == False
@@ -204,7 +204,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_update_change_bus_by_dict_sub2(self):
         arr = np.array([True, True, True, False, False, False], dtype=np.bool)
         arr3 = np.array([True, False, True, False, True, False], dtype=np.bool)
-        action = self.helper_action({"change_bus": {"substations": [(3, arr3), (1, arr)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(3, arr3), (1, arr)]}})
         assert action.effect_on(line_id=2)["change_bus_or"] == True
         assert action.effect_on(line_id=3)["change_bus_or"] == True
         assert action.effect_on(line_id=4)["change_bus_or"] == False
@@ -217,8 +217,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # TODO maybe assert different stuff here, for the first modification
 
     def test_ambiguity_topo(self):
-        action = self.helper_action({"change_bus": {"lines_or": [1]}})  # i switch the bus of the origin of powerline 1
-        action.update({"set_bus": {"lines_or": [(1,1)]}})  # i set the origin of powerline 1 to bus 1
+        action = self.helper_action({"change_bus": {"lines_or_id": [1]}})  # i switch the bus of the origin of powerline 1
+        action.update({"set_bus": {"lines_or_id": [(1,1)]}})  # i set the origin of powerline 1 to bus 1
         try:
             action()
             raise RuntimeError("This should hav thrown an InvalidBusStatus error")
@@ -228,8 +228,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_ambiguity_line_status_when_set_and_change(self):
         arr = np.zeros(self.helper_action.n_lines)
         arr[1] = -1
-        action = self.helper_action({"set_status": arr})  # i switch set the status of powerline 1 to "disconnected"
-        action.update({"change_status": [1]})  # i asked to change this status
+        action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "disconnected"
+        action.update({"change_line_status": [1]})  # i asked to change this status
         try:
             action()
             raise RuntimeError("This should hav thrown an InvalidBusStatus error")
@@ -239,7 +239,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_ambiguity_line_reconnected_without_bus(self):
         arr = np.zeros(self.helper_action.n_lines)
         arr[1] = 1
-        action = self.helper_action({"set_status": arr})  # i switch set the status of powerline 1 to "connected"
+        action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "connected"
         # and i don't say on which bus to connect it
         try:
             action()
@@ -254,10 +254,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         """
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_=2
-        action = self.helper_action({"set_bus": {"substations": [(1, arr)]}})
+        action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         arr2 = np.zeros(self.helper_action.n_lines)
         arr2[id_] = -1
-        action.update({"set_status": arr2})
+        action.update({"set_line_status": arr2})
         try:
             action()
             raise RuntimeError("This should have thrown an InvalidBusStatus error")
@@ -271,11 +271,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         """
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_ = 2
-        action = self.helper_action({"set_bus": {"substations": [(1, arr)]}})
+        action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=id_)["set_bus_or"] == 1
         action.update({"hazards": [id_]})
         assert action.effect_on(line_id=id_)["set_bus_or"] == 0
-        assert action.effect_on(line_id=id_)["set_status"] == -1
+        assert action.effect_on(line_id=id_)["set_line_status"] == -1
         assert action.effect_on(line_id=id_)["set_bus_ex"] == 0
 
     def test_action_str(self):
@@ -283,8 +283,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
         id_2 = 12
-        action = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                     "set_bus": {"substations": [(id_2, arr2)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                     "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
         act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
         assert res == act_str
@@ -294,8 +294,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
         id_2 = 12
-        action = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                     "set_bus": {"substations": [(id_2, arr2)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                     "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
         tmp = np.array([np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
                         np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
@@ -320,10 +320,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
         id_2 = 12
-        action1 = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                     "set_bus": {"substations": [(id_2, arr2)]}})
-        action2 = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                     "set_bus": {"substations": [(id_2, arr2)]}})
+        action1 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                     "set_bus": {"substations_id": [(id_2, arr2)]}})
+        action2 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                     "set_bus": {"substations_id": [(id_2, arr2)]}})
         action3 = self.helper_action()
         assert action1 == action2
         assert action1 != action3
@@ -333,8 +333,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
         id_2 = 12
-        action1 = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                     "set_bus": {"substations": [(id_2, arr2)]}})
+        action1 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                     "set_bus": {"substations_id": [(id_2, arr2)]}})
         action2 = self.helper_action({})
 
         vect_act1 = action1.to_vect()
@@ -379,8 +379,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
                                       "injection": {"load_p": new_vect, "load_q": new_vect2},
-                                     "change_status": change_status_orig,
-                                     "set_status": set_status_orig})
+                                     "change_line_status": change_status_orig,
+                                     "set_line_status": set_status_orig})
         dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect = action()
         assert "load_p" in dict_injection
         assert np.all(dict_injection["load_p"] == new_vect)
@@ -410,24 +410,23 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.sum(aff_lines) == 0
         assert np.sum(aff_subs) == 0
 
-        act_sub1 = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]}})
+        act_sub1 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]}})
         aff_lines, aff_subs = act_sub1.get_topological_impact()
         assert np.sum(aff_lines) == 0
         assert np.sum(aff_subs) == 1
         assert aff_subs[id_1]
 
-        act_sub1_sub12 = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                             "set_bus": {"substations": [(id_2, arr2)]}})
+        act_sub1_sub12 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                             "set_bus": {"substations_id": [(id_2, arr2)]}})
         aff_lines, aff_subs = act_sub1_sub12.get_topological_impact()
         assert np.sum(aff_lines) == 0
         assert np.sum(aff_subs) == 2
         assert aff_subs[id_1]
         assert aff_subs[id_2]
 
-
-        act_sub1_sub12_line1 = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                   "set_bus": {"substations": [(id_2, arr2)]},
-                                                   "change_status": arr_line1})
+        act_sub1_sub12_line1 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                                   "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                   "change_line_status": arr_line1})
         aff_lines, aff_subs = act_sub1_sub12_line1.get_topological_impact()
         assert np.sum(aff_lines) == 1
         assert aff_lines[id_line] == 1
@@ -435,10 +434,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert aff_subs[id_1]
         assert aff_subs[id_2]
 
-        act_sub1_sub12_line1_line2 = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                   "set_bus": {"substations": [(id_2, arr2)]},
-                                                   "change_status": arr_line1,
-                                                   "set_status": arr_line2})
+        act_sub1_sub12_line1_line2 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                                   "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                   "change_line_status": arr_line1,
+                                                   "set_line_status": arr_line2})
         aff_lines, aff_subs = act_sub1_sub12_line1_line2.get_topological_impact()
         assert np.sum(aff_lines) == 2
         assert aff_lines[id_line] == 1
