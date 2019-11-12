@@ -66,7 +66,7 @@ class TestLoadingADN(unittest.TestCase):
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect
             assert np.max(np.abs(q_bus.flatten())) <= self.tolvect
 
-        except Grid4RLException:
+        except Grid2OpException:
             pass
 
 
@@ -250,7 +250,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_ls = self.backend.get_line_status()
 
         ratio = 0.5
-        action = self.action_env({"_injection": {"load_p": ratio*init_lp,
+        action = self.action_env({"injection": {"load_p": ratio*init_lp,
                                                 "prod_p": ratio*init_gp*np.sum(init_lp)/np.sum(init_gp)}})  # update the action
 
         self.backend.apply_action(action)
@@ -266,17 +266,27 @@ class TestLoadingBackendFunc(unittest.TestCase):
             # i'm in DC mode, i can't check for reactive values...
             assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-        except Grid4RLException:
+        except Grid2OpException:
             pass
 
         assert self.compare_vect(ratio*init_gp, after_gp)  # check i didn't modify the generators
         assert np.all(init_ls == after_ls)  # check i didn't disconnect any powerlines
 
-
-
         after_flow, *_ = self.backend.lines_or_info()
         assert self.compare_vect(ratio*init_flow, after_flow) # probably an error with the DC approx
 
+    def test_apply_action_prod_v(self):
+        conv = self.backend.runpf(is_dc=False)
+        prod_p_init, prod_q_init, prod_v_init = self.backend.generators_info()
+        ratio = 1.05
+        action = self.action_env({"injection": {"prod_v": ratio*prod_v_init}})  # update the action
+        self.backend.apply_action(action)
+        conv = self.backend.runpf(is_dc=False)
+        assert conv, "Cannot perform a powerflow aftermodifying the powergrid"
+
+        prod_p_after, prod_q_after, prod_v_after = self.backend.generators_info()
+        assert self.compare_vect(ratio*prod_v_init, prod_v_after)  # check i didn't modify the generators
+        
     def test_apply_action_maintenance(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         conv = self.backend.runpf()
@@ -412,7 +422,7 @@ class TestTopoAction(unittest.TestCase):
         # check that maintenance vector is properly taken into account
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_=1
-        action = self.helper_action({"set_bus": {"substations": [(id_, arr)]}})
+        action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
 
         # apply the action here
         self.backend.apply_action(action)
@@ -434,7 +444,6 @@ class TestTopoAction(unittest.TestCase):
         gen_ids = np.where(self.backend.gen_to_subid==id_)[0]
         assert np.all(topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == arr[self.backend.gen_to_sub_pos[gen_ids]])
 
-
         after_amps_flow_th = np.array([6.38865247e+02, 3.81726828e+02, 1.78001287e+04, 2.70742428e+04,
                                        1.06755055e+04, 4.71160165e+03, 1.52265925e+04, 3.37755751e+02,
                                        3.00535519e+02, 5.01164454e-13, 7.01900962e+01, 1.73874580e+02,
@@ -449,7 +458,7 @@ class TestTopoAction(unittest.TestCase):
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
             assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
 
-        except Grid4RLException:
+        except Grid2OpException:
             pass
 
     def test_topo_change1sub(self):
@@ -460,7 +469,7 @@ class TestTopoAction(unittest.TestCase):
         # check that maintenance vector is properly taken into account
         arr = np.array([False, False, False, True, True, True], dtype=np.bool)
         id_ = 1
-        action = self.helper_action({"change_bus": {"substations": [(id_, arr)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
 
         # apply the action here
         self.backend.apply_action(action)
@@ -499,7 +508,7 @@ class TestTopoAction(unittest.TestCase):
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
             assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
 
-        except Grid4RLException:
+        except Grid2OpException:
             pass
 
     def test_topo_change_1sub_twice(self):
@@ -511,7 +520,7 @@ class TestTopoAction(unittest.TestCase):
         # check that maintenance vector is properly taken into account
         arr = np.array([False, False, False, True, True, True], dtype=np.bool)
         id_ = 1
-        action = self.helper_action({"change_bus": {"substations": [(id_, arr)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
 
         # apply the action here
         self.backend.apply_action(action)
@@ -549,10 +558,10 @@ class TestTopoAction(unittest.TestCase):
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
             assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
 
-        except Grid4RLException:
+        except Grid2OpException:
             pass
 
-        action = self.helper_action({"change_bus": {"substations": [(id_, arr)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
 
         # apply the action here
         self.backend.apply_action(action)
@@ -572,7 +581,7 @@ class TestTopoAction(unittest.TestCase):
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
             assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
 
-        except Grid4RLException:
+        except Grid2OpException:
             pass
 
 
@@ -582,8 +591,8 @@ class TestTopoAction(unittest.TestCase):
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
         id_2 = 12
-        action = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                     "set_bus": {"substations": [(id_2, arr2)]}})
+        action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                     "set_bus": {"substations_id": [(id_2, arr2)]}})
         # apply the action here
         self.backend.apply_action(action)
         conv = self.backend.runpf()
@@ -635,7 +644,7 @@ class TestTopoAction(unittest.TestCase):
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
             assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
 
-        except Grid4RLException:
+        except Grid2OpException:
             pass
 
 

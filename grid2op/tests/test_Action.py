@@ -82,6 +82,17 @@ class TestLoadingBackendFunc(unittest.TestCase):
         for i in range(self.helper_action.n_load):
             assert action.effect_on(load_id=i)["new_p"] == new_vect[i]
 
+    def test_change_v(self):
+        """
+
+        :return:
+        """
+        new_vect = np.random.randn(self.helper_action.n_gen)
+        action = self.helper_action({"injection": {"prod_v": new_vect}})
+        self.compare_vect(action._dict_inj["prod_v"], new_vect)
+        for i in range(self.helper_action.n_gen):
+            assert action.effect_on(gen_id=i)["new_v"] == new_vect[i]
+
     def test_change_p_q(self):
         """
 

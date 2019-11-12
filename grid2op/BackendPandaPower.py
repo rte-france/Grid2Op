@@ -113,7 +113,8 @@ class PandaPowerBackend(Backend):
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
         self._dim_topo = -1
-        self._vars_action = []
+        self._vars_action = Action.vars_action
+        self._vars_action_set = Action.vars_action_set
 
     def get_nb_active_bus(self):
         """
@@ -166,12 +167,13 @@ class PandaPowerBackend(Backend):
         pp.create_gen(self._grid, bus_gen_added,
                       p_mw=self._grid._ppc['gen'][i_ref, 1],
                       vm_pu=self._grid._ppc['gen'][i_ref, 5],
-                      # min_p_mw=self._grid._ppc['gen'][i_ref, 9],
-                      # max_p_mw=self._grid._ppc['gen'][i_ref, 8],
-                      # max_q_mvar=self._grid._ppc['gen'][i_ref, 3],
-                      # min_q_mvar=self._grid._ppc['gen'][i_ref, 4],
+                      min_p_mw=self._grid._ppc['gen'][i_ref, 9],
+                      max_p_mw=self._grid._ppc['gen'][i_ref, 8],
+                      max_q_mvar=self._grid._ppc['gen'][i_ref, 3],
+                      min_q_mvar=self._grid._ppc['gen'][i_ref, 4],
                       slack=True,
                       controllable=True)
+
         pp.runpp(self._grid)
         # this has the effect to divide by 2 the active power in the added generator, if this generator and the "slack bus"
         # one are connected to the same bus.
@@ -291,8 +293,6 @@ class PandaPowerBackend(Backend):
         self._get_vector_inj["prod_p"] = lambda grid: grid.gen["p_mw"]
         self._get_vector_inj["prod_v"] = lambda grid: grid.gen["vm_pu"]
 
-        self._vars_action = ["load_p", "load_q", "prod_p", "prod_v"]
-
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
         add_topo.index += add_topo.shape[0]
@@ -326,19 +326,37 @@ class PandaPowerBackend(Backend):
         """
 
         if not isinstance(action, Action):
-            raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not {}".format(action.__class__))
+            raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not \"{}\"".format(action.__class__))
 
         # change the _injection if needed
         dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect = action()
-        for k in self._vars_action:
-            if k in dict_injection:
+        for k in dict_injection:
+            if k in self._vars_action_set:
                 tmp = self._get_vector_inj[k](self._grid)
                 val = dict_injection[k]
                 ok_ind = np.isfinite(val)
                 if k == "prod_v":
+                    pass
+                    # continue
                     # convert values back to pu
-                    val /= self._grid.bus["vn_kv"][self._grid.gen["bus"]]
+                    val /= self.prod_pu_to_kv # self._grid.bus["vn_kv"][self._grid.gen["bus"]].values
+                    # try:
+                    if np.isfinite(val[self._id_bus_added]):
+                        # handling of the slack bus, where "2" generators are present.
+                        pass
+                        # self._grid._ppc['gen'][self._iref_slack, 5] = val[self._id_bus_added]
+                        # self._grid._ppc['gen'][-1, 5] = val[self._id_bus_added]
+                        # self._grid["ext_grid"]["vm_pu"] = val[self._id_bus_added]
+                    # ok_ind[self._id_bus_added] = False
+                    # except:
+                    #    pdb.set_trace()
                 tmp[ok_ind] = val[ok_ind]
+                # if k == "prod_v":
+                #    pass
+                #    pdb.set_trace()
+            else:
+                warn = "The key {} is not recognized by PandaPowerBackend when setting injections value.".format(k)
+                warnings.warn(warn)
 
         # topology
         # run through all substations, find the topology. If it has changed, then update it.
@@ -568,6 +586,7 @@ class PandaPowerBackend(Backend):
         if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
             # slack bus and added generator are on same bus. I need to add power of slack bus to this one.
             prod_p[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 1]
+            prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
 
     def loads_info(self):
@@ -586,7 +605,7 @@ class PandaPowerBackend(Backend):
         shunt_p = copy.deepcopy(self._grid.res_shunt["p_mw"].values)
         shunt_q = copy.deepcopy(self._grid.res_shunt["q_mvar"].values)
         shunt_v = self._grid.res_bus["vm_pu"].values[self._grid.shunt["bus"]] * self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
-        shunt_bus = self._grid.shunt["bus"]
+        shunt_bus = self._grid.shunt["bus"].values
         return shunt_p, shunt_q, shunt_v, shunt_bus
 
     def sub_from_bus_id(self, bus_id):

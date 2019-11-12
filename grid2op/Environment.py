@@ -189,6 +189,7 @@ class Environment:
         self.backend = backend
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
         self.backend.assert_grid_correct()
+        *_, tmp = self.backend.generators_info()
 
         # rules of the game
         if not isinstance(legalActClass, type):

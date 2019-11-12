@@ -364,8 +364,7 @@ class Backend(ABC):
         except Exception as e:
             raise EnvError("Impossible to check wheter or not vectors contains online finite elements (pobably one or more topology related vector is not valid (None)")
 
-
-        # test sizes
+        # check sizes
         if len(self.subs_elements) != self.n_substations:
             raise IncorrectNumberOfSubstation("The number of substation is not consistent in self.subs_elements (size \"{}\") and  self.n_substations ({})".format(len(self.subs_elements), self.n_substations))
         if np.sum(self.subs_elements) != self.n_loads + self.n_generators + 2*self.n_lines:
@@ -437,7 +436,6 @@ class Backend(ABC):
                                         self.lines_or_pos_topo_vect.flatten(),
                                         self.lines_ex_pos_topo_vect.flatten())))) != np.sum(self.subs_elements):
                 raise EnvError("2 different objects would have the same id in the topology vector.")
-
 
         # check that self._load_pos_topo_vect and co are consistent
         load_pos_big_topo = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos)

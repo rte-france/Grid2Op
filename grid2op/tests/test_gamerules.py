@@ -93,9 +93,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
-                                      "_injection": {"load_p": new_vect, "load_q": new_vect2},
-                                     "change_status": change_status_orig,
-                                     "set_status": set_status_orig})
+                                      "injection": {"load_p": new_vect, "load_q": new_vect2},
+                                     "change_line_status": change_status_orig,
+                                     "set_line_status": set_status_orig})
 
         # game rules
         gr = GameRules()
@@ -121,20 +121,20 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.parameters.MAX_SUB_CHANGED = 2
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
-        _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                         "set_bus": {"substations": [(id_2, arr2)]},
-                                                         "change_status": arr_line1,
-                                                         "set_status": arr_line2},
-                                                        env=self.env,
-                                                        check_legal=True)
+        _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                "set_bus": {"substations_id": [(id_2, arr2)]},
+                                "change_line_status": arr_line1,
+                                "set_line_status": arr_line2},
+                               env=self.env,
+                               check_legal=True)
 
         try:
             self.env.parameters.MAX_SUB_CHANGED = 1
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
-            _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                             "set_bus": {"substations": [(id_2, arr2)]},
-                                                             "change_status": arr_line1,
-                                                             "set_status": arr_line2},
+            _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                                             "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                             "change_line_status": arr_line1,
+                                                             "set_line_status": arr_line2},
                                                             env=self.env,
                                                             check_legal=True)
             raise RuntimeError("This should have thrown an IllegalException")
@@ -144,10 +144,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         try:
             self.env.parameters.MAX_SUB_CHANGED = 2
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-            _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                             "set_bus": {"substations": [(id_2, arr2)]},
-                                                             "change_status": arr_line1,
-                                                             "set_status": arr_line2},
+            _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                                             "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                             "change_line_status": arr_line1,
+                                                             "set_line_status": arr_line2},
                                                             env=self.env,
                                                             check_legal=True)
             raise RuntimeError("This should have thrown an IllegalException")
@@ -157,8 +157,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.parameters.MAX_SUB_CHANGED = 1
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-        _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                "set_status": arr_line2},
+        _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                "set_line_status": arr_line2},
                                env=self.env,
                                check_legal=True)
 
@@ -182,10 +182,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.parameters.MAX_SUB_CHANGED = 1
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
-        _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                "set_bus": {"substations": [(id_2, arr2)]},
-                                "change_status": arr_line1,
-                                "set_status": arr_line2},
+        _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                "set_bus": {"substations_id": [(id_2, arr2)]},
+                                "change_line_status": arr_line1,
+                                "set_line_status": arr_line2},
                                env=self.env,
                                check_legal=True)
 
@@ -195,9 +195,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
             self.env.time_remaining_before_reconnection[id_line] = 1
             _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                             "set_bus": {"substations": [(id_2, arr2)]},
-                                                             "change_status": arr_line1,
-                                                             "set_status": arr_line2},
+                                                             "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                             "change_line_status": arr_line1,
+                                                             "set_line_status": arr_line2},
                                                             env=self.env,
                                                             check_legal=True)
             raise RuntimeError("This should have thrown an IllegalException")
@@ -211,9 +211,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
         self.env.time_remaining_before_reconnection[1] = 1
         _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                         "set_bus": {"substations": [(id_2, arr2)]},
-                                                         "change_status": arr_line1,
-                                                         "set_status": arr_line2},
+                                                         "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                         "change_line_status": arr_line1,
+                                                         "set_line_status": arr_line2},
                                                         env=self.env,
                                                         check_legal=True)
 

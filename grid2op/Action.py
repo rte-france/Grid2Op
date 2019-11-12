@@ -259,7 +259,17 @@ class Action(object):
         This attributes is either not initialized (set to ``None``) or it tells, for each powerline, if it is impacted
         by the action (in this case :attr:`Action._lines_impacted`\[line_id\] is ``True``) or not
         (in this case :attr:`Action._subs_impacted`\[line_id\] is ``False``)
+
+    vars_action: ``list``, static
+        Authorized key that are processed by :func:`Action.__call__` to modify the injections
+
+    vars_action_set: ``set``, static
+        Authorized key that are processed by :func:`Action.__call__` to modify the injections
     """
+
+    vars_action = ["load_p", "load_q", "prod_p", "prod_v"]
+    vars_action_set = set(vars_action)
+
     def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
@@ -592,9 +602,12 @@ class Action(object):
         if "injection" in dict_:
             if dict_["injection"] is not None:
                 tmp_d = dict_["injection"]
-                for k in ["load_p", "prod_p", "load_q", "prod_q"]:
-                    if k in tmp_d:
-                        self._dict_inj[k] = tmp_d[k]
+                for k in tmp_d: #["load_p", "prod_p", "load_q", "prod_v"]:
+                    if k in self.vars_action_set:
+                        self._dict_inj[k] = np.array(tmp_d[k])
+                    else:
+                        warn = "The key {} is not recognized by Action when trying to modify the injections.".format(k)
+                        warnings.warn(warn)
 
     def _digest_setbus(self, dict_):
         if "set_bus" in dict_:
