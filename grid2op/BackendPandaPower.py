@@ -346,7 +346,7 @@ class PandaPowerBackend(Backend):
                         pass
                         # self._grid._ppc['gen'][self._iref_slack, 5] = val[self._id_bus_added]
                         # self._grid._ppc['gen'][-1, 5] = val[self._id_bus_added]
-                        # self._grid["ext_grid"]["vm_pu"] = val[self._id_bus_added]
+                        self._grid["ext_grid"]["vm_pu"] = val[self._id_bus_added]
                     # ok_ind[self._id_bus_added] = False
                     # except:
                     #    pdb.set_trace()

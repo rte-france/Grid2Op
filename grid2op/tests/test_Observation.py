@@ -157,7 +157,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
             # simulate lots of action
             tmp = np.full(self.env.backend.n_lines, fill_value=False, dtype=np.bool)
             tmp[i] = True
-            action = self.env.helper_action_player({"change_status": tmp})
+            action = self.env.helper_action_player({"change_line_status": tmp})
             simul_obs, simul_reward, simul_has_error, simul_info = obs_orig.simulate(action)
 
         obs_after = self.env.helper_observation(self.env)
