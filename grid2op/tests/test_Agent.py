@@ -136,7 +136,6 @@ class TestAgent(unittest.TestCase):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for greedy agent"
-        print()
         assert np.abs(cum_reward - 619.996155) <= self.tol_one, "The reward has not been properly computed"
 
 

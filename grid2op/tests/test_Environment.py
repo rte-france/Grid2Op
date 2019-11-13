@@ -18,8 +18,8 @@ import time
 
 
 DEBUG = False
-PROFILE = False
-if PROFILE:
+PROFILE_CODE = False
+if PROFILE_CODE:
     import cProfile
 
 
@@ -82,7 +82,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         :return:
         """
         if DEBUG:
-            if PROFILE:
+            if PROFILE_CODE:
                 cp = cProfile.Profile()
                 cp.enable()
             import pandapower as pp
@@ -92,7 +92,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                 pp.runpp(self.backend._grid)
             end_ = time.time()
             print("Time to compute {} powerflows: {:.2f}".format(nb_powerflow, end_-beg_))
-            if PROFILE:
+            if PROFILE_CODE:
                 cp.disable()
                 cp.print_stats(sort="tottime")
         pass
@@ -105,6 +105,15 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         vect = vect[self.id_chron_to_back_load]
         # and now i make sure everything is working as intentended
         assert self.compare_vect(injs_act, vect)
+
+    def test_proper_voltage_modification(self):
+        do_nothing = self.env.helper_action_player({})
+        obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
+        vect = np.array([143.9, 139.1,   0.2,  13.3, 146. ])
+        assert self.compare_vect(obs.prod_v, vect), "Production voltages setpoint have not changed at first time step"
+        obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
+        vect = np.array([145.3, 140.4,   0.2,  13.5, 147.4])
+        assert self.compare_vect(obs.prod_v, vect), "Production voltages setpoint have not changed at second time step"
 
     def test_number_of_timesteps(self):
         for i in range(287):
@@ -134,7 +143,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                parameters=self.env_params,
                                rewardClass=L2RPNReward,
                                names_chronics_to_backend=self.names_chronics_to_backend)
-        if PROFILE:
+        if PROFILE_CODE:
             cp = cProfile.Profile()
             cp.enable()
         beg_ = time.time()
@@ -150,11 +159,11 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             print(msg_.format(
                 self.env._time_apply_act+self.env._time_powerflow+self.env._time_extract_obs,
                 self.env._time_apply_act, self.env._time_powerflow, self.env._time_extract_obs, end_-beg_, cum_reward))
-        if PROFILE:
+        if PROFILE_CODE:
             cp.disable()
             cp.print_stats(sort="tottime")
-        assert i == 287
-        assert np.abs(cum_reward - 5739.9510225268705) <= self.tol_one
+        assert i == 287, "Wrong number of timesteps"
+        assert np.abs(cum_reward - 5739.929117641016) <= self.tol_one, "Wrong reward"
 
 
 if __name__ == "__main__":
