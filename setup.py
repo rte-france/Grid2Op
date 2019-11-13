@@ -10,7 +10,9 @@ setup(name='Grid2Op',
       long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
       classifiers=[
         'Development Status :: 4 - Beta',
-        'Programming Language :: Python :: 3.x',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'
       ],
       keywords='ML powergrid optmization RL',
       author='Benjamin DONNOT',
