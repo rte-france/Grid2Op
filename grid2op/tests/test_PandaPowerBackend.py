@@ -648,172 +648,217 @@ class TestTopoAction(unittest.TestCase):
             pass
 
 
+class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
+    """
+    Test the "next_grid_state" method of the back-end
+    """
+    def setUp(self):
+        self.backend = PandaPowerBackend()
+        self.path_matpower = PATH_DATA_TEST
+        self.case_file = "test_case14.json"
+        self.backend.load_grid(self.path_matpower, self.case_file)
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+        self.game_rules = GameRules()
+        self.action_env = HelperAction(name_prod=self.backend.name_prods,
+                                              name_load=self.backend.name_loads,
+                                              name_line=self.backend.name_lines,
+                                              subs_info=self.backend.subs_elements,
+                                              load_to_subid=self.backend.load_to_subid,
+                                              gen_to_subid=self.backend.gen_to_subid,
+                                              lines_or_to_subid=self.backend.lines_or_to_subid,
+                                              lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
+                                              load_to_sub_pos=self.backend.load_to_sub_pos,
+                                              gen_to_sub_pos=self.backend.gen_to_sub_pos,
+                                              lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
+                                              lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
+                                              load_pos_topo_vect=self.backend.load_pos_topo_vect,
+                                              gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
+                                              lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
+                                              lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
+                                              game_rules=self.game_rules)
 
-# class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
-#     """
-#     Test the "next_grid_state" method of the back-end
-#     """
-#     def setUp(self):
-#         self.backend = PandaPowerBackend()
-#         self.path_matpower = path
-#         self.case_file = "test_case14.json"
-#         self.backend.load_grid(self.path_matpower, self.case_file)
-#         self.tolvect = 1e-2
-#         self.tol_one = 1e-5
-#
-#         self.action_env = HelperAction(_n_gen=self.backend.n_generators,
-#                                   _n_load=self.backend.n_loads,
-#                                   _n_lines=self.backend._n_lines,
-#                                   _subs_info=self.backend.subs_elements,
-#                                   _load_to_subid=self.backend._load_to_subid,
-#                                   _gen_to_subid=self.backend._gen_to_subid,
-#                                   _lines_or_to_subid=self.backend._lines_or_to_subid,
-#                                   _lines_ex_to_subid=self.backend._lines_ex_to_subid, #####
-#                                   _load_to_sub_pos=self.backend._load_to_sub_pos,
-#                                   _gen_to_sub_pos=self.backend._gen_to_sub_pos,
-#                                   _lines_or_to_sub_pos=self.backend._lines_or_to_sub_pos,
-#                                   _lines_ex_to_sub_pos=self.backend._lines_ex_to_sub_pos, #####
-#                                   _load_pos_topo_vect=self.backend._load_pos_topo_vect,
-#                                   _gen_pos_topo_vect=self.backend._gen_pos_topo_vect,
-#                                   _lines_or_pos_topo_vect=self.backend._lines_or_pos_topo_vect,
-#                                   _lines_ex_pos_topo_vect=self.backend._lines_ex_pos_topo_vect)
-#
-#
-#         # _parameters for the environment
-#         self.env_params = Parameters()
-#
-#         # used for init an env too
-#         self.chronics_handler = ChronicsHandler()
-#         # # hack here: i don't need to properly use the chronic handler, it's just here for initializing an environment
-#         # self.chronics_handler.real_data.load_p = np.zeros(self.backend.n_loads)
-#         # self.chronics_handler.real_data.load_q = np.zeros(self.backend.n_loads)
-#         # self.chronics_handler.real_data.prod_p = np.zeros(self.backend.n_generators)
-#         # self.chronics_handler.real_data.prod_v = np.zeros(self.backend.n_generators)
-#         # self.chronics_handler.real_data._maintenance = np.zeros(self.backend._n_lines)
-#         # self.chronics_handler.real_data.outage = np.zeros(self.backend._n_lines)
-#
-#     def next_grid_state_no_overflow(self):
-#         # first i test that, when there is no overflow, i dont do a cascading failure
-#         env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-#                           backend=self.backend,
-#                           chronics_handler=self.chronics_handler,
-#                           _parameters=self.env_params)
-#
-#         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-#         assert not infos
-#
-#     def test_next_grid_state_1overflow(self):
-#         # second i test that, when is one line on hard overflow it is disconnected
-#         case_file = "ieee14_ADN_overflow1.xml"
-#         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-#                           backend=self.backend,
-#                           chronics_handler=self.chronics_handler,
-#                           _parameters=self.env_params)
-#         self.backend.load_grid(self.path_matpower, case_file)
-#         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-#         assert len(infos) == 1  # check that i have only one overflow
-#
-#     def test_next_grid_state_1overflow_envNoCF(self):
-#         # third i test that, if a line is on hard overflow, but i'm on a "no cascading failure" mode,
-#         # i don't simulate a cascading failure
-#         self.env_params.NO_OVERFLOW_DISCONNECTION = True
-#         case_file = "ieee14_ADN_overflow1.xml"
-#         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-#                           backend=self.backend,
-#                           chronics_handler=self.chronics_handler,
-#                           _parameters=self.env_params)
-#         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-#         assert not infos # check that don't simulate a cascading failure
-#         assert np.sum(disco) == 0
-#
-#     def test_nb_timestep_overflow(self):
-#         case_file = "ieee14_ADN_overflow2.xml"
-#         # on this _grid, first line with id 18 is overheated,
-#         # it is disconnected
-#         # then powerline 16 have a relative flow of 1.5916318201096937
-#         # bck_cpy = self.backend.copy()
-#         # in this scenario i don't have a second line disconnection.
-#         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-#                           backend=self.backend,
-#                           chronics_handler=self.chronics_handler,
-#                           _parameters=self.env_params)
-#         self.backend.load_grid(self.path_matpower, case_file)
-#         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-#         assert len(infos) == 1  # check that don't simulate a cascading failure
-#         assert disco[17]
-#         assert np.sum(disco) == 1
-#
-#     def test_nb_timestep_overflow_nodisc(self):
-#         case_file = "ieee14_ADN_overflow2.xml"
-#         # on this _grid, first line with id 18 is overheated,
-#         # it is disconnected
-#         # then powerline 16 have a relative flow of 1.5916318201096937
-#
-#         # in this scenario i don't have a second line disconnection because
-#         # the overflow is a soft overflow and  the powerline is presumably overflow since 0
-#         # timestep
-#         self.env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
-#         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-#                           backend=self.backend,
-#                           chronics_handler=self.chronics_handler,
-#                           _parameters=self.env_params)
-#         self.backend.load_grid(self.path_matpower, case_file)
-#         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-#         assert len(infos) == 1  # check that don't simulate a cascading failure
-#         assert disco[17]
-#         assert np.sum(disco) == 1
-#
-#     def test_nb_timestep_overflow_nodisc_2(self):
-#         case_file = "ieee14_ADN_overflow2.xml"
-#         # on this _grid, first line with id 18 is overheated,
-#         # it is disconnected
-#         # then powerline 16 have a relative flow of 1.5916318201096937
-#
-#         # in this scenario i don't have a second line disconnection because
-#         # the overflow is a soft overflow and  the powerline is presumably overflow since only 1
-#         # timestep
-#         self.env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
-#         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-#                           backend=self.backend,
-#                           chronics_handler=self.chronics_handler,
-#                           _parameters=self.env_params)
-#         env._timestep_overflow[15] = 1
-#         self.backend.load_grid(self.path_matpower, case_file)
-#         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-#         assert len(infos) == 1  # check that don't simulate a cascading failure
-#         assert disco[17]
-#         assert np.sum(disco) == 1
-#
-#     def test_nb_timestep_overflow_disc(self):
-#         case_file = "ieee14_ADN_overflow2.xml"
-#         # on this _grid, first line with id 18 is overheated,
-#         # it is disconnected
-#         # then powerline 16 have a relative flow of 1.5916318201096937
-#
-#         # in this scenario I have a second disconnection, because the powerline is allowed to be on overflow for 2
-#         # timestep and is still on overflow here.
-#         self.env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
-#         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-#                           backend=self.backend,
-#                           chronics_handler=self.chronics_handler,
-#                           _parameters=self.env_params)
-#         env._timestep_overflow[15] = 2
-#         self.backend.load_grid(self.path_matpower, case_file)
-#         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-#         assert len(infos) == 2  # check that there is a cascading failure of length 2
-#         assert disco[17]
-#         assert disco[15]
-#         assert np.sum(disco) == 2
-#
-#         for i, grid_tmp in enumerate(infos):
-#             assert not grid_tmp._grid.line_id(18).connected(), "the powerline id 18 should be disconnected"
-#             if i == 1:
-#                 assert not grid_tmp._grid.line_id(16).connected(), "the powerline id 16 should be disconnected"
+        self.lines_flows_init = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,
+                                           10869.23856329,  4686.71726729, 15612.65903298,   300.07915572,
+                                             229.8060832 ,   169.97292682,   100.40192958,   265.47505664,
+                                           21193.86923911, 21216.44452327, 49701.1565287 ,   124.79684388,
+                                              67.59759985,   192.19424706,   666.76961936,  1113.52773632])
+        # _parameters for the environment
+        self.env_params = Parameters()
 
-    #TODO i need to check that:
-    # - nb_timestep_overflow_allowed is working,
-    # - cascading failure is working with depth >= 1
-    # - make sure the cascading failure disconnect the proper powerlines
+        # used for init an env too
+        self.chronics_handler = ChronicsHandler()
+        self.id_first_line_disco = 8  # due to hard overflow
+        self.id_2nd_line_disco = 11  # due to soft overflow
+
+    def next_grid_state_no_overflow(self):
+        # first i test that, when there is no overflow, i dont do a cascading failure
+        env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                          backend=self.backend,
+                          chronics_handler=self.chronics_handler,
+                          parameters=self.env_params)
+
+        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        assert not infos
+
+    def test_next_grid_state_1overflow(self):
+        # second i test that, when is one line on hard overflow it is disconnected
+        case_file = self.case_file
+        env_params = copy.deepcopy(self.env_params)
+        env_params.HARD_OVERFLOW_THRESHOLD = 1.5
+        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                          backend=self.backend,
+                          chronics_handler=self.chronics_handler,
+                          parameters=env_params)
+        self.backend.load_grid(self.path_matpower, case_file)
+
+        thermal_limit = 10*self.lines_flows_init
+        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco]/2
+        self.backend.set_thermal_limit(thermal_limit)
+
+        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        assert len(infos) == 1  # check that i have only one overflow
+        assert np.sum(disco) == 1
+
+    def test_next_grid_state_1overflow_envNoCF(self):
+        # third i test that, if a line is on hard overflow, but i'm on a "no cascading failure" mode,
+        # i don't simulate a cascading failure
+        self.env_params.NO_OVERFLOW_DISCONNECTION = True
+        case_file = self.case_file
+        env_params = copy.deepcopy(self.env_params)
+        env_params.HARD_OVERFLOW_THRESHOLD = 1.5
+        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                          backend=self.backend,
+                          chronics_handler=self.chronics_handler,
+                          parameters=self.env_params)
+        self.backend.load_grid(self.path_matpower, case_file)
+
+        thermal_limit = 10*self.lines_flows_init
+        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco]/2
+        self.backend.set_thermal_limit(thermal_limit)
+
+        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        assert not infos # check that don't simulate a cascading failure
+        assert np.sum(disco) == 0
+
+    def test_nb_timestep_overflow_disc0(self):
+        # on this _grid, first line with id 5 is overheated,
+        # it is disconnected
+        # then powerline 16 have a relative flow of 1.5916318201096937
+        # in this scenario i don't have a second line disconnection.
+        case_file = self.case_file
+        env_params = copy.deepcopy(self.env_params)
+        env_params.HARD_OVERFLOW_THRESHOLD = 1.5
+        env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 0
+        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                          backend=self.backend,
+                          chronics_handler=self.chronics_handler,
+                          parameters=env_params)
+        self.backend.load_grid(self.path_matpower, case_file)
+
+        thermal_limit = 10*self.lines_flows_init
+        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco]/2
+        thermal_limit[self.id_2nd_line_disco] = 400
+        self.backend.set_thermal_limit(thermal_limit)
+
+        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+
+        assert len(infos) == 2  # check that there is a cascading failure of length 2
+        assert disco[self.id_first_line_disco]
+        assert disco[self.id_2nd_line_disco]
+        assert np.sum(disco) == 2
+
+    def test_nb_timestep_overflow_nodisc(self):
+        # on this _grid, first line with id 18 is overheated,
+        # it is disconnected
+        # then powerline 16 have a relative flow of 1.5916318201096937
+
+        # in this scenario i don't have a second line disconnection because
+        # the overflow is a soft overflow and  the powerline is presumably overflow since 0
+        # timestep
+        case_file = self.case_file
+        env_params = copy.deepcopy(self.env_params)
+        env_params.HARD_OVERFLOW_THRESHOLD = 1.5
+        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                          backend=self.backend,
+                          chronics_handler=self.chronics_handler,
+                          parameters=env_params)
+        self.backend.load_grid(self.path_matpower, case_file)
+
+        env.timestep_overflow[self.id_2nd_line_disco] = 0
+        thermal_limit = 10*self.lines_flows_init
+        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco]/2
+        thermal_limit[self.id_2nd_line_disco] = 400
+        self.backend.set_thermal_limit(thermal_limit)
+
+        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        assert len(infos) == 1  # check that don't simulate a cascading failure
+        assert disco[self.id_first_line_disco]
+        assert np.sum(disco) == 1
+
+    def test_nb_timestep_overflow_nodisc_2(self):
+        # on this _grid, first line with id 18 is overheated,
+        # it is disconnected
+        # then powerline 16 have a relative flow of 1.5916318201096937
+
+        # in this scenario i don't have a second line disconnection because
+        # the overflow is a soft overflow and  the powerline is presumably overflow since only 1
+        # timestep
+        case_file = self.case_file
+        env_params = copy.deepcopy(self.env_params)
+        env_params.HARD_OVERFLOW_THRESHOLD = 1.5
+        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                          backend=self.backend,
+                          chronics_handler=self.chronics_handler,
+                          parameters=env_params)
+        self.backend.load_grid(self.path_matpower, case_file)
+
+        env.timestep_overflow[self.id_2nd_line_disco] = 1
+
+        thermal_limit = 10*self.lines_flows_init
+        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco]/2
+        thermal_limit[self.id_2nd_line_disco] = 400
+        self.backend.set_thermal_limit(thermal_limit)
+
+        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        assert len(infos) == 1  # check that don't simulate a cascading failure
+        assert disco[self.id_first_line_disco]
+        assert np.sum(disco) == 1
+
+    def test_nb_timestep_overflow_disc2(self):
+        # on this _grid, first line with id 18 is overheated,
+        # it is disconnected
+        # then powerline 16 have a relative flow of 1.5916318201096937
+
+        # in this scenario I have a second disconnection, because the powerline is allowed to be on overflow for 2
+        # timestep and is still on overflow here.
+        case_file = self.case_file
+        env_params = copy.deepcopy(self.env_params)
+        env_params.HARD_OVERFLOW_THRESHOLD = 1.5
+        env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
+        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                          backend=self.backend,
+                          chronics_handler=self.chronics_handler,
+                          parameters=env_params)
+        self.backend.load_grid(self.path_matpower, case_file)
+
+        env.timestep_overflow[self.id_2nd_line_disco] = 2
+
+        thermal_limit = 10*self.lines_flows_init
+        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco]/2
+        thermal_limit[self.id_2nd_line_disco] = 400
+        self.backend.set_thermal_limit(thermal_limit)
+
+        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        assert len(infos) == 2  # check that there is a cascading failure of length 2
+        assert disco[self.id_first_line_disco]
+        assert disco[self.id_2nd_line_disco]
+        assert np.sum(disco) == 2
+        for i, grid_tmp in enumerate(infos):
+            assert (not grid_tmp.get_line_status()[self.id_first_line_disco])
+            if i == 1:
+                assert (not grid_tmp.get_line_status()[self.id_2nd_line_disco])
+
 
 # TODO test also the methods added for observation:
 """

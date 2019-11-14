@@ -458,7 +458,7 @@ class Environment:
                 self._time_powerflow += time.time() - beg_
 
                 beg_ = time.time()
-                self.backend.set_thermal_limit(self)  # update the thermal limit, for DLR for example
+                self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                 overflow_lines = self.backend.get_line_overflow()
 
                 # one timestep passed, i can maybe reconnect some lines

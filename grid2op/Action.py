@@ -1962,7 +1962,7 @@ class HelperAction:
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
         action (see :func:`Action.size`) or to sample a new Action (see :func:`Action.sample`)
 
-    game_rules: :class:`grid2op.GameRules.`
+    game_rules: :class:`grid2op.GameRules.GameRules`
         Class specifying the rules of the game, used to check the legality of the actions.
 
     n: ``int``

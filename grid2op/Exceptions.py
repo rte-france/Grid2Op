@@ -296,6 +296,7 @@ class ChronicsError(Grid2OpException):
     more information)
     """
     pass
+
 class ChronicsNotFoundError(ChronicsError):
     """
     This exception is raised where there are no chronics folder found at the indicated location.
@@ -305,5 +306,12 @@ class ChronicsNotFoundError(ChronicsError):
 class InsufficientData(ChronicsError):
     """
     This exception is raised where there are not enough data compare to the size of the episode asked.
+    """
+    pass
+
+# Backend
+class BackendError(Grid2OpException):
+    """
+    Base class of all error regarding the Backend that might be badly configured.
     """
     pass

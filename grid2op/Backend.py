@@ -636,7 +636,53 @@ class Backend(ABC):
         """
         pass
 
-    def set_thermal_limit(self, env):
+    def set_thermal_limit(self, limits):
+        """
+        This function is used as a convenience function to set the thermal limits :attr:`Backend.thermal_limit_a`
+        in amperes.
+
+        It can be used at the beginning of an episode if the thermal limit are not present in the original data files
+        or alternatively if the thermal limits depends on the period of the year (one in winter and one in summer
+        for example).
+
+        Parameters
+        ----------
+        limits: ``object``
+            It can be understood differently according to its type:
+
+            - If it's a ``numpy.ndarray``, then it is assumed the thermal limits are given in amperes in the same order
+            as the powerlines computed in the backend. In that case it modifies all the thermal limits of all
+            the powerlines at once.
+            - If it's a ``dict`` it must have:
+
+              - as key the powerline names (not all names are mandatory, in that case only the powerlines with the name
+              in this dictionnary will be modified)
+              - as value the new thermal limit (should be a strictly positive float).
+
+
+        Returns
+        -------
+        ``None``
+
+        """
+        if isinstance(limits, np.ndarray):
+            if limits.shape[0] == self.n_lines:
+                self.thermal_limit_a = 1. * limits
+        elif isinstance(limits, dict):
+            for el in limits.keys():
+                if not el in self.name_lines:
+                    raise BackendError("You asked to modify the thermal limit of powerline named \"{}\" that is not on the grid. Names of powerlines are {}".format(el, self.name_lines))
+            for i, el in self.name_lines:
+                if el in limits:
+                    try:
+                        tmp = float(limits[el])
+                    except:
+                        raise BackendError("Impossible to convert data ({}) for powerline named \"{}\" into float values".format(limits[el], el))
+                    if tmp <= 0:
+                        raise BackendError("New thermal limit for powerlines \"{}\" is not positive ({})".format(el, tmp))
+                    self.thermal_limit_a[i] = tmp
+
+    def update_thermal_limit(self, env):
         """
         Upade the new thermal limit in case of DLR for example.
 
@@ -878,12 +924,6 @@ class Backend(ABC):
         :return: disconnected lines and list of Backend instances that allows to reconstruct the cascading failures (in which order the powerlines have been disconnected). Note that if :attr:`Backend.detailed_infos_for_cascading_failures` is set to False, the empty list will always be returned.
         :rtype: tuple: np.array, dtype:bool, list
         """
-
-        # TODO have only an observation here. This is not natural in this case.
-        # TODO The observation could be "complete" if this method is called by an environment, or it could be
-        # TODO partial is an agent has only partial information (especially true in case of DLR for example: we don't know
-        # TODO weather for sure, and this could affect the thermal limits.
-
 
         lines_status_orig = self.get_line_status()  # original line status
         infos = []

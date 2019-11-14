@@ -45,11 +45,11 @@ class Reward(ABC):
     def initialize(self, env):
         """
         If :attr:`Reward.reward_min`, :attr:`Reward.reward_max` or other custom attributes require to have a
-        valid :class:`grid2op.Environement` to be initialized, this should be done in this method.
+        valid :class:`grid2op.Environement.Environment` to be initialized, this should be done in this method.
 
         Parameters
         ----------
-        env: :class:`grid2op.Environment`
+        env: :class:`grid2op.Environment.Environment`
             An environment instance properly initialized.
 
         Returns
@@ -66,7 +66,7 @@ class Reward(ABC):
 
         Parameters
         ----------
-        action: :class:`grid2op.Action`
+        action: :class:`grid2op.Action.Action`
             Action that has been submitted by the :class:`grid2op.Agent`
 
         env: :class:`grid2op.Environment.Environment`
@@ -177,6 +177,16 @@ class L2RPNReward(Reward):
         Reward.__init__(self)
 
     def initialize(self, env):
+        """
+
+        Parameters
+        ----------
+        env:
+
+        Returns
+        -------
+
+        """
         self.reward_min = 0.
         self.reward_max = env.backend.n_lines
 
