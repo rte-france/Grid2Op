@@ -152,3 +152,5 @@ getting_started/*.h5
 getting_started/saved_experiment_donothing/
 Doxyfile
 documentation
+**(copie).zip
+grid2op/data/*/*.csv

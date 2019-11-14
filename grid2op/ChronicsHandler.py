@@ -1121,8 +1121,11 @@ class ChronicsHandler:
         self.max_iter = max_iter
 
         self.real_data = None
-        self.real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
-                                            **self.kwargs)
+        try:
+            self.real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
+                                                **self.kwargs)
+        except TypeError:
+            raise ChronicsError("Impossible to build a chronics of type {} with arguments in {}".format(chronicsClass, self.kwargs))
         self.seed = None
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,

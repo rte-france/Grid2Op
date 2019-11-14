@@ -288,6 +288,12 @@ def make(name_env="case14_fromfile", **kwargs):
                                  defaultClassApp=str, defaultinstance=default_grid_path,
                                  msg_error=msg_error)
 
+    ##
+    msg_error = "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary."
+    names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
+                                 defaultClassApp=dict, defaultinstance=NAMES_CHRONICS_TO_BACKEND,
+                                 msg_error=msg_error)
+
     ## the chronics to use
     ### the arguments used to build the data, note that the arguments must be compatible with the chronics class
     msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding_kwargs\")"
@@ -312,7 +318,7 @@ def make(name_env="case14_fromfile", **kwargs):
                       chronics_handler=data_feeding,
                       backend=backend,
                       parameters=param,
-                      names_chronics_to_backend=NAMES_CHRONICS_TO_BACKEND,
+                      names_chronics_to_backend=names_chronics_to_backend,
                       actionClass=action_class,
                       observationClass=observation_class,
                       rewardClass=reward_class,

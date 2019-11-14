@@ -393,7 +393,8 @@ class Runner(object):
         # chronics of grid state
         self.path_chron = path_chron
         self.gridStateclass_kwargs = gridStateclass_kwargs
-        self.chronics_handler = ChronicsHandler(chronicsClass=gridStateclass, path=self.path_chron,
+        self.chronics_handler = ChronicsHandler(chronicsClass=self.gridStateclass,
+                                                path=self.path_chron,
                                                 **self.gridStateclass_kwargs)
 
         # the backend, used to compute powerflows
@@ -407,14 +408,14 @@ class Runner(object):
 
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
-                      chronics_handler=chronics_handler,
-                      backend=backend,
-                      parameters=parameters,
-                      names_chronics_to_backend=self.names_chronics_to_backend,
-                      actionClass=self.actionClass,
-                      observationClass=self.observationClass,
-                      rewardClass=self.rewardClass,
-                      legalActClass=self.legalActClass)
+                            chronics_handler=chronics_handler,
+                            backend=backend,
+                            parameters=parameters,
+                            names_chronics_to_backend=self.names_chronics_to_backend,
+                            actionClass=self.actionClass,
+                            observationClass=self.observationClass,
+                            rewardClass=self.rewardClass,
+                            legalActClass=self.legalActClass)
         if self._useclass:
             agent = self.agentClass(res.helper_action_player)
         else:
@@ -510,11 +511,11 @@ class Runner(object):
         efficient_storing = nb_timestep_max > 0
         nb_timestep_max = max(nb_timestep_max, 0)
 
-        times = np.zeros(nb_timestep_max, dtype=np.float)
-        rewards = np.zeros(nb_timestep_max, dtype=np.float)
-        actions = np.zeros((nb_timestep_max, env.action_space.n), dtype=np.float)
-        observations = np.zeros((nb_timestep_max, env.observation_space.n), dtype=np.float)
-        disc_lines = np.full((nb_timestep_max, env.backend.n_lines), fill_value=False, dtype=np.bool)
+        times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
+        rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
+        actions = np.full((nb_timestep_max, env.action_space.n), fill_value=np.NaN, dtype=np.float)
+        observations = np.full((nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
+        disc_lines = np.full((nb_timestep_max, env.backend.n_lines), fill_value=np.NaN, dtype=np.bool)
         disc_lines_templ = np.full((1, env.backend.n_lines), fill_value=False, dtype=np.bool)
 
         beg_ = time.time()
@@ -523,13 +524,6 @@ class Runner(object):
             obs, reward, done, info = env.step(act)  # should load the first time stamp
             beg__ = time.time()
             act = agent.act(obs, reward, done)
-            # try:
-            #     act = agent.act(obs, reward, done)
-            # except AmbiguousAction as except_:
-            #     reward = env.reward_helper.range()[0]
-            #     done = True
-            #     info = {"previous_info": info, "ambiguous_action": "{}".format(except_)}
-            #     pdb.set_trace()
 
             end__ = time.time()
             time_act += end__ - beg__
@@ -548,6 +542,8 @@ class Runner(object):
                         arr = info["disc_lines"]
                         if arr is not None:
                             disc_lines[time_step-1, :] = arr
+                        else:
+                            disc_lines[time_step - 1, :] = disc_lines_templ
                 else:
                     # completely inefficient way of writing
                     times = np.concatenate((times, (end__ - beg__, )))
@@ -633,18 +629,21 @@ class Runner(object):
 
     @staticmethod
     def _one_process_parrallel(runner, episode_this_process, process_id, path_save=None):
-        chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass, path=runner.path_chron)
+        chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass,
+                                           path=runner.path_chron,
+                                           **runner.gridStateclass_kwargs)
         parameters = copy.deepcopy(runner.parameters)
         backend = runner.backendClass()
         nb_episode_this_process = len(episode_this_process)
-        env, agent = runner._new_env(chronics_handler=chronics_handler, backend=backend, parameters=parameters)
         res = [(None, None, None) for _ in range(nb_episode_this_process)]
         for i, p_id in enumerate(episode_this_process):
-            env.reset()
             chronics_handler.tell_id(p_id)
+            env, agent = runner._new_env(chronics_handler=chronics_handler,
+                                         backend=backend,
+                                         parameters=parameters)
+            cum_reward, nb_time_step = Runner._run_one_episode(env, agent, runner.logger, p_id, path_save)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
-            cum_reward, nb_time_step = Runner._run_one_episode(env, agent, runner.logger, p_id, path_save)
             res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
         return res
 
