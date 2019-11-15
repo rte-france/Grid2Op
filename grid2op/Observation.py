@@ -195,7 +195,7 @@ class ObsEnv(object):
         except Grid2OpException as e:
             has_error = True
             reward = self.reward_helper.range()[0]
-
+        # print("reward_helper in ObsEnv: {}".format(self.reward_helper.template_reward))
         if reward is None:
             reward = self._get_reward(action, has_error, is_done)
         self.backend = tmp_backend
@@ -220,6 +220,22 @@ class ObsEnv(object):
         """
         res = self.current_obs
         return res
+
+    def update_grid(self, real_backend):
+        """
+        Update this "emulated" environment with the real powergrid.
+
+        Parameters
+        ----------
+        real_backend: :class:`grid2op.Backend.Backend`
+            The real grid of the environment.
+
+        Returns
+        -------
+
+        """
+        self.backend = real_backend.copy()
+        self.is_init = False
 
 
 class Observation(ABC):
@@ -459,6 +475,10 @@ class Observation(ABC):
         self.day_of_week = None
         self.hour_of_day = None
         self.minute_of_hour = None
+
+        # forecasts
+        self._forecasted_inj = []
+        self._forecasted_grid = []
 
     def __compare_stats(self, other, name):
         if self.__dict__[name] is None and other.__dict__[name] is not None:
@@ -1115,6 +1135,7 @@ class ObservationHelper:
 
         # TODO DOCUMENTATION !!!
 
+        # print("ObservationHelper init with rewardClass: {}".format(rewardClass))
         self.parameters = copy.deepcopy(env.parameters)
         # for the observation, I switch betwween the _parameters for the environment and for the simulation
         self.parameters.ENV_DC = self.parameters.FORECAST_DC
@@ -1128,6 +1149,7 @@ class ObservationHelper:
         self.action_helper_env = env.helper_action_env
         self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
 
+        # print("ObservationHelper init with reward_helper class: {}".format(self.reward_helper.template_reward))
         self.n_gen = n_gen
         self.n_load = n_load
         self.n_lines = n_lines
@@ -1179,6 +1201,7 @@ class ObservationHelper:
         if self.seed is not None:
             # in this case i have specific seed set. So i force the seed to be deterministic.
             self.seed = np.random.randint(4294967295)
+        self.obs_env.update_grid(env.backend)
 
         res = self.observationClass(parameters = self.parameters,
                                     n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,

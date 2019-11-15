@@ -390,24 +390,27 @@ class PandaPowerBackend(Backend):
 
                     # in case the topo vector is 2,2,2 etc. i convert it back to 1,1,1 etc.
                     actual_topo = actual_topo - np.min(actual_topo) + 1
-
                     # implement in on the _grid
                     # change the topology in case it doesn't match the original one
                     if np.any(actual_topo != origin_topo):
-                        nb_bus_before = np.sum(np.unique(origin_topo)[0])
-                        nb_bus_now = np.sum(np.unique(actual_topo)[0])
+                        nb_bus_before = len(np.unique(origin_topo))
+                        nb_bus_now = len(np.unique(actual_topo))
                         if nb_bus_before > nb_bus_now:
                             # i must deactivate the unused bus
                             self._grid.bus["in_service"].iloc[sub_id + self.n_substations] = False
-                        if nb_bus_before < nb_bus_now:
+                            # print("I deactivated bus {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
+                        elif nb_bus_before < nb_bus_now:
                             # i must activate the new bus
                             self._grid.bus["in_service"].iloc[sub_id + self.n_substations] = True
+                            # print("I reactivated bus {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
                         # now assign the proper bus to each element
                         for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
                             self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_substations
-                            if table == "line" or table == "trafo":
-                                # I connect it if it was disconnected
-                                self._grid[table]["in_service"].iloc[row_id] = True
+
+                            #if table == "line" or table == "trafo":
+                            #    # I connect it if it was disconnected
+                            #    self._grid[table]["in_service"].iloc[row_id] = True
+                            #    print("I reconnected a powerline")
                     beg_ += nb_obj
 
         # change line status if needed
@@ -472,6 +475,10 @@ class PandaPowerBackend(Backend):
                     pp.runpp(self._grid, check_connectivity=False, init=self._pf_init)
                     self._nb_bus_before = nb_bus
 
+                if self._grid.res_gen.isnull().values.any():
+                    # sometimes pandapower does not detect divergence and put Nan.
+                    raise p.powerflow.LoadflowNotConverged
+
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
                 self.p_or = self._aux_get_line_info("p_from_mw", "p_hv_mw")
                 self.q_or = self._aux_get_line_info("q_from_mvar", "q_hv_mvar")
@@ -487,6 +494,7 @@ class PandaPowerBackend(Backend):
 
                 self.v_or *= self.lines_or_pu_to_kv
                 self.v_ex *= self.lines_ex_pu_to_kv
+
                 return self._grid.converged
 
         except pp.powerflow.LoadflowNotConverged:

@@ -315,6 +315,7 @@ class Environment:
         *_, fail_to_start, _ = self.step(do_nothing)
         if fail_to_start:
             raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0.")
+
         # test the backend returns object of the proper size
         self.backend.assert_grid_correct_after_powerflow()
 
@@ -323,6 +324,8 @@ class Environment:
         self.observation_space = self.helper_observation  # this return an observation.
         self.reward_range = self.reward_helper.range()
         self.viewer = None
+
+        self._reset_vectors_and_timings()
 
     def reset_grid(self):
         """
@@ -488,6 +491,20 @@ class Environment:
         return self.current_obs, self._get_reward(action, has_error, is_done), self._is_done(has_error, is_done),\
                {"disc_lines": disc_lines}
 
+    def _reset_vectors_and_timings(self):
+        self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
+        self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
+                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
+        self.nb_time_step = 0
+        self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
+        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
+        self.env_dc = self.parameters.ENV_DC
+
+        self._time_apply_act = 0
+        self._time_powerflow = 0
+        self._time_extract_obs = 0
+
     def reset(self):
         """
         Reset the environment to a clean state.
@@ -506,18 +523,7 @@ class Environment:
         self.reset_grid()
 
         # if True, then it will not disconnect lines above their thermal limits
-        self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
-        self.nb_time_step = 0
-        self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
-        self.env_dc = self.parameters.ENV_DC
-
-        self._time_apply_act = 0
-        self._time_powerflow = 0
-        self._time_extract_obs = 0
+        self._reset_vectors_and_timings()
         return self.get_obs()
 
     def render(self, mode='human'):

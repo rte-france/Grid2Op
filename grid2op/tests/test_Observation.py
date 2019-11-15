@@ -30,6 +30,9 @@ from Environment import Environment
 
 # TODO add unit test for obs.connectity_matrix()
 # TODO add unit test for obs.bus_connectivity_matrix()
+# todo add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
+# the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
+# copied]
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):

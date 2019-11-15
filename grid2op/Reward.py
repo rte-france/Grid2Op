@@ -238,5 +238,9 @@ class RewardHelper:
         return self.template_reward.get_range()
 
     def __call__(self, action, env, has_error, is_done):
-        res = self.template_reward(action, env, has_error, is_done)
+        if not is_done and not has_error:
+            res = self.template_reward(action, env, has_error, is_done)
+        else:
+            # no more data to consider, no powerflow has been run, reward is what it is
+            res = self.template_reward.reward_min
         return res

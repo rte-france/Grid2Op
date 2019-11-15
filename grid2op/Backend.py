@@ -1073,7 +1073,6 @@ class Backend(ABC):
             self._runpf_with_diverging_exception(self._grid)
             if self.detailed_infos_for_cascading_failures:
                 infos.append(self.copy())
-
         return disconnected_during_cf, infos
 
     def check_kirchoff(self):
