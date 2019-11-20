@@ -5,7 +5,7 @@ extras = {
 }
 
 setup(name='Grid2Op',
-      version='0.2',
+      version='0.2.1',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
       classifiers=[
