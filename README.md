@@ -3,6 +3,7 @@
 [![PyPi_Version](https://img.shields.io/pypi/v/grid2op.svg)](https://pypi.org/project/Grid2Op/)
 [![PyPi_Compat](https://img.shields.io/pypi/pyversions/grid2op.svg)](https://pypi.org/project/Grid2Op/)
 [![LICENSE](https://img.shields.io/pypi/l/grid2op.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
+[![Documentation Status](https://readthedocs.org/projects/grid2op/badge/?version=latest)](https://grid2op.readthedocs.io/en/latest/?badge=latest)
 
 Grid2Op is a plateform, built with modularity in mind, that allows to perform powergrid operation.
 And that's what it stands for: Grid To Operate.
@@ -24,7 +25,8 @@ Using the *Backend* based on PandaPower, this tools is able to perform 1000 time
 - in 90s for the IEEE 118 buses test case (not included)
 
 
-Official documentation: *coming soon*
+Official documentation: the official documentation is available at 
+[https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
 *   [1 Installation](#installation)
     *   [1.1 Install without Docker](#install-without-docker)
@@ -62,7 +64,8 @@ On Fedora-like systems:
 sudo dnf install python3
 ```
 
-If you have any trouble with this step, please refer to [the official webpage of Python](https://www.python.org/downloads/release/python-366/).
+If you have any trouble with this step, please refer to
+[the official webpage of Python](https://www.python.org/downloads/release/python-366/).
 
 #### (Optional, recommended) Step 1bis: Create a virtual environment
 ```bash

@@ -764,12 +764,12 @@ class Backend(ABC):
             It can be understood differently according to its type:
 
             - If it's a ``numpy.ndarray``, then it is assumed the thermal limits are given in amperes in the same order
-            as the powerlines computed in the backend. In that case it modifies all the thermal limits of all
-            the powerlines at once.
+              as the powerlines computed in the backend. In that case it modifies all the thermal limits of all
+              the powerlines at once.
             - If it's a ``dict`` it must have:
 
               - as key the powerline names (not all names are mandatory, in that case only the powerlines with the name
-              in this dictionnary will be modified)
+                in this dictionnary will be modified)
               - as value the new thermal limit (should be a strictly positive float).
 
 

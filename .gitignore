@@ -154,3 +154,4 @@ Doxyfile
 documentation
 **(copie).zip
 grid2op/data/*/*.csv
+**token.json
