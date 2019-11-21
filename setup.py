@@ -2,7 +2,7 @@ from setuptools import setup
 
 extras = {
    'with_pygame': ['pygame'],
-    "docs": ["numpydoc", "sphinx", "sphinx_rtd_theme"]
+    "docs": ["numpydoc", "sphinx", "sphinx_rtd_theme", "sphinxcontrib_trio"]
 }
 
 setup(name='Grid2Op',
