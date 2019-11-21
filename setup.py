@@ -1,7 +1,8 @@
 from setuptools import setup
 
 extras = {
-   'with_pygame': ['pygame']
+   'with_pygame': ['pygame'],
+    "docs": ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 }
 
 setup(name='Grid2Op',
@@ -9,12 +10,17 @@ setup(name='Grid2Op',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
       classifiers=[
-        'Development Status :: 4 - Beta',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7'
+          'Development Status :: 4 - Beta',
+          'Programming Language :: Python :: 3.5',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+          "Intended Audience :: Developers",
+          "Intended Audience :: Education",
+          "Intended Audience :: Science/Research",
+          "Natural Language :: English"
       ],
-      keywords='ML powergrid optmization RL',
+      keywords='ML powergrid optmization RL power systems',
       author='Benjamin DONNOT',
       author_email='benjamin.donnot@rte-france.com',
       url="https://github.com/rte-france/Grid2Op",
