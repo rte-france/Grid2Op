@@ -260,7 +260,7 @@ class Backend(ABC):
 
         for i, s_id_gen in enumerate(self.gen_to_subid):
             if s_id_gen == sub_id:
-                res = i
+                res.append(i)
 
         if res is []:
             raise BackendError(
@@ -294,7 +294,7 @@ class Backend(ABC):
 
         for i, s_id_gen in enumerate(self.load_to_subid):
             if s_id_gen == sub_id:
-                res = i
+                res.append(i)
 
         if res is []:
             raise BackendError(

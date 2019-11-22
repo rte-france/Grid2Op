@@ -6,7 +6,7 @@ extras = {
 }
 
 setup(name='Grid2Op',
-      version='0.2.1',
+      version='0.3.0',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
       classifiers=[
@@ -20,7 +20,7 @@ setup(name='Grid2Op',
           "Intended Audience :: Science/Research",
           "Natural Language :: English"
       ],
-      keywords='ML powergrid optmization RL power systems',
+      keywords='ML powergrid optmization RL power-systems',
       author='Benjamin DONNOT',
       author_email='benjamin.donnot@rte-france.com',
       url="https://github.com/rte-france/Grid2Op",

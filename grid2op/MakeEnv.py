@@ -30,8 +30,11 @@ from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWith
 from .Action import Action, TopologyAction
 from .Exceptions import *
 from .Observation import CompleteObservation, Observation
-from .Reward import FlatReward, Reward
+from .Reward import FlatReward, Reward, L2RPNReward
 from .GameRules import LegalAction, AllwaysLegal
+
+from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, L2RPN2019_Action
+from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
 
 CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "test_case14.json"))
@@ -237,13 +240,6 @@ def make(name_env="case14_fromfile", **kwargs):
                                defaultClassApp=Backend,
                                msg_error=msg_error)
 
-    ## type of action the Agent can perform
-    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action"
-    action_class = _get_default_aux("action_class", kwargs, defaultClass=TopologyAction,
-                                    defaultClassApp=Action,
-                                    msg_error=msg_error,
-                                    isclass=True)
-
     ## type of observation the agent will receive
     msg_error = "The type of observation of the environment (keyword \"observation_class\")"
     msg_error += " must be a subclass of grid2op.Observation"
@@ -251,14 +247,6 @@ def make(name_env="case14_fromfile", **kwargs):
                                          defaultClassApp=Observation,
                                          msg_error=msg_error,
                                          isclass=True)
-
-    ## type of reward the agent will receive
-    msg_error = "The type of observation of the environment (keyword \"reward_class\")"
-    msg_error += " must be a subclass of grid2op.Reward"
-    reward_class = _get_default_aux("reward_class", kwargs, defaultClass=FlatReward,
-                                    defaultClassApp=Reward,
-                                    msg_error=msg_error,
-                                    isclass=True)
 
     ## type of rules of the game (mimic the operationnal constraints)
     msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
@@ -268,19 +256,68 @@ def make(name_env="case14_fromfile", **kwargs):
                                     msg_error=msg_error,
                                     isclass=True)
 
+    ## type of rules of the game (mimic the operationnal constraints)
+    msg_error = "The path where the data is located (keyword \"chronics_path\") should be a string."
+    chronics_path = _get_default_aux("chronics_path", kwargs,
+                                     defaultClassApp=str, defaultinstance='',
+                                     msg_error=msg_error)
+
 
     # bulid the default parameters for each case file
     defaultinstance_chronics_kwargs = {}
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
+        if chronics_path == '':
+            chronics_path = CHRONICS_MLUTIEPISODE
 
-        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": CHRONICS_MLUTIEPISODE,
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
+        default_name_converter = NAMES_CHRONICS_TO_BACKEND
         data_feeding_default_class = ChronicsHandler
-    else:
-        raise UnknownEnv("Unknown Environment named \"{}\"".format(name_env))
+        default_action_class = TopologyAction
+        default_reward_class = FlatReward
+    elif name_env.lower() == "l2rpn_2019":
+        if chronics_path == '':
+            msg_error = "Default chronics (provided in this package) cannot be used with the environment "
+            msg_error += "\"l2rpn_2019\". Please set \"chronics_path\" argument with a dataset that can be use with "
+            msg_error += "the \"l2rpn_2019\" environment."
+            raise EnvError(msg_error)
+        default_grid_path = L2RPN2019_CASEFILE
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+                                           "gridvalueClass": ReadPypowNetData}
+        default_name_converter = L2RPN2019_DICT_NAMES
+        data_feeding_default_class = ChronicsHandler
+        default_action_class = TopologyAction
+        default_reward_class = L2RPNReward
+    elif name_env.lower() == "case5_example":
+        if chronics_path == '':
+            chronics_path = EXAMPLE_CHRONICSPATH
 
-        # extract powergrid dependant parameters
+        default_grid_path = EXAMPLE_CASEFILE
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+                                           "gridvalueClass": GridStateFromFileWithForecasts}
+        default_name_converter = {}
+        data_feeding_default_class = ChronicsHandler
+        default_action_class = TopologyAction
+        default_reward_class = L2RPNReward
+    else:
+        raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" (default), \"case5_example\" and \"l2rpn_2019\"".format(name_env))
+
+    # extract powergrid dependant parameters
+    ## type of reward the agent will receive
+    msg_error = "The type of observation of the environment (keyword \"reward_class\")"
+    msg_error += " must be a subclass of grid2op.Reward"
+    reward_class = _get_default_aux("reward_class", kwargs, defaultClass=default_reward_class,
+                                    defaultClassApp=Reward,
+                                    msg_error=msg_error,
+                                    isclass=True)
+
+    ## type of action the Agent can perform
+    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action"
+    action_class = _get_default_aux("action_class", kwargs, defaultClass=default_action_class,
+                                    defaultClassApp=Action,
+                                    msg_error=msg_error,
+                                    isclass=True)
 
     ## the powergrid path to use
     msg_error = "The path where the grid is located (keyword \"grid_path\") should be a string."
@@ -291,7 +328,7 @@ def make(name_env="case14_fromfile", **kwargs):
     ##
     msg_error = "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary."
     names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
-                                 defaultClassApp=dict, defaultinstance=NAMES_CHRONICS_TO_BACKEND,
+                                 defaultClassApp=dict, defaultinstance=default_name_converter,
                                  msg_error=msg_error)
 
     ## the chronics to use

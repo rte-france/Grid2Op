@@ -104,8 +104,8 @@ class PandaPowerBackend(Backend):
 
         self.thermal_limit_a = None
 
-        self._iref_slack = -1
-        self._id_bus_added = -1
+        self._iref_slack = None
+        self._id_bus_added = None
         self._fact_mult_gen = -1
         self._subs_to_table = None
         self._what_object_where = None
@@ -135,6 +135,8 @@ class PandaPowerBackend(Backend):
 
         """
 
+        # TODO read the name from the file if they are set...
+
         if path is None and filename is None:
             raise RuntimeError("You must provide at least one of path or file to laod a powergrid.")
         if path is None:
@@ -151,28 +153,33 @@ class PandaPowerBackend(Backend):
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
         bus_gen_added = None
         i_ref = None
-        pp.runpp(self._grid)
-        pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
-        ppc2pd = np.argsort(pd2ppc)  # ppc2pd[ppc_id] = pd_id
-        for i, el in enumerate(self._grid._ppc['gen'][:, 0]):
-            if int(el) not in self._grid._pd2ppc_lookups["bus"][self._grid.gen["bus"].values]:
-                if bus_gen_added is not None:
-                    raise RuntimeError("Impossible to recognize the powergrid")
-                bus_gen_added = ppc2pd[int(el)]
-                i_ref = i
+        self._iref_slack = None
+        self._id_bus_added = None
 
-        self._iref_slack = i_ref
-        self._id_bus_added = self._grid.gen.shape[0]
-        # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
-        pp.create_gen(self._grid, bus_gen_added,
-                      p_mw=self._grid._ppc['gen'][i_ref, 1],
-                      vm_pu=self._grid._ppc['gen'][i_ref, 5],
-                      min_p_mw=self._grid._ppc['gen'][i_ref, 9],
-                      max_p_mw=self._grid._ppc['gen'][i_ref, 8],
-                      max_q_mvar=self._grid._ppc['gen'][i_ref, 3],
-                      min_q_mvar=self._grid._ppc['gen'][i_ref, 4],
-                      slack=True,
-                      controllable=True)
+        pp.runpp(self._grid)
+        if np.all(~self._grid.gen["slack"]):
+            # there are not defined slack bus on the data, i need to hack it up a little bit
+            pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
+            ppc2pd = np.argsort(pd2ppc)  # ppc2pd[ppc_id] = pd_id
+            for i, el in enumerate(self._grid._ppc['gen'][:, 0]):
+                if int(el) not in self._grid._pd2ppc_lookups["bus"][self._grid.gen["bus"].values]:
+                    if bus_gen_added is not None:
+                        raise RuntimeError("Impossible to recognize the powergrid")
+                    bus_gen_added = ppc2pd[int(el)]
+                    i_ref = i
+
+            self._iref_slack = i_ref
+            self._id_bus_added = self._grid.gen.shape[0]
+            # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
+            pp.create_gen(self._grid, bus_gen_added,
+                          p_mw=self._grid._ppc['gen'][i_ref, 1],
+                          vm_pu=self._grid._ppc['gen'][i_ref, 5],
+                          min_p_mw=self._grid._ppc['gen'][i_ref, 9],
+                          max_p_mw=self._grid._ppc['gen'][i_ref, 8],
+                          max_q_mvar=self._grid._ppc['gen'][i_ref, 3],
+                          min_q_mvar=self._grid._ppc['gen'][i_ref, 4],
+                          slack=True,
+                          controllable=True)
 
         pp.runpp(self._grid)
         # this has the effect to divide by 2 the active power in the added generator, if this generator and the "slack bus"
@@ -341,12 +348,15 @@ class PandaPowerBackend(Backend):
                     # convert values back to pu
                     val /= self.prod_pu_to_kv # self._grid.bus["vn_kv"][self._grid.gen["bus"]].values
                     # try:
-                    if np.isfinite(val[self._id_bus_added]):
-                        # handling of the slack bus, where "2" generators are present.
-                        pass
-                        # self._grid._ppc['gen'][self._iref_slack, 5] = val[self._id_bus_added]
-                        # self._grid._ppc['gen'][-1, 5] = val[self._id_bus_added]
-                        self._grid["ext_grid"]["vm_pu"] = val[self._id_bus_added]
+                    if self._id_bus_added is not None:
+                        # in this case the slack bus where not modeled as an independant generator in the
+                        # original data
+                        if np.isfinite(val[self._id_bus_added]):
+                            # handling of the slack bus, where "2" generators are present.
+                            pass
+                            # self._grid._ppc['gen'][self._iref_slack, 5] = val[self._id_bus_added]
+                            # self._grid._ppc['gen'][-1, 5] = val[self._id_bus_added]
+                            self._grid["ext_grid"]["vm_pu"] = val[self._id_bus_added]
                     # ok_ind[self._id_bus_added] = False
                     # except:
                     #    pdb.set_trace()
@@ -592,10 +602,11 @@ class PandaPowerBackend(Backend):
         prod_p = 1. * self._grid.res_gen["p_mw"].values
         prod_q = 1. * self._grid.res_gen["q_mvar"].values
         prod_v = self._grid.res_gen["vm_pu"].values * self.prod_pu_to_kv
-        if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
+        if self._iref_slack is not None:
             # slack bus and added generator are on same bus. I need to add power of slack bus to this one.
-            prod_p[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 1]
-            prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
+            if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
+                prod_p[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 1]
+                prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
 
     def loads_info(self):

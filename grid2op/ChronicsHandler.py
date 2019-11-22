@@ -63,7 +63,6 @@ import pdb
 # TODO max_iter is not properly handled in the example of GridValue now
 # TODO add a class to sample "online" the data.
 
-
 class GridValue(ABC):
     """
     This is the base class for every kind of data for the _grid.
@@ -540,7 +539,7 @@ class GridStateFromFile(GridValue):
     def _assert_correct_second_stage(self, pandas_name, dict_convert, key, extra=""):
         for i, el in enumerate(pandas_name):
             if not el in dict_convert[key]:
-                raise ChronicsError("Element named {} is found in the chronics (position {}) is not found on the matching dictionnary \"names_chronics_to_backend\" for {} {} data".format(el, i, key, extra))
+                raise ChronicsError("Element named {} is found in the data (column {}) but it is not found on the powergrid for data of type \"{}\".\nData in files  are: {}\nConverter data are: {}".format(el, i+1, key, sorted(list(pandas_name)), sorted(list(dict_convert[key].keys()))))
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):

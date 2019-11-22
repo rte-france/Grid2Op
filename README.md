@@ -171,7 +171,12 @@ interesting part of this framework:
   or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
   be adapted (only minor changes, most of them to fit the shape of the data) 
   and a (D)DQN will be trained on this problem.
-  
+
+Try them out in your own browser without installing 
+anything with the help of mybinder: 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
+
+
 # Make the tests
 Some tests (unit test, non regression test etc.) are provided with this package. They are located at grid2op/tests.
 
