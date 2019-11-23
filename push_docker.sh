@@ -7,7 +7,7 @@ version=$1
 
 echo "Pushing grid2ip verion "$version
 #exit 1
-
+docker build -t bdonnot/grid2op:$version .
 docker push bdonnot/grid2op:$version
 docker push bdonnot/grid2op:latest
 
