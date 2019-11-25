@@ -1,0 +1,13 @@
+name: example-environment
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - keras
+  - pip:
+    - grid2op
+    - jyquickhelper
+    - numpy
+    - numba
+    - keras
