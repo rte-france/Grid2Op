@@ -6,7 +6,7 @@ Document will be made later on.
 import os
 import pkg_resources
 
-__version__ = "0.3.0"
+__version__ = '0.3.1'
 
 __all__ = ['Action', "BackendPandaPower", "Agent", "Backend", "ChronicsHandler", "Environment", "Exceptions",
            "Observation", "Parameters", "GameRules", "Reward", "Runner", "main"]
