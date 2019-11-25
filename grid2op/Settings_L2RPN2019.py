@@ -13,9 +13,12 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-from .ChronicsHandler import GridStateFromFileWithForecasts
-from .Action import Action, AmbiguousAction, IncorrectNumberOfElements
-
+try:
+    from .ChronicsHandler import GridStateFromFileWithForecasts
+    from .Action import Action, AmbiguousAction, IncorrectNumberOfElements
+except (ModuleNotFoundError, ImportError):
+    from ChronicsHandler import GridStateFromFileWithForecasts
+    from Action import Action, AmbiguousAction, IncorrectNumberOfElements
 
 # the reference powergrid was different than the default case14 of the litterature.
 L2RPN2019_CASEFILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
