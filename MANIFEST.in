@@ -1,0 +1,1 @@
+recursive-include grid2op/data/ *.bz2 *.json *.zip
