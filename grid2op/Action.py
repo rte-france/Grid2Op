@@ -58,7 +58,7 @@ except ImportError:
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
-
+# TODO add serialization of ActionSpace to json or yaml
 
 class Action(object):
     """
@@ -1399,7 +1399,7 @@ class Action(object):
         Parameters
         ----------
         _sentinel: ``None``
-            Used to prevent positional _parameters. Internal, do not use.
+            Used to prevent positional parameters. Internal, do not use.
 
         load_id: ``int``
             ID of the load we want to inspect
@@ -1411,7 +1411,7 @@ class Action(object):
             ID of the powerline we want to inspect
 
         substation_id: ``int``
-            ID of the powerline we want to inspect
+            ID of the substation we want to inspect
 
         Returns
         -------

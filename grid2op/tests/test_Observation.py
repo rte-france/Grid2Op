@@ -166,6 +166,85 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs_after = self.env.helper_observation(self.env)
         assert obs_orig == obs_after
 
+    def test_inspect_load(self):
+        obs = self.env.helper_observation(self.env)
+        dict_ = obs.state_of(load_id=0)
+        assert "p" in dict_
+        assert dict_["p"] == 18.8
+        assert "q" in dict_
+        assert dict_["q"] == 13.4
+        assert "v" in dict_
+        assert dict_["v"] == 141.075
+        assert "bus" in dict_
+        assert dict_["bus"] == 1
+        assert "sub_id" in dict_
+        assert dict_["sub_id"] == 1
+
+    def test_inspect_gen(self):
+        obs = self.env.helper_observation(self.env)
+        dict_ = obs.state_of(gen_id=0)
+        assert "p" in dict_
+        assert dict_["p"] == 0.0
+        assert "q" in dict_
+        assert dict_["q"] == 47.48313177017934
+        assert "v" in dict_
+        assert dict_["v"] == 141.075
+        assert "bus" in dict_
+        assert dict_["bus"] == 1
+        assert "sub_id" in dict_
+        assert dict_["sub_id"] == 1
+
+    def test_inspect_line(self):
+        obs = self.env.helper_observation(self.env)
+        dict_both = obs.state_of(line_id=0)
+        assert "origin" in dict_both
+        dict_ = dict_both["origin"]
+
+        assert "p" in dict_
+        assert dict_["p"] == 109.77536682689008
+        assert "q" in dict_
+        assert dict_["q"] == -8.7165023030358
+        assert "v" in dict_
+        assert dict_["v"] == 143.1
+        assert "bus" in dict_
+        assert dict_["bus"] == 1
+        assert "sub_id" in dict_
+        assert dict_["sub_id"] == 0
+
+        assert "extremity" in dict_both
+        dict_ = dict_both["extremity"]
+        assert "p" in dict_
+        assert dict_["p"] == -107.69115512018216
+        assert "q" in dict_
+        assert dict_["q"] == 9.230658220781127
+        assert "v" in dict_
+        assert dict_["v"] == 141.075
+        assert "bus" in dict_
+        assert dict_["bus"] == 1
+        assert "sub_id" in dict_
+        assert dict_["sub_id"] == 1
+
+    def test_inspect_topo(self):
+        obs = self.env.helper_observation(self.env)
+        dict_ = obs.state_of(substation_id=1)
+        assert "topo_vect" in dict_
+        assert np.all(dict_["topo_vect"] == [1, 1, 1, 1, 1, 1])
+        assert "nb_bus" in dict_
+        assert dict_["nb_bus"] == 1
+
+    def test_get_obj_connect_to(self):
+        dict_ = self.env.helper_observation.get_obj_connect_to(substation_id=1)
+        assert 'loads_id' in dict_
+        assert np.all(dict_['loads_id'] == 0)
+        assert 'generators_id' in dict_
+        assert np.all(dict_['generators_id'] == 0)
+        assert 'lines_or_id' in dict_
+        assert np.all(dict_['lines_or_id'] == [7, 8, 9])
+        assert 'lines_ex_id' in dict_
+        assert np.all(dict_['lines_ex_id'] == 0)
+        assert 'nb_elements' in dict_
+        assert dict_['nb_elements'] == 6
+
 
 if __name__ == "__main__":
     unittest.main()
