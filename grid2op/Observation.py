@@ -56,6 +56,10 @@ except (ModuleNotFoundError, ImportError):
 
 # TODO finish documentation
 
+# TODO add serialization of ObservationSpace to json or yaml
+
+# TODO catch warnings in simulate
+
 
 class ObsCH(object):
     """
@@ -428,6 +432,147 @@ class Observation(ABC):
 
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
+
+    def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
+        """
+        Return the state of this action on a give unique load, generator unit, powerline of substation.
+        Only one of load, gen, line or substation should be filled.
+
+        The querry of these objects can only be done by id here (ie by giving the integer of the object in the backed).
+        The :class:`HelperAction` has some utilities to access them by name too.
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Used to prevent positional _parameters. Internal, do not use.
+
+        load_id: ``int``
+            ID of the load we want to inspect
+
+        gen_id: ``int``
+            ID of the generator we want to inspect
+
+        line_id: ``int``
+            ID of the powerline we want to inspect
+
+        substation_id: ``int``
+            ID of the powerline we want to inspect
+
+        Returns
+        -------
+        res: :class:`dict`
+            A dictionnary with keys and value depending on which object needs to be inspected:
+
+            - if a load is inspected, then the keys are:
+
+                - "p" the active value consumed by the load
+                - "q" the reactive value consumed by the load
+                - "v" the voltage magnitude of the bus to which the load is connected
+                - "bus" on which bus the load is connected in the substation
+                - "sub_id" the id of the substation to which the load is connected
+
+            - if a generator is inspected, then the keys are:
+
+                - "p" the active value produced by the generator
+                - "q" the reactive value consumed by the generator
+                - "v" the voltage magnitude of the bus to which the generator is connected
+                - "bus" on which bus the generator is connected in the substation
+                - "sub_id" the id of the substation to which the generator is connected
+
+            - if a powerline is inspected then the keys are "origin" and "extremity" each being dictionnary with keys:
+
+                - "p" the active flow on line end (extremity or origin)
+                - "q" the reactive flow on line end (extremity or origin)
+                - "v" the voltage magnitude of the bus to which the line end (extremity or origin) is connected
+                - "bus" on which bus the line end (extremity or origin) is connected in the substation
+                - "sub_id" the id of the substation to which the generator is connected
+                - "a" the current flow on the line end (extremity or origin)
+
+            - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
+
+                - "topo_vect": the representation of which object is connected where
+                - "nb_bus": number of active buses in this substations
+
+        Raises
+        ------
+        Grid2OpException
+            If _sentinel is modified, or if None of the arguments are set or alternatively if 2 or more of the
+            _parameters are being set.
+
+        """
+        if _sentinel is not None:
+            raise Grid2OpException("action.effect_on should only be called with named argument.")
+
+        if load_id is None and gen_id is None and line_id is None and substation_id is None:
+            raise Grid2OpException("You ask the state of an object in a observation without specifying the object id. "
+                                   "Please provide \"load_id\", \"gen_id\", \"line_id\" or \"substation_id\"")
+
+        if load_id is not None:
+            if gen_id is not None or line_id is not None or substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if load_id >= len(self.load_p):
+                raise Grid2OpException("There are no load of id \"load_id={}\" in this grid.".format(load_id))
+
+            res = {"p": self.load_p[load_id],
+                   "q": self.load_q[load_id],
+                   "v": self.load_v[load_id],
+                   "bus": self.topo_vect[self._load_pos_topo_vect[load_id]],
+                   "sub_id": self._load_to_subid[load_id]
+                   }
+        elif gen_id is not None:
+            if line_id is not None or substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if gen_id >= len(self.prod_p):
+                raise Grid2OpException("There are no generator of id \"gen_id={}\" in this grid.".format(gen_id))
+
+            res = {"p": self.prod_p[gen_id],
+                   "q": self.prod_q[gen_id],
+                   "v": self.prod_v[gen_id],
+                   "bus": self.topo_vect[self._gen_pos_topo_vect[gen_id]],
+                   "sub_id": self._gen_to_subid[gen_id]
+                   }
+        elif line_id is not None:
+            if substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if line_id >= len(self.p_or):
+                raise Grid2OpException("There are no powerline of id \"line_id={}\" in this grid.".format(line_id))
+            res = {}
+
+            # origin information
+            res["origin"] = {
+                "p": self.p_or[line_id],
+                "q": self.q_or[line_id],
+                "v": self.v_or[line_id],
+                "a": self.a_or[line_id],
+                "bus": self.topo_vect[self._lines_or_pos_topo_vect[line_id]],
+                "sub_id": self._lines_or_to_subid[line_id]
+            }
+            # extremity information
+            res["extremity"] = {
+                "p": self.p_ex[line_id],
+                "q": self.q_ex[line_id],
+                "v": self.v_ex[line_id],
+                "a": self.a_ex[line_id],
+                "bus": self.topo_vect[self._lines_ex_pos_topo_vect[line_id]],
+                "sub_id": self._lines_ex_to_subid[line_id]
+            }
+        else:
+            if substation_id >= len(self.subs_info):
+                raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+
+            beg_ = int(np.sum(self.subs_info[:substation_id]))
+            end_ = int(beg_ + self.subs_info[substation_id])
+            topo_sub = self.topo_vect[beg_:end_]
+            if np.any(topo_sub > 0):
+                nb_bus = np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
+            else:
+                nb_bus = 0
+            res = {
+                "topo_vect": topo_sub,
+                "nb_bus": nb_bus
+                   }
+
+        return res
 
     def reset(self):
         """
@@ -1269,4 +1414,44 @@ class ObservationHelper:
         """
         res = copy.deepcopy(self.empty_obs)
         res.from_vect(obs)
+        return res
+
+    def get_obj_connect_to(self, _sentinel=None, substation_id=None):
+        """
+        Get all the object connected to a given substation:
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Used to prevent positional parameters. Internal, do not use.
+
+        substation_id: ``int``
+            ID of the substation we want to inspect
+
+        Returns
+        -------
+        res: ``dict`` with keys:
+
+          - "loads_id": a vector giving the id of the loads connected to this substation, empty if none
+          - "generators_id": a vector giving the id of the generators connected to this substation, empty if none
+          - "lines_or_id": a vector giving the id of the origin end of the powerlines connected to this substation,
+            empty if none
+          - "lines_ex_id": a vector giving the id of the extermity end of the powerlines connected to this
+            substation, empty if none.
+          - "nb_elements" : number of elements connected to this substation
+
+        """
+
+        if substation_id is None:
+            raise Grid2OpException("You ask the composition of a substation without specifying its id."
+                                   "Please provide \"substation_id\"")
+        if substation_id >= len(self.subs_info):
+            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+
+        res = {}
+        res["loads_id"] = np.where(self.load_to_subid == substation_id)[0]
+        res["generators_id"] = np.where(self.gen_to_subid == substation_id)[0]
+        res["lines_or_id"] = np.where(self.lines_or_to_subid == substation_id)[0]
+        res["lines_ex_id"] = np.where(self.lines_ex_to_subid == substation_id)[0]
+        res["nb_elements"] = self.subs_info[substation_id]
         return res

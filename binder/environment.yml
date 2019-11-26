@@ -1,4 +1,4 @@
-name: example-environment
+name: grid2op-environment
 channels:
   - conda-forge
 dependencies:

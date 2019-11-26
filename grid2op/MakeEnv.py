@@ -22,19 +22,35 @@ with a Grid2Op environment. An example of such modifications is exposed in the g
 import os
 import pkg_resources
 
-from .Environment import Environment
-from .Backend import Backend
-from .BackendPandaPower import PandaPowerBackend
-from .Parameters import Parameters
-from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
-from .Action import Action, TopologyAction
-from .Exceptions import *
-from .Observation import CompleteObservation, Observation
-from .Reward import FlatReward, Reward, L2RPNReward
-from .GameRules import LegalAction, AllwaysLegal
+try:
+    from .Environment import Environment
+    from .Backend import Backend
+    from .BackendPandaPower import PandaPowerBackend
+    from .Parameters import Parameters
+    from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
+    from .Action import Action, TopologyAction
+    from .Exceptions import *
+    from .Observation import CompleteObservation, Observation
+    from .Reward import FlatReward, Reward, L2RPNReward
+    from .GameRules import LegalAction, AllwaysLegal
 
-from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, L2RPN2019_Action
-from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+    from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, L2RPN2019_Action
+    from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+
+except (ModuleNotFoundError, ImportError):
+    from Environment import Environment
+    from Backend import Backend
+    from BackendPandaPower import PandaPowerBackend
+    from Parameters import Parameters
+    from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
+    from Action import Action, TopologyAction
+    from Exceptions import *
+    from Observation import CompleteObservation, Observation
+    from Reward import FlatReward, Reward, L2RPNReward
+    from GameRules import LegalAction, AllwaysLegal
+    from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, L2RPN2019_Action
+    from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+
 
 CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "test_case14.json"))

@@ -6,7 +6,7 @@ extras = {
 }
 
 setup(name='Grid2Op',
-      version='0.3.1',
+      version='0.3.3',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
       classifiers=[
@@ -26,9 +26,10 @@ setup(name='Grid2Op',
       url="https://github.com/rte-france/Grid2Op",
       license='MPL',
       packages=['grid2op'],
-      include_package_data=False,
-      package_data={"": ["./data/chronics/*", "./data/test_multi_chronics/1/*", "./data/test_multi_chronics/2/*",
-                         "./data/test_multi_chronics/chronics/*", "./data/test_PandaPower/*"]},
+      include_package_data=True,
+      # package_data={"": ["./data/chronics/*", "./data/test_multi_chronics/1/*", "./data/test_multi_chronics/2/*",
+      #                    "./data/test_multi_chronics/chronics/*", "./data/test_PandaPower/*",
+      #                    "data/chronics_5bus_example"]},
       install_requires=["numpy", "pandas", "pandapower"],
       extras_require=extras,
       zip_safe=False,
