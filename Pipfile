@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+sphinx = "*"
+sphinx-rtd-theme = "*"
+sphinxcontrib-trio = "*"
+chardet = "*"
+autopep8 = "*"
+pylint = "*"
+
+[packages]
+numpy = "*"
+pandas = "*"
+pandapower = "*"
+
+[requires]
+python_version = "3.7"
