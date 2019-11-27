@@ -19,6 +19,8 @@ numpy = "*"
 pandas = "*"
 pandapower = "*"
 numba = "*"
+seaborn = "*"
+plotly = "*"
 
 [requires]
 python_version = "3.7"
