@@ -11,3 +11,5 @@ dependencies:
     - numpy
     - numba
     - keras
+    - seaborn
+    - plotly

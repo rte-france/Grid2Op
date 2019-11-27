@@ -2,7 +2,7 @@
 import os
 import sys
 import unittest
-
+import json
 import numpy as np
 import pdb
 
@@ -48,6 +48,26 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                           lines_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
                                           lines_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
                                           game_rules=self.game_rules)
+
+        self.res = {'name_prod': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
+               'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
+                             'load_7', 'load_8', 'load_9', 'load_10'],
+               'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
+                             'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14', 'line_15',
+                             'line_16', 'line_17', 'line_18', 'line_19'],
+               'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+               'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
+               'gen_to_subid': [0, 1, 2, 5, 7],
+               'lines_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+               'lines_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+               'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1], 'gen_to_sub_pos': [2, 5, 3, 5, 1],
+               'lines_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+               'lines_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+               'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
+               'gen_pos_topo_vect': [2, 8, 12, 29, 34],
+               'lines_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
+               'lines_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
+               'actionClass': 'Action.Action'}
 
     def tearDown(self):
         pass
@@ -456,6 +476,57 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.sum(aff_subs) == 2
         assert aff_subs[id_1]
         assert aff_subs[id_2]
+
+    def test_to_dict(self):
+        dict_ = self.helper_action.to_dict()
+        assert dict_ == self.res
+
+    def test_from_dict(self):
+        res = HelperAction.from_dict(self.res )
+        assert np.all(res.name_prod == self.helper_action.name_prod)
+        assert np.all(res.name_load == self.helper_action.name_load)
+        assert np.all(res.name_line == self.helper_action.name_line)
+        assert np.all(res.subs_info == self.helper_action.subs_info)
+        assert np.all(res.load_to_subid == self.helper_action.load_to_subid)
+        assert np.all(res.gen_to_subid == self.helper_action.gen_to_subid)
+        assert np.all(res.lines_or_to_subid == self.helper_action.lines_or_to_subid)
+        assert np.all(res.lines_ex_to_subid == self.helper_action.lines_ex_to_subid)
+        assert np.all(res.load_to_sub_pos == self.helper_action.load_to_sub_pos)
+        assert np.all(res.gen_to_sub_pos == self.helper_action.gen_to_sub_pos)
+        assert np.all(res.lines_or_to_sub_pos == self.helper_action.lines_or_to_sub_pos)
+        assert np.all(res.lines_ex_to_sub_pos == self.helper_action.lines_ex_to_sub_pos)
+        assert np.all(res.load_pos_topo_vect == self.helper_action.load_pos_topo_vect)
+        assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
+        assert np.all(res.lines_or_pos_topo_vect == self.helper_action.lines_or_pos_topo_vect)
+        assert np.all(res.lines_ex_pos_topo_vect == self.helper_action.lines_ex_pos_topo_vect)
+        assert np.all(res.actionClass == self.helper_action.actionClass)
+
+    def test_json_serializable(self):
+        dict_ = self.helper_action.to_dict()
+        res = json.dumps(obj=dict_, indent=4, sort_keys=True)
+
+    def test_json_loadable(self):
+        dict_ = self.helper_action.to_dict()
+        tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
+        res = HelperAction.from_dict(json.loads(tmp))
+
+        assert np.all(res.name_prod == self.helper_action.name_prod)
+        assert np.all(res.name_load == self.helper_action.name_load)
+        assert np.all(res.name_line == self.helper_action.name_line)
+        assert np.all(res.subs_info == self.helper_action.subs_info)
+        assert np.all(res.load_to_subid == self.helper_action.load_to_subid)
+        assert np.all(res.gen_to_subid == self.helper_action.gen_to_subid)
+        assert np.all(res.lines_or_to_subid == self.helper_action.lines_or_to_subid)
+        assert np.all(res.lines_ex_to_subid == self.helper_action.lines_ex_to_subid)
+        assert np.all(res.load_to_sub_pos == self.helper_action.load_to_sub_pos)
+        assert np.all(res.gen_to_sub_pos == self.helper_action.gen_to_sub_pos)
+        assert np.all(res.lines_or_to_sub_pos == self.helper_action.lines_or_to_sub_pos)
+        assert np.all(res.lines_ex_to_sub_pos == self.helper_action.lines_ex_to_sub_pos)
+        assert np.all(res.load_pos_topo_vect == self.helper_action.load_pos_topo_vect)
+        assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
+        assert np.all(res.lines_or_pos_topo_vect == self.helper_action.lines_or_pos_topo_vect)
+        assert np.all(res.lines_ex_pos_topo_vect == self.helper_action.lines_ex_pos_topo_vect)
+        assert np.all(res.actionClass == self.helper_action.actionClass)
 
 
 if __name__ == "__main__":
