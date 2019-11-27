@@ -651,6 +651,7 @@ class Backend(ABC):
         This function is called when the environment is over.
         After calling this function, the backend might not behave properly, and in any case should not be used before
         another call to :func:`Backend.load_grid` is performed
+
         Returns
         -------
         ``None``
@@ -856,9 +857,6 @@ class Backend(ABC):
 
         For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
 
-        :param obs: the current observation in which the powerflow is done. This can be use for example in case of DLR implementation.
-        :type obs: Observation
-
         :return: An array saying if a powerline is overflow or not
         :rtype: np.array, dtype:bool
         """
@@ -869,12 +867,25 @@ class Backend(ABC):
     @abstractmethod
     def get_topo_vect(self):
         """
-        Get the topology vector from the _grid.
+        Get the topology vector from the :attr:`Backend._grid`.
         The topology vector defines, for each object, on which bus it is connected.
         It returns -1 if the object is not connected.
 
-        :return: An array saying to which bus the object is connected.
-        :rtype: np.array, dtype:bool
+        It is a vector with as much elements (productions, loads and lines extremity) as there are in the powergrid.
+
+        For each elements, it gives on which bus it is connected in its substation.
+
+        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
+        load of id 1 is connected to the second bus of its substation.
+
+        You can check which object of the powerlines is represented by each component of this vector by looking at the
+        `*_pos_topo_vect` (*eg.* :attr:`Backend.load_pos_topo_vect`) vectors. For each elements it gives its position
+        in this vector.
+
+        Returns
+        --------
+        res: `numpy.ndarray`
+            An array saying to which bus the object is connected.
         """
         pass
 

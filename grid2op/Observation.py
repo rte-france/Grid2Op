@@ -42,25 +42,21 @@ import pdb
 try:
     from .Exceptions import *
     from .Reward import ConstantReward, RewardHelper
+    from .utils import extract_from_dict, save_to_dict
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from Reward import ConstantReward, RewardHelper
+    from utils import extract_from_dict, save_to_dict
 
 # TODO be able to change reward here
-# TODO finish call to simulate, _grid ObsEnv should never see the right _grid
-# TODO Finish the action checking too
 
-# TODO code "convert for" to be able to change the backend
 # TODO refactor, Observation and Action, they are really close in their actual form, especially the Helpers, if
 # TODO that make sense.
+
 # TODO make an action with the difference between the observation that would be an action.
 # TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
 
 # TODO finish documentation
-
-# TODO add serialization of ObservationSpace to json or yaml
-
-# TODO catch warnings in simulate
 
 
 class ObsCH(object):
@@ -81,7 +77,7 @@ class ObsEnv(object):
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self, backend_instanciated, parameters, reward_helper, obsClass, action_helper):
-        self.timestep_overflow = None  # TODO
+        self.timestep_overflow = None
         # self.action_helper = action_helper
         self.hard_overflow_threshold = parameters.HARD_OVERFLOW_THRESHOLD
         self.nb_timestep_overflow_allowed = np.full(shape=(backend_instanciated.n_lines,),
@@ -772,7 +768,7 @@ class Observation(ABC):
 
         Returns
         -------
-        res: ``numpyp.ndarray``
+        res: ``numpy.ndarray``
             The respresentation of this action as a numpy array
 
         """
@@ -1007,10 +1003,50 @@ class CompleteObservation(Observation):
         self.rho = env.backend.get_relative_flow()
 
     def to_vect(self):
+        """
+        Representation of an :class:`CompleteObservation` into a flat floating point vector.
 
-        # TODO explain in which order the object are given.
+        Some conversion are done to the internal data representation to floating point. This may cause some data loss
+        and / or  corruption (eg. using :func:`Observation.to_vect` and then :func:`Observation.from_vect` does
+        not guarantee to be exactly the same object.
 
-        #TODO fix bug when action not initalized, return nan in this case
+        Note that the way and the order of the attributes returned by the method are class dependant. All instance
+        of :class:`CompleteObservation` will return the data in the same order. But if another Observation class is
+        used, no guarantee is given as to the order in which the data are serialized.
+
+        For a :class:`CompleteObservation` the unique representation as a vector is:
+
+            1. the year [1 element]
+            2. the month [1 element]
+            3. the day [1 element]
+            4. the day of the week. Monday = 0, Sunday = 6 [1 element]
+            5. the hour of the day [1 element]
+            6. minute of the hour  [1 element]
+            7. :attr:`Observation.prod_p` the active value of the productions [:attr:`Observation.n_gen` elements]
+            8. :attr:`Observation.prod_q` the reactive value of the productions [:attr:`Observation.n_gen` elements]
+            9. :attr:`Observation.prod_q` the voltage setpoint of the productions [:attr:`Observation.n_gen` elements]
+            10. :attr:`Observation.load_p` the active value of the loads [:attr:`Observation.n_load` elements]
+            11. :attr:`Observation.load_q` the reactive value of the loads [:attr:`Observation.n_load` elements]
+            12. :attr:`Observation.load_v` the voltage setpoint of the loads [:attr:`Observation.n_load` elements]
+            13. :attr:`Observation.p_or` active flow at origin of powerlines [:attr:`Observation.n_lines` elements]
+            14. :attr:`Observation.q_or` reactive flow at origin of powerlines [:attr:`Observation.n_lines` elements]
+            15. :attr:`Observation.v_or` voltage at origin of powerlines [:attr:`Observation.n_lines` elements]
+            16. :attr:`Observation.a_or` current flow at origin of powerlines [:attr:`Observation.n_lines` elements]
+            17. :attr:`Observation.p_ex` active flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
+            18. :attr:`Observation.q_ex` reactive flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
+            19. :attr:`Observation.v_ex` voltage at extremity of powerlines [:attr:`Observation.n_lines` elements]
+            20. :attr:`Observation.a_ex` current flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
+            21. :attr:`Observation.rho` line capacity used (current flow / thermal limit) [:attr:`Observation.n_lines` elements]
+            22. :attr:`Observation.line_status` line status [:attr:`Observation.n_lines` elements]
+            23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow (0 if the line is not on overflow)[:attr:`Observation.n_lines` elements]
+            24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element it gives its bus]. See :func:`grid2op.Backend.get_topo_vect` for more information.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The vector representing the topology (see above)
+        """
+        #TODO fix "bug" when action not initalized, return nan in this case
         if self.vectorized is None:
             self.vectorized = np.concatenate((
                 (self.year, ),
@@ -1241,31 +1277,6 @@ class CompleteObservation(Observation):
         :return: the size of the flatten observation vector.
         """
         return 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_lines + 3*self.n_lines + self.dim_topo
-
-
-def extract_from_dict(dict_, key, converter):
-    if not key in dict_:
-        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
-    try:
-        res = converter(dict_[key])
-    except:
-        raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
-    return res
-
-
-def save_to_dict(res_dict, me, key, converter):
-    if not key in me.__dict__:
-        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
-    try:
-        res = converter(me.__dict__[key])
-    except:
-        raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
-
-    if key in res_dict:
-        msg_err_ = "Key \"{}\" is already present in the result dictionnary. This would override it" \
-                   " and is not supported."
-        raise Grid2OpException(msg_err_.format(key))
-    res_dict[key] = res
 
 
 class SerializableObservationSpace:

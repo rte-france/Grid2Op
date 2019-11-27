@@ -488,6 +488,14 @@ class Runner(object):
                 os.mkdir(path_save)
                 logger.info("Creating path \"{}\" to save the runner".format(path_save))
 
+            if not os.path.exists(os.path.join(path_save, "dict_action_space.json")):
+                dict_action_space = env.action_space.to_dict()
+                with open(os.path.join(path_save, "dict_action_space.json"), "w", encoding='utf8') as f:
+                    json.dump(obj=dict_action_space, fp=f, indent=4, sort_keys=True)
+                dict_observation_space = env.observation_space.to_dict()
+                with open(os.path.join(path_save, "dict_observation_space.json"), "w", encoding='utf8') as f:
+                    json.dump(obj=dict_observation_space, fp=f, indent=4, sort_keys=True)
+
             this_path = os.path.join(path_save, "{}".format(os.path.split(env.chronics_handler.get_id())[-1]))
             if not os.path.exists(this_path):
                 os.mkdir(this_path)
