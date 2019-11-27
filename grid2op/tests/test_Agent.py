@@ -130,13 +130,13 @@ class TestAgent(unittest.TestCase):
         agent = PowerLineSwitch(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-        assert np.abs(cum_reward - 619.994755) <= self.tol_one, "The reward has not been properly computed"
+        assert np.abs(cum_reward - 619.9950) <= self.tol_one, "The reward has not been properly computed"
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for greedy agent"
-        assert np.abs(cum_reward - 619.996155) <= self.tol_one, "The reward has not been properly computed"
+        assert np.abs(cum_reward - 619.999011) <= self.tol_one, "The reward has not been properly computed"
 
 
 if __name__ == "__main__":

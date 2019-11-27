@@ -4,6 +4,7 @@ Observation
 .. include:: global.rst
 
 .. automodule:: grid2op.Observation
-   :members:
+    :members:
+    :special-members:
 
 .. include:: final.rst
