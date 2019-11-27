@@ -193,115 +193,6 @@ class Backend(ABC):
         # thermal limit setting, in ampere, at the same "side" of the powerline than self.get_line_overflow
         self.thermal_limit_a = None
 
-    def get_lines_id(self, _sentinel=None, from_=None, to_=None):
-        """
-        Returns the list of all the powerlines id in the backend going from "from_" to "to_"
-
-        Parameters
-        ----------
-        _sentinel: ``None``
-            Internal, do not use
-
-        from_: ``int``
-            Id the substation to which the origin end of the powerline to look for should be connected to
-
-        to_: ``int``
-            Id the substation to which the extremity end of the powerline to look for should be connected to
-
-        Returns
-        -------
-        res: ``list``
-            Id of the powerline looked for.
-
-        Raises
-        ------
-        :class:`grid2op.Exceptions.BackendError` if no match is found.
-
-        """
-        res = []
-        if from_ is None:
-            raise BackendError("Backend.get_lines_id: impossible to look for a powerline with no origin substation. Please modify \"from_\" parameter")
-        if to_ is None:
-            raise BackendError("Backend.get_lines_id: impossible to look for a powerline with no extremity substation. Please modify \"to_\" parameter")
-
-        for i, (ori, ext) in enumerate(zip(self.lines_or_to_subid, self.lines_ex_to_subid)):
-            if ori == from_ and ext == to_:
-                res.append(i)
-
-        if res is []:
-            raise BackendError("Backend.get_line_id: impossible to find a powerline with connected at origin at {} and extremity at {}".format(from_, to_))
-
-        return res
-
-    def get_generators_id(self, sub_id):
-        """
-        Returns the list of all generators id in the backend connected to the substation sub_id
-
-        Parameters
-        ----------
-        sub_id: ``int``
-            The substation to which we look for the generator
-
-        Returns
-        -------
-        res: ``list``
-            Id of the generator id looked for.
-
-        Raises
-        ------
-        :class:`grid2op.Exceptions.BackendError` if no match is found.
-
-
-        """
-        res = []
-        if sub_id is None:
-            raise BackendError(
-                "Backend.get_generators_id: impossible to look for a generator not connected to any substation. Please modify \"sub_id\" parameter")
-
-        for i, s_id_gen in enumerate(self.gen_to_subid):
-            if s_id_gen == sub_id:
-                res.append(i)
-
-        if res is []:
-            raise BackendError(
-                "Backend.get_generators_id: impossible to find a generator connected at substation {}".format(sub_id))
-
-        return res
-
-    def get_loads_id(self, sub_id):
-        """
-        Returns the list of all generators id in the backend connected to the substation sub_id
-
-        Parameters
-        ----------
-        sub_id: ``int``
-            The substation to which we look for the generator
-
-        Returns
-        -------
-        res: ``list``
-            Id of the generator id looked for.
-
-        Raises
-        ------
-        :class:`grid2op.Exceptions.BackendError` if no match found.
-
-        """
-        res = []
-        if sub_id is None:
-            raise BackendError(
-                "Backend.get_loads_id: impossible to look for a load not connected to any substation. Please modify \"sub_id\" parameter")
-
-        for i, s_id_gen in enumerate(self.load_to_subid):
-            if s_id_gen == sub_id:
-                res.append(i)
-
-        if res is []:
-            raise BackendError(
-                "Backend.get_loads_id: impossible to find a load connected at substation {}".format(sub_id))
-
-        return res
-
     def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
         """
         Return the proper "_pos_big_topo" vector given "to_subid" vector and "to_sub_pos" vectors.
@@ -651,6 +542,7 @@ class Backend(ABC):
         This function is called when the environment is over.
         After calling this function, the backend might not behave properly, and in any case should not be used before
         another call to :func:`Backend.load_grid` is performed
+
         Returns
         -------
         ``None``
@@ -856,9 +748,6 @@ class Backend(ABC):
 
         For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
 
-        :param obs: the current observation in which the powerflow is done. This can be use for example in case of DLR implementation.
-        :type obs: Observation
-
         :return: An array saying if a powerline is overflow or not
         :rtype: np.array, dtype:bool
         """
@@ -869,12 +758,25 @@ class Backend(ABC):
     @abstractmethod
     def get_topo_vect(self):
         """
-        Get the topology vector from the _grid.
+        Get the topology vector from the :attr:`Backend._grid`.
         The topology vector defines, for each object, on which bus it is connected.
         It returns -1 if the object is not connected.
 
-        :return: An array saying to which bus the object is connected.
-        :rtype: np.array, dtype:bool
+        It is a vector with as much elements (productions, loads and lines extremity) as there are in the powergrid.
+
+        For each elements, it gives on which bus it is connected in its substation.
+
+        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
+        load of id 1 is connected to the second bus of its substation.
+
+        You can check which object of the powerlines is represented by each component of this vector by looking at the
+        `*_pos_topo_vect` (*eg.* :attr:`Backend.load_pos_topo_vect`) vectors. For each elements it gives its position
+        in this vector.
+
+        Returns
+        --------
+        res: `numpy.ndarray`
+            An array saying to which bus the object is connected.
         """
         pass
 

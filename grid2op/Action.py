@@ -39,15 +39,18 @@ powergrid through a call to :func:`Action.__call__`
 import numpy as np
 import warnings
 import copy
+import re
+import os
+import json
 
 import pdb
 
 try:
     from .Exceptions import *
-except ModuleNotFoundError:
+    from ._utils import extract_from_dict, save_to_dict
+except (ModuleNotFoundError, ImportError):
     from Exceptions import *
-except ImportError:
-    from Exceptions import *
+    from _utils import extract_from_dict, save_to_dict
 
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
@@ -59,6 +62,7 @@ except ImportError:
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
 # TODO add serialization of ActionSpace to json or yaml
+
 
 class Action(object):
     """
@@ -1873,20 +1877,12 @@ class PowerLineSet(Action):
         return self
 
 
-# TODO have something that output a dict like "i want to change this element", with its name accessible here
-class HelperAction:
+class SerializableActionSpace:
     """
-    :class:`HelperAction` should be instanciated by an :class:`Environment` with its _parameters coming from a properly
-    set up :class:`Backend` (ie a Backend instance with a loaded powergrid. See :func:`grid2op.Backend.load_grid` for
-    more information).
+    This class allows to serialize / de serialize the action space.
 
-    It will allow, thanks to its :func:`HelperAction.__call__` method to create valid :class:`Action`. It is the
-    preferred way to create object of class :class:`Action` in this package.
-
-    On the contrary to the :class:`Action`, it is NOT recommended to overload this helper. If more flexibility is
-    needed on the type of :class:`Action` created, it is recommended to pass a different "*actionClass*" argument
-    when it's built. Note that it's mandatory that the class used in the "*actionClass*" argument derived from the
-    :class:`Action`.
+    It should not be used inside an Environment, as some functions of the action might not be compatible with
+    the serialization, especially the checking of whether or not an Action is legal or not.
 
     Attributes
     ----------
@@ -1962,31 +1958,15 @@ class HelperAction:
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
         action (see :func:`Action.size`) or to sample a new Action (see :func:`Action.sample`)
 
-    game_rules: :class:`grid2op.GameRules.GameRules`
-        Class specifying the rules of the game, used to check the legality of the actions.
-
     n: ``int``
         Size of the action space
+
     """
     def __init__(self, name_prod, name_load, name_line, subs_info,
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
-                 game_rules, actionClass=Action):
-        """
-        All _parameters (name_prod, name_load, name_line, subs_info, etc.) are used to fill the attributes having the
-        same name. See :class:`HelperAction` for more information.
-
-        Parameters
-        ----------
-        actionClass: ``type``
-            Note that this parameter expected a class, and not an object of the class. It is used to return the
-            appropriate action type.
-
-        game_rules: :class:`grid2op.GameRules.GameRules`
-            Class specifying the rules of the game, used to check the legality of the actions.
-
-        """
+                 actionClass=Action):
 
         self.name_prod = name_prod
         self.name_load = name_load
@@ -2030,65 +2010,133 @@ class HelperAction:
                                gen_pos_topo_vect=self.gen_pos_topo_vect,
                                lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
                                lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
-
-        self.legal_action = game_rules.legal_action
-
         self.n = self.template_act.size()
 
-    def __call__(self, dict_=None, check_legal=False, env=None):
+    @staticmethod
+    def from_dict(dict_):
         """
-        This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
-        dictionnary.
-
-        More information about this dictionnary can be found in the :func:`Action.__call__` help. This dictionnary
-        is not changed in this method.
+        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
 
         Parameters
         ----------
-        dict_ : :class:`dict`
-            see :func:`Action.__call__` documentation for an extensive help about this parameter
-
-        check_legal: :class:`bool`
-            is there a test performed on the legality of the action. **NB** When an object of class :class:`Action` is
-            used, it is automatically tested for ambiguity. If this parameter is set to ``True`` then a legality test
-            is performed. An action can be illegal if the environment doesn't allow it, for example if an agent tries
-            to reconnect a powerline during a maintenance.
-
-        env: :class:`grid2op.Environment`, optional
-            An environment used to perform a legality check.
+        dict_: ``dict``
+            Representation of an Observation Space (aka ObservartionHelper) as a dictionnary.
 
         Returns
         -------
-        res: :class:`Action`
-            Properly instanciated.
+        res: :class:``SerializableObservationSpace``
+            An instance of an observationHelper matching the dictionnary.
 
         """
 
-        res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
-        # update the action
-        res.update(dict_)
-        if check_legal:
-            if not self._is_legal(res, env):
-                raise IllegalAction("Impossible to perform action {}".format(res))
+        if isinstance(dict_, str):
+            path = dict_
+            if not os.path.exists(path):
+                raise Grid2OpException("Unable to find the file \"{}\" to load the ObservationSpace".format(path))
+            with open(path, "r", encoding="utf-8") as f:
+                dict_ = json.load(fp=f)
+
+        name_prod = extract_from_dict(dict_, "name_prod", lambda x: np.array(x).astype(str))
+        name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
+        name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
+
+        subs_info = extract_from_dict(dict_, "subs_info", lambda x: np.array(x).astype(np.int))
+        load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
+        gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
+        lines_or_to_subid = extract_from_dict(dict_, "lines_or_to_subid", lambda x: np.array(x).astype(np.int))
+        lines_ex_to_subid = extract_from_dict(dict_, "lines_ex_to_subid", lambda x: np.array(x).astype(np.int))
+
+        load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        lines_or_to_sub_pos = extract_from_dict(dict_, "lines_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        lines_ex_to_sub_pos = extract_from_dict(dict_, "lines_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
+
+        load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        lines_or_pos_topo_vect = extract_from_dict(dict_, "lines_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        lines_ex_pos_topo_vect = extract_from_dict(dict_, "lines_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+
+        actionClass_str = extract_from_dict(dict_, "actionClass", str)
+        actionClass_li = actionClass_str.split('.')
+
+        if actionClass_li[-1] in globals():
+            actionClass = globals()[actionClass_li[-1]]
+        else:
+            # TODO make something better and recursive here, refactor with Observation too!
+            try:
+                actionClass = eval(actionClass_str)
+            except NameError:
+                if len(actionClass_li) > 1:
+                    try:
+                        actionClass = eval(".".join(actionClass_li[1:]))
+                    except:
+                        msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 1). Try \"from {} import {}\""
+                        raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
+                else:
+                    msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 2). Try \"from {} import {}\""
+                    raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
+            except AttributeError:
+                try:
+                    actionClass = eval(actionClass_li[-1])
+                except:
+                    if len(actionClass_li) > 1:
+                        msg_err_ = "Impossible to find the class named \"{}\" to load back the action space (ERROR 3)" \
+                                   "(module is found but not the class in it) Please import it via \"from {} import {}\"."
+                        msg_err_ = msg_err_.format(actionClass_str,
+                                                   ".".join(actionClass_li[:-1]),
+                                                   actionClass_li[-1])
+                    else:
+                        msg_err_ = "Impossible to import the class named \"{}\" to load back the action space (ERROR 4) (the " \
+                                   "module is found but not the class in it)"
+                        msg_err_ = msg_err_.format(actionClass_str)
+                    raise Grid2OpException(msg_err_)
+
+        res = SerializableActionSpace(name_prod, name_load, name_line, subs_info,
+                                      load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                                      load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                                      load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect,
+                                      lines_ex_pos_topo_vect,
+                                      actionClass=actionClass)
+        return res
+
+    def to_dict(self):
+        """
+        Serialize this object as a dictionnary.
+
+        Returns
+        -------
+        res: ``dict``
+            A dictionnary representing this object content. It can be loaded back with
+             :func:`SerializableObservationSpace.from_dict`
+        """
+        res = {}
+        save_to_dict(res, self, "name_prod", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "subs_info", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_or_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_ex_to_subid", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_or_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_ex_to_sub_pos", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_or_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_ex_pos_topo_vect", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "actionClass", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
 
         return res
 
     def sample(self):
         """
         A utility used to sample action.
+
         Returns
         -------
         res: :class:`Action`
@@ -2110,25 +2158,6 @@ class HelperAction:
                                lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
         res.sample()
         return res
-
-    def _is_legal(self, action, env):
-        """
-
-        Parameters
-        ----------
-        action
-        env
-
-        Returns
-        -------
-        res: ``bool``
-            ``True`` if the action is legal, ie is allowed to be performed by the rules of the game. ``False``
-            otherwise.
-        """
-        if env is None:
-            warnings.warn("Cannot performed legality check because no environment is provided.")
-            return True
-        return self.legal_action(action, env)
 
     def change_bus(self, name_element, extremity=None, substation=None, type_element=None, previous_action=None):
         """
@@ -2403,3 +2432,123 @@ class HelperAction:
         res = copy.deepcopy(self.template_act)
         res.from_vect(act)
         return res
+
+
+# TODO have something that output a dict like "i want to change this element", with its name accessible here
+class HelperAction(SerializableActionSpace):
+    """
+    :class:`HelperAction` should be instanciated by an :class:`Environment` with its _parameters coming from a properly
+    set up :class:`Backend` (ie a Backend instance with a loaded powergrid. See :func:`grid2op.Backend.load_grid` for
+    more information).
+
+    It will allow, thanks to its :func:`HelperAction.__call__` method to create valid :class:`Action`. It is the
+    preferred way to create object of class :class:`Action` in this package.
+
+    On the contrary to the :class:`Action`, it is NOT recommended to overload this helper. If more flexibility is
+    needed on the type of :class:`Action` created, it is recommended to pass a different "*actionClass*" argument
+    when it's built. Note that it's mandatory that the class used in the "*actionClass*" argument derived from the
+    :class:`Action`.
+
+    Attributes
+    ----------
+    game_rules: :class:`grid2op.GameRules.GameRules`
+        Class specifying the rules of the game, used to check the legality of the actions.
+
+
+    """
+    def __init__(self, name_prod, name_load, name_line, subs_info,
+                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                 game_rules, actionClass=Action):
+        """
+        All parameters (name_prod, name_load, name_line, subs_info, etc.) are used to fill the attributes having the
+        same name. See :class:`HelperAction` for more information.
+
+        Parameters
+        ----------
+        actionClass: ``type``
+            Note that this parameter expected a class, and not an object of the class. It is used to return the
+            appropriate action type.
+
+        game_rules: :class:`grid2op.GameRules.GameRules`
+            Class specifying the rules of the game, used to check the legality of the actions.
+
+        """
+        SerializableActionSpace.__init__(self, name_prod, name_load, name_line, subs_info,
+                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                                         actionClass=actionClass
+                                         )
+        self.legal_action = game_rules.legal_action
+
+    def __call__(self, dict_=None, check_legal=False, env=None):
+        """
+        This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
+        dictionnary.
+
+        More information about this dictionnary can be found in the :func:`Action.__call__` help. This dictionnary
+        is not changed in this method.
+
+        Parameters
+        ----------
+        dict_ : :class:`dict`
+            see :func:`Action.__call__` documentation for an extensive help about this parameter
+
+        check_legal: :class:`bool`
+            is there a test performed on the legality of the action. **NB** When an object of class :class:`Action` is
+            used, it is automatically tested for ambiguity. If this parameter is set to ``True`` then a legality test
+            is performed. An action can be illegal if the environment doesn't allow it, for example if an agent tries
+            to reconnect a powerline during a maintenance.
+
+        env: :class:`grid2op.Environment`, optional
+            An environment used to perform a legality check.
+
+        Returns
+        -------
+        res: :class:`Action`
+            Properly instanciated.
+
+        """
+
+        res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
+                               subs_info=self.subs_info, dim_topo=self.dim_topo,
+                               load_to_subid=self.load_to_subid,
+                               gen_to_subid=self.gen_to_subid,
+                               lines_or_to_subid=self.lines_or_to_subid,
+                               lines_ex_to_subid=self.lines_ex_to_subid,
+                               load_to_sub_pos=self.load_to_sub_pos,
+                               gen_to_sub_pos=self.gen_to_sub_pos,
+                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
+                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                               load_pos_topo_vect=self.load_pos_topo_vect,
+                               gen_pos_topo_vect=self.gen_pos_topo_vect,
+                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
+                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+        # update the action
+        res.update(dict_)
+        if check_legal:
+            if not self._is_legal(res, env):
+                raise IllegalAction("Impossible to perform action {}".format(res))
+
+        return res
+
+    def _is_legal(self, action, env):
+        """
+
+        Parameters
+        ----------
+        action
+        env
+
+        Returns
+        -------
+        res: ``bool``
+            ``True`` if the action is legal, ie is allowed to be performed by the rules of the game. ``False``
+            otherwise.
+        """
+        if env is None:
+            warnings.warn("Cannot performed legality check because no environment is provided.")
+            return True
+        return self.legal_action(action, env)

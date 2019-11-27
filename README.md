@@ -171,6 +171,10 @@ interesting part of this framework:
   or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
   be adapted (only minor changes, most of them to fit the shape of the data) 
   and a (D)DQN will be trained on this problem.
+* [4_StudyYourAgent](getting_started/4_StudyYourAgent.ipynb) shows how to study an Agent, for example
+  the methods to reload a saved experiment, or to plot the powergrid given an observation for
+  example. This is an introductory notebook. More user friendly graphical interface should
+  come soon.
 
 Try them out in your own browser without installing 
 anything with the help of mybinder: 
