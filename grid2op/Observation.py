@@ -32,6 +32,8 @@ or other methods to build a power grid based on the forecasts of injections.
 
 import copy
 import numpy as np
+import re
+import warnings
 
 from abc import ABC, abstractmethod
 
@@ -80,7 +82,7 @@ class ObsEnv(object):
     """
     def __init__(self, backend_instanciated, parameters, reward_helper, obsClass, action_helper):
         self.timestep_overflow = None  # TODO
-        self.action_helper = action_helper
+        # self.action_helper = action_helper
         self.hard_overflow_threshold = parameters.HARD_OVERFLOW_THRESHOLD
         self.nb_timestep_overflow_allowed = np.full(shape=(backend_instanciated.n_lines,),
                                                     fill_value=parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
@@ -178,9 +180,10 @@ class ObsEnv(object):
 
         self.backend.apply_action(action)
         try:
-            disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
-            self.current_obs = self.obsClass(self.parameters,
-                                             self.backend.n_generators, self.backend.n_loads, self.backend.n_lines,
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+                disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
+            self.current_obs = self.obsClass(self.backend.n_generators, self.backend.n_loads, self.backend.n_lines,
                                              self.backend.subs_elements, self.dim_topo,
                                              self.backend.load_to_subid, self.backend.gen_to_subid,
                                              self.backend.lines_or_to_subid, self.backend.lines_ex_to_subid,
@@ -192,7 +195,7 @@ class ObsEnv(object):
                                              self.backend.lines_ex_pos_topo_vect,
                                              seed=None,
                                              obs_env=None,
-                                             action_helper=self.action_helper)
+                                             action_helper=None)
             self.current_obs.update(self)
             has_error = False
 
@@ -345,26 +348,16 @@ class Observation(ABC):
         :func:`to_vect` for more information.
 
     """
-    def __init__(self, parameters,
+    def __init__(self,
                  n_gen, n_load, n_lines, subs_info, dim_topo,
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
-                 obs_env, action_helper,
+                 obs_env=None, action_helper=None,
                  seed=None):
-
-        self._parameters = parameters
         self.action_helper = action_helper
 
-        # time stamp information
-        self.year = None
-        self.month = None
-        self.day = None
-        self.hour_of_day = None
-        self.minute_of_hour = None
-        self.day_of_week = None
-
-        # powergrid information
+        # powergrid static information
         self.n_gen = n_gen
         self.n_load = n_load
         self.n_lines = n_lines
@@ -386,6 +379,14 @@ class Observation(ABC):
         self._gen_pos_topo_vect = gen_pos_topo_vect
         self._lines_or_pos_topo_vect = lines_or_pos_topo_vect
         self._lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
+
+        # time stamp information
+        self.year = None
+        self.month = None
+        self.day = None
+        self.hour_of_day = None
+        self.minute_of_hour = None
+        self.day_of_week = None
 
         # for non deterministic observation that would not use default np.random module
         self.seed = seed
@@ -444,7 +445,7 @@ class Observation(ABC):
         Parameters
         ----------
         _sentinel: ``None``
-            Used to prevent positional _parameters. Internal, do not use.
+            Used to prevent positional parameters. Internal, do not use.
 
         load_id: ``int``
             ID of the load we want to inspect
@@ -497,7 +498,7 @@ class Observation(ABC):
         ------
         Grid2OpException
             If _sentinel is modified, or if None of the arguments are set or alternatively if 2 or more of the
-            _parameters are being set.
+            parameters are being set.
 
         """
         if _sentinel is not None:
@@ -891,6 +892,10 @@ class Observation(ABC):
                 contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 
         """
+        if self.action_helper is None or self._obs_env is None:
+            raise NoForecastAvailable("No forecasts are available for this instance of Observation (no action_space "
+                                      "and no simulated environment are set).")
+
         if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
 
@@ -938,18 +943,18 @@ class CompleteObservation(Observation):
         :func:`CompleteObservation.to_dict` for a description of this dictionnary.
 
     """
-    def __init__(self, parameters, n_gen, n_load, n_lines, subs_info, dim_topo,
+    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
                  obs_env,action_helper,
                  seed=None):
 
-        Observation.__init__(self, parameters, n_gen, n_load, n_lines, subs_info, dim_topo,
+        Observation.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
-                             obs_env=obs_env,action_helper=action_helper,
+                             obs_env=obs_env, action_helper=action_helper,
                              seed=seed)
         self.dictionnarized = None
 
@@ -1238,9 +1243,100 @@ class CompleteObservation(Observation):
         return 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_lines + 3*self.n_lines + self.dim_topo
 
 
-class ObservationHelper:
+def extract_from_dict(dict_, key, converter):
+    if not key in dict_:
+        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
+    try:
+        res = converter(dict_[key])
+    except:
+        raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
+    return res
+
+
+def save_to_dict(res_dict, me, key, converter):
+    if not key in me.__dict__:
+        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
+    try:
+        res = converter(me.__dict__[key])
+    except:
+        raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
+
+    if key in res_dict:
+        msg_err_ = "Key \"{}\" is already present in the result dictionnary. This would override it" \
+                   " and is not supported."
+        raise Grid2OpException(msg_err_.format(key))
+    res_dict[key] = res
+
+
+class SerializableObservationSpace:
     """
-    Helper that provides usefull functions to manipulate :class:`Observation`.
+    This class allows to serialize / de serialize the observation space.
+
+    It should not be used inside an Environment, as some functions of the Observation might not be compatible with
+    the serialization, for example the "forecast" method.
+
+    Attributes
+    ----------
+    n_lines: :class:`int`
+        number of powerline in the _grid
+
+    n_gen: :class:`int`
+        number of generators in the _grid
+
+    n_load: :class:`int`
+        number of loads in the powergrid
+
+    subs_info: :class:`numpy.array`, dtype:int
+        for each substation, gives the number of elements connected to it
+
+    load_to_subid: :class:`numpy.array`, dtype:int
+        for each load, gives the id the substation to which it is connected
+
+    gen_to_subid: :class:`numpy.array`, dtype:int
+        for each generator, gives the id the substation to which it is connected
+
+    lines_or_to_subid: :class:`numpy.array`, dtype:int
+        for each lines, gives the id the substation to which its "origin" end is connected
+
+    lines_ex_to_subid: :class:`numpy.array`, dtype:int
+        for each lines, gives the id the substation to which its "extremity" end is connected
+
+    load_to_sub_pos: :class:`numpy.array`, dtype:int
+        The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
+        :attr:`Backend.subs_info`\[i\]. For a given load of id *l*, :attr:`Backend._load_to_sub_pos`\[l\] is the index
+        of the load *l* in the vector *sub_topo_vect*. This means that, if
+        *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
+        then load of id *l* is connected to the second bus of the substation.
+
+    gen_to_sub_pos: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend._load_to_sub_pos` but for generators.
+
+    lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend._load_to_sub_pos`  but for "origin" end of powerlines.
+
+    lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend._load_to_sub_pos` but for "extremity" end of powerlines.
+
+    load_pos_topo_vect: :class:`numpy.array`, dtype:int
+        It has a similar role as :attr:`Backend._load_to_sub_pos` but it gives the position in the vector representing
+        the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
+        *full_topo_vect* resulting of the concatenation of the topology vector for each substation
+        (see :attr:`Backend._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
+        :attr:`Backend._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
+        More formally, if *_topo_vect\[ backend._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
+        second bus of the substation.
+
+    gen_pos_topo_vect: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend._load_pos_topo_vect` but for generators.
+
+    lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend._load_pos_topo_vect` but for "origin" end of powerlines.
+
+    lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend._load_pos_topo_vect` but for "extremity" end of powerlines.
+
+    observationClass: ``type``
+        Class used to build the observations. It defaults to :class:`CompleteObservation`
 
     """
     def __init__(self,
@@ -1248,51 +1344,7 @@ class ObservationHelper:
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
-                 env,
-                 rewardClass=None,
                  observationClass=CompleteObservation):
-        """
-        Env: requires :attr:`grid2op.Environment._parameters` and :attr:`grid2op.Environment.backend`
-
-        Parameters
-        ----------
-        _parameters
-        n_gen
-        n_load
-        n_lines
-        subs_info
-        load_to_subid
-        gen_to_subid
-        lines_or_to_subid
-        lines_ex_to_subid
-        load_to_sub_pos
-        gen_to_sub_pos
-        lines_or_to_sub_pos
-        lines_ex_to_sub_pos
-        load_pos_topo_vect
-        gen_pos_topo_vect
-        lines_or_pos_topo_vect
-        lines_ex_pos_topo_vect
-        env
-        rewardClass
-        observationClass
-        """
-
-        # TODO DOCUMENTATION !!!
-
-        # print("ObservationHelper init with rewardClass: {}".format(rewardClass))
-        self.parameters = copy.deepcopy(env.parameters)
-        # for the observation, I switch betwween the _parameters for the environment and for the simulation
-        self.parameters.ENV_DC = self.parameters.FORECAST_DC
-
-        if rewardClass is None:
-            self.rewardClass = env.rewardClass
-        else:
-            self.rewardClass = rewardClass
-
-        # helpers
-        self.action_helper_env = env.helper_action_env
-        self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
 
         # print("ObservationHelper init with reward_helper class: {}".format(self.reward_helper.template_reward))
         self.n_gen = n_gen
@@ -1300,7 +1352,6 @@ class ObservationHelper:
         self.n_lines = n_lines
         self.subs_info = subs_info
         self.dim_topo = np.sum(subs_info)
-        self.observationClass = observationClass
 
         # to which substation is connected each element
         self.load_to_subid = load_to_subid
@@ -1318,12 +1369,259 @@ class ObservationHelper:
         self.lines_or_pos_topo_vect = lines_or_pos_topo_vect
         self.lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
 
+        self.observationClass = observationClass
+
+        self.empty_obs = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
+                                               subs_info=self.subs_info, dim_topo=self.dim_topo,
+                                               load_to_subid=self.load_to_subid,
+                                               gen_to_subid=self.gen_to_subid,
+                                               lines_or_to_subid=self.lines_or_to_subid,
+                                               lines_ex_to_subid=self.lines_ex_to_subid,
+                                               load_to_sub_pos=self.load_to_sub_pos,
+                                               gen_to_sub_pos=self.gen_to_sub_pos,
+                                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
+                                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                                               load_pos_topo_vect=self.load_pos_topo_vect,
+                                               gen_pos_topo_vect=self.gen_pos_topo_vect,
+                                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
+                                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect,
+                                               obs_env=None,
+                                               action_helper=None)
+
+        self.n = self.empty_obs.size()
+
+    @staticmethod
+    def from_dict(dict_):
+        """
+        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
+
+        Parameters
+        ----------
+        dict_: ``dict``
+            Representation of an Observation Space (aka ObservartionHelper) as a dictionnary.
+
+        Returns
+        -------
+        res: :class:``SerializableObservationSpace``
+            An instance of an observationHelper matching the dictionnary.
+
+        """
+        n_gen = extract_from_dict(dict_, "n_gen", int)
+        n_load = extract_from_dict(dict_, "n_load", int)
+        n_lines = extract_from_dict(dict_, "n_lines", int)
+
+        subs_info = extract_from_dict(dict_, "subs_info", lambda x: np.array(x).astype(np.int))
+        load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
+        gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
+        lines_or_to_subid = extract_from_dict(dict_, "lines_or_to_subid", lambda x: np.array(x).astype(np.int))
+        lines_ex_to_subid = extract_from_dict(dict_, "lines_ex_to_subid", lambda x: np.array(x).astype(np.int))
+
+        load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        lines_or_to_sub_pos = extract_from_dict(dict_, "lines_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        lines_ex_to_sub_pos = extract_from_dict(dict_, "lines_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
+
+        load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        lines_or_pos_topo_vect = extract_from_dict(dict_, "lines_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        lines_ex_pos_topo_vect = extract_from_dict(dict_, "lines_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+
+        observationClass_str = extract_from_dict(dict_, "observationClass", str)
+
+        try:
+            observationClass = eval(observationClass_str)
+        except NameError:
+            msg_err_ = "Impossible to find the module \"{}\" to load back the observation space."
+            raise Grid2OpException(msg_err_.format(observationClass_str))
+        except AttributeError:
+            observationClass_li = observationClass_str.split('.')
+            try:
+                observationClass = eval(observationClass_li[-1])
+            except:
+                if len(observationClass_li) > 1:
+                    msg_err_ = "Impossible to find the class named \"{}\" to load back the observation " \
+                               "(module is found but not the class in it) Please import it via \"from {} import {}\"."
+                    msg_err_ = msg_err_.format(observationClass_str,
+                                               ".".join(observationClass_li[:-1]),
+                                               observationClass_li[-1])
+                else:
+                    msg_err_ = "Impossible to import the class named \"{}\" to load back the observation space (the " \
+                               "module is found but not the class in it)"
+                    msg_err_ = msg_err_.format(observationClass_str)
+                raise Grid2OpException(msg_err_)
+
+        res = SerializableObservationSpace(n_gen, n_load, n_lines, subs_info,
+                                           load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                                           load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                                           load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect,
+                                           lines_ex_pos_topo_vect,
+                                           observationClass=observationClass)
+        return res
+
+    def to_dict(self):
+        """
+        Serialize this object as a dictionnary.
+
+        Returns
+        -------
+        res: ``dict``
+            A dictionnary representing this object content. It can be loaded back with
+             :func:`SerializableObservationSpace.from_dict`
+        """
+        res = {}
+        save_to_dict(res, self, "n_gen", int)
+        save_to_dict(res, self, "n_load", int)
+        save_to_dict(res, self, "n_lines", int)
+        save_to_dict(res, self, "subs_info", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_or_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_ex_to_subid", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_or_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_ex_to_sub_pos", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_or_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "lines_ex_pos_topo_vect", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "observationClass", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+
+        return res
+
+    def from_vect(self, obs):
+        """
+        Convert a observation, represented as a vector to a valid :class:`Observation` instance
+
+        Parameters
+        ----------
+        obs: ``numpy.ndarray``
+            The observation (represented as a numpy array) to convert to
+            :class:`grid2op.Observation.Observation` instance.
+
+        Returns
+        -------
+        res: :class:`grid2op.Observation.Observation`
+            The converted observation (converted from vector to :class:`grid2op.Observation.Observation` )
+
+        """
+        res = copy.deepcopy(self.empty_obs)
+        res.from_vect(obs)
+        return res
+
+    def get_obj_connect_to(self, _sentinel=None, substation_id=None):
+        """
+        Get all the object connected to a given substation:
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Used to prevent positional parameters. Internal, do not use.
+
+        substation_id: ``int``
+            ID of the substation we want to inspect
+
+        Returns
+        -------
+        res: ``dict``
+            A dictionnary with keys:
+
+              - "loads_id": a vector giving the id of the loads connected to this substation, empty if none
+              - "generators_id": a vector giving the id of the generators connected to this substation, empty if none
+              - "lines_or_id": a vector giving the id of the origin end of the powerlines connected to this substation,
+                empty if none
+              - "lines_ex_id": a vector giving the id of the extermity end of the powerlines connected to this
+                substation, empty if none.
+              - "nb_elements" : number of elements connected to this substation
+
+        """
+
+        if substation_id is None:
+            raise Grid2OpException("You ask the composition of a substation without specifying its id."
+                                   "Please provide \"substation_id\"")
+        if substation_id >= len(self.subs_info):
+            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+
+        res = {}
+        res["loads_id"] = np.where(self.load_to_subid == substation_id)[0]
+        res["generators_id"] = np.where(self.gen_to_subid == substation_id)[0]
+        res["lines_or_id"] = np.where(self.lines_or_to_subid == substation_id)[0]
+        res["lines_ex_id"] = np.where(self.lines_ex_to_subid == substation_id)[0]
+        res["nb_elements"] = self.subs_info[substation_id]
+        return res
+
+
+class ObservationHelper(SerializableObservationSpace):
+    """
+    Helper that provides usefull functions to manipulate :class:`Observation`.
+
+    Observation should only be built using this Helper. It is absolutely not recommended to make an observation
+    directly form its constructor.
+
+    Attributes
+    ----------
+    parameters: :class:`grid2op.Parameters.Parameters`
+        Type of Parameters used to compute powerflow for the forecast.
+
+    rewardClass: ``type``
+        Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
+        :class:`grid2op.Agent.Agent`
+
+    action_helper_env: :class:`grid2op.Action.HelperAction`
+        Action space used to create action during the :func:`Observation.simulate`
+
+    reward_helper: :class:`grid2op.Reward.HelperReward`
+        Reward function used by the the :func:`Observation.simulate` function.
+
+    obs_env: :class:`ObsEnv`
+        Instance of the environenment used by the Observation Helper to provide forcecast of the grid state.
+
+    empty_obs: :class:`Observation`
+        An instance of the observation that is updated and will be sent to he Agent.
+
+    """
+    def __init__(self,
+                 n_gen, n_load, n_lines, subs_info,
+                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                 env,
+                 rewardClass=None,
+                 observationClass=CompleteObservation):
+        """
+        Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
+        """
+
+        SerializableObservationSpace.__init__(self, n_gen, n_load, n_lines, subs_info,
+                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                                              observationClass=observationClass)
+
+        # TODO DOCUMENTATION !!!
+
+        # print("ObservationHelper init with rewardClass: {}".format(rewardClass))
+        self.parameters = copy.deepcopy(env.parameters)
+        # for the observation, I switch betwween the _parameters for the environment and for the simulation
+        self.parameters.ENV_DC = self.parameters.FORECAST_DC
+
+        if rewardClass is None:
+            self.rewardClass = env.rewardClass
+        else:
+            self.rewardClass = rewardClass
+
+        # helpers
+        self.action_helper_env = env.helper_action_env
+        self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
+
         self.obs_env = ObsEnv(backend_instanciated=env.backend, obsClass=self.observationClass,
                               parameters=env.parameters, reward_helper=self.reward_helper,
                               action_helper=self.action_helper_env)
 
-        self.empty_obs = self.observationClass(parameters = self.parameters,
-                                               n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
+        self.empty_obs = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
                                                subs_info=self.subs_info, dim_topo=self.dim_topo,
                                                load_to_subid=self.load_to_subid,
                                                gen_to_subid=self.gen_to_subid,
@@ -1339,17 +1637,17 @@ class ObservationHelper:
                                                lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect,
                                                obs_env=self.obs_env,
                                                action_helper=self.action_helper_env)
+
         self.seed = None
-        self.n = self.empty_obs.size()
 
     def __call__(self, env):
         if self.seed is not None:
             # in this case i have specific seed set. So i force the seed to be deterministic.
+            # TODO seed handling
             self.seed = np.random.randint(4294967295)
         self.obs_env.update_grid(env.backend)
 
-        res = self.observationClass(parameters = self.parameters,
-                                    n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
+        res = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
                                     subs_info=self.subs_info, dim_topo=self.dim_topo,
                                     load_to_subid=self.load_to_subid,
                                     gen_to_subid=self.gen_to_subid,
@@ -1395,63 +1693,3 @@ class ObservationHelper:
 
         """
         return self.n
-
-    def from_vect(self, obs):
-        """
-        Convert a observation, represented as a vector to a valid :class:`Observation` instance
-
-        Parameters
-        ----------
-        obs: ``numpy.ndarray``
-            The observation (represented as a numpy array) to convert to
-            :class:`grid2op.Observation.Observation` instance.
-
-        Returns
-        -------
-        res: :class:`grid2op.Observation.Observation`
-            The converted observation (converted from vector to :class:`grid2op.Observation.Observation` )
-
-        """
-        res = copy.deepcopy(self.empty_obs)
-        res.from_vect(obs)
-        return res
-
-    def get_obj_connect_to(self, _sentinel=None, substation_id=None):
-        """
-        Get all the object connected to a given substation:
-
-        Parameters
-        ----------
-        _sentinel: ``None``
-            Used to prevent positional parameters. Internal, do not use.
-
-        substation_id: ``int``
-            ID of the substation we want to inspect
-
-        Returns
-        -------
-        res: ``dict`` with keys:
-
-          - "loads_id": a vector giving the id of the loads connected to this substation, empty if none
-          - "generators_id": a vector giving the id of the generators connected to this substation, empty if none
-          - "lines_or_id": a vector giving the id of the origin end of the powerlines connected to this substation,
-            empty if none
-          - "lines_ex_id": a vector giving the id of the extermity end of the powerlines connected to this
-            substation, empty if none.
-          - "nb_elements" : number of elements connected to this substation
-
-        """
-
-        if substation_id is None:
-            raise Grid2OpException("You ask the composition of a substation without specifying its id."
-                                   "Please provide \"substation_id\"")
-        if substation_id >= len(self.subs_info):
-            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
-
-        res = {}
-        res["loads_id"] = np.where(self.load_to_subid == substation_id)[0]
-        res["generators_id"] = np.where(self.gen_to_subid == substation_id)[0]
-        res["lines_or_id"] = np.where(self.lines_or_to_subid == substation_id)[0]
-        res["lines_ex_id"] = np.where(self.lines_ex_to_subid == substation_id)[0]
-        res["nb_elements"] = self.subs_info[substation_id]
-        return res

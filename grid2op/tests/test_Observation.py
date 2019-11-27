@@ -3,7 +3,8 @@ import os
 import sys
 import unittest
 import datetime
-
+import json
+from io import StringIO
 import numpy as np
 import pdb
 
@@ -245,6 +246,84 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert 'nb_elements' in dict_
         assert dict_['nb_elements'] == 6
 
+    def test_to_dict(self):
+        dict_ = self.env.helper_observation.to_dict()
+        res = {'n_gen': 5, 'n_load': 11, 'n_lines': 20,
+                 'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+                 'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
+                 'gen_to_subid': [1, 2, 5, 7, 0],
+                 'lines_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
+                 'lines_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+                 'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
+                 'lines_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
+                 'lines_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+                 'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
+                 'gen_pos_topo_vect': [7, 11, 28, 34, 2],
+                 'lines_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
+                 'lines_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
+                 'observationClass': 'Observation.CompleteObservation'}
+        assert dict_ == res
+
+    def test_from_dict(self):
+        dict_ = {'n_gen': 5, 'n_load': 11, 'n_lines': 20,
+                 'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+                 'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
+                 'gen_to_subid': [1, 2, 5, 7, 0],
+                 'lines_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
+                 'lines_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+                 'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
+                 'lines_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
+                 'lines_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+                 'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
+                 'gen_pos_topo_vect': [7, 11, 28, 34, 2],
+                 'lines_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
+                 'lines_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
+                 'observationClass': 'Observation.CompleteObservation'}
+        res = ObservationHelper.from_dict(dict_)
+        assert res.n_gen == self.env.helper_observation.n_gen
+        assert res.n_load == self.env.helper_observation.n_load
+        assert res.n_lines == self.env.helper_observation.n_lines
+        assert np.all(res.subs_info == self.env.helper_observation.subs_info)
+        assert np.all(res.load_to_subid == self.env.helper_observation.load_to_subid)
+        assert np.all(res.gen_to_subid == self.env.helper_observation.gen_to_subid)
+        assert np.all(res.lines_or_to_subid == self.env.helper_observation.lines_or_to_subid)
+        assert np.all(res.lines_ex_to_subid == self.env.helper_observation.lines_ex_to_subid)
+        assert np.all(res.load_to_sub_pos == self.env.helper_observation.load_to_sub_pos)
+        assert np.all(res.gen_to_sub_pos == self.env.helper_observation.gen_to_sub_pos)
+        assert np.all(res.lines_or_to_sub_pos == self.env.helper_observation.lines_or_to_sub_pos)
+        assert np.all(res.lines_ex_to_sub_pos == self.env.helper_observation.lines_ex_to_sub_pos)
+        assert np.all(res.load_pos_topo_vect == self.env.helper_observation.load_pos_topo_vect)
+        assert np.all(res.gen_pos_topo_vect == self.env.helper_observation.gen_pos_topo_vect)
+        assert np.all(res.lines_or_pos_topo_vect == self.env.helper_observation.lines_or_pos_topo_vect)
+        assert np.all(res.lines_ex_pos_topo_vect == self.env.helper_observation.lines_ex_pos_topo_vect)
+        assert np.all(res.observationClass == self.env.helper_observation.observationClass)
+
+    def test_json_serializable(self):
+        dict_ = self.env.helper_observation.to_dict()
+        res = json.dumps(obj=dict_, indent=4, sort_keys=True)
+
+    def test_json_loadable(self):
+        dict_ = self.env.helper_observation.to_dict()
+        tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
+        res = ObservationHelper.from_dict(json.loads(tmp))
+
+        assert res.n_gen == self.env.helper_observation.n_gen
+        assert res.n_load == self.env.helper_observation.n_load
+        assert res.n_lines == self.env.helper_observation.n_lines
+        assert np.all(res.subs_info == self.env.helper_observation.subs_info)
+        assert np.all(res.load_to_subid == self.env.helper_observation.load_to_subid)
+        assert np.all(res.gen_to_subid == self.env.helper_observation.gen_to_subid)
+        assert np.all(res.lines_or_to_subid == self.env.helper_observation.lines_or_to_subid)
+        assert np.all(res.lines_ex_to_subid == self.env.helper_observation.lines_ex_to_subid)
+        assert np.all(res.load_to_sub_pos == self.env.helper_observation.load_to_sub_pos)
+        assert np.all(res.gen_to_sub_pos == self.env.helper_observation.gen_to_sub_pos)
+        assert np.all(res.lines_or_to_sub_pos == self.env.helper_observation.lines_or_to_sub_pos)
+        assert np.all(res.lines_ex_to_sub_pos == self.env.helper_observation.lines_ex_to_sub_pos)
+        assert np.all(res.load_pos_topo_vect == self.env.helper_observation.load_pos_topo_vect)
+        assert np.all(res.gen_pos_topo_vect == self.env.helper_observation.gen_pos_topo_vect)
+        assert np.all(res.lines_or_pos_topo_vect == self.env.helper_observation.lines_or_pos_topo_vect)
+        assert np.all(res.lines_ex_pos_topo_vect == self.env.helper_observation.lines_ex_pos_topo_vect)
+        assert np.all(res.observationClass == self.env.helper_observation.observationClass)
 
 if __name__ == "__main__":
     unittest.main()
