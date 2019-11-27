@@ -62,6 +62,7 @@ try:
     from .BackendPandaPower import PandaPowerBackend
     from .Parameters import Parameters
     from .Agent import DoNothingAgent, Agent
+    from .Episode import Episode
 
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -75,6 +76,7 @@ except (ModuleNotFoundError, ImportError):
     from BackendPandaPower import PandaPowerBackend
     from Parameters import Parameters
     from Agent import DoNothingAgent, Agent
+    from Episode import Episode
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -482,39 +484,6 @@ class Runner(object):
         time_act = 0.
         cum_reward = 0.
 
-        if path_save is not None:
-            path_save = os.path.abspath(path_save)
-            if not os.path.exists(path_save):
-                os.mkdir(path_save)
-                logger.info("Creating path \"{}\" to save the runner".format(path_save))
-
-            if not os.path.exists(os.path.join(path_save, "dict_action_space.json")):
-                dict_action_space = env.action_space.to_dict()
-                with open(os.path.join(path_save, "dict_action_space.json"), "w", encoding='utf8') as f:
-                    json.dump(obj=dict_action_space, fp=f, indent=4, sort_keys=True)
-                dict_observation_space = env.observation_space.to_dict()
-                with open(os.path.join(path_save, "dict_observation_space.json"), "w", encoding='utf8') as f:
-                    json.dump(obj=dict_observation_space, fp=f, indent=4, sort_keys=True)
-
-            this_path = os.path.join(path_save, "{}".format(os.path.split(env.chronics_handler.get_id())[-1]))
-            if not os.path.exists(this_path):
-                os.mkdir(this_path)
-                logger.info("Creating path \"{}\" to save the episode {}".format(this_path, indx))
-        else:
-            this_path = None
-
-        if path_save is not None:
-            dict_ = {}
-            dict_["chronics_path"] = "{}".format(env.chronics_handler.get_id())
-            dict_["chronics_max_timestep"] = "{}".format(env.chronics_handler.max_timestep())
-            dict_["grid_path"] = "{}".format(env.init_grid_path)
-            dict_["backend_type"] = "{}".format(type(env.backend).__name__)
-            dict_["env_type"] = "{}".format(type(env).__name__)
-
-            with open(os.path.join(this_path, "_parameters.json"), "w") as f:
-                dict_params = env.parameters.to_dict()
-                json.dump(obj=dict_params, fp=f, indent=4, sort_keys=True)
-
         nb_timestep_max = env.chronics_handler.max_timestep()
         efficient_storing = nb_timestep_max > 0
         nb_timestep_max = max(nb_timestep_max, 0)
@@ -525,6 +494,15 @@ class Runner(object):
         observations = np.full((nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
         disc_lines = np.full((nb_timestep_max, env.backend.n_lines), fill_value=np.NaN, dtype=np.bool)
         disc_lines_templ = np.full((1, env.backend.n_lines), fill_value=False, dtype=np.bool)
+
+        episode = Episode(actions=actions, observations=observations, 
+                          rewards=rewards, disc_lines=disc_lines, times=times,
+                          observation_space=env.observation_space, 
+                          action_space=env.action_space,
+                          path_save=path_save, disc_lines_templ=disc_lines_templ,
+                          logger=logger, indx=os.path.split(env.chronics_handler.get_id())[-1])
+
+        episode.set_parameters(env)
 
         beg_ = time.time()
         act = env.helper_action_player({})
@@ -538,46 +516,11 @@ class Runner(object):
             cum_reward += reward
             time_step += 1
 
-            # save the results
-            if path_save is not None:
-                if efficient_storing:
-                    # efficient way of writing
-                    times[time_step-1] = end__ - beg__
-                    rewards[time_step-1] = reward
-                    actions[time_step-1, :] = act.to_vect()
-                    observations[time_step-1, :] = obs.to_vect()
-                    if "disc_lines" in info:
-                        arr = info["disc_lines"]
-                        if arr is not None:
-                            disc_lines[time_step-1, :] = arr
-                        else:
-                            disc_lines[time_step - 1, :] = disc_lines_templ
-                else:
-                    # completely inefficient way of writing
-                    times = np.concatenate((times, (end__ - beg__, )))
-                    rewards = np.concatenate((rewards, (reward, )))
-                    actions = np.concatenate((actions, act.to_vect()))
-                    observations = np.concatenate((observations, obs.to_vect()))
-                    if "disc_lines" in info:
-                        arr = info["disc_lines"]
-                        if arr is not None:
-                            disc_lines = np.concatenate((disc_lines, arr))
-                        else:
-                            disc_lines = np.concatenate((disc_lines, disc_lines_templ))
-        if path_save is not None:
-            dict_["nb_timestep_played"] = time_step
-            dict_["cumulative_reward"] = cum_reward
+            episode.incr_store(efficient_storing, time_step, end__ - beg__, 
+                               reward, act, obs, info)
         end_ = time.time()
-
-        if path_save is not None:
-            with open(os.path.join(this_path, "episode_meta.json"), "w") as f:
-                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
-
-            np.save(os.path.join(this_path, "agent_exec_times.npy"), times)
-            np.save(os.path.join(this_path, "actions.npy"), actions)
-            np.save(os.path.join(this_path, "observations.npy"), observations)
-            np.save(os.path.join(this_path, "disc_lines_cascading_failure.npy"), disc_lines)
-            np.save(os.path.join(this_path, "rewards.npy"), rewards)
+        
+        episode.set_meta(env, time_step, cum_reward)
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
                    "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
@@ -588,18 +531,9 @@ class Runner(object):
             env._time_apply_act, env._time_powerflow, env._time_extract_obs,
             time_act, end_-beg_, cum_reward))
 
-        if path_save is not None:
-            with open(os.path.join(this_path, "episode_times.json"), "w") as f:
-                dict_ = {}
-                dict_["Env"] = {}
-                dict_["Env"]["total"] = float(env._time_apply_act+env._time_powerflow+env._time_extract_obs)
-                dict_["Env"]["apply_act"] = float(env._time_apply_act)
-                dict_["Env"]["powerflow_computation"] = float(env._time_powerflow)
-                dict_["Env"]["observation_computation"] = float(env._time_extract_obs)
-                dict_["Agent"] = {}
-                dict_["Agent"]["total"] = float(time_act)
-                dict_["total"] = float(end_-beg_)
-                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+        episode.set_episode_times(env, time_act, beg_, end_)
+
+        episode.todisk()
 
         return cum_reward, int(time_step)
 
