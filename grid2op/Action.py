@@ -40,15 +40,17 @@ import numpy as np
 import warnings
 import copy
 import re
+import os
+import json
 
 import pdb
 
 try:
     from .Exceptions import *
-    from .utils import extract_from_dict, save_to_dict
+    from ._utils import extract_from_dict, save_to_dict
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
-    from utils import extract_from_dict, save_to_dict
+    from _utils import extract_from_dict, save_to_dict
 
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
@@ -2027,6 +2029,13 @@ class SerializableActionSpace:
 
         """
 
+        if isinstance(dict_, str):
+            path = dict_
+            if not os.path.exists(path):
+                raise Grid2OpException("Unable to find the file \"{}\" to load the ObservationSpace".format(path))
+            with open(path, "r", encoding="utf-8") as f:
+                dict_ = json.load(fp=f)
+
         name_prod = extract_from_dict(dict_, "name_prod", lambda x: np.array(x).astype(str))
         name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
@@ -2048,28 +2057,39 @@ class SerializableActionSpace:
         lines_ex_pos_topo_vect = extract_from_dict(dict_, "lines_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
 
         actionClass_str = extract_from_dict(dict_, "actionClass", str)
+        actionClass_li = actionClass_str.split('.')
 
-        try:
-            actionClass = eval(actionClass_str)
-        except NameError:
-            msg_err_ = "Impossible to find the module \"{}\" to load back the observation space."
-            raise Grid2OpException(msg_err_.format(actionClass_str))
-        except AttributeError:
-            actionClass_li = actionClass_str.split('.')
+        if actionClass_li[-1] in globals():
+            actionClass = globals()[actionClass_li[-1]]
+        else:
+            # TODO make something better and recursive here, refactor with Observation too!
             try:
-                actionClass = eval(actionClass_li[-1])
-            except:
+                actionClass = eval(actionClass_str)
+            except NameError:
                 if len(actionClass_li) > 1:
-                    msg_err_ = "Impossible to find the class named \"{}\" to load back the observation " \
-                               "(module is found but not the class in it) Please import it via \"from {} import {}\"."
-                    msg_err_ = msg_err_.format(actionClass_str,
-                                               ".".join(actionClass_li[:-1]),
-                                               actionClass_li[-1])
+                    try:
+                        actionClass = eval(".".join(actionClass_li[1:]))
+                    except:
+                        msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 1). Try \"from {} import {}\""
+                        raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
                 else:
-                    msg_err_ = "Impossible to import the class named \"{}\" to load back the observation space (the " \
-                               "module is found but not the class in it)"
-                    msg_err_ = msg_err_.format(actionClass_str)
-                raise Grid2OpException(msg_err_)
+                    msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 2). Try \"from {} import {}\""
+                    raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
+            except AttributeError:
+                try:
+                    actionClass = eval(actionClass_li[-1])
+                except:
+                    if len(actionClass_li) > 1:
+                        msg_err_ = "Impossible to find the class named \"{}\" to load back the action space (ERROR 3)" \
+                                   "(module is found but not the class in it) Please import it via \"from {} import {}\"."
+                        msg_err_ = msg_err_.format(actionClass_str,
+                                                   ".".join(actionClass_li[:-1]),
+                                                   actionClass_li[-1])
+                    else:
+                        msg_err_ = "Impossible to import the class named \"{}\" to load back the action space (ERROR 4) (the " \
+                                   "module is found but not the class in it)"
+                        msg_err_ = msg_err_.format(actionClass_str)
+                    raise Grid2OpException(msg_err_)
 
         res = SerializableActionSpace(name_prod, name_load, name_line, subs_info,
                                       load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,

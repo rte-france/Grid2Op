@@ -34,6 +34,8 @@ import copy
 import numpy as np
 import re
 import warnings
+import json
+import os
 
 from abc import ABC, abstractmethod
 
@@ -42,11 +44,11 @@ import pdb
 try:
     from .Exceptions import *
     from .Reward import ConstantReward, RewardHelper
-    from .utils import extract_from_dict, save_to_dict
+    from ._utils import extract_from_dict, save_to_dict
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from Reward import ConstantReward, RewardHelper
-    from utils import extract_from_dict, save_to_dict
+    from _utils import extract_from_dict, save_to_dict
 
 # TODO be able to change reward here
 
@@ -1417,6 +1419,13 @@ class SerializableObservationSpace:
             An instance of an observationHelper matching the dictionnary.
 
         """
+        if isinstance(dict_, str):
+            path = dict_
+            if not os.path.exists(path):
+                raise Grid2OpException("Unable to find the file \"{}\" to load the ObservationSpace".format(path))
+            with open(path, "r", encoding="utf-8") as f:
+                dict_ = json.load(fp=f)
+
         n_gen = extract_from_dict(dict_, "n_gen", int)
         n_load = extract_from_dict(dict_, "n_load", int)
         n_lines = extract_from_dict(dict_, "n_lines", int)
@@ -1438,28 +1447,31 @@ class SerializableObservationSpace:
         lines_ex_pos_topo_vect = extract_from_dict(dict_, "lines_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
 
         observationClass_str = extract_from_dict(dict_, "observationClass", str)
+        observationClass_li = observationClass_str.split('.')
 
-        try:
-            observationClass = eval(observationClass_str)
-        except NameError:
-            msg_err_ = "Impossible to find the module \"{}\" to load back the observation space."
-            raise Grid2OpException(msg_err_.format(observationClass_str))
-        except AttributeError:
-            observationClass_li = observationClass_str.split('.')
+        if observationClass_li[-1] in globals():
+            observationClass = globals()[observationClass_li[-1]]
+        else:
             try:
-                observationClass = eval(observationClass_li[-1])
-            except:
-                if len(observationClass_li) > 1:
-                    msg_err_ = "Impossible to find the class named \"{}\" to load back the observation " \
-                               "(module is found but not the class in it) Please import it via \"from {} import {}\"."
-                    msg_err_ = msg_err_.format(observationClass_str,
-                                               ".".join(observationClass_li[:-1]),
-                                               observationClass_li[-1])
-                else:
-                    msg_err_ = "Impossible to import the class named \"{}\" to load back the observation space (the " \
-                               "module is found but not the class in it)"
-                    msg_err_ = msg_err_.format(observationClass_str)
-                raise Grid2OpException(msg_err_)
+                observationClass = eval(observationClass_str)
+            except NameError:
+                msg_err_ = "Impossible to find the module \"{}\" to load back the observation space. Try \"from {} import {}\""
+                raise Grid2OpException(msg_err_.format(observationClass_str, ".".join(observationClass_li[:-1]), observationClass_li[-1]))
+            except AttributeError:
+                try:
+                    observationClass = eval(observationClass_li[-1])
+                except:
+                    if len(observationClass_li) > 1:
+                        msg_err_ = "Impossible to find the class named \"{}\" to load back the observation " \
+                                   "(module is found but not the class in it) Please import it via \"from {} import {}\"."
+                        msg_err_ = msg_err_.format(observationClass_str,
+                                                   ".".join(observationClass_li[:-1]),
+                                                   observationClass_li[-1])
+                    else:
+                        msg_err_ = "Impossible to import the class named \"{}\" to load back the observation space (the " \
+                                   "module is found but not the class in it)"
+                        msg_err_ = msg_err_.format(observationClass_str)
+                    raise Grid2OpException(msg_err_)
 
         res = SerializableObservationSpace(n_gen, n_load, n_lines, subs_info,
                                            load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
@@ -1562,6 +1574,115 @@ class SerializableObservationSpace:
         res["lines_or_id"] = np.where(self.lines_or_to_subid == substation_id)[0]
         res["lines_ex_id"] = np.where(self.lines_ex_to_subid == substation_id)[0]
         res["nb_elements"] = self.subs_info[substation_id]
+        return res
+
+    def get_lines_id(self, _sentinel=None, from_=None, to_=None):
+        """
+        Returns the list of all the powerlines id in the backend going from "from_" to "to_"
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Internal, do not use
+
+        from_: ``int``
+            Id the substation to which the origin end of the powerline to look for should be connected to
+
+        to_: ``int``
+            Id the substation to which the extremity end of the powerline to look for should be connected to
+
+        Returns
+        -------
+        res: ``list``
+            Id of the powerline looked for.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.BackendError` if no match is found.
+
+        """
+        res = []
+        if from_ is None:
+            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no origin substation. Please modify \"from_\" parameter")
+        if to_ is None:
+            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no extremity substation. Please modify \"to_\" parameter")
+
+        for i, (ori, ext) in enumerate(zip(self.lines_or_to_subid, self.lines_ex_to_subid)):
+            if ori == from_ and ext == to_:
+                res.append(i)
+
+        if res is []:
+            raise BackendError("ObservationSpace.get_line_id: impossible to find a powerline with connected at origin at {} and extremity at {}".format(from_, to_))
+
+        return res
+
+    def get_generators_id(self, sub_id):
+        """
+        Returns the list of all generators id in the backend connected to the substation sub_id
+
+        Parameters
+        ----------
+        sub_id: ``int``
+            The substation to which we look for the generator
+
+        Returns
+        -------
+        res: ``list``
+            Id of the generator id looked for.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.BackendError` if no match is found.
+
+
+        """
+        res = []
+        if sub_id is None:
+            raise BackendError(
+                "ObservationSpace.get_generators_id: impossible to look for a generator not connected to any substation. Please modify \"sub_id\" parameter")
+
+        for i, s_id_gen in enumerate(self.gen_to_subid):
+            if s_id_gen == sub_id:
+                res.append(i)
+
+        if res is []:
+            raise BackendError(
+                "ObservationSpace.get_generators_id: impossible to find a generator connected at substation {}".format(sub_id))
+
+        return res
+
+    def get_loads_id(self, sub_id):
+        """
+        Returns the list of all generators id in the backend connected to the substation sub_id
+
+        Parameters
+        ----------
+        sub_id: ``int``
+            The substation to which we look for the generator
+
+        Returns
+        -------
+        res: ``list``
+            Id of the generator id looked for.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.BackendError` if no match found.
+
+        """
+        res = []
+        if sub_id is None:
+            raise BackendError(
+                "ObservationSpace.get_loads_id: impossible to look for a load not connected to any substation. Please modify \"sub_id\" parameter")
+
+        for i, s_id_gen in enumerate(self.load_to_subid):
+            if s_id_gen == sub_id:
+                res.append(i)
+
+        if res is []:
+            raise BackendError(
+                "ObservationSpace.get_loads_id: impossible to find a load connected at substation {}".format(sub_id))
+
         return res
 
 

@@ -17,21 +17,21 @@ with:
     :class:`grid2op.Agent` (and especially its method :func:`grid2op.Agent.act`) and amount of time spent in the
     :class:`grid2op.Environment`
 
-  - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters` used for this episode
+  - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters.Parameters` used for this episode
   - "rewards.npy" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
     reward at index `i` is the one observed by the agent at time `i` and **NOT** the reward sent by the
     :class:`grid2op.Environment` after the action has been implemented.
   - "exec_times.npy" is a numpy 1d array giving the execution time of each time step of the episode
-  - "actions.npy" gives the actions that has been taken by the :class:`grid2op.Agent`. At row `i` of "actions.npy" is a
+  - "actions.npy" gives the actions that has been taken by the :class:`grid2op.Agent.Agent`. At row `i` of "actions.npy" is a
     vectorized representation of the action performed by the agent at timestep `i` *ie.* **after** having observed
     the observation present at row `i` of "observation.npy" and the reward showed in row `i` of "rewards.npy".
   - "disc_lines.npy" gives which lines have been disconnected during the simulation of the cascading failure at each
     time step. The same convention as for "rewards.npy" has been adopted. This means that the powerlines are
     disconnected when the :class:`grid2op.Agent` takes the :class:`grid2op.Action` at time step `i`.
-  - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.Observation` at the disposal of the
+  - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.Observation.Observation` at the disposal of the
     :class:`grid2op.Agent` when he took his action.
 
-All of the above should allow to read back, and better understand the behaviour of some :class:`grid2op.Agent`, even
+All of the above should allow to read back, and better understand the behaviour of some :class:`grid2op.Agent.Agent`, even
 though such utility functions have not been coded yet.
 
 """
