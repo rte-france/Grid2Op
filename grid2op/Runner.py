@@ -30,6 +30,9 @@ with:
     disconnected when the :class:`grid2op.Agent` takes the :class:`grid2op.Action` at time step `i`.
   - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.Observation.Observation` at the disposal of the
     :class:`grid2op.Agent` when he took his action.
+  - "env_modifications.npy" is a 2d numpy array representing the modification of the powergrid from the environment.
+    these modification usually concerns the hazards, maintenance, as well as modification of the generators production
+    setpoint or the loads consumption.
 
 All of the above should allow to read back, and better understand the behaviour of some :class:`grid2op.Agent.Agent`, even
 though such utility functions have not been coded yet.
@@ -479,6 +482,7 @@ class Runner(object):
     def _run_one_episode(env, agent, logger, indx, path_save=None):
         done = False
         time_step = int(0)
+        dict_ = {}
         time_act = 0.
         cum_reward = 0.
 
@@ -492,9 +496,14 @@ class Runner(object):
                 dict_action_space = env.action_space.to_dict()
                 with open(os.path.join(path_save, "dict_action_space.json"), "w", encoding='utf8') as f:
                     json.dump(obj=dict_action_space, fp=f, indent=4, sort_keys=True)
+            if not os.path.exists(os.path.join(path_save, "dict_observation_space.json")):
                 dict_observation_space = env.observation_space.to_dict()
                 with open(os.path.join(path_save, "dict_observation_space.json"), "w", encoding='utf8') as f:
                     json.dump(obj=dict_observation_space, fp=f, indent=4, sort_keys=True)
+            if not os.path.exists(os.path.join(path_save, "dict_env_modification_space.json")):
+                dict_action_space = env.helper_action_env.to_dict()
+                with open(os.path.join(path_save, "dict_env_modification_space.json"), "w", encoding='utf8') as f:
+                    json.dump(obj=dict_action_space, fp=f, indent=4, sort_keys=True)
 
             this_path = os.path.join(path_save, "{}".format(os.path.split(env.chronics_handler.get_id())[-1]))
             if not os.path.exists(this_path):
@@ -522,6 +531,7 @@ class Runner(object):
         times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         actions = np.full((nb_timestep_max, env.action_space.n), fill_value=np.NaN, dtype=np.float)
+        env_actions = np.full((nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
         observations = np.full((nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
         disc_lines = np.full((nb_timestep_max, env.backend.n_lines), fill_value=np.NaN, dtype=np.bool)
         disc_lines_templ = np.full((1, env.backend.n_lines), fill_value=False, dtype=np.bool)
@@ -540,11 +550,13 @@ class Runner(object):
 
             # save the results
             if path_save is not None:
+                env_act = env.env_modification
                 if efficient_storing:
                     # efficient way of writing
                     times[time_step-1] = end__ - beg__
                     rewards[time_step-1] = reward
                     actions[time_step-1, :] = act.to_vect()
+                    env_actions[time_step-1, :] = env_act.to_vect()
                     observations[time_step-1, :] = obs.to_vect()
                     if "disc_lines" in info:
                         arr = info["disc_lines"]
@@ -557,6 +569,7 @@ class Runner(object):
                     times = np.concatenate((times, (end__ - beg__, )))
                     rewards = np.concatenate((rewards, (reward, )))
                     actions = np.concatenate((actions, act.to_vect()))
+                    env_actions = np.concatenate((actions, env_act.to_vect()))
                     observations = np.concatenate((observations, obs.to_vect()))
                     if "disc_lines" in info:
                         arr = info["disc_lines"]
@@ -575,6 +588,7 @@ class Runner(object):
 
             np.save(os.path.join(this_path, "agent_exec_times.npy"), times)
             np.save(os.path.join(this_path, "actions.npy"), actions)
+            np.save(os.path.join(this_path, "env_modifications.npy"), env_actions)
             np.save(os.path.join(this_path, "observations.npy"), observations)
             np.save(os.path.join(this_path, "disc_lines_cascading_failure.npy"), disc_lines)
             np.save(os.path.join(this_path, "rewards.npy"), rewards)

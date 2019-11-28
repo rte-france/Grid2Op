@@ -187,9 +187,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "p" in dict_
         assert dict_["p"] == 0.0
         assert "q" in dict_
-        assert dict_["q"] == 47.48313177017934
+        assert np.abs(dict_["q"] - 47.48313177017934) <= self.tol_one
         assert "v" in dict_
-        assert dict_["v"] == 141.075
+        assert np.abs(dict_["v"] - 141.075) <= self.tol_one
         assert "bus" in dict_
         assert dict_["bus"] == 1
         assert "sub_id" in dict_
@@ -202,11 +202,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         dict_ = dict_both["origin"]
 
         assert "p" in dict_
-        assert dict_["p"] == 109.77536682689008
+        assert np.abs(dict_["p"] - 109.77536682689008) <= self.tol_one
         assert "q" in dict_
-        assert dict_["q"] == -8.7165023030358
+        assert np.abs(dict_["q"] - -8.7165023030358) <= self.tol_one
         assert "v" in dict_
-        assert dict_["v"] == 143.1
+        assert np.abs(dict_["v"] - 143.1) <= self.tol_one
         assert "bus" in dict_
         assert dict_["bus"] == 1
         assert "sub_id" in dict_
@@ -215,11 +215,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "extremity" in dict_both
         dict_ = dict_both["extremity"]
         assert "p" in dict_
-        assert dict_["p"] == -107.69115512018216
+        assert np.abs(dict_["p"] - -107.69115512018216) <= self.tol_one
         assert "q" in dict_
-        assert dict_["q"] == 9.230658220781127
+        assert np.abs(dict_["q"] - 9.230658220781127) <= self.tol_one
         assert "v" in dict_
-        assert dict_["v"] == 141.075
+        assert np.abs(dict_["v"] - 141.075) <= self.tol_one
         assert "bus" in dict_
         assert dict_["bus"] == 1
         assert "sub_id" in dict_
