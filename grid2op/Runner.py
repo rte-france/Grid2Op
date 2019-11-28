@@ -30,6 +30,9 @@ with:
     disconnected when the :class:`grid2op.Agent` takes the :class:`grid2op.Action` at time step `i`.
   - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.Observation.Observation` at the disposal of the
     :class:`grid2op.Agent` when he took his action.
+  - "env_modifications.npy" is a 2d numpy array representing the modification of the powergrid from the environment.
+    these modification usually concerns the hazards, maintenance, as well as modification of the generators production
+    setpoint or the loads consumption.
 
 All of the above should allow to read back, and better understand the behaviour of some :class:`grid2op.Agent.Agent`, even
 though such utility functions have not been coded yet.
@@ -481,6 +484,7 @@ class Runner(object):
     def _run_one_episode(env, agent, logger, indx, path_save=None):
         done = False
         time_step = int(0)
+        dict_ = {}
         time_act = 0.
         cum_reward = 0.
 
@@ -491,14 +495,17 @@ class Runner(object):
         times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         actions = np.full((nb_timestep_max, env.action_space.n), fill_value=np.NaN, dtype=np.float)
+        env_actions = np.full((nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
         observations = np.full((nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
         disc_lines = np.full((nb_timestep_max, env.backend.n_lines), fill_value=np.NaN, dtype=np.bool)
         disc_lines_templ = np.full((1, env.backend.n_lines), fill_value=False, dtype=np.bool)
 
-        episode = Episode(actions=actions, observations=observations, 
+        episode = Episode(actions=actions, env_actions=env_actions,
+                          observations=observations, 
                           rewards=rewards, disc_lines=disc_lines, times=times,
                           observation_space=env.observation_space, 
-                          action_space=env.action_space,
+                          action_space=env.action_space, 
+                          helper_action_env=env.helper_action_env,
                           path_save=path_save, disc_lines_templ=disc_lines_templ,
                           logger=logger, indx=os.path.split(env.chronics_handler.get_id())[-1])
 
@@ -517,7 +524,7 @@ class Runner(object):
             time_step += 1
 
             episode.incr_store(efficient_storing, time_step, end__ - beg__, 
-                               reward, act, obs, info)
+                               reward, env.env_modification, act, obs, info)
         end_ = time.time()
         
         episode.set_meta(env, time_step, cum_reward)

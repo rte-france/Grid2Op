@@ -12,21 +12,25 @@ except (ModuleNotFoundError, ImportError):
 
 
 class Episode(object):
-    def __init__(self, actions=None, observations=None, rewards=None,
-                 disc_lines=None, times=None, params=None, meta=None,
-                 episode_times=None, observation_space=None, action_space=None,
-                 path_save=None, disc_lines_templ=None, logger=None, indx=0):
+    def __init__(self, actions=None, env_actions=None, observations=None, rewards=None,
+                 disc_lines=None, times=None,
+                 params=None, meta=None, episode_times=None,
+                 observation_space=None, action_space=None,
+                 helper_action_env=None, path_save=None, disc_lines_templ=None,
+                 logger=None, indx=0):
 
         self.actions = actions
         self.observations = observations
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
+        self.env_actions = env_actions
         self.params = params
         self.meta = meta
         self.episode_times = episode_times
         self.observation_space = observation_space
         self.action_space = action_space
+        self.helper_action_env = helper_action_env
         self.agent_path = os.path.abspath(path_save)
         self.indx = indx
         self.episode_path = os.path.join(self.agent_path, str(indx))
@@ -45,16 +49,24 @@ class Episode(object):
                                           "dict_action_space.json")
             obs_space_path = os.path.join(self.agent_path,
                                           "dict_observation_space.json")
+            env_modif_space_path = os.path.join(self.agent_path,
+                                                "dict_env_modification_space.json")
 
             if not os.path.exists(act_space_path):
                 dict_action_space = self.action_space.to_dict()
                 with open(act_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_action_space, fp=f,
                               indent=4, sort_keys=True)
+            if not os.path.exists(obs_space_path):
                 dict_observation_space = self.observation_space.to_dict()
                 with open(obs_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_observation_space,
                               fp=f, indent=4, sort_keys=True)
+            if not os.path.exists(env_modif_space_path):
+                dict_helper_action_env = self.helper_action_env.to_dict()
+                with open(env_modif_space_path, "w", encoding='utf8') as f:
+                    json.dump(obj=dict_helper_action_env, fp=f,
+                              indent=4, sort_keys=True)
 
             if not os.path.exists(self.episode_path):
                 os.mkdir(self.episode_path)
@@ -87,6 +99,8 @@ class Episode(object):
             times = np.load(os.path.join(
                 episode_path, "agent_exec_times.npy"))
             actions = np.load(os.path.join(episode_path, "actions.npy"))
+            env_actions = np.load(os.path.join(
+                episode_path, "env_modifications.npy"))
             observations = np.load(os.path.join(
                 episode_path, "observations.npy"))
             disc_lines = np.load(os.path.join(
@@ -99,10 +113,14 @@ class Episode(object):
             os.path.join(agent_path, "dict_observation_space.json"))
         action_space = ActionSpace.from_dict(
             os.path.join(agent_path, "dict_action_space.json"))
+        helper_action_env = ActionSpace.from_dict(
+            os.path.join(agent_path, "dict_env_modification_space.json"))
 
-        return cls(actions, observations, rewards, disc_lines,
+        return cls(actions, env_actions, observations, rewards, disc_lines,
                    times, _parameters, episode_meta, episode_times,
-                   observation_space, action_space, agent_path, indx=indx)
+                   observation_space, action_space,
+                   helper_action_env,
+                   agent_path, indx=indx)
 
     def set_parameters(self, env):
 
@@ -124,13 +142,14 @@ class Episode(object):
             self.meta["cumulative_reward"] = cum_reward
 
     def incr_store(self, efficient_storing, time_step, time_step_duration,
-                   reward, act, obs, info):
+                   reward, env_act, act, obs, info):
         if self.serialize:
             if efficient_storing:
                 # efficient way of writing
                 self.times[time_step-1] = time_step_duration
                 self.rewards[time_step-1] = reward
                 self.actions[time_step-1, :] = act.to_vect()
+                self.env_actions[time_step-1, :] = env_act.to_vect()
                 self.observations[time_step-1, :] = obs.to_vect()
                 if "disc_lines" in info:
                     arr = info["disc_lines"]
@@ -145,6 +164,8 @@ class Episode(object):
                     (self.times, (time_step_duration, )))
                 self.rewards = np.concatenate((self.rewards, (reward, )))
                 self.actions = np.concatenate((self.actions, act.to_vect()))
+                self.env_actions = np.concatenate(
+                    (self.actions, env_act.to_vect()))
                 self.observations = np.concatenate(
                     (self.observations, obs.to_vect()))
                 if "disc_lines" in info:
@@ -193,6 +214,8 @@ class Episode(object):
                     self.times)
             np.save(os.path.join(self.episode_path, "actions.npy"),
                     self.actions)
+            np.save(os.path.join(self.episode_path, "env_modifications.npy"),
+                    self.env_actions)
             np.save(os.path.join(self.episode_path, "observations.npy"),
                     self.observations)
             np.save(os.path.join(
