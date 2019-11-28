@@ -9,12 +9,13 @@ import pdb
 import helper_path_test  # usefull to set poperly the sys.path
 
 from Exceptions import *
-from Action import HelperAction
+from Action import HelperAction, Action
 from GameRules import GameRules
 
 # TODO test that "twice change" is reset to normal. when i update an action twice, nothing is done.
 # TODO test for all class of Action
 
+# TODO clean the test to have it for all class of actions without recoding everything each time
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):
@@ -37,17 +38,43 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                           subs_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
                                           load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
                                           gen_to_subid=np.array([0, 1, 2, 5, 7]),
-                                          lines_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,  5,  6,  6,  8,  8, 9, 11, 12]),
-                                          lines_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11, 12,  7,  8,  9, 13, 10, 12, 13]),  #####
+                                          lines_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
+                                                                       5,  6,  6,  8,  8, 9, 11, 12]),
+                                          lines_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
+                                                                       12,  7,  8,  9, 13, 10, 12, 13]),  #####
                                           load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
                                           gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
-                                          lines_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1]),
+                                          lines_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                                                        3, 0, 0, 1]),
                                           lines_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
                                           load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
                                           gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
                                           lines_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
                                           lines_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
                                           game_rules=self.game_rules)
+
+
+        self.helper_action_env = HelperAction(name_prod=["gen_{}".format(i) for i in range(5)],
+                                          name_load=["load_{}".format(i) for i in range(11)],
+                                          name_line=["line_{}".format(i) for i in range(20)],
+                                          subs_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
+                                          load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
+                                          gen_to_subid=np.array([0, 1, 2, 5, 7]),
+                                          lines_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
+                                                                       5,  6,  6,  8,  8, 9, 11, 12]),
+                                          lines_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
+                                                                       12,  7,  8,  9, 13, 10, 12, 13]),  #####
+                                          load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
+                                          gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
+                                          lines_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                                                        3, 0, 0, 1]),
+                                          lines_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
+                                          load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
+                                          gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
+                                          lines_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
+                                          lines_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
+                                          game_rules=self.game_rules,
+                                          actionClass=Action)
 
         self.res = {'name_prod': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
                'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
@@ -330,19 +357,22 @@ class TestLoadingBackendFunc(unittest.TestCase):
         res = action.to_vect()
         tmp = np.array([np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
                         np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  1.,  1.,  2.,  2.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  1.,  1.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                    0.,  0.])
+                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  1.,  1.,  2.,  2.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  1.,  1.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                            0.,  0.,  0.])
         assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
         assert np.all(np.isfinite(res) == np.isfinite(tmp))
 
@@ -528,6 +558,16 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.lines_ex_pos_topo_vect == self.helper_action.lines_ex_pos_topo_vect)
         assert np.all(res.actionClass == self.helper_action.actionClass)
 
+    def test_as_dict(self):
+        act = self.helper_action_env({})
+        dict_ = act.as_dict()
+        assert dict_ == {}
+
+    def test_to_from_vect_action(self):
+        act = self.helper_action_env({})
+        vect_ = act.to_vect()
+        act2 = self.helper_action_env.from_vect(vect_)
+        assert act == act2
 
 if __name__ == "__main__":
     unittest.main()

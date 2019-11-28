@@ -124,6 +124,10 @@ class Environment:
 
     viewer: ``object``
         Used to display the powergrid. Currently not supported.
+
+    env_modification: :class:`grid2op.Action.Action`
+        Representation of the actions of the environment for the modification of the powergrid.
+
     """
     def __init__(self,
                  init_grid_path: str,
@@ -304,6 +308,7 @@ class Environment:
         self._injection = None
         self._maintenance = None
         self._hazards = None
+        self.env_modification = None
 
         # reward
         self.reward_helper = RewardHelper(rewardClass=rewardClass)
@@ -449,8 +454,8 @@ class Environment:
         try:
             beg_ = time.time()
             self.backend.apply_action(action)
-            env_modification = self._update_actions()
-            self.backend.apply_action(env_modification)
+            self.env_modification = self._update_actions()
+            self.backend.apply_action(self.env_modification)
             self._time_apply_act += time.time() - beg_
 
             self.nb_time_step += 1
