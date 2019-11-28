@@ -646,7 +646,6 @@ class GridStateFromFile(GridValue):
         self._assert_correct_second_stage(maintenance.columns, self.names_chronics_to_backend, "lines", "maintenance")
         order_backend_maintenance = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
                                               for el in maintenance.columns]).astype(np.int)
-
         self.load_p = copy.deepcopy(load_p.values[:, np.argsort(order_chronics_load_p)])
         self.load_q = copy.deepcopy(load_q.values[:, np.argsort(order_backend_load_q)])
         self.prod_p = copy.deepcopy(prod_p.values[:, np.argsort(order_backend_prod_p)])
@@ -721,20 +720,21 @@ class GridStateFromFile(GridValue):
         -------
         ``None``
         """
+
         if self.load_p.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_loads, len(self.load_p)))
+            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_loads, self.load_p.shape[1]))
         if self.load_q.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_loads, len(self.load_q)))
+            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_loads, self.load_q.shape[1]))
 
         if self.prod_p.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_generators, len(self.prod_p)))
+            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_generators, self.prod_p.shape[1]))
         if self.prod_v.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_generators, len(self.prod_v)))
+            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_generators, self.prod_v.shape[1]))
 
         if self.hazards.shape[1] != backend.n_lines:
-            raise IncorrectNumberOfLines("for the outage. It should be {} but is in fact {}".format(backend.n_lines, len(self.hazards)))
+            raise IncorrectNumberOfLines("for the outage. It should be {} but is in fact {}".format(backend.n_lines, self.hazards.shape[1]))
         if self.maintenance.shape[1] != backend.n_lines:
-            raise IncorrectNumberOfLines("for the maintenance. It should be {} but is in fact {}".format(backend.n_lines, len(self.maintenance)))
+            raise IncorrectNumberOfLines("for the maintenance. It should be {} but is in fact {}".format(backend.n_lines, self.maintenance.shape[1]))
 
         n = self.load_p.shape[0]
         for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "hazards"],

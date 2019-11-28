@@ -382,6 +382,10 @@ class Action(object):
         self._subs_impacted = None
         self._lines_impacted = None
 
+        # add the hazards and maintenance usefull for saving.
+        self._hazards = np.full(shape=n_lines, fill_value=False, dtype=np.bool)
+        self._maintenance = np.full(shape=n_lines, fill_value=False, dtype=np.bool)
+
     def get_set_line_status_vect(self):
         """
         Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`.
@@ -561,6 +565,10 @@ class Action(object):
         # topology changed
         self._set_topo_vect = np.full(shape=self._dim_topo, fill_value=0, dtype=np.int)
         self._change_bus_vect = np.full(shape=self._dim_topo, fill_value=False, dtype=np.bool)
+
+        # add the hazards and maintenance usefull for saving.
+        self._hazards = np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
+        self._maintenance = np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
 
         self.as_vect = None
 
@@ -754,9 +762,8 @@ class Action(object):
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     raise AmbiguousAction("You can only ask hazards with int or boolean numpy array vector.")
 
-                # if len(dict_["outage"]) != self._n_lines:
-                #     raise InvalidNumberOfLines("This action acts on {} lines while there are {} in the _grid".format(len(dict_["outage"]), self._n_lines))
                 self._set_line_status[tmp] = -1
+                self._hazards[tmp] = True
                 # force ignore of any topological actions
                 self._ignore_topo_action_if_disconnection(tmp)
 
@@ -765,10 +772,6 @@ class Action(object):
             # set the values of the power lines to "disconnected" for element being "False"
             # does nothing to the others
             # a _maintenance operation will never reconnect a powerline
-
-            # if len(dict_["_maintenance"]) != self._n_lines:
-            #     raise InvalidNumberOfLines("This action acts on {} lines while there are {} in the _grid".format(len(dict_["_maintenance"]), self._n_lines))
-
             if dict_["maintenance"] is not None:
                 tmp = dict_["maintenance"]
                 try:
@@ -785,6 +788,7 @@ class Action(object):
                     raise AmbiguousAction(
                         "You can only ask to perform lines maintenance with int or boolean numpy array vector.")
                 self._set_line_status[tmp] = -1
+                self._maintenance[tmp] = True
                 self._ignore_topo_action_if_disconnection(tmp)
 
     def _digest_change_status(self, dict_):
@@ -1036,7 +1040,7 @@ class Action(object):
         size: ``int``
             The size of the flatten array returned by :func:`Action.to_vect`.
         """
-        return 2 * self._n_gen + 2 * self._n_load + 2 * self._n_lines + 2 * self._dim_topo
+        return 2 * self._n_gen + 2 * self._n_load + 2 * self._n_lines + 2 * self._dim_topo + 2 * self._n_lines
 
     def to_vect(self):
         """
@@ -1107,7 +1111,9 @@ class Action(object):
                 self._set_line_status.flatten().astype(np.float),
                 self._switch_line_status.flatten().astype(np.float),
                 self._set_topo_vect.flatten().astype(np.float),
-                self._change_bus_vect.flatten().astype(np.float)
+                self._change_bus_vect.flatten().astype(np.float),
+                self._hazards.flatten().astype(np.float),
+                self._maintenance.flatten().astype(np.float)
                               ))
 
             if self.as_vect.shape[0] != self.size():
@@ -1154,7 +1160,7 @@ class Action(object):
         if np.any(np.isfinite(prod_p)):
             self._dict_inj["prod_p"] = prod_p
         if np.any(np.isfinite(prod_q)):
-            self._dict_inj["prod_q"] = prod_q
+            self._dict_inj["prod_v"] = prod_q
         if np.any(np.isfinite(load_p)):
             self._dict_inj["load_p"] = load_p
         if np.any(np.isfinite(load_q)):
@@ -1166,8 +1172,13 @@ class Action(object):
         self._switch_line_status = self._switch_line_status.astype(np.bool)
         self._set_topo_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._dim_topo
         self._set_topo_vect = self._set_topo_vect.astype(np.int)
-        self._change_bus_vect = vect[prev_:]; prev_ += self._dim_topo
+        self._change_bus_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._n_lines
         self._change_bus_vect = self._change_bus_vect.astype(np.bool)
+
+        self._hazards = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._n_lines
+        self._hazards = self._hazards.astype(np.bool)
+        self._maintenance = vect[prev_:]; prev_ += self._n_lines; next_ += self._n_lines
+        self._maintenance = self._maintenance.astype(np.bool)
 
         self._check_for_ambiguity()
 
@@ -1238,7 +1249,7 @@ class Action(object):
         res = ["This action will:"]
         # handles actions on injections
         inj_changed = False
-        for k in ["load_p", "prod_p", "load_q", "prod_q"]:
+        for k in ["load_p", "prod_p", "load_q", "prod_v"]:
             if k in self._dict_inj:
                 inj_changed = True
                 res.append("\t - set {} to {}".format(k, list(self._dict_inj[k])))
@@ -1292,7 +1303,8 @@ class Action(object):
     def as_dict(self):
         """
         Represent an action "as a" dictionnary. This dictionnary is usefull to further inspect on which elements
-        the actions had an impact. It is not recommended to use it as a way to serialize actions.
+        the actions had an impact. It is not recommended to use it as a way to serialize actions. The do nothing action
+        should allways be represented by an empty dictionnary.
 
         The following keys (all optional) are present in the results:
 
@@ -1330,6 +1342,16 @@ class Action(object):
               * `set_bus_vect`: details the objects that are modified. It is also a dictionnary that representes for
                 each impacted substations (keys) how the elements connected to it are impacted (their "new" bus)
 
+          * `hazards` if the action is composed of some hazards. In this case it's simply the index of the powerlines
+            that are disconnected because of them.
+          * `nb_hazards` the number of hazards the "action" implemented (eg number of powerlines disconnected because of
+            hazards.
+          * `maintenance` if the action is composed of some maintenance. In this case it's simply the index of the
+            powerlines that are affected by maintenance operation at this time step.
+            that are disconnected because of them.
+          * `nb_maintenance` the number of maintenance the "action" implemented eg the number of powerlines
+            disconnected becaues of maintenance operation.
+
         Returns
         -------
         res: ``dict``
@@ -1338,7 +1360,7 @@ class Action(object):
         res = {}
 
         # saving the injections
-        for k in ["load_p", "prod_p", "load_q", "prod_q"]:
+        for k in ["load_p", "prod_p", "load_q", "prod_v"]:
             if k in self._dict_inj:
                 res[k] = self._dict_inj[k]
 
@@ -1389,6 +1411,14 @@ class Action(object):
 
             res["set_bus_vect"]["nb_modif_subs"] = len(all_subs)
             res["set_bus_vect"]["modif_subs_id"] = sorted(all_subs)
+
+        if np.any(self._hazards):
+            res["hazards"] = np.where(self._hazards)[0]
+            res["nb_hazards"] = np.sum(self._hazards)
+
+        if np.any(self._maintenance):
+            res["maintenance"] = np.where(self._maintenance)[0]
+            res["nb_maintenance"] = np.sum(self._maintenance)
 
         return res
 
