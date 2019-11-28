@@ -12,6 +12,21 @@ except (ModuleNotFoundError, ImportError):
 
 
 class Episode(object):
+
+    ACTION_SPACE = "dict_action_space.json"
+    OBS_SPACE = "dict_observation_space.json"
+    ENV_MODIF_SPACE = "dict_env_modification_space.json"
+    PARAMS = "_parameters.json"
+    META = "episode_meta.json"
+    TIMES = "episode_times.json"
+
+    AG_EXEC_TIMES = "agent_exec_times.npy"
+    ACTIONS = "actions.npy"
+    ENV_ACTIONS = "env_modifications.npy"
+    OBSERVATIONS = "observations.npy"
+    LINES_FAILURES = "disc_lines_cascading_failure.npy"
+    REWARDS = "rewards.npy"
+
     def __init__(self, actions=None, env_actions=None, observations=None, rewards=None,
                  disc_lines=None, times=None,
                  params=None, meta=None, episode_times=None,
@@ -45,12 +60,12 @@ class Episode(object):
                 self.logger.info(
                     "Creating path \"{}\" to save the runner".format(self.agent_path))
 
-            act_space_path = os.path.join(self.agent_path,
-                                          "dict_action_space.json")
-            obs_space_path = os.path.join(self.agent_path,
-                                          "dict_observation_space.json")
-            env_modif_space_path = os.path.join(self.agent_path,
-                                                "dict_env_modification_space.json")
+            act_space_path = os.path.join(
+                self.agent_path, Episode.ACTION_SPACE)
+            obs_space_path = os.path.join(
+                self.agent_path, Episode.OBS_SPACE)
+            env_modif_space_path = os.path.join(
+                self.agent_path, Episode.ENV_MODIF_SPACE)
 
             if not os.path.exists(act_space_path):
                 dict_action_space = self.action_space.to_dict()
@@ -89,32 +104,32 @@ class Episode(object):
         episode_path = os.path.abspath(os.path.join(agent_path, str(indx)))
 
         try:
-            with open(os.path.join(episode_path, "_parameters.json")) as f:
+            with open(os.path.join(episode_path, Episode.PARAMS)) as f:
                 _parameters = json.load(fp=f)
-            with open(os.path.join(episode_path, "episode_meta.json")) as f:
+            with open(os.path.join(episode_path, Episode.META)) as f:
                 episode_meta = json.load(fp=f)
-            with open(os.path.join(episode_path, "episode_times.json")) as f:
+            with open(os.path.join(episode_path, Episode.TIMES)) as f:
                 episode_times = json.load(fp=f)
 
             times = np.load(os.path.join(
-                episode_path, "agent_exec_times.npy"))
-            actions = np.load(os.path.join(episode_path, "actions.npy"))
+                episode_path, Episode.AG_EXEC_TIMES))
+            actions = np.load(os.path.join(episode_path, Episode.ACTIONS))
             env_actions = np.load(os.path.join(
-                episode_path, "env_modifications.npy"))
+                episode_path, Episode.ENV_ACTIONS))
             observations = np.load(os.path.join(
-                episode_path, "observations.npy"))
+                episode_path, Episode.OBSERVATIONS))
             disc_lines = np.load(os.path.join(
-                episode_path, "disc_lines_cascading_failure.npy"))
-            rewards = np.load(os.path.join(episode_path, "rewards.npy"))
+                episode_path, Episode.LINES_FAILURES))
+            rewards = np.load(os.path.join(episode_path, Episode.REWARDS))
         except FileNotFoundError as ex:
             raise Grid2OpException(f"Episode file not found \n {str(ex)}")
 
         observation_space = ObservationSpace.from_dict(
-            os.path.join(agent_path, "dict_observation_space.json"))
+            os.path.join(agent_path, Episode.OBS_SPACE))
         action_space = ActionSpace.from_dict(
-            os.path.join(agent_path, "dict_action_space.json"))
+            os.path.join(agent_path, Episode.ACTION_SPACE))
         helper_action_env = ActionSpace.from_dict(
-            os.path.join(agent_path, "dict_env_modification_space.json"))
+            os.path.join(agent_path, Episode.ENV_MODIF_SPACE))
 
         return cls(actions, env_actions, observations, rewards, disc_lines,
                    times, _parameters, episode_meta, episode_times,
@@ -210,14 +225,15 @@ class Episode(object):
                 json.dump(obj=self.episode_times, fp=f,
                           indent=4, sort_keys=True)
 
-            np.save(os.path.join(self.episode_path, "agent_exec_times.npy"),
+            np.save(os.path.join(self.episode_path, Episode.AG_EXEC_TIMES),
                     self.times)
-            np.save(os.path.join(self.episode_path, "actions.npy"),
+            np.save(os.path.join(self.episode_path, Episode.ACTIONS),
                     self.actions)
-            np.save(os.path.join(self.episode_path, "env_modifications.npy"),
+            np.save(os.path.join(self.episode_path, Episode.ENV_ACTIONS),
                     self.env_actions)
-            np.save(os.path.join(self.episode_path, "observations.npy"),
+            np.save(os.path.join(self.episode_path, Episode.OBSERVATIONS),
                     self.observations)
             np.save(os.path.join(
-                self.episode_path, "disc_lines_cascading_failure.npy"), self.disc_lines)
-            np.save(os.path.join(self.episode_path, "rewards.npy"), self.rewards)
+                self.episode_path, Episode.LINES_FAILURES), self.disc_lines)
+            np.save(os.path.join(self.episode_path,
+                                 Episode.REWARDS), self.rewards)
