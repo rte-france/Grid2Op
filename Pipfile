@@ -23,5 +23,6 @@ seaborn = "*"
 plotly = "*"
 ipywidgets = "*"
 
+
 [requires]
 python_version = "3.7"
