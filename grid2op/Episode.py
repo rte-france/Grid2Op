@@ -94,6 +94,9 @@ class Episode(object):
     def get_observation(self, i):
         return self.observation_space.from_vect(self.observations[i, :])
 
+    def get_env_action(self, i):
+        return self.helper_action_env.from_vect(self.env_actions[i, :])
+
     @classmethod
     def fromdisk(cls, agent_path, indx=0):
 
