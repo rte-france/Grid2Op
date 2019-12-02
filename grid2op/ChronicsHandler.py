@@ -694,6 +694,9 @@ class GridStateFromFile(GridValue):
 
         if self.current_index >= self.load_q.shape[0]:
             raise StopIteration
+        if self.max_iter > 0:
+            if self.curr_iter > self.max_iter:
+                raise StopIteration
 
         res = {}
         res["injection"] = {"load_p": self.load_p[self.current_index, :], "load_q": self.load_q[self.current_index, :],
@@ -964,7 +967,8 @@ class Multifolder(GridValue):
                          if os.path.isdir(os.path.join(self.path, el))]
         self.subpaths.sort()
         if len(self.subpaths) == 0:
-            raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least 1 chronics folder there.".format(self.path))
+            raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "
+                                        "1 chronics folder there.".format(self.path))
         # np.random.shuffle(self.subpaths)
         self.id_chron_folder_current = 0
 
@@ -974,13 +978,15 @@ class Multifolder(GridValue):
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
         self.n_lines = len(order_backend_lines)
-
+        # print("max_iter: {}".format(self.max_iter))
         self.data = self.gridvalueClass(time_interval=self.time_interval,
                                         sep=self.sep,
-                                        path=self.subpaths[self.id_chron_folder_current]
-                                        )
+                                        path=self.subpaths[self.id_chron_folder_current],
+                                        max_iter=self.max_iter)
         self.data.initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                   names_chronics_to_backend=names_chronics_to_backend)
+                             names_chronics_to_backend=names_chronics_to_backend)
+        # print(" self.data.max_iter: {}".format(self.data.max_iter))
+        # print(" self.gridvalueClass: {}".format(self.gridvalueClass))
 
     def done(self):
         """

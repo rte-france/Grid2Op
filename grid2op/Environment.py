@@ -286,6 +286,14 @@ class Environment:
         self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
+        # store actions "cooldown"
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+
+        # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
@@ -481,6 +489,17 @@ class Environment:
                 # set to 0 the number of timestep for lines that are not on overflow
                 self.timestep_overflow[~overflow_lines] = 0
 
+                # build the topological action "cooldown"
+                aff_lines, aff_subs = action.get_topological_impact()
+                if self.max_timestep_line_status_deactivated > 0:
+                    # this is a feature I want to consider in the parameters
+                    self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
+                    self.times_before_line_status_actionable[aff_lines] = self.max_timestep_line_status_deactivated
+                if self.max_timestep_topology_deactivated > 0:
+                    # this is a feature I want to consider in the parameters
+                    self.times_before_topology_actionable[self.times_before_topology_actionable > 0] -= 1
+                    self.times_before_topology_actionable[aff_subs] = self.max_timestep_topology_deactivated
+
                 # build the observation
                 self.current_obs = self.get_obs()
                 self._time_extract_obs += time.time() - beg_
@@ -505,6 +524,12 @@ class Environment:
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
+
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
         self._time_apply_act = 0
         self._time_powerflow = 0

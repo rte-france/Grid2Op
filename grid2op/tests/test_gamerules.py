@@ -16,7 +16,6 @@ from ChronicsHandler import ChronicsHandler, GridStateFromFile
 from GameRules import *
 
 
-
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):
         # powergrid
@@ -216,6 +215,218 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                                          "set_line_status": arr_line2},
                                                         env=self.env,
                                                         check_legal=True)
+
+    def test_linereactionnable_throw(self):
+        id_1 = 1
+        id_2 = 12
+        id_line = 17
+        id_line2 = 15
+
+        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1[id_line] = True
+
+        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2[id_line2] = -1
+
+        self.env.max_timestep_line_status_deactivated = 1
+        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+                                                              fill_value=0,
+                                                              dtype=np.int)
+
+        # i act a first time on powerline 15
+        act = self.helper_action({"set_line_status": arr_line2},
+                               env=self.env,
+                               check_legal=True)
+        self.env.step(act)
+        try:
+            # i try to react on it, it should throw an IllegalAction exception.
+            act = self.helper_action({"set_line_status": arr_line2},
+                                     env=self.env,
+                                     check_legal=True)
+            raise RuntimeError("This should have thrown an IllegalException")
+        except IllegalAction:
+            pass
+
+    def test_linereactionnable_nothrow(self):
+        id_1 = 1
+        id_2 = 12
+        id_line = 17
+        id_line2 = 15
+
+        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1[id_line] = True
+
+        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2[id_line2] = -1
+
+        self.env.max_timestep_line_status_deactivated = 1
+        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+                                                              fill_value=0,
+                                                              dtype=np.int)
+
+        # i act a first time on powerline 15
+        act = self.helper_action({"set_line_status": arr_line2},
+                               env=self.env,
+                               check_legal=True)
+        self.env.step(act)
+        # i compute another time step without doing anything
+        self.env.step(self.helper_action({}))
+
+        # i try to react on it, it should NOT throw an IllegalAction exception, but
+        act = self.helper_action({"set_line_status": arr_line2},
+                                 env=self.env,
+                                 check_legal=True)
+
+    def test_linereactionnable_throw_longerperiod(self):
+        id_1 = 1
+        id_2 = 12
+        id_line = 17
+        id_line2 = 15
+
+        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1[id_line] = True
+
+        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2[id_line2] = -1
+
+        self.env.max_timestep_line_status_deactivated = 2
+        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+                                                              fill_value=0,
+                                                              dtype=np.int)
+
+        # i act a first time on powerline 15
+        act = self.helper_action({"set_line_status": arr_line2},
+                               env=self.env,
+                               check_legal=True)
+        self.env.step(act)
+        # i compute another time step without doing anything
+        self.env.step(self.helper_action({}))
+
+        # i try to react on it, it should throw an IllegalAction exception because we ask the environment to wait
+        # at least 2 time steps
+        try:
+            # i try to react on it, it should throw an IllegalAction exception.
+            act = self.helper_action({"set_line_status": arr_line2},
+                                     env=self.env,
+                                     check_legal=True)
+            raise RuntimeError("This should have thrown an IllegalException")
+        except IllegalAction:
+            pass
+
+    def test_toporeactionnable_throw(self):
+        id_1 = 1
+        id_2 = 12
+        id_line = 17
+        id_line2 = 15
+
+        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1[id_line] = True
+
+        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2[id_line2] = -1
+
+        self.env.max_timestep_topology_deactivated = 1
+        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+                                                              fill_value=0,
+                                                              dtype=np.int)
+
+        # i act a first time on powerline 15
+        act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
+                                 env=self.env,
+                                 check_legal=True)
+        self.env.step(act)
+        try:
+            # i try to react on it, it should throw an IllegalAction exception.
+            act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
+                                     env=self.env,
+                                     check_legal=True)
+            raise RuntimeError("This should have thrown an IllegalException")
+        except IllegalAction:
+            pass
+
+    def test_toporeactionnable_nothrow(self):
+        id_1 = 1
+        id_2 = 12
+        id_line = 17
+        id_line2 = 15
+
+        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1[id_line] = True
+
+        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2[id_line2] = -1
+
+        self.env.max_timestep_topology_deactivated = 1
+        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+                                                              fill_value=0,
+                                                              dtype=np.int)
+
+        # i act a first time on powerline 15
+        act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
+                                 env=self.env,
+                                 check_legal=True)
+        self.env.step(act)
+        # i compute another time step without doing anything
+        self.env.step(self.helper_action({}))
+
+        # i try to react on it, it should NOT throw an IllegalAction exception, but
+        act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
+                                 env=self.env,
+                                 check_legal=True)
+
+    def test_toporeactionnable_throw_longerperiod(self):
+        id_1 = 1
+        id_2 = 12
+        id_line = 17
+        id_line2 = 15
+
+        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1[id_line] = True
+
+        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2[id_line2] = -1
+
+        self.env.max_timestep_topology_deactivated = 2
+        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+                                                              fill_value=0,
+                                                              dtype=np.int)
+
+        # i act a first time on powerline 15
+        act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
+                                 env=self.env,
+                                 check_legal=True)
+        self.env.step(act)
+        # i compute another time step without doing anything
+        self.env.step(self.helper_action({}))
+
+        # i try to react on it, it should throw an IllegalAction exception because we ask the environment to wait
+        # at least 2 time steps
+        try:
+            # i try to react on it, it should throw an IllegalAction exception.
+            act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
+                                     env=self.env,
+                                     check_legal=True)
+            raise RuntimeError("This should have thrown an IllegalException")
+        except IllegalAction:
+            pass
 
 
 if __name__ == "__main__":
