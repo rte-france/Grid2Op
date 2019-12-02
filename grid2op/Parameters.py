@@ -36,6 +36,19 @@ class Parameters:
         :attr:`.NB_TIMESTEP_POWERFLOW_ALLOWED` or :attr:`.HARD_OVERFLOW_THRESHOLD`) will remain disconnected.
         It's set to 10 timestep by default.
 
+    NB_TIMESTEP_LINE_STATUS_REMODIF: ``int``
+        When someone acts on a powerline by changing its status (connected / disconnected) this number indicates
+        how many timesteps the :class:`grid2op.Agent.Agent` has to wait before being able to modify this status again.
+        For examle, if this is 1, this means that an Agent can act on status of a powerline 1 out of 2 time step (1
+        time step it acts, another one it cools down, and the next one it can act again). Having it at 0 it equivalent
+        to deactivate this feature (default).
+
+    NB_TIMESTEP_TOPOLOGY_REMODIF: ``int``
+        When someone changes the topology of a substations, this number indicates how many timesteps the
+        :class:`grid2op.Agent.Agent` has to wait before being able to modify the topology on this same substation. It
+        has the same behaviour as :attr:`Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF`. To deactivate this feature,
+        put it at 0 (default).
+
     HARD_OVERFLOW_THRESHOLD: ``float``
         If a the powerflow on a line is above HARD_OVERFLOW_THRESHOLD * thermal limit (and
         :attr:`.NO_OVERFLOW_DISCONNECTION` is set to ``False``) then it is automatically disconnected, regardless of
@@ -77,6 +90,10 @@ class Parameters:
         # number of timestep before a line can be reconnected if it has suffer a forced disconnection
         self.NB_TIMESTEP_RECONNECTION = 10
 
+        # number of timestep before a substation topology can be modified again
+        self.NB_TIMESTEP_TOPOLOGY_REMODIF = 0
+        self.NB_TIMESTEP_LINE_STATUS_REMODIF = 0
+
         # threshold above which a powerline is instantly disconnected by protections
         # this is expressed in relative value of the thermal limits
         # for example setting "HARD_OVERFLOW_THRESHOLD = 2" is equivalent, if a powerline has a thermal limit of
@@ -102,11 +119,12 @@ class Parameters:
                         dict_ = json.load(f)
                     self._init_from_json(dict_)
                 else:
-                    warn_msg = "Parameters: the file {} is not a supported file for loading _parameters. Continuing with default _parameters."
+                    warn_msg = "Parameters: the file {} is not a supported file for loading " \
+                               "parameters. Continuing with default _parameters."
                     warnings.warn(warn_msg.format(parameters_path))
 
             else:
-                warn_msg = "Parameters: the file {} is not found. Continuing with default _parameters."
+                warn_msg = "Parameters: the file {} is not found. Continuing with default parameters."
                 warnings.warn(warn_msg.format(parameters_path))
 
     @staticmethod
@@ -124,7 +142,8 @@ class Parameters:
         elif arg == "False" or arg == "F" or arg == "false" or arg == "f" or str(arg) == "0":
             res = False
         else:
-            msg = "It's ambiguous where an argument is True or False. Please only provide \"True\" or \"False\" and not {}"
+            msg = "It's ambiguous where an argument is True or False. " \
+                  "Please only provide \"True\" or \"False\" and not {}"
             raise RuntimeError(msg.format(arg))
         return res
 
@@ -164,9 +183,16 @@ class Parameters:
         if "MAX_LINE_STATUS_CHANGED" in dict_:
             self.MAX_LINE_STATUS_CHANGED = int(dict_["MAX_LINE_STATUS_CHANGED"])
 
+        if "NB_TIMESTEP_TOPOLOGY_REMODIF" in dict_:
+            self.NB_TIMESTEP_TOPOLOGY_REMODIF = int(dict_["NB_TIMESTEP_TOPOLOGY_REMODIF"])
+
+        if "NB_TIMESTEP_LINE_STATUS_REMODIF" in dict_:
+            self.NB_TIMESTEP_TOPOLOGY_REMODIF = int(dict_["NB_TIMESTEP_LINE_STATUS_REMODIF"])
+
         ignored_keys = dict_.keys() - self.__dict__.keys()
         if len(ignored_keys):
-            warnings.warn("Parameters: The _parameters \"{}\" used to build the Grid2Op.Parameters class are not recognized and will be ignored.".format(ignored_keys))
+            warnings.warn("Parameters: The _parameters \"{}\" used to build the Grid2Op.Parameters "
+                          "class are not recognized and will be ignored.".format(ignored_keys))
 
     def to_dict(self):
         """
@@ -187,6 +213,8 @@ class Parameters:
         res["FORECAST_DC"] = bool(self.FORECAST_DC)
         res["MAX_SUB_CHANGED"] = int(self.MAX_SUB_CHANGED)
         res["MAX_LINE_STATUS_CHANGED"] = int(self.MAX_LINE_STATUS_CHANGED)
+        res["NB_TIMESTEP_TOPOLOGY_REMODIF"] = int(self.NB_TIMESTEP_TOPOLOGY_REMODIF)
+        res["NB_TIMESTEP_LINE_STATUS_REMODIF"] = int(self.NB_TIMESTEP_LINE_STATUS_REMODIF)
         return res
 
     @staticmethod

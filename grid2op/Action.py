@@ -571,6 +571,8 @@ class Action(object):
         self._maintenance = np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
 
         self.as_vect = None
+        self._lines_impacted = None
+        self._subs_impacted = None
 
     def __call__(self):
         """
@@ -1148,7 +1150,8 @@ class Action(object):
             if the size of the vector is not the same as the result of a call to :func:`Action.size`
         """
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while load an action from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+            raise IncorrectNumberOfElements("Incorrect number of elements found while load an action from a vector. "
+                                            "Found {} elements instead of {}".format(vect.shape[1], self.size()))
         prev_ = 0
         next_ = self._n_gen
         prod_p = vect[prev_:next_]; prev_ += self._n_gen; next_ += self._n_gen
@@ -1356,6 +1359,7 @@ class Action(object):
         -------
         res: ``dict``
             The action represented as a dictionnary. See above for a description of it.
+
         """
         res = {}
 
@@ -1997,7 +2001,62 @@ class SerializableActionSpace:
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
                  actionClass=Action):
+        """
 
+        Parameters
+        ----------
+        name_prod: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`SerializableActionSpace.name_prod`
+
+        name_load: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`SerializableActionSpace.name_load`
+
+        name_line: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`SerializableActionSpace.name_line`
+
+        subs_info: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.subs_info`
+
+        load_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.load_to_subid`
+
+        gen_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.gen_to_subid`
+
+        lines_or_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.lines_or_to_subid`
+
+        lines_ex_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_subid`
+
+        load_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.load_to_sub_pos`
+
+        gen_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.gen_to_sub_pos`
+
+        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.lines_or_to_sub_pos`
+
+        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_sub_pos`
+
+        load_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.load_pos_topo_vect`
+
+        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.gen_pos_topo_vect`
+
+        lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.lines_or_pos_topo_vect`
+
+        lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.lines_ex_pos_topo_vect`
+
+        actionClass: ``type``
+            Type of action used to build :attr:`SerializableActionSpace.template_act`
+
+        """
         self.name_prod = name_prod
         self.name_load = name_load
         self.name_line = name_line
@@ -2223,19 +2282,19 @@ class SerializableActionSpace:
         """
         if previous_action is None:
             res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+                                   subs_info=self.subs_info, dim_topo=self.dim_topo,
+                                   load_to_subid=self.load_to_subid,
+                                   gen_to_subid=self.gen_to_subid,
+                                   lines_or_to_subid=self.lines_or_to_subid,
+                                   lines_ex_to_subid=self.lines_ex_to_subid,
+                                   load_to_sub_pos=self.load_to_sub_pos,
+                                   gen_to_sub_pos=self.gen_to_sub_pos,
+                                   lines_or_to_sub_pos=self.lines_or_to_sub_pos,
+                                   lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                                   load_pos_topo_vect=self.load_pos_topo_vect,
+                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
+                                   lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
+                                   lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" which is not the type of action handled by this helper (\"{}\")".format(type(previous_action), self.actionClass))
@@ -2350,19 +2409,19 @@ class SerializableActionSpace:
         """
         if previous_action is None:
             res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+                                   subs_info=self.subs_info, dim_topo=self.dim_topo,
+                                   load_to_subid=self.load_to_subid,
+                                   gen_to_subid=self.gen_to_subid,
+                                   lines_or_to_subid=self.lines_or_to_subid,
+                                   lines_ex_to_subid=self.lines_ex_to_subid,
+                                   load_to_sub_pos=self.load_to_sub_pos,
+                                   gen_to_sub_pos=self.gen_to_sub_pos,
+                                   lines_or_to_sub_pos=self.lines_or_to_sub_pos,
+                                   lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                                   load_pos_topo_vect=self.load_pos_topo_vect,
+                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
+                                   lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
+                                   lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
         else:
             res = previous_action
 
@@ -2390,23 +2449,24 @@ class SerializableActionSpace:
         """
         if previous_action is None:
             res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+                                   subs_info=self.subs_info, dim_topo=self.dim_topo,
+                                   load_to_subid=self.load_to_subid,
+                                   gen_to_subid=self.gen_to_subid,
+                                   lines_or_to_subid=self.lines_or_to_subid,
+                                   lines_ex_to_subid=self.lines_ex_to_subid,
+                                   load_to_sub_pos=self.load_to_sub_pos,
+                                   gen_to_sub_pos=self.gen_to_sub_pos,
+                                   lines_or_to_sub_pos=self.lines_or_to_sub_pos,
+                                   lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                                   load_pos_topo_vect=self.load_pos_topo_vect,
+                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
+                                   lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
+                                   lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
         else:
             res = previous_action
         res.update({"set_line_status": [(l_id, 1)],
-                    "set_bus": {"lines_or_id": [(l_id, bus_or)], "lines_ex_id": [(l_id, bus_ex)]}
+                    "set_bus": {"lines_or_id": [(l_id, bus_or)],
+                                "lines_ex_id": [(l_id, bus_ex)]}
                     })
         return res
 
@@ -2506,9 +2566,9 @@ class HelperAction(SerializableActionSpace):
 
         """
         SerializableActionSpace.__init__(self, name_prod, name_load, name_line, subs_info,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                                         load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                                         load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                                         load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
                                          actionClass=actionClass
                                          )
         self.legal_action = game_rules.legal_action
