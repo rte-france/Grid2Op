@@ -36,6 +36,7 @@ import re
 import warnings
 import json
 import os
+import math
 
 from abc import ABC, abstractmethod
 
@@ -377,6 +378,9 @@ class Observation(ABC):
         self._gen_pos_topo_vect = gen_pos_topo_vect
         self._lines_or_pos_topo_vect = lines_or_pos_topo_vect
         self._lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
+
+        # Game over
+        self.game_over = None
 
         # time stamp information
         self.year = None
@@ -1097,6 +1101,9 @@ class CompleteObservation(Observation):
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while load an Observation from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
 
+        if math.isnan(vect[0]):
+            self.game_over = True
+            return
         self.year = int(vect[0])
         self.month = int(vect[1])
         self.day = int(vect[2])
