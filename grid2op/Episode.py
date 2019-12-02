@@ -2,6 +2,7 @@ import json
 import os
 
 import numpy as np
+import pandas as pd
 
 try:
     from .Exceptions import Grid2OpException
@@ -87,6 +88,21 @@ class Episode:
                 os.mkdir(self.episode_path)
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
+            self.production = self.make_df_from_data()
+
+    def make_df_from_data(self):
+        production = pd.DataFrame()
+        consumption = pd.DataFrame()
+        for time_step in range(self.observations.shape[0]):
+            obs = self.get_observation(time_step)
+            if obs.game_over:
+                continue
+            time_step_real = time_step
+            for equipment in range(len(obs.load_p)):
+                production.loc[time_step, :] = [equipment, time_step_real, obs.load_p[equipment]]
+            for equipment in range(len(obs.prod_p)):
+                consumption.loc[time_step, :] = [equipment, time_step_real, obs.prod_p[equipment]]
+        return production, consumption
 
     @classmethod
     def fromdisk(cls, agent_path, indx=0):
@@ -155,23 +171,23 @@ class Episode:
         if self.serialize:
             if efficient_storing:
                 # efficient way of writing
-                self.times[time_step-1] = time_step_duration
-                self.rewards[time_step-1] = reward
-                self.actions[time_step-1, :] = act.to_vect()
-                self.env_actions[time_step-1, :] = env_act.to_vect()
-                self.observations[time_step-1, :] = obs.to_vect()
+                self.times[time_step - 1] = time_step_duration
+                self.rewards[time_step - 1] = reward
+                self.actions[time_step - 1, :] = act.to_vect()
+                self.env_actions[time_step - 1, :] = env_act.to_vect()
+                self.observations[time_step - 1, :] = obs.to_vect()
                 if "disc_lines" in info:
                     arr = info["disc_lines"]
                     if arr is not None:
-                        self.disc_lines[time_step-1, :] = arr
+                        self.disc_lines[time_step - 1, :] = arr
                     else:
                         self.disc_lines[time_step - 1,
-                                        :] = self.disc_lines_templ
+                        :] = self.disc_lines_templ
             else:
                 # completely inefficient way of writing
                 self.times = np.concatenate(
-                    (self.times, (time_step_duration, )))
-                self.rewards = np.concatenate((self.rewards, (reward, )))
+                    (self.times, (time_step_duration,)))
+                self.rewards = np.concatenate((self.rewards, (reward,)))
                 self.actions = np.concatenate((self.actions, act.to_vect()))
                 self.env_actions = np.concatenate(
                     (self.actions, env_act.to_vect()))
@@ -191,7 +207,7 @@ class Episode:
             self.episode_times = {}
             self.episode_times["Env"] = {}
             self.episode_times["Env"]["total"] = float(
-                env._time_apply_act+env._time_powerflow+env._time_extract_obs)
+                env._time_apply_act + env._time_powerflow + env._time_extract_obs)
             self.episode_times["Env"]["apply_act"] = float(env._time_apply_act)
             self.episode_times["Env"]["powerflow_computation"] = float(
                 env._time_powerflow)
@@ -199,11 +215,10 @@ class Episode:
                 env._time_extract_obs)
             self.episode_times["Agent"] = {}
             self.episode_times["Agent"]["total"] = float(time_act)
-            self.episode_times["total"] = float(end_-beg_)
+            self.episode_times["total"] = float(end_ - beg_)
 
     def todisk(self):
         if self.serialize:
-
             parameters_path = os.path.join(
                 self.episode_path, "_parameters.json")
             with open(parameters_path, "w") as f:
