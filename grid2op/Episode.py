@@ -87,21 +87,24 @@ class Episode(object):
                 os.mkdir(self.episode_path)
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
-            self.production = self.make_df_from_data()
+            self.load, self.production = self.make_df_from_data()
 
     def make_df_from_data(self):
-        production = pd.DataFrame()
-        consumption = pd.DataFrame()
+        load_size = self.observations.shape[0] * len(self.get_observation(0).load_p)
+        prod_size = self.observations.shape[0] * len(self.get_observation(0).prod_p)
+        load_data = pd.DataFrame(index=range(load_size), columns=['time', 'equipment', 'value'])
+        production = pd.DataFrame(index=range(prod_size), columns=['time', 'equipment', 'value'])
         for time_step in range(self.observations.shape[0]):
             obs = self.get_observation(time_step)
             if obs.game_over:
                 continue
-            time_step_real = time_step
             for equipment in range(len(obs.load_p)):
-                production.loc[time_step, :] = [equipment, time_step_real, obs.load_p[equipment]]
+                pos = time_step * len(obs.load_p) + equipment
+                load_data.loc[pos, :] = [time_step, equipment, obs.load_p[equipment]]
             for equipment in range(len(obs.prod_p)):
-                consumption.loc[time_step, :] = [equipment, time_step_real, obs.prod_p[equipment]]
-        return production, consumption
+                pos = time_step * len(obs.prod_p) + equipment
+                production.loc[pos, :] = [time_step, equipment, obs.prod_p[equipment]]
+        return load_data, production
 
     def get_action(self, i):
         return self.action_space.from_vect(self.actions[i, :])
