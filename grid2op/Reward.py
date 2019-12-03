@@ -60,7 +60,7 @@ class Reward(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, action, env, has_error, is_done):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         """
         Method called to compute the reward.
 
@@ -79,10 +79,20 @@ class Reward(ABC):
         is_done: ``bool``
             Is the episode over (either because the agent has reached the end, or because there has been a game over)
 
+        is_illegal: ``bool``
+            Has the action submitted by the Agent raised an :class:`grid2op.Exceptions.IllegalAction` exception.
+            In this case it has been
+            overidden by "do nohting" by the environment.
+
+        is_ambiguous: ``bool``
+            Has the action submitted by the Agent raised an :class:`grid2op.Exceptions.AmbiguousAction` exception.
+            In this case it has been
+            overidden by "do nothing" by the environment.
+
         Returns
         -------
         res: ``float``
-            The associated reward to the input _parameters.
+            The reward associated to the input parameters.
 
         """
         pass
@@ -109,13 +119,14 @@ class ConstantReward(Reward):
     """
     Most basic implementation of reward: everything has the same values.
 
-    Note that this :class:`Reward` subtype is not usefull at all, whether to train an :attr:`Agent` nor to assess its performance of course.
+    Note that this :class:`Reward` subtype is not usefull at all, whether to train an :attr:`Agent` nor to assess its
+    performance of course.
 
     """
     def __init__(self):
         Reward.__init__(self)
 
-    def __call__(self, action, env, has_error, is_done):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         return 0
 
 
@@ -131,7 +142,7 @@ class FlatReward(Reward):
         self.reward_min = 0
         self.reward_max = per_timestep
 
-    def __call__(self, action, env, has_error, is_done):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not has_error:
             res = self.per_timestep
         else:
@@ -158,7 +169,7 @@ class IncreasingFlatReward(Reward):
         else:
             self.reward_max = np.inf
 
-    def __call__(self, action, env, has_error, is_done):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not has_error:
             res = env.nb_time_step * self.per_timestep
         else:
@@ -177,20 +188,10 @@ class L2RPNReward(Reward):
         Reward.__init__(self)
 
     def initialize(self, env):
-        """
-
-        Parameters
-        ----------
-        env:
-
-        Returns
-        -------
-
-        """
         self.reward_min = 0.
         self.reward_max = env.backend.n_lines
 
-    def __call__(self, action, env, has_error, is_done):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not is_done and not has_error:
             line_cap = self.__get_lines_capacity_usage(env)
             res = np.sum(line_cap)
@@ -232,14 +233,64 @@ class RewardHelper:
         self.template_reward = rewardClass()
 
     def initialize(self, env):
+        """
+        This function initializes the template_reward with the environment. It is used especially for using
+        :func:`RewardHelper.range`.
+
+        Parameters
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            The current used environment.
+
+        """
         self.template_reward.initialize(env)
 
     def range(self):
+        """
+        Provides the range of the rewards.
+
+        Returns
+        -------
+        res: ``(float, float)``
+            The minimum reward per time step (possibly infinity) and the maximum reward per timestep (possibly infinity)
+        """
         return self.template_reward.get_range()
 
-    def __call__(self, action, env, has_error, is_done):
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        """
+        Gives the reward that follows the execution of the :class:`grid2op.Action.Action` action in the
+        :class:`grid2op.Environment.Environment` env;
+
+
+        Parameters
+        ----------
+        action: :class:`grid2op.Action.Action`
+            The action performed by the Agent.
+
+        env: :class:`grid2op.Environment.Environment`
+            The current environment.
+
+        has_error: ``bool``
+            Does the action caused an error, such a diverging powerflow for example= (``True``: the action caused
+            an error)
+
+        is_done: ``bool``
+            Is the game over (``True`` = the game is over)
+
+        is_illegal: ``bool``
+            Is the action legal or not (``True`` = the action was illegal). See
+            :class:`grid2op.Exceptions.IllegalAction` for more information.
+
+        is_ambiguous: ``bool``
+            Is the action ambiguous or not (``True`` = the action was ambiguous). See
+            :class:`grid2op.Exceptions.AmbiguousAction` for more information.
+
+        Returns
+        -------
+
+        """
         if not is_done and not has_error:
-            res = self.template_reward(action, env, has_error, is_done)
+            res = self.template_reward(action, env, has_error, is_done, is_illegal, is_ambiguous)
         else:
             # no more data to consider, no powerflow has been run, reward is what it is
             res = self.template_reward.reward_min

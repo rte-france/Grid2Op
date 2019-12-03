@@ -52,7 +52,7 @@ class AllwaysLegal(LegalAction):
     def __call__(self, action, env):
      """
      All actions being legal, this returns always true.
-     See :func:`LegalAction.__call__` for a definition of the _parameters of this function.
+     See :func:`LegalAction.__call__` for a definition of the parameters of this function.
 
      """
      return True
@@ -65,12 +65,12 @@ class LookParam(LegalAction):
     This class doesn't require any environment information. The "env" argument is only used to look for the
     game rules implemented in :class:`grid2op.Parameters`.
 
-    See :func:`LegalAction.__call__` for a definition of the _parameters of this function.
+    See :func:`LegalAction.__call__` for a definition of the parameters of this function.
 
     """
     def __call__(self, action, env):
         """
-        See :func:`LegalAction.__call__` for a definition of the _parameters of this function.
+        See :func:`LegalAction.__call__` for a definition of the parameters of this function.
         """
         aff_lines, aff_subs = action.get_topological_impact()
         if np.sum(aff_lines) > env.parameters.MAX_LINE_STATUS_CHANGED:
@@ -94,7 +94,7 @@ class PreventReconection(LegalAction):
         This function check only that the action doesn't attempt to reconnect  a powerline that has been disconnected
         due to an overflow.
 
-        See :func:`LegalAction.__call__` for a definition of the _parameters of this function.
+        See :func:`LegalAction.__call__` for a definition of the parameters of this function.
 
         """
         aff_lines, aff_subs = action.get_topological_impact()
@@ -154,3 +154,23 @@ class GameRules(object):
         if not issubclass(legalActClass, LegalAction):
             raise Grid2OpException("Gamerules: legalActClass should be initialize with a class deriving from LegalAction and not {}".format(type(legalActClass)))
         self.legal_action = legalActClass()
+
+    def __call__(self, action, env):
+        """
+        Says if an action is legal or not.
+
+        Parameters
+        ----------
+        action: :class:`grid2op.Action.Action`
+            The action that need to be tested
+
+        env: :class:`grid2op.Environment.Environment`
+            The current used environment.
+
+        Returns
+        -------
+        res: ``bool``
+            Assess if the given action is legal or not. ``True``: the action is legal, ``False`` otherwise
+
+        """
+        return self.legal_action(action, env)

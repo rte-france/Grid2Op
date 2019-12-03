@@ -97,6 +97,10 @@ class ObsEnv(object):
 
         self.chronics_handler = ObsCH()
 
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.time_remaining_before_reconnection = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+
     def copy(self):
         """
         Implement the deep copy of this instance.
@@ -149,7 +153,11 @@ class ObsEnv(object):
         This function is the core method of the :class:`ObsEnv`. It allows to perform a simulation of what would
         give and action if it were to be implemented on the "forecasted" powergrid.
 
-        It has the same signature as :func:`grid2op.Environment.step`
+        It has the same signature as :func:`grid2op.Environment.step`. One of the major difference is that it doesn't
+        check whether the action is illegal or not (but an implementation could be provided for this method). The
+        reason for this is that there is not one single and unique way to "forecast" how the thermal limit will behave,
+        which lines will be available or not, which actions will be done or not between the time stamp at which
+        "simulate" is called, and the time stamp that is simulated.
 
         Parameters
         ----------
@@ -168,7 +176,13 @@ class ObsEnv(object):
             whether the episode has ended, in which case further step() calls will return undefined results
 
         info: ``dict``
-            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). It is a
+            dictionnary with keys:
+
+                - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
+                    due to overflow
+                - "is_illegal" (``bool``) whether the action given as input was illegal
+                - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
         has_error = True
@@ -176,7 +190,16 @@ class ObsEnv(object):
         is_done = False
         reward = None
 
-        self.backend.apply_action(action)
+        is_illegal = False
+        is_ambiguous = False
+
+        try:
+            self.backend.apply_action(action)
+        except AmbiguousAction:
+            # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
+            # "do nothing"
+            is_ambiguous = True
+
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -202,16 +225,16 @@ class ObsEnv(object):
             reward = self.reward_helper.range()[0]
         # print("reward_helper in ObsEnv: {}".format(self.reward_helper.template_reward))
         if reward is None:
-            reward = self._get_reward(action, has_error, is_done)
+            reward = self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous)
         self.backend = tmp_backend
 
         return self.current_obs, reward, has_error, {}
 
-    def _get_reward(self, action, has_error, is_done):
+    def _get_reward(self, action, has_error, is_done,is_illegal, is_ambiguous):
         if has_error:
             res = self.reward_helper.range()[0]
         else:
-            res = self.reward_helper(action, self, has_error, is_done)
+            res = self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
         return res
 
     def get_obs(self):
@@ -345,6 +368,54 @@ class Observation(ABC):
         The vector representation of this Observation (if computed, or None) see definition of
         :func:`to_vect` for more information.
 
+    topo_vect:  :class:`numpy.ndarray`, dtype:int
+        For each object (load, generator, ends of a powerline) it gives on which bus this object is connected
+        in its substation. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
+
+    line_status: :class:`numpy.ndarray`, dtype:bool
+        Gives the status (connected / disconnected) for every powerline (``True`` at position `i` means the powerline
+        `i` is connected)
+
+    timestep_overflow: :class:`numpy.ndarray`, dtype:int
+        Gives the number of time steps since a powerline is in overflow.
+
+    time_before_cooldown_line:  :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the number of time step the powerline is unavailable due to "cooldown"
+        (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF` for more information). 0 means the
+        an action will be able to act on this same powerline, a number > 0 (eg 1) means that an action at this time step
+        cannot act on this powerline (in the example the agent have to wait 1 time step)
+
+    time_before_cooldown_sub: :class:`numpy.ndarray`, dtype:int
+        Same as :attr:`Observation.time_before_cooldown_line` but for substations. For each substation, it gives the
+        number of timesteps to wait before acting on this substation (see
+        see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information).
+
+    time_before_line_reconnectable: :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the number of timesteps before the powerline can be reconnected. This only
+        concerns the maintenance, outage (hazards) and disconnection due to cascading failures (including overflow). The
+        same convention as for :attr:`Observation.time_before_cooldown_line` and
+        :attr:`Observation.time_before_cooldown_sub` is adopted: 0 at position `i` means that the powerline can be
+        reconnected. It there is 2 (for example) it means that the powerline `i` is unavailable for 2 timesteps (we
+        will be able to re connect it not this time, not next time, but the following timestep)
+
+    time_next_maintenance: :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the time of the next planned maintenance. For example if there is:
+
+            - `1` at position `i` it means that the powerline `i` will be disconnected for maintenance operation at the next time step. A
+            - `0` at position `i` means that powerline `i` is disconnected from the powergrid for maintenance operation
+              at the current time step.
+            - `-1` at position `i` means that powerline `i` will not be disconnected for maintenance reason for this
+              episode.
+
+    duration_next_maintenance: :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the number of time step that the maintenance will last (if any). This means that,
+        if at position `i` of this vector:
+
+            - there is a `0`: the powerline is not disconnected from the grid for maintenance
+            - there is a `1`, `2`, ... the powerline will be disconnected for at least `1`, `2`, ... timestep (**NB**
+              in all case, the powerline will stay disconnected until a :class:`grid2op.Agent.Agent` performs the
+              proper :class:`grid2op.Action.Action` to reconnect it).
+
     """
     def __init__(self,
                  n_gen, n_load, n_lines, subs_info, dim_topo,
@@ -423,6 +494,13 @@ class Observation(ABC):
         self.a_ex = None
         # lines relative flows
         self.rho = None
+
+        # cool down and reconnection time after hard overflow, soft overflow or cascading failure
+        self.time_before_cooldown_line = None
+        self.time_before_cooldown_sub = None
+        self.time_before_line_reconnectable = None
+        self.time_next_maintenance = None
+        self.duration_next_maintenance = None
 
         # matrices
         self.connectivity_matrix_ = None
@@ -619,6 +697,13 @@ class Observation(ABC):
         self.day_of_week = None
         self.hour_of_day = None
         self.minute_of_hour = None
+
+        # cool down and reconnection time after hard overflow, soft overflow or cascading failure
+        self.time_before_cooldown_line = None
+        self.time_before_cooldown_sub = None
+        self.time_before_line_reconnectable = None
+        self.time_next_maintenance = None
+        self.duration_next_maintenance = None
 
         # forecasts
         self._forecasted_inj = []
@@ -1004,6 +1089,14 @@ class CompleteObservation(Observation):
         self._forecasted_grid = [None for _ in self._forecasted_inj]
         self.rho = env.backend.get_relative_flow()
 
+        # TODO
+        # cool down and reconnection time after hard overflow, soft overflow or cascading failure
+        self.time_before_cooldown_line = env.times_before_line_status_actionable
+        self.time_before_cooldown_sub = env.times_before_topology_actionable
+        self.time_before_line_reconnectable = env.time_remaining_before_reconnection
+        self.time_next_maintenance = env.time_next_maintenance
+        self.duration_next_maintenance = env.duration_next_maintenance
+
     def to_vect(self):
         """
         Representation of an :class:`CompleteObservation` into a flat floating point vector.
@@ -1040,8 +1133,10 @@ class CompleteObservation(Observation):
             20. :attr:`Observation.a_ex` current flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
             21. :attr:`Observation.rho` line capacity used (current flow / thermal limit) [:attr:`Observation.n_lines` elements]
             22. :attr:`Observation.line_status` line status [:attr:`Observation.n_lines` elements]
-            23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow (0 if the line is not on overflow)[:attr:`Observation.n_lines` elements]
-            24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element it gives its bus]. See :func:`grid2op.Backend.get_topo_vect` for more information.
+            23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow
+                (0 if the line is not on overflow)[:attr:`Observation.n_lines` elements]
+            24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element
+                it gives its bus]. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
 
         Returns
         -------

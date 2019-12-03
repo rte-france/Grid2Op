@@ -1,5 +1,13 @@
 Change Log
 =============
+
+[0.3.7] - 2019-12-04
+--------------------
+- [ADDED] Basic tools for plotting with the `PlotPlotly` module
+- [UPDATED] handling of the `AmbiguousAction` and `IllegalAction` exceptions (and appropriated tests)
+- [ADDED] support of maintenance operation as well as hazards in the observation
+- [UPDATED] various documentation, in particular the class observations (and appropriated tests)
+
 [0.3.6] - 2019-12-01
 --------------------
 - [UPDATED] Readme with docker

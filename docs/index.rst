@@ -34,6 +34,7 @@ Main module content
    quickstart
    grid2op
    makeenv
+   pltplotly
 
 Technical Documentation
 ----------------------------
