@@ -91,12 +91,11 @@ class Episode:
             self.load, self.production = self.make_df_from_data()
 
     def make_df_from_data(self):
-        load_size = self.observations.shape[0] * len(self.get_observation(0).load_p)
-        prod_size = self.observations.shape[0] * len(self.get_observation(0).prod_p)
+        load_size = len(self.observations) * len(self.observations[0].load_p)
+        prod_size = len(self.observations) * len(self.observations[0].prod_p)
         load_data = pd.DataFrame(index=range(load_size), columns=['time', 'equipment', 'value'])
         production = pd.DataFrame(index=range(prod_size), columns=['time', 'equipment', 'value'])
-        for time_step in range(self.observations.shape[0]):
-            obs = self.get_observation(time_step)
+        for (time_step, obs) in enumerate(self.observations):
             if obs.game_over:
                 continue
             for equipment in range(len(obs.load_p)):
