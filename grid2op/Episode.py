@@ -62,7 +62,7 @@ class Episode:
         if get_dataframes is not None:
             print("computing df")
             beg = time.time()
-            self.load, self.production = self._make_df_from_data()
+            self.load, self.production, self.rho = self._make_df_from_data()
             self.hazards, self.maintenances = self._env_actions_as_df()
             end = time.time()
             print(f"end computing df: {end-beg}")
@@ -103,7 +103,6 @@ class Episode:
                 os.mkdir(self.episode_path)
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
-            self.load, self.production, self.rho = self.make_df_from_data()
 
     def _make_df_from_data(self):
         load_size = len(self.observations) * len(self.observations[0].load_p)
