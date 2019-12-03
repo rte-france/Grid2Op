@@ -12,7 +12,8 @@ except (ModuleNotFoundError, ImportError):
     from Utils import ActionSpace, ObservationSpace
 
 
-class Episode(object):
+class Episode:
+
     ACTION_SPACE = "dict_action_space.json"
     OBS_SPACE = "dict_observation_space.json"
     ENV_MODIF_SPACE = "dict_env_modification_space.json"
@@ -34,26 +35,26 @@ class Episode(object):
                  helper_action_env=None, path_save=None, disc_lines_templ=None,
                  logger=None, indx=0):
 
-        self.actions = actions
-        self.observations = observations
+        self.actions = CollectionWrapper(actions, action_space, "actions")
+        self.observations = CollectionWrapper(observations, observation_space,
+                                              "observations")
+
+        self.env_actions = CollectionWrapper(env_actions, helper_action_env,
+                                             "env_actions")
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
-        self.env_actions = env_actions
         self.params = params
         self.meta = meta
         self.episode_times = episode_times
-        self.observation_space = observation_space
-        self.action_space = action_space
-        self.helper_action_env = helper_action_env
-        self.agent_path = os.path.abspath(path_save)
         self.indx = indx
-        self.episode_path = os.path.join(self.agent_path, str(indx))
         self.disc_lines_templ = disc_lines_templ
         self.logger = logger
         self.serialize = False
 
-        if self.agent_path is not None:
+        if path_save is not None:
+            self.agent_path = os.path.abspath(path_save)
+            self.episode_path = os.path.join(self.agent_path, str(indx))
             self.serialize = True
             if not os.path.exists(self.agent_path):
                 os.mkdir(self.agent_path)
@@ -68,17 +69,17 @@ class Episode(object):
                 self.agent_path, Episode.ENV_MODIF_SPACE)
 
             if not os.path.exists(act_space_path):
-                dict_action_space = self.action_space.to_dict()
+                dict_action_space = action_space.to_dict()
                 with open(act_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_action_space, fp=f,
                               indent=4, sort_keys=True)
             if not os.path.exists(obs_space_path):
-                dict_observation_space = self.observation_space.to_dict()
+                dict_observation_space = observation_space.to_dict()
                 with open(obs_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_observation_space,
                               fp=f, indent=4, sort_keys=True)
             if not os.path.exists(env_modif_space_path):
-                dict_helper_action_env = self.helper_action_env.to_dict()
+                dict_helper_action_env = helper_action_env.to_dict()
                 with open(env_modif_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_helper_action_env, fp=f,
                               indent=4, sort_keys=True)
@@ -105,15 +106,6 @@ class Episode(object):
                 pos = time_step * len(obs.prod_p) + equipment
                 production.loc[pos, :] = [time_step, equipment, obs.prod_p[equipment]]
         return load_data, production
-
-    def get_action(self, i):
-        return self.action_space.from_vect(self.actions[i, :])
-
-    def get_observation(self, i):
-        return self.observation_space.from_vect(self.observations[i, :])
-
-    def get_env_action(self, i):
-        return self.helper_action_env.from_vect(self.env_actions[i, :])
 
     @classmethod
     def fromdisk(cls, agent_path, indx=0):
@@ -257,3 +249,37 @@ class Episode(object):
                 self.episode_path, Episode.LINES_FAILURES), self.disc_lines)
             np.save(os.path.join(self.episode_path,
                                  Episode.REWARDS), self.rewards)
+
+
+class CollectionWrapper:
+    def __init__(self, collection, helper, collection_name):
+        self.collection = collection
+        if not hasattr(helper, "from_vect"):
+            raise Grid2OpException(f"Object {helper} must implement a "
+                                   f"from_vect methode.")
+        self.helper = helper
+        self.collection_name = collection_name
+        self.elem_name = self.collection_name[:-1]
+        self.i = 0
+
+    def __len__(self):
+        return self.collection.shape[0]
+
+    def __getitem__(self, i):
+        if i < len(self):
+            return self.helper.from_vect(self.collection[i, :])
+        else:
+            raise Grid2OpException(
+                f"Trying to reach {self.elem_name} {i+1} but "
+                f"there are only {len(self)} {self.collection_name}.")
+
+    def __iter__(self):
+        self.i = 0
+        return self
+
+    def __next__(self):
+        self.i = self.i + 1
+        if self.i < len(self) + 1:
+            return self[self.i-1]
+        else:
+            raise StopIteration
