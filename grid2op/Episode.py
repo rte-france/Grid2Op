@@ -15,7 +15,6 @@ except (ModuleNotFoundError, ImportError):
 
 
 class Episode:
-
     ACTION_SPACE = "dict_action_space.json"
     OBS_SPACE = "dict_observation_space.json"
     ENV_MODIF_SPACE = "dict_env_modification_space.json"
@@ -104,14 +103,15 @@ class Episode:
                 os.mkdir(self.episode_path)
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
+            self.load, self.production, self.rho = self.make_df_from_data()
 
-    def _make_df_from_data(self):
-        load_size = len(self.observations) * self.n_loads
-        prod_size = len(self.observations) * self.n_prods
-        cols = ["timestep", "timestamp", "equipement_id", "equipment_name",
-                "value"]
-        load_data = pd.DataFrame(index=range(load_size), columns=cols)
-        production = pd.DataFrame(index=range(prod_size), columns=cols)
+    def make_df_from_data(self):
+        load_size = len(self.observations) * len(self.observations[0].load_p)
+        prod_size = len(self.observations) * len(self.observations[0].prod_p)
+        rho_size = len(self.observations) * len(self.observations[0].rho)
+        load_data = pd.DataFrame(index=range(load_size), columns=['time', 'equipment', 'value'])
+        production = pd.DataFrame(index=range(prod_size), columns=['time', 'equipment', 'value'])
+        rho = pd.DataFrame(index=range(rho_size), columns=['time', 'equipment', 'value'])
         for (time_step, obs) in enumerate(self.observations):
             if obs.game_over:
                 continue
@@ -126,10 +126,13 @@ class Episode:
                 production.loc[pos, :] = [
                     time_step, time_stamp, equipment_id,
                     self.prod_names[equipment_id], prod_p]
-
+            for equipment, rho_t in enumerate(obs.rho):
+                pos = time_step * len(obs.rho) + equipment
+                rho.loc[pos, :] = [time_step, equipment, rho_t]
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
-        return load_data, production
+        rho_t["value"] = rho_t["value"].astype(float)
+        return load_data, production, rho
 
     def _env_actions_as_df(self):
         hazards_size = len(self.observations) * self.n_lines
@@ -234,7 +237,7 @@ class Episode:
                         self.disc_lines[time_step - 1, :] = arr
                     else:
                         self.disc_lines[time_step - 1,
-                                        :] = self.disc_lines_templ
+                        :] = self.disc_lines_templ
             else:
                 # completely inefficient way of writing
                 self.times = np.concatenate(
@@ -319,7 +322,7 @@ class CollectionWrapper:
             return self.helper.from_vect(self.collection[i, :])
         else:
             raise Grid2OpException(
-                f"Trying to reach {self.elem_name} {i+1} but "
+                f"Trying to reach {self.elem_name} {i + 1} but "
                 f"there are only {len(self)} {self.collection_name}.")
 
     def __iter__(self):
@@ -329,6 +332,6 @@ class CollectionWrapper:
     def __next__(self):
         self.i = self.i + 1
         if self.i < len(self) + 1:
-            return self[self.i-1]
+            return self[self.i - 1]
         else:
             raise StopIteration
