@@ -55,12 +55,12 @@ This instructions will install grid2op with its default PandaPower Backend imple
 
 #### Step 1: Install Python3
 On Debian-like systems (Ubuntu):
-```bash
+```commandline
 sudo apt-get install python3
 ```
 
 On Fedora-like systems:
-```bash
+```commandline
 sudo dnf install python3
 ```
 
@@ -68,14 +68,14 @@ If you have any trouble with this step, please refer to
 [the official webpage of Python](https://www.python.org/downloads/release/python-366/).
 
 #### (Optional, recommended) Step 1bis: Create a virtual environment
-```bash
+```commandline
 pip3 install -U virtualenv
 cd Grid2Op
 python3 -m virtualenv venv_grid2op
 ```
 
 #### Step 2: Clone Grid2Op
-```bash
+```commandline
 git clone https://github.com/rte-france/Grid2Op.git
 ```
 
@@ -83,7 +83,7 @@ This should create a folder Grid2Op with the current sources.
 
 #### Step 3: Run the installation script of Grid2Op
 Finally, run the following Python command to install the current simulator (including the Python libraries dependencies):
-```
+```commandline
 cd Grid2Op/
 source venv_grid2op/bin/activate
 pip install -U .
@@ -91,7 +91,17 @@ pip install -U .
 After this, this simulator is available under the name grid2op (e.g. ```import grid2op```).
 
 ## Install with Docker
-Support of Docker *coming soon*.
+A grid2op docker is available on [dockerhub](https://hub.docker.com/). It can be simply installed with
+```commandline
+docker pull bdonnot/grid2op:latest
+```
+
+This will pull and install the latest version of grid2op as a docker image. If you want a specific
+version of grid2op (*eg* 0.3.3), and this version has been pushed to docker\* you can instead install:
+
+```commandline
+docker pull bdonnot/grid2op:0.3.3
+```
 
 # Basic usage
 ## Without using Docker
@@ -99,7 +109,7 @@ Experiments can be conducted using the CLI (command line interface).
 
 ### Using CLI arguments
 CLI can be used to run simulations:
-```bash
+```commandline
 python -m grid2op.main
 ```
 
@@ -107,12 +117,25 @@ This will evaluate a *DoNothing* policy (eg. simulating and *Agent* that does no
 any action on the powergrid, on the IEEE case 14 for 3 epochs each of 287 time steps.)
 
 For more information:
-```bash
+```commandline
 python -m grid2op.main --help
 ```
 
 ## Using Docker
-*coming soon*
+Then it's possible to start a container from the downloaded image (see [install-with-docker](#install-with-docker)):
+```commandline
+docker run -it bdonnot/grid2op:latest
+```
+
+This command will start a container form the image, execute the main script of grid2op 
+(see [using-cli-arguments](#using-cli-arguments)) and exit this container.
+
+If instead you want to start an interactive session, you can do:
+```commandline
+docker run -it bdonnot/grid2op:latest bash
+```
+This will start the "bash" script from the container, and you interact with it.
+
 
 # Main features of Grid2Op
 
@@ -135,8 +158,8 @@ Its main features are:
 ## Generate the documentation
 A copy of the documentation can be built: you will need Sphinx, a Documentation building tool, and a nice-looking custom
  [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
-```bash
-pip3 install sphinx sphinx-rtd-theme
+```commandline
+pip3 install -U grid2op[docs]
 ```
 This installs both the Sphinx package and the custom template. Then, the documentation can be built with the command:
 ```
@@ -185,7 +208,7 @@ anything with the help of mybinder:
 Some tests (unit test, non regression test etc.) are provided with this package. They are located at grid2op/tests.
 
 The tests can be performed with the command:
-```bash
+```commandline
 cd grid2op/tests
 python3 -m unittest discover
 ```
