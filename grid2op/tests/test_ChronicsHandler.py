@@ -13,8 +13,7 @@ import pdb
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
 
 from Exceptions import *
-from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
-# from BackendADN import ADNBackend
+from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder
 from BackendPandaPower import PandaPowerBackend
 
 
@@ -300,6 +299,71 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
         vect = vect[self.id_chron_to_back_load]
         assert self.compare_vect(res["injection"]['load_p'], vect)
+        try:
+            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            raise RuntimeError("This should have thrown a StopIteration exception")
+        except StopIteration:
+            pass
+
+class TestLoadingMultiFolder(unittest.TestCase):
+    def setUp(self):
+        self.path = os.path.join(PATH_CHRONICS, "test_multi_chronics")
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+
+        self.n_gen = 5
+        self.n_load = 11
+        self.n_lines = 20
+
+        self.order_backend_loads = ['load_1_0', 'load_2_1', 'load_13_2', 'load_3_3', 'load_4_4', 'load_5_5',
+                                    'load_8_6', 'load_9_7', 'load_10_8', 'load_11_9', 'load_12_10']
+        self.order_backend_prods = ['gen_1_0', 'gen_2_1', 'gen_5_2', 'gen_7_3', "gen_0_4"]
+        self.order_backend_lines = ['0_1_0', '0_4_1', '8_9_2', '8_13_3', '9_10_4', '11_12_5', '12_13_6',
+                                    '1_2_7', '1_3_8', '1_4_9', '2_3_10',
+                                    '3_4_11', '5_10_12', '5_11_13', '5_12_14', '3_6_15', '3_8_16',
+                                    '4_5_17', '6_7_18', '6_8_19']
+
+        self.order_backend_subs = ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3', 'sub_4',
+                                   'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9']
+
+        self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
+                                                    "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
+                                                    "5_C201.84": 'load_4_4',
+                                                    "6_C-6.27": 'load_5_5', "9_C130.49": 'load_8_6',
+                                                    "10_C228.66": 'load_9_7',
+                                                    "11_C-138.89": 'load_10_8', "12_C-27.88": 'load_11_9',
+                                                    "13_C-13.33": 'load_12_10'},
+                                          "lines": {'1_2_1': '0_1_0', '1_5_2': '0_4_1', '9_10_16': '8_9_2',
+                                                    '9_14_17': '8_13_3',
+                                                    '10_11_18': '9_10_4', '12_13_19': '11_12_5', '13_14_20': '12_13_6',
+                                                    '2_3_3': '1_2_7', '2_4_4': '1_3_8', '2_5_5': '1_4_9',
+                                                    '3_4_6': '2_3_10',
+                                                    '4_5_7': '3_4_11', '6_11_11': '5_10_12', '6_12_12': '5_11_13',
+                                                    '6_13_13': '5_12_14', '4_7_8': '3_6_15', '4_9_9': '3_8_16',
+                                                    '5_6_10': '4_5_17',
+                                                    '7_8_14': '6_7_18', '7_9_15': '6_8_19'},
+                                          "prods": {"1_G137.1": 'gen_0_4', "3_G36.31": "gen_2_1", "6_G63.29": "gen_5_2",
+                                                    "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
+                                          }
+
+        self.max_iter = 10
+
+    # Cette méthode sera appelée après chaque test.
+    def tearDown(self):
+        pass
+
+    def test_stopiteration(self):
+        chron_handl = ChronicsHandler(chronicsClass=Multifolder,
+                                      path=self.path,
+                                      gridvalueClass=GridStateFromFileWithForecasts,
+                                      max_iter=self.max_iter)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                               self.order_backend_lines, self.order_backend_subs,
+                               self.names_chronics_to_backend)
+        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        for i in range(self.max_iter ):
+            _, res = chron_handl.next_time_step()  # should load the first time stamp
+
         try:
             _, res = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")

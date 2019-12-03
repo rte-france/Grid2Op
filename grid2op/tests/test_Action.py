@@ -569,5 +569,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
         act2 = self.helper_action_env.from_vect(vect_)
         assert act == act2
 
+
 if __name__ == "__main__":
     unittest.main()

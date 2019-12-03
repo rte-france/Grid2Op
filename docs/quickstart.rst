@@ -22,15 +22,14 @@ First, it is recommended (but optionnal) to make a virtual environment:
 .. code-block:: bash
 
     pip3 install -U virtualenv
-    cd Grid2Op
-    python3 -m virtualenv venv_grid2op
-
 
 The second step is to clone the Grid2Op package (`git` is required):
 
 .. code-block:: bash
 
     git clone https://github.com/rte-france/Grid2Op.git
+    cd Grid2Op
+    python3 -m virtualenv venv_grid2op
 
 This should create a folder Grid2Op with the current sources.
 
@@ -74,3 +73,10 @@ interesting part of this framework:
   or on `this github repository <https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial>`_ . This code will
   be adapted (only minor changes, most of them to fit the shape of the data)
   and a (D)DQN will be trained on this problem.
+* 4_StudyYourAgent shows how to study an Agent, for example
+  the methods to reload a saved experiment, or to plot the powergrid given an observation for
+  example. This is an introductory notebook. More user friendly graphical interface should
+  come soon.
+
+These notebooks are available without any installation thanks to
+`mybinder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_
