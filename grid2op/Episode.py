@@ -1,5 +1,6 @@
 import json
 import os
+import datetime as dt
 
 import numpy as np
 import pandas as pd
@@ -88,27 +89,40 @@ class Episode:
                 os.mkdir(self.episode_path)
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
+            self.load_names = action_space.name_load
+            self.prod_names = action_space.name_prod
+            self.line_names = action_space.name_line
             self.load, self.production = self.make_df_from_data()
 
     def make_df_from_data(self):
         load_size = len(self.observations) * len(self.observations[0].load_p)
         prod_size = len(self.observations) * len(self.observations[0].prod_p)
-        load_data = pd.DataFrame(index=range(load_size), columns=[
-                                 'time', 'equipment', 'value'])
-        production = pd.DataFrame(index=range(prod_size), columns=[
-                                  'time', 'equipment', 'value'])
+        cols = ["timestep", "timestamp", "equipement_id", "equipement_name",
+                "value"]
+        load_data = pd.DataFrame(index=range(load_size), columns=cols)
+        production = pd.DataFrame(index=range(prod_size), columns=cols)
         for (time_step, obs) in enumerate(self.observations):
             if obs.game_over:
                 continue
-            for equipment, load_p in enumerate(obs.load_p):
-                pos = time_step * len(obs.load_p) + equipment
+            time_stamp = self.timestamp(obs)
+            for equipment_id, load_p in enumerate(obs.load_p):
+                pos = time_step * len(obs.load_p) + equipment_id
                 load_data.loc[pos, :] = [
-                    time_step, equipment, load_p]
-            for equipment, prod_p in enumerate(obs.prod_p):
-                pos = time_step * len(obs.prod_p) + equipment
+                    time_step, time_stamp, equipment_id,
+                    self.load_names[equipment_id], load_p]
+            for equipment_id, prod_p in enumerate(obs.prod_p):
+                pos = time_step * len(obs.prod_p) + equipment_id
                 production.loc[pos, :] = [
-                    time_step, equipment, prod_p]
+                    time_step, time_stamp, equipment_id,
+                    self.prod_names[equipment_id], prod_p]
+
+        load_data["value"] = load_data["value"].astype(float)
+        production["value"] = production["value"].astype(float)
         return load_data, production
+
+    def timestamp(self, obs):
+        return dt.datetime(obs.year, obs.month, obs.day, obs.hour_of_day,
+                           obs.minute_of_hour)
 
     @classmethod
     def fromdisk(cls, agent_path, indx=0):
