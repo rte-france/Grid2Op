@@ -1,6 +1,7 @@
+import datetime as dt
 import json
 import os
-import datetime as dt
+import time
 
 import numpy as np
 import pandas as pd
@@ -34,7 +35,7 @@ class Episode:
                  params=None, meta=None, episode_times=None,
                  observation_space=None, action_space=None,
                  helper_action_env=None, path_save=None, disc_lines_templ=None,
-                 logger=None, indx=0):
+                 logger=None, indx=0, get_dataframes=None):
 
         self.actions = CollectionWrapper(actions, action_space, "actions")
         self.observations = CollectionWrapper(observations, observation_space,
@@ -52,6 +53,20 @@ class Episode:
         self.disc_lines_templ = disc_lines_templ
         self.logger = logger
         self.serialize = False
+        self.load_names = action_space.name_load
+        self.n_loads = len(self.load_names)
+        self.prod_names = action_space.name_prod
+        self.n_prods = len(self.prod_names)
+        self.line_names = action_space.name_line
+        self.n_lines = len(self.line_names)
+
+        if get_dataframes is not None:
+            print("computing df")
+            beg = time.time()
+            self.load, self.production = self._make_df_from_data()
+            self.hazards, self.maintenances = self._env_actions_as_df()
+            end = time.time()
+            print(f"end computing df: {end-beg}")
 
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
@@ -89,15 +104,11 @@ class Episode:
                 os.mkdir(self.episode_path)
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
-            self.load_names = action_space.name_load
-            self.prod_names = action_space.name_prod
-            self.line_names = action_space.name_line
-            self.load, self.production = self.make_df_from_data()
 
-    def make_df_from_data(self):
-        load_size = len(self.observations) * len(self.observations[0].load_p)
-        prod_size = len(self.observations) * len(self.observations[0].prod_p)
-        cols = ["timestep", "timestamp", "equipement_id", "equipement_name",
+    def _make_df_from_data(self):
+        load_size = len(self.observations) * self.n_loads
+        prod_size = len(self.observations) * self.n_prods
+        cols = ["timestep", "timestamp", "equipement_id", "equipment_name",
                 "value"]
         load_data = pd.DataFrame(index=range(load_size), columns=cols)
         production = pd.DataFrame(index=range(prod_size), columns=cols)
@@ -106,12 +117,12 @@ class Episode:
                 continue
             time_stamp = self.timestamp(obs)
             for equipment_id, load_p in enumerate(obs.load_p):
-                pos = time_step * len(obs.load_p) + equipment_id
+                pos = time_step * self.n_loads + equipment_id
                 load_data.loc[pos, :] = [
                     time_step, time_stamp, equipment_id,
                     self.load_names[equipment_id], load_p]
             for equipment_id, prod_p in enumerate(obs.prod_p):
-                pos = time_step * len(obs.prod_p) + equipment_id
+                pos = time_step * self.n_prods + equipment_id
                 production.loc[pos, :] = [
                     time_step, time_stamp, equipment_id,
                     self.prod_names[equipment_id], prod_p]
@@ -119,6 +130,28 @@ class Episode:
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
         return load_data, production
+
+    def _env_actions_as_df(self):
+        hazards_size = len(self.observations) * self.n_lines
+        cols = ["timestep", "timestamp", "line_id", "line_name", "value"]
+        hazards = pd.DataFrame(index=range(hazards_size), columns=cols)
+        maintenances = hazards.copy()
+        for (time_step, env_act) in enumerate(self.env_actions):
+            time_stamp = self.timestamp(self.observations[time_step])
+            iter_haz_maint = zip(env_act._hazards, env_act._maintenance)
+            for line_id, (haz, maint) in enumerate(iter_haz_maint):
+                pos = time_step * self.n_lines + line_id
+                hazards.loc[pos, :] = [
+                    time_step, time_stamp, line_id, self.line_names[line_id],
+                    int(haz)
+                ]
+                maintenances.loc[pos, :] = [
+                    time_step, time_stamp, line_id, self.line_names[line_id],
+                    int(maint)
+                ]
+        hazards["value"] = hazards["value"].astype(int)
+        maintenances["value"] = maintenances["value"].astype(int)
+        return hazards, maintenances
 
     def timestamp(self, obs):
         return dt.datetime(obs.year, obs.month, obs.day, obs.hour_of_day,
@@ -163,9 +196,8 @@ class Episode:
 
         return cls(actions, env_actions, observations, rewards, disc_lines,
                    times, _parameters, episode_meta, episode_times,
-                   observation_space, action_space,
-                   helper_action_env,
-                   agent_path, indx=indx)
+                   observation_space, action_space, helper_action_env,
+                   agent_path, indx=indx, get_dataframes=True)
 
     def set_parameters(self, env):
 
