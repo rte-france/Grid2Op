@@ -101,13 +101,13 @@ class Episode:
             if obs.game_over:
                 continue
             for equipment, load_p in enumerate(obs.load_p):
-                pos = time_step * len(load_p) + equipment
+                pos = time_step * len(obs.load_p) + equipment
                 load_data.loc[pos, :] = [
-                    time_step, equipment, load_p[equipment]]
+                    time_step, equipment, load_p]
             for equipment, prod_p in enumerate(obs.prod_p):
-                pos = time_step * len(prod_p) + equipment
+                pos = time_step * len(obs.prod_p) + equipment
                 production.loc[pos, :] = [
-                    time_step, equipment, prod_p[equipment]]
+                    time_step, equipment, prod_p]
         return load_data, production
 
     @classmethod
