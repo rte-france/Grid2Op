@@ -108,10 +108,10 @@ class Episode:
         load_size = len(self.observations) * len(self.observations[0].load_p)
         prod_size = len(self.observations) * len(self.observations[0].prod_p)
         rho_size = len(self.observations) * len(self.observations[0].rho)
-        load_data = pd.DataFrame(index=range(load_size), columns=[
-                                 'time', 'equipment', 'value'])
-        production = pd.DataFrame(index=range(prod_size), columns=[
-                                  'time', 'equipment', 'value'])
+        cols = ["timestep", "timestamp", "equipement_id", "equipment_name",
+                "value"]
+        load_data = pd.DataFrame(index=range(load_size), columns=cols)
+        production = pd.DataFrame(index=range(prod_size), columns=cols)
         rho = pd.DataFrame(index=range(rho_size), columns=[
                            'time', 'equipment', 'value'])
         for (time_step, obs) in enumerate(self.observations):
@@ -133,7 +133,7 @@ class Episode:
                 rho.loc[pos, :] = [time_step, equipment, rho_t]
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
-        rho_t["value"] = rho_t["value"].astype(float)
+        rho["value"] = rho["value"].astype(float)
         return load_data, production, rho
 
     def _env_actions_as_df(self):
