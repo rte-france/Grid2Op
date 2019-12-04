@@ -66,7 +66,7 @@ class Episode:
             self.hazards, self.maintenances = self._env_actions_as_df()
             end = time.time()
             print(f"end computing df: {end-beg}")
-
+        
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
             self.episode_path = os.path.join(self.agent_path, str(indx))
@@ -226,13 +226,13 @@ class Episode:
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, info):
         if self.serialize:
+            self.actions.update(time_step, act.to_vect(), efficient_storing)
+            self.env_actions.update(time_step, env_act.to_vect(), efficient_storing)
+            self.observations.update(time_step, obs.to_vect(), efficient_storing)
             if efficient_storing:
                 # efficient way of writing
                 self.times[time_step - 1] = time_step_duration
                 self.rewards[time_step - 1] = reward
-                self.actions[time_step - 1, :] = act.to_vect()
-                self.env_actions[time_step - 1, :] = env_act.to_vect()
-                self.observations[time_step - 1, :] = obs.to_vect()
                 if "disc_lines" in info:
                     arr = info["disc_lines"]
                     if arr is not None:
@@ -245,11 +245,6 @@ class Episode:
                 self.times = np.concatenate(
                     (self.times, (time_step_duration,)))
                 self.rewards = np.concatenate((self.rewards, (reward,)))
-                self.actions = np.concatenate((self.actions, act.to_vect()))
-                self.env_actions = np.concatenate(
-                    (self.actions, env_act.to_vect()))
-                self.observations = np.concatenate(
-                    (self.observations, obs.to_vect()))
                 if "disc_lines" in info:
                     arr = info["disc_lines"]
                     if arr is not None:
@@ -293,12 +288,12 @@ class Episode:
 
             np.save(os.path.join(self.episode_path, Episode.AG_EXEC_TIMES),
                     self.times)
-            np.save(os.path.join(self.episode_path, Episode.ACTIONS),
-                    self.actions)
-            np.save(os.path.join(self.episode_path, Episode.ENV_ACTIONS),
-                    self.env_actions)
-            np.save(os.path.join(self.episode_path, Episode.OBSERVATIONS),
-                    self.observations)
+            self.actions.save(
+                os.path.join(self.episode_path, Episode.ACTIONS))
+            self.env_actions.save(
+                os.path.join(self.episode_path, Episode.ENV_ACTIONS))
+            self.observations.save(
+                os.path.join(self.episode_path, Episode.OBSERVATIONS))
             np.save(os.path.join(
                 self.episode_path, Episode.LINES_FAILURES), self.disc_lines)
             np.save(os.path.join(self.episode_path,
@@ -337,3 +332,12 @@ class CollectionWrapper:
             return self[self.i - 1]
         else:
             raise StopIteration
+
+    def update(self, time_step, values, efficient_storage):
+        if efficient_storage:
+            self.collection[time_step - 1, :] = values
+        else: 
+            self.collection = np.concatenate((self.collection, values))
+
+    def save(self, path):
+        np.save(path, self.collection)
