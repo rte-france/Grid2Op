@@ -149,9 +149,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert not real_has_error, "The powerflow diverged"
 
         # this is not true for every observation chronics, but we made sure in this files that the forecast were
-        # without any noise
+        # without any noise, maintenance, nor hazards
         assert simul_obs == real_obs, "there is a mismatch in the observation, though they are supposed to be equal"
-        assert np.abs(simul_reward- real_reward) <= self.tol_one
+        assert np.abs(simul_reward - real_reward) <= self.tol_one
 
     def test_6_simulate_dont_affect_env(self):
         obs_orig = self.env.helper_observation(self.env)

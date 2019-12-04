@@ -192,8 +192,8 @@ class TestIllegalAmbiguous(unittest.TestCase):
     def test_notambiguous_correct(self):
         act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
         obs, reward, done, info = self.env.step(act)
-        assert info['is_ambiguous']
-        assert info["is_illegal"]
+        assert not info['is_ambiguous']
+        assert not info["is_illegal"]
         assert np.sum(obs.line_status) == 7
 
     def test_illegal_detected(self):

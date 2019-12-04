@@ -128,7 +128,17 @@ class Environment:
     env_modification: :class:`grid2op.Action.Action`
         Representation of the actions of the environment for the modification of the powergrid.
 
-    TODO update with maintenance, hazards etc.
+    TODO update with maintenance, hazards etc. see below
+    # store actions "cooldown"
+    times_before_line_status_actionable
+    max_timestep_line_status_deactivated
+    times_before_topology_actionable
+    max_timestep_topology_deactivated
+    time_next_maintenance
+    duration_next_maintenance
+    hard_overflow_threshold
+    time_remaining_before_reconnection
+
     """
     def __init__(self,
                  init_grid_path: str,
@@ -313,9 +323,13 @@ class Environment:
         self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
 
+        # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
+        self._hazard_duration = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.backend.n_lines,),
+                                                               fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
         # handles input data
@@ -418,7 +432,7 @@ class Environment:
         res: :class:`grid2op.Action.Action`
             The action representing the modification of the powergrid induced by the Backend.
         """
-        timestamp, tmp = self.chronics_handler.next_time_step()
+        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration = self.chronics_handler.next_time_step()
         if "injection" in tmp:
             self._injection = tmp["injection"]
         else:
@@ -432,17 +446,20 @@ class Environment:
         else:
             self._hazards = None
         self.time_stamp = timestamp
+        self.duration_next_maintenance = maintenance_duration
+        self.time_next_maintenance = maintenance_time
+        self._hazard_duration = hazard_duration
         return self.helper_action_env({"injection": self._injection, "maintenance": self._maintenance,
                                        "hazards": self._hazards})
 
     def get_obs(self):
         """
-        Return the observations of the current environment made by the :class:`grid2op.Agent`.
+        Return the observations of the current environment made by the :class:`grid2op.Agent.Agent`.
 
         Returns
         -------
-        res: :class:`grid2op.Observation`
-            The current Observation given to the :class:`grid2op.Agent` / bot / controler.
+        res: :class:`grid2op.Observation.Observation`
+            The current Observation given to the :class:`grid2op.Agent.Agent` / bot / controler.
         """
         res = self.helper_observation(env=self)
         return res
@@ -453,6 +470,36 @@ class Environment:
     def _is_done(self, has_error, is_done):
         no_more_data = self.chronics_handler.done()
         return has_error or is_done or no_more_data
+
+    def _update_time_reconnection_hazards_maintenance(self):
+        """
+        This supposes that :attr:`Environment.time_remaining_before_line_reconnection` is already updated
+        with the cascading failure, soft overflow and hard overflow.
+
+        It also supposes that :func:`Environment._update_actions` has been called, so that the vectors
+        :attr:`Environement.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
+        :attr:`Environement._hazard_duration` are updated with the most recent values.
+
+        Finally the Environment supposes that this method is called before calling :func:`Environment.get_obs`
+
+        This function integrates the hazards and maintenance in the
+        :attr:`Environment.time_remaining_before_line_reconnection` vector.
+        For example, if a powerline `i` has no problem
+        of overflow, but is affected by a hazard, :attr:`Environment.time_remaining_before_line_reconnection`
+        should be updated with the duration of this hazard (stored in one of the three vector mentionned in the
+        above paragraph)
+
+        For this Environment, we suppose that the maximum of the 3 values are taken into account. The reality would
+        be more complicated.
+
+        Returns
+        -------
+
+        """
+        self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
+                                                                  self.duration_next_maintenance)
+        self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
+                                                                  self._hazard_duration)
 
     def step(self, action):
         """
@@ -471,7 +518,7 @@ class Environment:
 
         Returns
         -------
-            observation: :class:`grid2op.Observation`
+            observation: :class:`grid2op.Observation.Observation`
                 agent's observation of the current environment
 
             reward: ``float``
@@ -525,10 +572,10 @@ class Environment:
                 overflow_lines = self.backend.get_line_overflow()
 
                 # one timestep passed, i can maybe reconnect some lines
-                self.time_remaining_before_reconnection[self.time_remaining_before_reconnection > 0] -= 1
-
+                self.time_remaining_before_line_reconnection[self.time_remaining_before_line_reconnection > 0] -= 1
                 # update the vector for lines that have been disconnected
-                self.time_remaining_before_reconnection[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                self.time_remaining_before_line_reconnection[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                self._update_time_reconnection_hazards_maintenance()
 
                 # for the powerline that are on overflow, increase this time step
                 self.timestep_overflow[overflow_lines] += 1
