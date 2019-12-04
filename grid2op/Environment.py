@@ -359,6 +359,7 @@ class Environment:
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
+        self._reset_maintenance()
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, _ = self.step(do_nothing)
         if fail_to_start:
@@ -374,6 +375,11 @@ class Environment:
         self.viewer = None
 
         self._reset_vectors_and_timings()
+
+    def _reset_maintenance(self):
+        self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
 
     def reset_grid(self):
         """
@@ -611,21 +617,22 @@ class Environment:
                infos
 
     def _reset_vectors_and_timings(self):
+        """
+        Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
+        Returns
+        -------
+
+        """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
         self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
-
-        # for maintenance operation
-        self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) -1
-        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
 
         self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
@@ -649,6 +656,7 @@ class Environment:
                                          self.backend.name_lines, self.backend.name_subs,
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
+        self._reset_maintenance()
         self.reset_grid()
 
         # if True, then it will not disconnect lines above their thermal limits

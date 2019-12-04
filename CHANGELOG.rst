@@ -9,6 +9,7 @@ Change Log
 - [ADDED] support for maintenance operation in the Environment (read from the chronics)
 - [UPDATED] various documentation, in particular the class Observation
 - [UPDATED] information retrievable `Observation.state_of`
+- [ADDED] example of chronics with hazards and maintenance
 
 [0.3.6] - 2019-12-01
 --------------------

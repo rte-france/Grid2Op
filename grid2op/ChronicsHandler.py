@@ -295,6 +295,7 @@ class GridValue(ABC):
         """
 
         res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
@@ -363,6 +364,7 @@ class GridValue(ABC):
         """
 
         res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        maintenance = np.concatenate((maintenance, (0,0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
@@ -434,6 +436,7 @@ class GridValue(ABC):
         """
 
         res = np.full(hazard.shape, fill_value=np.NaN, dtype=np.int)
+        hazard = np.concatenate((hazard, (0, 0)))
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
@@ -928,7 +931,9 @@ class GridStateFromFile(GridValue):
         for line_id in range(self.n_lines):
             self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(self.maintenance[:, line_id])
             self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(self.maintenance[:, line_id])
-            self.hazard_duration[:, line_id] = self.get_maintenance_duration_1d(self.hazards[:, line_id])
+            self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
+            # if line_id == 17 and np.sum(self.hazards) > 0:
+            #     pdb.set_trace()
 
         # there are _maintenance and hazards only if the value in the file is not 0.
         self.maintenance = self.maintenance != 0.
