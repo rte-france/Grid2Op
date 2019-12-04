@@ -773,6 +773,8 @@ class Backend(ABC):
         `*_pos_topo_vect` (*eg.* :attr:`Backend.load_pos_topo_vect`) vectors. For each elements it gives its position
         in this vector.
 
+        TODO make an example here on how to use this!
+
         Returns
         --------
         res: `numpy.ndarray`

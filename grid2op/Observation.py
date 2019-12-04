@@ -97,6 +97,14 @@ class ObsEnv(object):
 
         self.chronics_handler = ObsCH()
 
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+
+        # TODO handle that in forecast!
+        self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+
     def copy(self):
         """
         Implement the deep copy of this instance.
@@ -149,7 +157,11 @@ class ObsEnv(object):
         This function is the core method of the :class:`ObsEnv`. It allows to perform a simulation of what would
         give and action if it were to be implemented on the "forecasted" powergrid.
 
-        It has the same signature as :func:`grid2op.Environment.step`
+        It has the same signature as :func:`grid2op.Environment.step`. One of the major difference is that it doesn't
+        check whether the action is illegal or not (but an implementation could be provided for this method). The
+        reason for this is that there is not one single and unique way to "forecast" how the thermal limit will behave,
+        which lines will be available or not, which actions will be done or not between the time stamp at which
+        "simulate" is called, and the time stamp that is simulated.
 
         Parameters
         ----------
@@ -168,7 +180,13 @@ class ObsEnv(object):
             whether the episode has ended, in which case further step() calls will return undefined results
 
         info: ``dict``
-            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). It is a
+            dictionnary with keys:
+
+                - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
+                    due to overflow
+                - "is_illegal" (``bool``) whether the action given as input was illegal
+                - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
         has_error = True
@@ -176,7 +194,16 @@ class ObsEnv(object):
         is_done = False
         reward = None
 
-        self.backend.apply_action(action)
+        is_illegal = False
+        is_ambiguous = False
+
+        try:
+            self.backend.apply_action(action)
+        except AmbiguousAction:
+            # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
+            # "do nothing"
+            is_ambiguous = True
+
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -202,16 +229,16 @@ class ObsEnv(object):
             reward = self.reward_helper.range()[0]
         # print("reward_helper in ObsEnv: {}".format(self.reward_helper.template_reward))
         if reward is None:
-            reward = self._get_reward(action, has_error, is_done)
+            reward = self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous)
         self.backend = tmp_backend
 
         return self.current_obs, reward, has_error, {}
 
-    def _get_reward(self, action, has_error, is_done):
+    def _get_reward(self, action, has_error, is_done,is_illegal, is_ambiguous):
         if has_error:
             res = self.reward_helper.range()[0]
         else:
-            res = self.reward_helper(action, self, has_error, is_done)
+            res = self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
         return res
 
     def get_obs(self):
@@ -281,6 +308,9 @@ class Observation(ABC):
     n_load: :class:`int`
         number of loads in the powergrid
 
+    n_sub: ``int``
+        Number of susbtations on the powergrid
+
     subs_info: :class:`numpy.array`, dtype:int
         for each substation, gives the number of elements connected to it
 
@@ -345,6 +375,54 @@ class Observation(ABC):
         The vector representation of this Observation (if computed, or None) see definition of
         :func:`to_vect` for more information.
 
+    topo_vect:  :class:`numpy.ndarray`, dtype:int
+        For each object (load, generator, ends of a powerline) it gives on which bus this object is connected
+        in its substation. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
+
+    line_status: :class:`numpy.ndarray`, dtype:bool
+        Gives the status (connected / disconnected) for every powerline (``True`` at position `i` means the powerline
+        `i` is connected)
+
+    timestep_overflow: :class:`numpy.ndarray`, dtype:int
+        Gives the number of time steps since a powerline is in overflow.
+
+    time_before_cooldown_line:  :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the number of time step the powerline is unavailable due to "cooldown"
+        (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF` for more information). 0 means the
+        an action will be able to act on this same powerline, a number > 0 (eg 1) means that an action at this time step
+        cannot act on this powerline (in the example the agent have to wait 1 time step)
+
+    time_before_cooldown_sub: :class:`numpy.ndarray`, dtype:int
+        Same as :attr:`Observation.time_before_cooldown_line` but for substations. For each substation, it gives the
+        number of timesteps to wait before acting on this substation (see
+        see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information).
+
+    time_before_line_reconnectable: :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the number of timesteps before the powerline can be reconnected. This only
+        concerns the maintenance, outage (hazards) and disconnection due to cascading failures (including overflow). The
+        same convention as for :attr:`Observation.time_before_cooldown_line` and
+        :attr:`Observation.time_before_cooldown_sub` is adopted: 0 at position `i` means that the powerline can be
+        reconnected. It there is 2 (for example) it means that the powerline `i` is unavailable for 2 timesteps (we
+        will be able to re connect it not this time, not next time, but the following timestep)
+
+    time_next_maintenance: :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the time of the next planned maintenance. For example if there is:
+
+            - `1` at position `i` it means that the powerline `i` will be disconnected for maintenance operation at the next time step. A
+            - `0` at position `i` means that powerline `i` is disconnected from the powergrid for maintenance operation
+              at the current time step.
+            - `-1` at position `i` means that powerline `i` will not be disconnected for maintenance reason for this
+              episode.
+
+    duration_next_maintenance: :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the number of time step that the maintenance will last (if any). This means that,
+        if at position `i` of this vector:
+
+            - there is a `0`: the powerline is not disconnected from the grid for maintenance
+            - there is a `1`, `2`, ... the powerline will be disconnected for at least `1`, `2`, ... timestep (**NB**
+              in all case, the powerline will stay disconnected until a :class:`grid2op.Agent.Agent` performs the
+              proper :class:`grid2op.Action.Action` to reconnect it).
+
     """
     def __init__(self,
                  n_gen, n_load, n_lines, subs_info, dim_topo,
@@ -361,6 +439,7 @@ class Observation(ABC):
         self.n_lines = n_lines
         self.subs_info = subs_info
         self.dim_topo = dim_topo
+        self.n_sub = subs_info.shape[0]
 
         # to which substation is connected each element
         self._load_to_subid = load_to_subid
@@ -423,6 +502,13 @@ class Observation(ABC):
         self.a_ex = None
         # lines relative flows
         self.rho = None
+
+        # cool down and reconnection time after hard overflow, soft overflow or cascading failure
+        self.time_before_cooldown_line = None
+        self.time_before_cooldown_sub = None
+        self.time_before_line_reconnectable = None
+        self.time_next_maintenance = None
+        self.duration_next_maintenance = None
 
         # matrices
         self.connectivity_matrix_ = None
@@ -487,10 +573,21 @@ class Observation(ABC):
                 - "sub_id" the id of the substation to which the generator is connected
                 - "a" the current flow on the line end (extremity or origin)
 
+                In the case of a powerline, additional information are:
+
+                - "maintenance": information about the maintenance operation (time of the next maintenance and duration
+                  of this next maintenance.
+                - "cooldown_time": for how many timestep i am not supposed to act on the powerline due to cooldown
+                  (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF` for more information)
+                - "indisponibility": for how many timestep the powerline is unavailable (disconnected, and it's
+                  impossible to reconnect it) due to hazards, maintenance or overflow (incl. cascading failure)
+
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
                 - "topo_vect": the representation of which object is connected where
                 - "nb_bus": number of active buses in this substations
+                - "cooldown_time": for how many timestep i am not supposed to act on the substation due to cooldown
+                  (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information)
 
         Raises
         ------
@@ -535,8 +632,8 @@ class Observation(ABC):
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if line_id >= len(self.p_or):
                 raise Grid2OpException("There are no powerline of id \"line_id={}\" in this grid.".format(line_id))
-            res = {}
 
+            res = {}
             # origin information
             res["origin"] = {
                 "p": self.p_or[line_id],
@@ -555,6 +652,17 @@ class Observation(ABC):
                 "bus": self.topo_vect[self._lines_ex_pos_topo_vect[line_id]],
                 "sub_id": self._lines_ex_to_subid[line_id]
             }
+
+            # maintenance information
+            res["maintenance"] = {"next": self.time_next_maintenance[line_id],
+                                  "duration_next": self.duration_next_maintenance[line_id]}
+
+            # cooldown
+            res["cooldown_time"] = self.time_before_cooldown_line[line_id]
+
+            # indisponibility
+            res["indisponibility"] = self.time_before_line_reconnectable[line_id]
+
         else:
             if substation_id >= len(self.subs_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
@@ -568,7 +676,8 @@ class Observation(ABC):
                 nb_bus = 0
             res = {
                 "topo_vect": topo_sub,
-                "nb_bus": nb_bus
+                "nb_bus": nb_bus,
+                "cooldown_time": self.time_before_cooldown_sub[substation_id]
                    }
 
         return res
@@ -619,6 +728,13 @@ class Observation(ABC):
         self.day_of_week = None
         self.hour_of_day = None
         self.minute_of_hour = None
+
+        # cool down and reconnection time after hard overflow, soft overflow or cascading failure
+        self.time_before_cooldown_line = None
+        self.time_before_cooldown_sub = None
+        self.time_before_line_reconnectable = None
+        self.time_next_maintenance = None
+        self.duration_next_maintenance = None
 
         # forecasts
         self._forecasted_inj = []
@@ -675,6 +791,19 @@ class Observation(ABC):
         """
         # TODO doc above
 
+        if self.year != other.year:
+            return False
+        if self.month != other.month:
+            return False
+        if self.day != other.day:
+            return False
+        if self.day_of_week != other.day_of_week:
+            return False
+        if self.hour_of_day != other.hour_of_day:
+            return False
+        if self.minute_of_hour != other.minute_of_hour:
+            return False
+
         # check that the _grid is the same in both instances
         same_grid = True
         same_grid = same_grid and self.n_gen == other.n_gen
@@ -697,6 +826,7 @@ class Observation(ABC):
         same_grid = same_grid and np.all(self._gen_pos_topo_vect == other._gen_pos_topo_vect)
         same_grid = same_grid and np.all(self._lines_or_pos_topo_vect == other._lines_or_pos_topo_vect)
         same_grid = same_grid and np.all(self._lines_ex_pos_topo_vect == other._lines_ex_pos_topo_vect)
+
         if not same_grid:
             return False
 
@@ -706,23 +836,16 @@ class Observation(ABC):
                         "load_p", "load_q", "load_v",
                         "p_or", "q_or", "v_or", "a_or",
                         "p_ex", "q_ex", "v_ex", "a_ex",
+                        "time_before_cooldown_line",
+                        "time_before_cooldown_sub",
+                        "time_before_line_reconnectable",
+                        "time_next_maintenance",
+                        "duration_next_maintenance"
                         ]:
             if not self.__compare_stats(other, stat_nm):
                 # one of the above stat is not equal in this and in other
                 return False
 
-        if self.year != other.year:
-            return False
-        if self.month != other.month:
-            return False
-        if self.day != other.day:
-            return False
-        if self.day_of_week != other.day_of_week:
-            return False
-        if self.hour_of_day != other.hour_of_day:
-            return False
-        if self.minute_of_hour != other.minute_of_hour:
-            return False
         return True
 
     @abstractmethod
@@ -750,12 +873,6 @@ class Observation(ABC):
 
         This class is really what a dispatcher observes from it environment.
         It can also include some temperatures, nebulosity, wind etc. can also be included in this class.
-
-        :param backend: an instance of Backend
-        :type backend: :class:`grid2op.Backend`
-        :param _timestep_overflow:
-        :param chronics_handler:
-        :return:
         """
         pass
 
@@ -1004,6 +1121,14 @@ class CompleteObservation(Observation):
         self._forecasted_grid = [None for _ in self._forecasted_inj]
         self.rho = env.backend.get_relative_flow()
 
+        # TODO
+        # cool down and reconnection time after hard overflow, soft overflow or cascading failure
+        self.time_before_cooldown_line = env.times_before_line_status_actionable
+        self.time_before_cooldown_sub = env.times_before_topology_actionable
+        self.time_before_line_reconnectable = env.time_remaining_before_line_reconnection
+        self.time_next_maintenance = env.time_next_maintenance
+        self.duration_next_maintenance = env.duration_next_maintenance
+
     def to_vect(self):
         """
         Representation of an :class:`CompleteObservation` into a flat floating point vector.
@@ -1040,8 +1165,21 @@ class CompleteObservation(Observation):
             20. :attr:`Observation.a_ex` current flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
             21. :attr:`Observation.rho` line capacity used (current flow / thermal limit) [:attr:`Observation.n_lines` elements]
             22. :attr:`Observation.line_status` line status [:attr:`Observation.n_lines` elements]
-            23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow (0 if the line is not on overflow)[:attr:`Observation.n_lines` elements]
-            24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element it gives its bus]. See :func:`grid2op.Backend.get_topo_vect` for more information.
+            23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow
+                (0 if the line is not on overflow)[:attr:`Observation.n_lines` elements]
+            24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element
+                it gives its bus]. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
+            25. :attr:`Observation.time_before_cooldown_line` representation of the cooldown time on the powerlines
+                [:attr:`Observation.n_lines` elements]
+            26. :attr:`Observation.time_before_cooldown_sub` representation of the cooldown time on the substations
+                [:attr:`Observation.n_sub` elements]
+            27. :attr:`Observation.time_before_line_reconnectable` number of timestep to wait before a powerline
+                can be reconnected (it is disconnected due to maintenance, cascading failure or overflow)
+                [:attr:`Observation.n_lines` elements]
+            28. :attr:`Observation.time_next_maintenance` number of timestep before the next maintenance (-1 means
+                no maintenance are planned, 0 a maintenance is in operation) [:attr:`Observation.n_lines` elements]
+            29. :attr:`Observation.duration_next_maintenance` duration of the next maintenance. If a maintenance
+                is taking place, this is the number of timestep before it ends. [:attr:`Observation.n_lines` elements]
 
         Returns
         -------
@@ -1074,8 +1212,13 @@ class CompleteObservation(Observation):
                 self.rho.flatten(),
                 self.line_status.flatten(),
                 self.timestep_overflow.flatten(),
-                self.topo_vect.flatten()
-                              ))
+                self.topo_vect.flatten(),
+                self.time_before_cooldown_line.flatten(),
+                self.time_before_cooldown_sub.flatten(),
+                self.time_before_line_reconnectable.flatten(),
+                self.time_next_maintenance.flatten(),
+                self.duration_next_maintenance.flatten()
+            ))
         return self.vectorized
 
     def from_vect(self, vect):
@@ -1105,7 +1248,7 @@ class CompleteObservation(Observation):
         self.minute_of_hour = int(vect[5])
 
         prev_ = 6
-        next_ = 6+self.n_gen
+        next_ = 6 + self.n_gen
         self.prod_p = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
         self.prod_q = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
         self.prod_v = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_load
@@ -1126,10 +1269,24 @@ class CompleteObservation(Observation):
 
         self.line_status = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
         self.line_status = self.line_status.astype(np.bool)
-        self.timestep_overflow = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.timestep_overflow = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.dim_topo
         self.timestep_overflow = self.timestep_overflow.astype(np.int)
-        self.topo_vect = vect[prev_:]
+        self.topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_lines
         self.topo_vect = self.topo_vect.astype(np.int)
+
+        # cooldown
+        self.time_before_cooldown_line = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_sub
+        self.time_before_cooldown_line = self.time_before_cooldown_line.astype(np.int)
+        self.time_before_cooldown_sub = vect[prev_:next_]; prev_ += self.n_sub; next_ += self.n_lines
+        self.time_before_cooldown_sub = self.time_before_cooldown_sub.astype(np.int)
+
+        # maintenance and hazards
+        self.time_before_line_reconnectable = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.time_before_line_reconnectable = self.time_before_line_reconnectable.astype(np.int)
+        self.time_next_maintenance = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.time_next_maintenance = self.time_next_maintenance.astype(np.int)
+        self.duration_next_maintenance = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.duration_next_maintenance = self.duration_next_maintenance.astype(np.int)
 
     def to_dict(self):
         """
@@ -1138,11 +1295,12 @@ class CompleteObservation(Observation):
         -------
 
         """
+        # TODO doc
         if self.dictionnarized is None:
             self.dictionnarized = {}
-            self.dictionnarized["_timestep_overflow"] = self.timestep_overflow
+            self.dictionnarized["timestep_overflow"] = self.timestep_overflow
             self.dictionnarized["line_status"] = self.line_status
-            self.dictionnarized["_topo_vect"] = self.topo_vect
+            self.dictionnarized["topo_vect"] = self.topo_vect
             self.dictionnarized["loads"] = {}
             self.dictionnarized["loads"]["p"] = self.load_p
             self.dictionnarized["loads"]["q"] = self.load_q
@@ -1162,6 +1320,15 @@ class CompleteObservation(Observation):
             self.dictionnarized["lines_ex"]["v"] = self.v_ex
             self.dictionnarized["lines_ex"]["a"] = self.a_ex
             self.dictionnarized["rho"] = self.rho
+
+            self.dictionnarized["maintenance"] = {}
+            self.dictionnarized["maintenance"]['time_next_maintenance'] = self.time_next_maintenance
+            self.dictionnarized["maintenance"]['time_next_maintenance'] = self.duration_next_maintenance
+            self.dictionnarized["cooldown"] = {}
+            self.dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
+            self.dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
+            self.dictionnarized["time_before_line_reconnectable"] = self.time_before_line_reconnectable
+
         return self.dictionnarized
 
     def connectivity_matrix(self):
@@ -1274,11 +1441,14 @@ class CompleteObservation(Observation):
             - each end of a powerline by 4 values: flow p, flow q, v, current flow
             - each line have also a status
             - each line can also be impossible to reconnect
-            - the topology vector of dim `_dim_topo`
+            - the topology vector of dim `dim_topo`
 
         :return: the size of the flatten observation vector.
         """
-        return 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_lines + 3*self.n_lines + self.dim_topo
+        # TODO documentation
+        res = 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_lines + 3*self.n_lines
+        res += self.dim_topo + 4*self.n_lines + self.n_sub
+        return res
 
 
 class SerializableObservationSpace:

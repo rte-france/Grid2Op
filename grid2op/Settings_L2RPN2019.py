@@ -184,6 +184,14 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         self.maintenance_forecast = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
         # there are maintenance and hazards only if the value in the file is not 0.
+        self.maintenance_time = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
+        self.hazard_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
+        for line_id in range(self.n_lines):
+            self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(self.maintenance[:, line_id])
+            self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(self.maintenance[:, line_id])
+            self.hazard_duration[:, line_id] = self.get_maintenance_duration_1d(self.hazards[:, line_id])
+
         self.maintenance_forecast = self.maintenance != 0.
 
 
