@@ -113,7 +113,7 @@ class Episode:
         load_data = pd.DataFrame(index=range(load_size), columns=cols)
         production = pd.DataFrame(index=range(prod_size), columns=cols)
         rho = pd.DataFrame(index=range(rho_size), columns=[
-                           'time', 'equipment', 'value'])
+                           'time', "timestamp", 'equipment', 'value'])
         for (time_step, obs) in enumerate(self.observations):
             if obs.game_over:
                 continue
@@ -130,7 +130,7 @@ class Episode:
                     self.prod_names[equipment_id], prod_p]
             for equipment, rho_t in enumerate(obs.rho):
                 pos = time_step * len(obs.rho) + equipment
-                rho.loc[pos, :] = [time_step, equipment, rho_t]
+                rho.loc[pos, :] = [time_step, time_stamp, equipment, rho_t]
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
         rho["value"] = rho["value"].astype(float)
@@ -157,8 +157,9 @@ class Episode:
         hazards["value"] = hazards["value"].astype(int)
         maintenances["value"] = maintenances["value"].astype(int)
         return hazards, maintenances
-
-    def timestamp(self, obs):
+    
+    @staticmethod
+    def timestamp(obs):
         return dt.datetime(obs.year, obs.month, obs.day, obs.hour_of_day,
                            obs.minute_of_hour)
 
