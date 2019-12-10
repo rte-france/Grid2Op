@@ -64,6 +64,7 @@ class Episode:
             beg = time.time()
             self.load, self.production, self.rho = self._make_df_from_data()
             self.hazards, self.maintenances = self._env_actions_as_df()
+            self.computed_reward = self._compute_reward_df_from_data()
             end = time.time()
             print(f"end computing df: {end-beg}")
         
@@ -103,6 +104,20 @@ class Episode:
                 os.mkdir(self.episode_path)
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
+
+    def _compute_reward_df_from_data(self):
+        time_stamp = []
+        for (time_step, obs) in enumerate(self.observations):
+            if obs.game_over:
+                continue
+            time_stamp.append(self.timestamp(obs))
+
+        df = pd.DataFrame(index=range(len(self.rewards)))
+        df["timestep"] = time_stamp
+        df["rewards"] = self.rewards
+        df["cum_rewards"] = self.rewards.cumsum(axis=0)
+
+        return df
 
     def _make_df_from_data(self):
         load_size = len(self.observations) * len(self.observations[0].load_p)
