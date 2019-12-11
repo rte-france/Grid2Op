@@ -62,7 +62,7 @@ class Episode:
         if get_dataframes is not None:
             print("computing df")
             beg = time.time()
-            self.load, self.production, self.rho = self._make_df_from_data()
+            self.load, self.production, self.rho, self.action_data = self._make_df_from_data()
             self.hazards, self.maintenances = self._env_actions_as_df()
             self.computed_reward = self._compute_reward_df_from_data()
             end = time.time()
@@ -106,30 +106,35 @@ class Episode:
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
 
     def _compute_reward_df_from_data(self):
-        time_stamp = []
+        timestep = []
         for (time_step, obs) in enumerate(self.observations):
             if obs.game_over:
                 continue
-            time_stamp.append(self.timestamp(obs))
+            timestep.append(self.timestamp(obs))
 
         df = pd.DataFrame(index=range(len(self.rewards)))
-        df["timestep"] = time_stamp
+        df["timestep"] = timestep  # TODO use timestep from one of _make_df_data() returns to avoid multiple computation
         df["rewards"] = self.rewards
         df["cum_rewards"] = self.rewards.cumsum(axis=0)
 
         return df
 
+
     def _make_df_from_data(self):
         load_size = len(self.observations) * len(self.observations[0].load_p)
         prod_size = len(self.observations) * len(self.observations[0].prod_p)
         rho_size = len(self.observations) * len(self.observations[0].rho)
+        action_size = len(self.actions)
         cols = ["timestep", "timestamp", "equipement_id", "equipment_name",
                 "value"]
         load_data = pd.DataFrame(index=range(load_size), columns=cols)
         production = pd.DataFrame(index=range(prod_size), columns=cols)
         rho = pd.DataFrame(index=range(rho_size), columns=[
                            'time', "timestamp", 'equipment', 'value'])
-        for (time_step, obs) in enumerate(self.observations):
+        action_data = pd.DataFrame(index=range(action_size),
+                                   columns=['timestep', 'timestep_reward',
+                                            'game_time', 'runtime', 'action_line', 'action_subs', 'action'])
+        for (time_step, (obs, act)) in enumerate(zip(self.observations, self.actions)):
             if obs.game_over:
                 continue
             time_stamp = self.timestamp(obs)
@@ -146,10 +151,15 @@ class Episode:
             for equipment, rho_t in enumerate(obs.rho):
                 pos = time_step * len(obs.rho) + equipment
                 rho.loc[pos, :] = [time_step, time_stamp, equipment, rho_t]
+            for line, subs in zip(range(act._n_lines), range(len(act._subs_info))):
+                pos = time_step
+                action_data.loc[pos, :] = [time_step, self.rewards[time_step], time_stamp.day, time_stamp.second,
+                                          np.sum(act._switch_line_status), np.sum(act._change_bus_vect), act.to_vect()]
+
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
         rho["value"] = rho["value"].astype(float)
-        return load_data, production, rho
+        return load_data, production, rho, action_data
 
     def _env_actions_as_df(self):
         hazards_size = len(self.observations) * self.n_lines
