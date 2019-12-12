@@ -6,10 +6,10 @@ Document will be made later on.
 import os
 import pkg_resources
 
-__version__ = '0.3.6'
+__version__ = '0.4.0'
 
 __all__ = ['Action', "BackendPandaPower", "Agent", "Backend", "ChronicsHandler", "Environment", "Exceptions",
-           "Observation", "Parameters", "GameRules", "Reward", "Runner", "main", "Utils"]
+           "Observation", "Parameters", "GameRules", "Reward", "Runner", "main", "Utils", "PlotPlotly"]
 
 from .MakeEnv import make
 # reference case 14

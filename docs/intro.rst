@@ -13,6 +13,6 @@ library is available as an example.
 
 Any other tools that is able to perform power flow computation can be used as a "backend" to
 play the game or to accelerate the training. Instructions and method to implement
-a new backend are available in the :class:`Grid2Op.Backend` documentation.
+a new backend are available in the :class:`Grid2Op.Backend.Backend` documentation.
 
 TO be continued (package still under development)

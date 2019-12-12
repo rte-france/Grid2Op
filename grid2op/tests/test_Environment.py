@@ -14,6 +14,8 @@ from BackendPandaPower import PandaPowerBackend
 from Parameters import Parameters
 from ChronicsHandler import ChronicsHandler, GridStateFromFile
 from Reward import L2RPNReward
+from MakeEnv import make
+from GameRules import GameRules, DefaultRules
 import time
 
 
@@ -164,6 +166,46 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
         assert np.abs(cum_reward - 5739.929117641016) <= self.tol_one, "Wrong reward"
+
+
+class TestIllegalAmbiguous(unittest.TestCase):
+    """
+    This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
+    or illegal
+
+    """
+    def setUp(self):
+        # powergrid
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+        self.env = make("case5_example")
+
+    def compare_vect(self, pred, true):
+        return np.max(np.abs(pred- true)) <= self.tolvect
+
+    def test_ambiguous_detected(self):
+        act = self.env.helper_action_player({"set_line_status": [(1, 1)]})
+        obs, reward, done, info = self.env.step(act)
+        assert info['is_ambiguous']
+        assert not info["is_illegal"]
+
+    def test_notambiguous_correct(self):
+        act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
+        obs, reward, done, info = self.env.step(act)
+        assert not info['is_ambiguous']
+        assert not info["is_illegal"]
+        assert np.sum(obs.line_status) == 7
+
+    def test_illegal_detected(self):
+        act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
+        self.env.game_rules = GameRules(legalActClass=DefaultRules)
+        self.env.times_before_line_status_actionable[1] = 1
+        obs, reward, done, info = self.env.step(act)
+
+        # the action is illegal and it has not been implemented on the powergrid
+        assert not info['is_ambiguous']
+        assert info["is_illegal"]
+        assert np.sum(obs.line_status) == 8
 
 
 if __name__ == "__main__":
