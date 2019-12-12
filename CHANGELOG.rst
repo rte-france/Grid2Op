@@ -1,5 +1,16 @@
 Change Log
 =============
+
+[0.4.0] - 2019-12-04
+--------------------
+- [ADDED] Basic tools for plotting with the `PlotPlotly` module
+- [UPDATED] handling of the `AmbiguousAction` and `IllegalAction` exceptions (and appropriated tests)
+- [ADDED] support of maintenance operation as well as hazards in the Observation (and appropriated tests)
+- [ADDED] support for maintenance operation in the Environment (read from the chronics)
+- [UPDATED] various documentation, in particular the class Observation
+- [UPDATED] information retrievable `Observation.state_of`
+- [ADDED] example of chronics with hazards and maintenance
+
 [0.3.6] - 2019-12-01
 --------------------
 - [UPDATED] Readme with docker
