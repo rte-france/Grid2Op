@@ -132,8 +132,8 @@ class Episode:
         rho = pd.DataFrame(index=range(rho_size), columns=[
                            'time', "timestamp", 'equipment', 'value'])
         action_data = pd.DataFrame(index=range(action_size),
-                                   columns=['timestep', 'timestep_reward',
-                                            'game_time', 'runtime', 'action_line', 'action_subs', 'action'])
+                                   columns=['timestep', 'timestep_reward', 'action_line', 'action_subs',
+                                            'set_line', 'switch_line', 'set_topo', 'change_bus'])
         for (time_step, (obs, act)) in enumerate(zip(self.observations, self.actions)):
             if obs.game_over:
                 continue
@@ -153,8 +153,12 @@ class Episode:
                 rho.loc[pos, :] = [time_step, time_stamp, equipment, rho_t]
             for line, subs in zip(range(act._n_lines), range(len(act._subs_info))):
                 pos = time_step
-                action_data.loc[pos, :] = [time_step, self.rewards[time_step], time_stamp.day, time_stamp.second,
-                                          np.sum(act._switch_line_status), np.sum(act._change_bus_vect), act.to_vect()]
+                action_data.loc[pos, :] = [time_step, self.rewards[time_step],
+                                           np.sum(act._switch_line_status), np.sum(act._change_bus_vect),
+                                           act._set_line_status.flatten().astype(np.float),
+                                           act._switch_line_status.flatten().astype(np.float),
+                                           act._set_topo_vect.flatten().astype(np.float),
+                                           act._change_bus_vect.flatten().astype(np.float)]
 
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
