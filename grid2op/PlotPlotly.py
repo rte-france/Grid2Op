@@ -516,6 +516,11 @@ class PlotObs(object):
                     else:
                         buses_z[this_el_bus] += dict_el["z"]
             buses_z = [el / nb for el, nb in zip(buses_z, nb_co)]
+            theta_z = [cmath.phase((el - z_sub)) for el in buses_z]
+            m_ = np.mean(theta_z) - cmath.pi / 2
+            theta_z = [el-m_ for el in theta_z]
+            buses_z = [z_sub + (self.radius_sub-self.bus_radius)*0.75*cmath.exp(1j * theta) for theta in theta_z]
+
             # TODO don't just do the average, but afterwards split it more evenly, and at a fixed distance from the
             # center of the substation
 
