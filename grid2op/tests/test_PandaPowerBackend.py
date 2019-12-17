@@ -16,9 +16,11 @@ from ChronicsHandler import ChronicsHandler, ChangeNothing
 from Environment import Environment
 from Exceptions import *
 from GameRules import GameRules
+from MakeEnv import make
 
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 import pandapower as pppp
+
 
 class TestLoadingADN(unittest.TestCase):
     def setUp(self):
@@ -635,11 +637,11 @@ class TestTopoAction(unittest.TestCase):
         assert np.all(topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == arr2[self.backend.gen_to_sub_pos[gen_ids]])
 
         after_amps_flow = self.backend.get_line_flow()
-        after_amps_flow_th = np.array([  564.86831329,   313.93253616, 14222.67349148, 29227.00333159,
-                                       18393.56319792, 13649.04803367, 13649.04803367,   311.98084347,
-                                         252.73768739,    80.124112  ,    90.55351819,   220.8797656 ,
-                                       28364.56104918, 30242.87395452,     0.        ,   118.014306  ,
-                                          63.71939605,   147.6468084 ,   702.15602054,  1067.37181783])
+        after_amps_flow_th = np.array([  596.97014348,   342.10559579, 16615.11815357, 31328.50690716,
+                                       11832.77202397, 11043.10650167, 11043.10650167,   322.79533908,
+                                         273.86501458,    82.34066647,    80.89289074,   208.42396413,
+                                       22178.16766548, 27690.51322075, 38684.31540646,   129.44842477,
+                                          70.02629553,   185.67687123,   706.77680037,  1155.45754617])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
 
         try:
@@ -863,6 +865,35 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
             assert (not grid_tmp.get_line_status()[self.id_first_line_disco])
             if i == 1:
                 assert (not grid_tmp.get_line_status()[self.id_2nd_line_disco])
+
+
+class TestChangeBusAffectRightBus(unittest.TestCase):
+    def test_set_bus(self):
+        env = make()
+        env.reset()
+        # action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
+        obs, reward, done, info = env.step(action)
+
+        assert np.all(np.isfinite(obs.v_or))
+        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
+
+    def test_change_bus(self):
+        env = make()
+        env.reset()
+        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        obs, reward, done, info = env.step(action)
+        assert np.all(np.isfinite(obs.v_or))
+        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
+
+    def test_change_bustwice(self):
+        env = make()
+        env.reset()
+        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        obs, reward, done, info = env.step(action)
+        obs, reward, done, info = env.step(action)
+        assert np.all(np.isfinite(obs.v_or))
+        assert np.sum(env.backend._grid["bus"]["in_service"]) == 14
 
 
 # TODO test also the methods added for observation:

@@ -1,6 +1,11 @@
 Change Log
 =============
 
+[0.4.1] - 2019-12-17
+--------------------
+- [FIXED] Bug#14 : Nan in the observation space after switching one powerline [PandaPowerBackend]
+- [UPDATED] plot now improved for buses in substations
+
 [0.4.0] - 2019-12-04
 --------------------
 - [ADDED] Basic tools for plotting with the `PlotPlotly` module

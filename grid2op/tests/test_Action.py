@@ -12,10 +12,13 @@ from Exceptions import *
 from Action import HelperAction, Action
 from GameRules import GameRules
 
+from grid2op.MakeEnv import make
+
 # TODO test that "twice change" is reset to normal. when i update an action twice, nothing is done.
 # TODO test for all class of Action
 
 # TODO clean the test to have it for all class of actions without recoding everything each time
+
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):

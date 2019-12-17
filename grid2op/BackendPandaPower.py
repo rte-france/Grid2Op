@@ -407,12 +407,13 @@ class PandaPowerBackend(Backend):
                         nb_bus_now = len(np.unique(actual_topo))
                         if nb_bus_before > nb_bus_now:
                             # i must deactivate the unused bus
-                            self._grid.bus["in_service"].iloc[sub_id + self.n_substations] = False
+                            self._grid.bus["in_service"][sub_id + self.n_substations] = False
                             # print("I deactivated bus {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
                         elif nb_bus_before < nb_bus_now:
                             # i must activate the new bus
-                            self._grid.bus["in_service"].iloc[sub_id + self.n_substations] = True
-                            # print("I reactivated bus {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
+                            self._grid.bus["in_service"][sub_id + self.n_substations] = True
+                            # print("I reactivated second bus of substation {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
+
                         # now assign the proper bus to each element
                         for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
                             self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_substations
