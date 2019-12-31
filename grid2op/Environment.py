@@ -35,7 +35,6 @@ except (ModuleNotFoundError, ImportError):
 
 import pdb
 
-
 # TODO code "start from a given time step"
 class Environment:
     """
@@ -374,7 +373,44 @@ class Environment:
         self.reward_range = self.reward_helper.range()
         self.viewer = None
 
+        self.metadata = {'render.modes': []}
+        self.reward_range = self.reward_helper.range()
+        self.spec = None
+
         self._reset_vectors_and_timings()
+
+    def __str__(self):
+        return '<{} instance>'.format(type(self).__name__)
+        # TODO be closer to original gym implementation
+        # if self.spec is None:
+        #     return '<{} instance>'.format(type(self).__name__)
+        # else:
+        #     return '<{}<{}>>'.format(type(self).__name__, self.spec.id)
+
+    def __enter__(self):
+        """
+        Support *with-statement* for the environment.
+
+        Examples
+        --------
+        >>> import grid2op
+        >>> import grid2op.Agent
+        >>> with grid2op.make() as env:
+        >>>     agent = grid2op.Agent.DoNothingAgent(env.action_space)
+        >>>     act = env.action_space()
+        >>>     obs, r, done, info = env.step(act)
+        >>>     act = agent.act(obs, r, info)
+        >>>     obs, r, done, info = env.step(act)
+        """
+        return self
+
+    def __exit__(self, *args):
+        """
+        Support *with-statement* for the environment.
+        """
+        self.close()
+        # propagate exception
+        return False
 
     def _reset_maintenance(self):
         self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) - 1

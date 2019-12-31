@@ -1194,6 +1194,7 @@ class Action(object):
         TODO
 
         By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state.
+
         Returns
         -------
         self: :class:`Action`
