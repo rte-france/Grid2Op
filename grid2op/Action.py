@@ -48,9 +48,11 @@ import pdb
 try:
     from .Exceptions import *
     from ._utils import extract_from_dict, save_to_dict
+    from .Space import SerializableSpace
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from _utils import extract_from_dict, save_to_dict
+    from Space import SerializableSpace
 
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
@@ -1912,7 +1914,7 @@ class PowerLineSet(Action):
         return self
 
 
-class SerializableActionSpace:
+class SerializableActionSpace(SerializableSpace):
     """
     This class allows to serialize / de serialize the action space.
 
@@ -1922,79 +1924,12 @@ class SerializableActionSpace:
     Attributes
     ----------
 
-    n_lines: :class:`int`
-        number of powerline in the _grid
-
-    n_gen: :class:`int`
-        number of generators in the _grid
-
-    n_load: :class:`int`
-        number of loads in the powergrid
-
-    subs_info: :class:`numpy.array`, dtype:int
-        for each substation, gives the number of elements connected to it
-
-    load_to_subid: :class:`numpy.array`, dtype:int
-        for each load, gives the id the substation to which it is connected
-
-    gen_to_subid: :class:`numpy.array`, dtype:int
-        for each generator, gives the id the substation to which it is connected
-
-    lines_or_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "origin" end is connected
-
-    lines_ex_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "extremity" end is connected
-
-    load_to_sub_pos: :class:`numpy.array`, dtype:int
-        The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`HelperAction.subs_info`\[i\]. For a given load of id *l*, :attr:`HelperAction._load_to_sub_pos`\[l\] is the index
-        of the load *l* in the vector *sub_topo_vect*. This means that, if
-        *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
-        then load of id *l* is connected to the second bus of the substation.
-
-    gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_to_sub_pos` but for generators.
-
-    lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_to_sub_pos`  but for "origin" end of powerlines.
-
-    lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_to_sub_pos` but for "extremity" end of powerlines.
-
-    load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`HelperAction._load_to_sub_pos` but it gives the position in the vector representing
-        the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
-        *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`HelperAction._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *_topo_vect\[ backend._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
-        second bus of the substation.
-
-    gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_pos_topo_vect` but for generators.
-
-    lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_pos_topo_vect` but for "origin" end of powerlines.
-
-    lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_pos_topo_vect` but for "extremity" end of powerlines.
-
-    name_load: :class:`numpy.array`, dtype:str
-        ordered name of the loads in the helper. This is mainly use to make sure the "chronics" are used properly.
-
-    name_prod: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the helper. This is mainly use to make sure the "chronics" are used properly.
-
-    name_line: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the helper. This is mainly use to make sure the "chronics" are used properly.
+    actionClass: ``type``
+        Type used to build the :attr:`SerializableActionSpace.template_act`
 
     template_act: :class:`Action`
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
-        action (see :func:`Action.size`) or to sample a new Action (see :func:`Action.sample`)
-
-    n: ``int``
-        Size of the action space
+        action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
     """
     def __init__(self, name_prod, name_load, name_line, subs_info,
@@ -2007,225 +1942,77 @@ class SerializableActionSpace:
         Parameters
         ----------
         name_prod: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_prod`
+            Used to initialized :attr:`Space.SerializableSpace.name_prod`
 
         name_load: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_load`
+            Used to initialized :attr:`Space.SerializableSpace.name_load`
 
         name_line: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_line`
+            Used to initialized :attr:`Space.SerializableSpace.name_line`
 
         subs_info: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.subs_info`
+            Used to initialized :attr:`Space.SerializableSpace.subs_info`
 
         load_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_subid`
+            Used to initialized :attr:`Space.SerializableSpace.load_to_subid`
 
         gen_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_subid`
+            Used to initialized :attr:`Space.SerializableSpace.gen_to_subid`
 
         lines_or_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_to_subid`
+            Used to initialized :attr:`Space.SerializableSpace.lines_or_to_subid`
 
         lines_ex_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_subid`
+            Used to initialized :attr:`Space.SerializableSpace.lines_ex_to_subid`
 
         load_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_sub_pos`
+            Used to initialized :attr:`Space.SerializableSpace.load_to_sub_pos`
 
         gen_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_sub_pos`
+            Used to initialized :attr:`Space.SerializableSpace.gen_to_sub_pos`
 
         lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_to_sub_pos`
+            Used to initialized :attr:`Space.SerializableSpace.lines_or_to_sub_pos`
 
         lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_sub_pos`
+            Used to initialized :attr:`Space.SerializableSpace.lines_ex_to_sub_pos`
 
         load_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_pos_topo_vect`
+            Used to initialized :attr:`Space.SerializableSpace.load_pos_topo_vect`
 
         gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_pos_topo_vect`
+            Used to initialized :attr:`Space.SerializableSpace.gen_pos_topo_vect`
 
         lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_pos_topo_vect`
+            Used to initialized :attr:`Space.SerializableSpace.lines_or_pos_topo_vect`
 
         lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_pos_topo_vect`
+            Used to initialized :attr:`Space.SerializableSpace.lines_ex_pos_topo_vect`
 
         actionClass: ``type``
-            Type of action used to build :attr:`SerializableActionSpace.template_act`
+            Type of action used to build :attr:`Space.SerializableSpace.template_obj`
 
         """
-        self.name_prod = name_prod
-        self.name_load = name_load
-        self.name_line = name_line
+        SerializableSpace.__init__(self,
+                                   name_prod=name_prod, name_load=name_load, name_line=name_line, subs_info=subs_info,
+                                   load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
+                                   lines_or_to_subid=lines_or_to_subid, lines_ex_to_subid=lines_ex_to_subid,
+                                   load_to_sub_pos=load_to_sub_pos, gen_to_sub_pos=gen_to_sub_pos,
+                                   lines_or_to_sub_pos=lines_or_to_sub_pos, lines_ex_to_sub_pos=lines_ex_to_sub_pos,
+                                   load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
+                                   lines_or_pos_topo_vect=lines_or_pos_topo_vect,
+                                   lines_ex_pos_topo_vect=lines_ex_pos_topo_vect,
+                                   subtype=actionClass)
 
-        self.n_gen = len(name_prod)
-        self.n_load = len(name_load)
-        self.n_lines = len(name_line)
-
-        self.subs_info = subs_info
-        self.dim_topo = np.sum(subs_info)
-        self.actionClass = actionClass
-
-        # to which substation is connected each element
-        self.load_to_subid = load_to_subid
-        self.gen_to_subid = gen_to_subid
-        self.lines_or_to_subid = lines_or_to_subid
-        self.lines_ex_to_subid = lines_ex_to_subid
-        # which index has this element in the substation vector
-        self.load_to_sub_pos = load_to_sub_pos
-        self.gen_to_sub_pos = gen_to_sub_pos
-        self.lines_or_to_sub_pos = lines_or_to_sub_pos
-        self.lines_ex_to_sub_pos = lines_ex_to_sub_pos
-        # which index has this element in the topology vector
-        self.load_pos_topo_vect = load_pos_topo_vect
-        self.gen_pos_topo_vect = gen_pos_topo_vect
-        self.lines_or_pos_topo_vect = lines_or_pos_topo_vect
-        self.lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
-
-        self.template_act = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
-        self.n = self.template_act.size()
-
-    @staticmethod
-    def from_dict(dict_):
-        """
-        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
-
-        Parameters
-        ----------
-        dict_: ``dict``
-            Representation of an Observation Space (aka ObservartionHelper) as a dictionnary.
-
-        Returns
-        -------
-        res: :class:``SerializableObservationSpace``
-            An instance of an observationHelper matching the dictionnary.
-
-        """
-
-        if isinstance(dict_, str):
-            path = dict_
-            if not os.path.exists(path):
-                raise Grid2OpException("Unable to find the file \"{}\" to load the ObservationSpace".format(path))
-            with open(path, "r", encoding="utf-8") as f:
-                dict_ = json.load(fp=f)
-
-        name_prod = extract_from_dict(dict_, "name_prod", lambda x: np.array(x).astype(str))
-        name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
-        name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
-
-        subs_info = extract_from_dict(dict_, "subs_info", lambda x: np.array(x).astype(np.int))
-        load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
-        gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
-        lines_or_to_subid = extract_from_dict(dict_, "lines_or_to_subid", lambda x: np.array(x).astype(np.int))
-        lines_ex_to_subid = extract_from_dict(dict_, "lines_ex_to_subid", lambda x: np.array(x).astype(np.int))
-
-        load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        lines_or_to_sub_pos = extract_from_dict(dict_, "lines_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        lines_ex_to_sub_pos = extract_from_dict(dict_, "lines_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
-
-        load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        lines_or_pos_topo_vect = extract_from_dict(dict_, "lines_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        lines_ex_pos_topo_vect = extract_from_dict(dict_, "lines_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-
-        actionClass_str = extract_from_dict(dict_, "actionClass", str)
-        actionClass_li = actionClass_str.split('.')
-
-        if actionClass_li[-1] in globals():
-            actionClass = globals()[actionClass_li[-1]]
-        else:
-            # TODO make something better and recursive here, refactor with Observation too!
-            try:
-                actionClass = eval(actionClass_str)
-            except NameError:
-                if len(actionClass_li) > 1:
-                    try:
-                        actionClass = eval(".".join(actionClass_li[1:]))
-                    except:
-                        msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 1). Try \"from {} import {}\""
-                        raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
-                else:
-                    msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 2). Try \"from {} import {}\""
-                    raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
-            except AttributeError:
-                try:
-                    actionClass = eval(actionClass_li[-1])
-                except:
-                    if len(actionClass_li) > 1:
-                        msg_err_ = "Impossible to find the class named \"{}\" to load back the action space (ERROR 3)" \
-                                   "(module is found but not the class in it) Please import it via \"from {} import {}\"."
-                        msg_err_ = msg_err_.format(actionClass_str,
-                                                   ".".join(actionClass_li[:-1]),
-                                                   actionClass_li[-1])
-                    else:
-                        msg_err_ = "Impossible to import the class named \"{}\" to load back the action space (ERROR 4) (the " \
-                                   "module is found but not the class in it)"
-                        msg_err_ = msg_err_.format(actionClass_str)
-                    raise Grid2OpException(msg_err_)
-
-        res = SerializableActionSpace(name_prod, name_load, name_line, subs_info,
-                                      load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                                      load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                                      load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect,
-                                      lines_ex_pos_topo_vect,
-                                      actionClass=actionClass)
-        return res
-
-    def to_dict(self):
-        """
-        Serialize this object as a dictionnary.
-
-        Returns
-        -------
-        res: ``dict``
-            A dictionnary representing this object content. It can be loaded back with
-             :func:`SerializableObservationSpace.from_dict`
-        """
-        res = {}
-        save_to_dict(res, self, "name_prod", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "subs_info", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_to_subid", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_to_sub_pos", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_pos_topo_vect", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "actionClass", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
-
-        return res
+        self.actionClass = self.subtype
+        self.template_act = self.template_obj
 
     def sample(self):
         """
-        A utility used to sample action.
+        A utility used to sample :class:`grid2op.Action.Action`.
+
+        This method is under development, use with care (actions are not sampled on the full action space, and are
+        not uniform in general).
 
         Returns
         -------
@@ -2471,16 +2258,6 @@ class SerializableActionSpace:
                     })
         return res
 
-    def size(self):
-        """
-        The size of any action converted to vector.
-        Returns
-        -------
-        n: ``int``
-            The size of the action space.
-        """
-        return self.n
-
     def get_set_line_status_vect(self):
         """
         Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`
@@ -2505,31 +2282,14 @@ class SerializableActionSpace:
         """
         return self.template_act.get_change_line_status_vect()
 
-    def from_vect(self, act):
-        """
-        Convert an action, represented as a vector to a valid :class:`Action` instance
-
-        Parameters
-        ----------
-        act: ``numpy.ndarray``
-            A action represented as a vector
-
-        Returns
-        -------
-        res: :class:`grid2op.Action.Action`
-            The corresponding action as an :class:`Action` instance
-
-        """
-        res = copy.deepcopy(self.template_act)
-        res.from_vect(act)
-        return res
-
 
 # TODO have something that output a dict like "i want to change this element", with its name accessible here
 class HelperAction(SerializableActionSpace):
     """
-    :class:`HelperAction` should be instanciated by an :class:`Environment` with its _parameters coming from a properly
-    set up :class:`Backend` (ie a Backend instance with a loaded powergrid. See :func:`grid2op.Backend.load_grid` for
+    :class:`HelperAction` should be created by an :class:`grid2op.Environment.Environment`
+    with its parameters coming from a properly
+    set up :class:`grid2op.Backend.Backend` (ie a Backend instance with a loaded powergrid.
+    See :func:`grid2op.Backend.Backend.load_grid` for
     more information).
 
     It will allow, thanks to its :func:`HelperAction.__call__` method to create valid :class:`Action`. It is the

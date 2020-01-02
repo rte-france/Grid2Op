@@ -2,12 +2,42 @@
 This module defines the :class:`Environment` the higher level representation of the world with which an
 :class:`grid2op.Agent` will interact.
 
-The environment receive an :class:`grid2op.Action` from the :class:`grid2op.Agent` in the :func:`Environment.step`
+The environment receive an :class:`grid2op.Action.Action` from the :class:`grid2op.Agent.Agent` in the
+:func:`Environment.step`
 and returns an
-:class:`grid2op.Observation` that the :class:`grid2op.Agent` will use to perform the next action.
+:class:`grid2op.Observation.Observation` that the :class:`grid2op.Agent.Agent` will use to perform the next action.
 
-An environment is better used inside a :class:`grid2op.Runner`, mainly because runners abstract the interaction
-between environment and agent, and ensure the environment are properly reset after each epoch.
+An environment is better used inside a :class:`grid2op.Runner.Runner`, mainly because runners abstract the interaction
+between environment and agent, and ensure the environment are properly reset after each episode.
+
+It is however totally possible to use as any gym Environment.
+
+Example (adapted from gym documentation available at
+`gym random_agent.py <https://github.com/openai/gym/blob/master/examples/agents/random_agent.py>`_ ):
+
+>>> import grid2op
+>>> from grid2op.Agent import DoNothingAgent
+>>> env = grid2op.make()
+>>> agent = DoNothingAgent(env.action_space)
+>>> env.seed(0)
+>>> episode_count = 100
+>>> reward = 0
+>>> done = False
+>>> total_reward = 0
+>>> for i in range(episode_count):
+>>>        ob = env.reset()
+>>>        while True:
+>>>            action = agent.act(ob, reward, done)
+>>>            ob, reward, done, _ = env.step(action)
+>>>            total_reward += reward
+>>>            if done:
+>>>                # in this case the episode is over
+>>>                break
+>>>
+>>>    # Close the env and write monitor result info to disk
+>>>    env.close()
+>>> print("The total reward was {:.2f}".format(total_reward))
+
 """
 
 import numpy as np
@@ -34,6 +64,7 @@ except (ModuleNotFoundError, ImportError):
     from ChronicsHandler import ChronicsHandler
 
 import pdb
+
 
 # TODO code "start from a given time step"
 class Environment:
@@ -120,6 +151,12 @@ class Environment:
 
     reward_range: ``(float, float)``
         The range of the reward function
+
+    metadata: ``dict``
+        For gym compatibility, do not use
+
+    spec: ``None``
+        For Gym compatibility, do not use
 
     viewer: ``object``
         Used to display the powergrid. Currently not supported.
@@ -283,9 +320,9 @@ class Environment:
                                               actionClass=Action,
                                               game_rules=self.game_rules)
 
-        self.helper_observation = ObservationHelper(n_gen=self.backend.n_generators,
-                                                    n_load=self.backend.n_loads,
-                                                    n_lines=self.backend.n_lines,
+        self.helper_observation = ObservationHelper(name_prod=self.backend.name_prods,
+                                                    name_load=self.backend.name_loads,
+                                                    name_line=self.backend.name_lines,
                                                     subs_info=self.backend.subs_elements,
                                                     load_to_subid=self.backend.load_to_subid,
                                                     gen_to_subid=self.backend.gen_to_subid,
@@ -374,7 +411,6 @@ class Environment:
         self.viewer = None
 
         self.metadata = {'render.modes': []}
-        self.reward_range = self.reward_helper.range()
         self.spec = None
 
         self._reset_vectors_and_timings()
@@ -519,8 +555,8 @@ class Environment:
         with the cascading failure, soft overflow and hard overflow.
 
         It also supposes that :func:`Environment._update_actions` has been called, so that the vectors
-        :attr:`Environement.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
-        :attr:`Environement._hazard_duration` are updated with the most recent values.
+        :attr:`Environment.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
+        :attr:`Environment._hazard_duration` are updated with the most recent values.
 
         Finally the Environment supposes that this method is called before calling :func:`Environment.get_obs`
 

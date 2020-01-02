@@ -291,7 +291,7 @@ def make(name_env="case14_fromfile", **kwargs):
         default_name_converter = NAMES_CHRONICS_TO_BACKEND
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
-        default_reward_class = FlatReward
+        default_reward_class = L2RPNReward
     elif name_env.lower() == "l2rpn_2019":
         if chronics_path == '':
             msg_error = "Default chronics (provided in this package) cannot be used with the environment "

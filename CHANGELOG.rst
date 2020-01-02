@@ -1,6 +1,12 @@
 Change Log
 =============
 
+[0.4.2] - 2020-01-xx
+--------------------
+- [FIXED] gym compatibility issue for environment
+- [UPDATED] multiple random generator streams for observations
+- [UPDATED] Refactoring of the Action and Observation Space. They now both ineherit from "Space"
+
 [0.4.1] - 2019-12-17
 --------------------
 - [FIXED] Bug#14 : Nan in the observation space after switching one powerline [PandaPowerBackend]
