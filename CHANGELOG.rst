@@ -6,6 +6,27 @@ Change Log
 - [FIXED] gym compatibility issue for environment
 - [UPDATED] multiple random generator streams for observations
 - [UPDATED] Refactoring of the Action and Observation Space. They now both ineherit from "Space"
+- [BREAKING] previous saved Action Spaces and Observation Spaces (as dictionnary) are no more compatible
+- [BREAKING] renaming of attributes describing the powergrid accross classes for better consistency:
+
+Old Name                New Name
+======================  ======================
+n_lines                 n_line
+n_generators            n_gen
+n_loads                 n_load
+n_substations           n_sub
+subs_elements           sub_info
+name_loads              name_load
+name_prods              name_gen
+name_lines              name_line
+name_subs               name_sub
+lines_or_to_subid       line_or_to_subid
+lines_ex_to_subid       line_ex_to_subid
+lines_or_to_sub_pos     line_or_to_sub_pos
+lines_ex_to_sub_pos     line_ex_to_sub_pos
+lines_or_pos_topo_vect  line_or_pos_topo_vect
+lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+======================  ======================
 
 [0.4.1] - 2019-12-17
 --------------------

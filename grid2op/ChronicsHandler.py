@@ -96,7 +96,7 @@ class GridValue(ABC):
     n_load: ``int``
         Number of loads in the powergrid
 
-    n_lines: ``int``
+    n_line: ``int``
         Number of powerline in the powergrid
 
     max_iter: ``int``
@@ -137,7 +137,7 @@ class GridValue(ABC):
         self.current_datetime = datetime(year=2019, month=1, day=1)
         self.n_gen = None
         self.n_load = None
-        self.n_lines = None
+        self.n_line = None
         self.max_iter = max_iter
         self.curr_iter = 0
 
@@ -847,7 +847,7 @@ class GridStateFromFile(GridValue):
         """
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
-        self.n_lines = len(order_backend_lines)
+        self.n_line = len(order_backend_lines)
 
         self.names_chronics_to_backend = copy.deepcopy(names_chronics_to_backend)
         if self.names_chronics_to_backend is None:
@@ -924,11 +924,11 @@ class GridStateFromFile(GridValue):
         self.hazards = copy.deepcopy(hazards.values[:, np.argsort(order_backend_hazards)])
         self.maintenance = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
-        self.maintenance_time = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int) - 1
-        self.maintenance_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
-        self.hazard_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
+        self.maintenance_time = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int)
+        self.hazard_duration = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int)
 
-        for line_id in range(self.n_lines):
+        for line_id in range(self.n_line):
             self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(self.maintenance[:, line_id])
             self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(self.maintenance[:, line_id])
             self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
@@ -1013,38 +1013,38 @@ class GridStateFromFile(GridValue):
         ``None``
         """
 
-        if self.load_p.shape[1] != backend.n_loads:
+        if self.load_p.shape[1] != backend.n_load:
             msg_err = "for the active part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLoads(msg_err.format(backend.n_loads, self.load_p.shape[1]))
-        if self.load_q.shape[1] != backend.n_loads:
+            raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_p.shape[1]))
+        if self.load_q.shape[1] != backend.n_load:
             msg_err = "for the reactive part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLoads(msg_err.format(backend.n_loads, self.load_q.shape[1]))
+            raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_q.shape[1]))
 
-        if self.prod_p.shape[1] != backend.n_generators:
+        if self.prod_p.shape[1] != backend.n_gen:
             msg_err = "for the active part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_generators, self.prod_p.shape[1]))
-        if self.prod_v.shape[1] != backend.n_generators:
+            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_p.shape[1]))
+        if self.prod_v.shape[1] != backend.n_gen:
             msg_err = "for the voltage part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_generators, self.prod_v.shape[1]))
+            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_v.shape[1]))
 
-        if self.hazards.shape[1] != backend.n_lines:
+        if self.hazards.shape[1] != backend.n_line:
             msg_err = "for the outage. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_lines, self.hazards.shape[1]))
-        if self.maintenance.shape[1] != backend.n_lines:
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazards.shape[1]))
+        if self.maintenance.shape[1] != backend.n_line:
             msg_err = "for the maintenance. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_lines, self.maintenance.shape[1]))
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance.shape[1]))
 
-        if self.maintenance_time.shape[1] != backend.n_lines:
+        if self.maintenance_time.shape[1] != backend.n_line:
             msg_err = "for the maintenance times. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_lines, self.maintenance_time.shape[1]))
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_time.shape[1]))
 
-        if self.maintenance_duration.shape[1] != backend.n_lines:
+        if self.maintenance_duration.shape[1] != backend.n_line:
             msg_err = "for the maintenance durations. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_lines, self.maintenance_duration.shape[1]))
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_duration.shape[1]))
 
-        if self.hazard_duration.shape[1] != backend.n_lines:
+        if self.hazard_duration.shape[1] != backend.n_line:
             msg_err = "for the hazard durations. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_lines, self.hazard_duration.shape[1]))
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazard_duration.shape[1]))
 
         n = self.load_p.shape[0]
         for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "hazards",
@@ -1177,18 +1177,18 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
     def check_validity(self, backend):
         super(GridStateFromFileWithForecasts, self).check_validity(backend)
 
-        if self.load_p_forecast.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_loads, len(self.load_p)))
-        if self.load_q_forecast.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_loads, len(self.load_q)))
+        if self.load_p_forecast.shape[1] != backend.n_load:
+            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_load, len(self.load_p)))
+        if self.load_q_forecast.shape[1] != backend.n_load:
+            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_load, len(self.load_q)))
 
-        if self.prod_p_forecast.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_generators, len(self.prod_p)))
-        if self.prod_v_forecast.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_generators, len(self.prod_v)))
+        if self.prod_p_forecast.shape[1] != backend.n_gen:
+            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_gen, len(self.prod_p)))
+        if self.prod_v_forecast.shape[1] != backend.n_gen:
+            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_gen, len(self.prod_v)))
 
-        if self.maintenance_forecast.shape[1] != backend.n_lines:
-            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}".format(backend.n_lines, len(self.maintenance)))
+        if self.maintenance_forecast.shape[1] != backend.n_line:
+            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}".format(backend.n_line, len(self.maintenance)))
 
         n = self.load_p.shape[0]
         for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "outage"],

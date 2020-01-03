@@ -230,8 +230,8 @@ class PowerLineSwitch(GreedyAgent):
 
     def _get_tested_action(self, observation):
         res = [self.action_space({})]  # add the do nothing
-        for i in range(self.action_space.n_lines):
-            tmp = np.full(self.action_space.n_lines, fill_value=False, dtype=np.bool)
+        for i in range(self.action_space.n_line):
+            tmp = np.full(self.action_space.n_line, fill_value=False, dtype=np.bool)
             tmp[i] = True
             action = self.action_space({"change_line_status": tmp})
             if not observation.line_status[i]:
@@ -263,7 +263,7 @@ class TopologyGreedy(GreedyAgent):
     def _get_tested_action(self, observation):
         res = [self.action_space({})]  # add the do nothing
         S = [0, 1]
-        for sub_id, num_el in enumerate(self.action_space.subs_info):
+        for sub_id, num_el in enumerate(self.action_space.sub_info):
             if num_el < 4:
                 pass
             for tup in itertools.product(S, repeat=num_el-1):

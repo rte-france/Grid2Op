@@ -18,17 +18,17 @@ except (ModuleNotFoundError, ImportError):
 # TODO have an higher order representation of Action and Observation, and not "just" ActionSpace and ObservationSpace
 import pdb
 
-class SerializableSpace:
-    """
-    This class allows to serialize / de serialize the action space or observation space.
 
-    It should not be used inside an Environment, as some functions of the action might not be compatible with
-    the serialization, especially the checking of whether or not an Action is legal or not.
+class GridObjects:
+    """
+    This class stores in a Backend agnostic way some information about the powergrid.
+
+    It stores information about number of objects, and which objects are where, their names etc.
 
     Attributes
     ----------
 
-    n_lines: :class:`int`
+    n_line: :class:`int`
         number of powerline in the _grid
 
     n_gen: :class:`int`
@@ -37,7 +37,7 @@ class SerializableSpace:
     n_load: :class:`int`
         number of loads in the powergrid
 
-    subs_info: :class:`numpy.array`, dtype:int
+    sub_info: :class:`numpy.array`, dtype:int
         for each substation, gives the number of elements connected to it
 
     load_to_subid: :class:`numpy.array`, dtype:int
@@ -54,7 +54,7 @@ class SerializableSpace:
 
     load_to_sub_pos: :class:`numpy.array`, dtype:int
         The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`HelperAction.subs_info`\[i\]. For a given load of id *l*,
+        :attr:`HelperAction.sub_info`\[i\]. For a given load of id *l*,
         :attr:`Action.HelperAction._load_to_sub_pos`\[l\] is the index
         of the load *l* in the vector *sub_topo_vect*. This means that, if
         *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
@@ -88,13 +88,319 @@ class SerializableSpace:
         same as :attr:`HelperAction._load_pos_topo_vect` but for "extremity" end of powerlines.
 
     name_load: :class:`numpy.array`, dtype:str
-        ordered name of the loads in the helper. This is mainly use to make sure the "chronics" are used properly.
+        ordered name of the loads in the grid.
 
     name_prod: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the helper. This is mainly use to make sure the "chronics" are used properly.
+        ordered name of the productions in the grid.
 
     name_line: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the helper. This is mainly use to make sure the "chronics" are used properly.
+        ordered names of the powerline in the grid.
+
+    name_sub: :class:`numpy.array`, dtype:str
+        ordered names of the substation in the grid
+    """
+    def __init__(self):
+        # name of the objects
+        self.name_load = None
+        self.name_gen = None
+        self.name_line = None
+        self.name_sub = None
+
+        self.n_gen = -1
+        self.n_load = -1
+        self.n_line = -1
+        self.n_sub = -1
+
+        self.sub_info = None
+        self.dim_topo = -1
+
+        # to which substation is connected each element
+        self.load_to_subid = None
+        self.gen_to_subid = None
+        self.line_or_to_subid = None
+        self.line_ex_to_subid = None
+
+        # which index has this element in the substation vector
+        self.load_to_sub_pos = None
+        self.gen_to_sub_pos = None
+        self.line_or_to_sub_pos = None
+        self.line_ex_to_sub_pos = None
+
+        # which index has this element in the topology vector
+        self.load_pos_topo_vect = None
+        self.gen_pos_topo_vect = None
+        self.line_or_pos_topo_vect = None
+        self.line_ex_pos_topo_vect = None
+
+        # for backward compatibility
+        self.n_lines = None  # int: number of powerlines
+        self.n_generators = None  # int: number of generators
+        self.n_loads = None  # int: number of loads
+        self.n_substations = None  # int: number of substations
+        self.subs_elements = None  # vector[int]: of size number of substation. Tells for each substation the number of element connected to it
+
+        self.name_loads = None
+        self.name_prods = None
+        self.name_lines = None
+        self.name_subs = None
+
+        self.lines_or_to_subid = None
+        self.lines_ex_to_subid = None
+        self.lines_or_to_sub_pos = None
+        self.lines_ex_to_sub_pos = None
+
+        self.lines_or_pos_topo_vect = None
+        self.lines_ex_pos_topo_vect = None
+        # end backward compatibility
+
+    def init_grid(self, name_prod, name_load, name_line, sub_info,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
+        """
+
+        Parameters
+        ----------
+        name_prod: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`SerializableActionSpace.name_gen`
+
+        name_load: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`SerializableActionSpace.name_load`
+
+        name_line: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`SerializableActionSpace.name_line`
+
+        sub_info: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.sub_info`
+
+        load_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.load_to_subid`
+
+        gen_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.gen_to_subid`
+
+        lines_or_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.line_or_to_subid`
+
+        lines_ex_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.line_ex_to_subid`
+
+        load_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.load_to_sub_pos`
+
+        gen_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.gen_to_sub_pos`
+
+        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.line_or_to_sub_pos`
+
+        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.line_ex_to_sub_pos`
+
+        load_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.load_pos_topo_vect`
+
+        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.gen_pos_topo_vect`
+
+        line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.line_or_pos_topo_vect`
+
+        line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`SerializableActionSpace.line_ex_pos_topo_vect`
+        """
+
+        self.name_gen = name_prod
+        self.name_load = name_load
+        self.name_line = name_line
+
+        self.n_gen = len(name_prod)
+        self.n_load = len(name_load)
+        self.n_line = len(name_line)
+
+        self.sub_info = sub_info
+        self.dim_topo = np.sum(sub_info)
+
+        # to which substation is connected each element
+        self.load_to_subid = load_to_subid
+        self.gen_to_subid = gen_to_subid
+        self.line_or_to_subid = line_or_to_subid
+        self.line_ex_to_subid = line_ex_to_subid
+
+        # which index has this element in the substation vector
+        self.load_to_sub_pos = load_to_sub_pos
+        self.gen_to_sub_pos = gen_to_sub_pos
+        self.line_or_to_sub_pos = line_or_to_sub_pos
+        self.line_ex_to_sub_pos = line_ex_to_sub_pos
+
+        # which index has this element in the topology vector
+        self.load_pos_topo_vect = load_pos_topo_vect
+        self.gen_pos_topo_vect = gen_pos_topo_vect
+        self.line_or_pos_topo_vect = line_or_pos_topo_vect
+        self.line_ex_pos_topo_vect = line_ex_pos_topo_vect
+
+    def get_obj_connect_to(self, _sentinel=None, substation_id=None):
+        """
+        Get all the object connected to a given substation:
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Used to prevent positional parameters. Internal, do not use.
+
+        substation_id: ``int``
+            ID of the substation we want to inspect
+
+        Returns
+        -------
+        res: ``dict``
+            A dictionnary with keys:
+
+              - "loads_id": a vector giving the id of the loads connected to this substation, empty if none
+              - "generators_id": a vector giving the id of the generators connected to this substation, empty if none
+              - "lines_or_id": a vector giving the id of the origin end of the powerlines connected to this substation,
+                empty if none
+              - "lines_ex_id": a vector giving the id of the extermity end of the powerlines connected to this
+                substation, empty if none.
+              - "nb_elements" : number of elements connected to this substation
+
+        """
+        if _sentinel is not None:
+            raise Grid2OpException("get_obj_connect_to shoud be used only with key-word arguments")
+
+        if substation_id is None:
+            raise Grid2OpException("You ask the composition of a substation without specifying its id."
+                                   "Please provide \"substation_id\"")
+        if substation_id >= len(self.sub_info):
+            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+
+        res = {}
+        res["loads_id"] = np.where(self.load_to_subid == substation_id)[0]
+        res["generators_id"] = np.where(self.gen_to_subid == substation_id)[0]
+        res["lines_or_id"] = np.where(self.line_or_to_subid == substation_id)[0]
+        res["lines_ex_id"] = np.where(self.line_ex_to_subid == substation_id)[0]
+        res["nb_elements"] = self.sub_info[substation_id]
+        return res
+
+    def get_lines_id(self, _sentinel=None, from_=None, to_=None):
+        """
+        Returns the list of all the powerlines id in the backend going from "from_" to "to_"
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Internal, do not use
+
+        from_: ``int``
+            Id the substation to which the origin end of the powerline to look for should be connected to
+
+        to_: ``int``
+            Id the substation to which the extremity end of the powerline to look for should be connected to
+
+        Returns
+        -------
+        res: ``list``
+            Id of the powerline looked for.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.BackendError` if no match is found.
+
+        """
+        res = []
+        if from_ is None:
+            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no origin substation. Please modify \"from_\" parameter")
+        if to_ is None:
+            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no extremity substation. Please modify \"to_\" parameter")
+
+        for i, (ori, ext) in enumerate(zip(self.line_or_to_subid, self.line_ex_to_subid)):
+            if ori == from_ and ext == to_:
+                res.append(i)
+
+        if res is []:
+            raise BackendError("ObservationSpace.get_line_id: impossible to find a powerline with connected at origin at {} and extremity at {}".format(from_, to_))
+
+        return res
+
+    def get_generators_id(self, sub_id):
+        """
+        Returns the list of all generators id in the backend connected to the substation sub_id
+
+        Parameters
+        ----------
+        sub_id: ``int``
+            The substation to which we look for the generator
+
+        Returns
+        -------
+        res: ``list``
+            Id of the generator id looked for.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.BackendError` if no match is found.
+
+
+        """
+        res = []
+        if sub_id is None:
+            raise BackendError(
+                "GridObjects.get_generators_id: impossible to look for a generator not connected to any substation. Please modify \"sub_id\" parameter")
+
+        for i, s_id_gen in enumerate(self.gen_to_subid):
+            if s_id_gen == sub_id:
+                res.append(i)
+
+        if res is []:
+            raise BackendError(
+                "GridObjects.get_generators_id: impossible to find a generator connected at substation {}".format(sub_id))
+
+        return res
+
+    def get_loads_id(self, sub_id):
+        """
+        Returns the list of all generators id in the backend connected to the substation sub_id
+
+        Parameters
+        ----------
+        sub_id: ``int``
+            The substation to which we look for the generator
+
+        Returns
+        -------
+        res: ``list``
+            Id of the generator id looked for.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.BackendError` if no match found.
+
+        """
+        res = []
+        if sub_id is None:
+            raise BackendError(
+                "GridObjects.get_loads_id: impossible to look for a load not connected to any substation. Please modify \"sub_id\" parameter")
+
+        for i, s_id_gen in enumerate(self.load_to_subid):
+            if s_id_gen == sub_id:
+                res.append(i)
+
+        if res is []:
+            raise BackendError(
+                "GridObjects.get_loads_id: impossible to find a load connected at substation {}".format(sub_id))
+
+        return res
+
+
+class SerializableSpace(GridObjects):
+    """
+    This class allows to serialize / de serialize the action space or observation space.
+
+    It should not be used inside an Environment, as some functions of the action might not be compatible with
+    the serialization, especially the checking of whether or not an Action is legal or not.
+
+    Attributes
+    ----------
 
     subtype: ``type``
         Type use to build the template object :attr:`SerializableSpace.template_obj`
@@ -120,111 +426,39 @@ class SerializableSpace:
         For gym compatibility, do not use yet
 
     """
-    def __init__(self, name_prod, name_load, name_line, subs_info,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+    def __init__(self, name_prod, name_load, name_line, sub_info,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
                  subtype=object):
         """
-
-        Parameters
-        ----------
-        name_prod: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_prod`
-
-        name_load: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_load`
-
-        name_line: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_line`
-
-        subs_info: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.subs_info`
-
-        load_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_subid`
-
-        gen_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_subid`
-
-        lines_or_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_to_subid`
-
-        lines_ex_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_subid`
-
-        load_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_sub_pos`
-
-        gen_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_sub_pos`
-
-        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_to_sub_pos`
-
-        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_sub_pos`
-
-        load_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_pos_topo_vect`
-
-        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_pos_topo_vect`
-
-        lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_pos_topo_vect`
-
-        lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_pos_topo_vect`
 
         subtype: ``type``
             Type of action used to build :attr:`SerializableActionSpace.template_act`
 
         """
-        self.name_prod = name_prod
-        self.name_load = name_load
-        self.name_line = name_line
 
-        self.n_gen = len(name_prod)
-        self.n_load = len(name_load)
-        self.n_lines = len(name_line)
+        GridObjects.__init__(self)
+        self.init_grid(name_prod, name_load, name_line, sub_info,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect)
 
-        self.subs_info = subs_info
-        self.dim_topo = np.sum(subs_info)
         self.subtype = subtype
-
-        # to which substation is connected each element
-        self.load_to_subid = load_to_subid
-        self.gen_to_subid = gen_to_subid
-        self.lines_or_to_subid = lines_or_to_subid
-        self.lines_ex_to_subid = lines_ex_to_subid
-
-        # which index has this element in the substation vector
-        self.load_to_sub_pos = load_to_sub_pos
-        self.gen_to_sub_pos = gen_to_sub_pos
-        self.lines_or_to_sub_pos = lines_or_to_sub_pos
-        self.lines_ex_to_sub_pos = lines_ex_to_sub_pos
-
-        # which index has this element in the topology vector
-        self.load_pos_topo_vect = load_pos_topo_vect
-        self.gen_pos_topo_vect = gen_pos_topo_vect
-        self.lines_or_pos_topo_vect = lines_or_pos_topo_vect
-        self.lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
-
-        self.template_obj = self.subtype(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+        self.template_obj = self.subtype(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
+                                         sub_info=self.sub_info, dim_topo=self.dim_topo,
+                                         load_to_subid=self.load_to_subid,
+                                         gen_to_subid=self.gen_to_subid,
+                                         line_or_to_subid=self.line_or_to_subid,
+                                         line_ex_to_subid=self.line_ex_to_subid,
+                                         load_to_sub_pos=self.load_to_sub_pos,
+                                         gen_to_sub_pos=self.gen_to_sub_pos,
+                                         line_or_to_sub_pos=self.line_or_to_sub_pos,
+                                         line_ex_to_sub_pos=self.line_ex_to_sub_pos,
+                                         load_pos_topo_vect=self.load_pos_topo_vect,
+                                         gen_pos_topo_vect=self.gen_pos_topo_vect,
+                                         line_or_pos_topo_vect=self.line_or_pos_topo_vect,
+                                         line_ex_pos_topo_vect=self.line_ex_pos_topo_vect)
         self.n = self.template_obj.size()
 
         self.space_prng = np.random.RandomState()
@@ -273,25 +507,25 @@ class SerializableSpace:
             with open(path, "r", encoding="utf-8") as f:
                 dict_ = json.load(fp=f)
 
-        name_prod = extract_from_dict(dict_, "name_prod", lambda x: np.array(x).astype(str))
+        name_prod = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
         name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
 
-        subs_info = extract_from_dict(dict_, "subs_info", lambda x: np.array(x).astype(np.int))
+        sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(np.int))
         load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
         gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
-        lines_or_to_subid = extract_from_dict(dict_, "lines_or_to_subid", lambda x: np.array(x).astype(np.int))
-        lines_ex_to_subid = extract_from_dict(dict_, "lines_ex_to_subid", lambda x: np.array(x).astype(np.int))
+        line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(np.int))
+        line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(np.int))
 
         load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
         gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        lines_or_to_sub_pos = extract_from_dict(dict_, "lines_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        lines_ex_to_sub_pos = extract_from_dict(dict_, "lines_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
 
         load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
         gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        lines_or_pos_topo_vect = extract_from_dict(dict_, "lines_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        lines_ex_pos_topo_vect = extract_from_dict(dict_, "lines_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
 
         actionClass_str = extract_from_dict(dict_, "subtype", str)
         actionClass_li = actionClass_str.split('.')
@@ -332,11 +566,11 @@ class SerializableSpace:
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
 
-        res = SerializableSpace(name_prod, name_load, name_line, subs_info,
-                                load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                                load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                                load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect,
-                                lines_ex_pos_topo_vect,
+        res = SerializableSpace(name_prod, name_load, name_line, sub_info,
+                                load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                                load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                                load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect,
+                                line_ex_pos_topo_vect,
                                 subtype=subtype)
         return res
 
@@ -351,24 +585,24 @@ class SerializableSpace:
              :func:`SerializableObservationSpace.from_dict`
         """
         res = {}
-        save_to_dict(res, self, "name_prod", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "name_gen", lambda li: [str(el) for el in li])
         save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
         save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "subs_info", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "sub_info", lambda li: [int(el) for el in li])
         save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
         save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_or_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_ex_to_subid", lambda li: [int(el) for el in li])
 
         save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
         save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_or_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_ex_to_sub_pos", lambda li: [int(el) for el in li])
 
         save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
         save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_or_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_ex_pos_topo_vect", lambda li: [int(el) for el in li])
 
         save_to_dict(res, self, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
 
@@ -383,156 +617,6 @@ class SerializableSpace:
             The size of the action space.
         """
         return self.n
-
-    def get_obj_connect_to(self, _sentinel=None, substation_id=None):
-        """
-        Get all the object connected to a given substation:
-
-        Parameters
-        ----------
-        _sentinel: ``None``
-            Used to prevent positional parameters. Internal, do not use.
-
-        substation_id: ``int``
-            ID of the substation we want to inspect
-
-        Returns
-        -------
-        res: ``dict``
-            A dictionnary with keys:
-
-              - "loads_id": a vector giving the id of the loads connected to this substation, empty if none
-              - "generators_id": a vector giving the id of the generators connected to this substation, empty if none
-              - "lines_or_id": a vector giving the id of the origin end of the powerlines connected to this substation,
-                empty if none
-              - "lines_ex_id": a vector giving the id of the extermity end of the powerlines connected to this
-                substation, empty if none.
-              - "nb_elements" : number of elements connected to this substation
-
-        """
-
-        if substation_id is None:
-            raise Grid2OpException("You ask the composition of a substation without specifying its id."
-                                   "Please provide \"substation_id\"")
-        if substation_id >= len(self.subs_info):
-            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
-
-        res = {}
-        res["loads_id"] = np.where(self.load_to_subid == substation_id)[0]
-        res["generators_id"] = np.where(self.gen_to_subid == substation_id)[0]
-        res["lines_or_id"] = np.where(self.lines_or_to_subid == substation_id)[0]
-        res["lines_ex_id"] = np.where(self.lines_ex_to_subid == substation_id)[0]
-        res["nb_elements"] = self.subs_info[substation_id]
-        return res
-
-    def get_lines_id(self, _sentinel=None, from_=None, to_=None):
-        """
-        Returns the list of all the powerlines id in the backend going from "from_" to "to_"
-
-        Parameters
-        ----------
-        _sentinel: ``None``
-            Internal, do not use
-
-        from_: ``int``
-            Id the substation to which the origin end of the powerline to look for should be connected to
-
-        to_: ``int``
-            Id the substation to which the extremity end of the powerline to look for should be connected to
-
-        Returns
-        -------
-        res: ``list``
-            Id of the powerline looked for.
-
-        Raises
-        ------
-        :class:`grid2op.Exceptions.BackendError` if no match is found.
-
-        """
-        res = []
-        if from_ is None:
-            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no origin substation. Please modify \"from_\" parameter")
-        if to_ is None:
-            raise BackendError("ObservationSpace.get_lines_id: impossible to look for a powerline with no extremity substation. Please modify \"to_\" parameter")
-
-        for i, (ori, ext) in enumerate(zip(self.lines_or_to_subid, self.lines_ex_to_subid)):
-            if ori == from_ and ext == to_:
-                res.append(i)
-
-        if res is []:
-            raise BackendError("ObservationSpace.get_line_id: impossible to find a powerline with connected at origin at {} and extremity at {}".format(from_, to_))
-
-        return res
-
-    def get_generators_id(self, sub_id):
-        """
-        Returns the list of all generators id in the backend connected to the substation sub_id
-
-        Parameters
-        ----------
-        sub_id: ``int``
-            The substation to which we look for the generator
-
-        Returns
-        -------
-        res: ``list``
-            Id of the generator id looked for.
-
-        Raises
-        ------
-        :class:`grid2op.Exceptions.BackendError` if no match is found.
-
-
-        """
-        res = []
-        if sub_id is None:
-            raise BackendError(
-                "ObservationSpace.get_generators_id: impossible to look for a generator not connected to any substation. Please modify \"sub_id\" parameter")
-
-        for i, s_id_gen in enumerate(self.gen_to_subid):
-            if s_id_gen == sub_id:
-                res.append(i)
-
-        if res is []:
-            raise BackendError(
-                "ObservationSpace.get_generators_id: impossible to find a generator connected at substation {}".format(sub_id))
-
-        return res
-
-    def get_loads_id(self, sub_id):
-        """
-        Returns the list of all generators id in the backend connected to the substation sub_id
-
-        Parameters
-        ----------
-        sub_id: ``int``
-            The substation to which we look for the generator
-
-        Returns
-        -------
-        res: ``list``
-            Id of the generator id looked for.
-
-        Raises
-        ------
-        :class:`grid2op.Exceptions.BackendError` if no match found.
-
-        """
-        res = []
-        if sub_id is None:
-            raise BackendError(
-                "ObservationSpace.get_loads_id: impossible to look for a load not connected to any substation. Please modify \"sub_id\" parameter")
-
-        for i, s_id_gen in enumerate(self.load_to_subid):
-            if s_id_gen == sub_id:
-                res.append(i)
-
-        if res is []:
-            raise BackendError(
-                "ObservationSpace.get_loads_id: impossible to find a load connected at substation {}".format(sub_id))
-
-        return res
 
     def from_vect(self, act):
         """

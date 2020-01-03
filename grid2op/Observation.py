@@ -84,28 +84,31 @@ class ObsEnv(object):
         self.timestep_overflow = None
         # self.action_helper = action_helper
         self.hard_overflow_threshold = parameters.HARD_OVERFLOW_THRESHOLD
-        self.nb_timestep_overflow_allowed = np.full(shape=(backend_instanciated.n_lines,),
+        # try:
+        self.nb_timestep_overflow_allowed = np.full(shape=(backend_instanciated.n_line,),
                                                     fill_value=parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
         self.backend = backend_instanciated.copy()
+        # except:
+        #     pdb.set_trace()
         self.is_init = False
         self.env_dc = parameters.FORECAST_DC
         self.current_obs = None
         self.reward_helper = reward_helper
         self.obsClass = obsClass
         self.parameters = parameters
-        self.dim_topo = np.sum(self.backend.subs_elements)
+        self.dim_topo = np.sum(self.backend.sub_info)
         self.time_stamp = None
 
         self.chronics_handler = ObsCH()
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
-        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
 
         # TODO handle that in forecast!
-        self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
 
     def copy(self):
         """
@@ -210,16 +213,16 @@ class ObsEnv(object):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
-            self.current_obs = self.obsClass(self.backend.n_generators, self.backend.n_loads, self.backend.n_lines,
-                                             self.backend.subs_elements, self.dim_topo,
+            self.current_obs = self.obsClass(self.backend.n_gen, self.backend.n_load, self.backend.n_line,
+                                             self.backend.sub_info, self.dim_topo,
                                              self.backend.load_to_subid, self.backend.gen_to_subid,
-                                             self.backend.lines_or_to_subid, self.backend.lines_ex_to_subid,
+                                             self.backend.line_or_to_subid, self.backend.line_ex_to_subid,
                                              self.backend.load_to_sub_pos, self.backend.gen_to_sub_pos,
-                                             self.backend.lines_or_to_sub_pos,
-                                             self.backend.lines_ex_to_sub_pos,
+                                             self.backend.line_or_to_sub_pos,
+                                             self.backend.line_ex_to_sub_pos,
                                              self.backend.load_pos_topo_vect, self.backend.gen_pos_topo_vect,
-                                             self.backend.lines_or_pos_topo_vect,
-                                             self.backend.lines_ex_pos_topo_vect,
+                                             self.backend.line_or_pos_topo_vect,
+                                             self.backend.line_ex_pos_topo_vect,
                                              seed=None,
                                              obs_env=None,
                                              action_helper=None)
@@ -301,7 +304,7 @@ class Observation(ABC):
     day_of_week: ``int``
         The current day of the week. Monday = 0, Sunday = 6
 
-    n_lines: :class:`int`
+    n_line: :class:`int`
         number of powerline in the powergrid
 
     n_gen: :class:`int`
@@ -313,7 +316,7 @@ class Observation(ABC):
     n_sub: ``int``
         Number of susbtations on the powergrid
 
-    subs_info: :class:`numpy.array`, dtype:int
+    sub_info: :class:`numpy.array`, dtype:int
         for each substation, gives the number of elements connected to it
 
     dim_topo: ``int``
@@ -427,10 +430,10 @@ class Observation(ABC):
 
     """
     def __init__(self,
-                 n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                 n_gen, n_load, n_line, sub_info, dim_topo,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
                  obs_env=None,
                  action_helper=None,
                  seed=None):
@@ -439,26 +442,26 @@ class Observation(ABC):
         # powergrid static information
         self.n_gen = n_gen
         self.n_load = n_load
-        self.n_lines = n_lines
-        self.subs_info = subs_info
+        self.n_line = n_line
+        self.sub_info = sub_info
         self.dim_topo = dim_topo
-        self.n_sub = subs_info.shape[0]
+        self.n_sub = sub_info.shape[0]
 
         # to which substation is connected each element
         self._load_to_subid = load_to_subid
         self._gen_to_subid = gen_to_subid
-        self._lines_or_to_subid = lines_or_to_subid
-        self._lines_ex_to_subid = lines_ex_to_subid
+        self._line_or_to_subid = line_or_to_subid
+        self._line_ex_to_subid = line_ex_to_subid
         # which index has this element in the substation vector
         self._load_to_sub_pos = load_to_sub_pos
         self._gen_to_sub_pos = gen_to_sub_pos
-        self._lines_or_to_sub_pos = lines_or_to_sub_pos
-        self._lines_ex_to_sub_pos = lines_ex_to_sub_pos
+        self._line_or_to_sub_pos = line_or_to_sub_pos
+        self._line_ex_to_sub_pos = line_ex_to_sub_pos
         # which index has this element in the topology vector
         self._load_pos_topo_vect = load_pos_topo_vect
         self._gen_pos_topo_vect = gen_pos_topo_vect
-        self._lines_or_pos_topo_vect = lines_or_pos_topo_vect
-        self._lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
+        self._line_or_pos_topo_vect = line_or_pos_topo_vect
+        self._line_ex_pos_topo_vect = line_ex_pos_topo_vect
 
         # time stamp information
         self.year = None
@@ -477,10 +480,10 @@ class Observation(ABC):
 
         self._obs_env = obs_env
 
-        self.timestep_overflow = np.zeros(shape=(self.n_lines,))
+        self.timestep_overflow = np.zeros(shape=(self.n_line,))
 
         # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = np.ones(shape=self.n_lines, dtype=np.float)
+        self.line_status = np.ones(shape=self.n_line, dtype=np.float)
 
         # topological vector
         self.topo_vect = np.full(shape=self.dim_topo, dtype=np.float, fill_value=1.)
@@ -643,8 +646,8 @@ class Observation(ABC):
                 "q": self.q_or[line_id],
                 "v": self.v_or[line_id],
                 "a": self.a_or[line_id],
-                "bus": self.topo_vect[self._lines_or_pos_topo_vect[line_id]],
-                "sub_id": self._lines_or_to_subid[line_id]
+                "bus": self.topo_vect[self._line_or_pos_topo_vect[line_id]],
+                "sub_id": self._line_or_to_subid[line_id]
             }
             # extremity information
             res["extremity"] = {
@@ -652,8 +655,8 @@ class Observation(ABC):
                 "q": self.q_ex[line_id],
                 "v": self.v_ex[line_id],
                 "a": self.a_ex[line_id],
-                "bus": self.topo_vect[self._lines_ex_pos_topo_vect[line_id]],
-                "sub_id": self._lines_ex_to_subid[line_id]
+                "bus": self.topo_vect[self._line_ex_pos_topo_vect[line_id]],
+                "sub_id": self._line_ex_to_subid[line_id]
             }
 
             # maintenance information
@@ -667,11 +670,11 @@ class Observation(ABC):
             res["indisponibility"] = self.time_before_line_reconnectable[line_id]
 
         else:
-            if substation_id >= len(self.subs_info):
+            if substation_id >= len(self.sub_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
 
-            beg_ = int(np.sum(self.subs_info[:substation_id]))
-            end_ = int(beg_ + self.subs_info[substation_id])
+            beg_ = int(np.sum(self.sub_info[:substation_id]))
+            end_ = int(beg_ + self.sub_info[substation_id])
             topo_sub = self.topo_vect[beg_:end_]
             if np.any(topo_sub > 0):
                 nb_bus = np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
@@ -692,7 +695,7 @@ class Observation(ABC):
 
         """
         # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = np.ones(shape=self.n_lines, dtype=np.float)
+        self.line_status = np.ones(shape=self.n_line, dtype=np.float)
         self.topo_vect = np.full(shape=self.dim_topo, dtype=np.float, fill_value=1.)
 
         # vecorized _grid
@@ -778,7 +781,7 @@ class Observation(ABC):
         declared as different.
 
         **Known issue** if two backend are different, but the description of the _grid are identical (ie all
-        _n_gen, _n_load, _n_lines, _subs_info, _dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
+        _n_gen, _n_load, _n_line, _sub_info, _dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
         identical) then this method will not detect the backend are different, and the action could be declared
         as identical. For now, this is only a theoretical behaviour: if everything is the same, then probably, up to
         the naming convention, then the powergrid are identical too.
@@ -811,24 +814,24 @@ class Observation(ABC):
         same_grid = True
         same_grid = same_grid and self.n_gen == other.n_gen
         same_grid = same_grid and self.n_load == other.n_load
-        same_grid = same_grid and self.n_lines == other.n_lines
-        same_grid = same_grid and np.all(self.subs_info == other.subs_info)
+        same_grid = same_grid and self.n_line == other.n_line
+        same_grid = same_grid and np.all(self.sub_info == other.sub_info)
         same_grid = same_grid and self.dim_topo == other.dim_topo
         # to which substation is connected each element
         same_grid = same_grid and np.all(self._load_to_subid == other._load_to_subid)
         same_grid = same_grid and np.all(self._gen_to_subid == other._gen_to_subid)
-        same_grid = same_grid and np.all(self._lines_or_to_subid == other._lines_or_to_subid)
-        same_grid = same_grid and np.all(self._lines_ex_to_subid == other._lines_ex_to_subid)
+        same_grid = same_grid and np.all(self._line_or_to_subid == other._line_or_to_subid)
+        same_grid = same_grid and np.all(self._line_ex_to_subid == other._line_ex_to_subid)
         # which index has this element in the substation vector
         same_grid = same_grid and np.all(self._load_to_sub_pos == other._load_to_sub_pos)
         same_grid = same_grid and np.all(self._gen_to_sub_pos == other._gen_to_sub_pos)
-        same_grid = same_grid and np.all(self._lines_or_to_sub_pos == other._lines_or_to_sub_pos)
-        same_grid = same_grid and np.all(self._lines_ex_to_sub_pos == other._lines_ex_to_sub_pos)
+        same_grid = same_grid and np.all(self._line_or_to_sub_pos == other._line_or_to_sub_pos)
+        same_grid = same_grid and np.all(self._line_ex_to_sub_pos == other._line_ex_to_sub_pos)
         # which index has this element in the topology vector
         same_grid = same_grid and np.all(self._load_pos_topo_vect == other._load_pos_topo_vect)
         same_grid = same_grid and np.all(self._gen_pos_topo_vect == other._gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self._lines_or_pos_topo_vect == other._lines_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self._lines_ex_pos_topo_vect == other._lines_ex_pos_topo_vect)
+        same_grid = same_grid and np.all(self._line_or_pos_topo_vect == other._line_or_pos_topo_vect)
+        same_grid = same_grid and np.all(self._line_ex_pos_topo_vect == other._line_ex_pos_topo_vect)
 
         if not same_grid:
             return False
@@ -941,7 +944,7 @@ class Observation(ABC):
     def connectivity_matrix(self):
         """
         Computes and return the "connectivity matrix" `con_mat`.
-        if "_dim_topo = 2 * _n_lines + n_prod + n_conso"
+        if "_dim_topo = 2 * _n_line + n_prod + n_conso"
         It is a matrix of size _dim_topo, _dim_topo, with values 0 or 1.
         For two objects (lines extremity, generator unit, load) i,j :
 
@@ -1061,17 +1064,17 @@ class CompleteObservation(Observation):
         :func:`CompleteObservation.to_dict` for a description of this dictionnary.
 
     """
-    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+    def __init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
                  obs_env=None,action_helper=None,
                  seed=None):
 
-        Observation.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+        Observation.__init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
                              obs_env=obs_env, action_helper=action_helper,
                              seed=seed)
         self.dictionnarized = None
@@ -1158,31 +1161,31 @@ class CompleteObservation(Observation):
             10. :attr:`Observation.load_p` the active value of the loads [:attr:`Observation.n_load` elements]
             11. :attr:`Observation.load_q` the reactive value of the loads [:attr:`Observation.n_load` elements]
             12. :attr:`Observation.load_v` the voltage setpoint of the loads [:attr:`Observation.n_load` elements]
-            13. :attr:`Observation.p_or` active flow at origin of powerlines [:attr:`Observation.n_lines` elements]
-            14. :attr:`Observation.q_or` reactive flow at origin of powerlines [:attr:`Observation.n_lines` elements]
-            15. :attr:`Observation.v_or` voltage at origin of powerlines [:attr:`Observation.n_lines` elements]
-            16. :attr:`Observation.a_or` current flow at origin of powerlines [:attr:`Observation.n_lines` elements]
-            17. :attr:`Observation.p_ex` active flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
-            18. :attr:`Observation.q_ex` reactive flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
-            19. :attr:`Observation.v_ex` voltage at extremity of powerlines [:attr:`Observation.n_lines` elements]
-            20. :attr:`Observation.a_ex` current flow at extremity of powerlines [:attr:`Observation.n_lines` elements]
-            21. :attr:`Observation.rho` line capacity used (current flow / thermal limit) [:attr:`Observation.n_lines` elements]
-            22. :attr:`Observation.line_status` line status [:attr:`Observation.n_lines` elements]
+            13. :attr:`Observation.p_or` active flow at origin of powerlines [:attr:`Observation.n_line` elements]
+            14. :attr:`Observation.q_or` reactive flow at origin of powerlines [:attr:`Observation.n_line` elements]
+            15. :attr:`Observation.v_or` voltage at origin of powerlines [:attr:`Observation.n_line` elements]
+            16. :attr:`Observation.a_or` current flow at origin of powerlines [:attr:`Observation.n_line` elements]
+            17. :attr:`Observation.p_ex` active flow at extremity of powerlines [:attr:`Observation.n_line` elements]
+            18. :attr:`Observation.q_ex` reactive flow at extremity of powerlines [:attr:`Observation.n_line` elements]
+            19. :attr:`Observation.v_ex` voltage at extremity of powerlines [:attr:`Observation.n_line` elements]
+            20. :attr:`Observation.a_ex` current flow at extremity of powerlines [:attr:`Observation.n_line` elements]
+            21. :attr:`Observation.rho` line capacity used (current flow / thermal limit) [:attr:`Observation.n_line` elements]
+            22. :attr:`Observation.line_status` line status [:attr:`Observation.n_line` elements]
             23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow
-                (0 if the line is not on overflow)[:attr:`Observation.n_lines` elements]
+                (0 if the line is not on overflow)[:attr:`Observation.n_line` elements]
             24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element
                 it gives its bus]. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
             25. :attr:`Observation.time_before_cooldown_line` representation of the cooldown time on the powerlines
-                [:attr:`Observation.n_lines` elements]
+                [:attr:`Observation.n_line` elements]
             26. :attr:`Observation.time_before_cooldown_sub` representation of the cooldown time on the substations
                 [:attr:`Observation.n_sub` elements]
             27. :attr:`Observation.time_before_line_reconnectable` number of timestep to wait before a powerline
                 can be reconnected (it is disconnected due to maintenance, cascading failure or overflow)
-                [:attr:`Observation.n_lines` elements]
+                [:attr:`Observation.n_line` elements]
             28. :attr:`Observation.time_next_maintenance` number of timestep before the next maintenance (-1 means
-                no maintenance are planned, 0 a maintenance is in operation) [:attr:`Observation.n_lines` elements]
+                no maintenance are planned, 0 a maintenance is in operation) [:attr:`Observation.n_line` elements]
             29. :attr:`Observation.duration_next_maintenance` duration of the next maintenance. If a maintenance
-                is taking place, this is the number of timestep before it ends. [:attr:`Observation.n_lines` elements]
+                is taking place, this is the number of timestep before it ends. [:attr:`Observation.n_line` elements]
 
         Returns
         -------
@@ -1258,37 +1261,37 @@ class CompleteObservation(Observation):
 
         self.load_p = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
         self.load_q = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
-        self.load_v = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_lines
+        self.load_v = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_line
 
-        self.p_or = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.q_or = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.v_or = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.a_or = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.p_ex = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.q_ex = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.v_ex = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.a_ex = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
-        self.rho = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.p_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.q_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.v_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.a_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.p_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.q_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.v_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.a_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self.rho = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
 
-        self.line_status = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
         self.line_status = self.line_status.astype(np.bool)
-        self.timestep_overflow = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.dim_topo
+        self.timestep_overflow = vect[prev_:next_]; prev_ += self.n_line; next_ += self.dim_topo
         self.timestep_overflow = self.timestep_overflow.astype(np.int)
-        self.topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_lines
+        self.topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_line
         self.topo_vect = self.topo_vect.astype(np.int)
 
         # cooldown
-        self.time_before_cooldown_line = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_sub
+        self.time_before_cooldown_line = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_sub
         self.time_before_cooldown_line = self.time_before_cooldown_line.astype(np.int)
-        self.time_before_cooldown_sub = vect[prev_:next_]; prev_ += self.n_sub; next_ += self.n_lines
+        self.time_before_cooldown_sub = vect[prev_:next_]; prev_ += self.n_sub; next_ += self.n_line
         self.time_before_cooldown_sub = self.time_before_cooldown_sub.astype(np.int)
 
         # maintenance and hazards
-        self.time_before_line_reconnectable = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.time_before_line_reconnectable = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
         self.time_before_line_reconnectable = self.time_before_line_reconnectable.astype(np.int)
-        self.time_next_maintenance = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.time_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
         self.time_next_maintenance = self.time_next_maintenance.astype(np.int)
-        self.duration_next_maintenance = vect[prev_:next_]; prev_ += self.n_lines; next_ += self.n_lines
+        self.duration_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
         self.duration_next_maintenance = self.duration_next_maintenance.astype(np.int)
 
     def to_dict(self):
@@ -1337,7 +1340,7 @@ class CompleteObservation(Observation):
     def connectivity_matrix(self):
         """
         Computes and return the "connectivity matrix" `con_mat`.
-        if "_dim_topo = 2 * _n_lines + n_prod + n_conso"
+        if "_dim_topo = 2 * _n_line + n_prod + n_conso"
         It is a matrix of size _dim_topo, _dim_topo, with values 0 or 1.
         For two objects (lines extremity, generator unit, load) i,j :
 
@@ -1361,7 +1364,7 @@ class CompleteObservation(Observation):
             # fill it by block for the objects
             beg_ = 0
             end_ = 0
-            for sub_id, nb_obj in enumerate(self.subs_info):
+            for sub_id, nb_obj in enumerate(self.sub_info):
                 nb_obj = int(nb_obj)  # i must be a vanilla python integer, otherwise it's not handled by boost python method to index substations for example.
                 end_ += nb_obj
                 tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=np.float)
@@ -1375,7 +1378,7 @@ class CompleteObservation(Observation):
                 self.connectivity_matrix_[beg_:end_, beg_:end_] = tmp
                 beg_ += nb_obj
             # connect the objects together with the lines (both ends of a lines are connected together)
-            for q_id in range(self.n_lines):
+            for q_id in range(self.n_line):
                 self.connectivity_matrix_[self._lines_or_pos_topo_vect[q_id], self._lines_ex_pos_topo_vect[q_id]] = 1
                 self.connectivity_matrix_[self._lines_ex_pos_topo_vect[q_id], self._lines_or_pos_topo_vect[q_id]] = 1
 
@@ -1399,10 +1402,10 @@ class CompleteObservation(Observation):
         if self.bus_connectivity_matrix_ is None:
             # computes the number of buses in the powergrid.
             nb_bus = 0
-            nb_bus_per_sub = np.zeros(self.subs_info.shape[0])
+            nb_bus_per_sub = np.zeros(self.sub_info.shape[0])
             beg_ = 0
             end_ = 0
-            for sub_id, nb_obj in enumerate(self.subs_info):
+            for sub_id, nb_obj in enumerate(self.sub_info):
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
 
@@ -1416,7 +1419,7 @@ class CompleteObservation(Observation):
             self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=np.float)
             np.fill_diagonal(self.bus_connectivity_matrix_, 1)
 
-            for q_id in range(self.n_lines):
+            for q_id in range(self.n_line):
                 bus_or = int(self.topo_vect[self._lines_or_pos_topo_vect[q_id]])
                 sub_id_or = int(self._lines_or_to_subid[q_id])
 
@@ -1449,8 +1452,8 @@ class CompleteObservation(Observation):
         :return: the size of the flatten observation vector.
         """
         # TODO documentation
-        res = 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_lines + 3*self.n_lines
-        res += self.dim_topo + 4*self.n_lines + self.n_sub
+        res = 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_line + 3*self.n_line
+        res += self.dim_topo + 4*self.n_line + self.n_sub
         return res
 
 
@@ -1471,17 +1474,17 @@ class SerializableObservationSpace(SerializableSpace):
         An instance of the "*observationClass*" provided used to provide higher level utilities
 
     """
-    def __init__(self, name_prod, name_load, name_line, subs_info,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+    def __init__(self, name_prod, name_load, name_line, sub_info,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
                  observationClass=CompleteObservation):
         """
 
         Parameters
         ----------
         name_prod: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`Space.SerializableSpace.name_prod`
+            Used to initialized :attr:`Space.SerializableSpace.name_gen`
 
         name_load: :class:`numpy.array`, dtype:str
             Used to initialized :attr:`Space.SerializableSpace.name_load`
@@ -1489,8 +1492,8 @@ class SerializableObservationSpace(SerializableSpace):
         name_line: :class:`numpy.array`, dtype:str
             Used to initialized :attr:`Space.SerializableSpace.name_line`
 
-        subs_info: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.subs_info`
+        sub_info: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.sub_info`
 
         load_to_subid: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`Space.SerializableSpace.load_to_subid`
@@ -1498,11 +1501,11 @@ class SerializableObservationSpace(SerializableSpace):
         gen_to_subid: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`Space.SerializableSpace.gen_to_subid`
 
-        lines_or_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.lines_or_to_subid`
+        line_or_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.line_or_to_subid`
 
-        lines_ex_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.lines_ex_to_subid`
+        line_ex_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.line_ex_to_subid`
 
         load_to_sub_pos: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`Space.SerializableSpace.load_to_sub_pos`
@@ -1510,11 +1513,11 @@ class SerializableObservationSpace(SerializableSpace):
         gen_to_sub_pos: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`Space.SerializableSpace.gen_to_sub_pos`
 
-        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.lines_or_to_sub_pos`
+        line_or_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.line_or_to_sub_pos`
 
-        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.lines_ex_to_sub_pos`
+        line_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.line_ex_to_sub_pos`
 
         load_pos_topo_vect: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`Space.SerializableSpace.load_pos_topo_vect`
@@ -1522,25 +1525,25 @@ class SerializableObservationSpace(SerializableSpace):
         gen_pos_topo_vect: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`Space.SerializableSpace.gen_pos_topo_vect`
 
-        lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.lines_or_pos_topo_vect`
+        line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.line_or_pos_topo_vect`
 
-        lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.lines_ex_pos_topo_vect`
+        line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.line_ex_pos_topo_vect`
 
         actionClass: ``type``
             Type of action used to build :attr:`Space.SerializableSpace.template_obj`
 
         """
         SerializableSpace.__init__(self,
-                                   name_prod=name_prod, name_load=name_load, name_line=name_line, subs_info=subs_info,
+                                   name_prod=name_prod, name_load=name_load, name_line=name_line, sub_info=sub_info,
                                    load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
-                                   lines_or_to_subid=lines_or_to_subid, lines_ex_to_subid=lines_ex_to_subid,
+                                   line_or_to_subid=line_or_to_subid, line_ex_to_subid=line_ex_to_subid,
                                    load_to_sub_pos=load_to_sub_pos, gen_to_sub_pos=gen_to_sub_pos,
-                                   lines_or_to_sub_pos=lines_or_to_sub_pos, lines_ex_to_sub_pos=lines_ex_to_sub_pos,
+                                   line_or_to_sub_pos=line_or_to_sub_pos, line_ex_to_sub_pos=line_ex_to_sub_pos,
                                    load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
-                                   lines_or_pos_topo_vect=lines_or_pos_topo_vect,
-                                   lines_ex_pos_topo_vect=lines_ex_pos_topo_vect,
+                                   line_or_pos_topo_vect=line_or_pos_topo_vect,
+                                   line_ex_pos_topo_vect=line_ex_pos_topo_vect,
                                    subtype=observationClass)
 
         self.observationClass = self.subtype
@@ -1563,16 +1566,16 @@ class SerializableObservationSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-        res = SerializableObservationSpace(name_prod=tmp.name_prod, name_load=tmp.name_load, name_line=tmp.name_line,
-            subs_info=tmp.subs_info,
-                                   load_to_subid=tmp.load_to_subid, gen_to_subid=tmp.gen_to_subid,
-                                   lines_or_to_subid=tmp.lines_or_to_subid, lines_ex_to_subid=tmp.lines_ex_to_subid,
-                                   load_to_sub_pos=tmp.load_to_sub_pos, gen_to_sub_pos=tmp.gen_to_sub_pos,
-                                   lines_or_to_sub_pos=tmp.lines_or_to_sub_pos, lines_ex_to_sub_pos=tmp.lines_ex_to_sub_pos,
-                                   load_pos_topo_vect=tmp.load_pos_topo_vect, gen_pos_topo_vect=tmp.gen_pos_topo_vect,
-                                   lines_or_pos_topo_vect=tmp.lines_or_pos_topo_vect,
-                                   lines_ex_pos_topo_vect=tmp.lines_ex_pos_topo_vect,
-                                   observationClass=tmp.subtype)
+        res = SerializableObservationSpace(name_prod=tmp.name_gen, name_load=tmp.name_load, name_line=tmp.name_line,
+                                           sub_info=tmp.sub_info,
+                                           load_to_subid=tmp.load_to_subid, gen_to_subid=tmp.gen_to_subid,
+                                           line_or_to_subid=tmp.line_or_to_subid, line_ex_to_subid=tmp.line_ex_to_subid,
+                                           load_to_sub_pos=tmp.load_to_sub_pos, gen_to_sub_pos=tmp.gen_to_sub_pos,
+                                           line_or_to_sub_pos=tmp.line_or_to_sub_pos, line_ex_to_sub_pos=tmp.line_ex_to_sub_pos,
+                                           load_pos_topo_vect=tmp.load_pos_topo_vect, gen_pos_topo_vect=tmp.gen_pos_topo_vect,
+                                           line_or_pos_topo_vect=tmp.line_or_pos_topo_vect,
+                                           line_ex_pos_topo_vect=tmp.line_ex_pos_topo_vect,
+                                           observationClass=tmp.subtype)
         return res
 
 
@@ -1615,10 +1618,10 @@ class ObservationHelper(SerializableObservationSpace):
 
     """
     def __init__(self,
-                 name_prod, name_load, name_line, subs_info,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                 name_prod, name_load, name_line, sub_info,
+                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
                  env,
                  rewardClass=None,
                  observationClass=CompleteObservation):
@@ -1627,14 +1630,14 @@ class ObservationHelper(SerializableObservationSpace):
         """
 
         SerializableObservationSpace.__init__(self,
-                                   name_prod=name_prod, name_load=name_load, name_line=name_line, subs_info=subs_info,
+                                   name_prod=name_prod, name_load=name_load, name_line=name_line, sub_info=sub_info,
                                    load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
-                                   lines_or_to_subid=lines_or_to_subid, lines_ex_to_subid=lines_ex_to_subid,
+                                   line_or_to_subid=line_or_to_subid, line_ex_to_subid=line_ex_to_subid,
                                    load_to_sub_pos=load_to_sub_pos, gen_to_sub_pos=gen_to_sub_pos,
-                                   lines_or_to_sub_pos=lines_or_to_sub_pos, lines_ex_to_sub_pos=lines_ex_to_sub_pos,
+                                   line_or_to_sub_pos=line_or_to_sub_pos, line_ex_to_sub_pos=line_ex_to_sub_pos,
                                    load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
-                                   lines_or_pos_topo_vect=lines_or_pos_topo_vect,
-                                   lines_ex_pos_topo_vect=lines_ex_pos_topo_vect,
+                                   line_or_pos_topo_vect=line_or_pos_topo_vect,
+                                   line_ex_pos_topo_vect=line_ex_pos_topo_vect,
                                    observationClass=observationClass)
 
         # TODO DOCUMENTATION !!!
@@ -1657,40 +1660,40 @@ class ObservationHelper(SerializableObservationSpace):
                               parameters=env.parameters, reward_helper=self.reward_helper,
                               action_helper=self.action_helper_env)
 
-        self.empty_obs = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                                               subs_info=self.subs_info, dim_topo=self.dim_topo,
+        self.empty_obs = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
+                                               sub_info=self.sub_info, dim_topo=self.dim_topo,
                                                load_to_subid=self.load_to_subid,
                                                gen_to_subid=self.gen_to_subid,
-                                               lines_or_to_subid=self.lines_or_to_subid,
-                                               lines_ex_to_subid=self.lines_ex_to_subid,
+                                               line_or_to_subid=self.line_or_to_subid,
+                                               line_ex_to_subid=self.line_ex_to_subid,
                                                load_to_sub_pos=self.load_to_sub_pos,
                                                gen_to_sub_pos=self.gen_to_sub_pos,
-                                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                                               line_or_to_sub_pos=self.line_or_to_sub_pos,
+                                               line_ex_to_sub_pos=self.line_ex_to_sub_pos,
                                                load_pos_topo_vect=self.load_pos_topo_vect,
                                                gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect,
+                                               line_or_pos_topo_vect=self.line_or_pos_topo_vect,
+                                               line_ex_pos_topo_vect=self.line_ex_pos_topo_vect,
                                                obs_env=self.obs_env,
                                                action_helper=self.action_helper_env)
 
     def __call__(self, env):
         self.obs_env.update_grid(env.backend)
 
-        res = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                                    subs_info=self.subs_info, dim_topo=self.dim_topo,
+        res = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
+                                    sub_info=self.sub_info, dim_topo=self.dim_topo,
                                     load_to_subid=self.load_to_subid,
                                     gen_to_subid=self.gen_to_subid,
-                                    lines_or_to_subid=self.lines_or_to_subid,
-                                    lines_ex_to_subid=self.lines_ex_to_subid,
+                                    line_or_to_subid=self.line_or_to_subid,
+                                    line_ex_to_subid=self.line_ex_to_subid,
                                     load_to_sub_pos=self.load_to_sub_pos,
                                     gen_to_sub_pos=self.gen_to_sub_pos,
-                                    lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                                    lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
+                                    line_or_to_sub_pos=self.line_or_to_sub_pos,
+                                    line_ex_to_sub_pos=self.line_ex_to_sub_pos,
                                     load_pos_topo_vect=self.load_pos_topo_vect,
                                     gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                    lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                                    lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect,
+                                    line_or_pos_topo_vect=self.line_or_pos_topo_vect,
+                                    line_ex_pos_topo_vect=self.line_ex_pos_topo_vect,
                                     seed=self.seed,
                                     obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)

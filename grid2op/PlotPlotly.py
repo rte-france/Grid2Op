@@ -262,20 +262,20 @@ class PlotObs(object):
 
             for lor_id in objs["lines_or_id"]:
                 # TODO here get the proper name
-                ext_id = observation_space.lines_ex_to_subid[lor_id]
+                ext_id = observation_space.line_ex_to_subid[lor_id]
                 l_nm = self._get_line_name(sub_id, ext_id, lor_id)
                 this_line = {}
                 this_line["type"] = "line"
-                this_line["sub_pos"] = observation_space.lines_or_to_sub_pos[lor_id]
+                this_line["sub_pos"] = observation_space.line_or_to_sub_pos[lor_id]
                 this_sub[l_nm] = this_line
 
             for lex_id in objs["lines_ex_id"]:
                 # TODO here get the proper name
-                or_id = observation_space.lines_or_to_subid[lex_id]
+                or_id = observation_space.line_or_to_subid[lex_id]
                 l_nm = self._get_line_name(or_id, sub_id, lex_id)
                 this_line = {}
                 this_line["type"] = "line"
-                this_line["sub_pos"] = observation_space.lines_ex_to_sub_pos[lex_id]
+                this_line["sub_pos"] = observation_space.line_ex_to_sub_pos[lex_id]
                 this_sub[l_nm] = this_line
 
             self.subs_elements[sub_id] = this_sub

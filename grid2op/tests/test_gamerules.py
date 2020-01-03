@@ -69,26 +69,26 @@ class TestLoadingBackendFunc(unittest.TestCase):
         new_vect = np.random.randn(self.helper_action.n_load)
         new_vect2 = np.random.randn(self.helper_action.n_load)
 
-        change_status_orig = np.random.randint(0, 2, self.helper_action.n_lines).astype(np.bool)
-        set_status_orig = np.random.randint(-1, 2, self.helper_action.n_lines)
+        change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(np.bool)
+        set_status_orig = np.random.randint(-1, 2, self.helper_action.n_line)
         set_status_orig[change_status_orig] = 0
 
         change_topo_vect_orig = np.random.randint(0, 2, self.helper_action.dim_topo).astype(np.bool)
         # powerline that are set to be reconnected, can't be moved to another bus
-        change_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == 1]] = False
-        change_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == 1]] = False
+        change_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]] = False
+        change_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]] = False
         # powerline that are disconnected, can't be moved to the other bus
-        change_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == -1]] = False
-        change_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == -1]] = False
+        change_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]] = False
+        change_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]] = False
 
         set_topo_vect_orig = np.random.randint(0, 3, self.helper_action.dim_topo)
         set_topo_vect_orig[change_topo_vect_orig] = 0  # don't both change and set
         # I need to make sure powerlines that are reconnected are indeed reconnected to a bus
-        set_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == 1]] = 1
-        set_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == 1]] = 1
+        set_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]] = 1
+        set_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]] = 1
         # I need to make sure powerlines that are disconnected are not assigned to a bus
-        set_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == -1]] = 0
-        set_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == -1]] = 0
+        set_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]] = 0
+        set_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]] = 0
 
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
@@ -108,13 +108,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = 2
 
         self.helper_action.legal_action = GameRules(legalActClass=LookParam).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -169,13 +169,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = 2
 
         self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -203,7 +203,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         except IllegalAction:
             pass
 
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
         self.env.parameters.MAX_SUB_CHANGED = 2
@@ -224,15 +224,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -258,15 +258,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -291,15 +291,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_line_status_deactivated = 2
         self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -330,15 +330,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -364,15 +364,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -397,15 +397,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_topology_deactivated = 2
         self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_lines,),
+        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 

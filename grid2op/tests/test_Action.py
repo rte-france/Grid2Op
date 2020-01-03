@@ -38,65 +38,65 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.helper_action = HelperAction(name_prod=["gen_{}".format(i) for i in range(5)],
                                           name_load=["load_{}".format(i) for i in range(11)],
                                           name_line=["line_{}".format(i) for i in range(20)],
-                                          subs_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
+                                          sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
                                           load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
                                           gen_to_subid=np.array([0, 1, 2, 5, 7]),
-                                          lines_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
+                                          line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
                                                                        5,  6,  6,  8,  8, 9, 11, 12]),
-                                          lines_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
+                                          line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
                                                                        12,  7,  8,  9, 13, 10, 12, 13]),  #####
                                           load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
                                           gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
-                                          lines_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                          line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
                                                                         3, 0, 0, 1]),
-                                          lines_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
+                                          line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
                                           load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
                                           gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
-                                          lines_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
-                                          lines_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
+                                          line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
+                                          line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
                                           game_rules=self.game_rules)
 
 
         self.helper_action_env = HelperAction(name_prod=["gen_{}".format(i) for i in range(5)],
                                           name_load=["load_{}".format(i) for i in range(11)],
                                           name_line=["line_{}".format(i) for i in range(20)],
-                                          subs_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
+                                          sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
                                           load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
                                           gen_to_subid=np.array([0, 1, 2, 5, 7]),
-                                          lines_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
+                                          line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
                                                                        5,  6,  6,  8,  8, 9, 11, 12]),
-                                          lines_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
+                                          line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
                                                                        12,  7,  8,  9, 13, 10, 12, 13]),  #####
                                           load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
                                           gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
-                                          lines_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                          line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
                                                                         3, 0, 0, 1]),
-                                          lines_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
+                                          line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
                                           load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
                                           gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
-                                          lines_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
-                                          lines_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
+                                          line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
+                                          line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
                                           game_rules=self.game_rules,
                                           actionClass=Action)
 
-        self.res = {'name_prod': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
+        self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
                'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
                              'load_7', 'load_8', 'load_9', 'load_10'],
                'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
                              'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14', 'line_15',
                              'line_16', 'line_17', 'line_18', 'line_19'],
-               'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+               'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
                'gen_to_subid': [0, 1, 2, 5, 7],
-               'lines_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-               'lines_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+               'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+               'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
                'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1], 'gen_to_sub_pos': [2, 5, 3, 5, 1],
-               'lines_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-               'lines_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+               'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+               'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
                'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
                'gen_pos_topo_vect': [2, 8, 12, 29, 34],
-               'lines_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
-               'lines_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
+               'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
+               'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
                'subtype': 'Action.Action'}
 
     def tearDown(self):
@@ -112,6 +112,17 @@ class TestLoadingBackendFunc(unittest.TestCase):
         :return:
         """
         action = self.helper_action()
+
+    def test_size(self):
+        action = self.helper_action()
+        action.size()
+
+    def test_proper_size(self):
+        action = self.helper_action()
+        assert action.size() == 224
+
+    def test_size_action_space(self):
+        assert self.helper_action.size() == 224
 
     def test_print_notcrash(self):
         """
@@ -162,11 +173,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         Test if the disconnection is working properly
         :return:
         """
-        for i in range(self.helper_action.n_lines):
-            disco = np.full(shape=self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        for i in range(self.helper_action.n_line):
+            disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=np.int)
             disco[i] = 1
             action = self.helper_action({"set_line_status": disco})
-            for j in range(self.helper_action.n_lines):
+            for j in range(self.helper_action.n_line):
                 assert action.effect_on(line_id=j)["set_line_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
@@ -175,11 +186,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         Test if the disconnection is working properly
         :return:
         """
-        for i in range(self.helper_action.n_lines):
-            disco = np.full(shape=self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        for i in range(self.helper_action.n_line):
+            disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=np.int)
             disco[i] = -1
             action = self.helper_action({"set_line_status": disco})
-            for j in range(self.helper_action.n_lines):
+            for j in range(self.helper_action.n_line):
                 assert action.effect_on(line_id=j)["set_line_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
@@ -188,21 +199,21 @@ class TestLoadingBackendFunc(unittest.TestCase):
         Same test as above, but with hazard
         :return:
         """
-        for i in range(self.helper_action.n_lines):
-            disco = np.full(shape=self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        for i in range(self.helper_action.n_line):
+            disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=np.bool)
             disco[i] = True
             action = self.helper_action({"hazards": disco})
-            for j in range(self.helper_action.n_lines):
+            for j in range(self.helper_action.n_line):
                 expected_res = -1 if j == i else 0
                 assert action.effect_on(line_id=j)["set_line_status"] == expected_res, "problem with line {} if line {} is disconnected".format(j, i)
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_status(self):
-        for i in range(self.helper_action.n_lines):
-            disco = np.full(shape=self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        for i in range(self.helper_action.n_line):
+            disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=np.bool)
             disco[i] = True
             action = self.helper_action({"change_line_status": disco})
-            for j in range(self.helper_action.n_lines):
+            for j in range(self.helper_action.n_line):
                 expected_res = j == i
                 assert action.effect_on(line_id=j)["set_line_status"] == 0
                 assert action.effect_on(line_id=j)["change_line_status"] == expected_res
@@ -287,7 +298,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
             pass
 
     def test_ambiguity_line_status_when_set_and_change(self):
-        arr = np.zeros(self.helper_action.n_lines)
+        arr = np.zeros(self.helper_action.n_line)
         arr[1] = -1
         action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "disconnected"
         action.update({"change_line_status": [1]})  # i asked to change this status
@@ -298,7 +309,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
             pass
 
     def test_ambiguity_line_reconnected_without_bus(self):
-        arr = np.zeros(self.helper_action.n_lines)
+        arr = np.zeros(self.helper_action.n_line)
         arr[1] = 1
         action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "connected"
         # and i don't say on which bus to connect it
@@ -316,7 +327,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_=2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
-        arr2 = np.zeros(self.helper_action.n_lines)
+        arr2 = np.zeros(self.helper_action.n_line)
         arr2[id_] = -1
         action.update({"set_line_status": arr2})
         try:
@@ -419,26 +430,26 @@ class TestLoadingBackendFunc(unittest.TestCase):
         new_vect = np.random.randn(self.helper_action.n_load)
         new_vect2 = np.random.randn(self.helper_action.n_load)
 
-        change_status_orig = np.random.randint(0, 2, self.helper_action.n_lines).astype(np.bool)
-        set_status_orig = np.random.randint(-1, 2, self.helper_action.n_lines)
+        change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(np.bool)
+        set_status_orig = np.random.randint(-1, 2, self.helper_action.n_line)
         set_status_orig[change_status_orig] = 0
 
         change_topo_vect_orig = np.random.randint(0, 2, self.helper_action.dim_topo).astype(np.bool)
         # powerline that are set to be reconnected, can't be moved to another bus
-        change_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == 1]] = False
-        change_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == 1]] = False
+        change_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]] = False
+        change_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]] = False
         # powerline that are disconnected, can't be moved to the other bus
-        change_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == -1]] = False
-        change_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == -1]] = False
+        change_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]] = False
+        change_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]] = False
 
         set_topo_vect_orig = np.random.randint(0, 3, self.helper_action.dim_topo)
         set_topo_vect_orig[change_topo_vect_orig] = 0  # don't both change and set
         # I need to make sure powerlines that are reconnected are indeed reconnected to a bus
-        set_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == 1]] = 1
-        set_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == 1]] = 1
+        set_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]] = 1
+        set_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]] = 1
         # I need to make sure powerlines that are disconnected are not assigned to a bus
-        set_topo_vect_orig[self.helper_action.lines_or_pos_topo_vect[set_status_orig == -1]] = 0
-        set_topo_vect_orig[self.helper_action.lines_ex_pos_topo_vect[set_status_orig == -1]] = 0
+        set_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]] = 0
+        set_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]] = 0
 
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
@@ -464,9 +475,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_lines, fill_value=False, dtype=np.bool)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
-        arr_line2 = np.full(self.helper_action.n_lines, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = 2
 
         do_nothing = self.helper_action({})
@@ -516,10 +527,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_from_dict(self):
         res = HelperAction.from_dict(self.res )
-        assert np.all(res.name_prod == self.helper_action.name_prod)
+        assert np.all(res.name_gen == self.helper_action.name_gen)
         assert np.all(res.name_load == self.helper_action.name_load)
         assert np.all(res.name_line == self.helper_action.name_line)
-        assert np.all(res.subs_info == self.helper_action.subs_info)
+        assert np.all(res.sub_info == self.helper_action.sub_info)
         assert np.all(res.load_to_subid == self.helper_action.load_to_subid)
         assert np.all(res.gen_to_subid == self.helper_action.gen_to_subid)
         assert np.all(res.lines_or_to_subid == self.helper_action.lines_or_to_subid)
@@ -530,8 +541,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.lines_ex_to_sub_pos == self.helper_action.lines_ex_to_sub_pos)
         assert np.all(res.load_pos_topo_vect == self.helper_action.load_pos_topo_vect)
         assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
-        assert np.all(res.lines_or_pos_topo_vect == self.helper_action.lines_or_pos_topo_vect)
-        assert np.all(res.lines_ex_pos_topo_vect == self.helper_action.lines_ex_pos_topo_vect)
+        assert np.all(res.line_or_pos_topo_vect == self.helper_action.line_or_pos_topo_vect)
+        assert np.all(res.line_ex_pos_topo_vect == self.helper_action.line_ex_pos_topo_vect)
         # pdb.set_trace()
         assert np.all(res.actionClass == self.helper_action.actionClass)
 
@@ -544,10 +555,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
         res = HelperAction.from_dict(json.loads(tmp))
 
-        assert np.all(res.name_prod == self.helper_action.name_prod)
+        assert np.all(res.name_gen == self.helper_action.name_gen)
         assert np.all(res.name_load == self.helper_action.name_load)
         assert np.all(res.name_line == self.helper_action.name_line)
-        assert np.all(res.subs_info == self.helper_action.subs_info)
+        assert np.all(res.sub_info == self.helper_action.sub_info)
         assert np.all(res.load_to_subid == self.helper_action.load_to_subid)
         assert np.all(res.gen_to_subid == self.helper_action.gen_to_subid)
         assert np.all(res.lines_or_to_subid == self.helper_action.lines_or_to_subid)
@@ -558,8 +569,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.lines_ex_to_sub_pos == self.helper_action.lines_ex_to_sub_pos)
         assert np.all(res.load_pos_topo_vect == self.helper_action.load_pos_topo_vect)
         assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
-        assert np.all(res.lines_or_pos_topo_vect == self.helper_action.lines_or_pos_topo_vect)
-        assert np.all(res.lines_ex_pos_topo_vect == self.helper_action.lines_ex_pos_topo_vect)
+        assert np.all(res.line_or_pos_topo_vect == self.helper_action.line_or_pos_topo_vect)
+        assert np.all(res.line_ex_pos_topo_vect == self.helper_action.line_ex_pos_topo_vect)
         assert np.all(res.actionClass == self.helper_action.actionClass)
 
     def test_as_dict(self):

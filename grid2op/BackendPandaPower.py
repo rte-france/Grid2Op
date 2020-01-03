@@ -189,45 +189,45 @@ class PandaPowerBackend(Backend):
         # self._fact_mult_gen[-1] += 1
 
         # now extract the powergrid
-        self.n_lines = copy.deepcopy(self._grid.line.shape[0]) + copy.deepcopy(self._grid.trafo.shape[0])
-        self.name_lines = ['{from_bus}_{to_bus}_{id_powerline_me}'.format(**row, id_powerline_me=i)
-                           for i, (_, row) in enumerate(self._grid.line.iterrows())]
+        self.n_line = copy.deepcopy(self._grid.line.shape[0]) + copy.deepcopy(self._grid.trafo.shape[0])
+        self.name_line = ['{from_bus}_{to_bus}_{id_powerline_me}'.format(**row, id_powerline_me=i)
+                          for i, (_, row) in enumerate(self._grid.line.iterrows())]
         transfo =  [('{hv_bus}'.format(**row), '{lv_bus}'.format(**row))
                     for i, (_, row) in enumerate(self._grid.trafo.iterrows())]
         transfo =  [sorted(el) for el in transfo]
-        self.name_lines += ['{}_{}_{}'.format(*el, i+self._grid.line.shape[0]) for i, el in enumerate(transfo)]
-        self.name_lines = np.array(self.name_lines)
+        self.name_line += ['{}_{}_{}'.format(*el, i + self._grid.line.shape[0]) for i, el in enumerate(transfo)]
+        self.name_line = np.array(self.name_line)
 
-        self.n_generators = copy.deepcopy(self._grid.gen.shape[0])
-        self.name_prods = ["gen_{bus}_{index_gen}".format(**row, index_gen=i)
-                           for i, (_, row) in enumerate(self._grid.gen.iterrows())]
-        self.name_prods = np.array(self.name_prods)
+        self.n_gen = copy.deepcopy(self._grid.gen.shape[0])
+        self.name_gen = ["gen_{bus}_{index_gen}".format(**row, index_gen=i)
+                         for i, (_, row) in enumerate(self._grid.gen.iterrows())]
+        self.name_gen = np.array(self.name_gen)
 
-        self.n_loads = copy.deepcopy(self._grid.load.shape[0])
-        self.name_loads = ["load_{bus}_{index_gen}".format(**row, index_gen=i)
-                           for i, (_, row) in enumerate(self._grid.load.iterrows())]
-        self.name_loads = np.array(self.name_loads)
+        self.n_load = copy.deepcopy(self._grid.load.shape[0])
+        self.name_load = ["load_{bus}_{index_gen}".format(**row, index_gen=i)
+                          for i, (_, row) in enumerate(self._grid.load.iterrows())]
+        self.name_load = np.array(self.name_load)
 
-        self.n_substations = copy.deepcopy(self._grid.bus.shape[0])
-        self.name_subs = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
-        self.name_subs = np.array(self.name_subs)
+        self.n_sub = copy.deepcopy(self._grid.bus.shape[0])
+        self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
+        self.name_sub = np.array(self.name_sub)
 
         #  number of elements per substation
-        self.subs_elements = np.zeros(self.n_substations, dtype=np.int)
+        self.sub_info = np.zeros(self.n_sub, dtype=np.int)
 
-        self.load_to_subid = np.zeros(self.n_loads, dtype=np.int)
-        self.gen_to_subid = np.zeros(self.n_generators, dtype=np.int)
-        self.lines_or_to_subid = np.zeros(self.n_lines, dtype=np.int)
-        self.lines_ex_to_subid = np.zeros(self.n_lines, dtype=np.int)
+        self.load_to_subid = np.zeros(self.n_load, dtype=np.int)
+        self.gen_to_subid = np.zeros(self.n_gen, dtype=np.int)
+        self.line_or_to_subid = np.zeros(self.n_line, dtype=np.int)
+        self.line_ex_to_subid = np.zeros(self.n_line, dtype=np.int)
 
-        self.load_to_sub_pos = np.zeros(self.n_loads, dtype=np.int)
-        self.gen_to_sub_pos = np.zeros(self.n_generators, dtype=np.int)
-        self.lines_or_to_sub_pos = np.zeros(self.n_lines, dtype=np.int)
-        self.lines_ex_to_sub_pos = np.zeros(self.n_lines, dtype=np.int)
+        self.load_to_sub_pos = np.zeros(self.n_load, dtype=np.int)
+        self.gen_to_sub_pos = np.zeros(self.n_gen, dtype=np.int)
+        self.line_or_to_sub_pos = np.zeros(self.n_line, dtype=np.int)
+        self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=np.int)
 
-        self._subs_to_table = [None for _ in range(self.n_substations)] # TODO later if I have too
-        pos_already_used = np.zeros(self.n_substations, dtype=np.int)
-        self._what_object_where = [[] for _ in range(self.n_substations)]
+        self._subs_to_table = [None for _ in range(self.n_sub)] # TODO later if I have too
+        pos_already_used = np.zeros(self.n_sub, dtype=np.int)
+        self._what_object_where = [[] for _ in range(self.n_sub)]
 
         # self._grid.line.sort_index(inplace=True)
         # self._grid.trafo.sort_index(inplace=True)
@@ -237,14 +237,14 @@ class PandaPowerBackend(Backend):
         for i, (_, row) in enumerate(self._grid.line.iterrows()):
             sub_or_id = int(row["from_bus"])
             sub_ex_id = int(row["to_bus"])
-            self.subs_elements[sub_or_id] += 1
-            self.subs_elements[sub_ex_id] += 1
-            self.lines_or_to_subid[i] = sub_or_id
-            self.lines_ex_to_subid[i] = sub_ex_id
+            self.sub_info[sub_or_id] += 1
+            self.sub_info[sub_ex_id] += 1
+            self.line_or_to_subid[i] = sub_or_id
+            self.line_ex_to_subid[i] = sub_ex_id
 
-            self.lines_or_to_sub_pos[i] = pos_already_used[sub_or_id]
+            self.line_or_to_sub_pos[i] = pos_already_used[sub_or_id]
             pos_already_used[sub_or_id] += 1
-            self.lines_ex_to_sub_pos[i] = pos_already_used[sub_ex_id]
+            self.line_ex_to_sub_pos[i] = pos_already_used[sub_ex_id]
             pos_already_used[sub_ex_id] += 1
 
             self._what_object_where[sub_or_id].append(("line", "from_bus", i))
@@ -255,14 +255,14 @@ class PandaPowerBackend(Backend):
         for i, (_, row) in enumerate(self._grid.trafo.iterrows()):
             sub_or_id = int(row["hv_bus"])
             sub_ex_id = int(row["lv_bus"])
-            self.subs_elements[sub_or_id] += 1
-            self.subs_elements[sub_ex_id] += 1
-            self.lines_or_to_subid[i+lag_transfo] = sub_or_id
-            self.lines_ex_to_subid[i+lag_transfo] = sub_ex_id
+            self.sub_info[sub_or_id] += 1
+            self.sub_info[sub_ex_id] += 1
+            self.line_or_to_subid[i + lag_transfo] = sub_or_id
+            self.line_ex_to_subid[i + lag_transfo] = sub_ex_id
 
-            self.lines_or_to_sub_pos[i+lag_transfo] = pos_already_used[sub_or_id]
+            self.line_or_to_sub_pos[i + lag_transfo] = pos_already_used[sub_or_id]
             pos_already_used[sub_or_id] += 1
-            self.lines_ex_to_sub_pos[i+lag_transfo] = pos_already_used[sub_ex_id]
+            self.line_ex_to_sub_pos[i + lag_transfo] = pos_already_used[sub_ex_id]
             pos_already_used[sub_ex_id] += 1
 
             self._what_object_where[sub_or_id].append(("trafo", "hv_bus", i))
@@ -270,7 +270,7 @@ class PandaPowerBackend(Backend):
 
         for i, (_, row) in enumerate(self._grid.gen.iterrows()):
             sub_id = int(row["bus"])
-            self.subs_elements[sub_id] += 1
+            self.sub_info[sub_id] += 1
             self.gen_to_subid[i] = sub_id
             self.gen_to_sub_pos[i] = pos_already_used[sub_id]
             pos_already_used[sub_id] += 1
@@ -279,7 +279,7 @@ class PandaPowerBackend(Backend):
 
         for i, (_, row)  in enumerate(self._grid.load.iterrows()):
             sub_id = int(row["bus"])
-            self.subs_elements[sub_id] += 1
+            self.sub_info[sub_id] += 1
             self.load_to_subid[i] = sub_id
             self.load_to_sub_pos[i] = pos_already_used[sub_id]
             pos_already_used[sub_id] += 1
@@ -288,7 +288,7 @@ class PandaPowerBackend(Backend):
 
         self._compute_pos_big_topo()
 
-        self._dim_topo = np.sum(self.subs_elements)
+        self._dim_topo = np.sum(self.sub_info)
 
 
         # utilities for imeplementing apply_action
@@ -317,14 +317,14 @@ class PandaPowerBackend(Backend):
         self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
 
-        self.p_or = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
-        self.q_or = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
-        self.v_or = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
-        self.a_or = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
-        self.p_ex = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
-        self.q_ex = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
-        self.v_ex = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
-        self.a_ex = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
+        self.p_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.q_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.v_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.a_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.p_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.q_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.v_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.a_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
         self._nb_bus_before = None
 
     def apply_action(self, action: Action):
@@ -376,7 +376,7 @@ class PandaPowerBackend(Backend):
         if np.any(possiblechange) or np.any(switcth_topo_vect):
             actual_topo_full = self.get_topo_vect()
             if np.any(set_topo_vect[possiblechange] != actual_topo_full[possiblechange]) or np.any(switcth_topo_vect):
-                for sub_id, nb_obj in enumerate(self.subs_elements):
+                for sub_id, nb_obj in enumerate(self.sub_info):
                     nb_obj = int(nb_obj)
                     end_ += nb_obj
                     # extract all sub information
@@ -407,16 +407,16 @@ class PandaPowerBackend(Backend):
                         nb_bus_now = len(np.unique(actual_topo))
                         if nb_bus_before > nb_bus_now:
                             # i must deactivate the unused bus
-                            self._grid.bus["in_service"][sub_id + self.n_substations] = False
+                            self._grid.bus["in_service"][sub_id + self.n_sub] = False
                             # print("I deactivated bus {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
                         elif nb_bus_before < nb_bus_now:
                             # i must activate the new bus
-                            self._grid.bus["in_service"][sub_id + self.n_substations] = True
+                            self._grid.bus["in_service"][sub_id + self.n_sub] = True
                             # print("I reactivated second bus of substation {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
 
                         # now assign the proper bus to each element
                         for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
-                            self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_substations
+                            self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
 
                             #if table == "line" or table == "trafo":
                             #    # I connect it if it was disconnected
@@ -446,8 +446,8 @@ class PandaPowerBackend(Backend):
                     if connected:
                         df["in_service"].iloc[tmp] = False
                     else:
-                        bus_or = set_topo_vect[self.lines_or_pos_topo_vect[i]]
-                        bus_ex = set_topo_vect[self.lines_ex_pos_topo_vect[i]]
+                        bus_or = set_topo_vect[self.line_or_pos_topo_vect[i]]
+                        bus_ex = set_topo_vect[self.line_ex_pos_topo_vect[i]]
                         if bus_ex == 0 or bus_or == 0:
                             raise InvalidLineStatus("Line {} was disconnected. The action switched its status, without providing buses to connect it on both ends.".format(i))
                         # reconnection has then be handled in the topology
@@ -511,7 +511,7 @@ class PandaPowerBackend(Backend):
 
         except pp.powerflow.LoadflowNotConverged:
             # of the powerflow has not converged, results are Nan
-            self.p_or = np.full(self.n_lines, dtype=np.float, fill_value=np.NaN)
+            self.p_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
             self.q_or = self.p_or
             self.v_or = self.p_or
             self.a_or = self.p_or
@@ -579,16 +579,16 @@ class PandaPowerBackend(Backend):
         for i, (_, row) in enumerate(self._grid.line.iterrows()):
             bus_or_id = int(row["from_bus"])
             bus_ex_id = int(row["to_bus"])
-            res[self.lines_or_pos_topo_vect[i]] = 1 if bus_or_id == self.lines_or_to_subid[i] else 2
-            res[self.lines_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.lines_ex_to_subid[i] else 2
+            res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
+            res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
 
         nb = self._number_true_line
         for i, (_, row) in enumerate(self._grid.trafo.iterrows()):
             bus_or_id = int(row["hv_bus"])
             bus_ex_id = int(row["lv_bus"])
 
-            res[self.lines_or_pos_topo_vect[i + nb]] = 1 if bus_or_id == self.lines_or_to_subid[i + nb] else 2
-            res[self.lines_ex_pos_topo_vect[i + nb]] = 1 if bus_ex_id == self.lines_ex_to_subid[i + nb] else 2
+            res[self.line_or_pos_topo_vect[i + nb]] = 1 if bus_or_id == self.line_or_to_subid[i + nb] else 2
+            res[self.line_ex_pos_topo_vect[i + nb]] = 1 if bus_ex_id == self.line_ex_to_subid[i + nb] else 2
 
         for i, (_, row) in enumerate(self._grid.gen.iterrows()):
             bus_id = int(row["bus"])

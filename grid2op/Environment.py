@@ -281,61 +281,61 @@ class Environment:
                     type(observationClass)))
 
         # action affecting the _grid that will be made by the agent
-        self.helper_action_player = HelperAction(name_prod=self.backend.name_prods,
-                                                 name_load=self.backend.name_loads,
-                                                 name_line=self.backend.name_lines,
-                                                 subs_info=self.backend.subs_elements,
+        self.helper_action_player = HelperAction(name_prod=self.backend.name_gen,
+                                                 name_load=self.backend.name_load,
+                                                 name_line=self.backend.name_line,
+                                                 sub_info=self.backend.sub_info,
                                                  load_to_subid=self.backend.load_to_subid,
                                                  gen_to_subid=self.backend.gen_to_subid,
-                                                 lines_or_to_subid=self.backend.lines_or_to_subid,
-                                                 lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
+                                                 line_or_to_subid=self.backend.line_or_to_subid,
+                                                 line_ex_to_subid=self.backend.line_ex_to_subid,  #####
                                                  load_to_sub_pos=self.backend.load_to_sub_pos,
                                                  gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                                 lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                                 lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
+                                                 line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
+                                                 line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos,  #####
                                                  load_pos_topo_vect=self.backend.load_pos_topo_vect,
                                                  gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                                 lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                                 lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
+                                                 line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
+                                                 line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
                                                  actionClass=actionClass,
                                                  game_rules=self.game_rules)
 
         # action that affect the _grid made by the environment.
-        self.helper_action_env = HelperAction(name_prod=self.backend.name_prods,
-                                              name_load=self.backend.name_loads,
-                                              name_line=self.backend.name_lines,
-                                              subs_info=self.backend.subs_elements,
+        self.helper_action_env = HelperAction(name_prod=self.backend.name_gen,
+                                              name_load=self.backend.name_load,
+                                              name_line=self.backend.name_line,
+                                              sub_info=self.backend.sub_info,
                                               load_to_subid=self.backend.load_to_subid,
                                               gen_to_subid=self.backend.gen_to_subid,
-                                              lines_or_to_subid=self.backend.lines_or_to_subid,
-                                              lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
+                                              line_or_to_subid=self.backend.line_or_to_subid,
+                                              line_ex_to_subid=self.backend.line_ex_to_subid,  #####
                                               load_to_sub_pos=self.backend.load_to_sub_pos,
                                               gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                              lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                              lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
+                                              line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
+                                              line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos,  #####
                                               load_pos_topo_vect=self.backend.load_pos_topo_vect,
                                               gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                              lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                              lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
+                                              line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
+                                              line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
                                               actionClass=Action,
                                               game_rules=self.game_rules)
 
-        self.helper_observation = ObservationHelper(name_prod=self.backend.name_prods,
-                                                    name_load=self.backend.name_loads,
-                                                    name_line=self.backend.name_lines,
-                                                    subs_info=self.backend.subs_elements,
+        self.helper_observation = ObservationHelper(name_prod=self.backend.name_gen,
+                                                    name_load=self.backend.name_load,
+                                                    name_line=self.backend.name_line,
+                                                    sub_info=self.backend.sub_info,
                                                     load_to_subid=self.backend.load_to_subid,
                                                     gen_to_subid=self.backend.gen_to_subid,
-                                                    lines_or_to_subid=self.backend.lines_or_to_subid,
-                                                    lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
+                                                    line_or_to_subid=self.backend.line_or_to_subid,
+                                                    line_ex_to_subid=self.backend.line_ex_to_subid,  #####
                                                     load_to_sub_pos=self.backend.load_to_sub_pos,
                                                     gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                                    lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                                    lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
+                                                    line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
+                                                    line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos,  #####
                                                     load_pos_topo_vect=self.backend.load_pos_topo_vect,
                                                     gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                                    lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                                    lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
+                                                    line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
+                                                    line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
                                                     observationClass=observationClass,
                                                     rewardClass=rewardClass,
                                                     env=self)
@@ -345,26 +345,26 @@ class Environment:
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
+        self.timestep_overflow = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         # store actions "cooldown"
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
         # for maintenance operation
-        self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
 
         # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
-        self._hazard_duration = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self._hazard_duration = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
 
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_line_reconnection = np.full(shape=(self.backend.n_lines,),
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.backend.n_line,),
                                                                fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
@@ -375,8 +375,8 @@ class Environment:
                 "grid2op.ChronicsHandler class, type provided is \"{}\"".format(
                     type(chronics_handler)))
         self.chronics_handler = chronics_handler
-        self.chronics_handler.initialize(self.backend.name_loads, self.backend.name_prods,
-                                         self.backend.name_lines, self.backend.name_subs,
+        self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
+                                         self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
         self.names_chronics_to_backend = names_chronics_to_backend
 
@@ -449,9 +449,9 @@ class Environment:
         return False
 
     def _reset_maintenance(self):
-        self.time_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
-        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_line,), fill_value=0, dtype=np.int)
 
     def reset_grid(self):
         """
@@ -696,17 +696,17 @@ class Environment:
 
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
+        self.timestep_overflow = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.env_dc = self.parameters.ENV_DC
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
         self._time_apply_act = 0
@@ -724,8 +724,8 @@ class Environment:
         This method should be called only at the end of an episode.
         """
         self.chronics_handler.next_chronics()
-        self.chronics_handler.initialize(self.backend.name_loads, self.backend.name_prods,
-                                         self.backend.name_lines, self.backend.name_subs,
+        self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
+                                         self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
         self._reset_maintenance()

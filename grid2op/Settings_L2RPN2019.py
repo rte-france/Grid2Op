@@ -300,7 +300,7 @@ class L2RPN2019_Action(Action):
         size: ``int``
             The size of :class:`PowerLineSet` converted to an array.
         """
-        return self._n_lines + self._dim_topo
+        return self._n_line + self._dim_topo
 
     def to_vect(self):
         """
@@ -345,7 +345,7 @@ class L2RPN2019_Action(Action):
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
         prev_ = 0
-        next_ = self._n_lines
+        next_ = self._n_line
 
         self._switch_line_status = vect[prev_:next_]
         self._switch_line_status = self._switch_line_status.astype(np.bool); prev_=next_; next_+= self._dim_topo
@@ -367,8 +367,8 @@ class L2RPN2019_Action(Action):
     #     """
     #     sel_ = self._set_line_status == 1
     #     if np.any(sel_):
-    #         self._set_topo_vect[self._lines_ex_pos_topo_vect[sel_]] = 1
-    #         self._set_topo_vect[self._lines_or_pos_topo_vect[sel_]] = 1
+    #         self._set_topo_vect[self._line_ex_pos_topo_vect[sel_]] = 1
+    #         self._set_topo_vect[self._line_or_pos_topo_vect[sel_]] = 1
 
     def sample(self):
         """
@@ -387,6 +387,6 @@ class L2RPN2019_Action(Action):
         val = 2*np.random.randint(0, 2) - 1  # the action: +1 reconnect it, -1 disconnect it
         self._set_line_status[i] = val
         if val == 1:
-            self._set_topo_vect[self._lines_ex_pos_topo_vect[i]] = 1
-            self._set_topo_vect[self._lines_or_pos_topo_vect[i]] = 1
+            self._set_topo_vect[self._line_ex_pos_topo_vect[i]] = 1
+            self._set_topo_vect[self._line_or_pos_topo_vect[i]] = 1
         return self
