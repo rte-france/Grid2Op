@@ -431,7 +431,8 @@ class Observation(ABC):
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
-                 obs_env=None, action_helper=None,
+                 obs_env=None,
+                 action_helper=None,
                  seed=None):
         self.action_helper = action_helper
 
@@ -1064,7 +1065,7 @@ class CompleteObservation(Observation):
                  load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
                  load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
                  load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
-                 obs_env,action_helper,
+                 obs_env=None,action_helper=None,
                  seed=None):
 
         Observation.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
@@ -1453,7 +1454,129 @@ class CompleteObservation(Observation):
         return res
 
 
-class ObservationHelper(SerializableSpace):
+class SerializableObservationSpace(SerializableSpace):
+    """
+    This class allows to serialize / de serialize the action space.
+
+    It should not be used inside an Environment, as some functions of the action might not be compatible with
+    the serialization, especially the checking of whether or not an Observation is legal or not.
+
+    Attributes
+    ----------
+
+    observationClass: ``type``
+        Type used to build the :attr:`SerializableActionSpace.template_act`
+
+    empty_obs: :class:`Observation`
+        An instance of the "*observationClass*" provided used to provide higher level utilities
+
+    """
+    def __init__(self, name_prod, name_load, name_line, subs_info,
+                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
+                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
+                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+                 observationClass=CompleteObservation):
+        """
+
+        Parameters
+        ----------
+        name_prod: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`Space.SerializableSpace.name_prod`
+
+        name_load: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`Space.SerializableSpace.name_load`
+
+        name_line: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`Space.SerializableSpace.name_line`
+
+        subs_info: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.subs_info`
+
+        load_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.load_to_subid`
+
+        gen_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.gen_to_subid`
+
+        lines_or_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.lines_or_to_subid`
+
+        lines_ex_to_subid: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.lines_ex_to_subid`
+
+        load_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.load_to_sub_pos`
+
+        gen_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.gen_to_sub_pos`
+
+        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.lines_or_to_sub_pos`
+
+        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.lines_ex_to_sub_pos`
+
+        load_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.load_pos_topo_vect`
+
+        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.gen_pos_topo_vect`
+
+        lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.lines_or_pos_topo_vect`
+
+        lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+            Used to initialized :attr:`Space.SerializableSpace.lines_ex_pos_topo_vect`
+
+        actionClass: ``type``
+            Type of action used to build :attr:`Space.SerializableSpace.template_obj`
+
+        """
+        SerializableSpace.__init__(self,
+                                   name_prod=name_prod, name_load=name_load, name_line=name_line, subs_info=subs_info,
+                                   load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
+                                   lines_or_to_subid=lines_or_to_subid, lines_ex_to_subid=lines_ex_to_subid,
+                                   load_to_sub_pos=load_to_sub_pos, gen_to_sub_pos=gen_to_sub_pos,
+                                   lines_or_to_sub_pos=lines_or_to_sub_pos, lines_ex_to_sub_pos=lines_ex_to_sub_pos,
+                                   load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
+                                   lines_or_pos_topo_vect=lines_or_pos_topo_vect,
+                                   lines_ex_pos_topo_vect=lines_ex_pos_topo_vect,
+                                   subtype=observationClass)
+
+        self.observationClass = self.subtype
+        self.empty_obs = self.template_obj
+
+    @staticmethod
+    def from_dict(dict_):
+        """
+        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
+
+        Parameters
+        ----------
+        dict_: ``dict``
+            Representation of an Observation Space (aka SerializableObservationSpace) as a dictionnary.
+
+        Returns
+        -------
+        res: :class:``SerializableObservationSpace``
+            An instance of an action space matching the dictionnary.
+
+        """
+        tmp = SerializableSpace.from_dict(dict_)
+        res = SerializableObservationSpace(name_prod=tmp.name_prod, name_load=tmp.name_load, name_line=tmp.name_line,
+            subs_info=tmp.subs_info,
+                                   load_to_subid=tmp.load_to_subid, gen_to_subid=tmp.gen_to_subid,
+                                   lines_or_to_subid=tmp.lines_or_to_subid, lines_ex_to_subid=tmp.lines_ex_to_subid,
+                                   load_to_sub_pos=tmp.load_to_sub_pos, gen_to_sub_pos=tmp.gen_to_sub_pos,
+                                   lines_or_to_sub_pos=tmp.lines_or_to_sub_pos, lines_ex_to_sub_pos=tmp.lines_ex_to_sub_pos,
+                                   load_pos_topo_vect=tmp.load_pos_topo_vect, gen_pos_topo_vect=tmp.gen_pos_topo_vect,
+                                   lines_or_pos_topo_vect=tmp.lines_or_pos_topo_vect,
+                                   lines_ex_pos_topo_vect=tmp.lines_ex_pos_topo_vect,
+                                   observationClass=tmp.subtype)
+        return res
+
+
+class ObservationHelper(SerializableObservationSpace):
     """
     Helper that provides usefull functions to manipulate :class:`Observation`.
 
@@ -1503,7 +1626,7 @@ class ObservationHelper(SerializableSpace):
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
 
-        SerializableSpace.__init__(self,
+        SerializableObservationSpace.__init__(self,
                                    name_prod=name_prod, name_load=name_load, name_line=name_line, subs_info=subs_info,
                                    load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
                                    lines_or_to_subid=lines_or_to_subid, lines_ex_to_subid=lines_ex_to_subid,
@@ -1512,10 +1635,7 @@ class ObservationHelper(SerializableSpace):
                                    load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
                                    lines_or_pos_topo_vect=lines_or_pos_topo_vect,
                                    lines_ex_pos_topo_vect=lines_ex_pos_topo_vect,
-                                   subtype=observationClass)
-
-        self.observationClass = self.subtype
-        self.empty_obs = self.template_obj
+                                   observationClass=observationClass)
 
         # TODO DOCUMENTATION !!!
 

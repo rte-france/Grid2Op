@@ -16,7 +16,7 @@ except (ModuleNotFoundError, ImportError):
     from _utils import extract_from_dict, save_to_dict
 
 # TODO have an higher order representation of Action and Observation, and not "just" ActionSpace and ObservationSpace
-
+import pdb
 
 class SerializableSpace:
     """
@@ -230,6 +230,8 @@ class SerializableSpace:
         self.space_prng = np.random.RandomState()
         self.seed = None
 
+        self.global_vars = None
+
         # TODO
         self.shape = None
         self.dtype = None
@@ -253,12 +255,14 @@ class SerializableSpace:
         Parameters
         ----------
         dict_: ``dict``
-            Representation of an Observation Space (aka ObservartionHelper) as a dictionnary.
+            Representation of an Observation Space (aka :class:`grid2op.Observation.ObservartionHelper`)
+            or the Action Space (aka :class:`grid2op.Action.HelperAction`)
+            as a dictionnary.
 
         Returns
         -------
-        res: :class:``SerializableObservationSpace``
-            An instance of an observationHelper matching the dictionnary.
+        res: :class:``SerializableSpace``
+            An instance of an SerializableSpace matching the dictionnary.
 
         """
 
@@ -292,10 +296,14 @@ class SerializableSpace:
         actionClass_str = extract_from_dict(dict_, "subtype", str)
         actionClass_li = actionClass_str.split('.')
 
+        #
+
+        # pdb.set_trace()
         if actionClass_li[-1] in globals():
             subtype = globals()[actionClass_li[-1]]
         else:
-            # TODO make something better and recursive here, refactor with Observation too!
+            # TODO make something better and recursive here
+            exec("from {} import {}".format(".".join(actionClass_li[:-1]), actionClass_li[-1]))
             try:
                 subtype = eval(actionClass_str)
             except NameError:

@@ -97,7 +97,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                'gen_pos_topo_vect': [2, 8, 12, 29, 34],
                'lines_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
                'lines_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
-               'actionClass': 'Action.Action'}
+               'subtype': 'Action.Action'}
 
     def tearDown(self):
         pass
@@ -532,6 +532,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
         assert np.all(res.lines_or_pos_topo_vect == self.helper_action.lines_or_pos_topo_vect)
         assert np.all(res.lines_ex_pos_topo_vect == self.helper_action.lines_ex_pos_topo_vect)
+        # pdb.set_trace()
         assert np.all(res.actionClass == self.helper_action.actionClass)
 
     def test_json_serializable(self):

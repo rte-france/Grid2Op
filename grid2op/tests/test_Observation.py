@@ -101,6 +101,31 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass)
 
+        self.dict_ = {# 'name_prod': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
+               # 'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
+               #               'load_7', 'load_8', 'load_9', 'load_10'],
+               # 'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
+               #               'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14', 'line_15',
+               #               'line_16', 'line_17', 'line_18', 'line_19'],
+                      'name_prod': ['gen_1_0', 'gen_2_1', 'gen_5_2', 'gen_7_3', 'gen_0_4'],
+                      'name_load': ['load_1_0', 'load_2_1', 'load_13_2', 'load_3_3', 'load_4_4', 'load_5_5', 'load_8_6',
+                                    'load_9_7', 'load_10_8', 'load_11_9', 'load_12_10'],
+                      'name_line': ['0_1_0', '0_4_1', '8_9_2', '8_13_3', '9_10_4', '11_12_5', '12_13_6', '1_2_7',
+                                    '1_3_8', '1_4_9', '2_3_10', '3_4_11', '5_10_12', '5_11_13', '5_12_14', '3_6_15',
+                                    '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
+                 'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+                 'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
+                 'gen_to_subid': [1, 2, 5, 7, 0],
+                 'lines_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
+                 'lines_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+                 'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
+                 'lines_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
+                 'lines_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+                 'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
+                 'gen_pos_topo_vect': [7, 11, 28, 34, 2],
+                 'lines_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
+                 'lines_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
+                 'subtype': 'Observation.CompleteObservation'}
     def test_0_load_properly(self):
         # this test aims at checking that everything in setUp is working properly, eg that "ObsEnv" class has enough
         # information for example
@@ -248,38 +273,25 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_to_dict(self):
         dict_ = self.env.helper_observation.to_dict()
-        res = {'n_gen': 5, 'n_load': 11, 'n_lines': 20,
-                 'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-                 'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
-                 'gen_to_subid': [1, 2, 5, 7, 0],
-                 'lines_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
-                 'lines_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
-                 'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
-                 'lines_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
-                 'lines_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
-                 'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
-                 'gen_pos_topo_vect': [7, 11, 28, 34, 2],
-                 'lines_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
-                 'lines_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
-                 'observationClass': 'Observation.CompleteObservation'}
-        assert dict_ == res
+        # res = {'n_gen': 5, 'n_load': 11, 'n_lines': 20,
+        #          'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+        #          'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
+        #          'gen_to_subid': [1, 2, 5, 7, 0],
+        #          'lines_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
+        #          'lines_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+        #          'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
+        #          'lines_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
+        #          'lines_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+        #          'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
+        #          'gen_pos_topo_vect': [7, 11, 28, 34, 2],
+        #          'lines_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
+        #          'lines_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
+        #          'observationClass': 'Observation.CompleteObservation'}
+        # pdb.set_trace()
+        assert dict_ == self.dict_
 
     def test_from_dict(self):
-        dict_ = {'n_gen': 5, 'n_load': 11, 'n_lines': 20,
-                 'subs_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-                 'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
-                 'gen_to_subid': [1, 2, 5, 7, 0],
-                 'lines_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
-                 'lines_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
-                 'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
-                 'lines_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
-                 'lines_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
-                 'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
-                 'gen_pos_topo_vect': [7, 11, 28, 34, 2],
-                 'lines_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
-                 'lines_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
-                 'observationClass': 'Observation.CompleteObservation'}
-        res = ObservationHelper.from_dict(dict_)
+        res = ObservationHelper.from_dict(self.dict_)
         assert res.n_gen == self.env.helper_observation.n_gen
         assert res.n_load == self.env.helper_observation.n_load
         assert res.n_lines == self.env.helper_observation.n_lines

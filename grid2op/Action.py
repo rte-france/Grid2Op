@@ -2007,6 +2007,35 @@ class SerializableActionSpace(SerializableSpace):
         self.actionClass = self.subtype
         self.template_act = self.template_obj
 
+    @staticmethod
+    def from_dict(dict_):
+        """
+        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
+
+        Parameters
+        ----------
+        dict_: ``dict``
+            Representation of an Action Space (aka SerializableActionSpace) as a dictionnary.
+
+        Returns
+        -------
+        res: :class:``SerializableActionSpace``
+            An instance of an action space matching the dictionnary.
+
+        """
+        tmp = SerializableSpace.from_dict(dict_)
+        res = SerializableActionSpace(name_prod=tmp.name_prod, name_load=tmp.name_load, name_line=tmp.name_line,
+            subs_info=tmp.subs_info,
+                                   load_to_subid=tmp.load_to_subid, gen_to_subid=tmp.gen_to_subid,
+                                   lines_or_to_subid=tmp.lines_or_to_subid, lines_ex_to_subid=tmp.lines_ex_to_subid,
+                                   load_to_sub_pos=tmp.load_to_sub_pos, gen_to_sub_pos=tmp.gen_to_sub_pos,
+                                   lines_or_to_sub_pos=tmp.lines_or_to_sub_pos, lines_ex_to_sub_pos=tmp.lines_ex_to_sub_pos,
+                                   load_pos_topo_vect=tmp.load_pos_topo_vect, gen_pos_topo_vect=tmp.gen_pos_topo_vect,
+                                   lines_or_pos_topo_vect=tmp.lines_or_pos_topo_vect,
+                                   lines_ex_pos_topo_vect=tmp.lines_ex_pos_topo_vect,
+                                   actionClass=tmp.subtype)
+        return res
+
     def sample(self):
         """
         A utility used to sample :class:`grid2op.Action.Action`.

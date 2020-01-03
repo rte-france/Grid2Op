@@ -3,7 +3,8 @@ from setuptools import setup
 extras = {
    'with_pygame': ['pygame'],
     "docs": ["numpydoc", "sphinx", "sphinx_rtd_theme", "sphinxcontrib_trio"],
-    "plots": ["plotly", "searborn"]
+    "plots": ["plotly", "searborn"],
+    "test": ["nbformat", "jupyter_client", "jyquickhelper"]
 }
 
 setup(name='Grid2Op',
