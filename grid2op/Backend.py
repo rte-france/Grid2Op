@@ -94,37 +94,37 @@ class Backend(GridObjects, ABC):
 
     load_to_sub_pos: :class:`numpy.array`, dtype:int
         The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`Backend.sub_info`\[i\]. For a given load of id *l*, :attr:`Backend._load_to_sub_pos`\[l\] is the index
+        :attr:`Backend.sub_info`\[i\]. For a given load of id *l*, :attr:`Backend.load_to_sub_pos`\[l\] is the index
         of the load *l* in the vector *sub_topo_vect*. This means that, if
-        *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
+        *sub_topo_vect\[ action.load_to_sub_pos\[l\] \]=2*
         then load of id *l* is connected to the second bus of the substation.
 
     gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_to_sub_pos` but for generators.
+        same as :attr:`Backend.load_to_sub_pos` but for generators.
 
     lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_to_sub_pos`  but for "origin" end of powerlines.
+        same as :attr:`Backend.load_to_sub_pos`  but for "origin" end of powerlines.
 
     lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_to_sub_pos` but for "extremity" end of powerlines.
+        same as :attr:`Backend.load_to_sub_pos` but for "extremity" end of powerlines.
 
     load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`Backend._load_to_sub_pos` but it gives the position in the vector representing
+        It has a similar role as :attr:`Backend.load_to_sub_pos` but it gives the position in the vector representing
         the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
         *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`Backend._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *_topo_vect\[ backend._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
+        (see :attr:`Backend.load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
+        :attr:`Backend.load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
+        More formally, if *_topo_vect\[ backend.load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
         second bus of the substation.
 
     gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_pos_topo_vect` but for generators.
+        same as :attr:`Backend.load_pos_topo_vect` but for generators.
 
     line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_pos_topo_vect` but for "origin" end of powerlines.
+        same as :attr:`Backend.load_pos_topo_vect` but for "origin" end of powerlines.
 
     line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_pos_topo_vect` but for "extremity" end of powerlines.
+        same as :attr:`Backend.load_pos_topo_vect` but for "extremity" end of powerlines.
 
     _grid: (its type depends on the backend, precisely)
         is a representation of the powergrid that can be called and manipulated by the backend.
@@ -222,11 +222,11 @@ class Backend(GridObjects, ABC):
         Compute the position of each element in the big topological vector.
 
         Topology action are represented by numpy vector of size np.sum(self.sub_info).
-        The vector self._load_pos_topo_vect will give the index of each load in this big topology vector.
-        For examaple, for load i, self._load_pos_topo_vect[i] gives the position in such a topology vector that
+        The vector self.load_pos_topo_vect will give the index of each load in this big topology vector.
+        For examaple, for load i, self.load_pos_topo_vect[i] gives the position in such a topology vector that
         affect this load.
 
-        This position can be automatically deduced from self.sub_info, self._load_to_subid and self._load_to_sub_pos.
+        This position can be automatically deduced from self.sub_info, self.load_to_subid and self.load_to_sub_pos.
 
         This is the same for generators and both end of powerlines
 
@@ -241,7 +241,7 @@ class Backend(GridObjects, ABC):
     def assert_grid_correct(self):
         """
         Performs some checking on the loaded _grid to make sure it is consistent.
-        It also makes sure that the vector such as *sub_info*, *_load_to_subid* or *_gen_to_sub_pos* are of the
+        It also makes sure that the vector such as *sub_info*, *load_to_subid* or *gen_to_sub_pos* are of the
         right type eg. numpy.array with dtype: np.int
 
         It is called after the _grid has been loaded.
@@ -277,75 +277,75 @@ class Backend(GridObjects, ABC):
                 self.load_to_subid = np.array(self.load_to_subid)
                 self.load_to_subid = self.load_to_subid.astype(np.int)
             except Exception as e:
-                raise EnvError("self._load_to_subid should be convertible to a numpy array")
+                raise EnvError("self.load_to_subid should be convertible to a numpy array")
         if not isinstance(self.gen_to_subid, np.ndarray):
             try:
                 self.gen_to_subid = np.array(self.gen_to_subid)
                 self.gen_to_subid = self.gen_to_subid.astype(np.int)
             except Exception as e:
-                raise EnvError("self._gen_to_subid should be convertible to a numpy array")
+                raise EnvError("self.gen_to_subid should be convertible to a numpy array")
         if not isinstance(self.line_or_to_subid, np.ndarray):
             try:
                 self.line_or_to_subid = np.array(self.line_or_to_subid)
                 self.line_or_to_subid = self.line_or_to_subid .astype(np.int)
             except Exception as e:
-                raise EnvError("self._line_or_to_subid should be convertible to a numpy array")
+                raise EnvError("self.line_or_to_subid should be convertible to a numpy array")
         if not isinstance(self.line_ex_to_subid, np.ndarray):
             try:
                 self.line_ex_to_subid = np.array(self.line_ex_to_subid)
                 self.line_ex_to_subid = self.line_ex_to_subid.astype(np.int)
             except Exception as e:
-                raise EnvError("self._line_ex_to_subid should be convertible to a numpy array")
+                raise EnvError("self.line_ex_to_subid should be convertible to a numpy array")
 
         if not isinstance(self.load_to_sub_pos, np.ndarray):
             try:
                 self.load_to_sub_pos = np.array(self.load_to_sub_pos)
                 self.load_to_sub_pos = self.load_to_sub_pos.astype(np.int)
             except Exception as e:
-                raise EnvError("self._load_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.load_to_sub_pos should be convertible to a numpy array")
         if not isinstance(self.gen_to_sub_pos, np.ndarray):
             try:
                 self.gen_to_sub_pos = np.array(self.gen_to_sub_pos)
                 self.gen_to_sub_pos = self.gen_to_sub_pos.astype(np.int)
             except Exception as e:
-                raise EnvError("self._gen_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array")
         if not isinstance(self.line_or_to_sub_pos, np.ndarray):
             try:
                 self.line_or_to_sub_pos = np.array(self.line_or_to_sub_pos)
                 self.line_or_to_sub_pos = self.line_or_to_sub_pos.astype(np.int)
             except Exception as e:
-                raise EnvError("self._line_or_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array")
         if not isinstance(self.line_ex_to_sub_pos, np.ndarray):
             try:
                 self.line_ex_to_sub_pos = np.array(self.line_ex_to_sub_pos)
                 self.line_ex_to_sub_pos = self.line_ex_to_sub_pos .astype(np.int)
             except Exception as e:
-                raise EnvError("self._line_ex_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array")
 
         if not isinstance(self.load_pos_topo_vect, np.ndarray):
             try:
                 self.load_pos_topo_vect = np.array(self.load_pos_topo_vect)
                 self.load_pos_topo_vect = self.load_pos_topo_vect.astype(np.int)
             except Exception as e:
-                raise EnvError("self._load_pos_topo_vect should be convertible to a numpy array")
+                raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array")
         if not isinstance(self.gen_pos_topo_vect, np.ndarray):
             try:
                 self.gen_pos_topo_vect = np.array(self.gen_pos_topo_vect)
                 self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(np.int)
             except Exception as e:
-                raise EnvError("self._gen_pos_topo_vect should be convertible to a numpy array")
+                raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array")
         if not isinstance(self.line_or_pos_topo_vect, np.ndarray):
             try:
                 self.line_or_pos_topo_vect = np.array(self.line_or_pos_topo_vect)
                 self.line_or_pos_topo_vect = self.line_or_pos_topo_vect.astype(np.int)
             except Exception as e:
-                raise EnvError("self._line_or_pos_topo_vect should be convertible to a numpy array")
+                raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array")
         if not isinstance(self.line_ex_pos_topo_vect, np.ndarray):
             try:
                 self.line_ex_pos_topo_vect = np.array(self.line_ex_pos_topo_vect)
                 self.line_ex_pos_topo_vect = self.line_ex_pos_topo_vect.astype(np.int)
             except Exception as e:
-                raise EnvError("self._line_ex_pos_topo_vect should be convertible to a numpy array")
+                raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array")
 
         # test that all numbers are finite:
         tmp = np.concatenate((
@@ -442,7 +442,7 @@ class Backend(GridObjects, ABC):
                                         self.line_ex_pos_topo_vect.flatten())))) != np.sum(self.sub_info):
                 raise EnvError("2 different objects would have the same id in the topology vector.")
 
-        # check that self._load_pos_topo_vect and co are consistent
+        # check that self.load_pos_topo_vect and co are consistent
         load_pos_big_topo = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos)
         if not np.all(load_pos_big_topo == self.load_pos_topo_vect):
             raise IncorrectPositionOfLoads()

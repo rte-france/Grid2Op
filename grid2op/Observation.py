@@ -781,7 +781,7 @@ class Observation(ABC):
         declared as different.
 
         **Known issue** if two backend are different, but the description of the _grid are identical (ie all
-        _n_gen, _n_load, _n_line, _sub_info, _dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
+        n_gen, n_load, n_line, sub_info, dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
         identical) then this method will not detect the backend are different, and the action could be declared
         as identical. For now, this is only a theoretical behaviour: if everything is the same, then probably, up to
         the naming convention, then the powergrid are identical too.
@@ -944,8 +944,8 @@ class Observation(ABC):
     def connectivity_matrix(self):
         """
         Computes and return the "connectivity matrix" `con_mat`.
-        if "_dim_topo = 2 * _n_line + n_prod + n_conso"
-        It is a matrix of size _dim_topo, _dim_topo, with values 0 or 1.
+        if "dim_topo = 2 * n_line + n_prod + n_conso"
+        It is a matrix of size dim_topo, dim_topo, with values 0 or 1.
         For two objects (lines extremity, generator unit, load) i,j :
 
             - if i and j are connected on the same substation:
@@ -960,7 +960,7 @@ class Observation(ABC):
 
         Returns
         -------
-        res: ``numpy.ndarray``, shape:_dim_topo,_dim_topo, dtype:float
+        res: ``numpy.ndarray``, shape:dim_topo,dim_topo, dtype:float
             The connectivity matrix, as defined above
         """
         raise NotImplementedError("This method is not implemented")
@@ -1340,8 +1340,8 @@ class CompleteObservation(Observation):
     def connectivity_matrix(self):
         """
         Computes and return the "connectivity matrix" `con_mat`.
-        if "_dim_topo = 2 * _n_line + n_prod + n_conso"
-        It is a matrix of size _dim_topo, _dim_topo, with values 0 or 1.
+        if "dim_topo = 2 * n_line + n_prod + n_conso"
+        It is a matrix of size dim_topo, dim_topo, with values 0 or 1.
         For two objects (lines extremity, generator unit, load) i,j :
 
             - if i and j are connected on the same substation:
@@ -1356,7 +1356,7 @@ class CompleteObservation(Observation):
 
         Returns
         -------
-        res: ``numpy.ndarray``, shape:_dim_topo,_dim_topo, dtype:float
+        res: ``numpy.ndarray``, shape:dim_topo,dim_topo, dtype:float
             The connectivity matrix, as defined above
         """
         if self.connectivity_matrix_ is None:
