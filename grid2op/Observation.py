@@ -43,19 +43,14 @@ import pdb
 
 try:
     from .Exceptions import *
+    from .Space import SerializableSpace, GridObjects
     from .Reward import ConstantReward, RewardHelper
-    from .Space import SerializableSpace
-    from ._utils import extract_from_dict, save_to_dict
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
+    from Space import SerializableSpace, GridObjects
     from Reward import ConstantReward, RewardHelper
-    from _utils import extract_from_dict, save_to_dict
-    from Space import SerializableSpace
 
 # TODO be able to change reward here
-
-# TODO refactor, Observation and Action, they are really close in their actual form, especially the Helpers, if
-# TODO that make sense.
 
 # TODO make an action with the difference between the observation that would be an action.
 # TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
@@ -213,16 +208,7 @@ class ObsEnv(object):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
-            self.current_obs = self.obsClass(self.backend.n_gen, self.backend.n_load, self.backend.n_line,
-                                             self.backend.sub_info, self.dim_topo,
-                                             self.backend.load_to_subid, self.backend.gen_to_subid,
-                                             self.backend.line_or_to_subid, self.backend.line_ex_to_subid,
-                                             self.backend.load_to_sub_pos, self.backend.gen_to_sub_pos,
-                                             self.backend.line_or_to_sub_pos,
-                                             self.backend.line_ex_to_sub_pos,
-                                             self.backend.load_pos_topo_vect, self.backend.gen_pos_topo_vect,
-                                             self.backend.line_or_pos_topo_vect,
-                                             self.backend.line_ex_pos_topo_vect,
+            self.current_obs = self.obsClass(gridobj=self.backend,
                                              seed=None,
                                              obs_env=None,
                                              action_helper=None)
@@ -275,7 +261,7 @@ class ObsEnv(object):
         self.is_init = False
 
 
-class Observation(ABC):
+class Observation(GridObjects):
     """
     Basic class representing an observation.
 
@@ -303,24 +289,6 @@ class Observation(ABC):
 
     day_of_week: ``int``
         The current day of the week. Monday = 0, Sunday = 6
-
-    n_line: :class:`int`
-        number of powerline in the powergrid
-
-    n_gen: :class:`int`
-        number of generators in the powergrid
-
-    n_load: :class:`int`
-        number of loads in the powergrid
-
-    n_sub: ``int``
-        Number of susbtations on the powergrid
-
-    sub_info: :class:`numpy.array`, dtype:int
-        for each substation, gives the number of elements connected to it
-
-    dim_topo: ``int``
-        The number of objects (= powerline extremity, load or generator) on the powergrid.
 
     prod_p: :class:`numpy.ndarray`, dtype:float
         The active production value of each generator
@@ -429,39 +397,14 @@ class Observation(ABC):
               proper :class:`grid2op.Action.Action` to reconnect it).
 
     """
-    def __init__(self,
-                 n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  obs_env=None,
                  action_helper=None,
                  seed=None):
+        GridObjects.__init__(self)
+        self.init_grid(gridobj)
+
         self.action_helper = action_helper
-
-        # powergrid static information
-        self.n_gen = n_gen
-        self.n_load = n_load
-        self.n_line = n_line
-        self.sub_info = sub_info
-        self.dim_topo = dim_topo
-        self.n_sub = sub_info.shape[0]
-
-        # to which substation is connected each element
-        self._load_to_subid = load_to_subid
-        self._gen_to_subid = gen_to_subid
-        self._line_or_to_subid = line_or_to_subid
-        self._line_ex_to_subid = line_ex_to_subid
-        # which index has this element in the substation vector
-        self._load_to_sub_pos = load_to_sub_pos
-        self._gen_to_sub_pos = gen_to_sub_pos
-        self._line_or_to_sub_pos = line_or_to_sub_pos
-        self._line_ex_to_sub_pos = line_ex_to_sub_pos
-        # which index has this element in the topology vector
-        self._load_pos_topo_vect = load_pos_topo_vect
-        self._gen_pos_topo_vect = gen_pos_topo_vect
-        self._line_or_pos_topo_vect = line_or_pos_topo_vect
-        self._line_ex_pos_topo_vect = line_ex_pos_topo_vect
 
         # time stamp information
         self.year = None
@@ -618,8 +561,8 @@ class Observation(ABC):
             res = {"p": self.load_p[load_id],
                    "q": self.load_q[load_id],
                    "v": self.load_v[load_id],
-                   "bus": self.topo_vect[self._load_pos_topo_vect[load_id]],
-                   "sub_id": self._load_to_subid[load_id]
+                   "bus": self.topo_vect[self.load_pos_topo_vect[load_id]],
+                   "sub_id": self.load_to_subid[load_id]
                    }
         elif gen_id is not None:
             if line_id is not None or substation_id is not None:
@@ -630,8 +573,8 @@ class Observation(ABC):
             res = {"p": self.prod_p[gen_id],
                    "q": self.prod_q[gen_id],
                    "v": self.prod_v[gen_id],
-                   "bus": self.topo_vect[self._gen_pos_topo_vect[gen_id]],
-                   "sub_id": self._gen_to_subid[gen_id]
+                   "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
+                   "sub_id": self.gen_to_subid[gen_id]
                    }
         elif line_id is not None:
             if substation_id is not None:
@@ -646,8 +589,8 @@ class Observation(ABC):
                 "q": self.q_or[line_id],
                 "v": self.v_or[line_id],
                 "a": self.a_or[line_id],
-                "bus": self.topo_vect[self._line_or_pos_topo_vect[line_id]],
-                "sub_id": self._line_or_to_subid[line_id]
+                "bus": self.topo_vect[self.line_or_pos_topo_vect[line_id]],
+                "sub_id": self.line_or_to_subid[line_id]
             }
             # extremity information
             res["extremity"] = {
@@ -655,8 +598,8 @@ class Observation(ABC):
                 "q": self.q_ex[line_id],
                 "v": self.v_ex[line_id],
                 "a": self.a_ex[line_id],
-                "bus": self.topo_vect[self._line_ex_pos_topo_vect[line_id]],
-                "sub_id": self._line_ex_to_subid[line_id]
+                "bus": self.topo_vect[self.line_ex_pos_topo_vect[line_id]],
+                "sub_id": self.line_ex_to_subid[line_id]
             }
 
             # maintenance information
@@ -818,20 +761,20 @@ class Observation(ABC):
         same_grid = same_grid and np.all(self.sub_info == other.sub_info)
         same_grid = same_grid and self.dim_topo == other.dim_topo
         # to which substation is connected each element
-        same_grid = same_grid and np.all(self._load_to_subid == other._load_to_subid)
-        same_grid = same_grid and np.all(self._gen_to_subid == other._gen_to_subid)
-        same_grid = same_grid and np.all(self._line_or_to_subid == other._line_or_to_subid)
-        same_grid = same_grid and np.all(self._line_ex_to_subid == other._line_ex_to_subid)
+        same_grid = same_grid and np.all(self.load_to_subid == other.load_to_subid)
+        same_grid = same_grid and np.all(self.gen_to_subid == other.gen_to_subid)
+        same_grid = same_grid and np.all(self.line_or_to_subid == other.line_or_to_subid)
+        same_grid = same_grid and np.all(self.line_ex_to_subid == other.line_ex_to_subid)
         # which index has this element in the substation vector
-        same_grid = same_grid and np.all(self._load_to_sub_pos == other._load_to_sub_pos)
-        same_grid = same_grid and np.all(self._gen_to_sub_pos == other._gen_to_sub_pos)
-        same_grid = same_grid and np.all(self._line_or_to_sub_pos == other._line_or_to_sub_pos)
-        same_grid = same_grid and np.all(self._line_ex_to_sub_pos == other._line_ex_to_sub_pos)
+        same_grid = same_grid and np.all(self.load_to_sub_pos == other.load_to_sub_pos)
+        same_grid = same_grid and np.all(self.gen_to_sub_pos == other.gen_to_sub_pos)
+        same_grid = same_grid and np.all(self.line_or_to_sub_pos == other.line_or_to_sub_pos)
+        same_grid = same_grid and np.all(self.line_ex_to_sub_pos == other.line_ex_to_sub_pos)
         # which index has this element in the topology vector
-        same_grid = same_grid and np.all(self._load_pos_topo_vect == other._load_pos_topo_vect)
-        same_grid = same_grid and np.all(self._gen_pos_topo_vect == other._gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self._line_or_pos_topo_vect == other._line_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self._line_ex_pos_topo_vect == other._line_ex_pos_topo_vect)
+        same_grid = same_grid and np.all(self.load_pos_topo_vect == other.load_pos_topo_vect)
+        same_grid = same_grid and np.all(self.gen_pos_topo_vect == other.gen_pos_topo_vect)
+        same_grid = same_grid and np.all(self.line_or_pos_topo_vect == other.line_or_pos_topo_vect)
+        same_grid = same_grid and np.all(self.line_ex_pos_topo_vect == other.line_ex_pos_topo_vect)
 
         if not same_grid:
             return False
@@ -1064,17 +1007,11 @@ class CompleteObservation(Observation):
         :func:`CompleteObservation.to_dict` for a description of this dictionnary.
 
     """
-    def __init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  obs_env=None,action_helper=None,
                  seed=None):
 
-        Observation.__init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
+        Observation.__init__(self, gridobj,
                              obs_env=obs_env, action_helper=action_helper,
                              seed=seed)
         self.dictionnarized = None
@@ -1127,7 +1064,6 @@ class CompleteObservation(Observation):
         self._forecasted_grid = [None for _ in self._forecasted_inj]
         self.rho = env.backend.get_relative_flow()
 
-        # TODO
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line = env.times_before_line_status_actionable
         self.time_before_cooldown_sub = env.times_before_topology_actionable
@@ -1451,9 +1387,8 @@ class CompleteObservation(Observation):
 
         :return: the size of the flatten observation vector.
         """
-        # TODO documentation
-        res = 6 + 3*self.n_gen + 3*self.n_load + 2 * 4*self.n_line + 3*self.n_line
-        res += self.dim_topo + 4*self.n_line + self.n_sub
+        # TODO documentation (update)
+        res = 6 + 3 * self.n_gen + 3 * self.n_load + 15 * self.n_line + self.dim_topo + self.n_sub
         return res
 
 
@@ -1474,77 +1409,19 @@ class SerializableObservationSpace(SerializableSpace):
         An instance of the "*observationClass*" provided used to provide higher level utilities
 
     """
-    def __init__(self, name_prod, name_load, name_line, sub_info,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
-                 observationClass=CompleteObservation):
+    def __init__(self, gridobj, observationClass=CompleteObservation):
         """
 
         Parameters
         ----------
-        name_prod: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`Space.SerializableSpace.name_gen`
-
-        name_load: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`Space.SerializableSpace.name_load`
-
-        name_line: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`Space.SerializableSpace.name_line`
-
-        sub_info: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.sub_info`
-
-        load_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.load_to_subid`
-
-        gen_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.gen_to_subid`
-
-        line_or_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_or_to_subid`
-
-        line_ex_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_ex_to_subid`
-
-        load_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.load_to_sub_pos`
-
-        gen_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.gen_to_sub_pos`
-
-        line_or_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_or_to_sub_pos`
-
-        line_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_ex_to_sub_pos`
-
-        load_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.load_pos_topo_vect`
-
-        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.gen_pos_topo_vect`
-
-        line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_or_pos_topo_vect`
-
-        line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_ex_pos_topo_vect`
+        gridobj: :class:`grid2op.Space.GridObjects`
+            Representation of the objects in the powergrid.
 
         actionClass: ``type``
             Type of action used to build :attr:`Space.SerializableSpace.template_obj`
 
         """
-        SerializableSpace.__init__(self,
-                                   name_prod=name_prod, name_load=name_load, name_line=name_line, sub_info=sub_info,
-                                   load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
-                                   line_or_to_subid=line_or_to_subid, line_ex_to_subid=line_ex_to_subid,
-                                   load_to_sub_pos=load_to_sub_pos, gen_to_sub_pos=gen_to_sub_pos,
-                                   line_or_to_sub_pos=line_or_to_sub_pos, line_ex_to_sub_pos=line_ex_to_sub_pos,
-                                   load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
-                                   line_or_pos_topo_vect=line_or_pos_topo_vect,
-                                   line_ex_pos_topo_vect=line_ex_pos_topo_vect,
-                                   subtype=observationClass)
+        SerializableSpace.__init__(self, gridobj=gridobj, subtype=observationClass)
 
         self.observationClass = self.subtype
         self.empty_obs = self.template_obj
@@ -1566,15 +1443,7 @@ class SerializableObservationSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-        res = SerializableObservationSpace(name_prod=tmp.name_gen, name_load=tmp.name_load, name_line=tmp.name_line,
-                                           sub_info=tmp.sub_info,
-                                           load_to_subid=tmp.load_to_subid, gen_to_subid=tmp.gen_to_subid,
-                                           line_or_to_subid=tmp.line_or_to_subid, line_ex_to_subid=tmp.line_ex_to_subid,
-                                           load_to_sub_pos=tmp.load_to_sub_pos, gen_to_sub_pos=tmp.gen_to_sub_pos,
-                                           line_or_to_sub_pos=tmp.line_or_to_sub_pos, line_ex_to_sub_pos=tmp.line_ex_to_sub_pos,
-                                           load_pos_topo_vect=tmp.load_pos_topo_vect, gen_pos_topo_vect=tmp.gen_pos_topo_vect,
-                                           line_or_pos_topo_vect=tmp.line_or_pos_topo_vect,
-                                           line_ex_pos_topo_vect=tmp.line_ex_pos_topo_vect,
+        res = SerializableObservationSpace(gridobj=tmp,
                                            observationClass=tmp.subtype)
         return res
 
@@ -1617,11 +1486,7 @@ class ObservationHelper(SerializableObservationSpace):
         An instance of the observation that is updated and will be sent to he Agent.
 
     """
-    def __init__(self,
-                 name_prod, name_load, name_line, sub_info,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  env,
                  rewardClass=None,
                  observationClass=CompleteObservation):
@@ -1629,16 +1494,7 @@ class ObservationHelper(SerializableObservationSpace):
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
 
-        SerializableObservationSpace.__init__(self,
-                                   name_prod=name_prod, name_load=name_load, name_line=name_line, sub_info=sub_info,
-                                   load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
-                                   line_or_to_subid=line_or_to_subid, line_ex_to_subid=line_ex_to_subid,
-                                   load_to_sub_pos=load_to_sub_pos, gen_to_sub_pos=gen_to_sub_pos,
-                                   line_or_to_sub_pos=line_or_to_sub_pos, line_ex_to_sub_pos=line_ex_to_sub_pos,
-                                   load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
-                                   line_or_pos_topo_vect=line_or_pos_topo_vect,
-                                   line_ex_pos_topo_vect=line_ex_pos_topo_vect,
-                                   observationClass=observationClass)
+        SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
 
         # TODO DOCUMENTATION !!!
 
@@ -1660,40 +1516,14 @@ class ObservationHelper(SerializableObservationSpace):
                               parameters=env.parameters, reward_helper=self.reward_helper,
                               action_helper=self.action_helper_env)
 
-        self.empty_obs = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
-                                               sub_info=self.sub_info, dim_topo=self.dim_topo,
-                                               load_to_subid=self.load_to_subid,
-                                               gen_to_subid=self.gen_to_subid,
-                                               line_or_to_subid=self.line_or_to_subid,
-                                               line_ex_to_subid=self.line_ex_to_subid,
-                                               load_to_sub_pos=self.load_to_sub_pos,
-                                               gen_to_sub_pos=self.gen_to_sub_pos,
-                                               line_or_to_sub_pos=self.line_or_to_sub_pos,
-                                               line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                                               load_pos_topo_vect=self.load_pos_topo_vect,
-                                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                               line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                                               line_ex_pos_topo_vect=self.line_ex_pos_topo_vect,
+        self.empty_obs = self.observationClass(gridobj=self,
                                                obs_env=self.obs_env,
                                                action_helper=self.action_helper_env)
 
     def __call__(self, env):
         self.obs_env.update_grid(env.backend)
 
-        res = self.observationClass(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
-                                    sub_info=self.sub_info, dim_topo=self.dim_topo,
-                                    load_to_subid=self.load_to_subid,
-                                    gen_to_subid=self.gen_to_subid,
-                                    line_or_to_subid=self.line_or_to_subid,
-                                    line_ex_to_subid=self.line_ex_to_subid,
-                                    load_to_sub_pos=self.load_to_sub_pos,
-                                    gen_to_sub_pos=self.gen_to_sub_pos,
-                                    line_or_to_sub_pos=self.line_or_to_sub_pos,
-                                    line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                                    load_pos_topo_vect=self.load_pos_topo_vect,
-                                    gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                    line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                                    line_ex_pos_topo_vect=self.line_ex_pos_topo_vect,
+        res = self.observationClass(gridobj=self,
                                     seed=self.seed,
                                     obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)

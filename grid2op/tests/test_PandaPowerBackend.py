@@ -91,23 +91,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(name_prod=self.backend.name_gen,
-                                       name_load=self.backend.name_load,
-                                       name_line=self.backend.name_line,
-                                  sub_info=self.backend.sub_info,
-                                  load_to_subid=self.backend.load_to_subid,
-                                  gen_to_subid=self.backend.gen_to_subid,
-                                  line_or_to_subid=self.backend.line_or_to_subid,
-                                  line_ex_to_subid=self.backend.line_ex_to_subid, #####
-                                  load_to_sub_pos=self.backend.load_to_sub_pos,
-                                  gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                  line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
-                                  line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos, #####
-                                  load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                  gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                  line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
-                                  line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
-                                       game_rules=self.game_rules)
+        self.action_env = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -391,23 +375,7 @@ class TestTopoAction(unittest.TestCase):
         self.tol_one = 1e-5
 
         self.game_rules = GameRules()
-        self.helper_action = HelperAction(name_prod=self.backend.name_gen,
-                                       name_load=self.backend.name_load,
-                                       name_line=self.backend.name_line,
-                                  sub_info=self.backend.sub_info,
-                                  load_to_subid=self.backend.load_to_subid,
-                                  gen_to_subid=self.backend.gen_to_subid,
-                                  line_or_to_subid=self.backend.line_or_to_subid,
-                                  line_ex_to_subid=self.backend.line_ex_to_subid, #####
-                                  load_to_sub_pos=self.backend.load_to_sub_pos,
-                                  gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                  line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
-                                  line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos, #####
-                                  load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                  gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                  line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
-                                  line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
-                                       game_rules=self.game_rules)
+        self.helper_action = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -575,7 +543,6 @@ class TestTopoAction(unittest.TestCase):
         conv = self.backend.runpf()
         assert conv
 
-
         after_amps_flow = self.backend.get_line_flow()
         assert self.compare_vect(after_amps_flow, init_amps_flow)
         topo_vect = self.backend.get_topo_vect()
@@ -667,23 +634,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(name_prod=self.backend.name_gen,
-                                              name_load=self.backend.name_load,
-                                              name_line=self.backend.name_line,
-                                              sub_info=self.backend.sub_info,
-                                              load_to_subid=self.backend.load_to_subid,
-                                              gen_to_subid=self.backend.gen_to_subid,
-                                              line_or_to_subid=self.backend.line_or_to_subid,
-                                              line_ex_to_subid=self.backend.line_ex_to_subid, #####
-                                              load_to_sub_pos=self.backend.load_to_sub_pos,
-                                              gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                              line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
-                                              line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos, #####
-                                              load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                              gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                              line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
-                                              line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
-                                              game_rules=self.game_rules)
+        self.action_env = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
 
         self.lines_flows_init = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,
                                            10869.23856329,  4686.71726729, 15612.65903298,   300.07915572,

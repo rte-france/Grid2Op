@@ -11,6 +11,7 @@ import helper_path_test  # usefull to set poperly the sys.path
 from Exceptions import *
 from Action import HelperAction, Action
 from GameRules import GameRules
+from Space import GridObjects
 
 from grid2op.MakeEnv import make
 
@@ -34,10 +35,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        # pdb.set_trace()
-        self.helper_action = HelperAction(name_prod=["gen_{}".format(i) for i in range(5)],
+        self.gridobj = GridObjects()
+        self.gridobj.init_grid_vect(name_prod=["gen_{}".format(i) for i in range(5)],
                                           name_load=["load_{}".format(i) for i in range(11)],
                                           name_line=["line_{}".format(i) for i in range(20)],
+                                          name_sub=["sub_{}".format(i) for i in range(14)],
                                           sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
                                           load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
                                           gen_to_subid=np.array([0, 1, 2, 5, 7]),
@@ -53,31 +55,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                           load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
                                           gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
                                           line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
-                                          line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
+                                          line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]))
+        # pdb.set_trace()
+        self.helper_action = HelperAction(self.gridobj,
                                           game_rules=self.game_rules)
 
 
-        self.helper_action_env = HelperAction(name_prod=["gen_{}".format(i) for i in range(5)],
-                                          name_load=["load_{}".format(i) for i in range(11)],
-                                          name_line=["line_{}".format(i) for i in range(20)],
-                                          sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
-                                          load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
-                                          gen_to_subid=np.array([0, 1, 2, 5, 7]),
-                                          line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
-                                                                       5,  6,  6,  8,  8, 9, 11, 12]),
-                                          line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
-                                                                       12,  7,  8,  9, 13, 10, 12, 13]),  #####
-                                          load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
-                                          gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
-                                          line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
-                                                                        3, 0, 0, 1]),
-                                          line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
-                                          load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
-                                          gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
-                                          line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
-                                          line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]),
-                                          game_rules=self.game_rules,
-                                          actionClass=Action)
+        self.helper_action_env = HelperAction(self.gridobj,
+                                              game_rules=self.game_rules,
+                                              actionClass=Action)
 
         self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
                'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
@@ -85,6 +71,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
                              'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14', 'line_15',
                              'line_16', 'line_17', 'line_18', 'line_19'],
+                'name_sub': ["sub_0", "sub_1", "sub_2", "sub_3", "sub_4", "sub_5", "sub_6", "sub_7", "sub_8", "sub_9",
+                             "sub_10", "sub_11", "sub_12", "sub_13"],
                'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
                'gen_to_subid': [0, 1, 2, 5, 7],
@@ -533,12 +521,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.sub_info == self.helper_action.sub_info)
         assert np.all(res.load_to_subid == self.helper_action.load_to_subid)
         assert np.all(res.gen_to_subid == self.helper_action.gen_to_subid)
-        assert np.all(res.lines_or_to_subid == self.helper_action.lines_or_to_subid)
-        assert np.all(res.lines_ex_to_subid == self.helper_action.lines_ex_to_subid)
+        assert np.all(res.line_or_to_subid == self.helper_action.line_or_to_subid)
+        assert np.all(res.line_ex_to_subid == self.helper_action.line_ex_to_subid)
         assert np.all(res.load_to_sub_pos == self.helper_action.load_to_sub_pos)
         assert np.all(res.gen_to_sub_pos == self.helper_action.gen_to_sub_pos)
-        assert np.all(res.lines_or_to_sub_pos == self.helper_action.lines_or_to_sub_pos)
-        assert np.all(res.lines_ex_to_sub_pos == self.helper_action.lines_ex_to_sub_pos)
+        assert np.all(res.line_or_to_sub_pos == self.helper_action.line_or_to_sub_pos)
+        assert np.all(res.line_ex_to_sub_pos == self.helper_action.line_ex_to_sub_pos)
         assert np.all(res.load_pos_topo_vect == self.helper_action.load_pos_topo_vect)
         assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
         assert np.all(res.line_or_pos_topo_vect == self.helper_action.line_or_pos_topo_vect)
@@ -561,12 +549,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.sub_info == self.helper_action.sub_info)
         assert np.all(res.load_to_subid == self.helper_action.load_to_subid)
         assert np.all(res.gen_to_subid == self.helper_action.gen_to_subid)
-        assert np.all(res.lines_or_to_subid == self.helper_action.lines_or_to_subid)
-        assert np.all(res.lines_ex_to_subid == self.helper_action.lines_ex_to_subid)
+        assert np.all(res.line_or_to_subid == self.helper_action.line_or_to_subid)
+        assert np.all(res.line_ex_to_subid == self.helper_action.line_ex_to_subid)
         assert np.all(res.load_to_sub_pos == self.helper_action.load_to_sub_pos)
         assert np.all(res.gen_to_sub_pos == self.helper_action.gen_to_sub_pos)
-        assert np.all(res.lines_or_to_sub_pos == self.helper_action.lines_or_to_sub_pos)
-        assert np.all(res.lines_ex_to_sub_pos == self.helper_action.lines_ex_to_sub_pos)
+        assert np.all(res.line_or_to_sub_pos == self.helper_action.line_or_to_sub_pos)
+        assert np.all(res.line_ex_to_sub_pos == self.helper_action.line_ex_to_sub_pos)
         assert np.all(res.load_pos_topo_vect == self.helper_action.load_pos_topo_vect)
         assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
         assert np.all(res.line_or_pos_topo_vect == self.helper_action.line_or_pos_topo_vect)

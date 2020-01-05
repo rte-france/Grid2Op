@@ -47,12 +47,10 @@ import pdb
 
 try:
     from .Exceptions import *
-    from ._utils import extract_from_dict, save_to_dict
-    from .Space import SerializableSpace
+    from .Space import SerializableSpace, GridObjects
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
-    from _utils import extract_from_dict, save_to_dict
-    from Space import SerializableSpace
+    from Space import SerializableSpace, GridObjects
 
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
@@ -63,10 +61,9 @@ except (ModuleNotFoundError, ImportError):
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
-# TODO add serialization of ActionSpace to json or yaml
 
 
-class Action(object):
+class Action(GridObjects):
     """
     This is a base class for each :class:`Action` objects.
     As stated above, an action represents in a convenient way the modifications that will affect a powergrid.
@@ -142,66 +139,6 @@ class Action(object):
 
     Attributes
     ----------
-    n_line: :class:`int`
-        number of powerline in the _grid
-
-    n_gen: :class:`int`
-        number of generators in the _grid
-
-    n_load: :class:`int`
-        number of loads in the powergrid
-
-    sub_info: :class:`numpy.array`, dtype:int
-        for each substation, gives the number of elements connected to it
-
-    dim_topo: :class:`int`
-        size of the topology vector.
-
-    load_to_subid: :class:`numpy.array`, dtype:int
-        for each load, gives the id the substation to which it is connected
-
-    gen_to_subid: :class:`numpy.array`, dtype:int
-        for each generator, gives the id the substation to which it is connected
-
-    line_or_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "origin" end is connected
-
-    line_ex_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "extremity" end is connected
-
-    load_to_sub_pos: :class:`numpy.array`, dtype:int
-        The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`Action._subs_info`\[i\]. For a given load of id *l*, :attr:`Action._load_to_sub_pos`\[l\] is the index
-        of the load *l* in the vector *sub_topo_vect*. This means that, if
-        *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
-        then load of id *l* is connected to the second bus of the substation.
-
-    gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_to_sub_pos` but for generators.
-
-    line_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_to_sub_pos` but for "origin" end of powerlines.
-
-    line_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_to_sub_pos` but for "extremity" end of powerlines.
-
-    load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`Action._load_to_sub_pos` but it gives the position in the vector representing
-        the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
-        *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Action._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`Action._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *_topo_vect\[ action._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
-        second bus of the substation.
-
-    gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-         same as :attr:`Action._load_pos_topo_vect` but for generators.
-
-    line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_pos_topo_vect` but for "origin" end of powerlines.
-
-    line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_pos_topo_vect` but for "extremity" end of powerlines.
 
     _set_line_status: :class:`numpy.array`, dtype:int
         For each powerlines, it gives the effect of the action on the status of it. It should be understand as:
@@ -276,10 +213,7 @@ class Action(object):
     vars_action = ["load_p", "load_q", "prod_p", "prod_v"]
     vars_action_set = set(vars_action)
 
-    def __init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         This is used to create an Action instance. Preferably, :class:`Action` should be created with
         :class:`HelperAction`.
@@ -289,87 +223,20 @@ class Action(object):
 
         Parameters
         ----------
-        n_gen
-            Use to initialize :attr:`Action.n_gen`.
-
-        n_load
-            Use to initialize :attr:`Action.n_load`.
-
-        n_line
-            Use to initialize :attr:`Action.n_line`.
-
-        sub_info
-            Use to initialize :attr:`Action.sub_info`.
-
-        dim_topo
-            Use to initialize :attr:`Action.dim_topo`.
-
-        load_to_subid
-            Use to initialize :attr:`Action.load_to_subid`.
-
-        gen_to_subid
-            Use to initialize :attr:`Action.gen_to_subid`.
-
-        lines_or_to_subid
-            Use to initialize :attr:`Action.line_or_to_subid`.
-
-        lines_ex_to_subid
-            Use to initialize :attr:`Action.line_ex_to_subid`.
-
-        load_to_sub_pos
-            Use to initialize :attr:`Action.load_to_sub_pos`.
-
-        gen_to_sub_pos
-            Use to initialize :attr:`Action.gen_to_sub_pos`.
-
-        lines_or_to_sub_pos
-            Use to initialize :attr:`Action.line_or_to_sub_pos`.
-
-        lines_ex_to_sub_pos
-            Use to initialize :attr:`Action.line_ex_to_sub_pos`.
-
-        load_pos_topo_vect
-            Use to initialize :attr:`Action.load_pos_topo_vect`.
-
-        gen_pos_topo_vect
-            Use to initialize :attr:`Action.gen_pos_topo_vect`.
-
-        lines_or_pos_topo_vect
-            Use to initialize :attr:`Action.line_or_pos_topo_vect`.
-
-        lines_ex_pos_topo_vect
-            Use to initialize :attr:`Action.line_ex_pos_topo_vect`.
+        gridobj: :class:`grid2op.Space.GridObjects`
+            Representation of the objects present in the powergrid
 
         """
-        self.n_gen = n_gen
-        self.n_load = n_load
-        self.n_line = n_line
-        self.sub_info = sub_info
-        self.dim_topo = dim_topo
-
-        # to which substation is connected each element
-        self.load_to_subid = load_to_subid
-        self.gen_to_subid = gen_to_subid
-        self.line_or_to_subid = line_or_to_subid
-        self.line_ex_to_subid = line_ex_to_subid
-        # which index has this element in the substation vector
-        self.load_to_sub_pos = load_to_sub_pos
-        self.gen_to_sub_pos = gen_to_sub_pos
-        self.line_or_to_sub_pos = line_or_to_sub_pos
-        self.line_ex_to_sub_pos = line_ex_to_sub_pos
-        # which index has this element in the topology vector
-        self.load_pos_topo_vect = load_pos_topo_vect
-        self.gen_pos_topo_vect = gen_pos_topo_vect
-        self.line_or_pos_topo_vect = line_or_pos_topo_vect
-        self.line_ex_pos_topo_vect = line_ex_pos_topo_vect
+        GridObjects.__init__(self)
+        self.init_grid(gridobj)
 
         self.authorized_keys = {"injection",
                                 "hazards", "maintenance", "set_line_status", "change_line_status",
                                 "set_bus", "change_bus"}
 
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=n_line, fill_value=0, dtype=np.int)
-        self._switch_line_status = np.full(shape=n_line, fill_value=False, dtype=np.bool)
+        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=np.int)
+        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
         # injection change
         self._dict_inj = {}
@@ -384,8 +251,8 @@ class Action(object):
         self._lines_impacted = None
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=n_line, fill_value=False, dtype=np.bool)
-        self._maintenance = np.full(shape=n_line, fill_value=False, dtype=np.bool)
+        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
     def get_set_line_status_vect(self):
         """
@@ -1566,18 +1433,12 @@ class TopologyAction(Action):
 
     It is also here to show an example on how to implement a valid class deriving from :class:`Action`.
     """
-    def __init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
         """
-        Action.__init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect)
+        Action.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
@@ -1740,18 +1601,12 @@ class PowerLineSet(Action):
     **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
     reconnecting a powerline cannot be considered "ambiguous". We have to
     """
-    def __init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
         """
-        Action.__init__(self, n_gen, n_load, n_line, sub_info, dim_topo,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect)
+        Action.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
@@ -1932,77 +1787,20 @@ class SerializableActionSpace(SerializableSpace):
         action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
     """
-    def __init__(self, name_prod, name_load, name_line, sub_info,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  actionClass=Action):
         """
 
         Parameters
         ----------
-        name_prod: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`Space.SerializableSpace.name_gen`
-
-        name_load: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`Space.SerializableSpace.name_load`
-
-        name_line: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`Space.SerializableSpace.name_line`
-
-        sub_info: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.sub_info`
-
-        load_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.load_to_subid`
-
-        gen_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.gen_to_subid`
-
-        lines_or_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_or_to_subid`
-
-        lines_ex_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_ex_to_subid`
-
-        load_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.load_to_sub_pos`
-
-        gen_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.gen_to_sub_pos`
-
-        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_or_to_sub_pos`
-
-        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_ex_to_sub_pos`
-
-        load_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.load_pos_topo_vect`
-
-        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.gen_pos_topo_vect`
-
-        lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_or_pos_topo_vect`
-
-        lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`Space.SerializableSpace.line_ex_pos_topo_vect`
+        gridobj: :class:`grid2op.Space.GridObjects`
+            Representation of the underlying powergrid.
 
         actionClass: ``type``
             Type of action used to build :attr:`Space.SerializableSpace.template_obj`
 
         """
-        SerializableSpace.__init__(self,
-                                   name_prod=name_prod, name_load=name_load, name_line=name_line, sub_info=sub_info,
-                                   load_to_subid=load_to_subid, gen_to_subid=gen_to_subid,
-                                   line_or_to_subid=line_or_to_subid, line_ex_to_subid=line_ex_to_subid,
-                                   load_to_sub_pos=load_to_sub_pos, gen_to_sub_pos=gen_to_sub_pos,
-                                   line_or_to_sub_pos=line_or_to_sub_pos, line_ex_to_sub_pos=line_ex_to_sub_pos,
-                                   load_pos_topo_vect=load_pos_topo_vect, gen_pos_topo_vect=gen_pos_topo_vect,
-                                   line_or_pos_topo_vect=line_or_pos_topo_vect,
-                                   line_ex_pos_topo_vect=line_ex_pos_topo_vect,
-                                   subtype=actionClass)
+        SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
 
         self.actionClass = self.subtype
         self.template_act = self.template_obj
@@ -2024,15 +1822,7 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-        res = SerializableActionSpace(name_prod=tmp.name_gen, name_load=tmp.name_load, name_line=tmp.name_line,
-                                      sub_info=tmp.sub_info,
-                                      load_to_subid=tmp.load_to_subid, gen_to_subid=tmp.gen_to_subid,
-                                      line_or_to_subid=tmp.line_or_to_subid, line_ex_to_subid=tmp.line_ex_to_subid,
-                                      load_to_sub_pos=tmp.load_to_sub_pos, gen_to_sub_pos=tmp.gen_to_sub_pos,
-                                      line_or_to_sub_pos=tmp.line_or_to_sub_pos, line_ex_to_sub_pos=tmp.line_ex_to_sub_pos,
-                                      load_pos_topo_vect=tmp.load_pos_topo_vect, gen_pos_topo_vect=tmp.gen_pos_topo_vect,
-                                      line_or_pos_topo_vect=tmp.line_or_pos_topo_vect,
-                                      line_ex_pos_topo_vect=tmp.line_ex_pos_topo_vect,
+        res = SerializableActionSpace(gridobj=tmp,
                                       actionClass=tmp.subtype)
         return res
 
@@ -2048,20 +1838,7 @@ class SerializableActionSpace(SerializableSpace):
         res: :class:`Action`
             A random action sampled from the :attr:`HelperAction.actionClass`
         """
-        res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
-                               sub_info=self.sub_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               line_or_to_subid=self.line_or_to_subid,
-                               line_ex_to_subid=self.line_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               line_or_to_sub_pos=self.line_or_to_sub_pos,
-                               line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                               line_ex_pos_topo_vect=self.line_ex_pos_topo_vect)
+        res = self.actionClass(gridobj=self)  # only the GridObjects part of "self" is actually used
         res.sample()
         return res
 
@@ -2098,20 +1875,7 @@ class SerializableActionSpace(SerializableSpace):
             If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
         """
         if previous_action is None:
-            res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_line,
-                                   sub_info=self.sub_info, dim_topo=self.dim_topo,
-                                   load_to_subid=self.load_to_subid,
-                                   gen_to_subid=self.gen_to_subid,
-                                   line_or_to_subid=self.line_or_to_subid,
-                                   line_ex_to_subid=self.line_ex_to_subid,
-                                   load_to_sub_pos=self.load_to_sub_pos,
-                                   gen_to_sub_pos=self.gen_to_sub_pos,
-                                   line_or_to_sub_pos=self.line_or_to_sub_pos,
-                                   line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                                   load_pos_topo_vect=self.load_pos_topo_vect,
-                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                   line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                                   line_ex_pos_topo_vect=self.line_ex_pos_topo_vect)
+            res = self.actionClass(gridobj=self)
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" which is not the type of action handled by this helper (\"{}\")".format(type(previous_action), self.actionClass))
@@ -2225,20 +1989,7 @@ class SerializableActionSpace(SerializableSpace):
             If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
         """
         if previous_action is None:
-            res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_line,
-                                   sub_info=self.sub_info, dim_topo=self.dim_topo,
-                                   load_to_subid=self.load_to_subid,
-                                   gen_to_subid=self.gen_to_subid,
-                                   line_or_to_subid=self.line_or_to_subid,
-                                   line_ex_to_subid=self.line_ex_to_subid,
-                                   load_to_sub_pos=self.load_to_sub_pos,
-                                   gen_to_sub_pos=self.gen_to_sub_pos,
-                                   line_or_to_sub_pos=self.line_or_to_sub_pos,
-                                   line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                                   load_pos_topo_vect=self.load_pos_topo_vect,
-                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                   line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                                   line_ex_pos_topo_vect=self.line_ex_pos_topo_vect)
+            res = self.actionClass(gridobj=self)
         else:
             res = previous_action
 
@@ -2265,20 +2016,7 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         if previous_action is None:
-            res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_line,
-                                   sub_info=self.sub_info, dim_topo=self.dim_topo,
-                                   load_to_subid=self.load_to_subid,
-                                   gen_to_subid=self.gen_to_subid,
-                                   line_or_to_subid=self.line_or_to_subid,
-                                   line_ex_to_subid=self.line_ex_to_subid,
-                                   load_to_sub_pos=self.load_to_sub_pos,
-                                   gen_to_sub_pos=self.gen_to_sub_pos,
-                                   line_or_to_sub_pos=self.line_or_to_sub_pos,
-                                   line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                                   load_pos_topo_vect=self.load_pos_topo_vect,
-                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                   line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                                   line_ex_pos_topo_vect=self.line_ex_pos_topo_vect)
+            res = self.actionClass(gridobj=self)
         else:
             res = previous_action
         res.update({"set_line_status": [(l_id, 1)],
@@ -2336,10 +2074,7 @@ class HelperAction(SerializableActionSpace):
 
 
     """
-    def __init__(self, name_prod, name_load, name_line, sub_info,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  game_rules, actionClass=Action):
         """
         All parameters (name_gen, name_load, name_line, sub_info, etc.) are used to fill the attributes having the
@@ -2347,6 +2082,10 @@ class HelperAction(SerializableActionSpace):
 
         Parameters
         ----------
+
+        gridobj: :class:`grid2op.Space.GridObjects`
+            The representation of the powergrid.
+
         actionClass: ``type``
             Note that this parameter expected a class, and not an object of the class. It is used to return the
             appropriate action type.
@@ -2355,11 +2094,7 @@ class HelperAction(SerializableActionSpace):
             Class specifying the rules of the game, used to check the legality of the actions.
 
         """
-        SerializableActionSpace.__init__(self, name_prod, name_load, name_line, sub_info,
-                                         load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                                         load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                                         load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect,
-                                         line_ex_pos_topo_vect,
+        SerializableActionSpace.__init__(self, gridobj,
                                          actionClass=actionClass
                                          )
         self.legal_action = game_rules.legal_action
@@ -2393,20 +2128,7 @@ class HelperAction(SerializableActionSpace):
 
         """
 
-        res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
-                               sub_info=self.sub_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               line_or_to_subid=self.line_or_to_subid,
-                               line_ex_to_subid=self.line_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               line_or_to_sub_pos=self.line_or_to_sub_pos,
-                               line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                               line_ex_pos_topo_vect=self.line_ex_pos_topo_vect)
+        res = self.actionClass(gridobj=self)
         # update the action
         res.update(dict_)
         if check_legal:

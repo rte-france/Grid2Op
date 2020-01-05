@@ -1,5 +1,9 @@
 """
-This class abstract the main compoenents of Action Space and Observation space
+This class abstract the main components of Action, Observation, ActionSpace and ObservationSpace.
+
+It basically represents a powergrid (the object in it) in a format completely agnostic to the solver use to compute
+the powerflows (:class:grid2op.Backend.Backend).
+
 """
 import re
 import json
@@ -15,15 +19,24 @@ except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from _utils import extract_from_dict, save_to_dict
 
-# TODO have an higher order representation of Action and Observation, and not "just" ActionSpace and ObservationSpace
 import pdb
 
-
+# TODO better sampling for observation (seed in argument is really weird)
+# TODO gym integration (inheritance, shape and dtype)
+# TODO tests of these methods
 class GridObjects:
     """
     This class stores in a Backend agnostic way some information about the powergrid.
 
     It stores information about number of objects, and which objects are where, their names etc.
+
+    The classes :class:`grid2op.Action.Action`, :class:`grid2op.Action.HelperAction`,
+    :class:`grid2op.Observation.Observation`, :class:`grid2op.Observation.ObservationHelper` and
+    :class:`grid2op.Backend.Backend` all inherit from this class. This means that each of the above has its own
+    representation of the powergrid.
+
+    **NB** it does not store any information about the current state of the powergrid. It stores information that
+    cannot be modified by the Agent, the Environment or any other entity.
 
     Attributes
     ----------
@@ -54,38 +67,38 @@ class GridObjects:
 
     load_to_sub_pos: :class:`numpy.array`, dtype:int
         The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`HelperAction.sub_info`\[i\]. For a given load of id *l*,
-        :attr:`Action.HelperAction.load_to_sub_pos`\[l\] is the index
+        :attr:`GridObjects.sub_info`\[i\]. For a given load of id *l*,
+        :attr:`Action.GridObjects.load_to_sub_pos`\[l\] is the index
         of the load *l* in the vector *sub_topo_vect*. This means that, if
         *sub_topo_vect\[ action.load_to_sub_pos\[l\] \]=2*
         then load of id *l* is connected to the second bus of the substation.
 
     gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_to_sub_pos` but for generators.
+        same as :attr:`GridObjects.load_to_sub_pos` but for generators.
 
     lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_to_sub_pos`  but for "origin" end of powerlines.
+        same as :attr:`GridObjects.load_to_sub_pos`  but for "origin" end of powerlines.
 
     lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_to_sub_pos` but for "extremity" end of powerlines.
+        same as :attr:`GridObjects.load_to_sub_pos` but for "extremity" end of powerlines.
 
     load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`HelperAction.load_to_sub_pos` but it gives the position in the vector representing
+        It has a similar role as :attr:`GridObjects.load_to_sub_pos` but it gives the position in the vector representing
         the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
         *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend.load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`HelperAction.load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
+        (see :attr:`GridObjects.load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
+        :attr:`GridObjects.load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
         More formally, if *_topo_vect\[ backend.load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
         second bus of the substation.
 
     gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_pos_topo_vect` but for generators.
+        same as :attr:`GridObjects.load_pos_topo_vect` but for generators.
 
     lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_pos_topo_vect` but for "origin" end of powerlines.
+        same as :attr:`GridObjects.load_pos_topo_vect` but for "origin" end of powerlines.
 
     lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction.load_pos_topo_vect` but for "extremity" end of powerlines.
+        same as :attr:`GridObjects.load_pos_topo_vect` but for "extremity" end of powerlines.
 
     name_load: :class:`numpy.array`, dtype:str
         ordered name of the loads in the grid.
@@ -132,91 +145,75 @@ class GridObjects:
         self.line_or_pos_topo_vect = None
         self.line_ex_pos_topo_vect = None
 
-        # for backward compatibility
-        self.n_lines = None  # int: number of powerlines
-        self.n_generators = None  # int: number of generators
-        self.n_loads = None  # int: number of loads
-        self.n_substations = None  # int: number of substations
-        self.subs_elements = None  # vector[int]: of size number of substation. Tells for each substation the number of element connected to it
-
-        self.name_loads = None
-        self.name_prods = None
-        self.name_lines = None
-        self.name_subs = None
-
-        self.lines_or_to_subid = None
-        self.lines_ex_to_subid = None
-        self.lines_or_to_sub_pos = None
-        self.lines_ex_to_sub_pos = None
-
-        self.lines_or_pos_topo_vect = None
-        self.lines_ex_pos_topo_vect = None
-        # end backward compatibility
-
-    def init_grid(self, name_prod, name_load, name_line, sub_info,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
+    def init_grid_vect(self, name_prod, name_load, name_line, name_sub, sub_info,
+                       load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
+                       load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
+                       load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
         """
 
         Parameters
         ----------
         name_prod: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_gen`
+            Used to initialized :attr:`GridObjects.name_gen`
 
         name_load: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_load`
+            Used to initialized :attr:`GridObjects.name_load`
 
         name_line: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_line`
+            Used to initialized :attr:`GridObjects.name_line`
+
+        name_sub: :class:`numpy.array`, dtype:str
+            Used to initialized :attr:`GridObjects.name_sub`
 
         sub_info: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.sub_info`
+            Used to initialized :attr:`GridObjects.sub_info`
 
         load_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_subid`
+            Used to initialized :attr:`GridObjects.load_to_subid`
 
         gen_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_subid`
+            Used to initialized :attr:`GridObjects.gen_to_subid`
 
         lines_or_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.line_or_to_subid`
+            Used to initialized :attr:`GridObjects.line_or_to_subid`
 
         lines_ex_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.line_ex_to_subid`
+            Used to initialized :attr:`GridObjects.line_ex_to_subid`
 
         load_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_sub_pos`
+            Used to initialized :attr:`GridObjects.load_to_sub_pos`
 
         gen_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_sub_pos`
+            Used to initialized :attr:`GridObjects.gen_to_sub_pos`
 
         lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.line_or_to_sub_pos`
+            Used to initialized :attr:`GridObjects.line_or_to_sub_pos`
 
         lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.line_ex_to_sub_pos`
+            Used to initialized :attr:`GridObjects.line_ex_to_sub_pos`
 
         load_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_pos_topo_vect`
+            Used to initialized :attr:`GridObjects.load_pos_topo_vect`
 
         gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_pos_topo_vect`
+            Used to initialized :attr:`GridObjects.gen_pos_topo_vect`
 
         line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.line_or_pos_topo_vect`
+            Used to initialized :attr:`GridObjects.line_or_pos_topo_vect`
 
         line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.line_ex_pos_topo_vect`
+            Used to initialized :attr:`GridObjects.line_ex_pos_topo_vect`
         """
 
         self.name_gen = name_prod
         self.name_load = name_load
         self.name_line = name_line
+        self.name_sub = name_sub
 
         self.n_gen = len(name_prod)
         self.n_load = len(name_load)
         self.n_line = len(name_line)
+        self.n_sub = len(name_sub)
 
         self.sub_info = sub_info
         self.dim_topo = np.sum(sub_info)
@@ -238,6 +235,316 @@ class GridObjects:
         self.gen_pos_topo_vect = gen_pos_topo_vect
         self.line_or_pos_topo_vect = line_or_pos_topo_vect
         self.line_ex_pos_topo_vect = line_ex_pos_topo_vect
+
+    def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
+        """
+        Return the proper "_pos_big_topo" vector given "to_subid" vector and "to_sub_pos" vectors.
+        This function is also called to performed sanity check after the load on the powergrid.
+
+        :param vect_to_subid: vector of int giving the id of the topology for this element
+        :type vect_to_subid: iterable int
+
+        :param vect_to_sub_pos: vector of int giving the id IN THE SUBSTATION for this element
+        :type vect_to_sub_pos: iterable int
+
+        :return:
+        """
+        res = np.zeros(shape=vect_to_subid.shape)
+        for i, (sub_id, my_pos) in enumerate(zip(vect_to_subid, vect_to_sub_pos)):
+            obj_before = np.sum(self.sub_info[:sub_id])
+            res[i] = obj_before + my_pos
+        return res
+
+    def _compute_pos_big_topo(self):
+        """
+        Compute the position of each element in the big topological vector.
+
+        Topology action are represented by numpy vector of size np.sum(self.sub_info).
+        The vector self.load_pos_topo_vect will give the index of each load in this big topology vector.
+        For examaple, for load i, self.load_pos_topo_vect[i] gives the position in such a topology vector that
+        affect this load.
+
+        This position can be automatically deduced from self.sub_info, self.load_to_subid and self.load_to_sub_pos.
+
+        This is the same for generators and both end of powerlines
+
+        :return: ``None``
+        """
+        # self.assert_grid_correct()
+        self.load_pos_topo_vect = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos).astype(np.int)
+        self.gen_pos_topo_vect = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos).astype(np.int)
+        self.line_or_pos_topo_vect = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos).astype(np.int)
+        self.line_ex_pos_topo_vect = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos).astype(np.int)
+
+    def assert_grid_correct(self):
+        """
+        Performs some checking on the loaded _grid to make sure it is consistent.
+        It also makes sure that the vector such as *sub_info*, *load_to_subid* or *gen_to_sub_pos* are of the
+        right type eg. numpy.array with dtype: np.int
+
+        It is called after the _grid has been loaded.
+
+        These function is by default called by the :class:`grid2op.Environment` class after the initialization of the environment.
+        If these tests are not successfull, no guarantee are given that the backend will return consistent computations.
+
+        In order for the backend to fully understand the structure of actions, it is strongly advised NOT to override this method.
+
+        :return: ``None``
+        :raise: :class:`grid2op.EnvError` and possibly all of its derived class.
+        """
+
+        if self.name_line is None:
+            raise EnvError("name_line is None. Powergrid is invalid. Line names are used to make the correspondance between the chronics and the backend")
+        if self.name_load is None:
+            raise EnvError("name_load is None. Powergrid is invalid. Line names are used to make the correspondance between the chronics and the backend")
+        if self.name_gen is None:
+            raise EnvError("name_gen is None. Powergrid is invalid. Line names are used to make the correspondance between the chronics and the backend")
+        if self.name_sub is None:
+            raise EnvError("name_sub is None. Powergrid is invalid. Substation names are used to make the correspondance between the chronics and the backend")
+
+        if self.n_gen <= 0:
+            raise EnvError("n_gen is negative. Powergrid is invalid: there are no generator")
+        if self.n_load <= 0:
+            raise EnvError("n_load is negative. Powergrid is invalid: there are no load")
+        if self.n_line <= 0:
+            raise EnvError("n_line is negative. Powergrid is invalid: there are no line")
+        if self.n_sub <= 0:
+            raise EnvError("n_sub is negative. Powergrid is invalid: there are no substation")
+
+        # test if vector can be properly converted
+        if not isinstance(self.sub_info, np.ndarray):
+            try:
+                self.sub_info = np.array(self.sub_info)
+                self.sub_info = self.sub_info.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.sub_info should be convertible to a numpy array")
+
+        if not isinstance(self.load_to_subid, np.ndarray):
+            try:
+                self.load_to_subid = np.array(self.load_to_subid)
+                self.load_to_subid = self.load_to_subid.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.load_to_subid should be convertible to a numpy array")
+        if not isinstance(self.gen_to_subid, np.ndarray):
+            try:
+                self.gen_to_subid = np.array(self.gen_to_subid)
+                self.gen_to_subid = self.gen_to_subid.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.gen_to_subid should be convertible to a numpy array")
+        if not isinstance(self.line_or_to_subid, np.ndarray):
+            try:
+                self.line_or_to_subid = np.array(self.line_or_to_subid)
+                self.line_or_to_subid = self.line_or_to_subid .astype(np.int)
+            except Exception as e:
+                raise EnvError("self.line_or_to_subid should be convertible to a numpy array")
+        if not isinstance(self.line_ex_to_subid, np.ndarray):
+            try:
+                self.line_ex_to_subid = np.array(self.line_ex_to_subid)
+                self.line_ex_to_subid = self.line_ex_to_subid.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.line_ex_to_subid should be convertible to a numpy array")
+
+        if not isinstance(self.load_to_sub_pos, np.ndarray):
+            try:
+                self.load_to_sub_pos = np.array(self.load_to_sub_pos)
+                self.load_to_sub_pos = self.load_to_sub_pos.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.load_to_sub_pos should be convertible to a numpy array")
+        if not isinstance(self.gen_to_sub_pos, np.ndarray):
+            try:
+                self.gen_to_sub_pos = np.array(self.gen_to_sub_pos)
+                self.gen_to_sub_pos = self.gen_to_sub_pos.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array")
+        if not isinstance(self.line_or_to_sub_pos, np.ndarray):
+            try:
+                self.line_or_to_sub_pos = np.array(self.line_or_to_sub_pos)
+                self.line_or_to_sub_pos = self.line_or_to_sub_pos.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array")
+        if not isinstance(self.line_ex_to_sub_pos, np.ndarray):
+            try:
+                self.line_ex_to_sub_pos = np.array(self.line_ex_to_sub_pos)
+                self.line_ex_to_sub_pos = self.line_ex_to_sub_pos .astype(np.int)
+            except Exception as e:
+                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array")
+
+        if not isinstance(self.load_pos_topo_vect, np.ndarray):
+            try:
+                self.load_pos_topo_vect = np.array(self.load_pos_topo_vect)
+                self.load_pos_topo_vect = self.load_pos_topo_vect.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array")
+        if not isinstance(self.gen_pos_topo_vect, np.ndarray):
+            try:
+                self.gen_pos_topo_vect = np.array(self.gen_pos_topo_vect)
+                self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array")
+        if not isinstance(self.line_or_pos_topo_vect, np.ndarray):
+            try:
+                self.line_or_pos_topo_vect = np.array(self.line_or_pos_topo_vect)
+                self.line_or_pos_topo_vect = self.line_or_pos_topo_vect.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array")
+        if not isinstance(self.line_ex_pos_topo_vect, np.ndarray):
+            try:
+                self.line_ex_pos_topo_vect = np.array(self.line_ex_pos_topo_vect)
+                self.line_ex_pos_topo_vect = self.line_ex_pos_topo_vect.astype(np.int)
+            except Exception as e:
+                raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array")
+
+        # test that all numbers are finite:
+        tmp = np.concatenate((
+            self.sub_info.flatten(),
+                             self.load_to_subid.flatten(),
+                             self.gen_to_subid.flatten(),
+                             self.line_or_to_subid.flatten(),
+                             self.line_ex_to_subid.flatten(),
+                             self.load_to_sub_pos.flatten(),
+                             self.gen_to_sub_pos.flatten(),
+                             self.line_or_to_sub_pos.flatten(),
+                             self.line_ex_to_sub_pos.flatten(),
+                             self.load_pos_topo_vect.flatten(),
+                             self.gen_pos_topo_vect.flatten(),
+                             self.line_or_pos_topo_vect.flatten(),
+                             self.line_ex_pos_topo_vect.flatten()
+                              ))
+        try:
+            if np.any(~np.isfinite(tmp)):
+                raise EnvError("One of the vector is made of non finite elements")
+        except Exception as e:
+            raise EnvError("Impossible to check wheter or not vectors contains online finite elements (pobably one or more topology related vector is not valid (None)")
+
+        # check sizes
+        if len(self.sub_info) != self.n_sub:
+            raise IncorrectNumberOfSubstation("The number of substation is not consistent in self.sub_info (size \"{}\") and  self.n_sub ({})".format(len(self.sub_info), self.n_sub))
+        if np.sum(self.sub_info) != self.n_load + self.n_gen + 2*self.n_line:
+            err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
+            err_msg +=  "{} elements connected to all substations and the number of load, generators and lines in the _grid."
+            err_msg = err_msg.format(np.sum(self.sub_info))
+            raise IncorrectNumberOfElements(err_msg)
+
+        if len(self.load_to_subid) != self.n_load:
+            raise IncorrectNumberOfLoads()
+        if len(self.gen_to_subid) != self.n_gen:
+            raise IncorrectNumberOfGenerators()
+        if len(self.line_or_to_subid) != self.n_line:
+            raise IncorrectNumberOfLines()
+        if len(self.line_ex_to_subid) != self.n_line:
+            raise IncorrectNumberOfLines()
+
+        if len(self.load_to_sub_pos) != self.n_load:
+            raise IncorrectNumberOfLoads()
+        if len(self.gen_to_sub_pos) != self.n_gen:
+            raise IncorrectNumberOfGenerators()
+        if len(self.line_or_to_sub_pos) != self.n_line:
+            raise IncorrectNumberOfLines()
+        if len(self.line_ex_to_sub_pos) != self.n_line:
+            raise IncorrectNumberOfLines()
+
+        if len(self.load_pos_topo_vect) != self.n_load:
+            raise IncorrectNumberOfLoads()
+        if len(self.gen_pos_topo_vect) != self.n_gen:
+            raise IncorrectNumberOfGenerators()
+        if len(self.line_or_pos_topo_vect) != self.n_line:
+            raise IncorrectNumberOfLines()
+        if len(self.line_ex_pos_topo_vect) != self.n_line:
+            raise IncorrectNumberOfLines()
+
+        # test if object are connected to right substation
+        obj_per_sub = np.zeros(shape=(self.n_sub,))
+        for sub_id in self.load_to_subid:
+            obj_per_sub[sub_id] += 1
+        for sub_id in self.gen_to_subid:
+            obj_per_sub[sub_id] += 1
+        for sub_id in self.line_or_to_subid:
+            obj_per_sub[sub_id] += 1
+        for sub_id in self.line_ex_to_subid:
+            obj_per_sub[sub_id] += 1
+
+        if not np.all(obj_per_sub == self.sub_info):
+            raise IncorrectNumberOfElements()
+
+        # test right number of element in substations
+        # test that for each substation i don't have an id above the number of element of a substations
+        for i, (sub_id, sub_pos) in enumerate(zip(self.load_to_subid, self.load_to_sub_pos)):
+            if sub_pos >= self.sub_info[sub_id]:
+                raise IncorrectPositionOfLoads("for load {}".format(i))
+        for i, (sub_id, sub_pos) in enumerate(zip(self.gen_to_subid, self.gen_to_sub_pos)):
+            if sub_pos >= self.sub_info[sub_id]:
+                raise IncorrectPositionOfGenerators("for generator {}".format(i))
+        for i, (sub_id, sub_pos) in enumerate(zip(self.line_or_to_subid, self.line_or_to_sub_pos)):
+            if sub_pos >= self.sub_info[sub_id]:
+                raise IncorrectPositionOfLines("for line {} at origin end".format(i))
+        for i, (sub_id, sub_pos) in enumerate(zip(self.line_ex_to_subid, self.line_ex_to_sub_pos)):
+            if sub_pos >= self.sub_info[sub_id]:
+                # pdb.set_trace()
+                raise IncorrectPositionOfLines("for line {} at extremity end".format(i))
+
+        # check that i don't have 2 objects with the same id in the "big topo" vector
+        if len(np.unique(np.concatenate((self.load_pos_topo_vect.flatten(),
+                                        self.gen_pos_topo_vect.flatten(),
+                                        self.line_or_pos_topo_vect.flatten(),
+                                        self.line_ex_pos_topo_vect.flatten())))) != np.sum(self.sub_info):
+                raise EnvError("2 different objects would have the same id in the topology vector.")
+
+        # check that self.load_pos_topo_vect and co are consistent
+        load_pos_big_topo = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos)
+        if not np.all(load_pos_big_topo == self.load_pos_topo_vect):
+            raise IncorrectPositionOfLoads()
+        gen_pos_big_topo = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos)
+        if not np.all(gen_pos_big_topo == self.gen_pos_topo_vect):
+            raise IncorrectNumberOfGenerators()
+        lines_or_pos_big_topo = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos)
+        if not np.all(lines_or_pos_big_topo == self.line_or_pos_topo_vect):
+            raise IncorrectPositionOfLines()
+        lines_ex_pos_big_topo = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos)
+        if not np.all(lines_ex_pos_big_topo == self.line_ex_pos_topo_vect):
+            raise IncorrectPositionOfLines()
+
+        # no empty bus: at least one element should be present on each bus
+        if np.any(self.sub_info < 1):
+            raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(self.sub_info < 1)))
+
+    def init_grid(self, gridobj):
+        """
+
+        Parameters
+        ----------
+        gridobj: :class:`GridObjects`
+            The representation of the powergrid
+        """
+        self.name_gen = gridobj.name_gen
+        self.name_load = gridobj.name_load
+        self.name_line = gridobj.name_line
+        self.name_sub = gridobj.name_sub
+
+        self.n_gen = len(gridobj.name_gen)
+        self.n_load = len(gridobj.name_load)
+        self.n_line = len(gridobj.name_line)
+        self.n_sub = len(gridobj.name_sub)
+
+        self.sub_info = gridobj.sub_info
+        self.dim_topo = np.sum(gridobj.sub_info)
+
+        # to which substation is connected each element
+        self.load_to_subid = gridobj.load_to_subid
+        self.gen_to_subid = gridobj.gen_to_subid
+        self.line_or_to_subid = gridobj.line_or_to_subid
+        self.line_ex_to_subid = gridobj.line_ex_to_subid
+
+        # which index has this element in the substation vector
+        self.load_to_sub_pos = gridobj.load_to_sub_pos
+        self.gen_to_sub_pos = gridobj.gen_to_sub_pos
+        self.line_or_to_sub_pos = gridobj.line_or_to_sub_pos
+        self.line_ex_to_sub_pos = gridobj.line_ex_to_sub_pos
+
+        # which index has this element in the topology vector
+        self.load_pos_topo_vect = gridobj.load_pos_topo_vect
+        self.gen_pos_topo_vect = gridobj.gen_pos_topo_vect
+        self.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
+        self.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
@@ -426,10 +733,7 @@ class SerializableSpace(GridObjects):
         For gym compatibility, do not use yet
 
     """
-    def __init__(self, name_prod, name_load, name_line, sub_info,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  subtype=object):
         """
 
@@ -439,26 +743,10 @@ class SerializableSpace(GridObjects):
         """
 
         GridObjects.__init__(self)
-        self.init_grid(name_prod, name_load, name_line, sub_info,
-                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect)
+        self.init_grid(gridobj)
 
         self.subtype = subtype
-        self.template_obj = self.subtype(n_gen=self.n_gen, n_load=self.n_load, n_line=self.n_line,
-                                         sub_info=self.sub_info, dim_topo=self.dim_topo,
-                                         load_to_subid=self.load_to_subid,
-                                         gen_to_subid=self.gen_to_subid,
-                                         line_or_to_subid=self.line_or_to_subid,
-                                         line_ex_to_subid=self.line_ex_to_subid,
-                                         load_to_sub_pos=self.load_to_sub_pos,
-                                         gen_to_sub_pos=self.gen_to_sub_pos,
-                                         line_or_to_sub_pos=self.line_or_to_sub_pos,
-                                         line_ex_to_sub_pos=self.line_ex_to_sub_pos,
-                                         load_pos_topo_vect=self.load_pos_topo_vect,
-                                         gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                         line_or_pos_topo_vect=self.line_or_pos_topo_vect,
-                                         line_ex_pos_topo_vect=self.line_ex_pos_topo_vect)
+        self.template_obj = self.subtype(gridobj=self)
         self.n = self.template_obj.size()
 
         self.space_prng = np.random.RandomState()
@@ -510,6 +798,7 @@ class SerializableSpace(GridObjects):
         name_prod = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
         name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
+        name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
 
         sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(np.int))
         load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
@@ -529,8 +818,6 @@ class SerializableSpace(GridObjects):
 
         actionClass_str = extract_from_dict(dict_, "subtype", str)
         actionClass_li = actionClass_str.split('.')
-
-        #
 
         # pdb.set_trace()
         if actionClass_li[-1] in globals():
@@ -566,11 +853,13 @@ class SerializableSpace(GridObjects):
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
 
-        res = SerializableSpace(name_prod, name_load, name_line, sub_info,
+        gridobj = GridObjects()
+        gridobj.init_grid_vect(name_prod, name_load, name_line, name_sub, sub_info,
                                 load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
                                 load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
                                 load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect,
-                                line_ex_pos_topo_vect,
+                                line_ex_pos_topo_vect)
+        res = SerializableSpace(gridobj=gridobj,
                                 subtype=subtype)
         return res
 
@@ -588,6 +877,7 @@ class SerializableSpace(GridObjects):
         save_to_dict(res, self, "name_gen", lambda li: [str(el) for el in li])
         save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
         save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "name_sub", lambda li: [str(el) for el in li])
         save_to_dict(res, self, "sub_info", lambda li: [int(el) for el in li])
         save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
         save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])

@@ -281,61 +281,16 @@ class Environment:
                     type(observationClass)))
 
         # action affecting the _grid that will be made by the agent
-        self.helper_action_player = HelperAction(name_prod=self.backend.name_gen,
-                                                 name_load=self.backend.name_load,
-                                                 name_line=self.backend.name_line,
-                                                 sub_info=self.backend.sub_info,
-                                                 load_to_subid=self.backend.load_to_subid,
-                                                 gen_to_subid=self.backend.gen_to_subid,
-                                                 line_or_to_subid=self.backend.line_or_to_subid,
-                                                 line_ex_to_subid=self.backend.line_ex_to_subid,  #####
-                                                 load_to_sub_pos=self.backend.load_to_sub_pos,
-                                                 gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                                 line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
-                                                 line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos,  #####
-                                                 load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                                 gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                                 line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
-                                                 line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
+        self.helper_action_player = HelperAction(gridobj=self.backend,
                                                  actionClass=actionClass,
                                                  game_rules=self.game_rules)
 
         # action that affect the _grid made by the environment.
-        self.helper_action_env = HelperAction(name_prod=self.backend.name_gen,
-                                              name_load=self.backend.name_load,
-                                              name_line=self.backend.name_line,
-                                              sub_info=self.backend.sub_info,
-                                              load_to_subid=self.backend.load_to_subid,
-                                              gen_to_subid=self.backend.gen_to_subid,
-                                              line_or_to_subid=self.backend.line_or_to_subid,
-                                              line_ex_to_subid=self.backend.line_ex_to_subid,  #####
-                                              load_to_sub_pos=self.backend.load_to_sub_pos,
-                                              gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                              line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
-                                              line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos,  #####
-                                              load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                              gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                              line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
-                                              line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
+        self.helper_action_env = HelperAction(gridobj=self.backend,
                                               actionClass=Action,
                                               game_rules=self.game_rules)
 
-        self.helper_observation = ObservationHelper(name_prod=self.backend.name_gen,
-                                                    name_load=self.backend.name_load,
-                                                    name_line=self.backend.name_line,
-                                                    sub_info=self.backend.sub_info,
-                                                    load_to_subid=self.backend.load_to_subid,
-                                                    gen_to_subid=self.backend.gen_to_subid,
-                                                    line_or_to_subid=self.backend.line_or_to_subid,
-                                                    line_ex_to_subid=self.backend.line_ex_to_subid,  #####
-                                                    load_to_sub_pos=self.backend.load_to_sub_pos,
-                                                    gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                                    line_or_to_sub_pos=self.backend.line_or_to_sub_pos,
-                                                    line_ex_to_sub_pos=self.backend.line_ex_to_sub_pos,  #####
-                                                    load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                                    gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                                    line_or_pos_topo_vect=self.backend.line_or_pos_topo_vect,
-                                                    line_ex_pos_topo_vect=self.backend.line_ex_pos_topo_vect,
+        self.helper_observation = ObservationHelper(gridobj=self.backend,
                                                     observationClass=observationClass,
                                                     rewardClass=rewardClass,
                                                     env=self)

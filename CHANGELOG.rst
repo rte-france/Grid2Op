@@ -9,32 +9,31 @@ Change Log
 - [BREAKING] previous saved Action Spaces and Observation Spaces (as dictionnary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid accross classes for better consistency:
 
-==========  =======================  =======================
-Class Name  Old Attribute Name       New Attribute Name
-==========  =======================  =======================
-Backend     n_lines                  n_line
-Backend     n_generators             n_gen
-Backend     n_loads                  n_load
-Backend     n_substations            n_sub
-Backend     subs_elements            sub_info
-Backend     name_loads               name_load
-Backend     name_prods               name_gen
-Backend     name_lines               name_line
-Backend     name_subs                name_sub
-Backend     lines_or_to_subid        line_or_to_subid
-Backend     lines_ex_to_subid        line_ex_to_subid
-Backend     lines_or_to_sub_pos      line_or_to_sub_pos
-Backend     lines_ex_to_sub_pos      line_ex_to_sub_pos
-Backend     lines_or_pos_topo_vect   line_or_pos_topo_vect
-Backend     lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
-Action      _lines_or_to_subid       line_or_to_subid
-Action      _lines_ex_to_subid       line_ex_to_subid
-Action      _lines_or_to_sub_pos     line_or_to_sub_pos
-Action      _lines_ex_to_sub_pos     line_ex_to_sub_pos
-Action      _lines_or_pos_topo_vect  line_or_pos_topo_vect
-Action      _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
-==========  =======================  =======================
-
+====================  =======================  =======================
+Class Name            Old Attribute Name       New Attribute Name
+====================  =======================  =======================
+Backend               n_lines                  n_line
+Backend               n_generators             n_gen
+Backend               n_loads                  n_load
+Backend               n_substations            n_sub
+Backend               subs_elements            sub_info
+Backend               name_loads               name_load
+Backend               name_prods               name_gen
+Backend               name_lines               name_line
+Backend               name_subs                name_sub
+Backend               lines_or_to_subid        line_or_to_subid
+Backend               lines_ex_to_subid        line_ex_to_subid
+Backend               lines_or_to_sub_pos      line_or_to_sub_pos
+Backend               lines_ex_to_sub_pos      line_ex_to_sub_pos
+Backend               lines_or_pos_topo_vect   line_or_pos_topo_vect
+Backend               lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
+Action / Observation  _lines_or_to_subid       line_or_to_subid
+Action / Observation  _lines_ex_to_subid       line_ex_to_subid
+Action / Observation  _lines_or_to_sub_pos     line_or_to_sub_pos
+Action / Observation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
+Action / Observation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
+Action / Observation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+====================  =======================  =======================
 
 [0.4.1] - 2019-12-17
 --------------------
