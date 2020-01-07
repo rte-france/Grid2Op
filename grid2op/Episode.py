@@ -119,7 +119,6 @@ class Episode:
 
         return df
 
-
     def _make_df_from_data(self):
         load_size = len(self.observations) * len(self.observations[0].load_p)
         prod_size = len(self.observations) * len(self.observations[0].prod_p)
