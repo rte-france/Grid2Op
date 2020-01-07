@@ -826,107 +826,6 @@ class Observation(GridObjects):
         """
         pass
 
-    @abstractmethod
-    def to_vect(self):
-        """
-        Convert this instance of Observation to a numpy array.
-        The size of the array is always the same and is determined by the `size` method.
-
-        This method is an "abstract" method, and should be overridden each time the base class :class:`Observation`
-        is overidden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The respresentation of this action as a numpy array
-
-        """
-        pass
-
-    @abstractmethod
-    def shape(self):
-        """
-        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
-        part of the action.
-
-        It is a numpy integer array.
-
-        This function must return a vector from which the sum is equal to the return value of "size()".
-
-        The shape vector must have the same number of components as the return value of the :func:`Observation.dtype()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Observation`
-        """
-        pass
-
-    @abstractmethod
-    def dtype(self):
-        """
-        The types of the compoenents of the Observation, mainly used for gym compatibility is the shape of all part
-        of the action.
-
-        It is a numpy array of objects.
-
-        The dtype vector must have the same number of components as the return value of the :func:`Observation.shape()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The dtype of the :class:`Observation`
-        """
-        pass
-
-    @abstractmethod
-    def from_vect(self, vect):
-        """
-        Convert a observation, represented as a vector, into an observation object.
-
-        This method is an "abstract" method, and should be overridden each time the base class :class:`Observation`
-        is overridden.
-
-
-        Only the size is checked. If it does not match, an :class:`grid2op.Exceptions.AmbiguousAction` is thrown.
-        Otherwise the component of the vector are coerced into the proper type silently.
-
-        It may results in an non deterministic behaviour if the input vector is not a real action, or cannot be
-        converted to one.
-
-        Parameters
-        ----------
-        vect: ``numpy.ndarray``
-            A vector representing an Action.
-
-        Returns
-        -------
-        ``None``
-
-        """
-        pass
-
-    @abstractmethod
-    def size(self):
-        """
-        When the action is converted to a vector, this method return its size.
-
-        NB that it is a requirement that converting an observation gives a vector of a fixed size throughout a training.
-
-        Returns
-        -------
-        size: ``int``
-            The size of the Action.
-
-        """
-        pass
-
     def connectivity_matrix(self):
         """
         Computes and return the "connectivity matrix" `con_mat`.
@@ -1043,6 +942,48 @@ class CompleteObservation(Observation):
 
     It has the same attributes as the :class:`Observation` class. Only one is added here.
 
+    For a :class:`CompleteObservation` the unique representation as a vector is:
+
+        1. the year [1 element]
+        2. the month [1 element]
+        3. the day [1 element]
+        4. the day of the week. Monday = 0, Sunday = 6 [1 element]
+        5. the hour of the day [1 element]
+        6. minute of the hour  [1 element]
+        7. :attr:`Observation.prod_p` the active value of the productions [:attr:`Observation.n_gen` elements]
+        8. :attr:`Observation.prod_q` the reactive value of the productions [:attr:`Observation.n_gen` elements]
+        9. :attr:`Observation.prod_q` the voltage setpoint of the productions [:attr:`Observation.n_gen` elements]
+        10. :attr:`Observation.load_p` the active value of the loads [:attr:`Observation.n_load` elements]
+        11. :attr:`Observation.load_q` the reactive value of the loads [:attr:`Observation.n_load` elements]
+        12. :attr:`Observation.load_v` the voltage setpoint of the loads [:attr:`Observation.n_load` elements]
+        13. :attr:`Observation.p_or` active flow at origin of powerlines [:attr:`Observation.n_line` elements]
+        14. :attr:`Observation.q_or` reactive flow at origin of powerlines [:attr:`Observation.n_line` elements]
+        15. :attr:`Observation.v_or` voltage at origin of powerlines [:attr:`Observation.n_line` elements]
+        16. :attr:`Observation.a_or` current flow at origin of powerlines [:attr:`Observation.n_line` elements]
+        17. :attr:`Observation.p_ex` active flow at extremity of powerlines [:attr:`Observation.n_line` elements]
+        18. :attr:`Observation.q_ex` reactive flow at extremity of powerlines [:attr:`Observation.n_line` elements]
+        19. :attr:`Observation.v_ex` voltage at extremity of powerlines [:attr:`Observation.n_line` elements]
+        20. :attr:`Observation.a_ex` current flow at extremity of powerlines [:attr:`Observation.n_line` elements]
+        21. :attr:`Observation.rho` line capacity used (current flow / thermal limit) [:attr:`Observation.n_line` elements]
+        22. :attr:`Observation.line_status` line status [:attr:`Observation.n_line` elements]
+        23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow
+            (0 if the line is not on overflow)[:attr:`Observation.n_line` elements]
+        24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element
+            it gives its bus]. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
+        25. :attr:`Observation.time_before_cooldown_line` representation of the cooldown time on the powerlines
+            [:attr:`Observation.n_line` elements]
+        26. :attr:`Observation.time_before_cooldown_sub` representation of the cooldown time on the substations
+            [:attr:`Observation.n_sub` elements]
+        27. :attr:`Observation.time_before_line_reconnectable` number of timestep to wait before a powerline
+            can be reconnected (it is disconnected due to maintenance, cascading failure or overflow)
+            [:attr:`Observation.n_line` elements]
+        28. :attr:`Observation.time_next_maintenance` number of timestep before the next maintenance (-1 means
+            no maintenance are planned, 0 a maintenance is in operation) [:attr:`Observation.n_line` elements]
+        29. :attr:`Observation.duration_next_maintenance` duration of the next maintenance. If a maintenance
+            is taking place, this is the number of timestep before it ends. [:attr:`Observation.n_line` elements]
+
+    This behavior is specified in the :attr:`Observation.attr_list_vect` vector.
+
     Attributes
     ----------
     dictionnarized: ``dict``
@@ -1127,99 +1068,6 @@ class CompleteObservation(Observation):
         self.time_next_maintenance = env.time_next_maintenance
         self.duration_next_maintenance = env.duration_next_maintenance
 
-    def to_vect(self):
-        """
-        Representation of an :class:`CompleteObservation` into a flat floating point vector.
-
-        Some conversion are done to the internal data representation to floating point. This may cause some data loss
-        and / or  corruption (eg. using :func:`Observation.to_vect` and then :func:`Observation.from_vect` does
-        not guarantee to be exactly the same object.
-
-        Note that the way and the order of the attributes returned by the method are class dependant. All instance
-        of :class:`CompleteObservation` will return the data in the same order. But if another Observation class is
-        used, no guarantee is given as to the order in which the data are serialized.
-
-        For a :class:`CompleteObservation` the unique representation as a vector is:
-
-            1. the year [1 element]
-            2. the month [1 element]
-            3. the day [1 element]
-            4. the day of the week. Monday = 0, Sunday = 6 [1 element]
-            5. the hour of the day [1 element]
-            6. minute of the hour  [1 element]
-            7. :attr:`Observation.prod_p` the active value of the productions [:attr:`Observation.n_gen` elements]
-            8. :attr:`Observation.prod_q` the reactive value of the productions [:attr:`Observation.n_gen` elements]
-            9. :attr:`Observation.prod_q` the voltage setpoint of the productions [:attr:`Observation.n_gen` elements]
-            10. :attr:`Observation.load_p` the active value of the loads [:attr:`Observation.n_load` elements]
-            11. :attr:`Observation.load_q` the reactive value of the loads [:attr:`Observation.n_load` elements]
-            12. :attr:`Observation.load_v` the voltage setpoint of the loads [:attr:`Observation.n_load` elements]
-            13. :attr:`Observation.p_or` active flow at origin of powerlines [:attr:`Observation.n_line` elements]
-            14. :attr:`Observation.q_or` reactive flow at origin of powerlines [:attr:`Observation.n_line` elements]
-            15. :attr:`Observation.v_or` voltage at origin of powerlines [:attr:`Observation.n_line` elements]
-            16. :attr:`Observation.a_or` current flow at origin of powerlines [:attr:`Observation.n_line` elements]
-            17. :attr:`Observation.p_ex` active flow at extremity of powerlines [:attr:`Observation.n_line` elements]
-            18. :attr:`Observation.q_ex` reactive flow at extremity of powerlines [:attr:`Observation.n_line` elements]
-            19. :attr:`Observation.v_ex` voltage at extremity of powerlines [:attr:`Observation.n_line` elements]
-            20. :attr:`Observation.a_ex` current flow at extremity of powerlines [:attr:`Observation.n_line` elements]
-            21. :attr:`Observation.rho` line capacity used (current flow / thermal limit) [:attr:`Observation.n_line` elements]
-            22. :attr:`Observation.line_status` line status [:attr:`Observation.n_line` elements]
-            23. :attr:`Observation.timestep_overflow` number of timestep since the powerline was on overflow
-                (0 if the line is not on overflow)[:attr:`Observation.n_line` elements]
-            24. :attr:`Observation.topo_vect` representation as a vector of the topology [for each element
-                it gives its bus]. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
-            25. :attr:`Observation.time_before_cooldown_line` representation of the cooldown time on the powerlines
-                [:attr:`Observation.n_line` elements]
-            26. :attr:`Observation.time_before_cooldown_sub` representation of the cooldown time on the substations
-                [:attr:`Observation.n_sub` elements]
-            27. :attr:`Observation.time_before_line_reconnectable` number of timestep to wait before a powerline
-                can be reconnected (it is disconnected due to maintenance, cascading failure or overflow)
-                [:attr:`Observation.n_line` elements]
-            28. :attr:`Observation.time_next_maintenance` number of timestep before the next maintenance (-1 means
-                no maintenance are planned, 0 a maintenance is in operation) [:attr:`Observation.n_line` elements]
-            29. :attr:`Observation.duration_next_maintenance` duration of the next maintenance. If a maintenance
-                is taking place, this is the number of timestep before it ends. [:attr:`Observation.n_line` elements]
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The vector representing the topology (see above)
-        """
-        if self.vectorized is None:
-            # self.vectorized = np.concatenate((
-            #     (self.year, ),
-            #     (self.month, ),
-            #     (self.day, ),
-            #     (self.day_of_week, ),
-            #     (self.hour_of_day, ),
-            #     (self.minute_of_hour, ),
-            #     self.prod_p.flatten(),
-            #     self.prod_q.flatten(),
-            #     self.prod_v.flatten(),
-            #     self.load_p.flatten(),
-            #     self.load_q.flatten(),
-            #     self.load_v.flatten(),
-            #     self.p_or.flatten(),
-            #     self.q_or.flatten(),
-            #     self.v_or.flatten(),
-            #     self.a_or.flatten(),
-            #     self.p_ex.flatten(),
-            #     self.q_ex.flatten(),
-            #     self.v_ex.flatten(),
-            #     self.a_ex.flatten(),
-            #     self.rho.flatten(),
-            #     self.line_status.flatten(),
-            #     self.timestep_overflow.flatten(),
-            #     self.topo_vect.flatten(),
-            #     self.time_before_cooldown_line.flatten(),
-            #     self.time_before_cooldown_sub.flatten(),
-            #     self.time_before_line_reconnectable.flatten(),
-            #     self.time_next_maintenance.flatten(),
-            #     self.duration_next_maintenance.flatten()
-            # ))
-            self.vectorized = np.concatenate([np.array(self.__dict__[el]).flatten().astype(np.float)
-                                              for el in self.attr_list_vect])
-        return self.vectorized
-
     def from_vect(self, vect):
         """
         Convert back an observation represented as a vector into a proper observation.
@@ -1228,134 +1076,16 @@ class CompleteObservation(Observation):
 
         Parameters
         ----------
-        vect
-
-        Returns
-        -------
+        vect: ``numpy.ndarray``
+            A representation of an Observation in the form of a vector that is used to convert back the current
+            observation to be equal to the vect.
 
         """
 
         # reset the matrices
         self._reset_matrices()
-
-        if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while load an Observation "
-                                            "from a vector. Found {} elements instead of {}".format(
-                vect.shape[0], self.size()))
-
-        prev_ = 0
-        for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
-            self.__dict__[attr_nm] = vect[prev_:(prev_+sh)].astype(dt)
-            prev_ += sh
-
-        # self.year = int(vect[0])
-        # self.month = int(vect[1])
-        # self.day = int(vect[2])
-        # self.day_of_week = int(vect[3])
-        # self.hour_of_day = int(vect[4])
-        # self.minute_of_hour = int(vect[5])
-        #
-        # prev_ = 6
-        # next_ = 6 + self.n_gen
-        # self.prod_p = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
-        # self.prod_q = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
-        # self.prod_v = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_load
-        #
-        # self.load_p = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
-        # self.load_q = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
-        # self.load_v = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_line
-        #
-        # self.p_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.q_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.v_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.a_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.p_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.q_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.v_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.a_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.rho = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        #
-        # self.line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.line_status = self.line_status.astype(np.bool)
-        # self.timestep_overflow = vect[prev_:next_]; prev_ += self.n_line; next_ += self.dim_topo
-        # self.timestep_overflow = self.timestep_overflow.astype(np.int)
-        # self.topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_line
-        # self.topo_vect = self.topo_vect.astype(np.int)
-        #
-        # # cooldown
-        # self.time_before_cooldown_line = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_sub
-        # self.time_before_cooldown_line = self.time_before_cooldown_line.astype(np.int)
-        # self.time_before_cooldown_sub = vect[prev_:next_]; prev_ += self.n_sub; next_ += self.n_line
-        # self.time_before_cooldown_sub = self.time_before_cooldown_sub.astype(np.int)
-        #
-        # # maintenance and hazards
-        # self.time_before_line_reconnectable = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.time_before_line_reconnectable = self.time_before_line_reconnectable.astype(np.int)
-        # self.time_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.time_next_maintenance = self.time_next_maintenance.astype(np.int)
-        # self.duration_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        # self.duration_next_maintenance = self.duration_next_maintenance.astype(np.int)
-
-    def shape(self):
-        """
-        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
-        part of the action.
-
-        It is a numpy integer array.
-
-        This function must return a vector from which the sum is equal to the return value of "size()".
-
-        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Observation`
-        """
-        # res = np.array([1, 1, 1, 1, 1, 1,
-        #                 self.n_gen, self.n_gen, self.n_gen,
-        #                 self.n_load, self.n_load, self.n_load,
-        #                 self.n_line, self.n_line, self.n_line, self.n_line, self.n_line, self.n_line, self.n_line,
-        #                 self.n_line, self.n_line,
-        #                 self.n_line, self.n_line, self.n_line,
-        #                 self.n_line, self.dim_topo,
-        #                 self.n_line, self.n_sub,
-        #                 self.n_line, self.n_line, self.n_line
-        #                 ],
-        #                dtype=np.int)
-        res = np.array([np.array(self.__dict__[el]).flatten().shape[0] for el in self.attr_list_vect])
-        return res
-
-    def dtype(self):
-        """
-        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
-        of the action.
-
-        It is a numpy array of objects.
-
-        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Action`
-        """
-        # res = np.array([int, int, int, int, int, int,
-        #                 float, float, float,
-        #                 float, float, float,
-        #                 float, float, float, float, float, float, float, float, float,
-        #                 bool, int, int,
-        #                 int, int,
-        #                 int, int, int],
-        #                dtype=type)
-        res = np.array([np.array(self.__dict__[el]).flatten().dtype for el in self.attr_list_vect])
-        return res
+        # and ensure everything is reloaded properly
+        super().from_vect(vect)
 
     def to_dict(self):
         """
@@ -1442,8 +1172,8 @@ class CompleteObservation(Observation):
                 beg_ += nb_obj
             # connect the objects together with the lines (both ends of a lines are connected together)
             for q_id in range(self.n_line):
-                self.connectivity_matrix_[self._lines_or_pos_topo_vect[q_id], self._lines_ex_pos_topo_vect[q_id]] = 1
-                self.connectivity_matrix_[self._lines_ex_pos_topo_vect[q_id], self._lines_or_pos_topo_vect[q_id]] = 1
+                self.connectivity_matrix_[self.line_or_pos_topo_vect[q_id], self.line_ex_pos_topo_vect[q_id]] = 1
+                self.connectivity_matrix_[self.line_ex_pos_topo_vect[q_id], self.line_or_pos_topo_vect[q_id]] = 1
 
         return self.connectivity_matrix_
 
@@ -1483,11 +1213,11 @@ class CompleteObservation(Observation):
             np.fill_diagonal(self.bus_connectivity_matrix_, 1)
 
             for q_id in range(self.n_line):
-                bus_or = int(self.topo_vect[self._lines_or_pos_topo_vect[q_id]])
-                sub_id_or = int(self._lines_or_to_subid[q_id])
+                bus_or = int(self.topo_vect[self.line_or_pos_topo_vect[q_id]])
+                sub_id_or = int(self.line_or_to_subid[q_id])
 
-                bus_ex = int(self.topo_vect[self._lines_ex_pos_topo_vect[q_id]])
-                sub_id_ex = int(self._lines_ex_to_subid[q_id])
+                bus_ex = int(self.topo_vect[self.line_ex_pos_topo_vect[q_id]])
+                sub_id_ex = int(self.line_ex_to_subid[q_id])
 
                 # try:
                 bus_id_or = int(np.sum(nb_bus_per_sub[:sub_id_or])+(bus_or-1))

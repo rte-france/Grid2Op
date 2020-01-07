@@ -134,6 +134,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs = self.env.helper_observation(self.env)
         assert obs.size() == np.sum(obs.shape())
 
+    def test_conn_mat(self):
+        obs = self.env.helper_observation(self.env)
+        obs.bus_connectivity_matrix()
+        obs.connectivity_matrix()
+
     def test_shape_correct(self):
         obs = self.env.helper_observation(self.env)
         assert obs.shape().shape == obs.dtype().shape

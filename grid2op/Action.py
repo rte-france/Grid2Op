@@ -247,7 +247,7 @@ class Action(GridObjects):
         self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=np.int)
         self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=np.bool)
 
-        self.as_vect = None
+        self._vectorized = None
 
         self._subs_impacted = None
         self._lines_impacted = None
@@ -440,7 +440,7 @@ class Action(GridObjects):
         self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
         self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
-        self.as_vect = None
+        self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
 
@@ -693,7 +693,7 @@ class Action(GridObjects):
         Preferably, if a keys of the argument *dict_* is not found in :attr:`Action.authorized_keys` it should throw a
         warning. This argument will be completely ignored.
 
-        This method also reset the attributes :attr:`Action.as_vect` :attr:`Action._lines_impacted` and
+        This method also reset the attributes :attr:`Action._vectorized` :attr:`Action._lines_impacted` and
         :attr:`Action._subs_impacted` to ``None`` regardless of the argument in input.
 
         If an action consist in "reconnecting" a powerline, and this same powerline is affected by a maintenance or a
@@ -778,7 +778,7 @@ class Action(GridObjects):
             Return the modified instance. This is handy to chain modifications if needed.
 
         """
-        self.as_vect = None
+        self._vectorized = None
         self._subs_impacted = None
         self._lines_impacted = None
 
@@ -957,7 +957,7 @@ class Action(GridObjects):
         AmbiguousAction
             When the vector built has not the same size as a call to :func:`Action.size`.
         """
-        if self.as_vect is None:
+        if self._vectorized is None:
             if "prod_p" in self._dict_inj:
                 prod_p = self._dict_inj["prod_p"]
             else:
@@ -976,7 +976,7 @@ class Action(GridObjects):
             else:
                 load_q = np.full(self.n_load, fill_value=np.NaN)
 
-            self.as_vect = np.concatenate((
+            self._vectorized = np.concatenate((
                 prod_p.flatten().astype(np.float),
                 prod_v.flatten().astype(np.float),
                 load_p.flatten().astype(np.float),
@@ -989,10 +989,10 @@ class Action(GridObjects):
                 self._maintenance.flatten().astype(np.float)
                               ))
 
-            if self.as_vect.shape[0] != self.size():
+            if self._vectorized.shape[0] != self.size():
                 raise AmbiguousAction("Action has not the proper shape.")
 
-        return self.as_vect
+        return self._vectorized
 
     def from_vect(self, vect):
         """
@@ -1574,7 +1574,7 @@ class TopologyAction(Action):
 
         Returns
         -------
-        as_vect: :class:`numpy.array`, dtype:float
+        _vectorized: :class:`numpy.array`, dtype:float
             The instance of this action converted to a vector.
         """
         if self.as_vect is None:
@@ -1828,7 +1828,7 @@ class PowerLineSet(Action):
 
         Returns
         -------
-        as_vect: :class:`numpy.array`, dtype:float
+        _vectorized: :class:`numpy.array`, dtype:float
             The instance of this action converted to a vector.
         """
         if self.as_vect is None:

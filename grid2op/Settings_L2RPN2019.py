@@ -305,7 +305,7 @@ class L2RPN2019_Action(Action):
 
         Returns
         -------
-        as_vect: :class:`numpy.array`, dtype:float
+        _vectorized: :class:`numpy.array`, dtype:float
             The instance of this action converted to a vector.
         """
         if self.as_vect is None:

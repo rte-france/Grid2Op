@@ -112,6 +112,12 @@ class GridObjects:
 
     name_sub: :class:`numpy.array`, dtype:str
         ordered names of the substation in the grid
+
+    attr_list_vect: ``list``
+        List of string. It represents the attributes that will be stored to/from vector when the Observation is converted
+        to / from it. This parameter is also used to compute automatically :func:`Observation.dtype` and
+        :func:`Observation.shape` as well as :func:`Observation.size`. If this class is derived, then it's really
+        important that this vector is properly set.
     """
     def __init__(self):
         # name of the objects
@@ -145,6 +151,150 @@ class GridObjects:
         self.gen_pos_topo_vect = None
         self.line_or_pos_topo_vect = None
         self.line_ex_pos_topo_vect = None
+
+        # list of attribute to convert it from/to a vector
+        self.attr_list_vect = None
+        self._vectorized = None
+
+    def _raise_error_attr_list_none(self):
+        """
+        Raise a "NotImplementedError" if :attr:`GridObjects.attr_list_vect` is not defined.
+
+        Raises
+        -------
+        NotImplementedError
+
+        """
+        if self.attr_list_vect is None:
+            raise NotImplementedError("attr_list_vect attribute is not defined for class {}. "
+                                      "It is not possible to convert it from/to a vector, "
+                                      "nor to know its size, shape or dtype.".format(type(self)))
+
+    def to_vect(self):
+        """
+        Convert this instance of GridObjects to a numpy array.
+        The size of the array is always the same and is determined by the `size` method.
+
+        **NB**: in case the class GridObjects is derived,
+         either :attr:`GridObjects.attr_list_vect` is properly defined for the derived class, or this function must be
+         redefined.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The respresentation of this action as a numpy array
+
+        """
+
+        if self._vectorized is None:
+            self._raise_error_attr_list_none()
+            self._vectorized = np.concatenate([np.array(self.__dict__[el]).flatten().astype(np.float)
+                                              for el in self.attr_list_vect])
+        return self._vectorized
+
+    def shape(self):
+        """
+        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
+        part of the action.
+
+        It is a numpy integer array.
+
+        This function must return a vector from which the sum is equal to the return value of "size()".
+
+        The shape vector must have the same number of components as the return value of the :func:`GridObjects.dtype()`
+        vector.
+
+        **NB**: in case the class GridObjects is derived,
+         either :attr:`GridObjects.attr_list_vect` is properly defined for the derived class, or this function must be
+         redefined.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`GridObjects`
+        """
+        self._raise_error_attr_list_none()
+        res = np.array([np.array(self.__dict__[el]).flatten().shape[0] for el in self.attr_list_vect])
+        return res
+
+    def dtype(self):
+        """
+        The types of the components of the GridObjects, mainly used for gym compatibility is the shape of all part
+        of the action.
+
+        It is a numpy array of objects.
+
+        The dtype vector must have the same number of components as the return value of the :func:`GridObjects.shape`
+        vector.
+
+        **NB**: in case the class GridObjects is derived,
+         either :attr:`GridObjects.attr_list_vect` is properly defined for the derived class, or this function must be
+         redefined.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The dtype of the :class:`GridObjects`
+        """
+
+        self._raise_error_attr_list_none()
+        res = np.array([np.array(self.__dict__[el]).flatten().dtype for el in self.attr_list_vect])
+        return res
+
+    def from_vect(self, vect):
+        """
+        Convert a GridObjects, represented as a vector, into an GridObjects object.
+
+        **NB**: in case the class GridObjects is derived,
+         either :attr:`GridObjects.attr_list_vect` is properly defined for the derived class, or this function must be
+         redefined.
+
+        Only the size is checked. If it does not match, an :class:`grid2op.Exceptions.AmbiguousAction` is thrown.
+        Otherwise the component of the vector are coerced into the proper type silently.
+
+        It may results in an non deterministic behaviour if the input vector is not a real action, or cannot be
+        converted to one.
+
+        Parameters
+        ----------
+        vect: ``numpy.ndarray``
+            A vector representing an Action.
+
+        Returns
+        -------
+        ``None``
+
+        """
+
+        if vect.shape[0] != self.size():
+            raise IncorrectNumberOfElements("Incorrect number of elements found while load a GridObjects "
+                                            "from a vector. Found {} elements instead of {}".format(
+                vect.shape[0], self.size()))
+
+        self._raise_error_attr_list_none()
+        prev_ = 0
+        for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
+            self.__dict__[attr_nm] = vect[prev_:(prev_ + sh)].astype(dt)
+            prev_ += sh
+
+    def size(self):
+        """
+        When the action is converted to a vector, this method return its size.
+
+        NB that it is a requirement that converting an GridObjects gives a vector of a fixed size throughout a training.
+
+        **NB**: in case the class GridObjects is derived,
+         either :attr:`GridObjects.attr_list_vect` is properly defined for the derived class, or this function must be
+         redefined.
+
+        Returns
+        -------
+        size: ``int``
+            The size of the GridObjects.
+
+        """
+        res = np.sum(self.shape())
+        return res
 
     def init_grid_vect(self, name_prod, name_load, name_line, name_sub, sub_info,
                        load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
