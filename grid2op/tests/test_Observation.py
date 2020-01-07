@@ -6,6 +6,7 @@ import datetime
 import json
 from io import StringIO
 import numpy as np
+from numpy import dtype
 import pdb
 
 # making sure test can be ran from:
@@ -41,11 +42,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        # from ADNBackend import ADNBackend
-        # self.backend = ADNBackend()
-        # self.path_matpower = "/home/donnotben/Documents/RL4Grid/RL4Grid/data"
-        # self.case_file = "ieee14_ADN.xml"
-        # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
@@ -122,6 +118,27 @@ class TestLoadingBackendFunc(unittest.TestCase):
                  'line_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
                  'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
                  'subtype': 'Observation.CompleteObservation'}
+        self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
+                                           dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),
+                                           dtype('float64'), dtype('float64'), dtype('float64'),
+                                           dtype('float64'), dtype('float64'), dtype('float64'),
+                                           dtype('float64'), dtype('float64'), dtype('float64'),
+                                           dtype('float64'), dtype('float64'), dtype('float64'),
+                                           dtype('float64'), dtype('bool'), dtype('int64'), dtype('int64'),
+                                           dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
+                                           dtype('int64'), dtype('int64')], dtype=object)
+        self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
+                                            20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20])
+
+    def test_sum_shape_equal_size(self):
+        obs = self.env.helper_observation(self.env)
+        assert obs.size() == np.sum(obs.shape())
+
+    def test_shape_correct(self):
+        obs = self.env.helper_observation(self.env)
+        assert obs.shape().shape == obs.dtype().shape
+        assert np.all(obs.dtype() == self.dtypes)
+        assert np.all(obs.shape() == self.shapes)
 
     def test_0_load_properly(self):
         # this test aims at checking that everything in setUp is working properly, eg that "ObsEnv" class has enough
@@ -138,16 +155,27 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs = self.env.helper_observation(self.env)
         assert obs.prod_p[0] is not None
         obs.reset()
-        assert obs.prod_p is None
+        assert np.all(np.isnan(obs.prod_p))
+        assert np.all(obs.dtype() == self.dtypes)
+        assert np.all(obs.shape() == self.shapes)
 
     def test_3_reset(self):
-        # test that helper_obs is abl to generate a valid observation
+        # test that helper_obs is able to generate a valid observation
         obs = self.env.helper_observation(self.env)
         obs2 = obs.copy()
         assert obs == obs2
         obs2.reset()
-        assert obs2.prod_p is None
-        assert obs.prod_p is not None
+        assert np.all(np.isnan(obs2.prod_p))
+        assert np.all(obs2.dtype() == self.dtypes)
+        assert np.all(obs2.shape() == self.shapes)
+        # assert obs.prod_p is not None
+
+    def test_shapes_types(self):
+        obs = self.env.helper_observation(self.env)
+        dtypes = obs.dtype()
+        assert np.all(dtypes == self.dtypes)
+        shapes = obs.shape()
+        assert np.all(shapes == self.shapes)
 
     def test_4_to_from_vect(self):
         # test that helper_obs is abl to generate a valid observation
@@ -157,6 +185,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert vect.shape[0] == obs.size()
         obs2.reset()
         obs2.from_vect(vect)
+
+        assert np.all(obs.dtype() == self.dtypes)
+        assert np.all(obs.shape() == self.shapes)
+
         assert obs == obs2
         vect2 = obs2.to_vect()
         assert np.all(vect == vect2)

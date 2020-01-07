@@ -58,6 +58,8 @@ except (ModuleNotFoundError, ImportError):
 # TODO finish documentation
 
 
+# TODO fix "bug" when action not initalized, return nan in to_vect
+
 class ObsCH(object):
     """
     This class is reserved to internal use. Do not attempt to do anything with it.
@@ -407,12 +409,12 @@ class Observation(GridObjects):
         self.action_helper = action_helper
 
         # time stamp information
-        self.year = None
-        self.month = None
-        self.day = None
-        self.hour_of_day = None
-        self.minute_of_hour = None
-        self.day_of_week = None
+        self.year = 1970
+        self.month = 0
+        self.day = 0
+        self.hour_of_day = 0
+        self.minute_of_hour = 0
+        self.day_of_week = 0
 
         # for non deterministic observation that would not use default np.random module
         self.seed = seed
@@ -423,41 +425,41 @@ class Observation(GridObjects):
 
         self._obs_env = obs_env
 
-        self.timestep_overflow = np.zeros(shape=(self.n_line,))
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
 
         # 0. (line is disconnected) / 1. (line is connected)
         self.line_status = np.ones(shape=self.n_line, dtype=np.float)
 
         # topological vector
-        self.topo_vect = np.full(shape=self.dim_topo, dtype=np.float, fill_value=1.)
+        self.topo_vect = np.full(shape=self.dim_topo, dtype=np.int, fill_value=0)
 
         # generators information
-        self.prod_p = None
-        self.prod_q = None
-        self.prod_v = None
+        self.prod_p = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.prod_q = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.prod_v = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
         # loads information
-        self.load_p = None
-        self.load_q = None
-        self.load_v = None
+        self.load_p = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
+        self.load_q = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
+        self.load_v = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
         # lines origin information
-        self.p_or = None
-        self.q_or = None
-        self.v_or = None
-        self.a_or = None
+        self.p_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.q_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.v_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.a_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
         # lines extremity information
-        self.p_ex = None
-        self.q_ex = None
-        self.v_ex = None
-        self.a_ex = None
+        self.p_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.q_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.v_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.a_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
         # lines relative flows
-        self.rho = None
+        self.rho = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = None
-        self.time_before_cooldown_sub = None
-        self.time_before_line_reconnectable = None
-        self.time_next_maintenance = None
-        self.duration_next_maintenance = None
+        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=np.int, fill_value=-1)
+        self.time_before_line_reconnectable = np.full(shape=self.n_sub, dtype=np.int, fill_value=-1)
+        self.time_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
 
         # matrices
         self.connectivity_matrix_ = None
@@ -466,6 +468,8 @@ class Observation(GridObjects):
 
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
+
+        self.attr_list_vect = None
 
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
@@ -637,53 +641,50 @@ class Observation(GridObjects):
         value.
 
         """
-        # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = np.ones(shape=self.n_line, dtype=np.float)
-        self.topo_vect = np.full(shape=self.dim_topo, dtype=np.float, fill_value=1.)
-
         # vecorized _grid
-        self.timestep_overflow = None
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
+
+        # 0. (line is disconnected) / 1. (line is connected)
+        self.line_status = np.ones(shape=self.n_line, dtype=np.bool)
+
+        # topological vector
+        self.topo_vect = np.full(shape=self.dim_topo, dtype=np.int, fill_value=0)
 
         # generators information
-        self.prod_p = None
-        self.prod_q = None
-        self.prod_v = None
+        self.prod_p = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.prod_q = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.prod_v = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
         # loads information
-        self.load_p = None
-        self.prod_q = None
-        self.load_v = None
+        self.load_p = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
+        self.load_q = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
+        self.load_v = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
         # lines origin information
-        self.p_or = None
-        self.q_or = None
-        self.v_or = None
-        self.a_or = None
+        self.p_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.q_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.v_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.a_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
         # lines extremity information
-        self.p_ex = None
-        self.q_ex = None
-        self.v_ex = None
-        self.a_ex = None
+        self.p_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.q_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.v_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.a_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
         # lines relative flows
-        self.rho = None
-
-        # matrices
-        self.connectivity_matrix_ = None
-        self.bus_connectivity_matrix_ = None
-        self.vectorized = None
-
-        # calendar data
-        self.year = None
-        self.month = None
-        self.day = None
-        self.day_of_week = None
-        self.hour_of_day = None
-        self.minute_of_hour = None
+        self.rho = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = None
-        self.time_before_cooldown_sub = None
-        self.time_before_line_reconnectable = None
-        self.time_next_maintenance = None
-        self.duration_next_maintenance = None
+        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=np.int, fill_value=-1)
+        self.time_before_line_reconnectable = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+        self.time_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+
+        # calendar data
+        self.year = 1970
+        self.month = 0
+        self.day = 0
+        self.hour_of_day = 0
+        self.minute_of_hour = 0
+        self.day_of_week = 0
 
         # forecasts
         self._forecasted_inj = []
@@ -839,6 +840,48 @@ class Observation(GridObjects):
         res: ``numpy.ndarray``
             The respresentation of this action as a numpy array
 
+        """
+        pass
+
+    @abstractmethod
+    def shape(self):
+        """
+        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
+        part of the action.
+
+        It is a numpy integer array.
+
+        This function must return a vector from which the sum is equal to the return value of "size()".
+
+        The shape vector must have the same number of components as the return value of the :func:`Observation.dtype()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Observation`
+        """
+        pass
+
+    @abstractmethod
+    def dtype(self):
+        """
+        The types of the compoenents of the Observation, mainly used for gym compatibility is the shape of all part
+        of the action.
+
+        It is a numpy array of objects.
+
+        The dtype vector must have the same number of components as the return value of the :func:`Observation.shape()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The dtype of the :class:`Observation`
         """
         pass
 
@@ -1012,9 +1055,22 @@ class CompleteObservation(Observation):
                  seed=None):
 
         Observation.__init__(self, gridobj,
-                             obs_env=obs_env, action_helper=action_helper,
+                             obs_env=obs_env,
+                             action_helper=action_helper,
                              seed=seed)
         self.dictionnarized = None
+        self.attr_list_vect = ["year", "month", "day", "hour_of_day", "minute_of_hour", "day_of_week",
+                               "prod_p", "prod_q", "prod_v",
+                               "load_p", "load_q", "load_v",
+                               "p_or", "q_or", "v_or", "a_or",
+                               "p_ex", "q_ex", "v_ex", "a_ex",
+                               "rho",
+                               "line_status", "timestep_overflow",
+                               "topo_vect", "time_before_cooldown_line",
+                               "time_before_cooldown_line", "time_before_cooldown_sub",
+                               "time_before_line_reconnectable",
+                               "time_next_maintenance", "duration_next_maintenance"
+                               ]
 
     def _reset_matrices(self):
         self.connectivity_matrix_ = None
@@ -1128,43 +1184,47 @@ class CompleteObservation(Observation):
         res: ``numpy.ndarray``
             The vector representing the topology (see above)
         """
-        #TODO fix "bug" when action not initalized, return nan in this case
         if self.vectorized is None:
-            self.vectorized = np.concatenate((
-                (self.year, ),
-                (self.month, ),
-                (self.day, ),
-                (self.day_of_week, ),
-                (self.hour_of_day, ),
-                (self.minute_of_hour, ),
-                self.prod_p.flatten(),
-                self.prod_q.flatten(),
-                self.prod_v.flatten(),
-                self.load_p.flatten(),
-                self.load_q.flatten(),
-                self.load_v.flatten(),
-                self.p_or.flatten(),
-                self.q_or.flatten(),
-                self.v_or.flatten(),
-                self.a_or.flatten(),
-                self.p_ex.flatten(),
-                self.q_ex.flatten(),
-                self.v_ex.flatten(),
-                self.a_ex.flatten(),
-                self.rho.flatten(),
-                self.line_status.flatten(),
-                self.timestep_overflow.flatten(),
-                self.topo_vect.flatten(),
-                self.time_before_cooldown_line.flatten(),
-                self.time_before_cooldown_sub.flatten(),
-                self.time_before_line_reconnectable.flatten(),
-                self.time_next_maintenance.flatten(),
-                self.duration_next_maintenance.flatten()
-            ))
+            # self.vectorized = np.concatenate((
+            #     (self.year, ),
+            #     (self.month, ),
+            #     (self.day, ),
+            #     (self.day_of_week, ),
+            #     (self.hour_of_day, ),
+            #     (self.minute_of_hour, ),
+            #     self.prod_p.flatten(),
+            #     self.prod_q.flatten(),
+            #     self.prod_v.flatten(),
+            #     self.load_p.flatten(),
+            #     self.load_q.flatten(),
+            #     self.load_v.flatten(),
+            #     self.p_or.flatten(),
+            #     self.q_or.flatten(),
+            #     self.v_or.flatten(),
+            #     self.a_or.flatten(),
+            #     self.p_ex.flatten(),
+            #     self.q_ex.flatten(),
+            #     self.v_ex.flatten(),
+            #     self.a_ex.flatten(),
+            #     self.rho.flatten(),
+            #     self.line_status.flatten(),
+            #     self.timestep_overflow.flatten(),
+            #     self.topo_vect.flatten(),
+            #     self.time_before_cooldown_line.flatten(),
+            #     self.time_before_cooldown_sub.flatten(),
+            #     self.time_before_line_reconnectable.flatten(),
+            #     self.time_next_maintenance.flatten(),
+            #     self.duration_next_maintenance.flatten()
+            # ))
+            self.vectorized = np.concatenate([np.array(self.__dict__[el]).flatten().astype(np.float)
+                                              for el in self.attr_list_vect])
         return self.vectorized
 
     def from_vect(self, vect):
         """
+        Convert back an observation represented as a vector into a proper observation.
+
+        Some convertion are done silently from float to the type of the corresponding observation attribute.
 
         Parameters
         ----------
@@ -1174,61 +1234,128 @@ class CompleteObservation(Observation):
         -------
 
         """
-        # TODO explain that some conversion are done silently from float to int or bool!!
 
         # reset the matrices
         self._reset_matrices()
 
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while load an Observation from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+            raise IncorrectNumberOfElements("Incorrect number of elements found while load an Observation "
+                                            "from a vector. Found {} elements instead of {}".format(
+                vect.shape[0], self.size()))
 
-        self.year = int(vect[0])
-        self.month = int(vect[1])
-        self.day = int(vect[2])
-        self.day_of_week = int(vect[3])
-        self.hour_of_day = int(vect[4])
-        self.minute_of_hour = int(vect[5])
+        prev_ = 0
+        for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
+            self.__dict__[attr_nm] = vect[prev_:(prev_+sh)].astype(dt)
+            prev_ += sh
 
-        prev_ = 6
-        next_ = 6 + self.n_gen
-        self.prod_p = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
-        self.prod_q = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
-        self.prod_v = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_load
+        # self.year = int(vect[0])
+        # self.month = int(vect[1])
+        # self.day = int(vect[2])
+        # self.day_of_week = int(vect[3])
+        # self.hour_of_day = int(vect[4])
+        # self.minute_of_hour = int(vect[5])
+        #
+        # prev_ = 6
+        # next_ = 6 + self.n_gen
+        # self.prod_p = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
+        # self.prod_q = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
+        # self.prod_v = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_load
+        #
+        # self.load_p = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
+        # self.load_q = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
+        # self.load_v = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_line
+        #
+        # self.p_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.q_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.v_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.a_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.p_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.q_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.v_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.a_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.rho = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        #
+        # self.line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.line_status = self.line_status.astype(np.bool)
+        # self.timestep_overflow = vect[prev_:next_]; prev_ += self.n_line; next_ += self.dim_topo
+        # self.timestep_overflow = self.timestep_overflow.astype(np.int)
+        # self.topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_line
+        # self.topo_vect = self.topo_vect.astype(np.int)
+        #
+        # # cooldown
+        # self.time_before_cooldown_line = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_sub
+        # self.time_before_cooldown_line = self.time_before_cooldown_line.astype(np.int)
+        # self.time_before_cooldown_sub = vect[prev_:next_]; prev_ += self.n_sub; next_ += self.n_line
+        # self.time_before_cooldown_sub = self.time_before_cooldown_sub.astype(np.int)
+        #
+        # # maintenance and hazards
+        # self.time_before_line_reconnectable = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.time_before_line_reconnectable = self.time_before_line_reconnectable.astype(np.int)
+        # self.time_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.time_next_maintenance = self.time_next_maintenance.astype(np.int)
+        # self.duration_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        # self.duration_next_maintenance = self.duration_next_maintenance.astype(np.int)
 
-        self.load_p = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
-        self.load_q = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
-        self.load_v = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_line
+    def shape(self):
+        """
+        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
+        part of the action.
 
-        self.p_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.q_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.v_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.a_or = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.p_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.q_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.v_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.a_ex = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.rho = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        It is a numpy integer array.
 
-        self.line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.line_status = self.line_status.astype(np.bool)
-        self.timestep_overflow = vect[prev_:next_]; prev_ += self.n_line; next_ += self.dim_topo
-        self.timestep_overflow = self.timestep_overflow.astype(np.int)
-        self.topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_line
-        self.topo_vect = self.topo_vect.astype(np.int)
+        This function must return a vector from which the sum is equal to the return value of "size()".
 
-        # cooldown
-        self.time_before_cooldown_line = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_sub
-        self.time_before_cooldown_line = self.time_before_cooldown_line.astype(np.int)
-        self.time_before_cooldown_sub = vect[prev_:next_]; prev_ += self.n_sub; next_ += self.n_line
-        self.time_before_cooldown_sub = self.time_before_cooldown_sub.astype(np.int)
+        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
+        vector.
 
-        # maintenance and hazards
-        self.time_before_line_reconnectable = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.time_before_line_reconnectable = self.time_before_line_reconnectable.astype(np.int)
-        self.time_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.time_next_maintenance = self.time_next_maintenance.astype(np.int)
-        self.duration_next_maintenance = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self.duration_next_maintenance = self.duration_next_maintenance.astype(np.int)
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Observation`
+        """
+        # res = np.array([1, 1, 1, 1, 1, 1,
+        #                 self.n_gen, self.n_gen, self.n_gen,
+        #                 self.n_load, self.n_load, self.n_load,
+        #                 self.n_line, self.n_line, self.n_line, self.n_line, self.n_line, self.n_line, self.n_line,
+        #                 self.n_line, self.n_line,
+        #                 self.n_line, self.n_line, self.n_line,
+        #                 self.n_line, self.dim_topo,
+        #                 self.n_line, self.n_sub,
+        #                 self.n_line, self.n_line, self.n_line
+        #                 ],
+        #                dtype=np.int)
+        res = np.array([np.array(self.__dict__[el]).flatten().shape[0] for el in self.attr_list_vect])
+        return res
+
+    def dtype(self):
+        """
+        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
+        of the action.
+
+        It is a numpy array of objects.
+
+        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Action`
+        """
+        # res = np.array([int, int, int, int, int, int,
+        #                 float, float, float,
+        #                 float, float, float,
+        #                 float, float, float, float, float, float, float, float, float,
+        #                 bool, int, int,
+        #                 int, int,
+        #                 int, int, int],
+        #                dtype=type)
+        res = np.array([np.array(self.__dict__[el]).flatten().dtype for el in self.attr_list_vect])
+        return res
 
     def to_dict(self):
         """
@@ -1388,7 +1515,8 @@ class CompleteObservation(Observation):
         :return: the size of the flatten observation vector.
         """
         # TODO documentation (update)
-        res = 6 + 3 * self.n_gen + 3 * self.n_load + 15 * self.n_line + self.dim_topo + self.n_sub
+        # res = 6 + 3 * self.n_gen + 3 * self.n_load + 15 * self.n_line + self.dim_topo + self.n_sub
+        res = np.sum(self.shape())
         return res
 
 

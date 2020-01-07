@@ -21,7 +21,8 @@ except (ModuleNotFoundError, ImportError):
 
 import pdb
 
-# TODO better sampling for observation (seed in argument is really weird)
+
+# TODO better random stuff when random observation (seed in argument is really weird)
 # TODO gym integration (inheritance, shape and dtype)
 # TODO tests of these methods
 class GridObjects:
@@ -509,6 +510,10 @@ class GridObjects:
 
     def init_grid(self, gridobj):
         """
+        Initialize this :class:`GridObjects` instance with a provided instance.
+
+        It does not perform any check on the validity of the `gridobj` parameters, but it guarantees that  if `gridobj`
+        is a valid grid, then the initialization will lead to a valid grid too.
 
         Parameters
         ----------
@@ -591,7 +596,7 @@ class GridObjects:
 
     def get_lines_id(self, _sentinel=None, from_=None, to_=None):
         """
-        Returns the list of all the powerlines id in the backend going from "from_" to "to_"
+        Returns the list of all the powerlines id in the backend going from `from_` to `to_`
 
         Parameters
         ----------
@@ -710,7 +715,8 @@ class SerializableSpace(GridObjects):
     ----------
 
     subtype: ``type``
-        Type use to build the template object :attr:`SerializableSpace.template_obj`
+        Type use to build the template object :attr:`SerializableSpace.template_obj`. This type should derive
+        from :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`.
 
     template_obj: [:class:`grid2op.Action.Action`, :class:`grid2op.Observation.Observation`]
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
@@ -738,9 +744,16 @@ class SerializableSpace(GridObjects):
         """
 
         subtype: ``type``
-            Type of action used to build :attr:`SerializableActionSpace.template_act`
+            Type of action used to build :attr:`SerializableActionSpace.template_act`. This type should derive
+            from :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`.
 
         """
+
+        if not isinstance(subtype, type):
+            raise Grid2OpException(
+                "Parameter \"subtype\" used to build the Space should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
+                    type(subtype)))
 
         GridObjects.__init__(self)
         self.init_grid(gridobj)
@@ -755,8 +768,8 @@ class SerializableSpace(GridObjects):
         self.global_vars = None
 
         # TODO
-        self.shape = None
-        self.dtype = None
+        self.shape = self.template_obj.shape()
+        self.dtype = self.template_obj.dtype()
 
     def seed(self, seed):
         """
@@ -783,7 +796,7 @@ class SerializableSpace(GridObjects):
 
         Returns
         -------
-        res: :class:``SerializableSpace``
+        res: :class:`SerializableSpace`
             An instance of an SerializableSpace matching the dictionnary.
 
         """
@@ -920,8 +933,9 @@ class SerializableSpace(GridObjects):
 
         Returns
         -------
-        res: [:class:`grid2op.Action.Action`, `grid2op.Observation.Observation`]
-            The corresponding action (or observation) as an object (and not as a vector)
+        res: :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`
+            The corresponding action (or observation) as an object (and not as a vector). The return type is given
+            by the type of :attr:`SerializableSpace.template_obj`
 
         """
         res = copy.deepcopy(self.template_obj)

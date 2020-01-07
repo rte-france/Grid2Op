@@ -4,6 +4,8 @@ Change Log
 [0.4.2] - 2020-01-xx
 --------------------
 - [FIXED] gym compatibility issue for environment
+- [FIXED] checking key-word arguments in "make" function: if an invalid argument is provided,
+  it now raises an error.
 - [UPDATED] multiple random generator streams for observations
 - [UPDATED] Refactoring of the Action and Observation Space. They now both ineherit from "Space"
 - [BREAKING] previous saved Action Spaces and Observation Spaces (as dictionnary) are no more compatible
@@ -33,6 +35,7 @@ Action / Observation  _lines_or_to_sub_pos     line_or_to_sub_pos
 Action / Observation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
 Action / Observation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
 Action / Observation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+GridValue             n_lines                  n_line
 ====================  =======================  =======================
 
 [0.4.1] - 2019-12-17

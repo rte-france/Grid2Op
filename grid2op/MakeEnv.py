@@ -77,6 +77,10 @@ NAMES_CHRONICS_TO_BACKEND = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'lo
                                        "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
                              }
 
+ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class", "chronics_path", "reward_class",
+                       "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
+                       "chronics_class"}
+
 
 def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                      msg_error="Error when building the default parameter",
@@ -237,11 +241,20 @@ def make(name_env="case14_fromfile", **kwargs):
         The type of chronics that represents the dynamics of the Environment created. Usually they come from different
         folders.
 
+    chronics_path: ``str``
+        Path where to look for the chronics dataset.
+
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
         The created environment.
     """
+
+    for el in kwargs:
+        if not el in ALLOWED_KWARGS_MAKE:
+            raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
+                           "No Environment will be created. "
+                           "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS_MAKE)))
 
     # first extract parameters that doesn't not depend on the powergrid
 
@@ -277,7 +290,6 @@ def make(name_env="case14_fromfile", **kwargs):
     chronics_path = _get_default_aux("chronics_path", kwargs,
                                      defaultClassApp=str, defaultinstance='',
                                      msg_error=msg_error)
-
 
     # bulid the default parameters for each case file
     defaultinstance_chronics_kwargs = {}

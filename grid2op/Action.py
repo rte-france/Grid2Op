@@ -62,6 +62,8 @@ except (ModuleNotFoundError, ImportError):
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
 
+# TODO code the from_vect and to_vect to use shape() and dtype(), and code shape() and dtype() to use attributes list
+
 
 class Action(GridObjects):
     """
@@ -1423,6 +1425,51 @@ class Action(GridObjects):
 
         return res
 
+    def shape(self):
+        """
+        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
+        part of the action.
+
+        It is a numpy integer array.
+
+        This function must return a vector from which the sum is equal to the return value of "size()".
+
+        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Action`
+        """
+        res = np.array([self.n_gen, self.n_gen, self.n_load, self.n_load, self.n_line, self.n_line,
+                        self.dim_topo, self.dim_topo, self.n_line, self.n_line],
+                       dtype=np.int)
+        return res
+
+    def dtype(self):
+        """
+        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
+        of the action.
+
+        It is a numpy array of objects.
+
+        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Action`
+        """
+        res = np.array([float, float, float, float, int, bool, int, bool, bool, bool],
+                       dtype=type)
+        return res
+
 
 class TopologyAction(Action):
     """
@@ -1588,6 +1635,49 @@ class TopologyAction(Action):
         # TODO test it !!!
         return self
 
+    def shape(self):
+        """
+        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
+        part of the action.
+
+        It is a numpy integer array.
+
+        This function must return a vector from which the sum is equal to the return value of "size()".
+
+        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Action`
+        """
+        res = np.array([self.n_line, self.n_line, self.dim_topo, self.dim_topo],
+                       dtype=np.int)
+        return res
+
+    def dtype(self):
+        """
+        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
+        of the action.
+
+        It is a numpy array of objects.
+
+        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Action`
+        """
+        res = np.array([int, bool, int, bool], dtype=type)
+        return res
+
 
 class PowerLineSet(Action):
     """
@@ -1685,6 +1775,49 @@ class PowerLineSet(Action):
             The size of :class:`PowerLineSet` converted to an array.
         """
         return self.n_line
+
+    def shape(self):
+        """
+        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
+        part of the action.
+
+        It is a numpy integer array.
+
+        This function must return a vector from which the sum is equal to the return value of "size()".
+
+        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Action`
+        """
+        res = np.array([self.n_line],
+                       dtype=np.int)
+        return res
+
+    def dtype(self):
+        """
+        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
+        of the action.
+
+        It is a numpy array of objects.
+
+        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
+        vector.
+
+        **NB** this function must be overriden if the class is overriden.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The shape of the :class:`Action`
+        """
+        res = np.array([int], dtype=type)
+        return res
 
     def to_vect(self):
         """

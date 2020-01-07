@@ -75,7 +75,7 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         """
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
-        self.n_lines = len(order_backend_lines)
+        self.n_line = len(order_backend_lines)
 
         self.names_chronics_to_backend = copy.deepcopy(names_chronics_to_backend)
         if self.names_chronics_to_backend is None:
@@ -210,18 +210,12 @@ class L2RPN2019_Action(Action):
     **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
     reconnecting a powerline cannot be considered "ambiguous". We have to
     """
-    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
         """
-        Action.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect)
+        Action.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.

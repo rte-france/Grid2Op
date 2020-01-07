@@ -881,7 +881,7 @@ class GridStateFromFile(GridValue):
             elif os.path.exists(os.path.join(self.path, "load_p.csv.xz")):
                 read_compressed = ".csv.xz"
             else:
-                raise RuntimeError(
+                raise ChronicsNotFoundError(
                     "GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
         load_p = pd.read_csv(os.path.join(self.path, "load_p{}".format(read_compressed)), sep=self.sep)
         load_q = pd.read_csv(os.path.join(self.path, "load_q{}".format(read_compressed)), sep=self.sep)

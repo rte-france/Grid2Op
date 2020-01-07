@@ -572,6 +572,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
         act2 = self.helper_action_env.from_vect(vect_)
         assert act == act2
 
+    def test_sum_shape_equal_size(self):
+        act = self.helper_action_env({})
+        assert act.size() == np.sum(act.shape())
+
+    def test_shape_correct(self):
+        act = self.helper_action_env({})
+        assert act.shape().shape == act.dtype().shape
 
 if __name__ == "__main__":
     unittest.main()
