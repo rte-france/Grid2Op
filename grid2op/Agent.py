@@ -1,6 +1,6 @@
 """
 In this RL framework, an :class:`Agent` is an entity that acts on the :class:`Environment`. Agent can alternatively
-be named "bot" or "controller" in other litterature.
+be named "bot" or "controller" in other literature.
 
 This module presents a few possible :class:`Agent` that can serve either as baseline, or as example on how to
 implement such agents.
@@ -10,7 +10,7 @@ To perform their actions, agent receive two main signals from the :class:`grid2o
   - the :class:`grid2op.Reward` that states how good the previous has been
   - the :class:`grid2op.Observation` that is a (partial) view on the state of the Environment.
 
-Both these signals can be use to determine what is the best action to perfom on the grid. This is actually the main
+Both these signals can be use to determine what is the best action to perform on the grid. This is actually the main
 objective of an :class:`Agent`, and this is done in the :func:`Agent.act` method.
 
 """
@@ -23,11 +23,11 @@ import pdb
 
 class Agent(ABC):
     """
-    This class represents the base class of an Agent. All bot / controler / agent used in the Grid2Op simulator
+    This class represents the base class of an Agent. All bot / controller / agent used in the Grid2Op simulator
     should derived from this class.
 
     To work properly, it is advise to create Agent after the :class:`grid2op.Environment` has been created and reuse
-    the :attr:`grid2op.Environment.action_space` to build the Agent.
+    the :attr:`grid2op.Environment.Environment.action_space` to build the Agent.
 
     Attributes
     -----------
@@ -47,8 +47,8 @@ class Agent(ABC):
 
         Parameters
         ----------
-        observation: :class:`grid2op.Observation`
-            The current observation of the :class:`grid2op.Environment`
+        observation: :class:`grid2op.Observation.Observation`
+            The current observation of the :class:`grid2op.Environment.Environment`
 
         reward: ``float``
             The current reward. This is the reward obtained by the previous action
@@ -58,7 +58,7 @@ class Agent(ABC):
 
         Returns
         -------
-        res: :class:`grid2op.Action`
+        res: :class:`grid2op.Action.Action`
             The action chosen by the bot / controler / agent.
 
         """
@@ -74,16 +74,18 @@ class DoNothingAgent(Agent):
 
     def act(self, observation, reward, done=False):
         """
-        As better explained in the document of :func:`grid2op.Action.update` or :func:`grid2op.HelperAction.__call__`.
+        As better explained in the document of :func:`grid2op.Action.update` or
+        :func:`grid2op.Action.HelperAction.__call__`.
 
-        The preferred way to make an object of type action is to call :func:`grid2op.HelperAction.__call__` with the
+        The preferred way to make an object of type action is to call :func:`grid2op.Action.HelperAction.__call__` with
+        the
         dictionnary representing the action. In this case, the action is "do nothing" and it is represented by the
         empty dictionnary.
 
         Parameters
         ----------
-        observation: :class:`grid2op.Observation`
-            The current observation of the :class:`grid2op.Environment`
+        observation: :class:`grid2op.Observation.Observation`
+            The current observation of the :class:`grid2op.Environment.Environment`
 
         reward: ``float``
             The current reward. This is the reward obtained by the previous action
@@ -93,7 +95,7 @@ class DoNothingAgent(Agent):
 
         Returns
         -------
-        res: :class:`grid2op.Action`
+        res: :class:`grid2op.Action.Action`
             The action chosen by the bot / controller / agent.
 
         """
@@ -131,8 +133,8 @@ class OneChangeThenNothing(Agent):
         Returns
         -------
         res: ``dict``
-            A dictionnary that can be converted into a valid :class:`grid2op.Action`. See the help of
-            :func:`grid2op.HelperAction.__call__` for more information.
+            A dictionnary that can be converted into a valid :class:`grid2op.Action.Action`. See the help of
+            :func:`grid2op.Action.HelperAction.__call__` for more information.
         """
         pass
 
@@ -162,7 +164,7 @@ class GreedyAgent(Agent):
         Parameters
         ----------
         observation: :class:`grid2op.Observation.Observation`
-            The current observation of the :class:`grid2op.Environment`
+            The current observation of the :class:`grid2op.Environment.Environment`
 
         reward: ``float``
             The current reward. This is the reward obtained by the previous action
@@ -200,12 +202,12 @@ class GreedyAgent(Agent):
         Parameters
         ----------
         observation: :class:`grid2op.Observation.Observation`
-            The current observation of the :class:`grid2op.Environment`
+            The current observation of the :class:`grid2op.Environment.Environment`
 
         Returns
         -------
         res: ``list``
-            A list of all candidate :class:`grid2op.Action`
+            A list of all candidate :class:`grid2op.Action.Action`
         """
         pass
 
@@ -228,8 +230,8 @@ class PowerLineSwitch(GreedyAgent):
 
     def _get_tested_action(self, observation):
         res = [self.action_space({})]  # add the do nothing
-        for i in range(self.action_space.n_lines):
-            tmp = np.full(self.action_space.n_lines, fill_value=False, dtype=np.bool)
+        for i in range(self.action_space.n_line):
+            tmp = np.full(self.action_space.n_line, fill_value=False, dtype=np.bool)
             tmp[i] = True
             action = self.action_space({"change_line_status": tmp})
             if not observation.line_status[i]:
@@ -261,7 +263,7 @@ class TopologyGreedy(GreedyAgent):
     def _get_tested_action(self, observation):
         res = [self.action_space({})]  # add the do nothing
         S = [0, 1]
-        for sub_id, num_el in enumerate(self.action_space.subs_info):
+        for sub_id, num_el in enumerate(self.action_space.sub_info):
             if num_el < 4:
                 pass
             for tup in itertools.product(S, repeat=num_el-1):
@@ -278,12 +280,12 @@ class TopologyGreedy(GreedyAgent):
 
 class MLAgent(Agent):
     """
-    This Agent class has the particularity to handle only vector reprensetation of :class:`grid2op.Action` and
-    :class:`grid2op.Observation`. It is particularly suited for building Machine Learning Agents.
+    This Agent class has the particularity to handle only vector representation of :class:`grid2op.Action.Action` and
+    :class:`grid2op.Observation.Observation`. It is particularly suited for building Machine Learning Agents.
 
     Attributes
     ----------
-    do_nothing_vect: `numpy.array`, dtype:np.float
+    do_nothing_vect: ``numpy.ndarray``, dtype:np.float
         The representation of the "do nothing" Action as a numpy vector.
 
     """
@@ -298,7 +300,7 @@ class MLAgent(Agent):
         Parameters
         ----------
         act: ``numppy.ndarray``
-            An action cast as an :class:`grid2op.Action` instance.
+            An action cast as an :class:`grid2op.Action.Action` instance.
 
         Returns
         -------

@@ -497,8 +497,8 @@ class Runner(object):
         actions = np.full((nb_timestep_max, env.action_space.n), fill_value=np.NaN, dtype=np.float)
         env_actions = np.full((nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
         observations = np.full((nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
-        disc_lines = np.full((nb_timestep_max, env.backend.n_lines), fill_value=np.NaN, dtype=np.bool)
-        disc_lines_templ = np.full((1, env.backend.n_lines), fill_value=False, dtype=np.bool)
+        disc_lines = np.full((nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
+        disc_lines_templ = np.full((1, env.backend.n_line), fill_value=False, dtype=np.bool)
 
         episode = Episode(actions=actions, env_actions=env_actions,
                           observations=observations, 

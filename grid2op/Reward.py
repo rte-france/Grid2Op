@@ -189,7 +189,7 @@ class L2RPNReward(Reward):
 
     def initialize(self, env):
         self.reward_min = 0.
-        self.reward_max = env.backend.n_lines
+        self.reward_max = env.backend.n_line
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not is_done and not has_error:
