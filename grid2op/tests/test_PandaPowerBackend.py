@@ -33,32 +33,32 @@ class TestLoadingADN(unittest.TestCase):
         case_file = "test_case14.json"
         backend.load_grid(path_matpower, case_file)
 
-        assert backend.n_lines == 20
-        assert backend.n_generators == 5
-        assert backend.n_loads == 11
-        assert backend.n_substations == 14
+        assert backend.n_line == 20
+        assert backend.n_gen == 5
+        assert backend.n_load == 11
+        assert backend.n_sub == 14
 
-        name_lines = ['0_1_0', '0_4_1',  '8_9_2', '8_13_3', '9_10_4', '11_12_5', '12_13_6', '1_2_7',
+        name_line = ['0_1_0', '0_4_1',  '8_9_2', '8_13_3', '9_10_4', '11_12_5', '12_13_6', '1_2_7',
                       '1_3_8', '1_4_9', '2_3_10', '3_4_11', '5_10_12', '5_11_13', '5_12_14',  '3_6_15',
                       '3_8_16', '4_5_17', '6_7_18', '6_8_19']
-        name_lines = np.array(name_lines)
-        assert np.all(sorted(backend.name_lines) == sorted(name_lines))
+        name_line = np.array(name_line)
+        assert np.all(sorted(backend.name_line) == sorted(name_line))
 
-        name_subs = ['sub_0', 'sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9', 'sub_10',
+        name_sub = ['sub_0', 'sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9', 'sub_10',
                      'sub_11', 'sub_12', 'sub_13']
-        name_subs = np.array(name_subs)
-        assert np.all(sorted(backend.name_subs) == sorted(name_subs))
+        name_sub = np.array(name_sub)
+        assert np.all(sorted(backend.name_sub) == sorted(name_sub))
 
-        name_prods = ['gen_0_4', 'gen_1_0', 'gen_2_1', 'gen_5_2', 'gen_7_3']
-        name_prods = np.array(name_prods)
-        assert np.all(sorted(backend.name_prods) == sorted(name_prods))
+        name_gen = ['gen_0_4', 'gen_1_0', 'gen_2_1', 'gen_5_2', 'gen_7_3']
+        name_gen = np.array(name_gen)
+        assert np.all(sorted(backend.name_gen) == sorted(name_gen))
 
-        name_loads = ['load_1_0', 'load_2_1', 'load_13_2', 'load_3_3', 'load_4_4', 'load_5_5', 'load_8_6',
+        name_load = ['load_1_0', 'load_2_1', 'load_13_2', 'load_3_3', 'load_4_4', 'load_5_5', 'load_8_6',
                       'load_9_7', 'load_10_8', 'load_11_9', 'load_12_10']
-        name_loads = np.array(name_loads)
-        assert np.all(sorted(backend.name_loads) == sorted(name_loads))
+        name_load = np.array(name_load)
+        assert np.all(sorted(backend.name_load) == sorted(name_load))
 
-        assert np.all(backend.get_topo_vect() == np.ones(np.sum(backend.subs_elements)))
+        assert np.all(backend.get_topo_vect() == np.ones(np.sum(backend.sub_info)))
 
         backend.runpf()
         try:
@@ -91,23 +91,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(name_prod=self.backend.name_prods,
-                                       name_load=self.backend.name_loads,
-                                       name_line=self.backend.name_lines,
-                                  subs_info=self.backend.subs_elements,
-                                  load_to_subid=self.backend.load_to_subid,
-                                  gen_to_subid=self.backend.gen_to_subid,
-                                  lines_or_to_subid=self.backend.lines_or_to_subid,
-                                  lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
-                                  load_to_sub_pos=self.backend.load_to_sub_pos,
-                                  gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                  lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                  lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
-                                  load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                  gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                  lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                  lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
-                                       game_rules=self.game_rules)
+        self.action_env = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -208,7 +192,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert self.compare_vect(res, true_values_ac)
 
     def test_disconnect_line(self):
-        for i in range(self.backend.n_lines):
+        for i in range(self.backend.n_line):
             if i == 18:
                 # powerflow diverge if line 1 is removed, unfortunately
                 continue
@@ -296,7 +280,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         maintenance[19] = True
         action = self.action_env({"maintenance": maintenance})  # update the action
 
@@ -325,7 +309,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         maintenance[17] = True
         action = self.action_env({"hazards": maintenance})  # update the action
 
@@ -352,10 +336,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         maintenance[19] = True
 
-        disc = np.full((self.backend.n_lines,), fill_value=False, dtype=np.bool)
+        disc = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         disc[17] = True
 
         action = self.action_env({"hazards": disc, "maintenance": maintenance})  # update the action
@@ -391,23 +375,7 @@ class TestTopoAction(unittest.TestCase):
         self.tol_one = 1e-5
 
         self.game_rules = GameRules()
-        self.helper_action = HelperAction(name_prod=self.backend.name_prods,
-                                       name_load=self.backend.name_loads,
-                                       name_line=self.backend.name_lines,
-                                  subs_info=self.backend.subs_elements,
-                                  load_to_subid=self.backend.load_to_subid,
-                                  gen_to_subid=self.backend.gen_to_subid,
-                                  lines_or_to_subid=self.backend.lines_or_to_subid,
-                                  lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
-                                  load_to_sub_pos=self.backend.load_to_sub_pos,
-                                  gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                  lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                  lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
-                                  load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                  gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                  lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                  lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
-                                       game_rules=self.game_rules)
+        self.helper_action = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -439,10 +407,10 @@ class TestTopoAction(unittest.TestCase):
         # check that the objects have been properly moved
         load_ids = np.where(self.backend.load_to_subid==id_)[0]
         assert np.all(topo_vect[self.backend.load_pos_topo_vect[load_ids]] == arr[self.backend.load_to_sub_pos[load_ids]])
-        lor_ids = np.where(self.backend.lines_or_to_subid==id_)[0]
-        assert np.all(topo_vect[self.backend.lines_or_pos_topo_vect[lor_ids]] == arr[self.backend.lines_or_to_sub_pos[lor_ids]])
-        lex_ids = np.where(self.backend.lines_ex_to_subid==id_)[0]
-        assert np.all(topo_vect[self.backend.lines_ex_pos_topo_vect[lex_ids]] == arr[self.backend.lines_ex_to_sub_pos[lex_ids]])
+        lor_ids = np.where(self.backend.line_or_to_subid==id_)[0]
+        assert np.all(topo_vect[self.backend.line_or_pos_topo_vect[lor_ids]] == arr[self.backend.line_or_to_sub_pos[lor_ids]])
+        lex_ids = np.where(self.backend.line_ex_to_subid==id_)[0]
+        assert np.all(topo_vect[self.backend.line_ex_pos_topo_vect[lex_ids]] == arr[self.backend.line_ex_to_sub_pos[lex_ids]])
         gen_ids = np.where(self.backend.gen_to_subid==id_)[0]
         assert np.all(topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == arr[self.backend.gen_to_sub_pos[gen_ids]])
 
@@ -494,10 +462,10 @@ class TestTopoAction(unittest.TestCase):
         # check that the objects have been properly moved
         load_ids = np.where(self.backend.load_to_subid==id_)[0]
         assert np.all(topo_vect[self.backend.load_pos_topo_vect[load_ids]] == 1+arr[self.backend.load_to_sub_pos[load_ids]])
-        lor_ids = np.where(self.backend.lines_or_to_subid==id_)[0]
-        assert np.all(topo_vect[self.backend.lines_or_pos_topo_vect[lor_ids]] == 1+arr[self.backend.lines_or_to_sub_pos[lor_ids]])
-        lex_ids = np.where(self.backend.lines_ex_to_subid==id_)[0]
-        assert np.all(topo_vect[self.backend.lines_ex_pos_topo_vect[lex_ids]] == 1+arr[self.backend.lines_ex_to_sub_pos[lex_ids]])
+        lor_ids = np.where(self.backend.line_or_to_subid==id_)[0]
+        assert np.all(topo_vect[self.backend.line_or_pos_topo_vect[lor_ids]] == 1+arr[self.backend.line_or_to_sub_pos[lor_ids]])
+        lex_ids = np.where(self.backend.line_ex_to_subid==id_)[0]
+        assert np.all(topo_vect[self.backend.line_ex_pos_topo_vect[lex_ids]] == 1+arr[self.backend.line_ex_to_sub_pos[lex_ids]])
         gen_ids = np.where(self.backend.gen_to_subid==id_)[0]
         assert np.all(topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == 1+arr[self.backend.gen_to_sub_pos[gen_ids]])
 
@@ -543,12 +511,12 @@ class TestTopoAction(unittest.TestCase):
         load_ids = np.where(self.backend.load_to_subid == id_)[0]
         assert np.all(
             topo_vect[self.backend.load_pos_topo_vect[load_ids]] == 1+arr[self.backend.load_to_sub_pos[load_ids]])
-        lor_ids = np.where(self.backend.lines_or_to_subid == id_)[0]
+        lor_ids = np.where(self.backend.line_or_to_subid == id_)[0]
         assert np.all(
-            topo_vect[self.backend.lines_or_pos_topo_vect[lor_ids]] == 1+arr[self.backend.lines_or_to_sub_pos[lor_ids]])
-        lex_ids = np.where(self.backend.lines_ex_to_subid == id_)[0]
+            topo_vect[self.backend.line_or_pos_topo_vect[lor_ids]] == 1+arr[self.backend.line_or_to_sub_pos[lor_ids]])
+        lex_ids = np.where(self.backend.line_ex_to_subid == id_)[0]
         assert np.all(
-            topo_vect[self.backend.lines_ex_pos_topo_vect[lex_ids]] == 1+arr[self.backend.lines_ex_to_sub_pos[lex_ids]])
+            topo_vect[self.backend.line_ex_pos_topo_vect[lex_ids]] == 1+arr[self.backend.line_ex_to_sub_pos[lex_ids]])
         gen_ids = np.where(self.backend.gen_to_subid == id_)[0]
         assert np.all(topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == 1+arr[self.backend.gen_to_sub_pos[gen_ids]])
 
@@ -574,7 +542,6 @@ class TestTopoAction(unittest.TestCase):
         self.backend.apply_action(action)
         conv = self.backend.runpf()
         assert conv
-
 
         after_amps_flow = self.backend.get_line_flow()
         assert self.compare_vect(after_amps_flow, init_amps_flow)
@@ -614,12 +581,12 @@ class TestTopoAction(unittest.TestCase):
         load_ids = np.where(self.backend.load_to_subid == id_1)[0]
         assert np.all(
             topo_vect[self.backend.load_pos_topo_vect[load_ids]] == 1+arr1[self.backend.load_to_sub_pos[load_ids]])
-        lor_ids = np.where(self.backend.lines_or_to_subid == id_1)[0]
+        lor_ids = np.where(self.backend.line_or_to_subid == id_1)[0]
         assert np.all(
-            topo_vect[self.backend.lines_or_pos_topo_vect[lor_ids]] == 1+arr1[self.backend.lines_or_to_sub_pos[lor_ids]])
-        lex_ids = np.where(self.backend.lines_ex_to_subid == id_1)[0]
+            topo_vect[self.backend.line_or_pos_topo_vect[lor_ids]] == 1+arr1[self.backend.line_or_to_sub_pos[lor_ids]])
+        lex_ids = np.where(self.backend.line_ex_to_subid == id_1)[0]
         assert np.all(
-            topo_vect[self.backend.lines_ex_pos_topo_vect[lex_ids]] == 1+arr1[self.backend.lines_ex_to_sub_pos[lex_ids]])
+            topo_vect[self.backend.line_ex_pos_topo_vect[lex_ids]] == 1+arr1[self.backend.line_ex_to_sub_pos[lex_ids]])
         gen_ids = np.where(self.backend.gen_to_subid == id_1)[0]
         assert np.all(topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == 1+arr1[self.backend.gen_to_sub_pos[gen_ids]])
 
@@ -627,12 +594,12 @@ class TestTopoAction(unittest.TestCase):
         load_ids = np.where(self.backend.load_to_subid == id_2)[0]
         assert np.all(
             topo_vect[self.backend.load_pos_topo_vect[load_ids]] == arr2[self.backend.load_to_sub_pos[load_ids]])
-        lor_ids = np.where(self.backend.lines_or_to_subid == id_2)[0]
+        lor_ids = np.where(self.backend.line_or_to_subid == id_2)[0]
         assert np.all(
-            topo_vect[self.backend.lines_or_pos_topo_vect[lor_ids]] == arr2[self.backend.lines_or_to_sub_pos[lor_ids]])
-        lex_ids = np.where(self.backend.lines_ex_to_subid == id_2)[0]
+            topo_vect[self.backend.line_or_pos_topo_vect[lor_ids]] == arr2[self.backend.line_or_to_sub_pos[lor_ids]])
+        lex_ids = np.where(self.backend.line_ex_to_subid == id_2)[0]
         assert np.all(
-            topo_vect[self.backend.lines_ex_pos_topo_vect[lex_ids]] == arr2[self.backend.lines_ex_to_sub_pos[lex_ids]])
+            topo_vect[self.backend.line_ex_pos_topo_vect[lex_ids]] == arr2[self.backend.line_ex_to_sub_pos[lex_ids]])
         gen_ids = np.where(self.backend.gen_to_subid == id_2)[0]
         assert np.all(topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == arr2[self.backend.gen_to_sub_pos[gen_ids]])
 
@@ -667,23 +634,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(name_prod=self.backend.name_prods,
-                                              name_load=self.backend.name_loads,
-                                              name_line=self.backend.name_lines,
-                                              subs_info=self.backend.subs_elements,
-                                              load_to_subid=self.backend.load_to_subid,
-                                              gen_to_subid=self.backend.gen_to_subid,
-                                              lines_or_to_subid=self.backend.lines_or_to_subid,
-                                              lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
-                                              load_to_sub_pos=self.backend.load_to_sub_pos,
-                                              gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                              lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                              lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
-                                              load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                              gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                              lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                              lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
-                                              game_rules=self.game_rules)
+        self.action_env = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
 
         self.lines_flows_init = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,
                                            10869.23856329,  4686.71726729, 15612.65903298,   300.07915572,
