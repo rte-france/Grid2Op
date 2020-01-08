@@ -47,10 +47,10 @@ import pdb
 
 try:
     from .Exceptions import *
-    from ._utils import extract_from_dict, save_to_dict
+    from .Space import SerializableSpace, GridObjects
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
-    from _utils import extract_from_dict, save_to_dict
+    from Space import SerializableSpace, GridObjects
 
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
@@ -61,10 +61,11 @@ except (ModuleNotFoundError, ImportError):
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
-# TODO add serialization of ActionSpace to json or yaml
+
+# TODO code the from_vect and to_vect to use shape() and dtype(), and code shape() and dtype() to use attributes list
 
 
-class Action(object):
+class Action(GridObjects):
     """
     This is a base class for each :class:`Action` objects.
     As stated above, an action represents in a convenient way the modifications that will affect a powergrid.
@@ -140,66 +141,6 @@ class Action(object):
 
     Attributes
     ----------
-    _n_lines: :class:`int`
-        number of powerline in the _grid
-
-    _n_gen: :class:`int`
-        number of generators in the _grid
-
-    _n_load: :class:`int`
-        number of loads in the powergrid
-
-    _subs_info: :class:`numpy.array`, dtype:int
-        for each substation, gives the number of elements connected to it
-
-    _dim_topo: :class:`int`
-        size of the topology vector.
-
-    _load_to_subid: :class:`numpy.array`, dtype:int
-        for each load, gives the id the substation to which it is connected
-
-    _gen_to_subid: :class:`numpy.array`, dtype:int
-        for each generator, gives the id the substation to which it is connected
-
-    _lines_or_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "origin" end is connected
-
-    _lines_ex_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "extremity" end is connected
-
-    _load_to_sub_pos: :class:`numpy.array`, dtype:int
-        The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`Action._subs_info`\[i\]. For a given load of id *l*, :attr:`Action._load_to_sub_pos`\[l\] is the index
-        of the load *l* in the vector *sub_topo_vect*. This means that, if
-        *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
-        then load of id *l* is connected to the second bus of the substation.
-
-    _gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_to_sub_pos` but for generators.
-
-    _lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_to_sub_pos` but for "origin" end of powerlines.
-
-    _lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_to_sub_pos` but for "extremity" end of powerlines.
-
-    _load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`Action._load_to_sub_pos` but it gives the position in the vector representing
-        the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
-        *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Action._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`Action._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *_topo_vect\[ action._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
-        second bus of the substation.
-
-    _gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-         same as :attr:`Action._load_pos_topo_vect` but for generators.
-
-    _lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_pos_topo_vect` but for "origin" end of powerlines.
-
-    _lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Action._load_pos_topo_vect` but for "extremity" end of powerlines.
 
     _set_line_status: :class:`numpy.array`, dtype:int
         For each powerlines, it gives the effect of the action on the status of it. It should be understand as:
@@ -274,10 +215,7 @@ class Action(object):
     vars_action = ["load_p", "load_q", "prod_p", "prod_v"]
     vars_action_set = set(vars_action)
 
-    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         This is used to create an Action instance. Preferably, :class:`Action` should be created with
         :class:`HelperAction`.
@@ -287,104 +225,56 @@ class Action(object):
 
         Parameters
         ----------
-        n_gen
-            Use to initialize :attr:`Action._n_gen`.
-
-        n_load
-            Use to initialize :attr:`Action._n_load`.
-
-        n_lines
-            Use to initialize :attr:`Action._n_lines`.
-
-        subs_info
-            Use to initialize :attr:`Action._subs_info`.
-
-        dim_topo
-            Use to initialize :attr:`Action._dim_topo`.
-
-        load_to_subid
-            Use to initialize :attr:`Action._load_to_subid`.
-
-        gen_to_subid
-            Use to initialize :attr:`Action._gen_to_subid`.
-
-        lines_or_to_subid
-            Use to initialize :attr:`Action._lines_or_to_subid`.
-
-        lines_ex_to_subid
-            Use to initialize :attr:`Action._lines_ex_to_subid`.
-
-        load_to_sub_pos
-            Use to initialize :attr:`Action._load_to_sub_pos`.
-
-        gen_to_sub_pos
-            Use to initialize :attr:`Action._gen_to_sub_pos`.
-
-        lines_or_to_sub_pos
-            Use to initialize :attr:`Action._lines_or_to_sub_pos`.
-
-        lines_ex_to_sub_pos
-            Use to initialize :attr:`Action._lines_ex_to_sub_pos`.
-
-        load_pos_topo_vect
-            Use to initialize :attr:`Action._load_pos_topo_vect`.
-
-        gen_pos_topo_vect
-            Use to initialize :attr:`Action._gen_pos_topo_vect`.
-
-        lines_or_pos_topo_vect
-            Use to initialize :attr:`Action._lines_or_pos_topo_vect`.
-
-        lines_ex_pos_topo_vect
-            Use to initialize :attr:`Action._lines_ex_pos_topo_vect`.
+        gridobj: :class:`grid2op.Space.GridObjects`
+            Representation of the objects present in the powergrid
 
         """
-
-        self._n_gen = n_gen
-        self._n_load = n_load
-        self._n_lines = n_lines
-        self._subs_info = subs_info
-        self._dim_topo = dim_topo
-
-        # to which substation is connected each element
-        self._load_to_subid = load_to_subid
-        self._gen_to_subid = gen_to_subid
-        self._lines_or_to_subid = lines_or_to_subid
-        self._lines_ex_to_subid = lines_ex_to_subid
-        # which index has this element in the substation vector
-        self._load_to_sub_pos = load_to_sub_pos
-        self._gen_to_sub_pos = gen_to_sub_pos
-        self._lines_or_to_sub_pos = lines_or_to_sub_pos
-        self._lines_ex_to_sub_pos = lines_ex_to_sub_pos
-        # which index has this element in the topology vector
-        self._load_pos_topo_vect = load_pos_topo_vect
-        self._gen_pos_topo_vect = gen_pos_topo_vect
-        self._lines_or_pos_topo_vect = lines_or_pos_topo_vect
-        self._lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
+        GridObjects.__init__(self)
+        self.init_grid(gridobj)
 
         self.authorized_keys = {"injection",
                                 "hazards", "maintenance", "set_line_status", "change_line_status",
                                 "set_bus", "change_bus"}
 
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=n_lines, fill_value=0, dtype=np.int)
-        self._switch_line_status = np.full(shape=n_lines, fill_value=False, dtype=np.bool)
+        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=np.int)
+        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
         # injection change
         self._dict_inj = {}
 
         # topology changed
-        self._set_topo_vect = np.full(shape=self._dim_topo, fill_value=0, dtype=np.int)
-        self._change_bus_vect = np.full(shape=self._dim_topo, fill_value=False, dtype=np.bool)
+        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=np.int)
+        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=np.bool)
 
-        self.as_vect = None
+        self._vectorized = None
 
         self._subs_impacted = None
         self._lines_impacted = None
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=n_lines, fill_value=False, dtype=np.bool)
-        self._maintenance = np.full(shape=n_lines, fill_value=False, dtype=np.bool)
+        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+
+        # decomposition of the Action into homogeneous sub-spaces
+        self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_set_line_status", "_switch_line_status",
+                               "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance"]
+
+    def _get_array_from_attr_name(self, attr_name):
+        if attr_name in self.__dict__:
+            res = np.array(self.__dict__[attr_name]).flatten()
+        else:
+            if attr_name in self._dict_inj:
+                res = self._dict_inj[attr_name]
+            else:
+                if attr_name == "prod_p" or attr_name == "prod_v":
+                    res = np.full(self.n_gen, fill_value=np.NaN, dtype=np.float)
+                elif attr_name == "load_p" or attr_name == "load_q":
+                    res = np.full(self.n_load, fill_value=np.NaN, dtype=np.float)
+                else:
+                    raise Grid2OpException("Impossible to find the attribute \"{}\" "
+                                           "into the Action of type \"{}\"".format(attr_name, type(self)))
+        return res
 
     def get_set_line_status_vect(self):
         """
@@ -398,7 +288,7 @@ class Action(object):
             A vector that doesn't affect the grid, but can be used in "set_status"
 
         """
-        return np.full(shape=self._n_lines, fill_value=0, dtype=np.int)
+        return np.full(shape=self.n_line, fill_value=0, dtype=np.int)
 
     def get_change_line_status_vect(self):
         """
@@ -412,7 +302,7 @@ class Action(object):
             A vector that doesn't affect the grid, but can be used in "change_status"
 
         """
-        return np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
+        return np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
     def __eq__(self, other) -> bool:
         """
@@ -430,7 +320,7 @@ class Action(object):
         declared as different.
 
         **Known issue** if two backend are different, but the description of the _grid are identical (ie all
-        _n_gen, _n_load, _n_lines, _subs_info, _dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
+        n_gen, n_load, n_line, sub_info, dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
         identical) then this method will not detect the backend are different, and the action could be declared
         as identical. For now, this is only a theoretical behaviour: if everything is the same, then probably, up to
         the naming convention, then the powergrid are identical too.
@@ -447,26 +337,26 @@ class Action(object):
 
         # check that the _grid is the same in both instances
         same_grid = True
-        same_grid = same_grid and self._n_gen == other._n_gen
-        same_grid = same_grid and self._n_load == other._n_load
-        same_grid = same_grid and self._n_lines == other._n_lines
-        same_grid = same_grid and np.all(self._subs_info == other._subs_info)
-        same_grid = same_grid and self._dim_topo == other._dim_topo
+        same_grid = same_grid and self.n_gen == other.n_gen
+        same_grid = same_grid and self.n_load == other.n_load
+        same_grid = same_grid and self.n_line == other.n_line
+        same_grid = same_grid and np.all(self.sub_info == other.sub_info)
+        same_grid = same_grid and self.dim_topo == other.dim_topo
         # to which substation is connected each element
-        same_grid = same_grid and np.all(self._load_to_subid == other._load_to_subid)
-        same_grid = same_grid and np.all(self._gen_to_subid == other._gen_to_subid)
-        same_grid = same_grid and np.all(self._lines_or_to_subid == other._lines_or_to_subid)
-        same_grid = same_grid and np.all(self._lines_ex_to_subid == other._lines_ex_to_subid)
+        same_grid = same_grid and np.all(self.load_to_subid == other.load_to_subid)
+        same_grid = same_grid and np.all(self.gen_to_subid == other.gen_to_subid)
+        same_grid = same_grid and np.all(self.line_or_to_subid == other.line_or_to_subid)
+        same_grid = same_grid and np.all(self.line_ex_to_subid == other.line_ex_to_subid)
         # which index has this element in the substation vector
-        same_grid = same_grid and np.all(self._load_to_sub_pos == other._load_to_sub_pos)
-        same_grid = same_grid and np.all(self._gen_to_sub_pos == other._gen_to_sub_pos)
-        same_grid = same_grid and np.all(self._lines_or_to_sub_pos == other._lines_or_to_sub_pos)
-        same_grid = same_grid and np.all(self._lines_ex_to_sub_pos == other._lines_ex_to_sub_pos)
+        same_grid = same_grid and np.all(self.load_to_sub_pos == other.load_to_sub_pos)
+        same_grid = same_grid and np.all(self.gen_to_sub_pos == other.gen_to_sub_pos)
+        same_grid = same_grid and np.all(self.line_or_to_sub_pos == other.line_or_to_sub_pos)
+        same_grid = same_grid and np.all(self.line_ex_to_sub_pos == other.line_ex_to_sub_pos)
         # which index has this element in the topology vector
-        same_grid = same_grid and np.all(self._load_pos_topo_vect == other._load_pos_topo_vect)
-        same_grid = same_grid and np.all(self._gen_pos_topo_vect == other._gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self._lines_or_pos_topo_vect == other._lines_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self._lines_ex_pos_topo_vect == other._lines_ex_pos_topo_vect)
+        same_grid = same_grid and np.all(self.load_pos_topo_vect == other.load_pos_topo_vect)
+        same_grid = same_grid and np.all(self.gen_pos_topo_vect == other.gen_pos_topo_vect)
+        same_grid = same_grid and np.all(self.line_or_pos_topo_vect == other.line_or_pos_topo_vect)
+        same_grid = same_grid and np.all(self.line_ex_pos_topo_vect == other.line_ex_pos_topo_vect)
         if not same_grid:
             return False
 
@@ -523,7 +413,7 @@ class Action(object):
         Returns
         -------
         lines_impacted: :class:`numpy.array`, dtype:np.bool
-            A vector with the same size as the number of powerline in the grid (:attr:`Action._n_lines`) with for each
+            A vector with the same size as the number of powerline in the grid (:attr:`Action.n_line`) with for each
             component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
             :attr:`Action._lines_impacted` for more information.
 
@@ -534,10 +424,10 @@ class Action(object):
 
         """
         if self._subs_impacted is None:
-            self._subs_impacted = np.full(shape=self._subs_info.shape, fill_value=False, dtype=np.bool)
+            self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
             beg_ = 0
             end_ = 0
-            for sub_id, nb_obj in enumerate(self._subs_info):
+            for sub_id, nb_obj in enumerate(self.sub_info):
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
                 if np.any(self._change_bus_vect[beg_:end_]) or np.any(self._set_topo_vect[beg_:end_] != 0):
@@ -551,26 +441,27 @@ class Action(object):
     def reset(self):
         """
         Reset the action to the "do nothing" state.
+
         Returns
         -------
 
         """
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=self._n_lines, fill_value=0, dtype=np.int)
-        self._switch_line_status = np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
+        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=np.int)
+        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
         # injection change
         self._dict_inj = {}
 
         # topology changed
-        self._set_topo_vect = np.full(shape=self._dim_topo, fill_value=0, dtype=np.int)
-        self._change_bus_vect = np.full(shape=self._dim_topo, fill_value=False, dtype=np.bool)
+        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=np.int)
+        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=np.bool)
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
-        self._maintenance = np.full(shape=self._n_lines, fill_value=False, dtype=np.bool)
+        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
-        self.as_vect = None
+        self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
 
@@ -636,41 +527,41 @@ class Action(object):
                     tmp = ddict_["loads_id"]
                     handled = True
                     for (c_id, bus) in tmp:
-                        if c_id >= self._n_lines:
+                        if c_id >= self.n_line:
                             raise AmbiguousAction("Load {} doesn't exist".format(c_id))
-                        self._set_topo_vect[self._load_pos_topo_vect[c_id]] = bus
-                        # print("self._load_pos_topo_vect[l_id] {}".format(self._load_pos_topo_vect[l_id]))
+                        self._set_topo_vect[self.load_pos_topo_vect[c_id]] = bus
+                        # print("self.load_pos_topo_vect[l_id] {}".format(self.load_pos_topo_vect[l_id]))
                 if "generators_id" in ddict_:
                     tmp = ddict_["generators_id"]
                     handled = True
                     for (g_id, bus) in tmp:
-                        if g_id >= self._n_gen:
+                        if g_id >= self.n_gen:
                             raise AmbiguousAction("Generator {} doesn't exist".format(g_id))
-                        self._set_topo_vect[self._gen_pos_topo_vect[g_id]] = bus
+                        self._set_topo_vect[self.gen_pos_topo_vect[g_id]] = bus
                 if "lines_or_id" in ddict_:
                     tmp = ddict_["lines_or_id"]
                     handled = True
                     for (l_id, bus) in tmp:
-                        if l_id >= self._n_lines:
+                        if l_id >= self.n_line:
                             raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
-                        self._set_topo_vect[self._lines_or_pos_topo_vect[l_id]] = bus
+                        self._set_topo_vect[self.line_or_pos_topo_vect[l_id]] = bus
                 if "lines_ex_id" in ddict_:
                     tmp = ddict_["lines_ex_id"]
                     handled = True
                     for (l_id, bus) in tmp:
-                        if l_id >= self._n_lines:
+                        if l_id >= self.n_line:
                             raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
-                        self._set_topo_vect[self._lines_ex_pos_topo_vect[l_id]] = bus
+                        self._set_topo_vect[self.line_ex_pos_topo_vect[l_id]] = bus
                 if "substations_id" in ddict_:
                     handled = True
                     tmp = ddict_["substations_id"]
                     for (s_id, arr) in tmp:
-                        if s_id >= self._subs_info.shape[0]:
+                        if s_id >= self.sub_info.shape[0]:
                             raise AmbiguousAction("Substation {} doesn't exist".format(s_id))
 
                         s_id = int(s_id)
-                        beg_ = int(np.sum(self._subs_info[:s_id]))
-                        end_ = int(beg_ + self._subs_info[s_id])
+                        beg_ = int(np.sum(self.sub_info[:s_id]))
+                        end_ = int(beg_ + self.sub_info[s_id])
                         self._set_topo_vect[beg_:end_] = arr
                 if not handled:
                     msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionnary it should have"
@@ -695,29 +586,29 @@ class Action(object):
                 if "loads_id" in ddict_:
                     tmp = ddict_["loads_id"]
                     for l_id in tmp:
-                        self._change_bus_vect[self._load_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self._load_pos_topo_vect[l_id]]
+                        self._change_bus_vect[self.load_pos_topo_vect[l_id]] = not self._change_bus_vect[
+                            self.load_pos_topo_vect[l_id]]
                 if "generators_id" in ddict_:
                     tmp = ddict_["generators_id"]
                     for g_id in tmp:
-                        self._change_bus_vect[self._gen_pos_topo_vect[g_id]] = not self._change_bus_vect[
-                            self._gen_pos_topo_vect[g_id]]
+                        self._change_bus_vect[self.gen_pos_topo_vect[g_id]] = not self._change_bus_vect[
+                            self.gen_pos_topo_vect[g_id]]
                 if "lines_or_id" in ddict_:
                     tmp = ddict_["lines_or_id"]
                     for l_id in tmp:
-                        self._change_bus_vect[self._lines_or_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self._lines_or_pos_topo_vect[l_id]]
+                        self._change_bus_vect[self.line_or_pos_topo_vect[l_id]] = not self._change_bus_vect[
+                            self.line_or_pos_topo_vect[l_id]]
                 if "lines_ex_id" in ddict_:
                     tmp = ddict_["lines_ex_id"]
                     for l_id in tmp:
-                        self._change_bus_vect[self._lines_ex_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self._lines_ex_pos_topo_vect[l_id]]
+                        self._change_bus_vect[self.line_ex_pos_topo_vect[l_id]] = not self._change_bus_vect[
+                            self.line_ex_pos_topo_vect[l_id]]
                 if "substations_id" in ddict_:
                     tmp = ddict_["substations_id"]
                     for (s_id, arr) in tmp:
                         s_id = int(s_id)
-                        beg_ = int(np.sum(self._subs_info[:s_id]))
-                        end_ = int(beg_ + self._subs_info[s_id])
+                        beg_ = int(np.sum(self.sub_info[:s_id]))
+                        end_ = int(beg_ + self.sub_info[s_id])
                         self._change_bus_vect[beg_:end_][arr] = ~self._change_bus_vect[beg_:end_][arr]
             elif dict_["change_bus"] is None:
                 pass
@@ -732,10 +623,10 @@ class Action(object):
             # this action can both disconnect or reconnect a powerlines
             if isinstance(dict_["set_line_status"], np.ndarray):
                 if dict_["set_line_status"] is not None:
-                    if len(dict_["set_line_status"]) != self._n_lines:
+                    if len(dict_["set_line_status"]) != self.n_line:
                         raise InvalidNumberOfLines(
                             "This \"set_line_status\" action acts on {} lines while there are {} in the grid".format(
-                                len(dict_["set_line_status"]), self._n_lines))
+                                len(dict_["set_line_status"]), self.n_line))
                     sel_ = dict_["set_line_status"] != 0
 
                     # update the line status vector
@@ -757,10 +648,10 @@ class Action(object):
                     raise AmbiguousAction(
                         "You ask to perform hazard on powerlines, this can only be done if \"hazards\" is castable into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
-                    if len(tmp) != self._n_lines:
+                    if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
                             "This \"hazards\" action acts on {} lines while there are {} in the _grid".format(
-                                len(tmp), self._n_lines))
+                                len(tmp), self.n_line))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     raise AmbiguousAction("You can only ask hazards with int or boolean numpy array vector.")
 
@@ -782,10 +673,10 @@ class Action(object):
                     raise AmbiguousAction(
                         "You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" is castable into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
-                    if len(tmp) != self._n_lines:
+                    if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
                             "This \"maintenance\" action acts on {} lines while there are {} in the _grid".format(
-                                len(tmp), self._n_lines))
+                                len(tmp), self.n_line))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     raise AmbiguousAction(
                         "You can only ask to perform lines maintenance with int or boolean numpy array vector.")
@@ -808,10 +699,10 @@ class Action(object):
                     raise AmbiguousAction(
                         "You ask to change the bus status, this can only be done if \"change_status\" is castable into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
-                    if len(tmp) != self._n_lines:
+                    if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
                             "This \"change_line_status\" action acts on {} lines while there are {} in the _grid".format(
-                                len(tmp), self._n_lines))
+                                len(tmp), self.n_line))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
                 self._switch_line_status[dict_["change_line_status"]] = True
@@ -823,7 +714,7 @@ class Action(object):
         Preferably, if a keys of the argument *dict_* is not found in :attr:`Action.authorized_keys` it should throw a
         warning. This argument will be completely ignored.
 
-        This method also reset the attributes :attr:`Action.as_vect` :attr:`Action._lines_impacted` and
+        This method also reset the attributes :attr:`Action._vectorized` :attr:`Action._lines_impacted` and
         :attr:`Action._subs_impacted` to ``None`` regardless of the argument in input.
 
         If an action consist in "reconnecting" a powerline, and this same powerline is affected by a maintenance or a
@@ -908,7 +799,7 @@ class Action(object):
             Return the modified instance. This is handy to chain modifications if needed.
 
         """
-        self.as_vect = None
+        self._vectorized = None
         self._subs_impacted = None
         self._lines_impacted = None
 
@@ -979,25 +870,25 @@ class Action(object):
                                     " (or \"hazard\" or \"maintenance\"). This ambiguous behaviour is not supported")
         # check size
         if "load_p" in self._dict_inj:
-            if len(self._dict_inj["load_p"]) != self._n_load:
-                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in the _grid".format(len(self._dict_inj["load_p"]), self._n_load))
+            if len(self._dict_inj["load_p"]) != self.n_load:
+                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in the _grid".format(len(self._dict_inj["load_p"]), self.n_load))
         if "load_q" in self._dict_inj:
-            if len(self._dict_inj["load_q"]) != self._n_load:
-                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in the _grid".format(len(self._dict_inj["load_q"]), self._n_load))
+            if len(self._dict_inj["load_q"]) != self.n_load:
+                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in the _grid".format(len(self._dict_inj["load_q"]), self.n_load))
         if "prod_p" in self._dict_inj:
-            if len(self._dict_inj["prod_p"]) != self._n_gen:
-                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in the _grid".format(len(self._dict_inj["prod_p"]), self._n_gen))
+            if len(self._dict_inj["prod_p"]) != self.n_gen:
+                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in the _grid".format(len(self._dict_inj["prod_p"]), self.n_gen))
         if "prod_v" in self._dict_inj:
-            if len(self._dict_inj["prod_v"]) != self._n_gen:
-                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in the _grid".format(len(self._dict_inj["prod_v"]), self._n_gen))
+            if len(self._dict_inj["prod_v"]) != self.n_gen:
+                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in the _grid".format(len(self._dict_inj["prod_v"]), self.n_gen))
 
-        if len(self._switch_line_status) != self._n_lines:
-                raise InvalidNumberOfLines("This action acts on {} lines while there are {} in the _grid".format(len(self._switch_line_status), self._n_lines))
+        if len(self._switch_line_status) != self.n_line:
+                raise InvalidNumberOfLines("This action acts on {} lines while there are {} in the _grid".format(len(self._switch_line_status), self.n_line))
 
-        if len(self._set_topo_vect) != self._dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} in the _grid".format(len(self._set_topo_vect), self._dim_topo))
-        if len(self._change_bus_vect) != self._dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} in the _grid".format(len(self._change_bus_vect), self._dim_topo))
+        if len(self._set_topo_vect) != self.dim_topo:
+                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} in the _grid".format(len(self._set_topo_vect), self.dim_topo))
+        if len(self._change_bus_vect) != self.dim_topo:
+                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} in the _grid".format(len(self._change_bus_vect), self.dim_topo))
 
         if np.any(self._set_topo_vect[self._change_bus_vect] != 0):
             raise InvalidBusStatus("You asked to change the bus of an object with"
@@ -1007,121 +898,24 @@ class Action(object):
         for q_id, status in enumerate(self._set_line_status):
             if status == 1:
                 # i reconnect a powerline, i need to check that it's connected on both ends
-                if self._set_topo_vect[self._lines_or_pos_topo_vect[q_id]] == 0 or \
-                        self._set_topo_vect[self._lines_ex_pos_topo_vect[q_id]] == 0:
+                if self._set_topo_vect[self.line_or_pos_topo_vect[q_id]] == 0 or \
+                        self._set_topo_vect[self.line_ex_pos_topo_vect[q_id]] == 0:
                     raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on which bus.".format(q_id))
 
         # if i disconnected of a line, but i modify also the bus where it's connected
         idx = self._set_line_status == -1
         id_disc = np.where(idx)[0]
-        if np.any(self._set_topo_vect[self._lines_or_pos_topo_vect[id_disc]] > 0) or \
-                np.any(self._set_topo_vect[self._lines_ex_pos_topo_vect[id_disc]] > 0):
+        if np.any(self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
+                np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
                     raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it to a certain bus.")
-        if np.any(self._change_bus_vect[self._lines_or_pos_topo_vect[id_disc]] > 0) or \
-                np.any(self._change_bus_vect[self._lines_ex_pos_topo_vect[id_disc]] > 0):
+        if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
+                np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
                     raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
 
-        if np.any(self._change_bus_vect[self._lines_or_pos_topo_vect[self._set_line_status == 1]]):
+        if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[self._set_line_status == 1]]):
             raise InvalidLineStatus("You ask to connect an origin powerline but also to *change* the bus  to which it is connected. This is ambiguous. You must *set* this bus instead.")
-        if np.any(self._change_bus_vect[self._lines_ex_pos_topo_vect[self._set_line_status == 1]]):
+        if np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[self._set_line_status == 1]]):
             raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to which it is connected. This is ambiguous. You must *set* this bus instead.")
-
-    def size(self):
-        """
-        When an action is converted to a plain numpy array, this is the size of such an array.
-
-        See the documentation of :func:`Action.to_vect` for more information about this array.
-
-        If this method is overloaded, it is mandatory to overload also:
-
-          - :func:`Action.from_vect`
-          - :func:`Action.to_vect`
-
-        Returns
-        -------
-        size: ``int``
-            The size of the flatten array returned by :func:`Action.to_vect`.
-        """
-        return 2 * self._n_gen + 2 * self._n_load + 2 * self._n_lines + 2 * self._dim_topo + 2 * self._n_lines
-
-    def to_vect(self):
-        """
-        When an action is converted it to a plain numpy array, this is the size of such an array.
-
-        All elements of all numpy array are converted to ``float``.
-        By default, the order is:
-
-          1. All modifications of generator units, with Nan if the vector is not present in the initial action
-
-            1. :code:`self.prod_p`
-            2. :code:`self.prod_v`
-
-          2. All modifications of loads, with Nan if the vector is not present in the initial action
-
-            1. :code:`self.load_p`
-            2. :code:`self.load_v`
-
-          3. All modifications of line status
-
-            1. :code:`self._set_line_status`
-            2. :code:`self._switch_line_status`
-
-          4. All topological information
-
-            1. :code:`self._set_topo_vect`
-            2. :code:`self._change_bus_vect`
-
-        If this method is overloaded, it is mandatory to overload also:
-
-          - :func:`Action.size`
-          - :func:`Action.from_vect`
-
-        Returns
-        -------
-        res: :class:`numpy.array`, dtype:float
-            The flatten representation of an array.
-
-        Raises
-        ------
-        AmbiguousAction
-            When the vector built has not the same size as a call to :func:`Action.size`.
-        """
-        if self.as_vect is None:
-            if "prod_p" in self._dict_inj:
-                prod_p = self._dict_inj["prod_p"]
-            else:
-                prod_p = np.full(self._n_gen, fill_value=np.NaN)
-            if "prod_v" in self._dict_inj:
-                prod_v = self._dict_inj["prod_v"]
-            else:
-                prod_v = np.full(self._n_gen, fill_value=np.NaN)
-
-            if "load_p" in self._dict_inj:
-                load_p = self._dict_inj["load_p"]
-            else:
-                load_p = np.full(self._n_load, fill_value=np.NaN)
-            if "load_q" in self._dict_inj:
-                load_q = self._dict_inj["load_q"]
-            else:
-                load_q = np.full(self._n_load, fill_value=np.NaN)
-
-            self.as_vect = np.concatenate((
-                prod_p.flatten().astype(np.float),
-                prod_v.flatten().astype(np.float),
-                load_p.flatten().astype(np.float),
-                load_q.flatten().astype(np.float),
-                self._set_line_status.flatten().astype(np.float),
-                self._switch_line_status.flatten().astype(np.float),
-                self._set_topo_vect.flatten().astype(np.float),
-                self._change_bus_vect.flatten().astype(np.float),
-                self._hazards.flatten().astype(np.float),
-                self._maintenance.flatten().astype(np.float)
-                              ))
-
-            if self.as_vect.shape[0] != self.size():
-                raise AmbiguousAction("Action has not the proper shape.")
-
-        return self.as_vect
 
     def from_vect(self, vect):
         """
@@ -1153,12 +947,12 @@ class Action(object):
             raise IncorrectNumberOfElements("Incorrect number of elements found while load an action from a vector. "
                                             "Found {} elements instead of {}".format(vect.shape[1], self.size()))
         prev_ = 0
-        next_ = self._n_gen
-        prod_p = vect[prev_:next_]; prev_ += self._n_gen; next_ += self._n_gen
-        prod_q = vect[prev_:next_]; prev_ += self._n_gen; next_ += self._n_load
+        next_ = self.n_gen
+        prod_p = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
+        prod_q = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_load
 
-        load_p = vect[prev_:next_]; prev_ += self._n_load; next_ += self._n_load
-        load_q = vect[prev_:next_]; prev_ += self._n_load; next_ += self._n_lines
+        load_p = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
+        load_q = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_line
 
         if np.any(np.isfinite(prod_p)):
             self._dict_inj["prod_p"] = prod_p
@@ -1169,18 +963,18 @@ class Action(object):
         if np.any(np.isfinite(load_q)):
             self._dict_inj["load_q"] = load_q
 
-        self._set_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._n_lines
+        self._set_line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
         self._set_line_status = self._set_line_status.astype(np.int)
-        self._switch_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._dim_topo
+        self._switch_line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.dim_topo
         self._switch_line_status = self._switch_line_status.astype(np.bool)
-        self._set_topo_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._dim_topo
+        self._set_topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.dim_topo
         self._set_topo_vect = self._set_topo_vect.astype(np.int)
-        self._change_bus_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._n_lines
+        self._change_bus_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_line
         self._change_bus_vect = self._change_bus_vect.astype(np.bool)
 
-        self._hazards = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._n_lines
+        self._hazards = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
         self._hazards = self._hazards.astype(np.bool)
-        self._maintenance = vect[prev_:]; prev_ += self._n_lines; next_ += self._n_lines
+        self._maintenance = vect[prev_:]; prev_ += self.n_line; next_ += self.n_line
         self._maintenance = self._maintenance.astype(np.bool)
 
         self._check_for_ambiguity()
@@ -1194,6 +988,7 @@ class Action(object):
         TODO
 
         By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state.
+
         Returns
         -------
         self: :class:`Action`
@@ -1205,38 +1000,38 @@ class Action(object):
 
     def _ignore_topo_action_if_disconnection(self, sel_):
         # force ignore of any topological actions
-        self._set_topo_vect[np.array(self._lines_or_pos_topo_vect[sel_])] = 0
-        self._change_bus_vect[np.array(self._lines_or_pos_topo_vect[sel_])] = False
-        self._set_topo_vect[np.array(self._lines_ex_pos_topo_vect[sel_])] = 0
-        self._change_bus_vect[np.array(self._lines_ex_pos_topo_vect[sel_])] = False
+        self._set_topo_vect[np.array(self.line_or_pos_topo_vect[sel_])] = 0
+        self._change_bus_vect[np.array(self.line_or_pos_topo_vect[sel_])] = False
+        self._set_topo_vect[np.array(self.line_ex_pos_topo_vect[sel_])] = 0
+        self._change_bus_vect[np.array(self.line_ex_pos_topo_vect[sel_])] = False
 
     def _obj_caract_from_topo_id(self, id_):
         obj_id = None
         objt_type = None
         array_subid = None
-        for l_id, id_in_topo in enumerate(self._load_pos_topo_vect):
+        for l_id, id_in_topo in enumerate(self.load_pos_topo_vect):
             if id_in_topo == id_:
                 obj_id = l_id
                 objt_type = "load"
-                array_subid = self._load_to_subid
+                array_subid = self.load_to_subid
         if obj_id is None:
-            for l_id, id_in_topo in enumerate(self._gen_pos_topo_vect):
+            for l_id, id_in_topo in enumerate(self.gen_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
                     objt_type = "generator"
-                    array_subid = self._gen_to_subid
+                    array_subid = self.gen_to_subid
         if obj_id is None:
-            for l_id, id_in_topo in enumerate(self._lines_or_pos_topo_vect):
+            for l_id, id_in_topo in enumerate(self.line_or_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
                     objt_type = "line (origin)"
-                    array_subid = self._lines_or_to_subid
+                    array_subid = self.line_or_to_subid
         if obj_id is None:
-            for l_id, id_in_topo in enumerate(self._lines_ex_pos_topo_vect):
+            for l_id, id_in_topo in enumerate(self.line_ex_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
                     objt_type = "line (extremity)"
-                    array_subid = self._lines_ex_to_subid
+                    array_subid = self.line_ex_to_subid
         substation_id = array_subid[obj_id]
         return obj_id, objt_type, substation_id
 
@@ -1515,7 +1310,7 @@ class Action(object):
                 res["new_p"] = self._dict_inj["load_p"][load_id]
             if "load_q" in self._dict_inj:
                 res["new_q"] = self._dict_inj["load_q"][load_id]
-            my_id = self._load_pos_topo_vect[load_id]
+            my_id = self.load_pos_topo_vect[load_id]
             res["change_bus"] = self._change_bus_vect[my_id]
             res["set_bus"] = self._set_topo_vect[my_id]
         elif gen_id is not None:
@@ -1526,7 +1321,7 @@ class Action(object):
                 res["new_p"] = self._dict_inj["prod_p"][gen_id]
             if "prod_v" in self._dict_inj:
                 res["new_v"] = self._dict_inj["prod_v"][gen_id]
-            my_id = self._gen_pos_topo_vect[gen_id]
+            my_id = self.gen_pos_topo_vect[gen_id]
             res["change_bus"] = self._change_bus_vect[my_id]
             res["set_bus"] = self._set_topo_vect[my_id]
         elif line_id is not None:
@@ -1534,11 +1329,11 @@ class Action(object):
                 raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
             res = {}
             # origin topology
-            my_id = self._lines_or_pos_topo_vect[line_id]
+            my_id = self.line_or_pos_topo_vect[line_id]
             res["change_bus_or"] = self._change_bus_vect[my_id]
             res["set_bus_or"] = self._set_topo_vect[my_id]
             # extremity topology
-            my_id = self._lines_ex_pos_topo_vect[line_id]
+            my_id = self.line_ex_pos_topo_vect[line_id]
             res["change_bus_ex"] = self._change_bus_vect[my_id]
             res["set_bus_ex"] = self._set_topo_vect[my_id]
             # status
@@ -1546,8 +1341,8 @@ class Action(object):
             res["change_line_status"] = self._switch_line_status[line_id]
         else:
             res = {}
-            beg_ = int(np.sum(self._subs_info[:substation_id]))
-            end_ = int(beg_ + self._subs_info[substation_id])
+            beg_ = int(np.sum(self.sub_info[:substation_id]))
+            end_ = int(beg_ + self.sub_info[substation_id])
             res["change_bus"] = self._change_bus_vect[beg_:end_]
             res["set_bus"] = self._set_topo_vect[beg_:end_]
 
@@ -1563,22 +1358,19 @@ class TopologyAction(Action):
 
     It is also here to show an example on how to implement a valid class deriving from :class:`Action`.
     """
-    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
         """
-        Action.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect)
+        Action.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
         self.authorized_keys = set([k for k in self.authorized_keys if k != "injection"])
+
+        self.attr_list_vect = ["_set_line_status", "_switch_line_status",
+                               "_set_topo_vect", "_change_bus_vect"]
 
     def __call__(self):
         """
@@ -1644,41 +1436,6 @@ class TopologyAction(Action):
             self._digest_change_status(dict_)
         return self
 
-    def size(self):
-        """
-        Compare to the base class, this action has a shorter size, as all information about injections are ignored.
-        Returns
-        -------
-        size: ``int``
-            The size of :class:`TopologyAction` converted to an array.
-        """
-        return 2 * self._n_lines + 2 * self._dim_topo
-
-    def to_vect(self):
-        """
-        See :func:`Action.to_vect` for a detailed description of this method.
-
-        This method has the same behaviour as its base class, except it doesn't require any information about the
-        injections to be sent, thus being more efficient from a memory footprint perspective.
-
-        Returns
-        -------
-        as_vect: :class:`numpy.array`, dtype:float
-            The instance of this action converted to a vector.
-        """
-        if self.as_vect is None:
-            self.as_vect = np.concatenate((
-                self._set_line_status.flatten().astype(np.float),
-                self._switch_line_status.flatten().astype(np.float),
-                self._set_topo_vect.flatten().astype(np.float),
-                self._change_bus_vect.flatten().astype(np.float)
-                              ))
-
-            if self.as_vect.shape[0] != self.size():
-                raise AmbiguousAction("Action has not the proper shape.")
-
-        return self.as_vect
-
     def from_vect(self, vect):
         """
         See :func:`Action.from_vect` for a detailed description of this method.
@@ -1697,19 +1454,28 @@ class TopologyAction(Action):
         self.reset()
         # pdb.set_trace()
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+            raise IncorrectNumberOfElements(
+                "Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(
+                    vect.shape[1], self.size()))
         prev_ = 0
-        next_ = self._n_lines
+        next_ = self.n_line
 
-        self._set_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._n_lines
+        self._set_line_status = vect[prev_:next_]
+        prev_ += self.n_line
+        next_ += self.n_line
         self._set_line_status = self._set_line_status.astype(np.int)
-        self._switch_line_status = vect[prev_:next_]; prev_ += self._n_lines; next_ += self._dim_topo
+        self._switch_line_status = vect[prev_:next_]
+        prev_ += self.n_line
+        next_ += self.dim_topo
         self._switch_line_status = self._switch_line_status.astype(np.bool)
-        self._set_topo_vect = vect[prev_:next_]; prev_ += self._dim_topo; next_ += self._dim_topo
+        self._set_topo_vect = vect[prev_:next_]
+        prev_ += self.dim_topo
+        next_ += self.dim_topo
         self._set_topo_vect = self._set_topo_vect.astype(np.int)
-        self._change_bus_vect = vect[prev_:]; prev_ += self._dim_topo
-        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
+        self._change_bus_vect = vect[prev_:]
+        prev_ += self.dim_topo
 
+        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
         self._check_for_ambiguity()
 
     def sample(self):
@@ -1737,18 +1503,12 @@ class PowerLineSet(Action):
     **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
     reconnecting a powerline cannot be considered "ambiguous". We have to
     """
-    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
         """
-        Action.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect)
+        Action.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
@@ -1818,35 +1578,6 @@ class PowerLineSet(Action):
 
         return self
 
-    def size(self):
-        """
-        Compare to the base class, this action has a shorter size, as all information about injections are ignored.
-        Returns
-        -------
-        size: ``int``
-            The size of :class:`PowerLineSet` converted to an array.
-        """
-        return self._n_lines
-
-    def to_vect(self):
-        """
-        See :func:`Action.to_vect` for a detailed description of this method.
-
-        This method has the same behaviour as its base class, except it doesn't require any information about the
-        injections to be sent, thus being more efficient from a memory footprint perspective.
-
-        Returns
-        -------
-        as_vect: :class:`numpy.array`, dtype:float
-            The instance of this action converted to a vector.
-        """
-        if self.as_vect is None:
-            self.as_vect = self._set_line_status.flatten().astype(np.float)
-            if self.as_vect.shape[0] != self.size():
-                raise AmbiguousAction("PowerLineSwitch has not the proper shape.")
-
-        return self.as_vect
-
     def from_vect(self, vect):
         """
         See :func:`Action.from_vect` for a detailed description of this method.
@@ -1863,11 +1594,12 @@ class PowerLineSet(Action):
 
         """
         self.reset()
-        # pdb.set_trace()
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+            raise IncorrectNumberOfElements(
+                "Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(
+                    vect.shape[1], self.size()))
         prev_ = 0
-        next_ = self._n_lines
+        next_ = self.n_line
 
         self._set_line_status = vect[prev_:next_]
         self._set_line_status = self._set_line_status.astype(np.int)
@@ -1886,8 +1618,8 @@ class PowerLineSet(Action):
         """
         sel_ = self._set_line_status == 1
         if np.any(sel_):
-            self._set_topo_vect[self._lines_ex_pos_topo_vect[sel_]] = 1
-            self._set_topo_vect[self._lines_or_pos_topo_vect[sel_]] = 1
+            self._set_topo_vect[self.line_ex_pos_topo_vect[sel_]] = 1
+            self._set_topo_vect[self.line_or_pos_topo_vect[sel_]] = 1
 
     def sample(self):
         """
@@ -1906,12 +1638,12 @@ class PowerLineSet(Action):
         val = 2*np.random.randint(0, 2) - 1  # the action: +1 reconnect it, -1 disconnect it
         self._set_line_status[i] = val
         if val == 1:
-            self._set_topo_vect[self._lines_ex_pos_topo_vect[i]] = 1
-            self._set_topo_vect[self._lines_or_pos_topo_vect[i]] = 1
+            self._set_topo_vect[self.line_ex_pos_topo_vect[i]] = 1
+            self._set_topo_vect[self.line_or_pos_topo_vect[i]] = 1
         return self
 
 
-class SerializableActionSpace:
+class SerializableActionSpace(SerializableSpace):
     """
     This class allows to serialize / de serialize the action space.
 
@@ -1921,185 +1653,31 @@ class SerializableActionSpace:
     Attributes
     ----------
 
-    n_lines: :class:`int`
-        number of powerline in the _grid
-
-    n_gen: :class:`int`
-        number of generators in the _grid
-
-    n_load: :class:`int`
-        number of loads in the powergrid
-
-    subs_info: :class:`numpy.array`, dtype:int
-        for each substation, gives the number of elements connected to it
-
-    load_to_subid: :class:`numpy.array`, dtype:int
-        for each load, gives the id the substation to which it is connected
-
-    gen_to_subid: :class:`numpy.array`, dtype:int
-        for each generator, gives the id the substation to which it is connected
-
-    lines_or_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "origin" end is connected
-
-    lines_ex_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "extremity" end is connected
-
-    load_to_sub_pos: :class:`numpy.array`, dtype:int
-        The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`HelperAction.subs_info`\[i\]. For a given load of id *l*, :attr:`HelperAction._load_to_sub_pos`\[l\] is the index
-        of the load *l* in the vector *sub_topo_vect*. This means that, if
-        *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
-        then load of id *l* is connected to the second bus of the substation.
-
-    gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_to_sub_pos` but for generators.
-
-    lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_to_sub_pos`  but for "origin" end of powerlines.
-
-    lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_to_sub_pos` but for "extremity" end of powerlines.
-
-    load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`HelperAction._load_to_sub_pos` but it gives the position in the vector representing
-        the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
-        *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`HelperAction._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *_topo_vect\[ backend._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
-        second bus of the substation.
-
-    gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_pos_topo_vect` but for generators.
-
-    lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_pos_topo_vect` but for "origin" end of powerlines.
-
-    lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`HelperAction._load_pos_topo_vect` but for "extremity" end of powerlines.
-
-    name_load: :class:`numpy.array`, dtype:str
-        ordered name of the loads in the helper. This is mainly use to make sure the "chronics" are used properly.
-
-    name_prod: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the helper. This is mainly use to make sure the "chronics" are used properly.
-
-    name_line: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the helper. This is mainly use to make sure the "chronics" are used properly.
+    actionClass: ``type``
+        Type used to build the :attr:`SerializableActionSpace.template_act`
 
     template_act: :class:`Action`
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
-        action (see :func:`Action.size`) or to sample a new Action (see :func:`Action.sample`)
-
-    n: ``int``
-        Size of the action space
+        action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
     """
-    def __init__(self, name_prod, name_load, name_line, subs_info,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  actionClass=Action):
         """
 
         Parameters
         ----------
-        name_prod: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_prod`
-
-        name_load: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_load`
-
-        name_line: :class:`numpy.array`, dtype:str
-            Used to initialized :attr:`SerializableActionSpace.name_line`
-
-        subs_info: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.subs_info`
-
-        load_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_subid`
-
-        gen_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_subid`
-
-        lines_or_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_to_subid`
-
-        lines_ex_to_subid: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_subid`
-
-        load_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_to_sub_pos`
-
-        gen_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_to_sub_pos`
-
-        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_to_sub_pos`
-
-        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_to_sub_pos`
-
-        load_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.load_pos_topo_vect`
-
-        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.gen_pos_topo_vect`
-
-        lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_or_pos_topo_vect`
-
-        lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-            Used to initialized :attr:`SerializableActionSpace.lines_ex_pos_topo_vect`
+        gridobj: :class:`grid2op.Space.GridObjects`
+            Representation of the underlying powergrid.
 
         actionClass: ``type``
-            Type of action used to build :attr:`SerializableActionSpace.template_act`
+            Type of action used to build :attr:`Space.SerializableSpace.template_obj`
 
         """
-        self.name_prod = name_prod
-        self.name_load = name_load
-        self.name_line = name_line
+        SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
 
-        self.n_gen = len(name_prod)
-        self.n_load = len(name_load)
-        self.n_lines = len(name_line)
-
-        self.subs_info = subs_info
-        self.dim_topo = np.sum(subs_info)
-        self.actionClass = actionClass
-
-        # to which substation is connected each element
-        self.load_to_subid = load_to_subid
-        self.gen_to_subid = gen_to_subid
-        self.lines_or_to_subid = lines_or_to_subid
-        self.lines_ex_to_subid = lines_ex_to_subid
-        # which index has this element in the substation vector
-        self.load_to_sub_pos = load_to_sub_pos
-        self.gen_to_sub_pos = gen_to_sub_pos
-        self.lines_or_to_sub_pos = lines_or_to_sub_pos
-        self.lines_ex_to_sub_pos = lines_ex_to_sub_pos
-        # which index has this element in the topology vector
-        self.load_pos_topo_vect = load_pos_topo_vect
-        self.gen_pos_topo_vect = gen_pos_topo_vect
-        self.lines_or_pos_topo_vect = lines_or_pos_topo_vect
-        self.lines_ex_pos_topo_vect = lines_ex_pos_topo_vect
-
-        self.template_act = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
-        self.n = self.template_act.size()
+        self.actionClass = self.subtype
+        self.template_act = self.template_obj
 
     @staticmethod
     def from_dict(dict_):
@@ -2109,142 +1687,32 @@ class SerializableActionSpace:
         Parameters
         ----------
         dict_: ``dict``
-            Representation of an Observation Space (aka ObservartionHelper) as a dictionnary.
+            Representation of an Action Space (aka SerializableActionSpace) as a dictionnary.
 
         Returns
         -------
-        res: :class:``SerializableObservationSpace``
-            An instance of an observationHelper matching the dictionnary.
+        res: :class:``SerializableActionSpace``
+            An instance of an action space matching the dictionnary.
 
         """
-
-        if isinstance(dict_, str):
-            path = dict_
-            if not os.path.exists(path):
-                raise Grid2OpException("Unable to find the file \"{}\" to load the ObservationSpace".format(path))
-            with open(path, "r", encoding="utf-8") as f:
-                dict_ = json.load(fp=f)
-
-        name_prod = extract_from_dict(dict_, "name_prod", lambda x: np.array(x).astype(str))
-        name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
-        name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
-
-        subs_info = extract_from_dict(dict_, "subs_info", lambda x: np.array(x).astype(np.int))
-        load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
-        gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
-        lines_or_to_subid = extract_from_dict(dict_, "lines_or_to_subid", lambda x: np.array(x).astype(np.int))
-        lines_ex_to_subid = extract_from_dict(dict_, "lines_ex_to_subid", lambda x: np.array(x).astype(np.int))
-
-        load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        lines_or_to_sub_pos = extract_from_dict(dict_, "lines_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        lines_ex_to_sub_pos = extract_from_dict(dict_, "lines_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
-
-        load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        lines_or_pos_topo_vect = extract_from_dict(dict_, "lines_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        lines_ex_pos_topo_vect = extract_from_dict(dict_, "lines_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-
-        actionClass_str = extract_from_dict(dict_, "actionClass", str)
-        actionClass_li = actionClass_str.split('.')
-
-        if actionClass_li[-1] in globals():
-            actionClass = globals()[actionClass_li[-1]]
-        else:
-            # TODO make something better and recursive here, refactor with Observation too!
-            try:
-                actionClass = eval(actionClass_str)
-            except NameError:
-                if len(actionClass_li) > 1:
-                    try:
-                        actionClass = eval(".".join(actionClass_li[1:]))
-                    except:
-                        msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 1). Try \"from {} import {}\""
-                        raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
-                else:
-                    msg_err_ = "Impossible to find the module \"{}\" to load back the action space (ERROR 2). Try \"from {} import {}\""
-                    raise Grid2OpException(msg_err_.format(actionClass_str, ".".join(actionClass_li[:-1]), actionClass_li[-1]))
-            except AttributeError:
-                try:
-                    actionClass = eval(actionClass_li[-1])
-                except:
-                    if len(actionClass_li) > 1:
-                        msg_err_ = "Impossible to find the class named \"{}\" to load back the action space (ERROR 3)" \
-                                   "(module is found but not the class in it) Please import it via \"from {} import {}\"."
-                        msg_err_ = msg_err_.format(actionClass_str,
-                                                   ".".join(actionClass_li[:-1]),
-                                                   actionClass_li[-1])
-                    else:
-                        msg_err_ = "Impossible to import the class named \"{}\" to load back the action space (ERROR 4) (the " \
-                                   "module is found but not the class in it)"
-                        msg_err_ = msg_err_.format(actionClass_str)
-                    raise Grid2OpException(msg_err_)
-
-        res = SerializableActionSpace(name_prod, name_load, name_line, subs_info,
-                                      load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                                      load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                                      load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect,
-                                      lines_ex_pos_topo_vect,
-                                      actionClass=actionClass)
-        return res
-
-    def to_dict(self):
-        """
-        Serialize this object as a dictionnary.
-
-        Returns
-        -------
-        res: ``dict``
-            A dictionnary representing this object content. It can be loaded back with
-             :func:`SerializableObservationSpace.from_dict`
-        """
-        res = {}
-        save_to_dict(res, self, "name_prod", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "subs_info", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_to_subid", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_to_sub_pos", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_or_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "lines_ex_pos_topo_vect", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "actionClass", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
-
+        tmp = SerializableSpace.from_dict(dict_)
+        res = SerializableActionSpace(gridobj=tmp,
+                                      actionClass=tmp.subtype)
         return res
 
     def sample(self):
         """
-        A utility used to sample action.
+        A utility used to sample :class:`grid2op.Action.Action`.
+
+        This method is under development, use with care (actions are not sampled on the full action space, and are
+        not uniform in general).
 
         Returns
         -------
         res: :class:`Action`
             A random action sampled from the :attr:`HelperAction.actionClass`
         """
-        res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+        res = self.actionClass(gridobj=self)  # only the GridObjects part of "self" is actually used
         res.sample()
         return res
 
@@ -2281,20 +1749,7 @@ class SerializableActionSpace:
             If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
         """
         if previous_action is None:
-            res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                                   subs_info=self.subs_info, dim_topo=self.dim_topo,
-                                   load_to_subid=self.load_to_subid,
-                                   gen_to_subid=self.gen_to_subid,
-                                   lines_or_to_subid=self.lines_or_to_subid,
-                                   lines_ex_to_subid=self.lines_ex_to_subid,
-                                   load_to_sub_pos=self.load_to_sub_pos,
-                                   gen_to_sub_pos=self.gen_to_sub_pos,
-                                   lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                                   lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                                   load_pos_topo_vect=self.load_pos_topo_vect,
-                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                   lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                                   lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+            res = self.actionClass(gridobj=self)
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" which is not the type of action handled by this helper (\"{}\")".format(type(previous_action), self.actionClass))
@@ -2308,12 +1763,12 @@ class SerializableActionSpace:
 
     def _extract_database_powerline(self, extremity):
         if extremity[:2] == "or":
-            to_subid = self.lines_or_to_subid
-            to_sub_pos = self.lines_or_to_sub_pos
+            to_subid = self.line_or_to_subid
+            to_sub_pos = self.line_or_to_sub_pos
             to_name = self.name_line
         elif extremity[:2] == "ex":
-            to_subid = self.lines_ex_to_subid
-            to_sub_pos = self.lines_ex_to_sub_pos
+            to_subid = self.line_ex_to_subid
+            to_sub_pos = self.line_ex_to_sub_pos
             to_name = self.name_line
         elif extremity is None:
             raise Grid2OpException("It is mandatory to know on which ends you want to change the bus of the powerline")
@@ -2331,7 +1786,7 @@ class SerializableActionSpace:
         elif type_element[:3] == "gen" or type_element[:4] == "prod":
             to_subid = self.gen_to_subid
             to_sub_pos = self.gen_to_sub_pos
-            to_name = self.name_prod
+            to_name = self.name_gen
         elif type_element == "load":
             to_subid = self.load_to_subid
             to_sub_pos = self.load_to_sub_pos
@@ -2342,10 +1797,10 @@ class SerializableActionSpace:
                 to_subid = self.load_to_subid
                 to_sub_pos = self.load_to_sub_pos
                 to_name = self.name_load
-            elif name_element in self.name_prod:
+            elif name_element in self.name_gen:
                 to_subid = self.gen_to_subid
                 to_sub_pos = self.gen_to_sub_pos
-                to_name = self.name_prod
+                to_name = self.name_gen
             elif name_element in self.name_line:
                 to_subid, to_sub_pos, to_name = self._extract_database_powerline(extremity)
             else:
@@ -2408,20 +1863,7 @@ class SerializableActionSpace:
             If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
         """
         if previous_action is None:
-            res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                                   subs_info=self.subs_info, dim_topo=self.dim_topo,
-                                   load_to_subid=self.load_to_subid,
-                                   gen_to_subid=self.gen_to_subid,
-                                   lines_or_to_subid=self.lines_or_to_subid,
-                                   lines_ex_to_subid=self.lines_ex_to_subid,
-                                   load_to_sub_pos=self.load_to_sub_pos,
-                                   gen_to_sub_pos=self.gen_to_sub_pos,
-                                   lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                                   lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                                   load_pos_topo_vect=self.load_pos_topo_vect,
-                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                   lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                                   lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+            res = self.actionClass(gridobj=self)
         else:
             res = previous_action
 
@@ -2448,20 +1890,7 @@ class SerializableActionSpace:
 
         """
         if previous_action is None:
-            res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                                   subs_info=self.subs_info, dim_topo=self.dim_topo,
-                                   load_to_subid=self.load_to_subid,
-                                   gen_to_subid=self.gen_to_subid,
-                                   lines_or_to_subid=self.lines_or_to_subid,
-                                   lines_ex_to_subid=self.lines_ex_to_subid,
-                                   load_to_sub_pos=self.load_to_sub_pos,
-                                   gen_to_sub_pos=self.gen_to_sub_pos,
-                                   lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                                   lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                                   load_pos_topo_vect=self.load_pos_topo_vect,
-                                   gen_pos_topo_vect=self.gen_pos_topo_vect,
-                                   lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                                   lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+            res = self.actionClass(gridobj=self)
         else:
             res = previous_action
         res.update({"set_line_status": [(l_id, 1)],
@@ -2469,16 +1898,6 @@ class SerializableActionSpace:
                                 "lines_ex_id": [(l_id, bus_ex)]}
                     })
         return res
-
-    def size(self):
-        """
-        The size of any action converted to vector.
-        Returns
-        -------
-        n: ``int``
-            The size of the action space.
-        """
-        return self.n
 
     def get_set_line_status_vect(self):
         """
@@ -2504,31 +1923,14 @@ class SerializableActionSpace:
         """
         return self.template_act.get_change_line_status_vect()
 
-    def from_vect(self, act):
-        """
-        Convert an action, represented as a vector to a valid :class:`Action` instance
-
-        Parameters
-        ----------
-        act: ``numpy.ndarray``
-            A action represented as a vector
-
-        Returns
-        -------
-        res: :class:`grid2op.Action.Action`
-            The corresponding action as an :class:`Action` instance
-
-        """
-        res = copy.deepcopy(self.template_act)
-        res.from_vect(act)
-        return res
-
 
 # TODO have something that output a dict like "i want to change this element", with its name accessible here
 class HelperAction(SerializableActionSpace):
     """
-    :class:`HelperAction` should be instanciated by an :class:`Environment` with its _parameters coming from a properly
-    set up :class:`Backend` (ie a Backend instance with a loaded powergrid. See :func:`grid2op.Backend.load_grid` for
+    :class:`HelperAction` should be created by an :class:`grid2op.Environment.Environment`
+    with its parameters coming from a properly
+    set up :class:`grid2op.Backend.Backend` (ie a Backend instance with a loaded powergrid.
+    See :func:`grid2op.Backend.Backend.load_grid` for
     more information).
 
     It will allow, thanks to its :func:`HelperAction.__call__` method to create valid :class:`Action`. It is the
@@ -2546,17 +1948,18 @@ class HelperAction(SerializableActionSpace):
 
 
     """
-    def __init__(self, name_prod, name_load, name_line, subs_info,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+    def __init__(self, gridobj,
                  game_rules, actionClass=Action):
         """
-        All parameters (name_prod, name_load, name_line, subs_info, etc.) are used to fill the attributes having the
+        All parameters (name_gen, name_load, name_line, sub_info, etc.) are used to fill the attributes having the
         same name. See :class:`HelperAction` for more information.
 
         Parameters
         ----------
+
+        gridobj: :class:`grid2op.Space.GridObjects`
+            The representation of the powergrid.
+
         actionClass: ``type``
             Note that this parameter expected a class, and not an object of the class. It is used to return the
             appropriate action type.
@@ -2565,10 +1968,7 @@ class HelperAction(SerializableActionSpace):
             Class specifying the rules of the game, used to check the legality of the actions.
 
         """
-        SerializableActionSpace.__init__(self, name_prod, name_load, name_line, subs_info,
-                                         load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                                         load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                                         load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect,
+        SerializableActionSpace.__init__(self, gridobj,
                                          actionClass=actionClass
                                          )
         self.legal_action = game_rules.legal_action
@@ -2602,20 +2002,7 @@ class HelperAction(SerializableActionSpace):
 
         """
 
-        res = self.actionClass(n_gen=self.n_gen, n_load=self.n_load, n_lines=self.n_lines,
-                               subs_info=self.subs_info, dim_topo=self.dim_topo,
-                               load_to_subid=self.load_to_subid,
-                               gen_to_subid=self.gen_to_subid,
-                               lines_or_to_subid=self.lines_or_to_subid,
-                               lines_ex_to_subid=self.lines_ex_to_subid,
-                               load_to_sub_pos=self.load_to_sub_pos,
-                               gen_to_sub_pos=self.gen_to_sub_pos,
-                               lines_or_to_sub_pos=self.lines_or_to_sub_pos,
-                               lines_ex_to_sub_pos=self.lines_ex_to_sub_pos,
-                               load_pos_topo_vect=self.load_pos_topo_vect,
-                               gen_pos_topo_vect=self.gen_pos_topo_vect,
-                               lines_or_pos_topo_vect=self.lines_or_pos_topo_vect,
-                               lines_ex_pos_topo_vect=self.lines_ex_pos_topo_vect)
+        res = self.actionClass(gridobj=self)
         # update the action
         res.update(dict_)
         if check_legal:
