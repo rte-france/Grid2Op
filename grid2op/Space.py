@@ -60,10 +60,10 @@ class GridObjects:
     gen_to_subid: :class:`numpy.array`, dtype:int
         for each generator, gives the id the substation to which it is connected
 
-    lines_or_to_subid: :class:`numpy.array`, dtype:int
+    line_or_to_subid: :class:`numpy.array`, dtype:int
         for each lines, gives the id the substation to which its "origin" end is connected
 
-    lines_ex_to_subid: :class:`numpy.array`, dtype:int
+    line_ex_to_subid: :class:`numpy.array`, dtype:int
         for each lines, gives the id the substation to which its "extremity" end is connected
 
     load_to_sub_pos: :class:`numpy.array`, dtype:int
@@ -77,10 +77,10 @@ class GridObjects:
     gen_to_sub_pos: :class:`numpy.array`, dtype:int
         same as :attr:`GridObjects.load_to_sub_pos` but for generators.
 
-    lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
+    line_or_to_sub_pos: :class:`numpy.array`, dtype:int
         same as :attr:`GridObjects.load_to_sub_pos`  but for "origin" end of powerlines.
 
-    lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+    line_ex_to_sub_pos: :class:`numpy.array`, dtype:int
         same as :attr:`GridObjects.load_to_sub_pos` but for "extremity" end of powerlines.
 
     load_pos_topo_vect: :class:`numpy.array`, dtype:int
@@ -95,16 +95,16 @@ class GridObjects:
     gen_pos_topo_vect: :class:`numpy.array`, dtype:int
         same as :attr:`GridObjects.load_pos_topo_vect` but for generators.
 
-    lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+    line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
         same as :attr:`GridObjects.load_pos_topo_vect` but for "origin" end of powerlines.
 
-    lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+    line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
         same as :attr:`GridObjects.load_pos_topo_vect` but for "extremity" end of powerlines.
 
     name_load: :class:`numpy.array`, dtype:str
         ordered name of the loads in the grid.
 
-    name_prod: :class:`numpy.array`, dtype:str
+    name_gen: :class:`numpy.array`, dtype:str
         ordered name of the productions in the grid.
 
     name_line: :class:`numpy.array`, dtype:str
@@ -170,6 +170,24 @@ class GridObjects:
                                       "It is not possible to convert it from/to a vector, "
                                       "nor to know its size, shape or dtype.".format(type(self)))
 
+    def _get_array_from_attr_name(self, attr_name):
+        """
+        This function allows to return the proper attribute vector that can be inspected in the
+        shape, size, dtype, from_vect and to_vect method.
+
+        Parameters
+        ----------
+        attr_name: ``str``
+            Name of the attribute to inspect or set
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The attribute corresponding the the name
+
+        """
+        return np.array(self.__dict__[attr_name]).flatten()
+
     def to_vect(self):
         """
         Convert this instance of GridObjects to a numpy array.
@@ -188,7 +206,7 @@ class GridObjects:
 
         if self._vectorized is None:
             self._raise_error_attr_list_none()
-            self._vectorized = np.concatenate([np.array(self.__dict__[el]).flatten().astype(np.float)
+            self._vectorized = np.concatenate([self._get_array_from_attr_name(el).astype(np.float)
                                               for el in self.attr_list_vect])
         return self._vectorized
 
@@ -214,7 +232,7 @@ class GridObjects:
             The shape of the :class:`GridObjects`
         """
         self._raise_error_attr_list_none()
-        res = np.array([np.array(self.__dict__[el]).flatten().shape[0] for el in self.attr_list_vect])
+        res = np.array([self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect])
         return res
 
     def dtype(self):
@@ -238,7 +256,7 @@ class GridObjects:
         """
 
         self._raise_error_attr_list_none()
-        res = np.array([np.array(self.__dict__[el]).flatten().dtype for el in self.attr_list_vect])
+        res = np.array([self._get_array_from_attr_name(el).dtype for el in self.attr_list_vect])
         return res
 
     def from_vect(self, vect):
@@ -259,10 +277,6 @@ class GridObjects:
         ----------
         vect: ``numpy.ndarray``
             A vector representing an Action.
-
-        Returns
-        -------
-        ``None``
 
         """
 
@@ -290,7 +304,7 @@ class GridObjects:
         Returns
         -------
         size: ``int``
-            The size of the GridObjects.
+            The size of the GridObjects if it's converted to a flat vector.
 
         """
         res = np.sum(self.shape())
@@ -301,6 +315,7 @@ class GridObjects:
                        load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
                        load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
         """
+        Initialize the object from the vectors representing the grid.
 
         Parameters
         ----------

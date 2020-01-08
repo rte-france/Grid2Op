@@ -256,6 +256,26 @@ class Action(GridObjects):
         self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
         self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
+        # decomposition of the Action into homogeneous sub-spaces
+        self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_set_line_status", "_switch_line_status",
+                               "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance"]
+
+    def _get_array_from_attr_name(self, attr_name):
+        if attr_name in self.__dict__:
+            res = np.array(self.__dict__[attr_name]).flatten()
+        else:
+            if attr_name in self._dict_inj:
+                res = self._dict_inj[attr_name]
+            else:
+                if attr_name == "prod_p" or attr_name == "prod_v":
+                    res = np.full(self.n_gen, fill_value=np.NaN, dtype=np.float)
+                elif attr_name == "load_p" or attr_name == "load_q":
+                    res = np.full(self.n_load, fill_value=np.NaN, dtype=np.float)
+                else:
+                    raise Grid2OpException("Impossible to find the attribute \"{}\" "
+                                           "into the Action of type \"{}\"".format(attr_name, type(self)))
+        return res
+
     def get_set_line_status_vect(self):
         """
         Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`.
@@ -421,6 +441,7 @@ class Action(GridObjects):
     def reset(self):
         """
         Reset the action to the "do nothing" state.
+
         Returns
         -------
 
@@ -896,104 +917,6 @@ class Action(GridObjects):
         if np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[self._set_line_status == 1]]):
             raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to which it is connected. This is ambiguous. You must *set* this bus instead.")
 
-    def size(self):
-        """
-        When an action is converted to a plain numpy array, this is the size of such an array.
-
-        See the documentation of :func:`Action.to_vect` for more information about this array.
-
-        If this method is overloaded, it is mandatory to overload also:
-
-          - :func:`Action.from_vect`
-          - :func:`Action.to_vect`
-
-        Returns
-        -------
-        size: ``int``
-            The size of the flatten array returned by :func:`Action.to_vect`.
-        """
-        res = 2 * self.n_gen + 2 * self.n_load + 2 * self.n_line + 2 * self.dim_topo + 2 * self.n_line
-        return res
-
-    def to_vect(self):
-        """
-        When an action is converted it to a plain numpy array, this is the size of such an array.
-
-        All elements of all numpy array are converted to ``float``.
-        By default, the order is:
-
-          1. All modifications of generator units, with Nan if the vector is not present in the initial action
-
-            1. :code:`self.prod_p`
-            2. :code:`self.prod_v`
-
-          2. All modifications of loads, with Nan if the vector is not present in the initial action
-
-            1. :code:`self.load_p`
-            2. :code:`self.load_v`
-
-          3. All modifications of line status
-
-            1. :code:`self._set_line_status`
-            2. :code:`self._switch_line_status`
-
-          4. All topological information
-
-            1. :code:`self._set_topo_vect`
-            2. :code:`self._change_bus_vect`
-
-        If this method is overloaded, it is mandatory to overload also:
-
-          - :func:`Action.size`
-          - :func:`Action.from_vect`
-
-        Returns
-        -------
-        res: :class:`numpy.array`, dtype:float
-            The flatten representation of an array.
-
-        Raises
-        ------
-        AmbiguousAction
-            When the vector built has not the same size as a call to :func:`Action.size`.
-        """
-        if self._vectorized is None:
-            if "prod_p" in self._dict_inj:
-                prod_p = self._dict_inj["prod_p"]
-            else:
-                prod_p = np.full(self.n_gen, fill_value=np.NaN)
-            if "prod_v" in self._dict_inj:
-                prod_v = self._dict_inj["prod_v"]
-            else:
-                prod_v = np.full(self.n_gen, fill_value=np.NaN)
-
-            if "load_p" in self._dict_inj:
-                load_p = self._dict_inj["load_p"]
-            else:
-                load_p = np.full(self.n_load, fill_value=np.NaN)
-            if "load_q" in self._dict_inj:
-                load_q = self._dict_inj["load_q"]
-            else:
-                load_q = np.full(self.n_load, fill_value=np.NaN)
-
-            self._vectorized = np.concatenate((
-                prod_p.flatten().astype(np.float),
-                prod_v.flatten().astype(np.float),
-                load_p.flatten().astype(np.float),
-                load_q.flatten().astype(np.float),
-                self._set_line_status.flatten().astype(np.float),
-                self._switch_line_status.flatten().astype(np.float),
-                self._set_topo_vect.flatten().astype(np.float),
-                self._change_bus_vect.flatten().astype(np.float),
-                self._hazards.flatten().astype(np.float),
-                self._maintenance.flatten().astype(np.float)
-                              ))
-
-            if self._vectorized.shape[0] != self.size():
-                raise AmbiguousAction("Action has not the proper shape.")
-
-        return self._vectorized
-
     def from_vect(self, vect):
         """
         Convert a action given as a vector into a proper :class:`Action`.
@@ -1425,51 +1348,6 @@ class Action(GridObjects):
 
         return res
 
-    def shape(self):
-        """
-        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
-        part of the action.
-
-        It is a numpy integer array.
-
-        This function must return a vector from which the sum is equal to the return value of "size()".
-
-        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Action`
-        """
-        res = np.array([self.n_gen, self.n_gen, self.n_load, self.n_load, self.n_line, self.n_line,
-                        self.dim_topo, self.dim_topo, self.n_line, self.n_line],
-                       dtype=np.int)
-        return res
-
-    def dtype(self):
-        """
-        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
-        of the action.
-
-        It is a numpy array of objects.
-
-        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Action`
-        """
-        res = np.array([float, float, float, float, int, bool, int, bool, bool, bool],
-                       dtype=type)
-        return res
-
 
 class TopologyAction(Action):
     """
@@ -1490,6 +1368,9 @@ class TopologyAction(Action):
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
         self.authorized_keys = set([k for k in self.authorized_keys if k != "injection"])
+
+        self.attr_list_vect = ["_set_line_status", "_switch_line_status",
+                               "_set_topo_vect", "_change_bus_vect"]
 
     def __call__(self):
         """
@@ -1555,41 +1436,6 @@ class TopologyAction(Action):
             self._digest_change_status(dict_)
         return self
 
-    def size(self):
-        """
-        Compare to the base class, this action has a shorter size, as all information about injections are ignored.
-        Returns
-        -------
-        size: ``int``
-            The size of :class:`TopologyAction` converted to an array.
-        """
-        return 2 * self.n_line + 2 * self.dim_topo
-
-    def to_vect(self):
-        """
-        See :func:`Action.to_vect` for a detailed description of this method.
-
-        This method has the same behaviour as its base class, except it doesn't require any information about the
-        injections to be sent, thus being more efficient from a memory footprint perspective.
-
-        Returns
-        -------
-        _vectorized: :class:`numpy.array`, dtype:float
-            The instance of this action converted to a vector.
-        """
-        if self.as_vect is None:
-            self.as_vect = np.concatenate((
-                self._set_line_status.flatten().astype(np.float),
-                self._switch_line_status.flatten().astype(np.float),
-                self._set_topo_vect.flatten().astype(np.float),
-                self._change_bus_vect.flatten().astype(np.float)
-                              ))
-
-            if self.as_vect.shape[0] != self.size():
-                raise AmbiguousAction("Action has not the proper shape.")
-
-        return self.as_vect
-
     def from_vect(self, vect):
         """
         See :func:`Action.from_vect` for a detailed description of this method.
@@ -1608,19 +1454,28 @@ class TopologyAction(Action):
         self.reset()
         # pdb.set_trace()
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+            raise IncorrectNumberOfElements(
+                "Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(
+                    vect.shape[1], self.size()))
         prev_ = 0
         next_ = self.n_line
 
-        self._set_line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
+        self._set_line_status = vect[prev_:next_]
+        prev_ += self.n_line
+        next_ += self.n_line
         self._set_line_status = self._set_line_status.astype(np.int)
-        self._switch_line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.dim_topo
+        self._switch_line_status = vect[prev_:next_]
+        prev_ += self.n_line
+        next_ += self.dim_topo
         self._switch_line_status = self._switch_line_status.astype(np.bool)
-        self._set_topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.dim_topo
+        self._set_topo_vect = vect[prev_:next_]
+        prev_ += self.dim_topo
+        next_ += self.dim_topo
         self._set_topo_vect = self._set_topo_vect.astype(np.int)
-        self._change_bus_vect = vect[prev_:]; prev_ += self.dim_topo
-        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
+        self._change_bus_vect = vect[prev_:]
+        prev_ += self.dim_topo
 
+        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
         self._check_for_ambiguity()
 
     def sample(self):
@@ -1634,49 +1489,6 @@ class TopologyAction(Action):
         # TODO code the sampling now
         # TODO test it !!!
         return self
-
-    def shape(self):
-        """
-        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
-        part of the action.
-
-        It is a numpy integer array.
-
-        This function must return a vector from which the sum is equal to the return value of "size()".
-
-        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Action`
-        """
-        res = np.array([self.n_line, self.n_line, self.dim_topo, self.dim_topo],
-                       dtype=np.int)
-        return res
-
-    def dtype(self):
-        """
-        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
-        of the action.
-
-        It is a numpy array of objects.
-
-        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Action`
-        """
-        res = np.array([int, bool, int, bool], dtype=type)
-        return res
 
 
 class PowerLineSet(Action):
@@ -1766,78 +1578,6 @@ class PowerLineSet(Action):
 
         return self
 
-    def size(self):
-        """
-        Compare to the base class, this action has a shorter size, as all information about injections are ignored.
-        Returns
-        -------
-        size: ``int``
-            The size of :class:`PowerLineSet` converted to an array.
-        """
-        return self.n_line
-
-    def shape(self):
-        """
-        The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
-        part of the action.
-
-        It is a numpy integer array.
-
-        This function must return a vector from which the sum is equal to the return value of "size()".
-
-        The shape vector must have the same number of components as the return value of the :func:`Action.dtype()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Action`
-        """
-        res = np.array([self.n_line],
-                       dtype=np.int)
-        return res
-
-    def dtype(self):
-        """
-        The types of the compoenents of the action, mainly used for gym compatibility is the shape of all part
-        of the action.
-
-        It is a numpy array of objects.
-
-        The dtype vector must have the same number of components as the return value of the :func:`Action.shape()`
-        vector.
-
-        **NB** this function must be overriden if the class is overriden.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``
-            The shape of the :class:`Action`
-        """
-        res = np.array([int], dtype=type)
-        return res
-
-    def to_vect(self):
-        """
-        See :func:`Action.to_vect` for a detailed description of this method.
-
-        This method has the same behaviour as its base class, except it doesn't require any information about the
-        injections to be sent, thus being more efficient from a memory footprint perspective.
-
-        Returns
-        -------
-        _vectorized: :class:`numpy.array`, dtype:float
-            The instance of this action converted to a vector.
-        """
-        if self.as_vect is None:
-            self.as_vect = self._set_line_status.flatten().astype(np.float)
-            if self.as_vect.shape[0] != self.size():
-                raise AmbiguousAction("PowerLineSwitch has not the proper shape.")
-
-        return self.as_vect
-
     def from_vect(self, vect):
         """
         See :func:`Action.from_vect` for a detailed description of this method.
@@ -1854,9 +1594,10 @@ class PowerLineSet(Action):
 
         """
         self.reset()
-        # pdb.set_trace()
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+            raise IncorrectNumberOfElements(
+                "Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(
+                    vect.shape[1], self.size()))
         prev_ = 0
         next_ = self.n_line
 
