@@ -5,6 +5,7 @@ import time
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 try:
     from .Exceptions import Grid2OpException
@@ -62,9 +63,13 @@ class Episode:
         if get_dataframes is not None:
             print("computing df")
             beg = time.time()
+            print("Environment")
             self.load, self.production, self.rho, self.action_data = self._make_df_from_data()
+            print("Hazards-Maintenances")
             self.hazards, self.maintenances = self._env_actions_as_df()
             self.computed_reward = self._compute_reward_df_from_data()
+            self.timestamps = sorted(self.load.timestamp.unique())
+            self.timesteps = sorted(self.load.timestep.unique())
             end = time.time()
             print(f"end computing df: {end-beg}")
         
@@ -134,7 +139,7 @@ class Episode:
         action_data = pd.DataFrame(index=range(action_size),
                                    columns=['timestep', 'timestep_reward', 'action_line', 'action_subs',
                                             'set_line', 'switch_line', 'set_topo', 'change_bus'])
-        for (time_step, (obs, act)) in enumerate(zip(self.observations, self.actions)):
+        for (time_step, (obs, act)) in tqdm(enumerate(zip(self.observations, self.actions)), total=len(self.env_actions)):
             if obs.game_over:
                 continue
             time_stamp = self.timestamp(obs)
@@ -170,7 +175,7 @@ class Episode:
         cols = ["timestep", "timestamp", "line_id", "line_name", "value"]
         hazards = pd.DataFrame(index=range(hazards_size), columns=cols)
         maintenances = hazards.copy()
-        for (time_step, env_act) in enumerate(self.env_actions):
+        for (time_step, env_act) in tqdm(enumerate(self.env_actions), total=len(self.env_actions)):
             time_stamp = self.timestamp(self.observations[time_step])
             iter_haz_maint = zip(env_act._hazards, env_act._maintenance)
             for line_id, (haz, maint) in enumerate(iter_haz_maint):
