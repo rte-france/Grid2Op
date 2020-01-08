@@ -1242,7 +1242,7 @@ class CompleteObservation(Observation):
         self._reset_matrices()
 
         if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while load an Observation from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
+            raise IncorrectNumberOfElements("Incorrect number of elements found while load an Observation from a vector. Found {} elements instead of {}".format(vect.shape[0], self.size()))
 
         if math.isnan(vect[0]):
             self.game_over = True
