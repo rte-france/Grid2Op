@@ -1,7 +1,7 @@
 Change Log
 =============
 
-[0.4.2] - 2020-01-xx
+[0.4.2] - 2020-01-08
 --------------------
 - [FIXED] gym compatibility issue for environment
 - [FIXED] checking key-word arguments in "make" function: if an invalid argument is provided,
