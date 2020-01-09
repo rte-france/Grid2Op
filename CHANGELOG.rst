@@ -3,6 +3,10 @@ Change Log
 
 [0.4.2] - 2020-01-08
 --------------------
+- [FIXED] Runner cannot save properly action and observation (sizes are not computed properly)
+  **now fixed and unit test added**
+- [FIXED] Plot utility has a bug in extracting grid information.
+  **now fixed**
 - [FIXED] gym compatibility issue for environment
 - [FIXED] checking key-word arguments in "make" function: if an invalid argument is provided,
   it now raises an error.
@@ -37,6 +41,8 @@ Action / Observation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
 Action / Observation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
 GridValue             n_lines                  n_line
 ====================  =======================  =======================
+
+- [UPDATE] the getting_started notebooks to reflect these changes
 
 [0.4.1] - 2019-12-17
 --------------------
