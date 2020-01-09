@@ -429,41 +429,41 @@ class Observation(GridObjects):
 
         self._obs_env = obs_env
 
-        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.timestep_overflow = None
 
         # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = np.ones(shape=self.n_line, dtype=np.float)
+        self.line_status = None
 
         # topological vector
-        self.topo_vect = np.full(shape=self.dim_topo, dtype=np.int, fill_value=0)
+        self.topo_vect = None
 
         # generators information
-        self.prod_p = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
-        self.prod_q = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
-        self.prod_v = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.prod_p = None
+        self.prod_q = None
+        self.prod_v = None
         # loads information
-        self.load_p = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
-        self.load_q = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
-        self.load_v = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
+        self.load_p = None
+        self.load_q = None
+        self.load_v = None
         # lines origin information
-        self.p_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.q_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.v_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.a_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.p_or = None
+        self.q_or = None
+        self.v_or = None
+        self.a_or = None
         # lines extremity information
-        self.p_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.q_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.v_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.a_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.p_ex = None
+        self.q_ex = None
+        self.v_ex = None
+        self.a_ex = None
         # lines relative flows
-        self.rho = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.rho = None
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
-        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=np.int, fill_value=-1)
-        self.time_before_line_reconnectable = np.full(shape=self.n_sub, dtype=np.int, fill_value=-1)
-        self.time_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
-        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+        self.time_before_cooldown_line = None
+        self.time_before_cooldown_sub = None
+        self.time_before_line_reconnectable = None
+        self.time_next_maintenance = None
+        self.duration_next_maintenance = None
 
         # matrices
         self.connectivity_matrix_ = None
@@ -474,6 +474,7 @@ class Observation(GridObjects):
         self._tol_equal = 5e-1
 
         self.attr_list_vect = None
+        self.reset()
 
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
