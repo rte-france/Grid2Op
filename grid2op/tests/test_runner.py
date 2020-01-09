@@ -87,6 +87,11 @@ class TestAgent(unittest.TestCase):
         assert int(timestep) == 287
         assert np.abs(cum_reward - 5739.951023) <= self.tol_one
 
+    def test_one_episode(self):
+        cum_reward, timestep = self.runner.run_one_episode(path_save="test_agent")
+        assert int(timestep) == 287
+        assert np.abs(cum_reward - 5739.951023) <= self.tol_one
+
     def test_3_episode(self):
         res = self.runner.run_sequential(nb_episode=3)
         assert len(res) == 3
