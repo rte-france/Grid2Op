@@ -1,5 +1,12 @@
 Change Log
 =============
+[0.5.0] - 2020-01-xx
+--------------------
+- [UPDATED] more unit test for observations
+- [UPDATED]remove the TODO's already coded (no more todo then)
+- [UPDATED] GridStateFromFile can now read the starting date and the time interval of the chronics.
+- [BREAKING] Action/Backend has been modified with the implementation of redispatching. If
+  you used a custom backend, you'll have to implement the "redispatching" part.
 
 [0.4.2] - 2020-01-08
 --------------------

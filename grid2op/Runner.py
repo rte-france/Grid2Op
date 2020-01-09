@@ -84,6 +84,8 @@ except (ModuleNotFoundError, ImportError):
 
 # TODO add a more suitable logging strategy
 
+# TODO use gym logger if specified by the user.
+
 
 class DoNothingLog:
     """

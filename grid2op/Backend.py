@@ -46,11 +46,6 @@ except (ImportError, ModuleNotFoundError):
 import pdb
 
 
-# TODO code a method to give information about element (given name, gives type, substation, bus connected etc.)
-# TODO given a bus, returns the names of the elements connected to it
-# TODO given a substation, returns the name of the elements connected to it
-# TODO given to substations, returns the name of the powerlines connecting them, if any
-
 # TODO URGENT: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 
@@ -64,82 +59,6 @@ class Backend(GridObjects, ABC):
     ----------
     detailed_infos_for_cascading_failures: :class:`bool`
         Whether to be verbose when computing a cascading failure.
-
-    n_line: :class:`int`
-        number of powerline in the _grid
-
-    n_gen: :class:`int`
-        number of generators in the _grid
-
-    n_load: :class:`int`
-        number of loads in the powergrid
-
-    n_sub: :class:`int`
-        number of substation in the powergrid
-
-    subs_elements: :class:`numpy.array`, dtype:int
-        for each substation, gives the number of elements connected to it
-
-    load_to_subid: :class:`numpy.array`, dtype:int
-        for each load, gives the id the substation to which it is connected
-
-    gen_to_subid: :class:`numpy.array`, dtype:int
-        for each generator, gives the id the substation to which it is connected
-
-    lines_or_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "origin" end is connected
-
-    lines_ex_to_subid: :class:`numpy.array`, dtype:int
-        for each lines, gives the id the substation to which its "extremity" end is connected
-
-    load_to_sub_pos: :class:`numpy.array`, dtype:int
-        The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`Backend.sub_info`\[i\]. For a given load of id *l*, :attr:`Backend.load_to_sub_pos`\[l\] is the index
-        of the load *l* in the vector *sub_topo_vect*. This means that, if
-        *sub_topo_vect\[ action.load_to_sub_pos\[l\] \]=2*
-        then load of id *l* is connected to the second bus of the substation.
-
-    gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_to_sub_pos` but for generators.
-
-    lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_to_sub_pos`  but for "origin" end of powerlines.
-
-    lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_to_sub_pos` but for "extremity" end of powerlines.
-
-    load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`Backend.load_to_sub_pos` but it gives the position in the vector representing
-        the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
-        *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend.load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`Backend.load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *_topo_vect\[ backend.load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
-        second bus of the substation.
-
-    gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_pos_topo_vect` but for generators.
-
-    line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_pos_topo_vect` but for "origin" end of powerlines.
-
-    line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend.load_pos_topo_vect` but for "extremity" end of powerlines.
-
-    _grid: (its type depends on the backend, precisely)
-        is a representation of the powergrid that can be called and manipulated by the backend.
-
-    name_load: :class:`numpy.array`, dtype:str
-        ordered name of the loads in the backend. This is mainly use to make sure the "chronics" are used properly.
-
-    name_gen: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the backend. This is mainly use to make sure the "chronics" are used properly.
-
-    name_line: :class:`numpy.array`, dtype:str
-        ordered name of the productions in the backend. This is mainly use to make sure the "chronics" are used properly.
-
-    name_sub: :class:`numpy.array`, dtype:str
-        ordered name of the substation in the _grid. This is mainly use to make sure the "chronics" are used properly.
 
     thermal_limit_a: :class:`numpy.array`, dtype:float
         Thermal limit of the powerline in amps for each powerline. Thie thermal limit is relevant on only one
@@ -267,7 +186,8 @@ class Backend(GridObjects, ABC):
         For the L2RPN project, this action is mainly for topology if it has been sent by the agent.
         Or it can also affect production and loads, if the action is made by the environment.
 
-        The help of :class:`grid2op.Action` or the code in Action.py file give more information about the implementation of this method.
+        The help of :func:`grid2op.Action.Action.__call__` or the code in Action.py file give more information about
+        the implementation of this method.
 
         :param action: the action to be implemented on the powergrid.
         :type action: :class:`grid2op.Action.Action`
@@ -285,7 +205,8 @@ class Backend(GridObjects, ABC):
         :param is_dc: is the powerflow run in DC or in AC
         :type is_dc: :class:`bool`
 
-        :return: True if it has converged, or false otherwise. In case of non convergence, no flows can be inspected on the _grid.
+        :return: True if it has converged, or false otherwise. In case of non convergence, no flows can be inspected on
+          the _grid.
         :rtype: :class:`bool`
         """
         pass

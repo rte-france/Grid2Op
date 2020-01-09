@@ -847,18 +847,5 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 14
 
 
-# TODO test also the methods added for observation:
-"""
-        self._line_status = copy.copy(backend.get_line_status())
-        self._topo_vect = copy.copy(backend.get_topo_vect())
-        # get the values related to continuous values
-        self.prod_p, self.prod_q, self.prod_v = backend.generators_info()
-        self.load_p, self.load_q, self.load_v = backend.loads_info()
-        self.p_or, self.q_or, self.v_or, self.a_or = backend.lines_or_info()
-        self.p_ex, self.q_ex, self.v_ex, self.a_ex = backend.lines_ex_info()
-"""
-
-# TODO refactor these tests to be both done in ADNBackend and PandaPowerBackend both coming from a file "test_Backend"
-
 if __name__ == "__main__":
     unittest.main()

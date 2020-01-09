@@ -27,11 +27,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        # from ADNBackend import ADNBackend
-        # self.backend = ADNBackend()
-        # self.path_matpower = "/home/donnotben/Documents/RL4Grid/RL4Grid/data"
-        # self.case_file = "ieee14_ADN.xml"
-        # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
@@ -239,7 +234,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         assert action.effect_on(load_id=1)["set_bus"] == 0
         assert action.effect_on(gen_id=0)["set_bus"] == 0
-        # TODO maybe assert different stuff here, for the first modification
 
     def test_update_change_bus_by_dict_obj(self):
         action = self.helper_action({"change_bus": {"loads_id": [1]}})
@@ -274,7 +268,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         assert action.effect_on(load_id=1)["change_bus"] == False
         assert action.effect_on(gen_id=0)["change_bus"] == False
-        # TODO maybe assert different stuff here, for the first modification
 
     def test_ambiguity_topo(self):
         action = self.helper_action({"change_bus": {"lines_or_id": [1]}})  # i switch the bus of the origin of powerline 1
@@ -410,7 +403,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
         assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
 
-    def test_call_(self):
+    def test_call_change_set(self):
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1

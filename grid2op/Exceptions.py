@@ -256,10 +256,17 @@ class InvalidNumberOfObjectEnds(AmbiguousAction):
 class InvalidBusStatus(AmbiguousAction):
     """
     This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
-    try to bot "set" and "switch" some bus to which an object is connected.
+    try to both "set" and "switch" some bus to which an object is connected.
     """
     pass
 
+
+class InvalidRedispatching(AmbiguousAction):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    try to apply an invalid redispatching strategy.
+    """
+    pass
 
 # powerflow exception
 class DivergingPowerFlow(Grid2OpException):

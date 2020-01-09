@@ -55,15 +55,14 @@ except (ModuleNotFoundError, ImportError):
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
 
-# TODO code "json" serialization
+
 # TODO code "convert_for" and "convert_from" to be able to change the backend (should be handled by the backend directly)
 # TODO have something that output a dict like "i want to change this element" (with a simpler API than the update stuff)
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
 
-# TODO code the from_vect and to_vect to use shape() and dtype(), and code shape() and dtype() to use attributes list
-
+# TODO tests for redispatching action.
 
 class Action(GridObjects):
     """
@@ -142,14 +141,14 @@ class Action(GridObjects):
     Attributes
     ----------
 
-    _set_line_status: :class:`numpy.array`, dtype:int
+    _set_line_status: :class:`numpy.ndarray`, dtype:int
         For each powerlines, it gives the effect of the action on the status of it. It should be understand as:
 
           - -1 : disconnect the powerline
           - 0 : don't affect the powerline
           - +1 : reconnect the powerline
 
-    _switch_line_status: :class:`numpy.array`, dtype:bool
+    _switch_line_status: :class:`numpy.ndarray`, dtype:bool
         For each powerline, it informs whether the action will switch the status of a powerline of not. It should be
         understood as followed:
 
@@ -168,7 +167,7 @@ class Action(GridObjects):
                 to the number of generators in the test case.
             - "prod_v" : same as above but set the voltage setpoint of generator units.
 
-    _set_topo_vect: :class:`numpy.array`, dtype:int
+    _set_topo_vect: :class:`numpy.ndarray`, dtype:int
         Similar to :attr:`Action._set_line_status` but instead of affecting the status of powerlines, it affects the
         bus connectivity at substation. It has the same size as the full topological vector (:attr:`Action._dim_topo`)
         and for each element it should be understood as:
@@ -177,7 +176,7 @@ class Action(GridObjects):
             - +1 : this element is affected to bus 1
             - -1 : this element is affected to bus 2
 
-    _change_bus_vect: :class:`numpy.array`, dtype:bool
+    _change_bus_vect: :class:`numpy.ndarray`, dtype:bool
          Similar to :attr:`Action._switch_line_status` but it affects the topology at substations instead of the status
          of the powerline. It has the same size as the full topological vector (:attr:`Action._dim_topo`) and each
          component should means:
@@ -189,18 +188,12 @@ class Action(GridObjects):
     authorized_keys: :class:`set`
         The set indicating which keys the actions is able to understand when calling :func:`Action.update`
 
-    as_vect: :class:`numpy.array`, dtype:float
-        The representation of the action as a vector. See the help of :func:`Action.to_vect` and
-        :func:`Action.from_vect` for more information. **NB** for performance reason, the convertion of the internal
-        representation to a vector is not performed at any time. It is only performed when :func:`Action.to_vect` is
-        called. Otherwise, this attribute is set to ``None``
-
-    _subs_impacted: :class:`numpy.array`, dtype:bool
+    _subs_impacted: :class:`numpy.ndarray`, dtype:bool
         This attributes is either not initialized (set to ``None``) or it tells, for each substation, if it is impacted
         by the action (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``True``) or not
         (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``False``)
 
-    _lines_impacted: :class:`numpy.array`, dtype:bool
+    _lines_impacted: :class:`numpy.ndarray`, dtype:bool
         This attributes is either not initialized (set to ``None``) or it tells, for each powerline, if it is impacted
         by the action (in this case :attr:`Action._lines_impacted`\[line_id\] is ``True``) or not
         (in this case :attr:`Action._subs_impacted`\[line_id\] is ``False``)
@@ -210,6 +203,10 @@ class Action(GridObjects):
 
     vars_action_set: ``set``, static
         Authorized key that are processed by :func:`Action.__call__` to modify the injections
+
+    _redispatch: :class:`numpy.ndarray`, dtype:bool
+        TODO code that and to the documentation
+
     """
 
     vars_action = ["load_p", "load_q", "prod_p", "prod_v"]
@@ -234,18 +231,21 @@ class Action(GridObjects):
 
         self.authorized_keys = {"injection",
                                 "hazards", "maintenance", "set_line_status", "change_line_status",
-                                "set_bus", "change_bus"}
+                                "set_bus", "change_bus", "redispatch"}
 
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=np.int)
-        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        self._set_line_status = None
+        self._switch_line_status = None
 
         # injection change
         self._dict_inj = {}
 
+        # redispatching
+        self._redispatch = None
+
         # topology changed
-        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=np.int)
-        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=np.bool)
+        self._set_topo_vect = None
+        self._change_bus_vect = None
 
         self._vectorized = None
 
@@ -253,11 +253,14 @@ class Action(GridObjects):
         self._lines_impacted = None
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
-        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        self._hazards = None
+        self._maintenance = None
+
+        self.reset()
 
         # decomposition of the Action into homogeneous sub-spaces
-        self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_set_line_status", "_switch_line_status",
+        self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
+                               "_set_line_status", "_switch_line_status",
                                "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance"]
 
     def _get_array_from_attr_name(self, attr_name):
@@ -332,6 +335,8 @@ class Action(GridObjects):
 
         Returns
         -------
+        res: ``bool``
+            Whether the actions are equal or not.
 
         """
 
@@ -374,6 +379,10 @@ class Action(GridObjects):
         if not np.all(self._set_line_status == other._set_line_status):
             return False
         if not np.all(self._switch_line_status == other._switch_line_status):
+            return False
+
+        # redispatching is same
+        if not np.all(self._redispatch == other._redispatch):
             return False
 
         # same topology changes
@@ -461,6 +470,9 @@ class Action(GridObjects):
         self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
         self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
 
+        # redispatching vector
+        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=np.float)
+
         self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
@@ -469,6 +481,8 @@ class Action(GridObjects):
         """
         This method is used to return the effect of the current action in a format understandable by the backend.
         This format is detailed bellow.
+
+        This function must also integrate the redispatching strategy for the Action.
 
         It also performs a check of whether or not an action is "Ambiguous", eg an action that reconnect a powerline
         but doesn't specify on which bus to reconnect it is said to be ambiguous.
@@ -493,14 +507,25 @@ class Action(GridObjects):
         change_bus_vect: :class:`numpy.array`, dtype:bool
             This array is :attr:`Action._change_bus_vect`
 
+        redispatch: :class:`numpy.ndarray`, dtype:float
+            This array, that has the same size as the number of generators indicates for each generator the amount of
+            redispatching performed by the action.
+
         Raises
         -------
         AmbiguousAction
             Or one of its derivate class.
         """
+
         self._check_for_ambiguity()
-        return self._dict_inj, self._set_line_status, self._switch_line_status,\
-               self._set_topo_vect, self._change_bus_vect
+        dict_inj = self._dict_inj
+        set_line_status = self._set_line_status
+        switch_line_status = self._switch_line_status
+        set_topo_vect = self._set_topo_vect
+        change_bus_vect = self._change_bus_vect
+        redispatch = self._redispatch
+
+        return dict_inj, set_line_status, switch_line_status, set_topo_vect, change_bus_vect, redispatch
 
     def _digest_injection(self, dict_):
         # I update the action
@@ -707,6 +732,54 @@ class Action(GridObjects):
                     raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
                 self._switch_line_status[dict_["change_line_status"]] = True
 
+    def __convert_and_redispatch(self, kk, val):
+        try:
+            kk = int(kk)
+            val = float(val)
+        except Exception as e:
+            raise AmbiguousAction("In redispatching, it's not possible to understand the key/value pair "
+                                  "{}/{} provided in the dictionnary. Key must be an integer, value "
+                                  "a float".format(kk, val))
+        self._redispatch[kk] = val
+
+    def _digest_redispatching(self, dict_):
+        if "redispatch" in dict_:
+            if dict_["redispatch"] is None:
+                return
+            tmp = dict_["redispatch"]
+            if isinstance(tmp, np.ndarray):
+                # complete redispatching is provided
+                self._redispatch = tmp
+            elif isinstance(tmp, dict):
+                # dict must have key: generator to modify, value: the delta value applied to this generator
+                ddict_ = tmp
+                for kk, val in ddict_.items():
+                    kk, val = self.__convert_and_redispatch(kk, val)
+            elif isinstance(tmp, list):
+                # list of tuples: each tupe (k,v) being the same as the key/value describe above
+                if len(tmp) == 2:
+                    kk, val = tmp
+                    self.__convert_and_redispatch(kk, val)
+                else:
+                    for el in tmp:
+                        if len(el) != 2:
+                            raise AmbiguousAction("When asking for redispatching with a list, you should make a list"
+                                                  "of tuple of 2 elements, the first one being the id of the"
+                                                  "generator to redispatch, the second one the value of the "
+                                                  "redispatching.")
+                        kk, val = el
+                        self.__convert_and_redispatch(kk, val)
+            elif isinstance(tmp, tuple):
+                if len(tmp) != 2:
+                    raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
+                                          "of tuple of 2 elements, the first one being the id of the"
+                                          "generator to redispatch, the second one the value of the "
+                                          "redispatching.")
+                kk, val = tmp
+                self.__convert_and_redispatch(kk, val)
+            else:
+                raise AmbiguousAction("Impossible to understand the redispatching action implemented.")
+
     def update(self, dict_):
         """
         Update the action with a comprehensible format specified by a dictionnary.
@@ -811,6 +884,7 @@ class Action(GridObjects):
                     warnings.warn(warn)
 
             self._digest_injection(dict_)
+            self._digest_redispatching(dict_)
             self._digest_setbus(dict_)
             self._digest_change_bus(dict_)
             self._digest_set_status(dict_)
@@ -890,6 +964,30 @@ class Action(GridObjects):
         if len(self._change_bus_vect) != self.dim_topo:
                 raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} in the _grid".format(len(self._change_bus_vect), self.dim_topo))
 
+        if len(self._redispatch) != self.n_gen:
+            raise InvalidNumberOfGenerators("This action acts on {} generators (redispatching= while there are {} in the grid".format(
+                len(self._redispatch), self.n_gen))
+
+        # redispatching specific check
+        if np.any(self._redispatch > self.gen_max_ramp_up):
+            raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
+        if np.any(-self._redispatch > self.gen_max_ramp_down):
+            raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
+
+        if np.any(self._redispatch[~self.gen_redispatchable] != 0.):
+            raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
+
+        if "prod_p" in self._dict_inj:
+            new_p = self._dict_inj["prod_p"]
+            tmp_p = new_p + self._redispatch
+            if np.any(tmp_p > self.gen_pmax):
+                raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                           "are above pmax for some generator.")
+            if np.any(tmp_p < self.gen_pmin):
+                raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                           "are below pmin for some generator.")
+
+        # topological action
         if np.any(self._set_topo_vect[self._change_bus_vect] != 0):
             raise InvalidBusStatus("You asked to change the bus of an object with"
                                     " using the keyword \"change_bus\" and set this same object state in \"set_bus\""
@@ -1149,6 +1247,8 @@ class Action(GridObjects):
             that are disconnected because of them.
           * `nb_maintenance` the number of maintenance the "action" implemented eg the number of powerlines
             disconnected becaues of maintenance operation.
+          * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
+            dispatchable one) the amount of power redispatched in this action.
 
         Returns
         -------
@@ -1219,6 +1319,9 @@ class Action(GridObjects):
             res["maintenance"] = np.where(self._maintenance)[0]
             res["nb_maintenance"] = np.sum(self._maintenance)
 
+        if np.any(self._redispatch != 0.):
+            res["redispatch"] = self._redispatch
+
         return res
 
     def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
@@ -1267,6 +1370,7 @@ class Action(GridObjects):
                 - "set_bus" the new bus where the load will be moved (int: id of the bus, 0 no change, -1 disconnected)
                 - "change_bus" whether or not this load will be moved from one bus to another (for example is an action
                   asked it to go from bus 1 to bus 2)
+                - "redispatch" the amount of power redispatched for this generator.
 
             - if a powerline is inspected then the keys are:
 
@@ -1295,13 +1399,15 @@ class Action(GridObjects):
         ------
         Grid2OpException
             If _sentinel is modified, or if None of the arguments are set or alternatively if 2 or more of the
-            _parameters are being set.
+            parameters are being set.
 
         """
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
+
         if load_id is None and gen_id is None and line_id is None and substation_id is None:
             raise Grid2OpException("You ask the effect of an action on something, wihtout provided anything")
+
         if load_id is not None:
             if gen_id is not None or line_id is not None or substation_id is not None:
                 raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
@@ -1313,10 +1419,11 @@ class Action(GridObjects):
             my_id = self.load_pos_topo_vect[load_id]
             res["change_bus"] = self._change_bus_vect[my_id]
             res["set_bus"] = self._set_topo_vect[my_id]
+
         elif gen_id is not None:
             if line_id is not None or substation_id is not None:
                 raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
-            res = {"new_p": np.NaN, "new_v": np.NaN, "set_topology": 0.}
+            res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0., "change_bus": False}
             if "prod_p" in self._dict_inj:
                 res["new_p"] = self._dict_inj["prod_p"][gen_id]
             if "prod_v" in self._dict_inj:
@@ -1324,6 +1431,8 @@ class Action(GridObjects):
             my_id = self.gen_pos_topo_vect[gen_id]
             res["change_bus"] = self._change_bus_vect[my_id]
             res["set_bus"] = self._set_topo_vect[my_id]
+            res["redispatch"] = self._redispatch[my_id]
+
         elif line_id is not None:
             if substation_id is not None:
                 raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
@@ -1480,10 +1589,12 @@ class TopologyAction(Action):
 
     def sample(self):
         """
-        TODO
+
+
         Returns
         -------
-
+        res: :class:`Action`
+            The current action (useful to chain some calls to methods)
         """
         self.reset()
         # TODO code the sampling now
@@ -1924,7 +2035,6 @@ class SerializableActionSpace(SerializableSpace):
         return self.template_act.get_change_line_status_vect()
 
 
-# TODO have something that output a dict like "i want to change this element", with its name accessible here
 class HelperAction(SerializableActionSpace):
     """
     :class:`HelperAction` should be created by an :class:`grid2op.Environment.Environment`

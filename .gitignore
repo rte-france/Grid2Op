@@ -158,3 +158,4 @@ grid2op/data/*/*.csv
 getting_started/study_agent_getting_started/
 **Untitled.ipynb
 grid2op/tests/test_agent/
+grid2op/tests/start_datetime.info

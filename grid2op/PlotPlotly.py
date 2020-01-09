@@ -247,7 +247,6 @@ class PlotObs(object):
             objs = observation_space.get_obj_connect_to(substation_id=sub_id)
 
             for c_id in objs["loads_id"]:
-                # TODO here get the proper name
                 c_nm = self._get_load_name(sub_id, c_id)
                 this_load = {}
                 this_load["type"] = "load"
@@ -255,7 +254,6 @@ class PlotObs(object):
                 this_sub[c_nm] = this_load
 
             for g_id in objs["generators_id"]:
-                # TODO here get the proper name
                 g_nm = self._get_gen_name(sub_id, g_id)
                 this_gen = {}
                 this_gen["type"] = "gen"
@@ -263,7 +261,6 @@ class PlotObs(object):
                 this_sub[g_nm] = this_gen
 
             for lor_id in objs["lines_or_id"]:
-                # TODO here get the proper name
                 ext_id = observation_space.line_ex_to_subid[lor_id]
                 l_nm = self._get_line_name(sub_id, ext_id, lor_id)
                 this_line = {}
@@ -272,7 +269,6 @@ class PlotObs(object):
                 this_sub[l_nm] = this_line
 
             for lex_id in objs["lines_ex_id"]:
-                # TODO here get the proper name
                 or_id = observation_space.line_or_to_subid[lex_id]
                 l_nm = self._get_line_name(or_id, sub_id, lex_id)
                 this_line = {}
@@ -390,7 +386,6 @@ class PlotObs(object):
             state = observation.state_of(line_id=line_id)
             sub_or_id, sub_ex_id = self._layout["line"][line_id]
 
-            # TODO have the proper name
             l_nm = self._get_line_name(sub_or_id, sub_ex_id, line_id)
             pos_or = self.subs_elements[sub_or_id][l_nm]["pos"]
             pos_ex = self.subs_elements[sub_ex_id][l_nm]["pos"]
@@ -403,6 +398,7 @@ class PlotObs(object):
                                    rho=rho,
                                    color_palette=self.cols,
                                    status=status))
+
             # TODO adjust position of labels...
             fig.add_trace(go.Scatter(x=[(pos_or[0] + pos_ex[0]) / 2],
                                      y=[(pos_or[1] + pos_ex[1]) / 2],

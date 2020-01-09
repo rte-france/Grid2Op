@@ -66,7 +66,10 @@ except (ModuleNotFoundError, ImportError):
 import pdb
 
 
-# TODO code "start from a given time step"
+# TODO code "start from a given time step" -> link to the "skip" method of GridValue
+
+# TODO have a viewer / renderer now
+
 class Environment:
     """
 
@@ -582,6 +585,12 @@ class Environment:
                 # action is replace by do nothing
                 action = self.helper_action_player({})
 
+            # TODO redispatching: process the redispatching actions here, get a redispatching vector with 0-sum
+            # from the environment.
+            # and then remove the redispatching part of the action from the player one, and add it to the environment's
+            self.env_modification = self._update_actions()
+            # TODO check now that the action is compatible with the new modification
+
             try:
                 self.backend.apply_action(action)
             except AmbiguousAction:
@@ -589,7 +598,6 @@ class Environment:
                 # "do nothing"
                 is_ambiguous = True
 
-            self.env_modification = self._update_actions()
             self.backend.apply_action(self.env_modification)
             self._time_apply_act += time.time() - beg_
 
@@ -646,6 +654,7 @@ class Environment:
     def _reset_vectors_and_timings(self):
         """
         Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
+
         Returns
         -------
 

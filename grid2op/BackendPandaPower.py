@@ -79,8 +79,6 @@ class PandaPowerBackend(Backend):
     v_ex: :class:`numpy.array`, dtype:float
         The voltage magnitude at the extremity bus of the powerline
 
-    thermal_limit: :class:`numpy.array`, dtype:float
-        The
     """
     def __init__(self):
         Backend.__init__(self)
@@ -107,7 +105,6 @@ class PandaPowerBackend(Backend):
         self._iref_slack = None
         self._id_bus_added = None
         self._fact_mult_gen = -1
-        self._subs_to_table = None
         self._what_object_where = None
         self._number_true_line = -1
         self._corresp_name_fun = {}
@@ -225,7 +222,6 @@ class PandaPowerBackend(Backend):
         self.line_or_to_sub_pos = np.zeros(self.n_line, dtype=np.int)
         self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=np.int)
 
-        self._subs_to_table = [None for _ in range(self.n_sub)] # TODO later if I have too
         pos_already_used = np.zeros(self.n_sub, dtype=np.int)
         self._what_object_where = [[] for _ in range(self.n_sub)]
 
@@ -336,7 +332,8 @@ class PandaPowerBackend(Backend):
             raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not \"{}\"".format(action.__class__))
 
         # change the _injection if needed
-        dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect = action()
+        dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching = action()
+
         for k in dict_injection:
             if k in self._vars_action_set:
                 tmp = self._get_vector_inj[k](self._grid)
@@ -367,6 +364,11 @@ class PandaPowerBackend(Backend):
             else:
                 warn = "The key {} is not recognized by PandaPowerBackend when setting injections value.".format(k)
                 warnings.warn(warn)
+
+        if np.any(redispatching != 0.):
+            tmp = self._get_vector_inj["prod_p"](self._grid)
+            ok_ind = np.isfinite(redispatching)
+            tmp[ok_ind] += redispatching[ok_ind]
 
         # topology
         # run through all substations, find the topology. If it has changed, then update it.

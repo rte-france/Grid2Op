@@ -38,8 +38,6 @@ from Runner import Runner
 
 DEBUG = True
 
-#TODO test that a runner save the stuff correctly
-
 
 class TestAgent(unittest.TestCase):
     def setUp(self):
@@ -87,7 +85,7 @@ class TestAgent(unittest.TestCase):
         assert int(timestep) == 287
         assert np.abs(cum_reward - 5739.951023) <= self.tol_one
 
-    def test_one_episode(self):
+    def test_one_episode_with_saving(self):
         cum_reward, timestep = self.runner.run_one_episode(path_save="test_agent")
         assert int(timestep) == 287
         assert np.abs(cum_reward - 5739.951023) <= self.tol_one

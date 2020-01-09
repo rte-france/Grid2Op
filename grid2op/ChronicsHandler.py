@@ -60,11 +60,10 @@ import pdb
 
 
 # TODO sous echantillonner ou sur echantilloner les scenario
-# TODO max_iter is not properly handled in the example of GridValue now
+
 # TODO add a class to sample "online" the data.
-# TODO this is weird that maintenance and hazards are in the action,
-# but not maintenance_time and maintenance_duration...
-# TODO in FromFile, add the possibility to change the timestamps (for now it's not modified at all...)
+
+# TODO add a method 'skip' that can skip a given number of timestep or a until a specific date.
 
 
 class GridValue(ABC):
@@ -87,8 +86,11 @@ class GridValue(ABC):
     time_interval: :class:`.datetime.timedelta`
         Time interval between 2 consecutive timestamps. Default 5 minutes.
 
+    start_datetime:  :class:`datetime.datetime`
+        The datetime of the first timestamp of the scenario.
+
     current_datetime: :class:`datetime.datetime`
-        The timestamp of the current observation.
+        The timestamp of the current scenario.
 
     n_gen: ``int``
         Number of generators in the powergrid
@@ -131,10 +133,11 @@ class GridValue(ABC):
 
 
     """
-    def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1):
-        # TODO complete that with a real datetime
+    def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
+                 start_datetime=datetime(year=2019, month=1, day=1)):
         self.time_interval = time_interval
-        self.current_datetime = datetime(year=2019, month=1, day=1)
+        self.current_datetime = start_datetime
+        self.start_datetime = start_datetime
         self.n_gen = None
         self.n_load = None
         self.n_line = None
@@ -243,7 +246,8 @@ class GridValue(ABC):
         >>> gridval.initialize(order_backend_loads, order_backend_prods, order_backend_lines, names_chronics_to_backend)
 
         """
-        pass
+        self.curr_iter += 1
+        self.current_datetime += self.time_interval
 
     @staticmethod
     def get_maintenance_time_1d(maintenance):
@@ -617,19 +621,20 @@ class ChangeNothing(GridValue):
     This class is the most basic class to modify a powergrid values.
     It does nothing exceptie increasing :attr:`GridValue.max_iter` and the :attr:`GridValue.current_datetime`.
     """
-    def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1):
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter)
+    def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
+                 start_datetime=datetime(year=2019, month=1, day=1)):
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime)
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
-        self.n_lines = len(order_backend_lines)
+        self.n_line = len(order_backend_lines)
         self.curr_iter = 0
 
-        self.maintenance_time = np.zeros(shape=(self.n_lines, ), dtype=np.int) - 1
-        self.maintenance_duration = np.zeros(shape=(self.n_lines, ), dtype=np.int)
-        self.hazard_duration = np.zeros(shape=(self.n_lines, ), dtype=np.int)
+        self.maintenance_time = np.zeros(shape=(self.n_line, ), dtype=np.int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.n_line, ), dtype=np.int)
+        self.hazard_duration = np.zeros(shape=(self.n_line, ), dtype=np.int)
 
     def load_next(self):
         """
@@ -688,13 +693,12 @@ class ChangeNothing(GridValue):
         -------
 
         """
-        self.current_datetime = datetime(year=2019, month=1, day=1)
+        self.current_datetime = self.start_datetime
         self.curr_iter = 0
 
 
 # TODO handle case of missing files: equivalent to "change nothing" probably
-# TODO change date time: should be read from file!
-# TODO initialize datetime properly ! probably in a file (i just need start_date and time_interval
+
 class GridStateFromFile(GridValue):
     """
     Read the injections values from a file stored on hard drive. More detailed about the files is provided in the
@@ -752,7 +756,8 @@ class GridStateFromFile(GridValue):
         This directory matches the name of the objects (line extremity, generator or load) to the same object in the
         backed. See the help of :func:`GridValue.initialize` for more information).
     """
-    def __init__(self, path, sep=";", time_interval=timedelta(minutes=5), max_iter=-1):
+    def __init__(self, path, sep=";", time_interval=timedelta(minutes=5), max_iter=-1,
+                 start_datetime=datetime(year=2019, month=1, day=1)):
         """
         Build an instance of GridStateFromFile. Such an instance should be built before an :class:`grid2op.Environment`
         is created.
@@ -772,7 +777,7 @@ class GridStateFromFile(GridValue):
             Used to initialize :attr:`GridValue.max_iter`
 
         """
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter)
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime)
 
         self.path = path
 
@@ -812,6 +817,33 @@ class GridStateFromFile(GridValue):
             if not el in dict_convert[key]:
                 raise ChronicsError("Element named {} is found in the data (column {}) but it is not found on the powergrid for data of type \"{}\".\nData in files  are: {}\nConverter data are: {}".format(el, i+1, key, sorted(list(pandas_name)), sorted(list(dict_convert[key].keys()))))
 
+    def _init_date_time(self):
+        if os.path.exists(os.path.join(self.path, "start_datetime.info")):
+            with open(os.path.join(self.path, "start_datetime.info"), "r") as f:
+                a = f.read().rstrip().lstrip()
+            try:
+                tmp = datetime.strptime(a, "%Y-%m-%d %H:%M")
+            except ValueError:
+                tmp = datetime.strptime(a, "%Y-%m-%d")
+            except Exception:
+                raise ChronicsNotFoundError("Impossible to understand the content of \"start_datetime.info\". Make sure "
+                                            "it's composed of only one line with a datetime in the \"%Y-%m-%d %H:%M\""
+                                            "format.")
+            self.start_datetime = tmp
+
+        if os.path.exists(os.path.join(self.path, "time_interval.info")):
+            with open(os.path.join(self.path, "time_interval.info"), "r") as f:
+                a = f.read().rstrip().lstrip()
+            try:
+                tmp = datetime.strptime(a, "%H:%M")
+            except ValueError:
+                tmp = datetime.strptime(a, "%M")
+            except Exception:
+                raise ChronicsNotFoundError("Impossible to understand the content of \"time_interval.info\". Make sure "
+                                            "it's composed of only one line with a datetime in the \"%H:%M\""
+                                            "format.")
+            self.time_interval = timedelta(hours=tmp.hour, minutes=tmp.minute)
+
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
         """
@@ -824,21 +856,30 @@ class GridStateFromFile(GridValue):
           - a file named "prod_p.csv" used to initialize :attr:`GridStateFromFile.prod_p`
           - a file named "prod_v.csv" used to initialize :attr:`GridStateFromFile.prod_v`
           - a file named "hazards.csv" used to initialize :attr:`GridStateFromFile.hazards`
-          - a file named "_maintenance.csv" used to initialize :attr:`GridStateFromFile._maintenance`
+          - a file named "maintenance.csv" used to initialize :attr:`GridStateFromFile.maintenance`
 
         All these csv must have the same separator specified by :attr:`GridStateFromFile.sep`.
+
+        If a file named "start_datetime.info" is present, then it will be used to initialized
+        :attr:`GridStateFromFile.start_datetime`. If this file exists, it should count only one row, with the
+        initial datetime in the "%Y-%m-%d %H:%M" format.
+
+        If a file named "time_interval.info" is present, then it will be used to initialized the
+        :attr:`GridStateFromFile.time_interval` attribute.  If this file exists, it should count only one row, with the
+        initial datetime in the "%H:%M" format. Only timedelta composed of hours and minutes are supported (time delta
+        cannot go above 23 hours 55 minutes and cannot be smaller than 0 hour 1 minutes)
 
         The first row of these csv is understood as the name of the object concerned by the column. Either this name is
         present in the :class:`grid2op.Backend`, in this case no modification is performed, or in case the name
         is not found in the backend and in this case it must be specified in the "names_chronics_to_backend"
-        _parameters how to understand it. See the help of :func:`GridValue.initialize` for more information
+        parameters how to understand it. See the help of :func:`GridValue.initialize` for more information
         about this dictionnary.
 
         All files should have the same number of rows.
 
         Parameters
         ----------
-        See help of :func:`GridValue.initialize` for a detailed help about the _parameters.
+        See help of :func:`GridValue.initialize` for a detailed help about the parameters.
 
         Returns
         -------
@@ -868,6 +909,8 @@ class GridStateFromFile(GridValue):
             self.names_chronics_to_backend["subs"] = {k: k for k in order_backend_subs}
         else:
             self._assert_correct(self.names_chronics_to_backend["subs"], order_backend_subs)
+
+        self._init_date_time()
 
         read_compressed = ".csv"
         if not os.path.exists(os.path.join(self.path, "load_p.csv")):
@@ -1288,7 +1331,7 @@ class Multifolder(GridValue):
 
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
-        self.n_lines = len(order_backend_lines)
+        self.n_line = len(order_backend_lines)
         # print("max_iter: {}".format(self.max_iter))
         self.data = self.gridvalueClass(time_interval=self.time_interval,
                                         sep=self.sep,

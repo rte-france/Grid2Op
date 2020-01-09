@@ -23,8 +23,9 @@ import pdb
 
 
 # TODO better random stuff when random observation (seed in argument is really weird)
-# TODO gym integration (inheritance, shape and dtype)
-# TODO tests of these methods
+
+# TODO tests of these methods and this class in general
+
 class GridObjects:
     """
     This class stores in a Backend agnostic way some information about the powergrid.
@@ -119,6 +120,19 @@ class GridObjects:
         :func:`GridObjects.shape` as well as :func:`GridObjects.size`. If this class is derived, then it's really
         important that this vector is properly set. All the attributes with the name on this vector should have
         consistently the same size and shape, otherwise some methods will not behave as expected.
+
+    _vectorized: :class:`numpy.array`, dtype:float
+        The representation of the GridObject as a vector. See the help of :func:`GridObjects.to_vect` and
+        :func:`GridObjects.from_vect` for more information. **NB** for performance reason, the convertion of the internal
+        representation to a vector is not performed at any time. It is only performed when :func:`GridObjects.to_vect` is
+        called the first time. Otherwise, this attribute is set to ``None``.
+
+    gen_type
+    gen_pmin
+    gen_pmax
+    gen_redispatchable
+    gen_ramp_up_max
+    gen_ramp_down_min
     """
     def __init__(self):
         # name of the objects
@@ -156,6 +170,15 @@ class GridObjects:
         # list of attribute to convert it from/to a vector
         self.attr_list_vect = None
         self._vectorized = None
+
+        # for redispatching
+        TODO = "TODO COMPLETE THAT BELLOW!!! AND UPDATE THE init methods"
+        self.gen_type = TODO
+        self.gen_pmin = TODO
+        self.gen_pmax = TODO
+        self.gen_redispatchable = TODO
+        self.gen_max_ramp_up = TODO
+        self.gen_max_ramp_down = TODO
 
     def _raise_error_attr_list_none(self):
         """
@@ -716,6 +739,14 @@ class GridObjects:
         self.gen_pos_topo_vect = gridobj.gen_pos_topo_vect
         self.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
         self.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
+
+        # for redispatching
+        self.gen_type = gridobj.gen_type
+        self.gen_pmin = gridobj.gen_pmin
+        self.gen_pmax = gridobj.gen_pmax
+        self.gen_redispatchable = gridobj.gen_redispatchable
+        self.gen_max_ramp_up = gridobj.gen_max_ramp_up
+        self.gen_max_ramp_down = gridobj.gen_max_ramp_down
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
