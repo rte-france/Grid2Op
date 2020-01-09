@@ -55,7 +55,7 @@ class Episode:
         self.serialize = False
         self.load_names = action_space.name_load
         self.n_loads = len(self.load_names)
-        self.prod_names = action_space.name_prod
+        self.prod_names = action_space.name_gen
         self.n_prods = len(self.prod_names)
         self.line_names = action_space.name_line
         self.n_lines = len(self.line_names)
@@ -72,7 +72,7 @@ class Episode:
             self.timesteps = sorted(self.load.timestep.unique())
             end = time.time()
             print(f"end computing df: {end-beg}")
-        
+
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
             self.episode_path = os.path.join(self.agent_path, str(indx))
@@ -118,7 +118,8 @@ class Episode:
             timestep.append(self.timestamp(obs))
 
         df = pd.DataFrame(index=range(len(self.rewards)))
-        df["timestep"] = timestep  # TODO use timestep from one of _make_df_data() returns to avoid multiple computation
+        # TODO use timestep from one of _make_df_data() returns to avoid multiple computation
+        df["timestep"] = timestep
         df["rewards"] = self.rewards
         df["cum_rewards"] = self.rewards.cumsum(axis=0)
 
@@ -155,10 +156,11 @@ class Episode:
             for equipment, rho_t in enumerate(obs.rho):
                 pos = time_step * len(obs.rho) + equipment
                 rho.loc[pos, :] = [time_step, time_stamp, equipment, rho_t]
-            for line, subs in zip(range(act._n_lines), range(len(act._subs_info))):
+            for line, subs in zip(range(act.n_line), range(len(act.sub_info))):
                 pos = time_step
                 action_data.loc[pos, :] = [time_step, self.rewards[time_step],
-                                           np.sum(act._switch_line_status), np.sum(act._change_bus_vect),
+                                           np.sum(act._switch_line_status), np.sum(
+                                               act._change_bus_vect),
                                            act._set_line_status.flatten().astype(np.float),
                                            act._switch_line_status.flatten().astype(np.float),
                                            act._set_topo_vect.flatten().astype(np.float),
@@ -190,7 +192,7 @@ class Episode:
         hazards["value"] = hazards["value"].astype(int)
         maintenances["value"] = maintenances["value"].astype(int)
         return hazards, maintenances
-    
+
     @staticmethod
     def timestamp(obs):
         return dt.datetime(obs.year, obs.month, obs.day, obs.hour_of_day,
@@ -261,8 +263,10 @@ class Episode:
                    reward, env_act, act, obs, info):
         if self.serialize:
             self.actions.update(time_step, act.to_vect(), efficient_storing)
-            self.env_actions.update(time_step, env_act.to_vect(), efficient_storing)
-            self.observations.update(time_step, obs.to_vect(), efficient_storing)
+            self.env_actions.update(
+                time_step, env_act.to_vect(), efficient_storing)
+            self.observations.update(
+                time_step, obs.to_vect(), efficient_storing)
             if efficient_storing:
                 # efficient way of writing
                 self.times[time_step - 1] = time_step_duration
@@ -370,7 +374,7 @@ class CollectionWrapper:
     def update(self, time_step, values, efficient_storage):
         if efficient_storage:
             self.collection[time_step - 1, :] = values
-        else: 
+        else:
             self.collection = np.concatenate((self.collection, values))
 
     def save(self, path):
