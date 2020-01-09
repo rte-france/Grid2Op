@@ -51,6 +51,8 @@ except:
 
 __all__ = ["PlotObs"]
 
+# TODO add tests there
+
 
 # Some utilities to plot substation, lines or get the color id for the colormap.
 def draw_sub(pos, radius=50):
@@ -225,7 +227,7 @@ class PlotObs(object):
         self._layout = {}
         self._layout["substations"] = substation_layout
 
-        self.subs_elements = [None for _ in observation_space.subs_info]
+        self.subs_elements = [None for _ in observation_space.sub_info]
 
         # define a color palette, whatever...
         sns.set()
@@ -240,7 +242,7 @@ class PlotObs(object):
         self.load_prod_dist = load_prod_dist # distance between load and generator to the center of the substation
         self.bus_radius = bus_radius
         # get the element in each substation
-        for sub_id in range(observation_space.subs_info.shape[0]):
+        for sub_id in range(observation_space.sub_info.shape[0]):
             this_sub = {}
             objs = observation_space.get_obj_connect_to(substation_id=sub_id)
 

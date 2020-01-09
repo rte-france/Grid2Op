@@ -115,9 +115,10 @@ class GridObjects:
 
     attr_list_vect: ``list``
         List of string. It represents the attributes that will be stored to/from vector when the Observation is converted
-        to / from it. This parameter is also used to compute automatically :func:`Observation.dtype` and
-        :func:`Observation.shape` as well as :func:`Observation.size`. If this class is derived, then it's really
-        important that this vector is properly set.
+        to / from it. This parameter is also used to compute automatically :func:`GridObjects.dtype` and
+        :func:`GridObjects.shape` as well as :func:`GridObjects.size`. If this class is derived, then it's really
+        important that this vector is properly set. All the attributes with the name on this vector should have
+        consistently the same size and shape, otherwise some methods will not behave as expected.
     """
     def __init__(self):
         # name of the objects
@@ -340,10 +341,10 @@ class GridObjects:
         gen_to_subid: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`GridObjects.gen_to_subid`
 
-        lines_or_to_subid: :class:`numpy.array`, dtype:int
+        line_or_to_subid: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`GridObjects.line_or_to_subid`
 
-        lines_ex_to_subid: :class:`numpy.array`, dtype:int
+        line_ex_to_subid: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`GridObjects.line_ex_to_subid`
 
         load_to_sub_pos: :class:`numpy.array`, dtype:int
@@ -352,10 +353,10 @@ class GridObjects:
         gen_to_sub_pos: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`GridObjects.gen_to_sub_pos`
 
-        lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
+        line_or_to_sub_pos: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`GridObjects.line_or_to_sub_pos`
 
-        lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+        line_ex_to_sub_pos: :class:`numpy.array`, dtype:int
             Used to initialized :attr:`GridObjects.line_ex_to_sub_pos`
 
         load_pos_topo_vect: :class:`numpy.array`, dtype:int
@@ -1004,7 +1005,7 @@ class SerializableSpace(GridObjects):
             # TODO make something better and recursive here
             exec("from {} import {}".format(".".join(actionClass_li[:-1]), actionClass_li[-1]))
             try:
-                subtype = eval(actionClass_str)
+                subtype = eval(actionClass_li[-1])
             except NameError:
                 if len(actionClass_li) > 1:
                     try:
