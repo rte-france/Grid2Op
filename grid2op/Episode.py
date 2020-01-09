@@ -66,8 +66,8 @@ class Episode:
             self.hazards, self.maintenances = self._env_actions_as_df()
             self.computed_reward = self._compute_reward_df_from_data()
             end = time.time()
-            print(f"end computing df: {end-beg}")
-        
+            print(f"end computing df: {end - beg}")
+
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
             self.episode_path = os.path.join(self.agent_path, str(indx))
@@ -119,7 +119,6 @@ class Episode:
 
         return df
 
-
     def _make_df_from_data(self):
         load_size = len(self.observations) * len(self.observations[0].load_p)
         prod_size = len(self.observations) * len(self.observations[0].prod_p)
@@ -130,10 +129,10 @@ class Episode:
         load_data = pd.DataFrame(index=range(load_size), columns=cols)
         production = pd.DataFrame(index=range(prod_size), columns=cols)
         rho = pd.DataFrame(index=range(rho_size), columns=[
-                           'time', "timestamp", 'equipment', 'value'])
+            'time', "timestamp", 'equipment', 'value'])
         action_data = pd.DataFrame(index=range(action_size),
                                    columns=['timestep', 'timestep_reward', 'action_line', 'action_subs',
-                                            'set_line', 'switch_line', 'set_topo', 'change_bus'])
+                                            'set_line', 'switch_line', 'set_topo', 'change_bus', 'distance'])
         for (time_step, (obs, act)) in enumerate(zip(self.observations, self.actions)):
             if obs.game_over:
                 continue
@@ -158,12 +157,16 @@ class Episode:
                                            act._set_line_status.flatten().astype(np.float),
                                            act._switch_line_status.flatten().astype(np.float),
                                            act._set_topo_vect.flatten().astype(np.float),
-                                           act._change_bus_vect.flatten().astype(np.float)]
+                                           act._change_bus_vect.flatten().astype(np.float),
+                                           self.get_distance_from_obs(obs)]
 
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
         rho["value"] = rho["value"].astype(float)
         return load_data, production, rho, action_data
+
+    def get_distance_from_obs(self, obs):
+        return len(obs.topo_vect) - np.count_nonzero(obs.topo_vect == 1)
 
     def _env_actions_as_df(self):
         hazards_size = len(self.observations) * self.n_lines
@@ -186,7 +189,7 @@ class Episode:
         hazards["value"] = hazards["value"].astype(int)
         maintenances["value"] = maintenances["value"].astype(int)
         return hazards, maintenances
-    
+
     @staticmethod
     def timestamp(obs):
         return dt.datetime(obs.year, obs.month, obs.day, obs.hour_of_day,
@@ -269,7 +272,7 @@ class Episode:
                         self.disc_lines[time_step - 1, :] = arr
                     else:
                         self.disc_lines[time_step - 1,
-                                        :] = self.disc_lines_templ
+                        :] = self.disc_lines_templ
             else:
                 # completely inefficient way of writing
                 self.times = np.concatenate(
@@ -366,7 +369,7 @@ class CollectionWrapper:
     def update(self, time_step, values, efficient_storage):
         if efficient_storage:
             self.collection[time_step - 1, :] = values
-        else: 
+        else:
             self.collection = np.concatenate((self.collection, values))
 
     def save(self, path):
