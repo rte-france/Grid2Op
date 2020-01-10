@@ -82,6 +82,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
                'subtype': 'Action.Action'}
 
+        self.size_act = 229
+
     def tearDown(self):
         pass
         # self.backend._grid.delete()
@@ -102,10 +104,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_proper_size(self):
         action = self.helper_action()
-        assert action.size() == 224
+        assert action.size() == self.size_act
 
     def test_size_action_space(self):
-        assert self.helper_action.size() == 224
+        assert self.helper_action.size() == self.size_act
 
     def test_print_notcrash(self):
         """
@@ -339,7 +341,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
-        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
+        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching action\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
         assert res == act_str
 
     def test_to_vect(self):
@@ -352,7 +354,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         res = action.to_vect()
         tmp = np.array([np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
                         np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
+                        0., 0., 0., 0., 0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
@@ -395,6 +399,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         vect_act1 = action1.to_vect()
         action2.from_vect(vect_act1)
+        # pdb.set_trace()
         # if i load an action with from_vect it's equal to the original one
         assert action1 == action2
         vect_act2 = action2.to_vect()
@@ -437,7 +442,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                       "injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_line_status": change_status_orig,
                                      "set_line_status": set_status_orig})
-        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect = action()
+        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching = action()
         assert "load_p" in dict_injection
         assert np.all(dict_injection["load_p"] == new_vect)
         assert "load_q" in dict_injection
@@ -572,6 +577,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_shape_correct(self):
         act = self.helper_action_env({})
         assert act.shape().shape == act.dtype().shape
+
+    def test_redispatching(self):
+        act = self.helper_action_env({"redispatch": [1, 10]})
+        act = self.helper_action_env({"redispatch": [(1, 10), (2, 100)]})
+        act = self.helper_action_env({"redispatch": np.array([10, 20, 30, 40, 50])})
 
 if __name__ == "__main__":
     unittest.main()

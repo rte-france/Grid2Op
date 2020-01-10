@@ -2,7 +2,7 @@
 This class abstract the main components of Action, Observation, ActionSpace and ObservationSpace.
 
 It basically represents a powergrid (the object in it) in a format completely agnostic to the solver use to compute
-the powerflows (:class:grid2op.Backend.Backend).
+the powerflows (:class:`grid2op.Backend.Backend`).
 
 """
 import re
@@ -37,6 +37,95 @@ class GridObjects:
     :class:`grid2op.Backend.Backend` all inherit from this class. This means that each of the above has its own
     representation of the powergrid.
 
+
+    The modeling adopted for describing a powergrid is the following:
+
+    - only the main objects of a powergrid are represented. An "object" is either a load (consumption) a generator
+      (production), an end of a powerline (each powerline have exactly two extremities: "origin" (or)
+      and "extremity" (ext)).
+    - every "object" (see above) is connected to a unique substation. Each substation then counts a given (fixed)
+      number of objects connected to it. [in ths platform we don't consider the possibility to build new "objects" as
+      of today]
+
+    For each object, the bus to which it is connected is given in the `*_to_subid` (for
+    example :attr:`GridObjects.load_to_subid` gives, for each load, the id of the substation to which it is
+    connected)
+
+    We suppose that, at every substation, each object (if connected) can be connected to either "busbar" 1 or
+    "busbar" 2. This means that, at maximum, there are 2 inedpendant buses for each substation.
+
+    With this hypothesis, we can represent (thought experiment) each substation by a vector. This vector has as
+    many components than the number of objects in the substation (following the previous example, the vector
+    representing the first substation would have 5 components). And each component of this vector would represent
+    a fixed element in it. For example, if say, the load with id 1 is connected to the first element, there would be
+    a unique component saying if load with id 1 is connected to busbar 1 or busbar 2. For the generators, this
+    id in this (fictive) vector is indicated in the :attr:`GridObjects.gen_to_sub_pos` vector. For example the first
+    position of :attr:`GridObjects.gen_to_sub_pos` indicates on which component of the (fictive) vector representing the
+    substation 1 to look to know on which bus the first generator is connected.
+
+    We define the "topology" as the busbar to which each object is connected: each object being connected to either
+    busbar 1 or busbar 2, this topology can be represented by a vector of fixed size (and it actually is in
+    :attr:`grid2op.Observation.Observation.topo_vect` or in :func:`grid2op.Backend.Backend.get_topo_vect`). There are
+    multiple ways to make such vector. We decided to concatenate all the (fictive) vectors described above. This
+    concatenation represent the actual topology of this powergrid at a given timestep. This class doesn't store this
+    information (see :class:`grid2op.Observation.Observation` for such purpose).
+    This entails taht:
+
+    - the bus to which each object on a substation will be stored in consecutive components of such a vector. For
+      example, if the first substation of the grid has 5 elements connected to it, then the first 5 elements of
+      :attr:`grid2op.Observation.Observation.topo_vect` will represent these 5 elements. The number of elements
+      in each substation is given in :attr:`grid2op.Space.GridObjects.sub_info`.
+    - the substation are stored in "order": objects of the first substations are represented, then this is the objects
+      of the second substation etc. So in the example above, the 6th element of
+      :attr:`grid2op.Observation.Observation.topo_vect` is an object connected to the second substation.
+    - to know on which position of this "topology vector" we can find the information relative a specific element
+      it is possible to:
+
+        - method 1 (not recommended):
+
+          i) retrieve the substation to which this object is connected (for example looking at :attr:`GridObjects.line_or_to_subid` [l_id] to know on which substation is connected the origin of powerline with id $l_id$.)
+          ii) once this substation id is known, compute which are the components of the topological vector that encodes information about this substation. For example, if the substation id `sub_id` is 4, we a) count the number of elements in substations with id 0, 1, 2 and 3 (say it's 42) we know, by definition that the substation 4 is encoded in ,:attr:`grid2op.Observation.Observation.topo_vect` starting at component 42 and b) this substations has :attr:`GridObjects.sub_info` [sub_id] elements (for the sake of the example say it's 5) then the end of the vector for substation 4 will be 42+5 = 47. Finally, we got the representation of the "local topology" of the substation 4 by looking at :attr:`grid2op.Observation.Observation.topo_vect` [42:47].
+          iii) retrieve which component of this vector of dimension 5 (remember we assumed substation 4 had 5 elements) encodes information about the origin end of line with id `l_id`. This information is given in :attr:`GridObjects.line_or_to_sub_pos` [l_id]. This is a number between 0 and 4, say it's 3. and 3 being the index of the object in the substation)
+
+        - method 2 (not recommended): all of the above is stored (for the same powerline) in the
+          :attr:`GridObjects.line_or_pos_topo_vect` [l_id]. In the example above, we will have:
+          :attr:`GridObjects.line_or_pos_topo_vect` [l_id] = 45 (=42+3:
+          42 being the index on which the substation started and 3 being the index of the object in the substation)
+        - method 3 (recommended): use any of the function that computes it for you:
+          :func:`grid2op.Observation.Observation.state_of` is such an interesting method. The two previous methods
+          "method 1" and "method 2" were presented as a way to give detailed and "concrete" example on how the
+          modeling of the powergrid work.
+
+
+
+    For a given powergrid, this object should be initialized once in the :class:`grid2op.Backend.Backend` when
+    the first call to :func:`grid2op.Backend.Backend.load_grid` is performed. In particular the following attributes
+    must necessarily be defined (see above for a detailed description of some of the attributes):
+
+    - :attr:`GridObjects.n_line`
+    - :attr:`GridObjects.n_gen`
+    - :attr:`GridObjects.n_load`
+    - :attr:`GridObjects.n_sub`
+    - :attr:`GridObjects.sub_info`
+    - :attr:`GridObjects.dim_topo`
+    - :attr:`GridObjects.load_to_subid`
+    - :attr:`GridObjects.gen_to_subid`
+    - :attr:`GridObjects.line_or_to_subid`
+    - :attr:`GridObjects.line_ex_to_subid`
+    - :attr:`GridObjects.load_to_sub_pos`
+    - :attr:`GridObjects.gen_to_sub_pos`
+    - :attr:`GridObjects.line_or_to_sub_pos`
+    - :attr:`GridObjects.line_ex_to_sub_pos`
+    - :attr:`GridObjects.gen_type`
+    - :attr:`GridObjects.gen_pmin`
+    - :attr:`GridObjects.gen_pmax`
+    - :attr:`GridObjects.gen_redispatchable`
+    - :attr:`GridObjects.gen_max_ramp_up`
+    - :attr:`GridObjects.gen_max_ramp_down`
+
+    A call to the function :func:`GridObjects._compute_pos_big_topo` allow to compute the \*_pos_topo_vect attributes
+    (for example :attr:`GridObjects.line_ex_pos_topo_vect`) can be computed from this data.
+
     **NB** it does not store any information about the current state of the powergrid. It stores information that
     cannot be modified by the Agent, the Environment or any other entity.
 
@@ -44,30 +133,38 @@ class GridObjects:
     ----------
 
     n_line: :class:`int`
-        number of powerline in the _grid
+        number of powerline in the powergrid
 
     n_gen: :class:`int`
-        number of generators in the _grid
+        number of generators in the powergrid
 
     n_load: :class:`int`
+        number of loads in the
+
+    n_sub: :class:`int`
         number of loads in the powergrid
 
-    sub_info: :class:`numpy.array`, dtype:int
+    dim_topo: :class:`int`
+        Total number of objects in the powergrid. This is also the dimension of the "topology vector" defined above.
+
+    sub_info: :class:`numpy.ndarray`, dtype:int
         for each substation, gives the number of elements connected to it
 
-    load_to_subid: :class:`numpy.array`, dtype:int
-        for each load, gives the id the substation to which it is connected
+    load_to_subid: :class:`numpy.ndarray`, dtype:int
+        for each load, gives the id the substation to which it is connected. For example,
+        :attr:`GridObjects.load_to_subid`[load_id] gives the id of the substation to which the load of id
+        `load_id` is connected.
 
-    gen_to_subid: :class:`numpy.array`, dtype:int
+    gen_to_subid: :class:`numpy.ndarray`, dtype:int
         for each generator, gives the id the substation to which it is connected
 
-    line_or_to_subid: :class:`numpy.array`, dtype:int
+    line_or_to_subid: :class:`numpy.ndarray`, dtype:int
         for each lines, gives the id the substation to which its "origin" end is connected
 
-    line_ex_to_subid: :class:`numpy.array`, dtype:int
+    line_ex_to_subid: :class:`numpy.ndarray`, dtype:int
         for each lines, gives the id the substation to which its "extremity" end is connected
 
-    load_to_sub_pos: :class:`numpy.array`, dtype:int
+    load_to_sub_pos: :class:`numpy.ndarray`, dtype:int
         The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
         :attr:`GridObjects.sub_info`\[i\]. For a given load of id *l*,
         :attr:`Action.GridObjects.load_to_sub_pos`\[l\] is the index
@@ -75,16 +172,16 @@ class GridObjects:
         *sub_topo_vect\[ action.load_to_sub_pos\[l\] \]=2*
         then load of id *l* is connected to the second bus of the substation.
 
-    gen_to_sub_pos: :class:`numpy.array`, dtype:int
+    gen_to_sub_pos: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_to_sub_pos` but for generators.
 
-    line_or_to_sub_pos: :class:`numpy.array`, dtype:int
+    line_or_to_sub_pos: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_to_sub_pos`  but for "origin" end of powerlines.
 
-    line_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+    line_ex_to_sub_pos: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_to_sub_pos` but for "extremity" end of powerlines.
 
-    load_pos_topo_vect: :class:`numpy.array`, dtype:int
+    load_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
         It has a similar role as :attr:`GridObjects.load_to_sub_pos` but it gives the position in the vector representing
         the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
         *full_topo_vect* resulting of the concatenation of the topology vector for each substation
@@ -93,25 +190,25 @@ class GridObjects:
         More formally, if *_topo_vect\[ backend.load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
         second bus of the substation.
 
-    gen_pos_topo_vect: :class:`numpy.array`, dtype:int
+    gen_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_pos_topo_vect` but for generators.
 
-    line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+    line_or_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_pos_topo_vect` but for "origin" end of powerlines.
 
-    line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+    line_ex_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_pos_topo_vect` but for "extremity" end of powerlines.
 
-    name_load: :class:`numpy.array`, dtype:str
+    name_load: :class:`numpy.ndarray`, dtype:str
         ordered name of the loads in the grid.
 
-    name_gen: :class:`numpy.array`, dtype:str
+    name_gen: :class:`numpy.ndarray`, dtype:str
         ordered name of the productions in the grid.
 
-    name_line: :class:`numpy.array`, dtype:str
+    name_line: :class:`numpy.ndarray`, dtype:str
         ordered names of the powerline in the grid.
 
-    name_sub: :class:`numpy.array`, dtype:str
+    name_sub: :class:`numpy.ndarray`, dtype:str
         ordered names of the substation in the grid
 
     attr_list_vect: ``list``
@@ -121,18 +218,34 @@ class GridObjects:
         important that this vector is properly set. All the attributes with the name on this vector should have
         consistently the same size and shape, otherwise some methods will not behave as expected.
 
-    _vectorized: :class:`numpy.array`, dtype:float
+    _vectorized: :class:`numpy.ndarray`, dtype:float
         The representation of the GridObject as a vector. See the help of :func:`GridObjects.to_vect` and
         :func:`GridObjects.from_vect` for more information. **NB** for performance reason, the convertion of the internal
         representation to a vector is not performed at any time. It is only performed when :func:`GridObjects.to_vect` is
         called the first time. Otherwise, this attribute is set to ``None``.
 
-    gen_type
-    gen_pmin
-    gen_pmax
-    gen_redispatchable
-    gen_ramp_up_max
-    gen_ramp_down_min
+    gen_type: :class:`numpy.ndarray`, dtype:str
+        Type of the generators, among: "solar", "wind", "hydro", "thermal" and "nuclear"
+
+    gen_pmin: :class:`numpy.ndarray`, dtype:float
+        Minimum active power production needed for a generator to work properly.
+
+    gen_pmax: :class:`numpy.ndarray`, dtype:float
+        Maximum active power production needed for a generator to work properly.
+
+    gen_redispatchable: :class:`numpy.ndarray`, dtype:bool
+        For each generator, it says if the generator is dispatchable or not.
+
+    gen_max_ramp_up: :class:`numpy.ndarray`, dtype:float
+        Maximum active power variation possible between two consecutive timestep for each generator:
+        a redispatching action
+        on generator `g_id` cannot be above :attr:`GridObjects.gen_ramp_up_max` [`g_id`]
+
+    gen_max_ramp_down: :class:`numpy.ndarray`, dtype:float
+        Minimum active power variationpossible between two consecutive timestep for each generator: a redispatching
+        action
+        on generator `g_id` cannot be below :attr:`GridObjects.gen_ramp_down_min` [`g_id`]
+
     """
     def __init__(self):
         # name of the objects
@@ -198,6 +311,8 @@ class GridObjects:
         """
         This function allows to return the proper attribute vector that can be inspected in the
         shape, size, dtype, from_vect and to_vect method.
+
+        If this function is overloaded, then the _assign_attr_from_name must be too.
 
         Parameters
         ----------
@@ -283,6 +398,26 @@ class GridObjects:
         res = np.array([self._get_array_from_attr_name(el).dtype for el in self.attr_list_vect])
         return res
 
+    def _assign_attr_from_name(self, attr_nm, vect):
+        """
+        Assign the proper attributes with name 'attr_nm' with the value of the vector vect
+
+         If this function is overloaded, then the _get_array_from_attr_name must be too.
+
+        Parameters
+        ----------
+        attr_nm
+        vect
+
+        Returns
+        -------
+        ``None``
+        """
+        self.__dict__[attr_nm] = vect
+
+    def check_space_legit(self):
+        pass
+
     def from_vect(self, vect):
         """
         Convert a GridObjects, represented as a vector, into an GridObjects object.
@@ -312,8 +447,9 @@ class GridObjects:
         self._raise_error_attr_list_none()
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
-            self.__dict__[attr_nm] = vect[prev_:(prev_ + sh)].astype(dt)
+            self._assign_attr_from_name(attr_nm, vect[prev_:(prev_ + sh)].astype(dt))
             prev_ += sh
+        self.check_space_legit()
 
     def size(self):
         """
@@ -343,55 +479,55 @@ class GridObjects:
 
         Parameters
         ----------
-        name_prod: :class:`numpy.array`, dtype:str
+        name_prod: :class:`numpy.ndarray`, dtype:str
             Used to initialized :attr:`GridObjects.name_gen`
 
-        name_load: :class:`numpy.array`, dtype:str
+        name_load: :class:`numpy.ndarray`, dtype:str
             Used to initialized :attr:`GridObjects.name_load`
 
-        name_line: :class:`numpy.array`, dtype:str
+        name_line: :class:`numpy.ndarray`, dtype:str
             Used to initialized :attr:`GridObjects.name_line`
 
-        name_sub: :class:`numpy.array`, dtype:str
+        name_sub: :class:`numpy.ndarray`, dtype:str
             Used to initialized :attr:`GridObjects.name_sub`
 
-        sub_info: :class:`numpy.array`, dtype:int
+        sub_info: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.sub_info`
 
-        load_to_subid: :class:`numpy.array`, dtype:int
+        load_to_subid: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.load_to_subid`
 
-        gen_to_subid: :class:`numpy.array`, dtype:int
+        gen_to_subid: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.gen_to_subid`
 
-        line_or_to_subid: :class:`numpy.array`, dtype:int
+        line_or_to_subid: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.line_or_to_subid`
 
-        line_ex_to_subid: :class:`numpy.array`, dtype:int
+        line_ex_to_subid: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.line_ex_to_subid`
 
-        load_to_sub_pos: :class:`numpy.array`, dtype:int
+        load_to_sub_pos: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.load_to_sub_pos`
 
-        gen_to_sub_pos: :class:`numpy.array`, dtype:int
+        gen_to_sub_pos: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.gen_to_sub_pos`
 
-        line_or_to_sub_pos: :class:`numpy.array`, dtype:int
+        line_or_to_sub_pos: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.line_or_to_sub_pos`
 
-        line_ex_to_sub_pos: :class:`numpy.array`, dtype:int
+        line_ex_to_sub_pos: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.line_ex_to_sub_pos`
 
-        load_pos_topo_vect: :class:`numpy.array`, dtype:int
+        load_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.load_pos_topo_vect`
 
-        gen_pos_topo_vect: :class:`numpy.array`, dtype:int
+        gen_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.gen_pos_topo_vect`
 
-        line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+        line_or_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.line_or_pos_topo_vect`
 
-        line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+        line_ex_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
             Used to initialized :attr:`GridObjects.line_ex_pos_topo_vect`
         """
 
@@ -470,7 +606,7 @@ class GridObjects:
         """
         Performs some checking on the loaded _grid to make sure it is consistent.
         It also makes sure that the vector such as *sub_info*, *load_to_subid* or *gen_to_sub_pos* are of the
-        right type eg. numpy.array with dtype: np.int
+        right type eg. numpy.ndarray with dtype: np.int
 
         It is called after the _grid has been loaded.
 

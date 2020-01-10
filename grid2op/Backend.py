@@ -155,7 +155,8 @@ class Backend(GridObjects, ABC):
         And then fill all the helpers used by the backend eg. all the attributes of :class:`Space.GridObjects`.
 
         After a the call to :func:`Backend.load_grid` has been performed, the backend should be in such a state where
-        the :class:`Space.GridObjects` is properly set up.
+        the :class:`grid2op.Space.GridObjects` is properly set up. See the description of
+        :class:`grid2op.Space.GridObjects` to know which attributes should be set here and which should not.
 
         :param path: the path to find the powergrid
         :type path: :class:`string`
@@ -403,15 +404,17 @@ class Backend(GridObjects, ABC):
         load of id 1 is connected to the second bus of its substation.
 
         You can check which object of the powerlines is represented by each component of this vector by looking at the
-        `*_pos_topo_vect` (*eg.* :attr:`Backend.load_pos_topo_vect`) vectors. For each elements it gives its position
-        in this vector.
+        `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
+        For each elements it gives its position in this vector.
 
         TODO make an example here on how to use this!
 
         Returns
         --------
-        res: `numpy.ndarray`
+
+        res: `numpy.ndarray`, dtype: ``int``
             An array saying to which bus the object is connected.
+
         """
         pass
 
@@ -422,11 +425,11 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        prod_p ``numpy.array``
+        prod_p ``numpy.ndarray``
             The active power production for each generator
-        prod_q ``numpy.array``
+        prod_q ``numpy.ndarray``
             The reactive power production for each generator
-        prod_v ``numpy.array``
+        prod_v ``numpy.ndarray``
             The voltage magnitude of the bus to which each generators is connected
         """
         pass
@@ -438,11 +441,11 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        load_p ``numpy.array``
+        load_p ``numpy.ndarray``
             The active power consumption for each load
-        load_q ``numpy.array``
+        load_q ``numpy.ndarray``
             The reactive power consumption for each load
-        load_v ``numpy.array``
+        load_v ``numpy.ndarray``
             The voltage magnitude of the bus to which each load is connected
         """
         pass
@@ -456,13 +459,13 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        p_or ``numpy.array``
+        p_or ``numpy.ndarray``
             the origin active power flowing on the lines
-        q_or ``numpy.array``
+        q_or ``numpy.ndarray``
             the origin reactive power flowing on the lines
-        v_or ``numpy.array``
+        v_or ``numpy.ndarray``
             the voltage magnitude at the origin of each powerlines
-        a_or ``numpy.array``
+        a_or ``numpy.ndarray``
             the current flow at the origin of each powerlines
         """
         pass
@@ -476,13 +479,13 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        p_ex ``numpy.array``
+        p_ex ``numpy.ndarray``
             the extremity active power flowing on the lines
-        q_ex ``numpy.array``
+        q_ex ``numpy.ndarray``
             the extremity reactive power flowing on the lines
-        v_ex ``numpy.array``
+        v_ex ``numpy.ndarray``
             the voltage magnitude at the extremity of each powerlines
-        a_ex ``numpy.array``
+        a_ex ``numpy.ndarray``
             the current flow at the extremity of each powerlines
         """
         pass
@@ -501,13 +504,13 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        shunt_p ``numpy.array``
+        shunt_p ``numpy.ndarray``
             For each shunt, the active power it withdraw at the bus to which it is connected.
-        shunt_q ``numpy.array``
+        shunt_q ``numpy.ndarray``
             For each shunt, the reactive power it withdraw at the bus to which it is connected.
-        shunt_v ``numpy.array``
+        shunt_v ``numpy.ndarray``
             For each shunt, the voltage magnitude of the bus to which it is connected.
-        shunt_bus ``numpy.array``
+        shunt_bus ``numpy.ndarray``
             For each shunt, the bus id to which it is connected.
         """
         return [], [], [], []
@@ -624,14 +627,14 @@ class Backend(GridObjects, ABC):
 
         Returns
         -------
-        p_subs ``numpy.array``
+        p_subs ``numpy.ndarray``
             sum of injected active power at each substations
-        q_subs ``numpy.array``
+        q_subs ``numpy.ndarray``
             sum of injected reactive power at each substations
-        p_bus ``numpy.array``
+        p_bus ``numpy.ndarray``
             sum of injected active power at each buses. It is given in form of a matrix, with number of substations as
             row, and number of columns equal to the maximum number of buses for a substation
-        q_bus ``numpy.array``
+        q_bus ``numpy.ndarray``
             sum of injected reactive power at each buses. It is given in form of a matrix, with number of substations as
             row, and number of columns equal to the maximum number of buses for a substation
         """

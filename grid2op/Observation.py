@@ -1230,26 +1230,6 @@ class CompleteObservation(Observation):
                 #     pdb.set_trace()
         return self.bus_connectivity_matrix_
 
-    def size(self):
-        """
-        Return the size of the flatten observation vector.
-        For this CompletObservation:
-
-            - 6 calendar data
-            - each generator is caracterized by 3 values: p, q and v
-            - each load is caracterized by 3 values: p, q and v
-            - each end of a powerline by 4 values: flow p, flow q, v, current flow
-            - each line have also a status
-            - each line can also be impossible to reconnect
-            - the topology vector of dim `dim_topo`
-
-        :return: the size of the flatten observation vector.
-        """
-        # TODO documentation (update)
-        # res = 6 + 3 * self.n_gen + 3 * self.n_load + 15 * self.n_line + self.dim_topo + self.n_sub
-        res = np.sum(self.shape())
-        return res
-
 
 class SerializableObservationSpace(SerializableSpace):
     """

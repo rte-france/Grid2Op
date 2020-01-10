@@ -265,7 +265,7 @@ class Action(GridObjects):
 
     def _get_array_from_attr_name(self, attr_name):
         if attr_name in self.__dict__:
-            res = np.array(self.__dict__[attr_name]).flatten()
+            res = super()._get_array_from_attr_name(attr_name)
         else:
             if attr_name in self._dict_inj:
                 res = self._dict_inj[attr_name]
@@ -278,6 +278,16 @@ class Action(GridObjects):
                     raise Grid2OpException("Impossible to find the attribute \"{}\" "
                                            "into the Action of type \"{}\"".format(attr_name, type(self)))
         return res
+
+    def _assign_attr_from_name(self, attr_nm, vect):
+        if attr_nm in self.__dict__:
+            super()._assign_attr_from_name(attr_nm, vect)
+        else:
+            if np.any(np.isfinite(vect)):
+                self._dict_inj[attr_nm] = vect
+
+    def check_space_legit(self):
+        self._check_for_ambiguity()
 
     def get_set_line_status_vect(self):
         """
@@ -757,10 +767,23 @@ class Action(GridObjects):
                     kk, val = self.__convert_and_redispatch(kk, val)
             elif isinstance(tmp, list):
                 # list of tuples: each tupe (k,v) being the same as the key/value describe above
+                treated = False
                 if len(tmp) == 2:
-                    kk, val = tmp
-                    self.__convert_and_redispatch(kk, val)
-                else:
+                    if isinstance(tmp[0], tuple):
+                        # there are 2 tuples in the list, i dont treat it as a tuple
+                        treated = False
+                    else:
+                        # i treat it as a tuple
+                        if len(tmp) != 2:
+                            raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
+                                                  "of tuple of 2 elements, the first one being the id of the"
+                                                  "generator to redispatch, the second one the value of the "
+                                                  "redispatching.")
+                        kk, val = tmp
+                        self.__convert_and_redispatch(kk, val)
+                        treated = True
+
+                if not treated:
                     for el in tmp:
                         if len(el) != 2:
                             raise AmbiguousAction("When asking for redispatching with a list, you should make a list"
@@ -769,6 +792,7 @@ class Action(GridObjects):
                                                   "redispatching.")
                         kk, val = el
                         self.__convert_and_redispatch(kk, val)
+
             elif isinstance(tmp, tuple):
                 if len(tmp) != 2:
                     raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
@@ -945,47 +969,55 @@ class Action(GridObjects):
         # check size
         if "load_p" in self._dict_inj:
             if len(self._dict_inj["load_p"]) != self.n_load:
-                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in the _grid".format(len(self._dict_inj["load_p"]), self.n_load))
+                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} "
+                                           "in the _grid".format(len(self._dict_inj["load_p"]), self.n_load))
         if "load_q" in self._dict_inj:
             if len(self._dict_inj["load_q"]) != self.n_load:
-                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in the _grid".format(len(self._dict_inj["load_q"]), self.n_load))
+                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in "
+                                           "the _grid".format(len(self._dict_inj["load_q"]), self.n_load))
         if "prod_p" in self._dict_inj:
             if len(self._dict_inj["prod_p"]) != self.n_gen:
-                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in the _grid".format(len(self._dict_inj["prod_p"]), self.n_gen))
+                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in "
+                                                "the _grid".format(len(self._dict_inj["prod_p"]), self.n_gen))
         if "prod_v" in self._dict_inj:
             if len(self._dict_inj["prod_v"]) != self.n_gen:
-                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in the _grid".format(len(self._dict_inj["prod_v"]), self.n_gen))
+                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in "
+                                                "the _grid".format(len(self._dict_inj["prod_v"]), self.n_gen))
 
         if len(self._switch_line_status) != self.n_line:
-                raise InvalidNumberOfLines("This action acts on {} lines while there are {} in the _grid".format(len(self._switch_line_status), self.n_line))
+                raise InvalidNumberOfLines("This action acts on {} lines while there are {} in "
+                                           "the _grid".format(len(self._switch_line_status), self.n_line))
 
         if len(self._set_topo_vect) != self.dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} in the _grid".format(len(self._set_topo_vect), self.dim_topo))
+                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
+                                                "in the _grid".format(len(self._set_topo_vect), self.dim_topo))
         if len(self._change_bus_vect) != self.dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} in the _grid".format(len(self._change_bus_vect), self.dim_topo))
+                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
+                                                "in the _grid".format(len(self._change_bus_vect), self.dim_topo))
 
         if len(self._redispatch) != self.n_gen:
-            raise InvalidNumberOfGenerators("This action acts on {} generators (redispatching= while there are {} in the grid".format(
-                len(self._redispatch), self.n_gen))
+            raise InvalidNumberOfGenerators("This action acts on {} generators (redispatching= while "
+                                            "there are {} in the grid".format(len(self._redispatch), self.n_gen))
 
         # redispatching specific check
-        if np.any(self._redispatch > self.gen_max_ramp_up):
-            raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
-        if np.any(-self._redispatch > self.gen_max_ramp_down):
-            raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
+        if np.any(self._redispatch !=0.):
+            if np.any(self._redispatch > self.gen_max_ramp_up):
+                raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
+            if np.any(-self._redispatch > self.gen_max_ramp_down):
+                raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
 
-        if np.any(self._redispatch[~self.gen_redispatchable] != 0.):
-            raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
+            if np.any(self._redispatch[~self.gen_redispatchable] != 0.):
+                raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
 
-        if "prod_p" in self._dict_inj:
-            new_p = self._dict_inj["prod_p"]
-            tmp_p = new_p + self._redispatch
-            if np.any(tmp_p > self.gen_pmax):
-                raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
-                                           "are above pmax for some generator.")
-            if np.any(tmp_p < self.gen_pmin):
-                raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
-                                           "are below pmin for some generator.")
+            if "prod_p" in self._dict_inj:
+                new_p = self._dict_inj["prod_p"]
+                tmp_p = new_p + self._redispatch
+                if np.any(tmp_p > self.gen_pmax):
+                    raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                               "are above pmax for some generator.")
+                if np.any(tmp_p < self.gen_pmin):
+                    raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                               "are below pmin for some generator.")
 
         # topological action
         if np.any(self._set_topo_vect[self._change_bus_vect] != 0):
@@ -998,84 +1030,26 @@ class Action(GridObjects):
                 # i reconnect a powerline, i need to check that it's connected on both ends
                 if self._set_topo_vect[self.line_or_pos_topo_vect[q_id]] == 0 or \
                         self._set_topo_vect[self.line_ex_pos_topo_vect[q_id]] == 0:
-                    raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on which bus.".format(q_id))
+                    raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
+                                            " which bus.".format(q_id))
 
         # if i disconnected of a line, but i modify also the bus where it's connected
         idx = self._set_line_status == -1
         id_disc = np.where(idx)[0]
         if np.any(self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                 np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
-                    raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it to a certain bus.")
+                    raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
+                                            "to a certain bus.")
         if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                 np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
                     raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
 
         if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[self._set_line_status == 1]]):
-            raise InvalidLineStatus("You ask to connect an origin powerline but also to *change* the bus  to which it is connected. This is ambiguous. You must *set* this bus instead.")
+            raise InvalidLineStatus("You ask to connect an origin powerline but also to *change* the bus  to which it "
+                                    "is connected. This is ambiguous. You must *set* this bus instead.")
         if np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[self._set_line_status == 1]]):
-            raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to which it is connected. This is ambiguous. You must *set* this bus instead.")
-
-    def from_vect(self, vect):
-        """
-        Convert a action given as a vector into a proper :class:`Action`.
-
-        If this method is overloaded, the subclass should make sure that :func:`Action._check_for_ambiguity` is called
-        after the action has been loaded.
-
-        If this method is overloaded, it is mandatory to overload also:
-
-          - :func:`Action.size`
-          - :func:`Action.to_vect`
-
-        Parameters
-        ----------
-        vect: :class:`numpy.array`, dtype:float
-            The array representation of an action
-
-        Returns
-        -------
-        ``None``
-
-        Raises
-        ------
-        IncorrectNumberOfElements
-            if the size of the vector is not the same as the result of a call to :func:`Action.size`
-        """
-        if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements("Incorrect number of elements found while load an action from a vector. "
-                                            "Found {} elements instead of {}".format(vect.shape[1], self.size()))
-        prev_ = 0
-        next_ = self.n_gen
-        prod_p = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_gen
-        prod_q = vect[prev_:next_]; prev_ += self.n_gen; next_ += self.n_load
-
-        load_p = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_load
-        load_q = vect[prev_:next_]; prev_ += self.n_load; next_ += self.n_line
-
-        if np.any(np.isfinite(prod_p)):
-            self._dict_inj["prod_p"] = prod_p
-        if np.any(np.isfinite(prod_q)):
-            self._dict_inj["prod_v"] = prod_q
-        if np.any(np.isfinite(load_p)):
-            self._dict_inj["load_p"] = load_p
-        if np.any(np.isfinite(load_q)):
-            self._dict_inj["load_q"] = load_q
-
-        self._set_line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self._set_line_status = self._set_line_status.astype(np.int)
-        self._switch_line_status = vect[prev_:next_]; prev_ += self.n_line; next_ += self.dim_topo
-        self._switch_line_status = self._switch_line_status.astype(np.bool)
-        self._set_topo_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.dim_topo
-        self._set_topo_vect = self._set_topo_vect.astype(np.int)
-        self._change_bus_vect = vect[prev_:next_]; prev_ += self.dim_topo; next_ += self.n_line
-        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
-
-        self._hazards = vect[prev_:next_]; prev_ += self.n_line; next_ += self.n_line
-        self._hazards = self._hazards.astype(np.bool)
-        self._maintenance = vect[prev_:]; prev_ += self.n_line; next_ += self.n_line
-        self._maintenance = self._maintenance.astype(np.bool)
-
-        self._check_for_ambiguity()
+            raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to which "
+                                    "it is connected. This is ambiguous. You must *set* this bus instead.")
 
     def sample(self):
         """
@@ -1151,6 +1125,11 @@ class Action(GridObjects):
                 res.append("\t - set {} to {}".format(k, list(self._dict_inj[k])))
         if not inj_changed:
             res.append("\t - NOT change anything to the injections")
+
+        if np.any(self._redispatch != 0.):
+            res.append("\t - perform the following redispatching action: {}".format(self._redispatch))
+        else:
+            res.append("\t - NOT perform any redispatching action")
 
         # handles actions on force line status
         force_linestatus_change = False
@@ -1431,7 +1410,7 @@ class Action(GridObjects):
             my_id = self.gen_pos_topo_vect[gen_id]
             res["change_bus"] = self._change_bus_vect[my_id]
             res["set_bus"] = self._set_topo_vect[my_id]
-            res["redispatch"] = self._redispatch[my_id]
+            res["redispatch"] = self._redispatch[gen_id]
 
         elif line_id is not None:
             if substation_id is not None:
@@ -1545,48 +1524,6 @@ class TopologyAction(Action):
             self._digest_change_status(dict_)
         return self
 
-    def from_vect(self, vect):
-        """
-        See :func:`Action.from_vect` for a detailed description of this method.
-
-        Nothing more is made except the initial vector is smaller.
-
-        Parameters
-        ----------
-        vect: :class:`numpy.array`, dtype:float
-            A vector reprenseting an instance of :class:`.`
-
-        Returns
-        -------
-
-        """
-        self.reset()
-        # pdb.set_trace()
-        if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements(
-                "Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(
-                    vect.shape[1], self.size()))
-        prev_ = 0
-        next_ = self.n_line
-
-        self._set_line_status = vect[prev_:next_]
-        prev_ += self.n_line
-        next_ += self.n_line
-        self._set_line_status = self._set_line_status.astype(np.int)
-        self._switch_line_status = vect[prev_:next_]
-        prev_ += self.n_line
-        next_ += self.dim_topo
-        self._switch_line_status = self._switch_line_status.astype(np.bool)
-        self._set_topo_vect = vect[prev_:next_]
-        prev_ += self.dim_topo
-        next_ += self.dim_topo
-        self._set_topo_vect = self._set_topo_vect.astype(np.int)
-        self._change_bus_vect = vect[prev_:]
-        prev_ += self.dim_topo
-
-        self._change_bus_vect = self._change_bus_vect.astype(np.bool)
-        self._check_for_ambiguity()
-
     def sample(self):
         """
 
@@ -1689,33 +1626,8 @@ class PowerLineSet(Action):
 
         return self
 
-    def from_vect(self, vect):
-        """
-        See :func:`Action.from_vect` for a detailed description of this method.
-
-        Nothing more is made except the initial vector is (much) smaller.
-
-        Parameters
-        ----------
-        vect: :class:`numpy.array`, dtype:float
-            A vector reprenseting an instance of :class:`.`
-
-        Returns
-        -------
-
-        """
-        self.reset()
-        if vect.shape[0] != self.size():
-            raise IncorrectNumberOfElements(
-                "Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(
-                    vect.shape[1], self.size()))
-        prev_ = 0
-        next_ = self.n_line
-
-        self._set_line_status = vect[prev_:next_]
-        self._set_line_status = self._set_line_status.astype(np.int)
+    def check_space_legit(self):
         self.disambiguate_reconnection()
-
         self._check_for_ambiguity()
 
     def disambiguate_reconnection(self):
@@ -1772,8 +1684,7 @@ class SerializableActionSpace(SerializableSpace):
         action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
     """
-    def __init__(self, gridobj,
-                 actionClass=Action):
+    def __init__(self, gridobj, actionClass=Action):
         """
 
         Parameters

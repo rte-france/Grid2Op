@@ -2,6 +2,8 @@ Change Log
 =============
 [0.5.0] - 2020-01-xx
 --------------------
+- [ADDED] more complete documentation of the representation of the powergrid
+  (see documentation of `Space`)
 - [UPDATED] more unit test for observations
 - [UPDATED]remove the TODO's already coded (no more todo then)
 - [UPDATED] GridStateFromFile can now read the starting date and the time interval of the chronics.

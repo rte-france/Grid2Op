@@ -284,7 +284,7 @@ class PandaPowerBackend(Backend):
 
         self._compute_pos_big_topo()
 
-        self._dim_topo = np.sum(self.sub_info)
+        self.dim_topo = np.sum(self.sub_info)
 
 
         # utilities for imeplementing apply_action
