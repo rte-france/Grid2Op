@@ -38,8 +38,10 @@ import warnings
 
 try:
     from .Exceptions import *
-except ImportError:
+    from .Space import GridObjects
+except (ImportError, ModuleNotFoundError):
     from Exceptions import *
+    from Space import GridObjects
 
 import pdb
 
@@ -52,7 +54,7 @@ import pdb
 # TODO URGENT: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 
-class Backend(ABC):
+class Backend(GridObjects, ABC):
     """
     This is a base class for each :class:`Backend` object.
     It allows to run power flow smoothly, and abstract the method of computing cascading failures.
@@ -63,16 +65,16 @@ class Backend(ABC):
     detailed_infos_for_cascading_failures: :class:`bool`
         Whether to be verbose when computing a cascading failure.
 
-    n_lines: :class:`int`
+    n_line: :class:`int`
         number of powerline in the _grid
 
-    n_generators: :class:`int`
+    n_gen: :class:`int`
         number of generators in the _grid
 
-    n_loads: :class:`int`
+    n_load: :class:`int`
         number of loads in the powergrid
 
-    n_substations: :class:`int`
+    n_sub: :class:`int`
         number of substation in the powergrid
 
     subs_elements: :class:`numpy.array`, dtype:int
@@ -92,51 +94,51 @@ class Backend(ABC):
 
     load_to_sub_pos: :class:`numpy.array`, dtype:int
         The topology if of the subsation *i* is given by a vector, say *sub_topo_vect* of size
-        :attr:`Backend.subs_info`\[i\]. For a given load of id *l*, :attr:`Backend._load_to_sub_pos`\[l\] is the index
+        :attr:`Backend.sub_info`\[i\]. For a given load of id *l*, :attr:`Backend.load_to_sub_pos`\[l\] is the index
         of the load *l* in the vector *sub_topo_vect*. This means that, if
-        *sub_topo_vect\[ action._load_to_sub_pos\[l\] \]=2*
+        *sub_topo_vect\[ action.load_to_sub_pos\[l\] \]=2*
         then load of id *l* is connected to the second bus of the substation.
 
     gen_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_to_sub_pos` but for generators.
+        same as :attr:`Backend.load_to_sub_pos` but for generators.
 
     lines_or_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_to_sub_pos`  but for "origin" end of powerlines.
+        same as :attr:`Backend.load_to_sub_pos`  but for "origin" end of powerlines.
 
     lines_ex_to_sub_pos: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_to_sub_pos` but for "extremity" end of powerlines.
+        same as :attr:`Backend.load_to_sub_pos` but for "extremity" end of powerlines.
 
     load_pos_topo_vect: :class:`numpy.array`, dtype:int
-        It has a similar role as :attr:`Backend._load_to_sub_pos` but it gives the position in the vector representing
+        It has a similar role as :attr:`Backend.load_to_sub_pos` but it gives the position in the vector representing
         the whole topology. More concretely, if the complete topology of the powergrid is represented here by a vector
         *full_topo_vect* resulting of the concatenation of the topology vector for each substation
-        (see :attr:`Backend._load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
-        :attr:`Backend._load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
-        More formally, if *_topo_vect\[ backend._load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
+        (see :attr:`Backend.load_to_sub_pos`for more information). For a load of id *l* in the powergrid,
+        :attr:`Backend.load_pos_topo_vect`\[l\] gives the index, in this *full_topo_vect* that concerns load *l*.
+        More formally, if *_topo_vect\[ backend.load_pos_topo_vect\[l\] \]=2* then load of id l is connected to the
         second bus of the substation.
 
     gen_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_pos_topo_vect` but for generators.
+        same as :attr:`Backend.load_pos_topo_vect` but for generators.
 
-    lines_or_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_pos_topo_vect` but for "origin" end of powerlines.
+    line_or_pos_topo_vect: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend.load_pos_topo_vect` but for "origin" end of powerlines.
 
-    lines_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
-        same as :attr:`Backend._load_pos_topo_vect` but for "extremity" end of powerlines.
+    line_ex_pos_topo_vect: :class:`numpy.array`, dtype:int
+        same as :attr:`Backend.load_pos_topo_vect` but for "extremity" end of powerlines.
 
     _grid: (its type depends on the backend, precisely)
         is a representation of the powergrid that can be called and manipulated by the backend.
 
-    name_loads: :class:`numpy.array`, dtype:str
+    name_load: :class:`numpy.array`, dtype:str
         ordered name of the loads in the backend. This is mainly use to make sure the "chronics" are used properly.
 
-    name_prods: :class:`numpy.array`, dtype:str
+    name_gen: :class:`numpy.array`, dtype:str
         ordered name of the productions in the backend. This is mainly use to make sure the "chronics" are used properly.
 
-    name_lines: :class:`numpy.array`, dtype:str
+    name_line: :class:`numpy.array`, dtype:str
         ordered name of the productions in the backend. This is mainly use to make sure the "chronics" are used properly.
 
-    name_subs: :class:`numpy.array`, dtype:str
+    name_sub: :class:`numpy.array`, dtype:str
         ordered name of the substation in the _grid. This is mainly use to make sure the "chronics" are used properly.
 
     thermal_limit_a: :class:`numpy.array`, dtype:float
@@ -152,308 +154,17 @@ class Backend(ABC):
         :type detailed_infos_for_cascading_failures: :class:`bool`
 
         """
+        GridObjects.__init__(self)
 
         # the following parameter is used to control the amount of verbosity when computing a cascading failure
         # if it's set to true, it returns all intermediate _grid states. This can slow down the computation!
         self.detailed_infos_for_cascading_failures = detailed_infos_for_cascading_failures
 
-        self.n_lines = None  # int: number of powerlines
-        self.n_generators = None  # int: number of generators
-        self.n_loads = None  # int: number of loads
-        self.n_substations = None  # int: number of substations
-        self.subs_elements = None  # vector[int]: of size number of substation. Tells for each substation the number of element connected to it
-
-        self.load_to_subid = None  # vector[int]: as size number of load, giving for each the substation id to which it is connected
-        self.gen_to_subid = None  # vector[int]: as size number of generators, giving for each the substation id to which it is connected
-        self.lines_or_to_subid = None  # vector[int]: as size number of lines, giving for each the substation id to which its "origin" end is connected
-        self.lines_ex_to_subid = None  # vector[int]: as size number of lines, giving for each the substation id to which its "extremity" end is connected
-
-        # position in the vector of substation
-        self.load_to_sub_pos = None   # vector[int]: as size number of load, giving for each the postition of this load in among the element of this substation
-        self.gen_to_sub_pos = None
-        self.lines_or_to_sub_pos = None
-        self.lines_ex_to_sub_pos = None
-
-        # position in the topological vector
-        # for internal use only, set it with "_compute_pos_big_topo"
-        # after having loaded the _grid.
-        self.load_pos_topo_vect = None
-        self.gen_pos_topo_vect = None
-        self.lines_or_pos_topo_vect = None
-        self.lines_ex_pos_topo_vect = None
-        # see definition of "_compute_pos_big_topo" for more information about these vector
-
         # the power _grid manipulated. One powergrid per backend.
         self._grid = None
-        self.name_loads = None
-        self.name_prods = None
-        self.name_lines = None
-        self.name_subs = None
 
         # thermal limit setting, in ampere, at the same "side" of the powerline than self.get_line_overflow
         self.thermal_limit_a = None
-
-    def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
-        """
-        Return the proper "_pos_big_topo" vector given "to_subid" vector and "to_sub_pos" vectors.
-        This function is also called to performed sanity check after the load on the powergrid.
-
-        :param vect_to_subid: vector of int giving the id of the topology for this element
-        :type vect_to_subid: iterable int
-
-        :param vect_to_sub_pos: vector of int giving the id IN THE SUBSTATION for this element
-        :type vect_to_sub_pos: iterable int
-
-        :return:
-        """
-        res = np.zeros(shape=vect_to_subid.shape)
-        for i, (sub_id, my_pos) in enumerate(zip(vect_to_subid, vect_to_sub_pos)):
-            obj_before = np.sum(self.subs_elements[:sub_id])
-            res[i] = obj_before + my_pos
-        return res
-
-    def _compute_pos_big_topo(self):
-        """
-        Compute the position of each element in the big topological vector.
-
-        Topology action are represented by numpy vector of size np.sum(self.subs_elements).
-        The vector self._load_pos_topo_vect will give the index of each load in this big topology vector.
-        For examaple, for load i, self._load_pos_topo_vect[i] gives the position in such a topology vector that
-        affect this load.
-
-        This position can be automatically deduced from self.subs_elements, self._load_to_subid and self._load_to_sub_pos.
-
-        This is the same for generators and both end of powerlines
-
-        :return: ``None``
-        """
-        # self.assert_grid_correct()
-        self.load_pos_topo_vect = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos).astype(np.int)
-        self.gen_pos_topo_vect = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos).astype(np.int)
-        self.lines_or_pos_topo_vect = self._aux_pos_big_topo(self.lines_or_to_subid, self.lines_or_to_sub_pos).astype(np.int)
-        self.lines_ex_pos_topo_vect = self._aux_pos_big_topo(self.lines_ex_to_subid, self.lines_ex_to_sub_pos).astype(np.int)
-
-    def assert_grid_correct(self):
-        """
-        Performs some checking on the loaded _grid to make sure it is consistent.
-        It also makes sure that the vector such as *subs_elements*, *_load_to_subid* or *_gen_to_sub_pos* are of the
-        right type eg. numpy.array with dtype: np.int
-
-        It is called after the _grid has been loaded.
-
-        These function is by default called by the :class:`grid2op.Environment` class after the initialization of the environment.
-        If these tests are not successfull, no guarantee are given that the backend will return consistent computations.
-
-        In order for the backend to fully understand the structure of actions, it is strongly advised NOT to override this method.
-
-        :return: ``None``
-        :raise: :class:`grid2op.EnvError` and possibly all of its derived class.
-        """
-
-        if self.name_lines is None:
-            raise EnvError("name_lines is None. Backend is invalid. Line names are used to make the correspondance between the chronics and the backend")
-        if self.name_loads is None:
-            raise EnvError("name_loads is None. Backend is invalid. Line names are used to make the correspondance between the chronics and the backend")
-        if self.name_prods is None:
-            raise EnvError("name_prods is None. Backend is invalid. Line names are used to make the correspondance between the chronics and the backend")
-        if self.name_subs is None:
-            raise EnvError("name_subs is None. Backend is invalid. Line names are used to make the correspondance between the chronics and the backend")
-
-        # test if vector can be properly converted
-        if not isinstance(self.subs_elements, np.ndarray):
-            try:
-                self.subs_elements = np.array(self.subs_elements)
-                self.subs_elements = self.subs_elements.astype(np.int)
-            except Exception as e:
-                raise EnvError("self.subs_elements should be convertible to a numpy array")
-
-        if not isinstance(self.load_to_subid, np.ndarray):
-            try:
-                self.load_to_subid = np.array(self.load_to_subid)
-                self.load_to_subid = self.load_to_subid.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._load_to_subid should be convertible to a numpy array")
-        if not isinstance(self.gen_to_subid, np.ndarray):
-            try:
-                self.gen_to_subid = np.array(self.gen_to_subid)
-                self.gen_to_subid = self.gen_to_subid.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._gen_to_subid should be convertible to a numpy array")
-        if not isinstance(self.lines_or_to_subid, np.ndarray):
-            try:
-                self.lines_or_to_subid = np.array(self.lines_or_to_subid)
-                self.lines_or_to_subid = self.lines_or_to_subid .astype(np.int)
-            except Exception as e:
-                raise EnvError("self._lines_or_to_subid should be convertible to a numpy array")
-        if not isinstance(self.lines_ex_to_subid, np.ndarray):
-            try:
-                self.lines_ex_to_subid = np.array(self.lines_ex_to_subid)
-                self.lines_ex_to_subid = self.lines_ex_to_subid.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._lines_ex_to_subid should be convertible to a numpy array")
-
-        if not isinstance(self.load_to_sub_pos, np.ndarray):
-            try:
-                self.load_to_sub_pos = np.array(self.load_to_sub_pos)
-                self.load_to_sub_pos = self.load_to_sub_pos.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._load_to_sub_pos should be convertible to a numpy array")
-        if not isinstance(self.gen_to_sub_pos, np.ndarray):
-            try:
-                self.gen_to_sub_pos = np.array(self.gen_to_sub_pos)
-                self.gen_to_sub_pos = self.gen_to_sub_pos.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._gen_to_sub_pos should be convertible to a numpy array")
-        if not isinstance(self.lines_or_to_sub_pos, np.ndarray):
-            try:
-                self.lines_or_to_sub_pos = np.array(self.lines_or_to_sub_pos)
-                self.lines_or_to_sub_pos = self.lines_or_to_sub_pos.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._lines_or_to_sub_pos should be convertible to a numpy array")
-        if not isinstance(self.lines_ex_to_sub_pos, np.ndarray):
-            try:
-                self.lines_ex_to_sub_pos = np.array(self.lines_ex_to_sub_pos)
-                self.lines_ex_to_sub_pos = self.lines_ex_to_sub_pos .astype(np.int)
-            except Exception as e:
-                raise EnvError("self._lines_ex_to_sub_pos should be convertible to a numpy array")
-
-        if not isinstance(self.load_pos_topo_vect, np.ndarray):
-            try:
-                self.load_pos_topo_vect = np.array(self.load_pos_topo_vect)
-                self.load_pos_topo_vect = self.load_pos_topo_vect.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._load_pos_topo_vect should be convertible to a numpy array")
-        if not isinstance(self.gen_pos_topo_vect, np.ndarray):
-            try:
-                self.gen_pos_topo_vect = np.array(self.gen_pos_topo_vect)
-                self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._gen_pos_topo_vect should be convertible to a numpy array")
-        if not isinstance(self.lines_or_pos_topo_vect, np.ndarray):
-            try:
-                self.lines_or_pos_topo_vect = np.array(self.lines_or_pos_topo_vect)
-                self.lines_or_pos_topo_vect = self.lines_or_pos_topo_vect.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._lines_or_pos_topo_vect should be convertible to a numpy array")
-        if not isinstance(self.lines_ex_pos_topo_vect, np.ndarray):
-            try:
-                self.lines_ex_pos_topo_vect = np.array(self.lines_ex_pos_topo_vect)
-                self.lines_ex_pos_topo_vect = self.lines_ex_pos_topo_vect.astype(np.int)
-            except Exception as e:
-                raise EnvError("self._lines_ex_pos_topo_vect should be convertible to a numpy array")
-
-        # test that all numbers are finite:
-        tmp = np.concatenate((
-            self.subs_elements.flatten(),
-                             self.load_to_subid.flatten(),
-                             self.gen_to_subid.flatten(),
-                             self.lines_or_to_subid.flatten(),
-                             self.lines_ex_to_subid.flatten(),
-                             self.load_to_sub_pos.flatten(),
-                             self.gen_to_sub_pos.flatten(),
-                             self.lines_or_to_sub_pos.flatten(),
-                             self.lines_ex_to_sub_pos.flatten(),
-                             self.load_pos_topo_vect.flatten(),
-                             self.gen_pos_topo_vect.flatten(),
-                             self.lines_or_pos_topo_vect.flatten(),
-                             self.lines_ex_pos_topo_vect.flatten()
-                              ))
-        try:
-            if np.any(~np.isfinite(tmp)):
-                raise EnvError("One of the vector is made of non finite elements")
-        except Exception as e:
-            raise EnvError("Impossible to check wheter or not vectors contains online finite elements (pobably one or more topology related vector is not valid (None)")
-
-        # check sizes
-        if len(self.subs_elements) != self.n_substations:
-            raise IncorrectNumberOfSubstation("The number of substation is not consistent in self.subs_elements (size \"{}\") and  self.n_substations ({})".format(len(self.subs_elements), self.n_substations))
-        if np.sum(self.subs_elements) != self.n_loads + self.n_generators + 2*self.n_lines:
-            err_msg = "The number of elements of elements is not consistent between self.subs_elements where there are "
-            err_msg +=  "{} elements connected to all substations and the number of load, generators and lines in the _grid."
-            err_msg = err_msg.format(np.sum(self.subs_elements))
-            raise IncorrectNumberOfElements(err_msg)
-
-        if len(self.load_to_subid) != self.n_loads:
-            raise IncorrectNumberOfLoads()
-        if len(self.gen_to_subid) != self.n_generators:
-            raise IncorrectNumberOfGenerators()
-        if len(self.lines_or_to_subid) != self.n_lines:
-            raise IncorrectNumberOfLines()
-        if len(self.lines_ex_to_subid) != self.n_lines:
-            raise IncorrectNumberOfLines()
-
-        if len(self.load_to_sub_pos) != self.n_loads:
-            raise IncorrectNumberOfLoads()
-        if len(self.gen_to_sub_pos) != self.n_generators:
-            raise IncorrectNumberOfGenerators()
-        if len(self.lines_or_to_sub_pos) != self.n_lines:
-            raise IncorrectNumberOfLines()
-        if len(self.lines_ex_to_sub_pos) != self.n_lines:
-            raise IncorrectNumberOfLines()
-
-        if len(self.load_pos_topo_vect) != self.n_loads:
-            raise IncorrectNumberOfLoads()
-        if len(self.gen_pos_topo_vect) != self.n_generators:
-            raise IncorrectNumberOfGenerators()
-        if len(self.lines_or_pos_topo_vect) != self.n_lines:
-            raise IncorrectNumberOfLines()
-        if len(self.lines_ex_pos_topo_vect) != self.n_lines:
-            raise IncorrectNumberOfLines()
-
-        # test if object are connected to right substation
-        obj_per_sub = np.zeros(shape=(self.n_substations,))
-        for sub_id in self.load_to_subid:
-            obj_per_sub[sub_id] += 1
-        for sub_id in self.gen_to_subid:
-            obj_per_sub[sub_id] += 1
-        for sub_id in self.lines_or_to_subid:
-            obj_per_sub[sub_id] += 1
-        for sub_id in self.lines_ex_to_subid:
-            obj_per_sub[sub_id] += 1
-
-        if not np.all(obj_per_sub == self.subs_elements):
-            raise IncorrectNumberOfElements()
-
-        # test right number of element in substations
-        # test that for each substation i don't have an id above the number of element of a substations
-        for i, (sub_id, sub_pos) in enumerate(zip(self.load_to_subid, self.load_to_sub_pos)):
-            if sub_pos >= self.subs_elements[sub_id]:
-                raise IncorrectPositionOfLoads("for load {}".format(i))
-        for i, (sub_id, sub_pos) in enumerate(zip(self.gen_to_subid, self.gen_to_sub_pos)):
-            if sub_pos >= self.subs_elements[sub_id]:
-                raise IncorrectPositionOfGenerators("for generator {}".format(i))
-        for i, (sub_id, sub_pos) in enumerate(zip(self.lines_or_to_subid, self.lines_or_to_sub_pos)):
-            if sub_pos >= self.subs_elements[sub_id]:
-                raise IncorrectPositionOfLines("for line {} at origin end".format(i))
-        for i, (sub_id, sub_pos) in enumerate(zip(self.lines_ex_to_subid, self.lines_ex_to_sub_pos)):
-            if sub_pos >= self.subs_elements[sub_id]:
-                # pdb.set_trace()
-                raise IncorrectPositionOfLines("for line {} at extremity end".format(i))
-
-        # check that i don't have 2 objects with the same id in the "big topo" vector
-        if len(np.unique(np.concatenate((self.load_pos_topo_vect.flatten(),
-                                        self.gen_pos_topo_vect.flatten(),
-                                        self.lines_or_pos_topo_vect.flatten(),
-                                        self.lines_ex_pos_topo_vect.flatten())))) != np.sum(self.subs_elements):
-                raise EnvError("2 different objects would have the same id in the topology vector.")
-
-        # check that self._load_pos_topo_vect and co are consistent
-        load_pos_big_topo = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos)
-        if not np.all(load_pos_big_topo == self.load_pos_topo_vect):
-            raise IncorrectPositionOfLoads()
-        gen_pos_big_topo = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos)
-        if not np.all(gen_pos_big_topo == self.gen_pos_topo_vect):
-            raise IncorrectNumberOfGenerators()
-        lines_or_pos_big_topo = self._aux_pos_big_topo(self.lines_or_to_subid, self.lines_or_to_sub_pos)
-        if not np.all(lines_or_pos_big_topo == self.lines_or_pos_topo_vect):
-            raise IncorrectPositionOfLines()
-        lines_ex_pos_big_topo = self._aux_pos_big_topo(self.lines_ex_to_subid, self.lines_ex_to_sub_pos)
-        if not np.all(lines_ex_pos_big_topo == self.lines_ex_pos_topo_vect):
-            raise IncorrectPositionOfLines()
-
-        # no empty bus: at least one element should be present on each bus
-        if np.any(self.subs_elements < 1):
-            raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(self.subs_elements < 1)))
 
     def assert_grid_correct_after_powerflow(self):
         """
@@ -464,22 +175,22 @@ class Backend(ABC):
         """
         # test the results gives the proper size
         tmp = self.get_line_status()
-        if tmp.shape[0] != self.n_lines:
+        if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
         if np.any(~np.isfinite(tmp)):
             raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
         tmp = self.get_line_flow()
-        if tmp.shape[0] != self.n_lines:
+        if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
         if np.any(~np.isfinite(tmp)):
             raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
         tmp = self.get_thermal_limit()
-        if tmp.shape[0] != self.n_lines:
+        if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
         if np.any(~np.isfinite(tmp)):
             raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
         tmp = self.get_line_overflow()
-        if tmp.shape[0] != self.n_lines:
+        if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
         if np.any(~np.isfinite(tmp)):
             raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
@@ -488,29 +199,29 @@ class Backend(ABC):
         if len(tmp) != 3:
             raise EnvError("\"generators_info()\" should return a tuple with 3 elements: p, q and v")
         for el in tmp:
-            if el.shape[0] != self.n_generators:
+            if el.shape[0] != self.n_gen:
                 raise IncorrectNumberOfGenerators("returned by \"backend.generators_info()\"")
         tmp = self.loads_info()
         if len(tmp) != 3:
             raise EnvError("\"loads_info()\" should return a tuple with 3 elements: p, q and v")
         for el in tmp:
-            if el.shape[0] != self.n_loads:
+            if el.shape[0] != self.n_load:
                 raise IncorrectNumberOfLoads("returned by \"backend.loads_info()\"")
         tmp = self.lines_or_info()
         if len(tmp) != 4:
             raise EnvError("\"lines_or_info()\" should return a tuple with 4 elements: p, q, v and a")
         for el in tmp:
-            if el.shape[0] != self.n_lines:
+            if el.shape[0] != self.n_line:
                 raise IncorrectNumberOfLines("returned by \"backend.lines_or_info()\"")
         tmp = self.lines_ex_info()
         if len(tmp) != 4:
             raise EnvError("\"lines_ex_info()\" should return a tuple with 4 elements: p, q, v and a")
         for el in tmp:
-            if el.shape[0] != self.n_lines:
+            if el.shape[0] != self.n_line:
                 raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
 
         tmp = self.get_topo_vect()
-        if tmp.shape[0] != np.sum(self.subs_elements):
+        if tmp.shape[0] != np.sum(self.sub_info):
             raise IncorrectNumberOfElements("returned by \"backend.get_topo_vect()\"")
 
         if np.any(~np.isfinite(tmp)):
@@ -521,10 +232,11 @@ class Backend(ABC):
         """
         Load the powergrid.
         It should first define self._grid.
-        And then fill all the helpers used by the backend eg. :attr:`Backend._n_lines`, :attr:`Backend.subs_elements`, :attr:`Backend._load_to_subid`,
-        :attr:`Backend._gen_to_sub_pos` or :attr:`Backend._lines_ex_pos_topo_vect`.
 
-        After a the call to :func:`Backend.load_grid` has been performed, the backend should be in such a state that
+        And then fill all the helpers used by the backend eg. all the attributes of :class:`Space.GridObjects`.
+
+        After a the call to :func:`Backend.load_grid` has been performed, the backend should be in such a state where
+        the :class:`Space.GridObjects` is properly set up.
 
         :param path: the path to find the powergrid
         :type path: :class:`string`
@@ -671,13 +383,13 @@ class Backend(ABC):
 
         """
         if isinstance(limits, np.ndarray):
-            if limits.shape[0] == self.n_lines:
+            if limits.shape[0] == self.n_line:
                 self.thermal_limit_a = 1. * limits
         elif isinstance(limits, dict):
             for el in limits.keys():
-                if not el in self.name_lines:
-                    raise BackendError("You asked to modify the thermal limit of powerline named \"{}\" that is not on the grid. Names of powerlines are {}".format(el, self.name_lines))
-            for i, el in self.name_lines:
+                if not el in self.name_line:
+                    raise BackendError("You asked to modify the thermal limit of powerline named \"{}\" that is not on the grid. Names of powerlines are {}".format(el, self.name_line))
+            for i, el in self.name_line:
                 if el in limits:
                     try:
                         tmp = float(limits[el])
@@ -772,6 +484,8 @@ class Backend(ABC):
         You can check which object of the powerlines is represented by each component of this vector by looking at the
         `*_pos_topo_vect` (*eg.* :attr:`Backend.load_pos_topo_vect`) vectors. For each elements it gives its position
         in this vector.
+
+        TODO make an example here on how to use this!
 
         Returns
         --------
@@ -944,7 +658,7 @@ class Backend(ABC):
         infos = []
         self._runpf_with_diverging_exception(is_dc)
 
-        disconnected_during_cf = np.full(self.n_lines, fill_value=False, dtype=np.bool)
+        disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=np.bool)
         if env.no_overflow_disconnection:
             return disconnected_during_cf, infos
 
@@ -1014,30 +728,30 @@ class Backend(ABC):
             can_extract_shunt = False
 
         # fist check the "substation law" : nothing is created at any substation
-        p_subs = np.zeros(self.n_substations)
-        q_subs = np.zeros(self.n_substations)
+        p_subs = np.zeros(self.n_sub)
+        q_subs = np.zeros(self.n_sub)
 
         # check for each bus
-        p_bus = np.zeros((self.n_substations, 2))
-        q_bus = np.zeros((self.n_substations, 2))
+        p_bus = np.zeros((self.n_sub, 2))
+        q_bus = np.zeros((self.n_sub, 2))
         topo_vect = self.get_topo_vect()
 
-        for i in range(self.n_lines):
+        for i in range(self.n_line):
             # for substations
-            p_subs[self.lines_or_to_subid[i]] += p_or[i]
-            p_subs[self.lines_ex_to_subid[i]] += p_ex[i]
+            p_subs[self.line_or_to_subid[i]] += p_or[i]
+            p_subs[self.line_ex_to_subid[i]] += p_ex[i]
 
-            q_subs[self.lines_or_to_subid[i]] += q_or[i]
-            q_subs[self.lines_ex_to_subid[i]] += q_ex[i]
+            q_subs[self.line_or_to_subid[i]] += q_or[i]
+            q_subs[self.line_ex_to_subid[i]] += q_ex[i]
 
             # for bus
-            p_bus[self.lines_or_to_subid[i], topo_vect[self.lines_or_pos_topo_vect[i]]-1] += p_or[i]
-            q_bus[self.lines_or_to_subid[i], topo_vect[self.lines_or_pos_topo_vect[i]]-1] += q_or[i]
+            p_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1] += p_or[i]
+            q_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1] += q_or[i]
 
-            p_bus[self.lines_ex_to_subid[i], topo_vect[self.lines_ex_pos_topo_vect[i]]-1] += p_ex[i]
-            q_bus[self.lines_ex_to_subid[i], topo_vect[self.lines_ex_pos_topo_vect[i]]-1] += q_ex[i]
+            p_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += p_ex[i]
+            q_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += q_ex[i]
 
-        for i in range(self.n_generators):
+        for i in range(self.n_gen):
             # for substations
             p_subs[self.gen_to_subid[i]] -= p_gen[i]
             q_subs[self.gen_to_subid[i]] -= q_gen[i]
@@ -1046,7 +760,7 @@ class Backend(ABC):
             p_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= p_gen[i]
             q_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= q_gen[i]
 
-        for i in range(self.n_loads):
+        for i in range(self.n_load):
             # for substations
             p_subs[self.load_to_subid[i]] += p_load[i]
             q_subs[self.load_to_subid[i]] += q_load[i]

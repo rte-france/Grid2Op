@@ -160,3 +160,5 @@ documentation
 grid2op/data/*/*.csv
 **token.json
 getting_started/study_agent_getting_started/
+**Untitled.ipynb
+grid2op/tests/test_agent/

@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Grid2Op's documentation!
-===================================
+Welcome to Grid2Op's technical documentation!
+=============================================
 
-Grdi2Op is a pythonic, easy to use framework to be able to develop, train or evaluate performances of "agent" or
+Grdi2Op is a pythonic, easy to use framework, to be able to develop, train or evaluate performances of "agent" or
 "controler" that acts on a power grid in  different ways.
 
 It is modular and can be use to train reinforcement learning agent or to assess the performance of optimal control
@@ -34,6 +34,7 @@ Main module content
    quickstart
    grid2op
    makeenv
+   pltplotly
 
 Technical Documentation
 ----------------------------
@@ -52,6 +53,7 @@ Technical Documentation
    parameters
    reward
    runner
+   space
 
 Main Exceptions
 -----------------------

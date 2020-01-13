@@ -50,7 +50,7 @@ class TestAgent(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
 
-        self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json") # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
+        self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
         self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
@@ -84,6 +84,11 @@ class TestAgent(unittest.TestCase):
 
     def test_one_episode(self):
         cum_reward, timestep = self.runner.run_one_episode()
+        assert int(timestep) == 287
+        assert np.abs(cum_reward - 5739.951023) <= self.tol_one
+
+    def test_one_episode(self):
+        cum_reward, timestep = self.runner.run_one_episode(path_save="test_agent")
         assert int(timestep) == 287
         assert np.abs(cum_reward - 5739.951023) <= self.tol_one
 

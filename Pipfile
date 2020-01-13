@@ -22,7 +22,8 @@ numba = "*"
 seaborn = "*"
 plotly = "*"
 ipywidgets = "*"
-
+autopep8 = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"

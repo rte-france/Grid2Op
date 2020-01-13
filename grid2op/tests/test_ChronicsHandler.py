@@ -14,7 +14,121 @@ from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
 
 from Exceptions import *
 from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder
+from ChronicsHandler import GridValue
 from BackendPandaPower import PandaPowerBackend
+
+
+class TestProperHandlingHazardsMaintenance(unittest.TestCase):
+    def setUp(self):
+        self.path_hazard = os.path.join(PATH_CHRONICS, "chronics_with_hazards")
+        self.path_maintenance = os.path.join(PATH_CHRONICS, "chronics_with_maintenance")
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+
+        self.n_gen = 5
+        self.n_load = 11
+        self.n_lines = 20
+
+        self.order_backend_loads = ['2_C-10.61', '3_C151.15', '4_C-9.47', '5_C201.84', '6_C-6.27', '9_C130.49',
+                                    '10_C228.66', '11_C-138.89', '12_C-27.88', '13_C-13.33', '14_C63.6']
+        self.order_backend_prods = ['1_G137.1', '2_G-56.47', '3_G36.31', '6_G63.29', '8_G40.43']
+        self.order_backend_lines = ['1_2_1', '1_5_2', '2_3_3', '2_4_4', '2_5_5', '3_4_6', '4_5_7', '4_7_8', '4_9_9',
+                                    '5_6_10', '6_11_11', '6_12_12', '6_13_13', '7_8_14', '7_9_15', '9_10_16', '9_14_17',
+                                    '10_11_18', '12_13_19', '13_14_20']
+        self.order_backend_subs = ['bus_1', 'bus_2', 'bus_3', 'bus_4', 'bus_5', 'bus_6', 'bus_7', 'bus_8', 'bus_9',
+                                   'bus_10', 'bus_11', 'bus_12', 'bus_13', 'bus_14']
+
+    def test_get_maintenance_time_1d(self):
+        maintenance_time = GridValue.get_maintenance_time_1d(np.array([0 for _ in range(10)]))
+        assert np.all(maintenance_time == np.array([-1  for _ in range(10)]))
+
+        maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+        maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+        assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1]))
+
+        maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+        maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+        assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,4,3,2,1,0,0,-1,-1,-1]))
+
+        maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1])
+        maintenance_duration = GridValue.get_maintenance_time_1d(maintenance)
+        assert np.all(maintenance_duration == np.array([12,11,10,9,8,7,6,5,4,3,2,1,0,0,0,0,0]))
+
+    def test_get_maintenance_duration_1d(self):
+        maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+        maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+        assert np.all(maintenance_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+        maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+        maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+        assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0]))
+        maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+        maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+        assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
+
+        maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1])
+        maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+        assert np.all(maintenance_duration == np.array([5,5,5,5,5,5,5,5,5,5,5,5,5,4,3,2,1]))
+
+    def test_get_hazard_duration_1d(self):
+        hazard = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+        hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+        assert np.all(hazard_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+        hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+        hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+        assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,0,0,0,0]))
+        hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+        hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+        assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,2,1,0,0,0]))
+
+        hazard = np.array([0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1])
+        hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+        assert np.all(hazard_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,5,4,3,2,1]))
+
+    def test_loadchornics_hazard_ok(self):
+        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_hazard)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                     self.order_backend_lines, self.order_backend_subs)
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+        assert np.all(hazard_duration == 0)
+
+        for i in range(12):
+            current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+            assert np.sum(hazard_duration == 0) == 19
+            assert hazard_duration[17] == 12-i, "error at iteration {}".format(i)
+
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+        assert np.all(hazard_duration == 0)
+
+    def test_loadchornics_maintenance_ok(self):
+        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_maintenance)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                     self.order_backend_lines, self.order_backend_subs)
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+
+        assert np.sum(maintenance_duration == 0) == 18
+        assert maintenance_duration[17] == 12, "incorrect duration of maintenance on powerline 17"
+        assert maintenance_duration[19] == 12, "incorrect duration of maintenance on powerline 19"
+
+        assert np.sum(maintenance_time == -1) == 18
+        assert maintenance_time[17] == 1, "incorrect time for next maintenance on powerline 17"
+        assert maintenance_time[19] == 276, "incorrect time for next maintenance on powerline 19"
+
+        for i in range(12):
+            current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+            assert np.sum(maintenance_duration == 0) == 18
+            assert int(maintenance_duration[17]) == int(12-i), "incorrect duration of maintenance on powerline 17 at iteration {}: it is {} and should be {}".format(i, maintenance_duration[17], int(12-i))
+            assert maintenance_duration[19] == 12, "incorrect duration of maintenance on powerline 19 at iteration {}".format(i)
+
+            assert np.sum(maintenance_time == -1) == 18
+            assert maintenance_time[17] == 0, "incorrect time for next maintenance on powerline 17 at iteration {}".format(i)
+            assert maintenance_time[19] == 275-i, "incorrect time for next maintenance on powerline 19 at iteration {}".format(i)
+
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+        assert np.sum(maintenance_duration == 0) == 19
+        assert maintenance_duration[19] == 12, "incorrect duration of maintenance on powerline 19 at finish"
+
+        assert np.sum(maintenance_time == -1) == 19
+        assert maintenance_time[19] == 263, "incorrect time for next maintenance on powerline 19 at finish"
 
 
 class TestLoadingChronicsHandler(unittest.TestCase):
@@ -57,7 +171,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
-        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = [18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6]
         assert self.compare_vect(res["injection"]['load_p'], vect)
 
@@ -66,7 +180,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
         _ = chron_handl.next_time_step()  # should load the first time stamp
-        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = [18.8, 85.1, 44.3, 7.1, 10.2, 27.1, 8.2, 3.2, 5.7, 11.8, 13.8]
         assert self.compare_vect(res["injection"]['load_p'], vect)
 
@@ -75,7 +189,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
         for i in range(288):
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
         assert self.compare_vect(res["injection"]['load_p'], vect)
         assert chron_handl.done()
@@ -85,7 +199,7 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
         for i in range(288):
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
         assert self.compare_vect(res["injection"]['load_p'], vect)
         try:
@@ -104,15 +218,15 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=path)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
-        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = [18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6]
         assert self.compare_vect(res["injection"]['load_p'], vect)
         for i in range(287):
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
         assert self.compare_vect(res["injection"]['load_p'], vect)
         try:
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")
         except StopIteration:
             pass
@@ -235,7 +349,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
-        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6])  # what is written on the file
         backend_th = vect[self.id_chron_to_back_load]  # what should be in backend
         assert self.compare_vect(res["injection"]['load_p'], backend_th)
@@ -246,7 +360,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
                      self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
         _ = chron_handl.next_time_step()  # should load the first time stamp
-        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([18.8, 85.1, 44.3, 7.1, 10.2, 27.1, 8.2, 3.2, 5.7, 11.8, 13.8])
         vect = vect[self.id_chron_to_back_load]
         assert self.compare_vect(res["injection"]['load_p'], vect)
@@ -257,7 +371,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
                      self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
         for i in range(288):
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
         vect = vect[self.id_chron_to_back_load]
         assert self.compare_vect(res["injection"]['load_p'], vect)
@@ -269,7 +383,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
                      self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
         for i in range(288):
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
         vect = vect[self.id_chron_to_back_load]
         assert self.compare_vect(res["injection"]['load_p'], vect)
@@ -290,17 +404,17 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
-        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6])
         vect = vect[self.id_chron_to_back_load]
         assert self.compare_vect(res["injection"]['load_p'], vect)
         for i in range(287):
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
         vect = vect[self.id_chron_to_back_load]
         assert self.compare_vect(res["injection"]['load_p'], vect)
         try:
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")
         except StopIteration:
             pass
@@ -360,12 +474,12 @@ class TestLoadingMultiFolder(unittest.TestCase):
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                                self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
-        _, res = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
         for i in range(self.max_iter ):
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
 
         try:
-            _, res = chron_handl.next_time_step()  # should load the first time stamp
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
             raise RuntimeError("This should have thrown a StopIteration exception")
         except StopIteration:
             pass

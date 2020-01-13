@@ -62,6 +62,10 @@ import pdb
 # TODO sous echantillonner ou sur echantilloner les scenario
 # TODO max_iter is not properly handled in the example of GridValue now
 # TODO add a class to sample "online" the data.
+# TODO this is weird that maintenance and hazards are in the action,
+# but not maintenance_time and maintenance_duration...
+# TODO in FromFile, add the possibility to change the timestamps (for now it's not modified at all...)
+
 
 class GridValue(ABC):
     """
@@ -92,7 +96,7 @@ class GridValue(ABC):
     n_load: ``int``
         Number of loads in the powergrid
 
-    n_lines: ``int``
+    n_line: ``int``
         Number of powerline in the powergrid
 
     max_iter: ``int``
@@ -101,6 +105,31 @@ class GridValue(ABC):
     curr_iter: ``int``
         Duration of the current episode.
 
+    maintenance_time: ``numpy.ndarray``, dtype:``int``
+        Number of time steps the next maintenance will take place with the following convention:
+
+            - -1 no maintenance are planned for the forseeable future
+            - 0 a maintenance is taking place
+            - 1, 2, 3 ... a maintenance will take place in 1, 2, 3, ... time step
+
+        Some examples are given in :func:`GridValue.maintenance_time_1d`.
+
+    maintenance_duration: ``numpy.ndarray``, dtype:``int``
+        Duration of the next maintenance. 0 means no maintenance is happening. If a maintenance is planned for a
+        given powerline, this number decreases each time step, up until arriving at 0 when the maintenance is over. Note
+        that if a maintenance is planned (see :attr:`GridValue.maintenance_time`) this number indicates how long
+        the maintenance will last, and does not suppose anything on the maintenance taking place or not (= there can be
+        positive number here without a powerline being removed from the grid for maintenance reason). Some examples are
+        given in :func:`GridValue.maintenance_duration_1d`.
+
+    hazard_duration: ``numpy.ndarray``, dtype:``int``
+        Duration of the next hzard. 0 means no maintenance is happening. If a hazard is taking place for a
+        given powerline, this number decreases each time step, up until arriving at 0 when the maintenance is over. On
+        the contrary to :attr:`GridValue.maintenance_duration`, if a component of this vector is higher than 1, it
+        means that the powerline is out of service. Some examples are
+        given in :func:`GridValue.get_hazard_duration_1d`.
+
+
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1):
         # TODO complete that with a real datetime
@@ -108,16 +137,22 @@ class GridValue(ABC):
         self.current_datetime = datetime(year=2019, month=1, day=1)
         self.n_gen = None
         self.n_load = None
-        self.n_lines = None
+        self.n_line = None
         self.max_iter = max_iter
         self.curr_iter = 0
+
+        self.maintenance_time = None
+        self.maintenance_duration = None
+        self.hazard_duration = None
 
     @abstractmethod
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend):
         """
         This function is used to initialize the data generator.
-        It can be use to load scenarios, or to initialize noise if scenarios are generated on the fly.
+        It can be use to load scenarios, or to initialize noise if scenarios are generated on the fly. It must also
+        initialize :attr:`GridValue.maintenance_time`, :attr:`GridValue.maintenance_duration` and
+        :attr:`GridValue.hazard_duration`.
 
         This function should also increment :attr:`GridValue.curr_iter` of 1 each time it is called.
 
@@ -210,6 +245,215 @@ class GridValue(ABC):
         """
         pass
 
+    @staticmethod
+    def get_maintenance_time_1d(maintenance):
+        """
+        This function allows to transform a 1d numpy aarray maintenance, where is specify:
+
+            - 0 there is no maintenance at this time step
+            - 1 there is a maintenance at this time step
+
+        Into the representation in terms of "next maintenance time" as specified in
+        :attr:`GridValue.maintenance_time` which is:
+
+            - `-1` no foreseeable maintenance operation will be performed
+            - `0` a maintenance operation is being performed
+            - `1`, `2` etc. is the number of time step the next maintenance will be performed.
+
+        Parameters
+        ----------
+        maintenance: ``numpy.ndarray``
+            1 dimensional array representing the time series of the maintenance (0 there is no maintenance, 1 there
+            is a maintenance at this time step)
+
+        Returns
+        -------
+        maintenance_duration: ``numpy.ndarray``
+            Array representing the time series of the duration of the next maintenance forseeable.
+
+        Examples
+        --------
+
+        If no maintenance are planned:
+
+        >>> maintenance_time = GridValue.get_maintenance_time_1d(np.array([0 for _ in range(10)]))
+        >>> assert np.all(maintenance_time == np.array([-1  for _ in range(10)]))
+
+        If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
+
+        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+        >>> maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+        >>> assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1]))
+
+        If a maintenance planned of 3 time steps starting at timestep 6
+        (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
+
+        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+        >>> maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+        >>> assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,4,3,2,1,0,0,-1,-1,-1]))
+
+        """
+
+        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        maintenance = np.concatenate((maintenance, (0, 0)))
+        a = np.diff(maintenance)
+        # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
+        # I need to "+1"
+        start = np.where(a == 1)[0] + 1  # start of maintenance
+        end = np.where(a == -1)[0] + 1  # end of maintenance
+        prev_ = 0
+        # it's efficient here as i do a loop only on the number of time there is a maintenance
+        # and maintenance are quite rare
+        for beg_, end_ in zip(start, end):
+            res[prev_:beg_] = list(range(beg_ - prev_, 0, -1))
+            res[beg_:end_] = 0
+            prev_ = end_
+
+        # no maintenance are planned in the forseeable future
+        res[prev_:] = -1
+        return res
+
+    @staticmethod
+    def get_maintenance_duration_1d(maintenance):
+        """
+        This function allows to transform a 1d numpy aarray maintenance (or hazards), where is specify:
+
+            - 0 there is no maintenance at this time step
+            - 1 there is a maintenance at this time step
+
+        Into the representation in terms of "next maintenance duration" as specified in
+        :attr:`GridValue.maintenance_duration` which is:
+
+            - `0` no forseeable maintenance operation will be performed
+            - `1`, `2` etc. is the number of time step the next maintenance will last (it can be positive even in the
+                case that no maintenance is currently being performed.
+
+        Parameters
+        ----------
+        maintenance: ``numpy.ndarray``
+            1 dimensional array representing the time series of the maintenance (0 there is no maintenance, 1 there
+            is a maintenance at this time step)
+
+        Returns
+        -------
+        maintenance_duration: ``numpy.ndarray``
+            Array representing the time series of the duration of the next maintenance forseeable.
+
+        Examples
+        --------
+
+        If no maintenance are planned:
+
+        >>> maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+        >>> assert np.all(maintenance_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+
+        If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
+
+        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+        >>> assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0]))
+
+        If a maintenance planned of 3 time steps starting at timestep 6
+        (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
+
+        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+        >>> assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
+
+        """
+
+        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        maintenance = np.concatenate((maintenance, (0,0)))
+        a = np.diff(maintenance)
+        # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
+        # I need to "+1"
+        start = np.where(a == 1)[0] + 1  # start of maintenance
+        end = np.where(a == -1)[0] + 1  # end of maintenance
+        prev_ = 0
+        # it's efficient here as i do a loop only on the number of time there is a maintenance
+        # and maintenance are quite rare
+        for beg_, end_ in zip(start, end):
+            res[prev_:beg_] = end_ - beg_
+            res[beg_:end_] = list(range(end_ - beg_, 0, -1))
+            prev_ = end_
+
+        # no maintenance are planned in the foreseeable future
+        res[prev_:] = 0
+        return res
+
+    @staticmethod
+    def get_hazard_duration_1d(hazard):
+        """
+        This function allows to transform a 1d numpy aarray maintenance (or hazards), where is specify:
+
+            - 0 there is no maintenance at this time step
+            - 1 there is a maintenance at this time step
+
+        Into the representation in terms of "hzard duration" as specified in
+        :attr:`GridValue.maintenance_duration` which is:
+
+            - `0` no forseeable hazard operation will be performed
+            - `1`, `2` etc. is the number of time step the next hzard will last (it is positive only when a hazard
+                affect a given powerline)
+
+        Compared to :func:`GridValue.get_maintenance_duration_1d` we only know when the hazard occurs how long it
+        will last.
+
+        Parameters
+        ----------
+        maintenance: ``numpy.ndarray``
+            1 dimensional array representing the time series of the maintenance (0 there is no maintenance, 1 there
+            is a maintenance at this time step)
+
+        Returns
+        -------
+        maintenance_duration: ``numpy.ndarray``
+            Array representing the time series of the duration of the next maintenance forseeable.
+
+        Examples
+        --------
+
+        If no maintenance are planned:
+
+        >>> hazard = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+
+        If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
+
+        >>> hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,0,0,0,0]))
+
+        If a maintenance planned of 3 time steps starting at timestep 6
+        (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
+
+        >>> hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,2,1,0,0,0]))
+
+        """
+
+        res = np.full(hazard.shape, fill_value=np.NaN, dtype=np.int)
+        hazard = np.concatenate((hazard, (0, 0)))
+        a = np.diff(hazard)
+        # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
+        # I need to "+1"
+        start = np.where(a == 1)[0] + 1  # start of maintenance
+        end = np.where(a == -1)[0] + 1  # end of maintenance
+        prev_ = 0
+        # it's efficient here as i do a loop only on the number of time there is a maintenance
+        # and maintenance are quite rare
+        for beg_, end_ in zip(start, end):
+            res[prev_:beg_] = 0
+            res[(beg_):(end_)] = list(range(end_ - beg_, 0, -1))
+            prev_ = end_
+
+        # no maintenance are planned in the forseeable future
+        res[prev_:] = 0
+        return res
+
     @abstractmethod
     def load_next(self):
         """
@@ -233,13 +477,24 @@ class GridValue(ABC):
             A dictionnary understandable by the ::func:`grid2op.Action.update` method. **NB** this function should
             return the dictionnary that will be converted, is should not, in any case, return an action.
 
+        maintenance_time: ``numpy.ndarray``, dtype:``int``
+            Information about the next planned maintenance. See :attr:`GridValue.maintenance_time` for more information.
+
+        maintenance_duration: ``numpy.ndarray``, dtype:``int``
+            Information about the duration of next planned maintenance. See :attr:`GridValue.maintenance_duration`
+            for more information.
+
+        hazard_duration: ``numpy.ndarray``, dtype:``int``
+            Information about the current hazard. See :attr:`GridValue.hazard_duration`
+            for more information.
+
         Raises
         ------
         StopIteration
             if the chronics is over
         """
         self.current_datetime += self.time_interval
-        return self.current_datetime, {}
+        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration
 
     @abstractmethod
     def check_validity(self, backend):
@@ -372,6 +627,10 @@ class ChangeNothing(GridValue):
         self.n_lines = len(order_backend_lines)
         self.curr_iter = 0
 
+        self.maintenance_time = np.zeros(shape=(self.n_lines, ), dtype=np.int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.n_lines, ), dtype=np.int)
+        self.hazard_duration = np.zeros(shape=(self.n_lines, ), dtype=np.int)
+
     def load_next(self):
         """
         This function does nothing but the two requirements of load_next ie:
@@ -386,10 +645,22 @@ class ChangeNothing(GridValue):
 
         dict_: ``dict``
             Always empty, indicating i do nothing.
+
+        maintenance_time: ``numpy.ndarray``, dtype:``int``
+            Information about the next planned maintenance. See :attr:`GridValue.maintenance_time` for more information.
+
+        maintenance_duration: ``numpy.ndarray``, dtype:``int``
+            Information about the duration of next planned maintenance. See :attr:`GridValue.maintenance_duration`
+            for more information.
+
+        hazard_duration: ``numpy.ndarray``, dtype:``int``
+            Information about the current hazard. See :attr:`GridValue.hazard_duration`
+            for more information.
+
         """
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-        return self.current_datetime, {}
+        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration
 
     def check_validity(self, backend):
         """
@@ -576,7 +847,7 @@ class GridStateFromFile(GridValue):
         """
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
-        self.n_lines = len(order_backend_lines)
+        self.n_line = len(order_backend_lines)
 
         self.names_chronics_to_backend = copy.deepcopy(names_chronics_to_backend)
         if self.names_chronics_to_backend is None:
@@ -610,7 +881,7 @@ class GridStateFromFile(GridValue):
             elif os.path.exists(os.path.join(self.path, "load_p.csv.xz")):
                 read_compressed = ".csv.xz"
             else:
-                raise RuntimeError(
+                raise ChronicsNotFoundError(
                     "GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
         load_p = pd.read_csv(os.path.join(self.path, "load_p{}".format(read_compressed)), sep=self.sep)
         load_q = pd.read_csv(os.path.join(self.path, "load_q{}".format(read_compressed)), sep=self.sep)
@@ -653,9 +924,22 @@ class GridStateFromFile(GridValue):
         self.hazards = copy.deepcopy(hazards.values[:, np.argsort(order_backend_hazards)])
         self.maintenance = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
+        self.maintenance_time = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int)
+        self.hazard_duration = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int)
+
+        for line_id in range(self.n_line):
+            self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(self.maintenance[:, line_id])
+            self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(self.maintenance[:, line_id])
+            self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
+            # if line_id == 17 and np.sum(self.hazards) > 0:
+            #     pdb.set_trace()
+
         # there are _maintenance and hazards only if the value in the file is not 0.
         self.maintenance = self.maintenance != 0.
         self.hazards = self.hazards != 0.
+
+        # TODO
 
         self.curr_iter = 0
         if self.max_iter == -1:
@@ -706,7 +990,12 @@ class GridStateFromFile(GridValue):
 
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-        return self.current_datetime, res
+
+        maintenance_time = self.maintenance_time[self.current_index, :]
+        maintenance_duration = self.maintenance_duration[self.current_index, :]
+        hazard_duration = self.hazard_duration[self.current_index, :]
+
+        return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration
 
     def check_validity(self, backend):
         """
@@ -724,32 +1013,54 @@ class GridStateFromFile(GridValue):
         ``None``
         """
 
-        if self.load_p.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_loads, self.load_p.shape[1]))
-        if self.load_q.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_loads, self.load_q.shape[1]))
+        if self.load_p.shape[1] != backend.n_load:
+            msg_err = "for the active part. It should be {} but is in fact {}"
+            raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_p.shape[1]))
+        if self.load_q.shape[1] != backend.n_load:
+            msg_err = "for the reactive part. It should be {} but is in fact {}"
+            raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_q.shape[1]))
 
-        if self.prod_p.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_generators, self.prod_p.shape[1]))
-        if self.prod_v.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_generators, self.prod_v.shape[1]))
+        if self.prod_p.shape[1] != backend.n_gen:
+            msg_err = "for the active part. It should be {} but is in fact {}"
+            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_p.shape[1]))
+        if self.prod_v.shape[1] != backend.n_gen:
+            msg_err = "for the voltage part. It should be {} but is in fact {}"
+            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_v.shape[1]))
 
-        if self.hazards.shape[1] != backend.n_lines:
-            raise IncorrectNumberOfLines("for the outage. It should be {} but is in fact {}".format(backend.n_lines, self.hazards.shape[1]))
-        if self.maintenance.shape[1] != backend.n_lines:
-            raise IncorrectNumberOfLines("for the maintenance. It should be {} but is in fact {}".format(backend.n_lines, self.maintenance.shape[1]))
+        if self.hazards.shape[1] != backend.n_line:
+            msg_err = "for the outage. It should be {} but is in fact {}"
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazards.shape[1]))
+        if self.maintenance.shape[1] != backend.n_line:
+            msg_err = "for the maintenance. It should be {} but is in fact {}"
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance.shape[1]))
+
+        if self.maintenance_time.shape[1] != backend.n_line:
+            msg_err = "for the maintenance times. It should be {} but is in fact {}"
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_time.shape[1]))
+
+        if self.maintenance_duration.shape[1] != backend.n_line:
+            msg_err = "for the maintenance durations. It should be {} but is in fact {}"
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_duration.shape[1]))
+
+        if self.hazard_duration.shape[1] != backend.n_line:
+            msg_err = "for the hazard durations. It should be {} but is in fact {}"
+            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazard_duration.shape[1]))
 
         n = self.load_p.shape[0]
-        for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "hazards"],
-                                 [self.load_q, self.load_p, self.prod_v, self.prod_p, self.maintenance, self.hazards]):
+        for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "hazards",
+                                  "maintenance time", "maintenance duration", "hazard duration"],
+                                 [self.load_q, self.load_p, self.prod_v, self.prod_p, self.maintenance, self.hazards,
+                                  self.maintenance_time, self.maintenance_duration, self.hazard_duration]):
             if arr.shape[0] != n:
-                raise EnvError("Array {} has not the same number of rows of load_p. The chronics cannot be loaded properly.".format(name_arr))
+                msg_err = "Array {} has not the same number of rows of load_p. The chronics cannot be loaded properly."
+                raise EnvError(msg_err.format(name_arr))
 
         if self.max_iter > 0:
             if self.max_iter > self.load_p.shape[0]:
                 # TODO make a test for that!
                 # is this > or >= ????
-                raise InsufficientData("Files count {} rows and you ask this episode to last at {} timestep.".format(self.load_p.shape[0], self.max_iter))
+                msg_err = "Files count {} rows and you ask this episode to last at {} timestep."
+                raise InsufficientData(msg_err.format(self.load_p.shape[0], self.max_iter))
 
     def next_chronics(self):
         self.current_datetime = datetime(year=2019, month=1, day=1)
@@ -866,18 +1177,18 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
     def check_validity(self, backend):
         super(GridStateFromFileWithForecasts, self).check_validity(backend)
 
-        if self.load_p_forecast.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_loads, len(self.load_p)))
-        if self.load_q_forecast.shape[1] != backend.n_loads:
-            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_loads, len(self.load_q)))
+        if self.load_p_forecast.shape[1] != backend.n_load:
+            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_load, len(self.load_p)))
+        if self.load_q_forecast.shape[1] != backend.n_load:
+            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_load, len(self.load_q)))
 
-        if self.prod_p_forecast.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_generators, len(self.prod_p)))
-        if self.prod_v_forecast.shape[1] != backend.n_generators:
-            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_generators, len(self.prod_v)))
+        if self.prod_p_forecast.shape[1] != backend.n_gen:
+            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_gen, len(self.prod_p)))
+        if self.prod_v_forecast.shape[1] != backend.n_gen:
+            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_gen, len(self.prod_v)))
 
-        if self.maintenance_forecast.shape[1] != backend.n_lines:
-            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}".format(backend.n_lines, len(self.maintenance)))
+        if self.maintenance_forecast.shape[1] != backend.n_line:
+            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}".format(backend.n_line, len(self.maintenance)))
 
         n = self.load_p.shape[0]
         for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "outage"],

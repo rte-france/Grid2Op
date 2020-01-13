@@ -2,12 +2,42 @@
 This module defines the :class:`Environment` the higher level representation of the world with which an
 :class:`grid2op.Agent` will interact.
 
-The environment receive an :class:`grid2op.Action` from the :class:`grid2op.Agent` in the :func:`Environment.step`
+The environment receive an :class:`grid2op.Action.Action` from the :class:`grid2op.Agent.Agent` in the
+:func:`Environment.step`
 and returns an
-:class:`grid2op.Observation` that the :class:`grid2op.Agent` will use to perform the next action.
+:class:`grid2op.Observation.Observation` that the :class:`grid2op.Agent.Agent` will use to perform the next action.
 
-An environment is better used inside a :class:`grid2op.Runner`, mainly because runners abstract the interaction
-between environment and agent, and ensure the environment are properly reset after each epoch.
+An environment is better used inside a :class:`grid2op.Runner.Runner`, mainly because runners abstract the interaction
+between environment and agent, and ensure the environment are properly reset after each episode.
+
+It is however totally possible to use as any gym Environment.
+
+Example (adapted from gym documentation available at
+`gym random_agent.py <https://github.com/openai/gym/blob/master/examples/agents/random_agent.py>`_ ):
+
+>>> import grid2op
+>>> from grid2op.Agent import DoNothingAgent
+>>> env = grid2op.make()
+>>> agent = DoNothingAgent(env.action_space)
+>>> env.seed(0)
+>>> episode_count = 100
+>>> reward = 0
+>>> done = False
+>>> total_reward = 0
+>>> for i in range(episode_count):
+>>>        ob = env.reset()
+>>>        while True:
+>>>            action = agent.act(ob, reward, done)
+>>>            ob, reward, done, _ = env.step(action)
+>>>            total_reward += reward
+>>>            if done:
+>>>                # in this case the episode is over
+>>>                break
+>>>
+>>>    # Close the env and write monitor result info to disk
+>>>    env.close()
+>>> print("The total reward was {:.2f}".format(total_reward))
+
 """
 
 import numpy as np
@@ -122,11 +152,28 @@ class Environment:
     reward_range: ``(float, float)``
         The range of the reward function
 
+    metadata: ``dict``
+        For gym compatibility, do not use
+
+    spec: ``None``
+        For Gym compatibility, do not use
+
     viewer: ``object``
         Used to display the powergrid. Currently not supported.
 
     env_modification: :class:`grid2op.Action.Action`
         Representation of the actions of the environment for the modification of the powergrid.
+
+    TODO update with maintenance, hazards etc. see below
+    # store actions "cooldown"
+    times_before_line_status_actionable
+    max_timestep_line_status_deactivated
+    times_before_topology_actionable
+    max_timestep_topology_deactivated
+    time_next_maintenance
+    duration_next_maintenance
+    hard_overflow_threshold
+    time_remaining_before_reconnection
 
     """
     def __init__(self,
@@ -172,14 +219,18 @@ class Environment:
 
         # specific to power system
         if not isinstance(parameters, Parameters):
-            raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
+            raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
+                                   "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
         self.parameters = parameters
 
         if not isinstance(rewardClass, type):
-            raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(type(rewardClass)))
+            raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
+                                   "and not an object (an instance of a class). "
+                                   "It is currently \"{}\"".format(type(rewardClass)))
         if not issubclass(rewardClass, Reward):
             raise Grid2OpException(
-                "Parameter \"rewardClass\" used to build the Environment should derived form the grid2op.Reward class, type provided is \"{}\"".format(
+                "Parameter \"rewardClass\" used to build the Environment should derived form the grid2op.Reward class, "
+                "type provided is \"{}\"".format(
                     type(rewardClass)))
         self.rewardClass = rewardClass
 
@@ -188,7 +239,8 @@ class Environment:
 
         if not isinstance(backend, Backend):
             raise Grid2OpException(
-                "Parameter \"backend\" used to build the Environment should derived form the grid2op.Backend class, type provided is \"{}\"".format(
+                "Parameter \"backend\" used to build the Environment should derived form the grid2op.Backend class, "
+                "type provided is \"{}\"".format(
                     type(backend)))
         self.backend = backend
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
@@ -197,84 +249,48 @@ class Environment:
 
         # rules of the game
         if not isinstance(legalActClass, type):
-            raise Grid2OpException("Parameter \"legalActClass\" used to build the Environment should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException("Parameter \"legalActClass\" used to build the Environment should be a type "
+                                   "(a class) and not an object (an instance of a class). "
+                                   "It is currently \"{}\"".format(type(legalActClass)))
         if not issubclass(legalActClass, LegalAction):
             raise Grid2OpException(
-                "Parameter \"legalActClass\" used to build the Environment should derived form the grid2op.LegalAction class, type provided is \"{}\"".format(
+                "Parameter \"legalActClass\" used to build the Environment should derived form the "
+                "grid2op.LegalAction class, type provided is \"{}\"".format(
                     type(legalActClass)))
         self.game_rules = GameRules(legalActClass=legalActClass)
 
         # action helper
         if not isinstance(actionClass, type):
-            raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) "
+                                   "and not an object (an instance of a class). "
+                                   "It is currently \"{}\"".format(type(legalActClass)))
         if not issubclass(actionClass, Action):
             raise Grid2OpException(
-                "Parameter \"actionClass\" used to build the Environment should derived form the grid2op.Action class, type provided is \"{}\"".format(
+                "Parameter \"actionClass\" used to build the Environment should derived form the "
+                "grid2op.Action class, type provided is \"{}\"".format(
                     type(actionClass)))
 
         if not isinstance(observationClass, type):
-            raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) "
+                                   "and not an object (an instance of a class). "
+                                   "It is currently \"{}\"".format(type(legalActClass)))
         if not issubclass(observationClass, Observation):
             raise Grid2OpException(
-                "Parameter \"observationClass\" used to build the Environment should derived form the grid2op.Observation class, type provided is \"{}\"".format(
+                "Parameter \"observationClass\" used to build the Environment should derived form the "
+                "grid2op.Observation class, type provided is \"{}\"".format(
                     type(observationClass)))
 
         # action affecting the _grid that will be made by the agent
-        self.helper_action_player = HelperAction(name_prod=self.backend.name_prods,
-                                                 name_load=self.backend.name_loads,
-                                                 name_line=self.backend.name_lines,
-                                                 subs_info=self.backend.subs_elements,
-                                                 load_to_subid=self.backend.load_to_subid,
-                                                 gen_to_subid=self.backend.gen_to_subid,
-                                                 lines_or_to_subid=self.backend.lines_or_to_subid,
-                                                 lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
-                                                 load_to_sub_pos=self.backend.load_to_sub_pos,
-                                                 gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                                 lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                                 lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
-                                                 load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                                 gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                                 lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                                 lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
+        self.helper_action_player = HelperAction(gridobj=self.backend,
                                                  actionClass=actionClass,
                                                  game_rules=self.game_rules)
 
         # action that affect the _grid made by the environment.
-        self.helper_action_env = HelperAction(name_prod=self.backend.name_prods,
-                                              name_load=self.backend.name_loads,
-                                              name_line=self.backend.name_lines,
-                                              subs_info=self.backend.subs_elements,
-                                              load_to_subid=self.backend.load_to_subid,
-                                              gen_to_subid=self.backend.gen_to_subid,
-                                              lines_or_to_subid=self.backend.lines_or_to_subid,
-                                              lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
-                                              load_to_sub_pos=self.backend.load_to_sub_pos,
-                                              gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                              lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                              lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
-                                              load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                              gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                              lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                              lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
+        self.helper_action_env = HelperAction(gridobj=self.backend,
                                               actionClass=Action,
                                               game_rules=self.game_rules)
 
-        self.helper_observation = ObservationHelper(n_gen=self.backend.n_generators,
-                                                    n_load=self.backend.n_loads,
-                                                    n_lines=self.backend.n_lines,
-                                                    subs_info=self.backend.subs_elements,
-                                                    load_to_subid=self.backend.load_to_subid,
-                                                    gen_to_subid=self.backend.gen_to_subid,
-                                                    lines_or_to_subid=self.backend.lines_or_to_subid,
-                                                    lines_ex_to_subid=self.backend.lines_ex_to_subid, #####
-                                                    load_to_sub_pos=self.backend.load_to_sub_pos,
-                                                    gen_to_sub_pos=self.backend.gen_to_sub_pos,
-                                                    lines_or_to_sub_pos=self.backend.lines_or_to_sub_pos,
-                                                    lines_ex_to_sub_pos=self.backend.lines_ex_to_sub_pos, #####
-                                                    load_pos_topo_vect=self.backend.load_pos_topo_vect,
-                                                    gen_pos_topo_vect=self.backend.gen_pos_topo_vect,
-                                                    lines_or_pos_topo_vect=self.backend.lines_or_pos_topo_vect,
-                                                    lines_ex_pos_topo_vect=self.backend.lines_ex_pos_topo_vect,
+        self.helper_observation = ObservationHelper(gridobj=self.backend,
                                                     observationClass=observationClass,
                                                     rewardClass=rewardClass,
                                                     env=self)
@@ -282,30 +298,40 @@ class Environment:
         self.current_obs = None
 
         # type of power flow to play
-        self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION  # if True, then it will not disconnect lines above their thermal limits
-        self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
+        # if True, then it will not disconnect lines above their thermal limits
+        self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
+        self.timestep_overflow = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         # store actions "cooldown"
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+
+        # for maintenance operation
+        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+
+        # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
+        self._hazard_duration = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
 
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.backend.n_line,),
+                                                               fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(
-                "Parameter \"chronics_handler\" used to build the Environment should derived form the grid2op.ChronicsHandler class, type provided is \"{}\"".format(
+                "Parameter \"chronics_handler\" used to build the Environment should derived form the "
+                "grid2op.ChronicsHandler class, type provided is \"{}\"".format(
                     type(chronics_handler)))
         self.chronics_handler = chronics_handler
-        self.chronics_handler.initialize(self.backend.name_loads, self.backend.name_prods,
-                                         self.backend.name_lines, self.backend.name_subs,
+        self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
+                                         self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
         self.names_chronics_to_backend = names_chronics_to_backend
 
@@ -324,6 +350,7 @@ class Environment:
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
+        self._reset_maintenance()
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, _ = self.step(do_nothing)
         if fail_to_start:
@@ -338,7 +365,48 @@ class Environment:
         self.reward_range = self.reward_helper.range()
         self.viewer = None
 
+        self.metadata = {'render.modes': []}
+        self.spec = None
+
         self._reset_vectors_and_timings()
+
+    def __str__(self):
+        return '<{} instance>'.format(type(self).__name__)
+        # TODO be closer to original gym implementation
+        # if self.spec is None:
+        #     return '<{} instance>'.format(type(self).__name__)
+        # else:
+        #     return '<{}<{}>>'.format(type(self).__name__, self.spec.id)
+
+    def __enter__(self):
+        """
+        Support *with-statement* for the environment.
+
+        Examples
+        --------
+        >>> import grid2op
+        >>> import grid2op.Agent
+        >>> with grid2op.make() as env:
+        >>>     agent = grid2op.Agent.DoNothingAgent(env.action_space)
+        >>>     act = env.action_space()
+        >>>     obs, r, done, info = env.step(act)
+        >>>     act = agent.act(obs, r, info)
+        >>>     obs, r, done, info = env.step(act)
+        """
+        return self
+
+    def __exit__(self, *args):
+        """
+        Support *with-statement* for the environment.
+        """
+        self.close()
+        # propagate exception
+        return False
+
+    def _reset_maintenance(self):
+        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_line,), fill_value=0, dtype=np.int)
 
     def reset_grid(self):
         """
@@ -397,7 +465,7 @@ class Environment:
         res: :class:`grid2op.Action.Action`
             The action representing the modification of the powergrid induced by the Backend.
         """
-        timestamp, tmp = self.chronics_handler.next_time_step()
+        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration = self.chronics_handler.next_time_step()
         if "injection" in tmp:
             self._injection = tmp["injection"]
         else:
@@ -411,27 +479,60 @@ class Environment:
         else:
             self._hazards = None
         self.time_stamp = timestamp
+        self.duration_next_maintenance = maintenance_duration
+        self.time_next_maintenance = maintenance_time
+        self._hazard_duration = hazard_duration
         return self.helper_action_env({"injection": self._injection, "maintenance": self._maintenance,
                                        "hazards": self._hazards})
 
     def get_obs(self):
         """
-        Return the observations of the current environment made by the :class:`grid2op.Agent`.
+        Return the observations of the current environment made by the :class:`grid2op.Agent.Agent`.
 
         Returns
         -------
-        res: :class:`grid2op.Observation`
-            The current Observation given to the :class:`grid2op.Agent` / bot / controler.
+        res: :class:`grid2op.Observation.Observation`
+            The current Observation given to the :class:`grid2op.Agent.Agent` / bot / controler.
         """
         res = self.helper_observation(env=self)
         return res
 
-    def _get_reward(self, action, has_error, is_done):
-        return self.reward_helper(action, self, has_error, is_done)
+    def _get_reward(self, action, has_error, is_done, is_illegal, is_ambiguous):
+        return self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
 
     def _is_done(self, has_error, is_done):
         no_more_data = self.chronics_handler.done()
         return has_error or is_done or no_more_data
+
+    def _update_time_reconnection_hazards_maintenance(self):
+        """
+        This supposes that :attr:`Environment.time_remaining_before_line_reconnection` is already updated
+        with the cascading failure, soft overflow and hard overflow.
+
+        It also supposes that :func:`Environment._update_actions` has been called, so that the vectors
+        :attr:`Environment.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
+        :attr:`Environment._hazard_duration` are updated with the most recent values.
+
+        Finally the Environment supposes that this method is called before calling :func:`Environment.get_obs`
+
+        This function integrates the hazards and maintenance in the
+        :attr:`Environment.time_remaining_before_line_reconnection` vector.
+        For example, if a powerline `i` has no problem
+        of overflow, but is affected by a hazard, :attr:`Environment.time_remaining_before_line_reconnection`
+        should be updated with the duration of this hazard (stored in one of the three vector mentionned in the
+        above paragraph)
+
+        For this Environment, we suppose that the maximum of the 3 values are taken into account. The reality would
+        be more complicated.
+
+        Returns
+        -------
+
+        """
+        self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
+                                                                  self.duration_next_maintenance)
+        self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
+                                                                  self._hazard_duration)
 
     def step(self, action):
         """
@@ -440,6 +541,9 @@ class Environment:
         to reset this environment's state.
         Accepts an action and returns a tuple (observation, reward, done, info).
 
+        If the :class:`grid2op.Action.Action` is illegal or ambiguous, the step is performed, but the action is
+        replaced with a "do nothing" action.
+
         Parameters
         ----------
             action: :class:`grid2op.Action.Action`
@@ -447,21 +551,44 @@ class Environment:
 
         Returns
         -------
-            observation: :class:`grid2op.Observation`
+            observation: :class:`grid2op.Observation.Observation`
                 agent's observation of the current environment
+
             reward: ``float``
                 amount of reward returned after previous action
+
             done: ``bool``
                 whether the episode has ended, in which case further step() calls will return undefined results
+
             info: ``dict``
-                contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+                contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). It is a
+                dicitonnary with keys:
+
+                    - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
+                        due to overflow
+                    - "is_illegal" (``bool``) whether the action given as input was illegal
+                    - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
+
         """
         has_error = True
         is_done = False
         disc_lines = None
+        is_illegal = False
+        is_ambiguous = False
         try:
             beg_ = time.time()
-            self.backend.apply_action(action)
+            is_illegal = not self.game_rules(action=action, env=self)
+            if is_illegal:
+                # action is replace by do nothing
+                action = self.helper_action_player({})
+
+            try:
+                self.backend.apply_action(action)
+            except AmbiguousAction:
+                # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
+                # "do nothing"
+                is_ambiguous = True
+
             self.env_modification = self._update_actions()
             self.backend.apply_action(self.env_modification)
             self._time_apply_act += time.time() - beg_
@@ -478,10 +605,10 @@ class Environment:
                 overflow_lines = self.backend.get_line_overflow()
 
                 # one timestep passed, i can maybe reconnect some lines
-                self.time_remaining_before_reconnection[self.time_remaining_before_reconnection > 0] -= 1
-
+                self.time_remaining_before_line_reconnection[self.time_remaining_before_line_reconnection > 0] -= 1
                 # update the vector for lines that have been disconnected
-                self.time_remaining_before_reconnection[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                self.time_remaining_before_line_reconnection[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                self._update_time_reconnection_hazards_maintenance()
 
                 # for the powerline that are on overflow, increase this time step
                 self.timestep_overflow[overflow_lines] += 1
@@ -511,24 +638,30 @@ class Environment:
         except StopIteration:
             # episode is over
             is_done = True
-
-        return self.current_obs, self._get_reward(action, has_error, is_done), self._is_done(has_error, is_done),\
-               {"disc_lines": disc_lines}
+        infos = {"disc_lines": disc_lines, "is_illegal": is_illegal, "is_ambiguous": is_ambiguous}
+        return self.current_obs, self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous),\
+               self._is_done(has_error, is_done),\
+               infos
 
     def _reset_vectors_and_timings(self):
+        """
+        Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
+        Returns
+        -------
+
+        """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_lines,),
+        self.timestep_overflow = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_reconnection = np.full(shape=(self.backend.n_lines,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_lines,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_substations,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
         self._time_apply_act = 0
@@ -546,10 +679,11 @@ class Environment:
         This method should be called only at the end of an episode.
         """
         self.chronics_handler.next_chronics()
-        self.chronics_handler.initialize(self.backend.name_loads, self.backend.name_prods,
-                                         self.backend.name_lines, self.backend.name_subs,
+        self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
+                                         self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
+        self._reset_maintenance()
         self.reset_grid()
 
         # if True, then it will not disconnect lines above their thermal limits

@@ -5,6 +5,7 @@ import time
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 try:
     from .Exceptions import Grid2OpException
@@ -54,7 +55,7 @@ class Episode:
         self.serialize = False
         self.load_names = action_space.name_load
         self.n_loads = len(self.load_names)
-        self.prod_names = action_space.name_prod
+        self.prod_names = action_space.name_gen
         self.n_prods = len(self.prod_names)
         self.line_names = action_space.name_line
         self.n_lines = len(self.line_names)
@@ -63,12 +64,15 @@ class Episode:
         if get_dataframes is not None:
             print("computing df")
             beg = time.time()
+            print("Environment")
             self.load, self.production, self.rho, self.action_data, self.action_data_table = self._make_df_from_data()
+            print("Hazards-Maintenances")
             self.hazards, self.maintenances = self._env_actions_as_df()
             self.computed_reward = self._compute_reward_df_from_data()
+            self.timestamps = sorted(self.load.timestamp.unique())
+            self.timesteps = sorted(self.load.timestep.unique())
             end = time.time()
             print(f"end computing df: {end - beg}")
-
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
             self.episode_path = os.path.join(self.agent_path, str(indx))
@@ -114,7 +118,8 @@ class Episode:
             timestep.append(self.timestamp(obs))
 
         df = pd.DataFrame(index=range(len(self.rewards)))
-        df["timestep"] = timestep  # TODO use timestep from one of _make_df_data() returns to avoid multiple computation
+        # TODO use timestep from one of _make_df_data() returns to avoid multiple computation
+        df["timestep"] = timestep
         df["rewards"] = self.rewards
         df["cum_rewards"] = self.rewards.cumsum(axis=0)
 
@@ -137,7 +142,7 @@ class Episode:
         action_data_table = pd.DataFrame(index=range(action_size),
                                          columns=['timestep', 'timestep_reward', 'action_line', 'action_subs',
                                                   'line_action', 'sub_name', 'objets_changed', 'distance'])
-        for (time_step, (obs, act)) in enumerate(zip(self.observations, self.actions)):
+        for (time_step, (obs, act)) in tqdm(enumerate(zip(self.observations, self.actions)), total=len(self.env_actions)):
             if obs.game_over:
                 continue
             time_stamp = self.timestamp(obs)
@@ -154,10 +159,11 @@ class Episode:
             for equipment, rho_t in enumerate(obs.rho):
                 pos = time_step * len(obs.rho) + equipment
                 rho.loc[pos, :] = [time_step, time_stamp, equipment, rho_t]
-            for line, subs in zip(range(act._n_lines), range(len(act._subs_info))):
+            for line, subs in zip(range(act.n_line), range(len(act.sub_info))):
                 pos = time_step
                 action_data.loc[pos, :] = [time_stamp, self.rewards[time_step],
-                                           np.sum(act._switch_line_status), np.sum(act._change_bus_vect),
+                                           np.sum(act._switch_line_status), np.sum(
+                                               act._change_bus_vect),
                                            act._set_line_status.flatten().astype(np.float),
                                            act._switch_line_status.flatten().astype(np.float),
                                            act._set_topo_vect.flatten().astype(np.float),
@@ -204,7 +210,7 @@ class Episode:
         cols = ["timestep", "timestamp", "line_id", "line_name", "value"]
         hazards = pd.DataFrame(index=range(hazards_size), columns=cols)
         maintenances = hazards.copy()
-        for (time_step, env_act) in enumerate(self.env_actions):
+        for (time_step, env_act) in tqdm(enumerate(self.env_actions), total=len(self.env_actions)):
             time_stamp = self.timestamp(self.observations[time_step])
             iter_haz_maint = zip(env_act._hazards, env_act._maintenance)
             for line_id, (haz, maint) in enumerate(iter_haz_maint):
@@ -291,8 +297,10 @@ class Episode:
                    reward, env_act, act, obs, info):
         if self.serialize:
             self.actions.update(time_step, act.to_vect(), efficient_storing)
-            self.env_actions.update(time_step, env_act.to_vect(), efficient_storing)
-            self.observations.update(time_step, obs.to_vect(), efficient_storing)
+            self.env_actions.update(
+                time_step, env_act.to_vect(), efficient_storing)
+            self.observations.update(
+                time_step, obs.to_vect(), efficient_storing)
             if efficient_storing:
                 # efficient way of writing
                 self.times[time_step - 1] = time_step_duration

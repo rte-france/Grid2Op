@@ -90,7 +90,7 @@ class TestAgent(unittest.TestCase):
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass)
 
-    def _aux_test_agent(self, agent):
+    def _aux_test_agent(self, agent, i_max=30):
         done = False
         i = 0
         beg_ = time.time()
@@ -105,7 +105,7 @@ class TestAgent(unittest.TestCase):
             time_act += end__ - beg__
             cum_reward += reward
             i += 1
-            if i > 30:
+            if i > i_max:
                 break
 
         end_ = time.time()
@@ -134,9 +134,9 @@ class TestAgent(unittest.TestCase):
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.helper_action_player)
-        i, cum_reward = self._aux_test_agent(agent)
-        assert i == 31, "The powerflow diverged before step 30 for greedy agent"
-        assert np.abs(cum_reward - 619.999011) <= self.tol_one, "The reward has not been properly computed"
+        i, cum_reward = self._aux_test_agent(agent, i_max=10)
+        assert i == 11, "The powerflow diverged before step 30 for greedy agent"
+        assert np.abs(cum_reward - 219.99795) <= self.tol_one, "The reward has not been properly computed"
 
 
 if __name__ == "__main__":

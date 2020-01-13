@@ -75,7 +75,7 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         """
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
-        self.n_lines = len(order_backend_lines)
+        self.n_line = len(order_backend_lines)
 
         self.names_chronics_to_backend = copy.deepcopy(names_chronics_to_backend)
         if self.names_chronics_to_backend is None:
@@ -184,6 +184,14 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         self.maintenance_forecast = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
         # there are maintenance and hazards only if the value in the file is not 0.
+        self.maintenance_time = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
+        self.hazard_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
+        for line_id in range(self.n_lines):
+            self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(self.maintenance[:, line_id])
+            self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(self.maintenance[:, line_id])
+            self.hazard_duration[:, line_id] = self.get_maintenance_duration_1d(self.hazards[:, line_id])
+
         self.maintenance_forecast = self.maintenance != 0.
 
 
@@ -202,18 +210,12 @@ class L2RPN2019_Action(Action):
     **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
     reconnecting a powerline cannot be considered "ambiguous". We have to
     """
-    def __init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect):
+    def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
         """
-        Action.__init__(self, n_gen, n_load, n_lines, subs_info, dim_topo,
-                 load_to_subid, gen_to_subid, lines_or_to_subid, lines_ex_to_subid,
-                 load_to_sub_pos, gen_to_sub_pos, lines_or_to_sub_pos, lines_ex_to_sub_pos,
-                 load_pos_topo_vect, gen_pos_topo_vect, lines_or_pos_topo_vect, lines_ex_pos_topo_vect)
+        Action.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
@@ -292,7 +294,7 @@ class L2RPN2019_Action(Action):
         size: ``int``
             The size of :class:`PowerLineSet` converted to an array.
         """
-        return self._n_lines + self._dim_topo
+        return self.n_line + self.dim_topo
 
     def to_vect(self):
         """
@@ -303,7 +305,7 @@ class L2RPN2019_Action(Action):
 
         Returns
         -------
-        as_vect: :class:`numpy.array`, dtype:float
+        _vectorized: :class:`numpy.array`, dtype:float
             The instance of this action converted to a vector.
         """
         if self.as_vect is None:
@@ -337,10 +339,10 @@ class L2RPN2019_Action(Action):
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
         prev_ = 0
-        next_ = self._n_lines
+        next_ = self.n_line
 
         self._switch_line_status = vect[prev_:next_]
-        self._switch_line_status = self._switch_line_status.astype(np.bool); prev_=next_; next_+= self._dim_topo
+        self._switch_line_status = self._switch_line_status.astype(np.bool); prev_=next_; next_+= self.dim_topo
         self._change_bus_vect = vect[prev_:next_]
         self._change_bus_vect = self._change_bus_vect.astype(np.bool)
 
@@ -359,8 +361,8 @@ class L2RPN2019_Action(Action):
     #     """
     #     sel_ = self._set_line_status == 1
     #     if np.any(sel_):
-    #         self._set_topo_vect[self._lines_ex_pos_topo_vect[sel_]] = 1
-    #         self._set_topo_vect[self._lines_or_pos_topo_vect[sel_]] = 1
+    #         self._set_topo_vect[self.line_ex_pos_topo_vect[sel_]] = 1
+    #         self._set_topo_vect[self.line_or_pos_topo_vect[sel_]] = 1
 
     def sample(self):
         """
@@ -379,6 +381,6 @@ class L2RPN2019_Action(Action):
         val = 2*np.random.randint(0, 2) - 1  # the action: +1 reconnect it, -1 disconnect it
         self._set_line_status[i] = val
         if val == 1:
-            self._set_topo_vect[self._lines_ex_pos_topo_vect[i]] = 1
-            self._set_topo_vect[self._lines_or_pos_topo_vect[i]] = 1
+            self._set_topo_vect[self.line_ex_pos_topo_vect[i]] = 1
+            self._set_topo_vect[self.line_or_pos_topo_vect[i]] = 1
         return self
