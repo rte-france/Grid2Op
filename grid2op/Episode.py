@@ -192,7 +192,7 @@ class Episode:
         return load_data, production, rho, action_data, action_data_table
 
     def get_sub_action(self, act, obs):
-        for sub in range(len(obs.subs_info)):
+        for sub in range(len(obs.sub_info)):
             effect = act.effect_on(substation_id=sub)
             if len(np.where(effect["change_bus"] is True)):
                 return sub
