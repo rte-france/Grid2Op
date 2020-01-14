@@ -137,7 +137,7 @@ class Episode:
         rho = pd.DataFrame(index=range(rho_size), columns=[
                            'time', "timestamp", 'equipment', 'value'])
         action_data = pd.DataFrame(index=range(action_size),
-                                   columns=['timestep', 'timestep_reward', 'action_line', 'action_subs',
+                                   columns=['timestamp', 'timestep', 'timestep_reward', 'action_line', 'action_subs',
                                             'set_line', 'switch_line', 'set_topo', 'change_bus'])
         for (time_step, (obs, act)) in tqdm(enumerate(zip(self.observations, self.actions)), total=len(self.env_actions)):
             if obs.game_over:
@@ -158,7 +158,7 @@ class Episode:
                 rho.loc[pos, :] = [time_step, time_stamp, equipment, rho_t]
             for line, subs in zip(range(act.n_line), range(len(act.sub_info))):
                 pos = time_step
-                action_data.loc[pos, :] = [time_step, self.rewards[time_step],
+                action_data.loc[pos, :] = [time_stamp, time_step, self.rewards[time_step],
                                            np.sum(act._switch_line_status), np.sum(
                                                act._change_bus_vect),
                                            act._set_line_status.flatten().astype(np.float),
