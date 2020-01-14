@@ -236,13 +236,8 @@ class PowerLineSwitch(GreedyAgent):
             action = self.action_space({"change_line_status": tmp})
             if not observation.line_status[i]:
                 # so the action consisted in reconnecting the powerline
-                # i need to say on which bus
+                # i need to say on which bus (always on bus 1 for this type of agent)
                 action = action.update({"set_bus": {"lines_or_id": [(i, 1)], "lines_ex_id": [(i, 1)]}})
-                # name_element = self.action_space.name_line[i]
-                # action = self.action_space.set_bus(name_element, 1, extremity="or", type_element="line",
-                #                                    previous_action=action)
-                # action = self.action_space.set_bus(name_element, 1, extremity="ex", type_element="line",
-                #                                    previous_action=action)
             res.append(action)
         return res
 
@@ -259,23 +254,25 @@ class TopologyGreedy(GreedyAgent):
     """
     def __init__(self, action_space):
         GreedyAgent.__init__(self, action_space)
+        self.li_actions = None
 
     def _get_tested_action(self, observation):
-        res = [self.action_space({})]  # add the do nothing
-        S = [0, 1]
-        for sub_id, num_el in enumerate(self.action_space.sub_info):
-            if num_el < 4:
-                pass
-            for tup in itertools.product(S, repeat=num_el-1):
-                indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
-                tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
-
-                indx[tup] = True
-                if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
-                    # i need 2 elements on each bus at least
-                    action = self.action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})  # add action "i disconnect powerline i"
-                    res.append(action)
-        return res
+        if self.li_actions is None:
+            res = [self.action_space({})]  # add the do nothing
+            S = [0, 1]
+            for sub_id, num_el in enumerate(self.action_space.sub_info):
+                if num_el < 4:
+                    pass
+                for tup in itertools.product(S, repeat=num_el-1):
+                    indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
+                    tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
+                    indx[tup] = True
+                    if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
+                        # i need 2 elements on each bus at least
+                        action = self.action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
+                        res.append(action)
+            self.li_actions = res
+        return self.li_actions
 
 
 class MLAgent(Agent):

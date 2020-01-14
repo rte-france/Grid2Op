@@ -1001,6 +1001,10 @@ class Action(GridObjects):
 
         # redispatching specific check
         if np.any(self._redispatch !=0.):
+            if not self.redispatching_unit_commitment_availble:
+                raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
+                                                           "environment. Please set up the proper costs for generator")
+
             if np.any(self._redispatch > self.gen_max_ramp_up):
                 raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
             if np.any(-self._redispatch > self.gen_max_ramp_down):

@@ -45,6 +45,7 @@ import time
 import os
 
 try:
+    from .Space import GridObjects
     from .Action import HelperAction, Action, TopologyAction
     from .Exceptions import *
     from .Observation import CompleteObservation, ObservationHelper, Observation
@@ -70,7 +71,7 @@ import pdb
 
 # TODO have a viewer / renderer now
 
-class Environment:
+class Environment(GridObjects):
     """
 
     Attributes
@@ -178,6 +179,10 @@ class Environment:
     hard_overflow_threshold
     time_remaining_before_reconnection
 
+    # redispacthing
+    target_dispatch
+    actual_dispatch
+
     """
     def __init__(self,
                  init_grid_path: str,
@@ -207,6 +212,8 @@ class Environment:
         legalActClass
         """
         # TODO documentation!!
+
+        GridObjects.__init__(self)
 
         # some timers
         self._time_apply_act = 0
@@ -248,6 +255,7 @@ class Environment:
         self.backend = backend
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
         self.backend.assert_grid_correct()
+        self.init_grid(backend)
         *_, tmp = self.backend.generators_info()
 
         # rules of the game
@@ -325,6 +333,10 @@ class Environment:
         self.time_remaining_before_line_reconnection = np.full(shape=(self.backend.n_line,),
                                                                fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
+
+        # redispatching data
+        self.target_dispatch = np.full(shape=self.backend.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.actual_dispatch = np.full(shape=self.backend.n_gen, dtype=np.float, fill_value=np.NaN)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):

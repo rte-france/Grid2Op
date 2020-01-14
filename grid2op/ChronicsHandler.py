@@ -59,7 +59,10 @@ from abc import ABC, abstractmethod
 import pdb
 
 
-# TODO sous echantillonner ou sur echantilloner les scenario
+# TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number
+# TODO of time steps there, for example "Space.gen_min_time_on" or "params.NB_TIMESTEP_POWERFLOW_ALLOWED" for
+# TODO example. And more generally, it would be better to have all of this attributes exported / imported in
+# TODO time interval, instead of time steps.
 
 # TODO add a class to sample "online" the data.
 

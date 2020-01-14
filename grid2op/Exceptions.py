@@ -268,6 +268,14 @@ class InvalidRedispatching(AmbiguousAction):
     """
     pass
 
+
+class InvalidRedispaching(AmbiguousAction):
+    """
+    It tells that the current redispatching action is not valid.
+    """
+    pass
+
+
 # powerflow exception
 class DivergingPowerFlow(Grid2OpException):
     """
@@ -320,5 +328,12 @@ class InsufficientData(ChronicsError):
 class BackendError(Grid2OpException):
     """
     Base class of all error regarding the Backend that might be badly configured.
+    """
+    pass
+
+# attempt to use redispatching or unit commit method in an environment not set up.
+class UnitCommitorRedispachingNotAvailable(Grid2OpException):
+    """
+    attempt to use redispatching or unit commit method in an environment not set up.
     """
     pass

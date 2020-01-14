@@ -225,26 +225,74 @@ class GridObjects:
         called the first time. Otherwise, this attribute is set to ``None``.
 
     gen_type: :class:`numpy.ndarray`, dtype:str
-        Type of the generators, among: "solar", "wind", "hydro", "thermal" and "nuclear"
+        Type of the generators, among: "solar", "wind", "hydro", "thermal" and "nuclear". Optional. Used
+        for unit commitment problems or redispacthing action.
 
     gen_pmin: :class:`numpy.ndarray`, dtype:float
-        Minimum active power production needed for a generator to work properly.
+        Minimum active power production needed for a generator to work properly. Optional. Used
+        for unit commitment problems or redispacthing action.
 
     gen_pmax: :class:`numpy.ndarray`, dtype:float
-        Maximum active power production needed for a generator to work properly.
+        Maximum active power production needed for a generator to work properly. Optional. Used
+        for unit commitment problems or redispacthing action.
 
     gen_redispatchable: :class:`numpy.ndarray`, dtype:bool
-        For each generator, it says if the generator is dispatchable or not.
+        For each generator, it says if the generator is dispatchable or not. Optional. Used
+        for unit commitment problems or redispacthing action.
 
     gen_max_ramp_up: :class:`numpy.ndarray`, dtype:float
         Maximum active power variation possible between two consecutive timestep for each generator:
         a redispatching action
-        on generator `g_id` cannot be above :attr:`GridObjects.gen_ramp_up_max` [`g_id`]
+        on generator `g_id` cannot be above :attr:`GridObjects.gen_ramp_up_max` [`g_id`]. Optional. Used
+        for unit commitment problems or redispacthing action.
 
     gen_max_ramp_down: :class:`numpy.ndarray`, dtype:float
         Minimum active power variationpossible between two consecutive timestep for each generator: a redispatching
         action
-        on generator `g_id` cannot be below :attr:`GridObjects.gen_ramp_down_min` [`g_id`]
+        on generator `g_id` cannot be below :attr:`GridObjects.gen_ramp_down_min` [`g_id`]. Optional. Used
+        for unit commitment problems or redispacthing action.
+
+    gen_min_uptime: :class:`numpy.ndarray`, dtype:float
+        Minimum time (expressed in number of timesteps) a generator need to be turned on: it's not possible to
+        turn off generator `gen_id` that has been turned on less than `gen_min_time_on` [`gen_id`] timesteps
+        ago. Optional. Used
+        for unit commitment problems or redispacthing action.
+
+    gen_min_downtime: :class:`numpy.ndarray`, dtype:float
+        Minimum time (expressed in number of timesteps) a generator need to be turned off: it's not possible to
+        turn on generator `gen_id` that has been turned off less than `gen_min_time_on` [`gen_id`] timesteps
+        ago. Optional. Used
+        for unit commitment problems or redispacthing action.
+
+    gen_cost_per_MW: :class:`numpy.ndarray`, dtype:float
+        For each generator, it gives the "operating cost", eg the cost, in term of "used currency" for the production of
+        one MW with this generator, if it is already turned on. It's a positive real number. It's the marginal cost
+        for each MW. Optional. Used
+        for unit commitment problems or redispacthing action.
+
+    gen_startup_cost: :class:`numpy.ndarray`, dtype:float
+        The cost to start a generator. It's a positive real number. Optional. Used
+        for unit commitment problems or redispacthing action.
+
+    gen_shutdown_cost: :class:`numpy.ndarray`, dtype:float
+        The cost to shut down a generator. It's a positive real number. Optional. Used
+        for unit commitment problems or redispacthing action.
+
+    redispatching_unit_commitment_availble: ``bool``
+        Does the current grid allow for redispatching and / or unit commit problem. If not, any attempt to use it
+        will raise a :class:`grid2op.Exceptions.UnitCommitorRedispachingNotAvailable` error.
+        For an environment to be compatible with this feature, you need to set up, when loading the backend:
+          - :attr:`GridObjects.gen_type`
+          - :attr:`GridObjects.gen_pmin`
+          - :attr:`GridObjects.gen_pmax`
+          - :attr:`GridObjects.gen_redispatchable`
+          - :attr:`GridObjects.gen_max_ramp_up`
+          - :attr:`GridObjects.gen_max_ramp_down`
+          - :attr:`GridObjects.gen_min_uptime`
+          - :attr:`GridObjects.gen_min_downtime`
+          - :attr:`GridObjects.gen_cost_per_MW`
+          - :attr:`GridObjects.gen_startup_cost`
+          - :attr:`GridObjects.gen_shutdown_cost`
 
     """
     def __init__(self):
@@ -284,14 +332,20 @@ class GridObjects:
         self.attr_list_vect = None
         self._vectorized = None
 
-        # for redispatching
+        # for redispatching / unit commitment
         TODO = "TODO COMPLETE THAT BELLOW!!! AND UPDATE THE init methods"
-        self.gen_type = TODO
-        self.gen_pmin = TODO
-        self.gen_pmax = TODO
-        self.gen_redispatchable = TODO
-        self.gen_max_ramp_up = TODO
-        self.gen_max_ramp_down = TODO
+        self.gen_type = None
+        self.gen_pmin = None
+        self.gen_pmax = None
+        self.gen_redispatchable = None
+        self.gen_max_ramp_up = None
+        self.gen_max_ramp_down = None
+        self.gen_min_uptime = None
+        self.gen_min_downtime = None
+        self.gen_cost_per_MW = None  # marginal cost
+        self.gen_startup_cost = None  # start cost
+        self.gen_shutdown_cost = None  # shutdown cost
+        self.redispatching_unit_commitment_availble = False
 
     def _raise_error_attr_list_none(self):
         """
@@ -833,6 +887,119 @@ class GridObjects:
         if np.any(self.sub_info < 1):
             raise BackendError("There are {} bus with 0 element connected to it.".format(np.sum(self.sub_info < 1)))
 
+        # redispatching / unit commitment
+        if self.redispatching_unit_commitment_availble:
+            if self.gen_type is None:
+                raise InvalidRedispatching("Impossible to recognize the type of generators (gen_type) when "
+                                           "redispatching is supposed to be available.")
+            if self.gen_pmin is None:
+                raise InvalidRedispatching("Impossible to recognize the pmin of generators (gen_pmin) when "
+                                           "redispatching is supposed to be available.")
+            if self.gen_pmax is None:
+                raise InvalidRedispatching("Impossible to recognize the pmax of generators (gen_pmax) when "
+                                           "redispatching is supposed to be available.")
+            if self.gen_redispatchable is None:
+                raise InvalidRedispatching("Impossible to know which generator can be dispatched (gen_redispatchable)"
+                                           " when redispatching is supposed to be available.")
+            if self.gen_max_ramp_up is None:
+                raise InvalidRedispatching("Impossible to recognize the ramp up of generators (gen_max_ramp_up)"
+                                           " when redispatching is supposed to be available.")
+            if self.gen_max_ramp_down is None:
+                raise InvalidRedispatching("Impossible to recognize the ramp up of generators (gen_max_ramp_down)"
+                                           " when redispatching is supposed to be available.")
+            if self.gen_min_uptime is None:
+                raise InvalidRedispatching("Impossible to recognize the min uptime of generators (gen_min_uptime)"
+                                           " when redispatching is supposed to be available.")
+            if self.gen_min_downtime is None:
+                raise InvalidRedispatching("Impossible to recognize the min downtime of generators (gen_min_downtime)"
+                                           " when redispatching is supposed to be available.")
+            if self.gen_cost_per_MW is None:
+                raise InvalidRedispatching("Impossible to recognize the marginal costs of generators (gen_cost_per_MW)"
+                                           " when redispatching is supposed to be available.")
+            if self.gen_startup_cost is None:
+                raise InvalidRedispatching("Impossible to recognize the start up cost of generators (gen_startup_cost)"
+                                           " when redispatching is supposed to be available.")
+            if self.gen_shutdown_cost is None:
+                raise InvalidRedispatching("Impossible to recognize the shut down cost of generators "
+                                           "(gen_shutdown_cost) when redispatching is supposed to be available.")
+
+            if len(self.gen_type) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the type of generators (gen_type) when "
+                                           "redispatching is supposed to be available.")
+            if len(self.gen_pmin) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the pmin of generators (gen_pmin) when "
+                                           "redispatching is supposed to be available.")
+            if len(self.gen_pmax) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the pmax of generators (gen_pmax) when "
+                                           "redispatching is supposed to be available.")
+            if len(self.gen_redispatchable) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for which generator can be dispatched (gen_redispatchable)"
+                                           " when redispatching is supposed to be available.")
+            if len(self.gen_max_ramp_up) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the ramp up of generators (gen_max_ramp_up)"
+                                           " when redispatching is supposed to be available.")
+            if len(self.gen_max_ramp_down) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the ramp up of generators (gen_max_ramp_down)"
+                                           " when redispatching is supposed to be available.")
+            if len(self.gen_min_uptime) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the min uptime of generators (gen_min_uptime)"
+                                           " when redispatching is supposed to be available.")
+            if len(self.gen_min_downtime) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the min downtime of generators (gen_min_downtime)"
+                                           " when redispatching is supposed to be available.")
+            if len(self.gen_cost_per_MW) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the marginal costs of generators (gen_cost_per_MW)"
+                                           " when redispatching is supposed to be available.")
+            if len(self.gen_startup_cost) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the start up cost of generators (gen_startup_cost)"
+                                           " when redispatching is supposed to be available.")
+            if len(self.gen_shutdown_cost) != self.n_gen:
+                raise InvalidRedispatching("Invalid length for the shut down cost of generators "
+                                           "(gen_shutdown_cost) when redispatching is supposed to be available.")
+
+            if np.any(self.gen_min_uptime < 0):
+                raise InvalidRedispatching("Minimum uptime of generator (gen_min_uptime) cannot be negative")
+            if np.any(self.gen_min_downtime < 0):
+                raise InvalidRedispatching("Minimum downtime of generator (gen_min_downtime) cannot be negative")
+            
+            for el in self.gen_type:
+                if not el in ["solar", "wind", "hydro", "thermal", "nuclear"]:
+                    raise InvalidRedispatching("Unknown generator type : {}".format(el))
+
+            if np.any(self.gen_pmin < 0.):
+                raise InvalidRedispatching("One of the Pmin (gen_pmin) is negative")
+            if np.any(self.gen_pmax < 0.):
+                raise InvalidRedispatching("One of the Pmax (gen_pmax) is negative")
+            if np.any(self.gen_max_ramp_down < 0.):
+                raise InvalidRedispatching("One of the ramp up (gen_max_ramp_down) is negative")
+            if np.any(self.gen_max_ramp_up < 0.):
+                raise InvalidRedispatching("One of the ramp down (gen_max_ramp_up) is negative")
+            if np.any(self.gen_startup_cost < 0.):
+                raise InvalidRedispatching("One of the start up cost (gen_startup_cost) is negative")
+            if np.any(self.gen_shutdown_cost < 0.):
+                raise InvalidRedispatching("One of the start up cost (gen_shutdown_cost) is negative")
+
+            for el, type_ in zip(["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
+                                  "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
+                                  "gen_startup_cost", "gen_shutdown_cost"],
+                                 [str, np.float, np.float, np.bool, np.float,
+                                 np.float, np.int, np.int, np.float,
+                                 np.float, np.float]):
+                if not isinstance(self.__dict__[el], np.ndarray):
+                    try:
+                        self.__dict__[el] = np.array(self.__dict__[el])
+                    except Exception as e:
+                        raise InvalidRedispatching("{} should be convertible to a numpy array".format(el))
+                if not np.issubdtype(self.__dict__[el].dtype, np.dtype(type_).type):
+                    try:
+                        self.__dict__[el] = self.__dict__[el].astype(type_)
+                    except Exception as e:
+                        raise InvalidRedispatching("{} should be convertible data should be convertible to "
+                                                   "{}".format(el, type_))
+
+            if np.any(self.gen_max_ramp_up[self.gen_redispatchable] > self.gen_pmax[self.gen_redispatchable]):
+                raise InvalidRedispatching("Invalid maximum ramp for some generator (above pmax)")
+
     def init_grid(self, gridobj):
         """
         Initialize this :class:`GridObjects` instance with a provided instance.
@@ -876,13 +1043,19 @@ class GridObjects:
         self.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
         self.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
 
-        # for redispatching
+        # for redispatching / unit commitment
         self.gen_type = gridobj.gen_type
         self.gen_pmin = gridobj.gen_pmin
         self.gen_pmax = gridobj.gen_pmax
         self.gen_redispatchable = gridobj.gen_redispatchable
         self.gen_max_ramp_up = gridobj.gen_max_ramp_up
         self.gen_max_ramp_down = gridobj.gen_max_ramp_down
+        self.gen_min_uptime = gridobj.gen_min_uptime
+        self.gen_min_downtime = gridobj.gen_min_downtime
+        self.gen_cost_per_MW = gridobj.gen_cost_per_MW
+        self.gen_startup_cost = gridobj.gen_startup_cost
+        self.gen_shutdown_cost = gridobj.gen_shutdown_cost
+        self.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """

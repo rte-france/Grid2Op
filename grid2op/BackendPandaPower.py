@@ -109,7 +109,7 @@ class PandaPowerBackend(Backend):
         self._number_true_line = -1
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
-        self._dim_topo = -1
+        self.dim_topo = -1
         self._vars_action = Action.vars_action
         self._vars_action_set = Action.vars_action_set
 
@@ -285,7 +285,6 @@ class PandaPowerBackend(Backend):
         self._compute_pos_big_topo()
 
         self.dim_topo = np.sum(self.sub_info)
-
 
         # utilities for imeplementing apply_action
         self._corresp_name_fun = {}
@@ -576,7 +575,7 @@ class PandaPowerBackend(Backend):
 
     def get_topo_vect(self):
         # TODO refactor this, this takes a looong time
-        res = np.full(self._dim_topo, fill_value=np.NaN, dtype=np.int)
+        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
 
         for i, (_, row) in enumerate(self._grid.line.iterrows()):
             bus_or_id = int(row["from_bus"])

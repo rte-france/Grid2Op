@@ -103,19 +103,21 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                     '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3', 'sub_4',
                                    'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
-                 'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-                 'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
-                 'gen_to_subid': [1, 2, 5, 7, 0],
-                 'line_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
-                 'line_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
-                 'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
-                 'line_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
-                 'line_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
-                 'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
-                 'gen_pos_topo_vect': [7, 11, 28, 34, 2],
-                 'line_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
-                 'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
-                 'subtype': 'Observation.CompleteObservation'}
+                      'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+                      'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
+                      'gen_to_subid': [1, 2, 5, 7, 0],
+                      'line_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
+                      'line_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+                      'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
+                      'line_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
+                      'line_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+                      'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
+                      'gen_pos_topo_vect': [7, 11, 28, 34, 2],
+                      'line_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31,
+                                                32],
+                      'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27,
+                                                33, 38],
+                      'subtype': 'Observation.CompleteObservation'}
         self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('float64'), dtype('float64'),
@@ -127,10 +129,22 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                            dtype('int64'), dtype('int64')], dtype=object)
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                             20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20])
+        self.size_obs = 4242 # TODO
 
     def test_sum_shape_equal_size(self):
         obs = self.env.helper_observation(self.env)
         assert obs.size() == np.sum(obs.shape())
+
+    def test_size(self):
+        action = self.env.helper_observation(self.env)
+        action.size()
+
+    def test_proper_size(self):
+        action = self.env.helper_observation(self.env)
+        assert action.size() == self.size_obs
+
+    def test_size_action_space(self):
+        assert self.env.helper_observation.size() == self.size_obs
 
     def test_bus_conn_mat(self):
         obs = self.env.helper_observation(self.env)

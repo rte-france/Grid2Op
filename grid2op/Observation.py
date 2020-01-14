@@ -398,6 +398,20 @@ class Observation(GridObjects):
               in all case, the powerline will stay disconnected until a :class:`grid2op.Agent.Agent` performs the
               proper :class:`grid2op.Action.Action` to reconnect it).
 
+    target_dispatch: :class:`numpy.ndarray`, dtype:float
+        For **each** generators, it gives the target redispatching, asked by the agent. This is the sum of all
+        redispatching asked by the agent for during all the episode. It for each generator it is a number between:
+        - pmax and pmax. Note that there is information about all generators there, even the one that are not
+        dispatchable.
+
+    actual_dispatch: :class:`numpy.ndarray`, dtype:float
+        For **each** generators, it gives the redispatching currently implemented by the environment.
+        Indeed, the environment tries to implement at best the :attr:`Observation.target_dispatch`, but sometimes,
+        due to physical limitation (pmin, pmax, ramp min and ramp max) it cannot. In this case, only the best possible
+        redispatching is implemented at the current time step, and this is what this vector stores. Note that there is
+        information about all generators there, even the one that are not
+        dispatchable.
+
     """
     def __init__(self, gridobj,
                  obs_env=None,
@@ -466,6 +480,10 @@ class Observation(GridObjects):
         self.bus_connectivity_matrix_ = None
         self.vectorized = None
 
+        # redispatching
+        self.target_dispatch = None
+        self.actual_dispatch = None
+
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
 
@@ -517,6 +535,9 @@ class Observation(GridObjects):
                 - "v" the voltage magnitude of the bus to which the generator is connected
                 - "bus" on which bus the generator is connected in the substation
                 - "sub_id" the id of the substation to which the generator is connected
+                - "actual_dispatch" the actual dispatch implemented for this generator
+                - "target_dispatch" the target dispatch (cumulation of all previously asked dispatch by the agent)
+                  for this generator
 
             - if a powerline is inspected then the keys are "origin" and "extremity" each being dictionnary with keys:
 
@@ -579,7 +600,9 @@ class Observation(GridObjects):
                    "q": self.prod_q[gen_id],
                    "v": self.prod_v[gen_id],
                    "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
-                   "sub_id": self.gen_to_subid[gen_id]
+                   "sub_id": self.gen_to_subid[gen_id],
+                   "target_dispatch": self.target_dispatch[gen_id],
+                   "actual_dispatch": self.target_dispatch[gen_id]
                    }
         elif line_id is not None:
             if substation_id is not None:
@@ -691,6 +714,10 @@ class Observation(GridObjects):
         self._forecasted_inj = []
         self._forecasted_grid = []
 
+        # redispatching
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+
     def __compare_stats(self, other, name):
         if self.__dict__[name] is None and other.__dict__[name] is not None:
             return False
@@ -791,7 +818,8 @@ class Observation(GridObjects):
                         "time_before_cooldown_sub",
                         "time_before_line_reconnectable",
                         "time_next_maintenance",
-                        "duration_next_maintenance"
+                        "duration_next_maintenance",
+                        "target_dispatch", "actual_dispatch"
                         ]:
             if not self.__compare_stats(other, stat_nm):
                 # one of the above stat is not equal in this and in other
@@ -982,6 +1010,10 @@ class CompleteObservation(Observation):
             no maintenance are planned, 0 a maintenance is in operation) [:attr:`Observation.n_line` elements]
         29. :attr:`Observation.duration_next_maintenance` duration of the next maintenance. If a maintenance
             is taking place, this is the number of timestep before it ends. [:attr:`Observation.n_line` elements]
+        30. :attr:`Observation.target_dispatch` the target dispatch for each generator
+            [:attr:`Observation.n_gen` elements]
+        31. :attr:`Observation.actual_dispatch` the actual dispatch for each generator
+            [:attr:`Observation.n_gen` elements]
 
     This behavior is specified in the :attr:`Observation.attr_list_vect` vector.
 
@@ -1011,7 +1043,8 @@ class CompleteObservation(Observation):
                                "topo_vect", "time_before_cooldown_line",
                                "time_before_cooldown_line", "time_before_cooldown_sub",
                                "time_before_line_reconnectable",
-                               "time_next_maintenance", "duration_next_maintenance"
+                               "time_next_maintenance", "duration_next_maintenance",
+                               "target_dispatch", "actual_dispatch"
                                ]
 
     def _reset_matrices(self):
@@ -1068,6 +1101,10 @@ class CompleteObservation(Observation):
         self.time_before_line_reconnectable = env.time_remaining_before_line_reconnection
         self.time_next_maintenance = env.time_next_maintenance
         self.duration_next_maintenance = env.duration_next_maintenance
+
+        # redispatching
+        self.target_dispatch = env.target_dispatch
+        self.actual_dispatch = env.actual_dispatch
 
     def from_vect(self, vect):
         """
@@ -1128,6 +1165,9 @@ class CompleteObservation(Observation):
             self.dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
             self.dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
             self.dictionnarized["time_before_line_reconnectable"] = self.time_before_line_reconnectable
+            self.dictionnarized["redispatching"] = {}
+            self.dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
+            self.dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
 
         return self.dictionnarized
 
@@ -1159,7 +1199,9 @@ class CompleteObservation(Observation):
             beg_ = 0
             end_ = 0
             for sub_id, nb_obj in enumerate(self.sub_info):
-                nb_obj = int(nb_obj)  # i must be a vanilla python integer, otherwise it's not handled by boost python method to index substations for example.
+                # it must be a vanilla python integer, otherwise it's not handled by some backend
+                # especially if written in c++
+                nb_obj = int(nb_obj)
                 end_ += nb_obj
                 tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=np.float)
                 for obj1 in range(nb_obj):
@@ -1256,7 +1298,7 @@ class SerializableObservationSpace(SerializableSpace):
         gridobj: :class:`grid2op.Space.GridObjects`
             Representation of the objects in the powergrid.
 
-        actionClass: ``type``
+        observationClass: ``type``
             Type of action used to build :attr:`Space.SerializableSpace.template_obj`
 
         """
