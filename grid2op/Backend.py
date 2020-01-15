@@ -723,7 +723,6 @@ class Backend(GridObjects, ABC):
         -------
 
         """
-
         # for redispatching
         fullpath = os.path.join(path, name)
         if not os.path.exists(fullpath):
@@ -739,15 +738,14 @@ class Backend(GridObjects, ABC):
                                      "max_ramp_up": row["max_ramp_up"],
                                      "max_ramp_down": row["max_ramp_down"],
                                      "start_cost": row["start_cost"],
-                                     "shutdown_cost": row["shutdown_cost"],
+                                     "shut_down_cost": row["shut_down_cost"],
                                      "marginal_cost": row["marginal_cost"],
                                      "min_up_time": row["min_up_time"],
                                      "min_down_time": row["min_down_time"]
                                      }
-
         self.redispatching_unit_commitment_availble = True
 
-        self.gen_type = np.full(self.n_gen, fill_value="")
+        self.gen_type = np.full(self.n_gen, fill_value="aaaaaaaaaa")
         self.gen_pmin = np.full(self.n_gen, fill_value=1., dtype=np.float)
         self.gen_pmax = np.full(self.n_gen, fill_value=1., dtype=np.float)
         self.gen_redispatchable = np.full(self.n_gen, fill_value=False, dtype=np.bool)
@@ -760,17 +758,17 @@ class Backend(GridObjects, ABC):
         self.gen_shutdown_cost = np.full(self.n_gen, fill_value=1., dtype=np.float)  # shutdown cost
 
         for i, gen_nm in enumerate(self.name_gen):
-            tmp_gen = gen_info["gen_nm"]
+            tmp_gen = gen_info[gen_nm]
             self.gen_type[i] = str(tmp_gen["type"])
             self.gen_pmin[i] = float(tmp_gen["pmin"])
             self.gen_pmax[i] = float(tmp_gen["pmax"])
             self.gen_redispatchable[i] = bool(tmp_gen["type"] not in ["wind", "solar"])
             self.gen_max_ramp_up[i] = float(tmp_gen["max_ramp_up"])
             self.gen_max_ramp_down[i] = float(tmp_gen["max_ramp_down"])
-            self.gen_min_uptime[i] = int(tmp_gen["min uptime"])
-            self.gen_min_downtime[i] = int(tmp_gen["min downtime"])
+            self.gen_min_uptime[i] = int(tmp_gen["min_up_time"])
+            self.gen_min_downtime[i] = int(tmp_gen["min_down_time"])
             self.gen_cost_per_MW[i] = float(tmp_gen["marginal_cost"])
-            self.gen_startup_cost[i] = float(tmp_gen["start_cost cost"])
-            self.gen_shutdown_cost[i] = float(tmp_gen["shutdown_cost"])
+            self.gen_startup_cost[i] = float(tmp_gen["start_cost"])
+            self.gen_shutdown_cost[i] = float(tmp_gen["shut_down_cost"])
 
 

@@ -120,6 +120,9 @@ class Action(GridObjects):
           connected to bus 1. NB this is only active if the system has only 2 buses per substation (that's the case for
           the L2RPN challenge).
 
+    - the sixth elements is a vector, representing the redispatching. Component of this vector are added to the
+      generators active setpoint value (if set) of the first elements.
+
     **NB** the difference between :attr:`Action._set_topo_vect` and :attr:`Action._change_bus_vect` is the following:
 
         - If  a component of :attr:`Action._set_topo_vect` is 1, then the object (load, generator or powerline)
@@ -865,6 +868,8 @@ class Action(GridObjects):
               change it (eg switch it from bus 1 to bus 2 or from bus 2 to bus 1). NB this is only active if the system
               has only 2 buses per substation.
 
+            - "redispatch" TODO
+
             **NB** the difference between "set_bus" and "change_bus" is the following:
 
               - If "set_bus" is 1, then the object (load, generator or powerline) will be moved to bus 1 of the
@@ -949,6 +954,18 @@ class Action(GridObjects):
             - :code:`self._set_topo_vect` has not the same dimension as the number of elements on the powergrid
             - :code:`self._change_bus_vect` has not the same dimension as the number of elements on the powergrid
 
+          - For redispatching, Ambiguous actions can come from:
+
+            - Some redispatching action is active, yet
+              :attr:`grid2op.Space.GridObjects.redispatching_unit_commitment_availble` is set to ``False``
+            - the length of the redispatching vector :attr:`Action._redispatching` is not compatible with the number
+              of generators.
+            - some redispatching are above the maximum ramp up :attr:`grid2op.Space.GridObjects.gen_max_ramp_up`
+            - some redispatching are below the maximum ramp down :attr:`grid2op.Space.GridObjects.gen_max_ramp_down`
+            - the redispatching action affect non dispatchable generators
+            - the redispatching and the production setpoint, if added, are above pmax for at least a generator
+            - the redispatching and the production setpoint, if added, are below pmin for at least a generator
+
         In case of need to overload this method, it is advise to still call this one from the base :class:`Action`
         with ":code:`super()._check_for_ambiguity()`" or ":code:`Action._check_for_ambiguity(self)`".
 
@@ -1000,7 +1017,7 @@ class Action(GridObjects):
                                             "there are {} in the grid".format(len(self._redispatch), self.n_gen))
 
         # redispatching specific check
-        if np.any(self._redispatch !=0.):
+        if np.any(self._redispatch != 0.):
             if not self.redispatching_unit_commitment_availble:
                 raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
                                                            "environment. Please set up the proper costs for generator")
@@ -1016,10 +1033,11 @@ class Action(GridObjects):
             if "prod_p" in self._dict_inj:
                 new_p = self._dict_inj["prod_p"]
                 tmp_p = new_p + self._redispatch
-                if np.any(tmp_p > self.gen_pmax):
+                indx_ok = np.isfinite(new_p)
+                if np.any(tmp_p[indx_ok] > self.gen_pmax[indx_ok]):
                     raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
                                                "are above pmax for some generator.")
-                if np.any(tmp_p < self.gen_pmin):
+                if np.any(tmp_p[indx_ok] < self.gen_pmin[indx_ok]):
                     raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
                                                "are below pmin for some generator.")
 
@@ -1459,7 +1477,7 @@ class TopologyAction(Action):
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
-        self.authorized_keys = set([k for k in self.authorized_keys if k != "injection"])
+        self.authorized_keys = set([k for k in self.authorized_keys if k != "injection" and k != "redispatch"])
 
         self.attr_list_vect = ["_set_line_status", "_switch_line_status",
                                "_set_topo_vect", "_change_bus_vect"]
@@ -1489,7 +1507,7 @@ class TopologyAction(Action):
         if self._dict_inj:
             raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
         self._check_for_ambiguity()
-        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect
+        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect, self._redispatch
 
     def update(self, dict_):
         """
@@ -1510,7 +1528,6 @@ class TopologyAction(Action):
         self: :class:`TopologyAction`
             Return object itself thus allowing mutiple call to "update" to be chained.
         """
-
         self.as_vect = None
         if dict_ is not None:
             for kk in dict_.keys():
@@ -1593,7 +1610,7 @@ class PowerLineSet(Action):
         if self._dict_inj:
             raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
         self._check_for_ambiguity()
-        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect
+        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect, self._redispatch
 
     def update(self, dict_):
         """

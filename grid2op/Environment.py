@@ -55,6 +55,7 @@ try:
     from .Backend import Backend
     from .ChronicsHandler import ChronicsHandler
 except (ModuleNotFoundError, ImportError):
+    from Space import GridObjects
     from Action import HelperAction, Action, TopologyAction
     from Exceptions import *
     from Observation import CompleteObservation, ObservationHelper, Observation
@@ -183,6 +184,9 @@ class Environment(GridObjects):
     target_dispatch
     actual_dispatch
 
+    gen_activeprod_t:
+        Should be initialized at 0. for "step" to properly recognize it's the first time step of the game
+
     """
     def __init__(self,
                  init_grid_path: str,
@@ -193,7 +197,8 @@ class Environment(GridObjects):
                  actionClass=TopologyAction,
                  observationClass=CompleteObservation,
                  rewardClass=FlatReward,
-                 legalActClass=AllwaysLegal):
+                 legalActClass=AllwaysLegal,
+                 epsilon_poly=1e-2):
         """
         Initialize the environment. See the descirption of :class:`grid2op.Environment.Environment` for more information.
 
@@ -219,6 +224,7 @@ class Environment(GridObjects):
         self._time_apply_act = 0
         self._time_powerflow = 0
         self._time_extract_obs = 0
+        self._epsilon_poly = epsilon_poly
 
         # define logger
         self.logger = None
@@ -254,6 +260,7 @@ class Environment(GridObjects):
                     type(backend)))
         self.backend = backend
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
+        self.backend.load_redispacthing_data(os.path.split(self.init_grid_path)[0])
         self.backend.assert_grid_correct()
         self.init_grid(backend)
         *_, tmp = self.backend.generators_info()
@@ -311,32 +318,34 @@ class Environment(GridObjects):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_line,),
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         # store actions "cooldown"
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
         # for maintenance operation
-        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
 
         # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
-        self._hazard_duration = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=np.int)
 
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_line_reconnection = np.full(shape=(self.backend.n_line,),
-                                                               fill_value=0, dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
         # redispatching data
-        self.target_dispatch = np.full(shape=self.backend.n_gen, dtype=np.float, fill_value=np.NaN)
-        self.actual_dispatch = np.full(shape=self.backend.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_activeprod_t = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
@@ -345,8 +354,8 @@ class Environment(GridObjects):
                 "grid2op.ChronicsHandler class, type provided is \"{}\"".format(
                     type(chronics_handler)))
         self.chronics_handler = chronics_handler
-        self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
-                                         self.backend.name_line, self.backend.name_sub,
+        self.chronics_handler.initialize(self.name_load, self.name_gen,
+                                         self.name_line, self.name_sub,
                                          names_chronics_to_backend=names_chronics_to_backend)
         self.names_chronics_to_backend = names_chronics_to_backend
 
@@ -433,6 +442,7 @@ class Environment(GridObjects):
 
         do_nothing = self.helper_action_env({})
         self.step(do_nothing)
+
         # test the backend returns object of the proper size
         self.backend.assert_grid_correct_after_powerflow()
 
@@ -549,6 +559,216 @@ class Environment(GridObjects):
         self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
                                                                   self._hazard_duration)
 
+    def _simulate_automaton_redispatching(self, action):
+        # Redispatching process the redispatching actions here, get a redispatching vector with 0-sum
+        # from the environment.
+
+        is_illegal = False
+
+        # get the redispatching action (if any)
+        redisp_act_init = 1. * action._redispatch
+        redisp_act = 1. * action._redispatch
+
+        if np.all(redisp_act == 0.):
+            return redisp_act, is_illegal, action
+
+        # make sure the dispatching action is not implemented "as is" by the backend.
+        # the environment must make sure it's a zero-sum action.
+        action._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=np.float)
+
+        # check that everything is consistent with pmin, pmax:
+        if np.any(self.target_dispatch > self.gen_pmax):
+            # action is invalid, the target redispatching would be above pmax for at least a generator
+            is_illegal = True
+            action = self.helper_action_player({})
+            # TODO flag to output why an action is illegal here
+            return action._redispatch, is_illegal, action
+
+        if np.any(self.target_dispatch < self.gen_pmin):
+            # action is invalid, the target redispatching would be below pmin for at least a generator
+            is_illegal = True
+            action = self.helper_action_player({})
+            # TODO flag to output why an action is illegal here
+            return action._redispatch, is_illegal, action
+
+        # get the modification of generator active setpoint from the action
+        new_p = 1. * self.gen_activeprod_t
+        if "prod_p" in action._dict_inj:
+            tmp = action._dict_inj["prod_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+
+        # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
+        if np.any(redisp_act[new_p == 0.]):
+            # action is invalid, a generator has been redispatched, but it's turned off
+            is_illegal = True
+            action = self.helper_action_player({})
+            # TODO flag to output why an action is illegal here
+            return action._redispatch, is_illegal, action
+
+        # modification of the environment always override the modification of the agents (if any)
+        # TODO have a flag there if this is the case.
+        if "prod_p" in self.env_modification._dict_inj:
+            # modification of the production setpoint value
+            tmp = self.env_modification._dict_inj["prod_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+
+        # action is "capped", a generator has been redispatched, but it's turned off by the environment
+        redisp_act[new_p == 0.] = 0.
+        # TODO add a flag here too, like before (the action has been "cut")
+
+        # make the target dispatch a 0-sum vector (using only dispatchable unit, not dispatched)
+        # dispatch only the generator that are at zero
+        # avail_gen = redisp_act == 0.  # generators with a redispatching target cannot be redispatched again
+        avail_gen = self.gen_redispatchable  # i can only redispatched dispatchable generators
+        avail_gen = avail_gen & (new_p > 0.)
+
+        # another need to cut: it would result in above pmin or bellow pmax, in this case (but in the case it's valid)
+        # we choose to cut down the redispatching action.
+        curtail_generation = 1. * new_p
+        mask_min = (new_p + redisp_act < self.gen_pmin + self._epsilon_poly) & avail_gen
+        curtail_generation[mask_min] = self.gen_pmin[mask_min] + self._epsilon_poly
+        mask_max = (new_p + redisp_act > self.gen_pmax - self._epsilon_poly) & avail_gen
+        curtail_generation[mask_max] = self.gen_pmax[mask_max] - self._epsilon_poly
+
+        diff_th_imp = new_p - curtail_generation
+        redisp_act[mask_min] += diff_th_imp[mask_min]
+        redisp_act[mask_max] += diff_th_imp[mask_max]
+
+        # get the maximum difference possible
+        # to do change the name !!!
+        gen_min = np.maximum(curtail_generation - self.gen_pmin, - self.gen_max_ramp_down)
+        gen_max = np.minimum(curtail_generation - self.gen_pmax, self.gen_max_ramp_up)
+
+        if not np.sum(avail_gen):
+            # TODO reason for that in info
+            is_illegal = True
+            action = self.helper_action_player({})
+            return action._redispatch, is_illegal, action
+
+        try:
+            t_zerosum = self._get_t(redisp_act[avail_gen],
+                                    pmin=np.sum(gen_min[avail_gen]),
+                                    pmax=np.sum(gen_max[avail_gen]),
+                                    total_dispatch=-np.sum(redisp_act))
+        except:
+            # i can't implement redispatching due to impossibility to dispatch on the other generator
+            # it's a non valid action
+            return action._redispatch, is_illegal, action
+
+        # get the target redispatching (cumulation starting from the first element of the scenario)
+        self.target_dispatch += redisp_act
+        self.actual_dispatch = 1. * self.target_dispatch
+
+        actual_dispatch_tmp = self._get_poly(t=t_zerosum,
+                                             pmax=gen_max[avail_gen],
+                                             pmin=gen_min[avail_gen],
+                                             tmp_p=redisp_act[avail_gen])
+        self.actual_dispatch[avail_gen] = actual_dispatch_tmp
+        pdb.set_trace()
+        return redisp_act_init, is_illegal, action
+
+        ## TODO check that this part is not needed anymore!!!!
+        # get the maximum ranged of the generator possible with the chronics
+        # gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t - self.gen_max_ramp_down)
+        # gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t + self.gen_max_ramp_up)
+
+        # below is the part emulating the active balancing part in a powergrid. It's not handled by operators
+        # but by an automaton.
+
+        # this automated conrol only affect turned-on generators that are dispatchable
+        turned_on_gen = new_p > 0.
+        gen_redispatchable = self.gen_redispatchable & turned_on_gen
+
+        # add the redispatching to the nex target production value
+        new_p += self.actual_dispatch
+        # the new_p vector now stores the new target value for the generators.
+
+        # todo this might be the root of all evil!!!!
+        gen_min = np.maximum(self.gen_pmin - self.gen_activeprod_t, - self.gen_max_ramp_down)
+        gen_max = np.minimum(self.gen_pmax - self.gen_activeprod_t, self.gen_max_ramp_up)
+
+        actual_ramp = new_p - self.gen_activeprod_t
+        if (np.any(new_p > self.gen_pmax) or np.any(new_p < self.gen_pmin) or \
+            np.any(actual_ramp > self.gen_max_ramp_up) or np.any(actual_ramp < -self.gen_max_ramp_down)) and \
+                np.any(self.gen_activeprod_t != 0.):
+            # i am in a case where the target redispatching is not possible, due to the new values
+            # i need to come up with a solution to fix that
+            # note that the condition "np.any(self.gen_activeprod_t != 0.)" is added because at the first time
+            # step there is no need to check all that.
+            # but take into account pmin and pmax
+            curtail_generation = 1. * new_p
+            mask_min = (new_p < gen_min + self._epsilon_poly) & gen_redispatchable
+            curtail_generation[mask_min] = gen_min[mask_min] + self._epsilon_poly
+            mask_max = (new_p > gen_max - self._epsilon_poly) & gen_redispatchable
+            curtail_generation[mask_max] = gen_max[mask_max] - self._epsilon_poly
+
+            # modify the implemented redispatching to take into account this "curtailement" due to physical limitation
+            diff_th_imp = new_p - curtail_generation
+            self.actual_dispatch[mask_min] += diff_th_imp[mask_min]
+            self.actual_dispatch[mask_max] -= diff_th_imp[mask_max]
+
+            # make sure the new redispatching sum to 0
+            t_dispatch = 0.
+            try:
+                t_dispatch = self._get_t(self.actual_dispatch[gen_redispatchable],
+                                         pmin=np.sum(gen_min),
+                                         pmax=np.sum(gen_max),
+                                         total_dispatch=-np.sum(self.actual_dispatch[gen_redispatchable]))
+            except Exception as e:
+                # TODO check that it canont happen if the chronics are correct.
+                print("epic fail in redispatching with error {}".format(e))
+                pass
+
+            self.actual_dispatch[gen_redispatchable] = self._get_poly(t=t_dispatch,
+                                                                      pmax=gen_max[gen_redispatchable],
+                                                                      pmin=gen_min[gen_redispatchable],
+                                                                      tmp_p=self.actual_dispatch[gen_redispatchable])
+
+        return redisp_act_init, is_illegal, action
+
+    def _handle_updown_times(self, action, gen_up_before, redisp_act):
+        # get the generators that are not connected after the action
+        # TODO difference between "environment action" and "player's action"
+        is_illegal = False
+
+        # computes which generator will be turned on after the action
+        gen_up_after = self.gen_activeprod_t
+        if "prod_p" in self.env_modification._dict_inj:
+            tmp = self.env_modification._dict_inj["prod_p"]
+            indx_ok = np.isfinite(tmp)
+            gen_up_after[indx_ok] = self.env_modification._dict_inj["prod_p"][indx_ok]
+        gen_up_after += redisp_act
+        gen_up_after = gen_up_after > 0.
+
+        # update min down time, min up time etc.
+        gen_disconnected_this = gen_up_before & (~gen_up_after)
+        gen_connected_this_timestep = (~gen_up_before) & (gen_up_after)
+        gen_still_connected = gen_up_before & gen_up_after
+        gen_still_disconnected = (~gen_up_before) & (~gen_up_after)
+
+        if np.any(self.gen_downtime[gen_connected_this_timestep] < self.gen_min_downtime[gen_connected_this_timestep]):
+            # i reconnected a generator before the minimum time allowed
+            # TODO flag here, same as before
+            is_illegal = True
+            action = self.helper_action_player({})
+            return is_illegal, action
+        else:
+            self.gen_downtime[gen_connected_this_timestep] = -1
+            self.gen_uptime[gen_connected_this_timestep] = 1
+        if np.any(self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]):
+            # TODO flag here, same as before
+            is_illegal = True
+            action = self.helper_action_player({})
+            return is_illegal, action
+        else:
+            self.gen_downtime[gen_connected_this_timestep] = -1
+            self.gen_uptime[gen_connected_this_timestep] = 1
+        self.gen_uptime[gen_still_connected] += 1
+        self.gen_downtime[gen_still_disconnected] += 1
+        return is_illegal, action
+
     def step(self, action):
         """
         Run one timestep of the environment's dynamics. When end of
@@ -590,18 +810,27 @@ class Environment(GridObjects):
         disc_lines = None
         is_illegal = False
         is_ambiguous = False
+        is_illegal_redisp = False
+        is_illegal_reco = False
         try:
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:
                 # action is replace by do nothing
                 action = self.helper_action_player({})
+                # todo a flag here
 
-            # TODO redispatching: process the redispatching actions here, get a redispatching vector with 0-sum
-            # from the environment.
-            # and then remove the redispatching part of the action from the player one, and add it to the environment's
+            # get the modification of generator active setpoint from the environment
             self.env_modification = self._update_actions()
-            # TODO check now that the action is compatible with the new modification
+
+            # remember generator that were "up" before the action
+            gen_up_before = self.gen_activeprod_t > 0.
+
+            # compute the redispatching and the new productions active setpoint
+            redisp_act, is_illegal_redisp, action = self._simulate_automaton_redispatching(action)
+
+            # check the validity of min downtime and max uptime
+            is_illegal_reco, action = self._handle_updown_times(action, gen_up_before, redisp_act)
 
             try:
                 self.backend.apply_action(action)
@@ -609,7 +838,12 @@ class Environment(GridObjects):
                 # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
                 # "do nothing"
                 is_ambiguous = True
+            action._redispatch = 1. * redisp_act
 
+            # now get the new generator voltage setpoint
+            # TODO "automaton" to do that!
+
+            self.env_modification._redispatch = self.actual_dispatch
             self.backend.apply_action(self.env_modification)
             self._time_apply_act += time.time() - beg_
 
@@ -651,6 +885,9 @@ class Environment(GridObjects):
                 self.current_obs = self.get_obs()
                 self._time_extract_obs += time.time() - beg_
 
+                # extract production active value at this time step (should be independant of action class)
+                self.gen_activeprod_t, *_ = self.backend.generators_info()
+
                 has_error = False
             except Grid2OpException as e:
                 if self.logger is not None:
@@ -658,8 +895,18 @@ class Environment(GridObjects):
         except StopIteration:
             # episode is over
             is_done = True
-        infos = {"disc_lines": disc_lines, "is_illegal": is_illegal, "is_ambiguous": is_ambiguous}
-        return self.current_obs, self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous),\
+        infos = {"disc_lines": disc_lines,
+                 "is_illegal": is_illegal,
+                 "is_ambiguous": is_ambiguous,
+                 "is_dipatching_illegal": is_illegal_redisp,
+                 "is_illegal_reco": is_illegal_reco}
+        # TODO documentation on all the possible way to be illegal now
+        return self.current_obs,\
+               self._get_reward(action,
+                                has_error,
+                                is_done,
+                                is_illegal or is_illegal_redisp or is_illegal_reco,
+                                is_ambiguous),\
                self._is_done(has_error, is_done),\
                infos
 
@@ -672,22 +919,39 @@ class Environment(GridObjects):
 
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.backend.n_line,),
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.env_dc = self.parameters.ENV_DC
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
+        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=np.int)
+
+        # # maintenance and hazards
+        # self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
+        # self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
+        # self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=np.int)
+        # self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+
+        # reset timings
         self._time_apply_act = 0
         self._time_powerflow = 0
         self._time_extract_obs = 0
+
+    def _reset_redispatching(self):
+        # redispatching
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
 
     def reset(self):
         """
@@ -705,6 +969,7 @@ class Environment(GridObjects):
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
         self._reset_maintenance()
+        self._reset_redispatching()
         self.reset_grid()
 
         # if True, then it will not disconnect lines above their thermal limits
@@ -721,3 +986,32 @@ class Environment(GridObjects):
             self.viewer.close()
             self.viewer = None
         self.backend.close()
+
+    @staticmethod
+    def _get_poly(t, tmp_p, pmin, pmax):
+        return tmp_p + 0.5 * (pmax - pmin) * t + 0.5 * (pmax + pmin - 2 * tmp_p) * t ** 2
+
+    @staticmethod
+    def _get_poly_coeff(tmp_p, pmin, pmax):
+        p_s = tmp_p.sum()
+        p_min_s = pmin.sum()
+        p_max_s = pmax.sum()
+
+        p_0 = p_s
+        p_1 = 0.5 * (p_max_s - p_min_s)
+        p_2 = 0.5 * (p_max_s + p_min_s - 2 * p_s)
+        return p_0, p_1, p_2
+
+    @staticmethod
+    def _get_t(tmp_p, pmin, pmax, total_dispatch):
+        # to_dispatch = too_much.sum() + not_enough.sum()
+        p_0, p_1, p_2 = Environment._get_poly_coeff(tmp_p, pmin, pmax)
+
+        res = np.roots((p_2, p_1, p_0-(total_dispatch)))
+        res = res[np.isreal(res)]
+        res = res[(res <= 1) & (res >= -1)]
+        if res.shape[0] == 0:
+            raise RuntimeError("Impossible to solve for this equilibrium, not enough production")
+        else:
+            res = res[0]
+        return res
