@@ -15,7 +15,8 @@ For now, the actions can act on:
   - the configuration at substations eg setting different objects to different buses for example
 
 The Action class is abstract. You can implement it the way you want. If you decide to extend it, make sure
-that the :class:`grid2op.Backend` class will be able to understand it. If you don't, your extension will not affect the underlying powergrid. Indeed a :class:`grid2op.Backend` will call the :func:`Action.__call__` method and should
+that the :class:`grid2op.Backend` class will be able to understand it. If you don't, your extension will not affect the
+underlying powergrid. Indeed a :class:`grid2op.Backend` will call the :func:`Action.__call__` method and should
 understands its return type.
 
 In this module we derived two action class:
@@ -67,151 +68,161 @@ except (ModuleNotFoundError, ImportError):
 
 class Action(GridObjects):
     """
-This is a base class for each :class:`Action` objects.
-As stated above, an action represents conveniently the modifications that will affect a powergrid.
+    This is a base class for each :class:`Action` objects.
+    As stated above, an action represents conveniently the modifications that will affect a powergrid.
 
-It is not recommended to instantiate an action from scratch. The recommended way to get an action is either by
-modifying an existing one using the method :func:`Action.update` or to call and :class:`HelperAction` object that
-has been properly set up by an :class:`grid2op.Environment`.
+    It is not recommended to instantiate an action from scratch. The recommended way to get an action is either by
+    modifying an existing one using the method :func:`Action.update` or to call and :class:`HelperAction` object that
+    has been properly set up by an :class:`grid2op.Environment`.
 
-Action can be fully converted to and back from a numpy array with a **fixed** size.
+    Action can be fully converted to and back from a numpy array with a **fixed** size.
 
-An action can modify the grid in multiple ways.
-It can change :
+    An action can modify the grid in multiple ways.
+    It can change :
 
-- the production and voltage setpoint of the generator units
-- the amount of power consumed (for both active and reactive part) for load
-- disconnect powerlines
-- change the topology of the _grid.
+    - the production and voltage setpoint of the generator units
+    - the amount of power consumed (for both active and reactive part) for load
+    - disconnect powerlines
+    - change the topology of the _grid.
 
-To be valid, an action should be convertible to a tuple of 5 elements:
+    To be valid, an action should be convertible to a tuple of 5 elements:
 
-- the first element is the "injections" vector: representing the way generator units and loads are modified
-    - It is, in turn, a dictionary with the following keys (optional)
+    - the first element is the "injections" vector: representing the way generator units and loads are modified
+        - It is, in turn, a dictionary with the following keys (optional)
 
-        - "load_p" a vector of the same size of the load, giving the modification of the loads active consumption
-        - "load_q" a vector of the same size of the load, giving the modification of the loads reactive consumption
-        - "prod_p" a vector of the same size of the generators, giving the modification of the productions active setpoint production
-        - "prod_v" a vector of the same size of the generators, giving the modification of the productions voltage setpoint
+            - "load_p" a vector of the same size of the load, giving the modification of the loads active consumption
+            - "load_q" a vector of the same size of the load, giving the modification of the loads reactive consumption
+            - "prod_p" a vector of the same size of the generators, giving the modification of the productions active
+              setpoint production
+            - "prod_v" a vector of the same size of the generators, giving the modification of the productions voltage
+              setpoint
 
-- the second element is made of force line status. It is made of a vector of size :attr:`Action._n_lines`
-  (the number of lines in the powergrid) and is interpreted as:
+    - the second element is made of force line status. It is made of a vector of size :attr:`Action._n_lines`
+      (the number of lines in the powergrid) and is interpreted as:
 
-        - -1 force line disconnection
-        - +1 force line reconnection
-        - 0 do nothing to this line
+            - -1 force line disconnection
+            - +1 force line reconnection
+            - 0 do nothing to this line
 
-- the third element is the switch line status vector. It is made of a vector of size :attr:`Action._n_lines` and is
-  interpreted as:
+    - the third element is the switch line status vector. It is made of a vector of size :attr:`Action._n_lines` and is
+      interpreted as:
 
-    - True: change the line status
-    - False: don't do anything
+        - ``True``: change the line status
+        - ``False``: don't do anything
 
-- the fourth element set the buses to which the object is connected. It's a vector of integers with the following
-  interpretation:
+    - the fourth element set the buses to which the object is connected. It's a vector of integers with the following
+      interpretation:
 
-    - 0 -> don't change
-    - 1 -> connect to bus 1
-    - 2 -> connect to bus 2
-    - -1 -> disconnect the object.
+        - 0 -> don't change
+        - 1 -> connect to bus 1
+        - 2 -> connect to bus 2
+        - -1 -> disconnect the object.
 
-- the fifth element changes the buses to which the object is connected. It's a boolean vector interpreted as:
-    - False: nothing is done
-    - True: change the bus eg connect it to bus 1 if it was connected to bus 2 or connect it to bus 2 if it was
-      connected to bus 1. NB this is only active if the system has only 2 buses per substation (that's the case for
-      the L2RPN challenge).
+    - the fifth element changes the buses to which the object is connected. It's a boolean vector interpreted as:
+        - ``False``: nothing is done
+        - ``True``: change the bus eg connect it to bus 1 if it was connected to bus 2 or connect it to bus 2 if it was
+          connected to bus 1. NB this is only active if the system has only 2 buses per substation (that's the case for
+          the L2RPN challenge).
 
-- the sixth element is a vector, representing the redispatching. Component of this vector is added to the
-  generators active setpoint value (if set) of the first elements.
+    - the sixth element is a vector, representing the redispatching. Component of this vector is added to the
+      generators active setpoint value (if set) of the first elements.
 
-**NB** the difference between :attr:`Action._set_topo_vect` and :attr:`Action._change_bus_vect` is the following:
+    **NB** the difference between :attr:`Action._set_topo_vect` and :attr:`Action._change_bus_vect` is the following:
 
-    - If  a component of :attr:`Action._set_topo_vect` is 1, then the object (load, generator or powerline)
-      will be moved to bus 1 of the substation to which it is connected. If it is already to bus 1 nothing will be done. If it's on another bus it will connect it to bus 1. It's disconnected, it will reconnect it and connect it to bus 1.
-    - If a component of :attr:`Action._change_bus_vect` is True, then the object will be moved from one bus to another.
-      If the object were on bus 1
-      it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object were disconnected, then this does nothing.
+        - If  a component of :attr:`Action._set_topo_vect` is 1, then the object (load, generator or powerline)
+          will be moved to bus 1 of the substation to which it is connected. If it is already to bus 1 nothing will be
+          done.
+          If it's on another bus it will connect it to bus 1. It's disconnected, it will reconnect it and connect it
+          to bus 1.
+        - If a component of :attr:`Action._change_bus_vect` is True, then the object will be moved from one bus to
+          another.
+          If the object were on bus 1
+          it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object were
+          disconnected,
+          then this does nothing.
 
-The conversion to the action into an understandable format by the backend is performed by the "update" method,
-that takes into account a dictionary and is responsible to convert it into this format.
-It is possible to overload this class as long as the overloaded :func:`Action.__call__` operator returns the
-specified format, and the :func:`Action.__init__` method has the same signature.
+    The conversion to the action into an understandable format by the backend is performed by the "update" method,
+    that takes into account a dictionary and is responsible to convert it into this format.
+    It is possible to overload this class as long as the overloaded :func:`Action.__call__` operator returns the
+    specified format, and the :func:`Action.__init__` method has the same signature.
 
-This format is then digested by the backend and the powergrid is modified accordingly.
+    This format is then digested by the backend and the powergrid is modified accordingly.
 
-Attributes
-----------
+    Attributes
+    ----------
 
-_set_line_status: :class:`numpy.ndarray`, dtype:int
-    For each powerline, it gives the effect of the action on the status of it. It should be understood as:
+    _set_line_status: :class:`numpy.ndarray`, dtype:int
+        For each powerline, it gives the effect of the action on the status of it. It should be understood as:
 
-      - -1: disconnect the powerline
-      - 0: don't affect the powerline
-      - +1: reconnect the powerline
+          - -1: disconnect the powerline
+          - 0: don't affect the powerline
+          - +1: reconnect the powerline
 
-_switch_line_status: :class:`numpy.ndarray`, dtype:bool
-    For each powerline, it informs whether the action will switch the status of a powerline of not. It should be
-    understood as followed:
+    _switch_line_status: :class:`numpy.ndarray`, dtype:bool
+        For each powerline, it informs whether the action will switch the status of a powerline of not. It should be
+        understood as followed:
 
-      - ``False``: the action doesn't affect the powerline
-      - ``True``: the action affects the powerline. If it was connected, it will disconnect it. If it was
-        disconnected, it will reconnect it.
+          - ``False``: the action doesn't affect the powerline
+          - ``True``: the action affects the powerline. If it was connected, it will disconnect it. If it was
+            disconnected, it will reconnect it.
 
-_dict_inj: ``dict``
-    Represents the modification of the injection (productions and loads) of the power _grid. This dictionary can
-    have the optional keys:
+    _dict_inj: ``dict``
+        Represents the modification of the injection (productions and loads) of the power _grid. This dictionary can
+        have the optional keys:
 
-        - "load_p" to set the active load values (this is a numpy array with the same size as the number of load
-            in the power _grid with Nan: don't change anything, else set the value
-        - "load_q": same as above but for the load reactive values
-        - "prod_p": same as above but for the generator active setpoint values. It has the size corresponding
-            to the number of generators in the test case.
-        - "prod_v": same as above but set the voltage setpoint of generator units.
+            - "load_p" to set the active load values (this is a numpy array with the same size as the number of load
+              in the power _grid with Nan: don't change anything, else set the value
+            - "load_q": same as above but for the load reactive values
+            - "prod_p": same as above but for the generator active setpoint values. It has the size corresponding
+              to the number of generators in the test case.
+            - "prod_v": same as above but set the voltage setpoint of generator units.
 
-_set_topo_vect: :class:`numpy.ndarray`, dtype:int
-    Similar to :attr:`Action._set_line_status` but instead of affecting the status of powerlines, it affects the
-    bus connectivity at a substation. It has the same size as the full topological vector (:attr:`Action._dim_topo`)
-    and for each element it should be understood as:
+    _set_topo_vect: :class:`numpy.ndarray`, dtype:int
+        Similar to :attr:`Action._set_line_status` but instead of affecting the status of powerlines, it affects the
+        bus connectivity at a substation. It has the same size as the full topological vector (:attr:`Action._dim_topo`)
+        and for each element it should be understood as:
 
-        - 0: nothing is changed for this element
-        - +1: this element is affected to bus 1
-        - -1: this element is affected to bus 2
+            - 0: nothing is changed for this element
+            - +1: this element is affected to bus 1
+            - -1: this element is affected to bus 2
 
-_change_bus_vect: :class:`numpy.ndarray`, dtype:bool
-     Similar to :attr:`Action._switch_line_status` but it affects the topology at substations instead of the status of
-     the powerline. It has the same size as the full topological vector (:attr:`Action._dim_topo`) and each
-     component should mean:
+    _change_bus_vect: :class:`numpy.ndarray`, dtype:bool
+         Similar to :attr:`Action._switch_line_status` but it affects the topology at substations instead of the status
+         of
+         the powerline. It has the same size as the full topological vector (:attr:`Action._dim_topo`) and each
+         component should mean:
 
-         - ``False``: the object is not affected
-         - ``True``: the object will be moved to another bus. If it was on bus 1 it will be moved on bus 2, and if
-             it was on bus 2 it will be moved on bus 1.
+             - ``False``: the object is not affected
+             - ``True``: the object will be moved to another bus. If it was on bus 1 it will be moved on bus 2, and if
+               it was on bus 2 it will be moved on bus 1.
 
-authorized_keys: :class:`set`
-    The set indicating which keys the actions can understand when calling :func:`Action.update`
+    authorized_keys: :class:`set`
+        The set indicating which keys the actions can understand when calling :func:`Action.update`
 
-_subs_impacted: :class:`numpy.ndarray`, dtype:bool
-    This attributes is either not initialized (set to ``None``) or it tells, for each substation, if it is impacted
-    by the action (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``True``) or not
-    (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``False``)
+    _subs_impacted: :class:`numpy.ndarray`, dtype:bool
+        This attributes is either not initialized (set to ``None``) or it tells, for each substation, if it is impacted
+        by the action (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``True``) or not
+        (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``False``)
 
-_lines_impacted: :class:`numpy.ndarray`, dtype:bool
-    This attributes is either not initialized (set to ``None``) or it tells, for each powerline, if it is impacted
-    by the action (in this case :attr:`Action._lines_impacted`\[line_id\] is ``True``) or not
-    (in this case :attr:`Action._subs_impacted`\[line_id\] is ``False``)
+    _lines_impacted: :class:`numpy.ndarray`, dtype:bool
+        This attributes is either not initialized (set to ``None``) or it tells, for each powerline, if it is impacted
+        by the action (in this case :attr:`Action._lines_impacted`\[line_id\] is ``True``) or not
+        (in this case :attr:`Action._subs_impacted`\[line_id\] is ``False``)
 
-vars_action: ``list``, static
-    The authorized key that are processed by :func:`Action.__call__` to modify the injections
+    vars_action: ``list``, static
+        The authorized key that are processed by :func:`Action.__call__` to modify the injections
 
-vars_action_set: ``set``, static
-    The authorized key that is processed by :func:`Action.__call__` to modify the injections
+    vars_action_set: ``set``, static
+        The authorized key that is processed by :func:`Action.__call__` to modify the injections
 
-_redispatch: :class:`numpy.ndarray`, dtype:float
-    Amount of redispatching that this action will perform. Redispatching will increase the generator's active setpoint
-     value. This will be added to the value of the generators. The Environment will make sure that every physical
-     constraint is met. This means that the agent provides a setpoint, but there is no guarantee that the setpoint
-      will be achievable. Redispatching action is cumulative, this means that if at a given timestep you ask +10 MW
-      on a generator, and on another you ask +10 MW then the total setpoint for this generator that the environment
-       will try to implement is +20MW.
+    _redispatch: :class:`numpy.ndarray`, dtype:float
+        Amount of redispatching that this action will perform. Redispatching will increase the generator's active
+        setpoint
+        value. This will be added to the value of the generators. The Environment will make sure that every physical
+        constraint is met. This means that the agent provides a setpoint, but there is no guarantee that the setpoint
+        will be achievable. Redispatching action is cumulative, this means that if at a given timestep you ask +10 MW
+        on a generator, and on another you ask +10 MW then the total setpoint for this generator that the environment
+        will try to implement is +20MW.
 
     """
 
@@ -297,28 +308,32 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
     def get_set_line_status_vect(self):
         """
-        Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`.
+        Computes and returns a vector that can be used in the :func:`Action.__call__` with the keyword
+        "set_status" if building an :class:`Action`.
 
-        **NB** this vector is not the internal vector of this action, but corresponds to "do nothing" action.
+        **NB** this vector is not the internal vector of this action but corresponds to "do nothing" action.
 
         Returns
         -------
         res: :class:`numpy.array`, dtype:np.int
-            A vector that doesn't affect the grid, but can be used in "set_status"
+            A vector that doesn't affect the grid, but can be used in :func:`Action.__call__` with the keyword
+            "set_status" if building an :class:`Action`.
 
         """
         return np.full(shape=self.n_line, fill_value=0, dtype=np.int)
 
     def get_change_line_status_vect(self):
         """
-        Computes and return a vector that can be used in the "change_status" keyword if building an :class:`Action`
+        Computes and returns a vector that can be used in the :func:`Action.__call__` with the keyword
+        "set_status" if building an :class:`Action`.
 
-        **NB** this vector is not the internal vector of this action, but corresponds to "do nothing" action.
+        **NB** this vector is not the internal vector of this action but corresponds to "do nothing" action.
 
         Returns
         -------
         res: :class:`numpy.array`, dtype:np.bool
-            A vector that doesn't affect the grid, but can be used in "change_status"
+            A vector that doesn't affect the grid, but can be used in :func:`Action.__call__` with the keyword
+            "set_status" if building an :class:`Action`.
 
         """
         return np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
@@ -327,22 +342,22 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
         """
         Test the equality of two actions.
 
-        2 actions are said to be identical if the have the same impact on the powergrid. This is unrelated to their
+        2 actions are said to be identical if they have the same impact on the powergrid. This is unrelated to their
         respective class. For example, if an Action is of class :class:`Action` and doesn't act on the injection, it
-        can be equal to a an Action of derived class :class:`TopologyAction` (if the topological modification are the
+        can be equal to an Action of the derived class :class:`TopologyAction` (if the topological modifications are the
         same of course).
 
         This implies that the attributes :attr:`Action.authorized_keys` is not checked in this method.
 
-        Note that if 2 actions doesn't act on the same powergrid, or on the same backend (eg number of loads, or
-        generators is not the same in *self* and *other*, or they are not in the same order) then action will be
+        Note that if 2 actions don't act on the same powergrid, or on the same backend (eg number of loads, or
+        generators are not the same in *self* and *other*, or they are not in the same order) then action will be
         declared as different.
 
-        **Known issue** if two backend are different, but the description of the _grid are identical (ie all
+        **Known issue** if two backends are different, but the description of the _grid are identical (ie all
         n_gen, n_load, n_line, sub_info, dim_topo, all vectors \*_to_subid, and \*_pos_topo_vect are
         identical) then this method will not detect the backend are different, and the action could be declared
-        as identical. For now, this is only a theoretical behaviour: if everything is the same, then probably, up to
-        the naming convention, then the powergrid are identical too.
+        as identical. For now, this is only a theoretical behavior: if everything is the same, then probably, up to
+        the naming convention, then the power grids are identical too.
 
         Parameters
         ----------
@@ -421,24 +436,24 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
         will be impacted. For examples:
 
             - If an action from an :class:`grid2op.Agent` reconnect a powerline, but this powerline is being
-              disconnected by a hazards at the same time step, then this action will not be implemented on the grid.
+              disconnected by a hazard at the same time step, then this action will not be implemented on the grid.
               However, it this powerline couldn't be reconnected for some reason (for example it was already out of
               order) the action will still be declared illegal, even if it has NOT impacted the powergrid.
             - If an action tries to disconnect a powerline already disconnected, it will "impact" this powergrid. This
-              means that even if the action will basically do nothing, it disconnecting this powerline is against the
+              means that even if the action will do nothing, it disconnecting this powerline is against the
               rules, then the action will be illegal.
             - If an action tries to change the topology of a substation, but this substation is already at the target
-              topology, the same mechanism applies. The action will "impact" the substation, even if, at the end, it
+              topology, the same mechanism applies. The action will "impact" the substation, even if, in the end, it
               consists of doing nothing.
 
-        Any such "change" that would be illegal are declared as "illegal" regardless of the real impact of this action
+        Any such "change" that would be illegal is declared as "illegal" regardless of the real impact of this action
         on the powergrid.
 
 
         Returns
         -------
         lines_impacted: :class:`numpy.array`, dtype:np.bool
-            A vector with the same size as the number of powerline in the grid (:attr:`Action.n_line`) with for each
+            A vector with the same size as the number of powerlines in the grid (:attr:`Action.n_line`) with for each
             component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
             :attr:`Action._lines_impacted` for more information.
 
@@ -496,7 +511,7 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
     def __call__(self):
         """
         This method is used to return the effect of the current action in a format understandable by the backend.
-        This format is detailed bellow.
+        This format is detailed below.
 
         This function must also integrate the redispatching strategy for the Action.
 
@@ -529,8 +544,9 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
         Raises
         -------
-        AmbiguousAction
+        :class:`grid2op.Exceptions.AmbiguousAction`
             Or one of its derivate class.
+
         """
 
         self._check_for_ambiguity()
@@ -812,54 +828,54 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
     def update(self, dict_):
         """
-        Update the action with a comprehensible format specified by a dictionnary.
+        Update the action with a comprehensible format specified by a dictionary.
 
-        Preferably, if a keys of the argument *dict_* is not found in :attr:`Action.authorized_keys` it should throw a
+        Preferably, if a key of the argument *dict_* is not found in :attr:`Action.authorized_keys` it should throw a
         warning. This argument will be completely ignored.
 
         This method also reset the attributes :attr:`Action._vectorized` :attr:`Action._lines_impacted` and
         :attr:`Action._subs_impacted` to ``None`` regardless of the argument in input.
 
-        If an action consist in "reconnecting" a powerline, and this same powerline is affected by a maintenance or a
+        If an action consists of "reconnecting" a powerline, and this same powerline is affected by maintenance or a
         hazard, it will be erased without any warning. "hazards" and "maintenance" have the priority. This is a
-        requirements for all proper :class:`Action` subclass.
+        requirement for all proper :class:`Action` subclass.
 
         Parameters
         ----------
         dict_: :class:`dict`
             If it's ``None`` or empty it does nothing. Otherwise, it can contain the following (optional) keys:
 
-            - "*injection*" if the action will modify the injections (generator setpoint / load value - active or
+            - "*injection*" if the action will modify the injections (generator setpoint/load value - active or
               reactive) of the powergrid. It has optionally one of the following keys:
 
-                    - "load_p" to set the active load values (this is a np array with the same size as the number of
+                    - "load_p": to set the active load values (this is a numpy array with the same size as the number of
                       load in the power _grid with Nan: don't change anything, else set the value
-                    - "load_q" : same as above but for the load reactive values
-                    - "prod_p" : same as above but for the generator active setpoint values. It has the size
+                    - "load_q": same as above but for the load reactive values
+                    - "prod_p": same as above but for the generator active setpoint values. It has the size
                       corresponding to the number of generators in the test case.
-                    - "prod_v" : same as above but set the voltage setpoint of generator units.
+                    - "prod_v": same as above but set the voltage setpoint of generator units.
 
             - "*hazards*": represents the hazards that the line might suffer (boolean vector) False: no hazard, nothing
-              is done, True: an hazard, the powerline is disconnected
+              is done, True: a hazard, the powerline is disconnected
             - "*maintenance*": represents the maintenance operation performed on each powerline (boolean vector) False:
               no maintenance, nothing is done, True: a maintenance is scheduled, the powerline is disconnected
             - "*set_line_status*": a vector (int or float) to set the status of the powerline status (connected /
               disconnected) with the following interpretation:
 
-                - 0 : nothing is changed,
-                - -1 : disconnect the powerline,
-                - +1 : reconnect the powerline. If an action consist in "reconnect" a powerline, and this same
+                - 0: nothing is changed,
+                - -1: disconnect the powerline,
+                - +1: reconnect the powerline. If an action consists in "reconnecting" a powerline, and this same
                   powerline is affected by a maintenance or a hazard, it will be erased without any warning. "hazards"
                   and "maintenance" have the priority.
 
-            - "change_line_status": a vector (bool) to change the status of the powerline. This vector should be interpreted
-              as:
+            - "change_line_status": a vector (bool) to change the status of the powerline. This vector should be
+              interpreted as:
 
-                - False: do nothing
-                - True: change the status of the powerline: disconnect it if it was connected, connect it if it was
+                - ``False``: do nothing
+                - ``True``: change the status of the powerline: disconnect it if it was connected, connect it if it was
                   disconnected
 
-            - "set_bus": (numpy int vector or dict) will set the buses to which the objects is connected. It follows a
+            - "set_bus": (numpy int vector or dictionary) will set the buses to which the objects are connected. It follows a
               similar interpretation than the line status vector:
 
                 - 0 -> don't change anything
@@ -867,7 +883,7 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
                 - +2 -> set to bus 2, etc.
                 - -1: You can use this method to disconnect an object by setting the value to -1.
 
-            - "change_bus": (numpy bool vector or dict) will change the bus to which the object is connected. True will
+            - "change_bus": (numpy bool vector or dictionary) will change the bus to which the object is connected. True will
               change it (eg switch it from bus 1 to bus 2 or from bus 2 to bus 1). NB this is only active if the system
               has only 2 buses per substation.
 
@@ -877,26 +893,91 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
               - If "set_bus" is 1, then the object (load, generator or powerline) will be moved to bus 1 of the
                 substation to which it is connected. If it is already to bus 1 nothing will be done. If it's on another
-                bus it will connect it to bus 1. It's it's disconnected, it will reconnect it and connect it to bus 1.
-              - If "change_bus" is True, then object will be moved from one bus to another. If the object where on bus 1
+                bus it will connect it to bus 1. It's disconnected, it will reconnect it and connect it to bus 1.
+              - If "change_bus" is True, then objects will be moved from one bus to another. If the object were on bus 1
                 then it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object is
                 disconnected then the action is ambiguous, and calling it will throw an AmbiguousAction exception.
 
             **NB**: if a powerline is reconnected, it should be specified on the "set_bus" action at which buses it
-            should be  reconnected. Otherwise, action cannot be used. Trying to apply the action to the _grid will
-            lead to a "AmbiguousAction" exception.
+            should be reconnected. Otherwise, action cannot be used. Trying to apply the action to the grid will
+            lead to an "AmbiguousAction" exception.
 
             **NB**: if for a given powerline, both switch_line_status and set_line_status is set, the action will not
             be usable.
             This will lead to an :class:`grid2op.Exception.AmbiguousAction` exception.
 
-            **NB**: length of vector here are NOT check in this function. This method can be "chained" and only on the final
-            action, when used, eg. in the Backend, i checked.
+            **NB**: The length of vectors provided here is NOT check in this function. This method can be "chained" and only on the
+            final
+            action, when used, eg. in the Backend, is checked.
 
             **NB**: If a powerline is disconnected, on maintenance, or suffer an outage, the associated "set_bus" will
             be ignored.
-            Disconnection has the priority on anything. This priority is given because in case of hazard, the hazard has
+            Disconnection has the priority on anything. This priority is given because, in case of hazard, the hazard has
             the priority over the possible actions.
+
+        Examples
+        --------
+        Here are short examples on how to update an action *eg.* how to create a valid :class:`Action` object that
+        be used to modify a :class:`grid2op.Backend.Backend`.
+
+        In all the following examples, we suppose that a valid grid2op environment is created, for example with:
+        .. code-block:: python
+
+            import grid2op
+            # create a simple environment
+            # and make sure every type of action can be used.
+            env = grid2op.make(action_class=grid2op.Action.Action)
+
+        *Example 1*: modify the load active values to set them all to 1. You can replace "load_p" by "load_q",
+        "prod_p" or "prod_v" to change the load reactive value, the generator active setpoint or the generator
+        voltage magnitude setpoint.
+
+        .. code-block:: python
+
+            new_load = np.ones(env.action_space.n_load)
+            modify_load_active_value = env.action_space({"injection": {"load_p": new_load}})
+            print(modify_load_active_value)
+
+        *Example 2*: disconnect the powerline of id 1:
+
+        .. code-block:: python
+
+            disconnect_powerline = env.action_space({"set_line_status": [(1, -1)]})
+            print(disconnect_powerline)
+            # there is a shortcut to do that:
+            disconnect_powerline2 = env.disconnect_powerline(line_id=1)
+
+        *Example 3*: force the reconnection of the powerline of id 5 by connected it to bus 1 on its origin end and
+        bus 2 on its extremity end. Note that this is mandatory to specify on which bus to reconnect each
+        extremity of the powerline. Otherwise it's an ambiguous action.
+
+        .. code-block:: python
+
+            reconnect_powerline = env.action_space({"set_line_status": [(5, 1)],
+                                                    "set_bus": {"lines_or_id": [(5, 1)]},
+                                                    "set_bus": {"lines_ex_id": [(5, 2)]}
+                                                     })
+            print(reconnect_powerline)
+            # and the shorter method:
+            reconnect_powerline = env.action.space.reconnect_powerline(line_id=5, bus_or=1, bus_ex=2)
+
+        *Example 4*: change the bus to which load 4 is connected:
+
+        .. code-block:: python
+
+            change_load_bus = env.action_space({"set_bus": {"loads_id": [(4, 1)]} })
+            print(change_load_bus)
+
+        *Example 5*: reconfigure completely substation 5, and connect the first 3 elements to bus 1 and the last 3
+        elements to bus 2
+
+        .. code-block:: python
+
+            sub_id = 5
+            target_topology = np.ones(env.sub_info[sub_id], dtype=np.int)
+            target_topology[3:] = 2
+            reconfig_sub = env.action_space({"set_bus": {"substations_id": [(sub_id, target_topology)] } })
+            print(reconfig_sub)
 
         Returns
         -------
@@ -928,12 +1009,12 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
     def _check_for_ambiguity(self):
         """
-        This method check if an action is ambiguous or not. If the instance is ambiguous, an
+        This method checks if an action is ambiguous or not. If the instance is ambiguous, an
         :class:`grid2op.Exceptions.AmbiguousAction` is raised.
 
         An action can be ambiguous in the following context:
 
-          - It affects the injections in an incorrect way:
+          - It incorrectly affects the injections:
 
             - :code:`self._dict_inj["load_p"]` doesn't have the same size as the number of loads on the _grid.
             - :code:`self._dict_inj["load_q"]` doesn't have the same size as the number of loads on the _grid.
@@ -950,7 +1031,7 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
             - the status of some powerline is both *changed* (:code:`self._switch_line_status[i] == True` for some *i*)
               and *set* (:code:`self._set_line_status[i]` for the same *i* is not 0)
 
-          - It has an ambiguous behaviour concerning the topology of some substations
+          - It has an ambiguous behavior concerning the topology of some substations
 
             - the state of some bus for some element is both *changed* (:code:`self._change_bus_vect[i] = True` for
               some *i*) and *set* (:code:`self._set_topo_vect[i]` for the same *i* is not 0)
@@ -972,20 +1053,18 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
         In case of need to overload this method, it is advise to still call this one from the base :class:`Action`
         with ":code:`super()._check_for_ambiguity()`" or ":code:`Action._check_for_ambiguity(self)`".
 
-        Returns
-        -------
-        ``None``
-
         Raises
         -------
-        AmbiguousAction
+        :class:`grid2op.Exceptions.AmbiguousAction`
             Or any of its more precise subclasses, depending on which assumption is not met.
+
 
         """
         if np.any(self._set_line_status[self._switch_line_status] != 0):
             raise InvalidLineStatus("You asked to change the status (connected / disconnected) of a powerline by"
-                                    " using the keyword \"change_status\" and set this same line state in \"set_status\""
-                                    " (or \"hazard\" or \"maintenance\"). This ambiguous behaviour is not supported")
+                                    " using the keyword \"change_status\" and set this same line state in "
+                                    "\"set_status\" "
+                                    "(or \"hazard\" or \"maintenance\"). This ambiguous behaviour is not supported")
         # check size
         if "load_p" in self._dict_inj:
             if len(self._dict_inj["load_p"]) != self.n_load:
@@ -1047,8 +1126,8 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
         # topological action
         if np.any(self._set_topo_vect[self._change_bus_vect] != 0):
             raise InvalidBusStatus("You asked to change the bus of an object with"
-                                    " using the keyword \"change_bus\" and set this same object state in \"set_bus\""
-                                    ". This ambiguous behaviour is not supported")
+                                   " using the keyword \"change_bus\" and set this same object state in \"set_bus\""
+                                   ". This ambiguous behaviour is not supported")
 
         for q_id, status in enumerate(self._set_line_status):
             if status == 1:
@@ -1080,8 +1159,10 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
         """
         This method is used to sample action.
 
-        Generic sampling of action can be really tedious. Uniform sampling is almost impossible.
-        The actual implementation gives absolutely no warranty toward any of these concerns. It will:
+        A generic sampling of action can be really tedious. Uniform sampling is almost impossible.
+        The actual implementation gives absolutely no warranty toward any of these concerns.
+
+        It is not implemented yet.
         TODO
 
         By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state.
@@ -1090,6 +1171,7 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
         -------
         self: :class:`Action`
             The action sampled among the action space.
+
         """
         self.reset()
         # TODO code the sampling now
@@ -1134,12 +1216,13 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
     def __str__(self):
         """
-        This utility allows to print in a human readable format which objects will be impacted by the action.
+        This utility allows printing in a human-readable format what objects will be impacted by the action.
 
         Returns
         -------
         str: :class:`str`
-            The string representation of an :class:`Action`
+            The string representation of an :class:`Action` in a human-readable format.
+
         """
         res = ["This action will:"]
         # handles actions on injections
@@ -1202,9 +1285,9 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
     def as_dict(self):
         """
-        Represent an action "as a" dictionnary. This dictionnary is usefull to further inspect on which elements
-        the actions had an impact. It is not recommended to use it as a way to serialize actions. The do nothing action
-        should allways be represented by an empty dictionnary.
+        Represent an action "as a" dictionary. This dictionary is useful to further inspect on which elements
+        the actions had an impact. It is not recommended to use it as a way to serialize actions. The "do nothing" action
+        should always be represented by an empty dictionary.
 
         The following keys (all optional) are present in the results:
 
@@ -1213,51 +1296,52 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
           * `prod_p`: if the action modifies the active productions of generators.
           * `prod_v`: if the action modifies the voltage setpoint of generators.
           * `set_line_status` if the action tries to **set** the status of some powerlines. If present, this is a
-            a dictionnary with keys:
+            a dictionary with keys:
 
               * `nb_connected`: number of powerlines that are reconnected
               * `nb_disconnected`: number of powerlines that are disconnected
               * `connected_id`: the id of the powerlines reconnected
               * `disconnected_id`: the ids of the powerlines disconnected
 
-          * `change_line_status`: if the action tries to **change** the status of some powelrines. If present, this
-            is a dictionnary with keys:
+          * `change_line_status`: if the action tries to **change** the status of some powerlines. If present, this
+            is a dictionary with keys:
 
               * `nb_changed`: number of powerlines having their status changed
               * `changed_id`: the ids of the powerlines that are changed
 
           * `change_bus_vect`: if the action tries to **change** the topology of some substations. If present, this
-            is a dictionnary with keys:
+            is a dictionary with keys:
 
               * `nb_modif_subs`: number of substations impacted by the action
               * `modif_subs_id`: ids of the substations impacted by the action
-              * `change_bus_vect`: details the objects that are modified. It is itself a dictionnary that represents for
+              * `change_bus_vect`: details the objects that are modified. It is itself a dictionary that represents for
                 each impacted substations (keys) the modification of the objects connected to it.
 
           * `set_bus_vect`: if the action tries to **set** the topology of some substations. If present, this is a
-            dictionnary with keys:
+            dictionary with keys:
 
               * `nb_modif_subs`: number of substations impacted by the action
               * `modif_subs_id`: the ids of the substations impacted by the action
-              * `set_bus_vect`: details the objects that are modified. It is also a dictionnary that representes for
+              * `set_bus_vect`: details the objects that are modified. It is also a dictionary that represents for
                 each impacted substations (keys) how the elements connected to it are impacted (their "new" bus)
 
-          * `hazards` if the action is composed of some hazards. In this case it's simply the index of the powerlines
+          * `hazards` if the action is composed of some hazards. In this case, it's simply the index of the powerlines
             that are disconnected because of them.
           * `nb_hazards` the number of hazards the "action" implemented (eg number of powerlines disconnected because of
             hazards.
-          * `maintenance` if the action is composed of some maintenance. In this case it's simply the index of the
+          * `maintenance` if the action is composed of some maintenance. In this case, it's simply the index of the
             powerlines that are affected by maintenance operation at this time step.
             that are disconnected because of them.
           * `nb_maintenance` the number of maintenance the "action" implemented eg the number of powerlines
-            disconnected becaues of maintenance operation.
+            disconnected because of maintenance operations.
           * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
             dispatchable one) the amount of power redispatched in this action.
 
         Returns
         -------
         res: ``dict``
-            The action represented as a dictionnary. See above for a description of it.
+            The action represented as a dictionary. See above for a description of it.
+
 
         """
         res = {}
@@ -1330,33 +1414,33 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
     def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
-        Return the effect of this action on a give unique load, generator unit, powerline of substation.
+        Return the effect of this action on a unique given load, generator unit, powerline or substation.
         Only one of load, gen, line or substation should be filled.
 
-        The querry of these objects can only be done by id here (ie by giving the integer of the object in the backed).
+        The query of these objects can only be done by id here (ie by giving the integer of the object in the backed).
         The :class:`HelperAction` has some utilities to access them by name too.
 
         Parameters
         ----------
         _sentinel: ``None``
-            Used to prevent positional parameters. Internal, do not use.
+            Used to prevent positional parameters. Internal, **do not use**.
 
         load_id: ``int``
-            ID of the load we want to inspect
+            The ID of the load we want to inspect
 
         gen_id: ``int``
-            ID of the generator we want to inspect
+            The ID of the generator we want to inspect
 
         line_id: ``int``
-            ID of the powerline we want to inspect
+            The ID of the powerline we want to inspect
 
         substation_id: ``int``
-            ID of the substation we want to inspect
+            The ID of the substation we want to inspect
 
         Returns
         -------
         res: :class:`dict`
-            A dictionnary with keys and value depending on which object needs to be inspected:
+            A dictionary with keys and value depending on which object needs to be inspected:
 
             - if a load is inspected, then the keys are:
 
@@ -1378,12 +1462,12 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
             - if a powerline is inspected then the keys are:
 
-                - "change_bus_or" : whether or not the origin end will be moved from one bus to another
-                - "change_bus_ex" : whether or not the extremity end will be moved from one bus to another
-                - "set_bus_or" : the new bus where the origin will be moved
-                - "set_bus_ex" : the new bus where the extremity will be moved
-                - "set_line_status" : the new status of the power line
-                - "change_line_status" : whether or not to switch the status of the powerline
+                - "change_bus_or": whether or not the origin end will be moved from one bus to another
+                - "change_bus_ex": whether or not the extremity end will be moved from one bus to another
+                - "set_bus_or": the new bus where the origin will be moved
+                - "set_bus_ex": the new bus where the extremity will be moved
+                - "set_line_status": the new status of the power line
+                - "change_line_status": whether or not to switch the status of the powerline
 
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
@@ -1394,15 +1478,15 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
             - If "set_bus" is 1, then the object (load, generator or powerline) will be moved to bus 1 of the substation
               to which it is connected. If it is already to bus 1 nothing will be done. If it's on another bus it will
-              connect it to bus 1. It's it's disconnected, it will reconnect it and connect it to bus 1.
-            - If "change_bus" is True, then object will be moved from one bus to another. If the object where on bus 1
+              connect it to bus 1. It's disconnected, it will reconnect it and connect it to bus 1.
+            - If "change_bus" is True, then the object will be moved from one bus to another. If the object were on bus 1
               then it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object were
-              disconnected, then it will be connected on the affected bus.
+              disconnected, then it will be connected to the affected bus.
 
         Raises
         ------
-        Grid2OpException
-            If _sentinel is modified, or if None of the arguments are set or alternatively if 2 or more of the
+        :class:`grid2op.Exception.Grid2OpException`
+            If _sentinel is modified, or if none of the arguments are set or alternatively if 2 or more of the
             parameters are being set.
 
         """
@@ -1464,17 +1548,20 @@ _redispatch: :class:`numpy.ndarray`, dtype:float
 
 class TopologyAction(Action):
     """
-    This class is here to model only Topological actions.
-    It will throw an "AmbiguousAction" error it someone attempt to change injections in any ways.
+    This class is model only topological actions.
+    It will throw an ":class:`grid2op.Exception.AmbiguousAction`" error it someone attempt to change injections
+    in any ways.
 
     It has the same attributes as its base class :class:`Action`.
 
     It is also here to show an example on how to implement a valid class deriving from :class:`Action`.
+
     """
     def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
+
         """
         Action.__init__(self, gridobj)
 
@@ -1488,33 +1575,38 @@ class TopologyAction(Action):
     def __call__(self):
         """
         Compare to the ancestor :func:`Action.__call__` this type of Action doesn't allow to change the injections.
-        The only difference is in the returned value *dict_injection* that is always an empty dictionnary.
+        The only difference is in the returned value *dict_injection* that is always an empty dictionary.
 
         Returns
         -------
-        dict_injection: :class:`dict`
-            This dictionnary is always empty
+        dict_injection: ``dict``
+            This dictionary is always empty
 
-        set_line_status: :class:`numpy.array`, dtype:int
+        set_line_status: :class:`numpy.ndarray`, dtype:int
             This array is :attr:`Action._set_line_status`
 
-        switch_line_status: :class:`numpy.array`, dtype:bool
+        switch_line_status: :class:`numpy.ndarray`, dtype:bool
             This array is :attr:`Action._switch_line_status`
 
-        set_topo_vect: :class:`numpy.array`, dtype:int
+        set_topo_vect: :class:`numpy.ndarray`, dtype:int
             This array is :attr:`Action._set_topo_vect`
 
-        change_bus_vect: :class:`numpy.array`, dtype:bool
+        change_bus_vect: :class:`numpy.ndarray`, dtype:bool
             This array is :attr:`Action._change_bus_vect`
+
+        redispatch: :class:`numpy.ndarray`, dtype:float
+            Thie array is :attr:`Action._redispatch`
+
         """
         if self._dict_inj:
             raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
         self._check_for_ambiguity()
-        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect, self._redispatch
+        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect,\
+               self._redispatch
 
     def update(self, dict_):
         """
-        As its original implementation, this method allows to modify the way a dictionnary can be mapped to a valid
+        As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
         :class:`Action`.
 
         It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
@@ -1524,12 +1616,13 @@ class TopologyAction(Action):
         ----------
         dict_: :class:`dict`
             See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
-            "injection" part are irrelevant for this subclass.
+            "injection" part is irrelevant for this subclass.
 
         Returns
         -------
         self: :class:`TopologyAction`
-            Return object itself thus allowing mutiple call to "update" to be chained.
+            Return object itself thus allowing multiple calls to "update" to be chained.
+
         """
         self.as_vect = None
         if dict_ is not None:
@@ -1550,35 +1643,38 @@ class TopologyAction(Action):
 
     def sample(self):
         """
+        Sample a Topology action.
 
+        This method is not implemented at the moment. TODO
 
         Returns
         -------
-        res: :class:`Action`
+        res: :class:`TopologyAction`
             The current action (useful to chain some calls to methods)
         """
         self.reset()
-        # TODO code the sampling now
-        # TODO test it !!!
         return self
 
 
 class PowerLineSet(Action):
     """
-    This class is here to model only a subpart of Topological actions, the one consisting in topological switching.
-    It will throw an "AmbiguousAction" error it someone attempt to change injections in any ways.
+    This class is here to model only a subpart of Topological actions, the one consisting of topological switching.
+    It will throw an "AmbiguousAction" error if someone attempts to change injections in any way.
 
     It has the same attributes as its base class :class:`Action`.
 
-    It is also here to show an example on how to implement a valid class deriving from :class:`Action`.
+    It is also here to show an example of how to implement a valid class deriving from :class:`Action`.
 
-    **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
-    reconnecting a powerline cannot be considered "ambiguous". We have to
+    **NB** This class doesn't allow to connect an object to other buses than their original bus. In this case,
+    reconnecting a powerline cannot be considered "ambiguous": all powerlines are reconnected on bus 1 on both
+    of their substations.
+
     """
     def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
         in this constructor.
+
         """
         Action.__init__(self, gridobj)
 
@@ -1591,12 +1687,12 @@ class PowerLineSet(Action):
     def __call__(self):
         """
         Compare to the ancestor :func:`Action.__call__` this type of Action doesn't allow to change the injections.
-        The only difference is in the returned value *dict_injection* that is always an empty dictionnary.
+        The only difference is in the returned value *dict_injection* that is always an empty dictionary.
 
         Returns
         -------
         dict_injection: :class:`dict`
-            This dictionnary is always empty
+            This dictionary is always empty
 
         set_line_status: :class:`numpy.array`, dtype:int
             This array is :attr:`Action._set_line_status`
@@ -1609,6 +1705,7 @@ class PowerLineSet(Action):
 
         change_bus_vect: :class:`numpy.array`, dtype:bool
             This array is :attr:`Action._change_bus_vect`, it is never modified
+
         """
         if self._dict_inj:
             raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
@@ -1617,7 +1714,7 @@ class PowerLineSet(Action):
 
     def update(self, dict_):
         """
-        As its original implementation, this method allows to modify the way a dictionnary can be mapped to a valid
+        As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
         :class:`Action`.
 
         It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
@@ -1632,10 +1729,10 @@ class PowerLineSet(Action):
         Returns
         -------
         self: :class:`PowerLineSet`
-            Return object itself thus allowing mutiple call to "update" to be chained.
-        """
+            Return object itself thus allowing multiple calls to "update" to be chained.
 
-        self.as_vect = None
+        """
+        self._vectorized = None
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
@@ -1692,10 +1789,10 @@ class PowerLineSet(Action):
 
 class SerializableActionSpace(SerializableSpace):
     """
-    This class allows to serialize / de serialize the action space.
+    This class allows serializing/ deserializing the action space.
 
-    It should not be used inside an Environment, as some functions of the action might not be compatible with
-    the serialization, especially the checking of whether or not an Action is legal or not.
+    It should not be used inside an :attr:`grid2op.Environment.Environment` , as some functions of the action might not
+    be compatible with the serialization, especially the checking of whether or not an action is legal or not.
 
     Attributes
     ----------
@@ -1717,7 +1814,8 @@ class SerializableActionSpace(SerializableSpace):
             Representation of the underlying powergrid.
 
         actionClass: ``type``
-            Type of action used to build :attr:`Space.SerializableSpace.template_obj`
+            Type of action used to build :attr:`Space.SerializableSpace.template_obj`. It should derived from
+            :class:`Action`.
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
@@ -1728,27 +1826,27 @@ class SerializableActionSpace(SerializableSpace):
     @staticmethod
     def from_dict(dict_):
         """
-        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
+        Allows the de-serialization of an object stored as a dictionary (for example in the case of JSON saving).
 
         Parameters
         ----------
         dict_: ``dict``
-            Representation of an Action Space (aka SerializableActionSpace) as a dictionnary.
+            Representation of an Action Space (aka SerializableActionSpace) as a dictionary.
 
         Returns
         -------
         res: :class:``SerializableActionSpace``
-            An instance of an action space matching the dictionnary.
+            An instance of an action space matching the dictionary.
+
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-        res = SerializableActionSpace(gridobj=tmp,
-                                      actionClass=tmp.subtype)
+        res = SerializableActionSpace(gridobj=tmp, actionClass=tmp.subtype)
         return res
 
     def sample(self):
         """
-        A utility used to sample :class:`grid2op.Action.Action`.
+        A utility used to sample :class:`Action`.
 
         This method is under development, use with care (actions are not sampled on the full action space, and are
         not uniform in general).
@@ -1757,18 +1855,84 @@ class SerializableActionSpace(SerializableSpace):
         -------
         res: :class:`Action`
             A random action sampled from the :attr:`HelperAction.actionClass`
+
         """
         res = self.actionClass(gridobj=self)  # only the GridObjects part of "self" is actually used
         res.sample()
         return res
 
+    def disconnect_powerlin(self, line_id, previous_action=None):
+        """
+        Utilities to disconnect a powerline more easily.
+
+        Parameters
+        ----------
+        line_id: ``int``
+            The powerline to be disconnected.
+
+        previous_action
+
+        Returns
+        -------
+
+        """
+        if previous_action is None:
+            res = self.actionClass(gridobj=self)
+        else:
+            if not isinstance(previous_action, self.actionClass):
+                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
+                                      "which is not the type of action handled by this helper "
+                                      "(\"{}\")".format(type(previous_action), self.actionClass))
+            res = previous_action
+        if line_id > self.n_line:
+            raise AmbiguousAction("You asked to disconnect powerline of id {} but this id does not exist. The "
+                                  "grid counts only {} powerline".format(line_id, self.n_line))
+        res.update({"set_line_status": [(line_id, -1)]})
+        return res
+
+    def reconnect_powerline(self, line_id, bus_or, bus_ex, previous_action=None):
+        """
+        Utilities to disconnect a powerline more easily.
+
+        Parameters
+        ----------
+        line_id: ``int``
+            The powerline to be disconnected.
+
+        bus_or: ``int``
+            On which bus to reconnect the powerline at its origin end
+
+        bus_ex: ``int``
+            On which bus to reconnect the powerline at its extremity end
+        previous_action
+
+        Returns
+        -------
+
+        """
+        if previous_action is None:
+            res = self.actionClass(gridobj=self)
+        else:
+            if not isinstance(previous_action, self.actionClass):
+                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
+                                      "which is not the type of action handled by this helper "
+                                      "(\"{}\")".format(type(previous_action), self.actionClass))
+            res = previous_action
+        if line_id > self.n_line:
+            raise AmbiguousAction("You asked to disconnect powerline of id {} but this id does not exist. The "
+                                  "grid counts only {} powerline".format(line_id, self.n_line))
+        res.update({"set_line_status": [(line_id, -1)],
+                    "set_bus": {"lines_or_id": [(line_id, bus_or)],
+                                "lines_ex_id": [(line_id, bus_ex)]}})
+        return res
+
     def change_bus(self, name_element, extremity=None, substation=None, type_element=None, previous_action=None):
         """
-        Utilities to change the bus of a single element if you give its name. **NB** Chaning a bus has the effect to
+        Utilities to change the bus of a single element if you give its name. **NB** Changing a bus has the effect to
         assign the object to bus 1 if it was before that connected to bus 2, and to assign it to bus 2 if it was
         connected to bus 1. It should not be mixed up with :func:`HelperAction.set_bus`.
 
-        If the parameter "*previous_action*" is not ``None``, then the action given to it is updated (inplace) and
+        If the parameter "*previous_action*" is not ``None``, then the action given to it is updated (in place) and
         returned.
 
         Parameters
@@ -1776,9 +1940,9 @@ class SerializableActionSpace(SerializableSpace):
         name_element: ``str``
             The name of the element you want to change the bus
         extremity: ``str``
-            "or" or "ex" for origin or extremity, ignored if element is not a powerline.
+            "or" or "ex" for origin or extremity, ignored if an element is not a powerline.
         substation: ``int``, optional
-            Its substation ID, if you know it will increase the performance. Otherwise the method will search it.
+            Its substation ID, if you know it will increase the performance. Otherwise, the method will search for it.
         type_element: ``int``, optional
             Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
         previous_action: :class:`Action`, optional
@@ -1791,14 +1955,17 @@ class SerializableActionSpace(SerializableSpace):
 
         Raises
         ------
-        AmbiguousAction
+        :class:`grid2op.Exception.AmbiguousAction`
             If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
+
         """
         if previous_action is None:
             res = self.actionClass(gridobj=self)
         else:
             if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" which is not the type of action handled by this helper (\"{}\")".format(type(previous_action), self.actionClass))
+                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
+                                      "which is not the type of action handled by this helper "
+                                      "(\"{}\")".format(type(previous_action), self.actionClass))
             res = previous_action
 
         dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation, type_element, res)
@@ -1854,7 +2021,8 @@ class SerializableActionSpace(SerializableSpace):
                     "Element \"{}\" not found in the powergrid".format(
                         name_element))
         else:
-            raise AmbiguousAction("unknown type_element specifier \"{}\". type_element should be \"line\" or \"load\" or \"gen\"".format(extremity))
+            raise AmbiguousAction("unknown type_element specifier \"{}\". type_element should be \"line\" or \"load\" "
+                                  "or \"gen\"".format(extremity))
 
         my_id = None
         for i, nm in enumerate(to_name):
@@ -1872,10 +2040,10 @@ class SerializableActionSpace(SerializableSpace):
         """
         Utilities to set the bus of a single element if you give its name. **NB** Setting a bus has the effect to
         assign the object to this bus. If it was before that connected to bus 1, and you assign it to bus 1 (*new_bus*
-        = 1) it will stay on bus 1. If it was on bus 2 (and you still assign it to bus 1) it will be moved to bus
+        = 1) it will stay on bus 1. If it was on bus 2 (and you still assign it to bus 1) it will be moved to bus 2.
         1. It should not be mixed up with :func:`HelperAction.change_bus`.
 
-        If the parameter "*previous_action*" is not ``None``, then the action given to it is updated (inplace) and
+        If the parameter "*previous_action*" is not ``None``, then the action given to it is updated (in place) and
         returned.
 
         Parameters
@@ -1887,10 +2055,10 @@ class SerializableActionSpace(SerializableSpace):
             Id of the new bus to connect the object to.
 
         extremity: ``str``
-            "or" or "ext" for origin or extremity, ignored if element is not a powerline.
+            "or" or "ext" for origin or extremity, ignored if the element is not a powerline.
 
         substation: ``int``, optional
-            Its substation ID, if you know it will increase the performance. Otherwise the method will search it.
+            Its substation ID, if you know it will increase the performance. Otherwise, the method will search for it.
 
         type_element: ``str``, optional
             Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
@@ -1907,13 +2075,15 @@ class SerializableActionSpace(SerializableSpace):
         ------
         AmbiguousAction
             If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
+
         """
         if previous_action is None:
             res = self.actionClass(gridobj=self)
         else:
             res = previous_action
 
-        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation, type_element, res)
+        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation,
+                                                                        type_element, res)
         dict_["set_bus"][to_sub_pos[my_id]] = new_bus
         res.update({"set_bus": {"substations_id": [(my_sub_id, dict_["set_bus"])]}})
         return res
@@ -1931,13 +2101,27 @@ class SerializableActionSpace(SerializableSpace):
         bus_ex: `int`
             the bus to which connect the extremity end the powerline
 
+        previous_action: :class:`Action`, optional
+            The (optional) action to update. It should be of the same type as :attr:`HelperAction.actionClass`
+
         Returns
         -------
+        res: :class:`Action`
+            The action with the modification implemented
+
+        Raises
+        ------
+        AmbiguousAction
+            If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
 
         """
         if previous_action is None:
             res = self.actionClass(gridobj=self)
         else:
+            if not isinstance(previous_action, self.actionClass):
+                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
+                                      "which is not the type of action handled by this helper "
+                                      "(\"{}\")".format(type(previous_action), self.actionClass))
             res = previous_action
         res.update({"set_line_status": [(l_id, 1)],
                     "set_bus": {"lines_or_id": [(l_id, bus_or)],
@@ -1947,7 +2131,7 @@ class SerializableActionSpace(SerializableSpace):
 
     def get_set_line_status_vect(self):
         """
-        Computes and return a vector that can be used in the "set_status" keyword if building an :class:`Action`
+        Computes and returns a vector that can be used in the "set_status" keyword if building an :class:`Action`
 
         Returns
         -------
@@ -1979,7 +2163,7 @@ class HelperAction(SerializableActionSpace):
     more information).
 
     It will allow, thanks to its :func:`HelperAction.__call__` method to create valid :class:`Action`. It is the
-    preferred way to create object of class :class:`Action` in this package.
+    the preferred way to create an object of class :class:`Action` in this package.
 
     On the contrary to the :class:`Action`, it is NOT recommended to overload this helper. If more flexibility is
     needed on the type of :class:`Action` created, it is recommended to pass a different "*actionClass*" argument
@@ -1989,7 +2173,7 @@ class HelperAction(SerializableActionSpace):
     Attributes
     ----------
     game_rules: :class:`grid2op.GameRules.GameRules`
-        Class specifying the rules of the game, used to check the legality of the actions.
+        Class specifying the rules of the game used to check the legality of the actions.
 
 
     """
@@ -2006,11 +2190,11 @@ class HelperAction(SerializableActionSpace):
             The representation of the powergrid.
 
         actionClass: ``type``
-            Note that this parameter expected a class, and not an object of the class. It is used to return the
+            Note that this parameter expected a class and not an object of the class. It is used to return the
             appropriate action type.
 
         game_rules: :class:`grid2op.GameRules.GameRules`
-            Class specifying the rules of the game, used to check the legality of the actions.
+            Class specifying the rules of the game used to check the legality of the actions.
 
         """
         SerializableActionSpace.__init__(self, gridobj,
@@ -2023,8 +2207,22 @@ class HelperAction(SerializableActionSpace):
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
         dictionnary.
 
-        More information about this dictionnary can be found in the :func:`Action.__call__` help. This dictionnary
+        More information about this dictionnary can be found in the :func:`Action.update` help. This dictionnary
         is not changed in this method.
+
+        **NB** This is the only recommended way to make a valid, with proper dimension :class:`Action` object:
+
+        Examples
+        --------
+        Here is a short example on how to make a action. For more detailed examples see :func:`Action.update`
+
+        .. code-block:: python
+
+            import grid2op
+            # create a simple environment
+            env = grid2op.make()
+            act = env.action_space({})
+            # act is now the "do nothing" action, that doesn't modify the grid.
 
         Parameters
         ----------
@@ -2043,7 +2241,8 @@ class HelperAction(SerializableActionSpace):
         Returns
         -------
         res: :class:`Action`
-            Properly instanciated.
+            An action that is valid and corresponds to what the agent want to do with the formalism defined in
+            see :func:`Action.udpate`.
 
         """
 

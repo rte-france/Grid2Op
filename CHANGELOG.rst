@@ -2,6 +2,7 @@ Change Log
 =============
 [0.5.0] - 2020-01-xx
 --------------------
+- [UPDATED] more complete documentation of the Action class (with some examples)
 - [ADDED] more complete documentation of the representation of the powergrid
   (see documentation of `Space`)
 - [UPDATED] more unit test for observations
