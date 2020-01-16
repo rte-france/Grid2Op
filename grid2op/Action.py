@@ -11,17 +11,16 @@ For now, the actions can act on:
     - the loads active power consumption
     - the loads reactive power consumption
 
-  - the status of the powerlines (connected / disconnected)
-  - the configuration at substations eg setting different object to different bus for example
+  - the status of the powerlines (connected/disconnected)
+  - the configuration at substations eg setting different objects to different buses for example
 
-The Action class is an abstract class. You can implement it the way you want. If you decide to extend it, make sure
-that the :class:`grid2op.Backend` class will be able to understand it. If you don't, your extension will have no effect
-on the unerlying powergrid. Indeed a :class:`grid2op.Backend` will call the :func:`Action.__call__` method and should
+The Action class is abstract. You can implement it the way you want. If you decide to extend it, make sure
+that the :class:`grid2op.Backend` class will be able to understand it. If you don't, your extension will not affect the underlying powergrid. Indeed a :class:`grid2op.Backend` will call the :func:`Action.__call__` method and should
 understands its return type.
 
 In this module we derived two action class:
 
-  - :class:`Action` represents an type of action that can act on all the above mentionned objects
+  - :class:`Action` represents a type of action that can act on all the above-mentioned objects
   - :class:`TopologyAction` restricts the modification to line status modification and bus reconfiguration at substations.
 
 
@@ -30,12 +29,14 @@ The :class:`Action` and all its derivatives also offer some usefull inspection u
   - :func:`Action.__str__` prints the action in a format that gives usefull information on how it will affect the powergrid
   - :func:`Action.effect_on` returns a dictionnary that gives information about its effect.
 
-Finally, :class:`Action` class define some strict behaviour to follow if reimplementing them. The correctness of each
+Finally, :class:`Action` class define some strict behavior to follow if reimplementing them. The correctness of each
 instances of Action is assessed both when calling :func:`Action.update` or with a call to
 :func:`Action._check_for_ambiguity` performed for example by the Backend when it must implement its effect on the
 powergrid through a call to :func:`Action.__call__`
 
 """
+
+
 import numpy as np
 import warnings
 import copy
@@ -66,149 +67,151 @@ except (ModuleNotFoundError, ImportError):
 
 class Action(GridObjects):
     """
-    This is a base class for each :class:`Action` objects.
-    As stated above, an action represents in a convenient way the modifications that will affect a powergrid.
+This is a base class for each :class:`Action` objects.
+As stated above, an action represents conveniently the modifications that will affect a powergrid.
 
-    It is not recommended to instanciate an action from scratch. The recommended way to get an action is either by
-    modifying an existing one using the method :func:`Action.update` or to call and :class:`HelperAction` object that
-    has been properly set up by an :class:`grid2op.Environment`.
+It is not recommended to instantiate an action from scratch. The recommended way to get an action is either by
+modifying an existing one using the method :func:`Action.update` or to call and :class:`HelperAction` object that
+has been properly set up by an :class:`grid2op.Environment`.
 
-    Action can be fully convert to and back from a numpy array with a **fixed** size.
+Action can be fully converted to and back from a numpy array with a **fixed** size.
 
-    An action can modify the _grid in multiple way.
-    It can change :
+An action can modify the grid in multiple ways.
+It can change :
 
-    - the production and voltage setpoint of the generator units
-    - the amount of power consumed (for both active and reactive part) for load
-    - disconnect powerlines
-    - change the topology of the _grid.
+- the production and voltage setpoint of the generator units
+- the amount of power consumed (for both active and reactive part) for load
+- disconnect powerlines
+- change the topology of the _grid.
 
-    In order to be valid, an action should be convertible to a tuple of 5 elements:
+To be valid, an action should be convertible to a tuple of 5 elements:
 
-    - the first element are the "injections": representing the way generator units and loads are modified
-        - It is in turn a dictionnary with the following keys (optional)
+- the first element is the "injections" vector: representing the way generator units and loads are modified
+    - It is, in turn, a dictionary with the following keys (optional)
 
-            - "load_p" a vector of the same size of the load, giving the modification of the loads active consumption
-            - "load_q" a vector of the same size of the load, giving the modification of the loads reactive consumption
-            - "prod_p" a vector of the same size of the generators, giving the modification of the productions active setpoint production
-            - "prod_v" a vector of the same size of the generators, giving the modification of the productions voltage setpoint
+        - "load_p" a vector of the same size of the load, giving the modification of the loads active consumption
+        - "load_q" a vector of the same size of the load, giving the modification of the loads reactive consumption
+        - "prod_p" a vector of the same size of the generators, giving the modification of the productions active setpoint production
+        - "prod_v" a vector of the same size of the generators, giving the modification of the productions voltage setpoint
 
-    - the second element is made of force line status. It is made of a vector of size :attr:`Action._n_lines`
-      (the number of lines in the powergrid) and is interepreted as:
+- the second element is made of force line status. It is made of a vector of size :attr:`Action._n_lines`
+  (the number of lines in the powergrid) and is interpreted as:
 
-            - -1 force line disconnection
-            - +1 force line reconnection
-            - 0 do nothing to this line
+        - -1 force line disconnection
+        - +1 force line reconnection
+        - 0 do nothing to this line
 
-    - the third element is the switch line status vector. It is made of a vector of size :attr:`Action._n_lines` and is
-      interpreted as:
+- the third element is the switch line status vector. It is made of a vector of size :attr:`Action._n_lines` and is
+  interpreted as:
 
-        - True: change the line status
-        - False: don't do anything
+    - True: change the line status
+    - False: don't do anything
 
-    - the fourth element set the buses to which the object is connected. It's a vector of integer with the following
-      interpretation:
+- the fourth element set the buses to which the object is connected. It's a vector of integers with the following
+  interpretation:
 
-        - 0 -> don't change
-        - 1 -> connect to bus 1
-        - 2 -> connect to bus 2
-        - -1 -> disconnect the object.
+    - 0 -> don't change
+    - 1 -> connect to bus 1
+    - 2 -> connect to bus 2
+    - -1 -> disconnect the object.
 
-    - the fifth element change the buses to which the object is connected. It's a boolean vector interpreted as:
-        - False: nothing is done
-        - True: change the bus eg connect it to bus 1 if it was connected to bus 2 or connect it to bus 2 if it was
-          connected to bus 1. NB this is only active if the system has only 2 buses per substation (that's the case for
-          the L2RPN challenge).
+- the fifth element changes the buses to which the object is connected. It's a boolean vector interpreted as:
+    - False: nothing is done
+    - True: change the bus eg connect it to bus 1 if it was connected to bus 2 or connect it to bus 2 if it was
+      connected to bus 1. NB this is only active if the system has only 2 buses per substation (that's the case for
+      the L2RPN challenge).
 
-    - the sixth elements is a vector, representing the redispatching. Component of this vector are added to the
-      generators active setpoint value (if set) of the first elements.
+- the sixth element is a vector, representing the redispatching. Component of this vector is added to the
+  generators active setpoint value (if set) of the first elements.
 
-    **NB** the difference between :attr:`Action._set_topo_vect` and :attr:`Action._change_bus_vect` is the following:
+**NB** the difference between :attr:`Action._set_topo_vect` and :attr:`Action._change_bus_vect` is the following:
 
-        - If  a component of :attr:`Action._set_topo_vect` is 1, then the object (load, generator or powerline)
-          will be moved to bus 1 of the substation to
-          which it is connected. If it is already to bus 1 nothing will be done. If it's on another bus it will connect
-          it to bus 1. It's it's disconnected, it will reconnect it and connect it to bus 1.
-        - If a component of :attr:`Action._change_bus_vect` is True, then object will be moved from one bus to another.
-          If the object were on bus 1
-          it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object were
-          disconnected, then this does nothing.
+    - If  a component of :attr:`Action._set_topo_vect` is 1, then the object (load, generator or powerline)
+      will be moved to bus 1 of the substation to which it is connected. If it is already to bus 1 nothing will be done. If it's on another bus it will connect it to bus 1. It's disconnected, it will reconnect it and connect it to bus 1.
+    - If a component of :attr:`Action._change_bus_vect` is True, then the object will be moved from one bus to another.
+      If the object were on bus 1
+      it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object were disconnected, then this does nothing.
 
-    The conversion to the action into a understandable format by the backend is performed by the "update" method,
-    that takes into account a dictionnary, and is responsible to convert it into this format.
-    It is possible to overload this class as long as the overloaded :func:`Action.__call__` operator returns the
-    specified format, and the :func:`Action.__init__` method have the same signature.
+The conversion to the action into an understandable format by the backend is performed by the "update" method,
+that takes into account a dictionary and is responsible to convert it into this format.
+It is possible to overload this class as long as the overloaded :func:`Action.__call__` operator returns the
+specified format, and the :func:`Action.__init__` method has the same signature.
 
-    This format is then digested by the backend and the powergrid is modified accordingly.
+This format is then digested by the backend and the powergrid is modified accordingly.
 
-    Attributes
-    ----------
+Attributes
+----------
 
-    _set_line_status: :class:`numpy.ndarray`, dtype:int
-        For each powerlines, it gives the effect of the action on the status of it. It should be understand as:
+_set_line_status: :class:`numpy.ndarray`, dtype:int
+    For each powerline, it gives the effect of the action on the status of it. It should be understood as:
 
-          - -1 : disconnect the powerline
-          - 0 : don't affect the powerline
-          - +1 : reconnect the powerline
+      - -1: disconnect the powerline
+      - 0: don't affect the powerline
+      - +1: reconnect the powerline
 
-    _switch_line_status: :class:`numpy.ndarray`, dtype:bool
-        For each powerline, it informs whether the action will switch the status of a powerline of not. It should be
-        understood as followed:
+_switch_line_status: :class:`numpy.ndarray`, dtype:bool
+    For each powerline, it informs whether the action will switch the status of a powerline of not. It should be
+    understood as followed:
 
-          - ``False`` : the action doesn't affect the powerline
-          - ``True`` : the action affect the powerline. If it was connected, it will disconnect it. If it was
-            disconnected, it will reconnect it.
+      - ``False``: the action doesn't affect the powerline
+      - ``True``: the action affects the powerline. If it was connected, it will disconnect it. If it was
+        disconnected, it will reconnect it.
 
-    _dict_inj: ``dict``
-        Represents the modification of the injection (productions and loads) of the power _grid. This dictionnary can
-        have the optional keys:
+_dict_inj: ``dict``
+    Represents the modification of the injection (productions and loads) of the power _grid. This dictionary can
+    have the optional keys:
 
-            - "load_p" to set the active load values (this is a np array with the same size as the number of load
-                in the power _grid with Nan: don't change anything, else set the value
-            - "load_q" : same as above but for the load reactive values
-            - "prod_p" : same as above but for the generator active setpoint values. It has the size corresponding
-                to the number of generators in the test case.
-            - "prod_v" : same as above but set the voltage setpoint of generator units.
+        - "load_p" to set the active load values (this is a numpy array with the same size as the number of load
+            in the power _grid with Nan: don't change anything, else set the value
+        - "load_q": same as above but for the load reactive values
+        - "prod_p": same as above but for the generator active setpoint values. It has the size corresponding
+            to the number of generators in the test case.
+        - "prod_v": same as above but set the voltage setpoint of generator units.
 
-    _set_topo_vect: :class:`numpy.ndarray`, dtype:int
-        Similar to :attr:`Action._set_line_status` but instead of affecting the status of powerlines, it affects the
-        bus connectivity at substation. It has the same size as the full topological vector (:attr:`Action._dim_topo`)
-        and for each element it should be understood as:
+_set_topo_vect: :class:`numpy.ndarray`, dtype:int
+    Similar to :attr:`Action._set_line_status` but instead of affecting the status of powerlines, it affects the
+    bus connectivity at a substation. It has the same size as the full topological vector (:attr:`Action._dim_topo`)
+    and for each element it should be understood as:
 
-            - 0 : nothing is changed for this element
-            - +1 : this element is affected to bus 1
-            - -1 : this element is affected to bus 2
+        - 0: nothing is changed for this element
+        - +1: this element is affected to bus 1
+        - -1: this element is affected to bus 2
 
-    _change_bus_vect: :class:`numpy.ndarray`, dtype:bool
-         Similar to :attr:`Action._switch_line_status` but it affects the topology at substations instead of the status
-         of the powerline. It has the same size as the full topological vector (:attr:`Action._dim_topo`) and each
-         component should means:
+_change_bus_vect: :class:`numpy.ndarray`, dtype:bool
+     Similar to :attr:`Action._switch_line_status` but it affects the topology at substations instead of the status of
+     the powerline. It has the same size as the full topological vector (:attr:`Action._dim_topo`) and each
+     component should mean:
 
-             - ``False`` : the object is not affected
-             - ``True`` : the object will be moved to another bus. If it was on bus 1 it will be moved on bus 2, and if
-                 it was on bus 2 it will be moved on bus 1.
+         - ``False``: the object is not affected
+         - ``True``: the object will be moved to another bus. If it was on bus 1 it will be moved on bus 2, and if
+             it was on bus 2 it will be moved on bus 1.
 
-    authorized_keys: :class:`set`
-        The set indicating which keys the actions is able to understand when calling :func:`Action.update`
+authorized_keys: :class:`set`
+    The set indicating which keys the actions can understand when calling :func:`Action.update`
 
-    _subs_impacted: :class:`numpy.ndarray`, dtype:bool
-        This attributes is either not initialized (set to ``None``) or it tells, for each substation, if it is impacted
-        by the action (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``True``) or not
-        (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``False``)
+_subs_impacted: :class:`numpy.ndarray`, dtype:bool
+    This attributes is either not initialized (set to ``None``) or it tells, for each substation, if it is impacted
+    by the action (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``True``) or not
+    (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``False``)
 
-    _lines_impacted: :class:`numpy.ndarray`, dtype:bool
-        This attributes is either not initialized (set to ``None``) or it tells, for each powerline, if it is impacted
-        by the action (in this case :attr:`Action._lines_impacted`\[line_id\] is ``True``) or not
-        (in this case :attr:`Action._subs_impacted`\[line_id\] is ``False``)
+_lines_impacted: :class:`numpy.ndarray`, dtype:bool
+    This attributes is either not initialized (set to ``None``) or it tells, for each powerline, if it is impacted
+    by the action (in this case :attr:`Action._lines_impacted`\[line_id\] is ``True``) or not
+    (in this case :attr:`Action._subs_impacted`\[line_id\] is ``False``)
 
-    vars_action: ``list``, static
-        Authorized key that are processed by :func:`Action.__call__` to modify the injections
+vars_action: ``list``, static
+    The authorized key that are processed by :func:`Action.__call__` to modify the injections
 
-    vars_action_set: ``set``, static
-        Authorized key that are processed by :func:`Action.__call__` to modify the injections
+vars_action_set: ``set``, static
+    The authorized key that is processed by :func:`Action.__call__` to modify the injections
 
-    _redispatch: :class:`numpy.ndarray`, dtype:bool
-        TODO code that and to the documentation
+_redispatch: :class:`numpy.ndarray`, dtype:float
+    Amount of redispatching that this action will perform. Redispatching will increase the generator's active setpoint
+     value. This will be added to the value of the generators. The Environment will make sure that every physical
+     constraint is met. This means that the agent provides a setpoint, but there is no guarantee that the setpoint
+      will be achievable. Redispatching action is cumulative, this means that if at a given timestep you ask +10 MW
+      on a generator, and on another you ask +10 MW then the total setpoint for this generator that the environment
+       will try to implement is +20MW.
 
     """
 

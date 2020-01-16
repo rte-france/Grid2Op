@@ -68,7 +68,7 @@ class ObsCH(object):
         return []
 
 
-class ObsEnv(object):
+class ObsEnv(GridObjects):
     """
     This class is an 'Emulator' of a :class:`grid2op.Environment` used to be able to 'simulate' forecasted grid states.
     It should not be used outside of an :class:`grid2op.Observation` instance, or one of its derivative.
@@ -78,6 +78,9 @@ class ObsEnv(object):
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self, backend_instanciated, parameters, reward_helper, obsClass, action_helper):
+        GridObjects.__init__(self)
+        self.init_grid(backend_instanciated)
+
         self.timestep_overflow = None
         # self.action_helper = action_helper
         self.hard_overflow_threshold = parameters.HARD_OVERFLOW_THRESHOLD
@@ -99,13 +102,20 @@ class ObsEnv(object):
 
         self.chronics_handler = ObsCH()
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
-        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=np.int)
 
         # TODO handle that in forecast!
-        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
+
+        # TOD handle that too !!!
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
 
     def copy(self):
         """

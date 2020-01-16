@@ -9,6 +9,9 @@ Change Log
 - [UPDATED] GridStateFromFile can now read the starting date and the time interval of the chronics.
 - [BREAKING] Action/Backend has been modified with the implementation of redispatching. If
   you used a custom backend, you'll have to implement the "redispatching" part.
+- [BREAKING] with the introduction of redispatching, old action space and observation space,
+  stored as json for example, will not be usable: action size and observation size
+  have been modified.
 
 [0.4.2] - 2020-01-08
 --------------------

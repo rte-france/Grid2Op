@@ -559,6 +559,138 @@ class Environment(GridObjects):
         self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
                                                                   self._hazard_duration)
 
+    def _get_redisp_zero_sum(self, action, redisp_act, new_p):
+        """
+
+        Parameters
+        ----------
+        action
+        redisp_act:
+            the redispatching part of the action
+        new_p:
+            the new target generation for each generator
+
+        Returns
+        -------
+
+        """
+        is_illegal = False
+
+        # make the target dispatch a 0-sum vector (using only dispatchable unit, not dispatched)
+        # dispatch only the generator that are at zero
+        avail_gen = self.target_dispatch == 0.  # generators with a redispatching target cannot be redispatched again
+        avail_gen = avail_gen & self.gen_redispatchable  # i can only redispatched dispatchable generators
+        avail_gen = avail_gen & (new_p > 0.)
+
+        # # another need to cut: it would result in above pmin or bellow pmax, in this case (but in the case it's valid)
+        # # we choose to cut down the redispatching action.
+        # curtail_generation = 1. * new_p
+        # mask_min = (new_p + redisp_act < self.gen_pmin + self._epsilon_poly) & avail_gen
+        # curtail_generation[mask_min] = self.gen_pmin[mask_min] + self._epsilon_poly
+        # mask_max = (new_p + redisp_act > self.gen_pmax - self._epsilon_poly) & avail_gen
+        # curtail_generation[mask_max] = self.gen_pmax[mask_max] - self._epsilon_poly
+        #
+        # diff_th_imp = new_p - curtail_generation
+        # redisp_act[mask_min] += diff_th_imp[mask_min]
+        # redisp_act[mask_max] += diff_th_imp[mask_max]
+        #
+        # # get the maximum difference possible
+        # # to do change the name !!!
+        # gen_min = np.maximum(curtail_generation - self.gen_pmin, - self.gen_max_ramp_down)
+        # gen_max = np.minimum(curtail_generation - self.gen_pmax, self.gen_max_ramp_up)
+
+        # gen_min = np.maximum(self.gen_pmin - new_p, - self.gen_max_ramp_down)
+        # gen_max = np.minimum(self.gen_pmax - new_p, self.gen_max_ramp_up)
+        gen_min = -self.gen_max_ramp_down
+        gen_max = self.gen_max_ramp_up
+
+        if not np.sum(avail_gen):
+            # TODO reason for that in info
+            is_illegal = True
+            action = self.helper_action_player({})
+            return action._redispatch, is_illegal, action
+
+        try:
+            t_zerosum = self._get_t(redisp_act[avail_gen],
+                                    pmin=np.sum(gen_min[avail_gen]),
+                                    pmax=np.sum(gen_max[avail_gen]),
+                                    total_dispatch=-np.sum(redisp_act))
+        except:
+            # i can't implement redispatching due to impossibility to dispatch on the other generator
+            # it's a non valid action
+            is_illegal = True
+            return action._redispatch, is_illegal, action
+        actual_dispatch_tmp = self._get_poly(t=t_zerosum,
+                                             pmax=gen_max[avail_gen],
+                                             pmin=gen_min[avail_gen],
+                                             tmp_p=redisp_act[avail_gen])
+        self.actual_dispatch[avail_gen] = actual_dispatch_tmp
+        return redisp_act, is_illegal, action
+
+    def _compute_actual_dispatch(self, new_p):
+        # get the maximum ranged of the generator possible with the chronics
+        # gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t - self.gen_max_ramp_down)
+        # gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t + self.gen_max_ramp_up)
+
+        # below is the part emulating the active balancing part in a powergrid. It's not handled by operators
+        # but by an automaton.
+
+        # this automated conrol only affect turned-on generators that are dispatchable
+        turned_on_gen = new_p > 0.
+        gen_redispatchable = self.gen_redispatchable & turned_on_gen
+
+        # add the redispatching to the nex target production value
+        new_p_if_redisp_ok = new_p + self.actual_dispatch
+        # the new_p vector now stores the new target value for the generators.
+
+        # get the maxium generator consistent values
+        gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t - self.gen_max_ramp_down)
+        gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t + self.gen_max_ramp_up)
+
+        actual_ramp = new_p_if_redisp_ok - self.gen_activeprod_t
+        if (np.any(new_p_if_redisp_ok > self.gen_pmax) or np.any(new_p_if_redisp_ok < self.gen_pmin) or \
+            np.any(actual_ramp > self.gen_max_ramp_up) or np.any(actual_ramp < -self.gen_max_ramp_down)) and \
+                np.any(self.gen_activeprod_t != 0.):
+            # i am in a case where the target redispatching is not possible, due to the new values
+            # i need to come up with a solution to fix that
+            # note that the condition "np.any(self.gen_activeprod_t != 0.)" is added because at the first time
+            # step there is no need to check all that.
+            # but take into account pmin and pmax
+            curtail_generation = 1. * new_p_if_redisp_ok
+            mask_min = (new_p_if_redisp_ok < gen_min + self._epsilon_poly) & gen_redispatchable
+            mask_max = (new_p_if_redisp_ok > gen_max - self._epsilon_poly) & gen_redispatchable
+            if np.any(mask_min) or np.any(mask_max):
+                # modify the implemented redispatching to take into account this "curtailement"
+                # due to physical limitation
+                new_dispatch = 1.* self.actual_dispatch
+                curtail_generation[mask_min] = gen_min[mask_min] + self._epsilon_poly
+                curtail_generation[mask_max] = gen_max[mask_max] - self._epsilon_poly
+                diff_th_imp = new_p_if_redisp_ok - curtail_generation
+                new_dispatch[mask_min] += diff_th_imp[mask_min]
+                new_dispatch[mask_max] -= diff_th_imp[mask_max]
+
+                gen_dispatch_min = np.maximum(self.gen_pmin - new_p, - self.gen_max_ramp_down)
+                gen_dispatch_max = np.minimum(self.gen_pmax - new_p, self.gen_max_ramp_up)
+
+                # for polynomial stability
+                gen_dispatch_min[mask_max] = new_dispatch[mask_max] - self._epsilon_poly
+                gen_dispatch_max[mask_min] = new_dispatch[mask_max] + self._epsilon_poly
+                # make sure the new redispatching sum to 0
+                t_dispatch = 0.
+                try:
+                    t_dispatch = self._get_t(new_dispatch[gen_redispatchable],
+                                             pmin=np.sum(gen_dispatch_min[gen_redispatchable]),
+                                             pmax=np.sum(gen_dispatch_max[gen_redispatchable]),
+                                             total_dispatch=0.)
+                except Exception as e:
+                    # TODO check that it canont happen if the chronics are correct.
+                    print("epic fail in redispatching with error {}".format(e))
+                    pass
+                self.actual_dispatch[gen_redispatchable] = self._get_poly(t=t_dispatch,
+                                                                          pmax=gen_dispatch_max[gen_redispatchable],
+                                                                          pmin=gen_dispatch_min[gen_redispatchable],
+                                                                          tmp_p=new_dispatch[gen_redispatchable])
+
     def _simulate_automaton_redispatching(self, action):
         # Redispatching process the redispatching actions here, get a redispatching vector with 0-sum
         # from the environment.
@@ -569,7 +701,7 @@ class Environment(GridObjects):
         redisp_act_init = 1. * action._redispatch
         redisp_act = 1. * action._redispatch
 
-        if np.all(redisp_act == 0.):
+        if np.all(redisp_act == 0.) and np.all(self.target_dispatch == 0.):
             return redisp_act, is_illegal, action
 
         # make sure the dispatching action is not implemented "as is" by the backend.
@@ -614,117 +746,22 @@ class Environment(GridObjects):
             indx_ok = np.isfinite(tmp)
             new_p[indx_ok] = tmp[indx_ok]
 
-        # action is "capped", a generator has been redispatched, but it's turned off by the environment
         redisp_act[new_p == 0.] = 0.
         # TODO add a flag here too, like before (the action has been "cut")
-
-        # make the target dispatch a 0-sum vector (using only dispatchable unit, not dispatched)
-        # dispatch only the generator that are at zero
-        # avail_gen = redisp_act == 0.  # generators with a redispatching target cannot be redispatched again
-        avail_gen = self.gen_redispatchable  # i can only redispatched dispatchable generators
-        avail_gen = avail_gen & (new_p > 0.)
-
-        # another need to cut: it would result in above pmin or bellow pmax, in this case (but in the case it's valid)
-        # we choose to cut down the redispatching action.
-        curtail_generation = 1. * new_p
-        mask_min = (new_p + redisp_act < self.gen_pmin + self._epsilon_poly) & avail_gen
-        curtail_generation[mask_min] = self.gen_pmin[mask_min] + self._epsilon_poly
-        mask_max = (new_p + redisp_act > self.gen_pmax - self._epsilon_poly) & avail_gen
-        curtail_generation[mask_max] = self.gen_pmax[mask_max] - self._epsilon_poly
-
-        diff_th_imp = new_p - curtail_generation
-        redisp_act[mask_min] += diff_th_imp[mask_min]
-        redisp_act[mask_max] += diff_th_imp[mask_max]
-
-        # get the maximum difference possible
-        # to do change the name !!!
-        gen_min = np.maximum(curtail_generation - self.gen_pmin, - self.gen_max_ramp_down)
-        gen_max = np.minimum(curtail_generation - self.gen_pmax, self.gen_max_ramp_up)
-
-        if not np.sum(avail_gen):
-            # TODO reason for that in info
-            is_illegal = True
-            action = self.helper_action_player({})
-            return action._redispatch, is_illegal, action
-
-        try:
-            t_zerosum = self._get_t(redisp_act[avail_gen],
-                                    pmin=np.sum(gen_min[avail_gen]),
-                                    pmax=np.sum(gen_max[avail_gen]),
-                                    total_dispatch=-np.sum(redisp_act))
-        except:
-            # i can't implement redispatching due to impossibility to dispatch on the other generator
-            # it's a non valid action
-            return action._redispatch, is_illegal, action
 
         # get the target redispatching (cumulation starting from the first element of the scenario)
         self.target_dispatch += redisp_act
         self.actual_dispatch = 1. * self.target_dispatch
 
-        actual_dispatch_tmp = self._get_poly(t=t_zerosum,
-                                             pmax=gen_max[avail_gen],
-                                             pmin=gen_min[avail_gen],
-                                             tmp_p=redisp_act[avail_gen])
-        self.actual_dispatch[avail_gen] = actual_dispatch_tmp
-        pdb.set_trace()
-        return redisp_act_init, is_illegal, action
+        if np.abs(np.sum(redisp_act)) >= 1e-6:
+            # make sure the redispatching action is zero sum
+            redisp_act, is_illegal, action = self._get_redisp_zero_sum(action, redisp_act, new_p)
+            if is_illegal:
+                return redisp_act, is_illegal, action
 
-        ## TODO check that this part is not needed anymore!!!!
-        # get the maximum ranged of the generator possible with the chronics
-        # gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t - self.gen_max_ramp_down)
-        # gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t + self.gen_max_ramp_up)
-
-        # below is the part emulating the active balancing part in a powergrid. It's not handled by operators
-        # but by an automaton.
-
-        # this automated conrol only affect turned-on generators that are dispatchable
-        turned_on_gen = new_p > 0.
-        gen_redispatchable = self.gen_redispatchable & turned_on_gen
-
-        # add the redispatching to the nex target production value
-        new_p += self.actual_dispatch
-        # the new_p vector now stores the new target value for the generators.
-
-        # todo this might be the root of all evil!!!!
-        gen_min = np.maximum(self.gen_pmin - self.gen_activeprod_t, - self.gen_max_ramp_down)
-        gen_max = np.minimum(self.gen_pmax - self.gen_activeprod_t, self.gen_max_ramp_up)
-
-        actual_ramp = new_p - self.gen_activeprod_t
-        if (np.any(new_p > self.gen_pmax) or np.any(new_p < self.gen_pmin) or \
-            np.any(actual_ramp > self.gen_max_ramp_up) or np.any(actual_ramp < -self.gen_max_ramp_down)) and \
-                np.any(self.gen_activeprod_t != 0.):
-            # i am in a case where the target redispatching is not possible, due to the new values
-            # i need to come up with a solution to fix that
-            # note that the condition "np.any(self.gen_activeprod_t != 0.)" is added because at the first time
-            # step there is no need to check all that.
-            # but take into account pmin and pmax
-            curtail_generation = 1. * new_p
-            mask_min = (new_p < gen_min + self._epsilon_poly) & gen_redispatchable
-            curtail_generation[mask_min] = gen_min[mask_min] + self._epsilon_poly
-            mask_max = (new_p > gen_max - self._epsilon_poly) & gen_redispatchable
-            curtail_generation[mask_max] = gen_max[mask_max] - self._epsilon_poly
-
-            # modify the implemented redispatching to take into account this "curtailement" due to physical limitation
-            diff_th_imp = new_p - curtail_generation
-            self.actual_dispatch[mask_min] += diff_th_imp[mask_min]
-            self.actual_dispatch[mask_max] -= diff_th_imp[mask_max]
-
-            # make sure the new redispatching sum to 0
-            t_dispatch = 0.
-            try:
-                t_dispatch = self._get_t(self.actual_dispatch[gen_redispatchable],
-                                         pmin=np.sum(gen_min),
-                                         pmax=np.sum(gen_max),
-                                         total_dispatch=-np.sum(self.actual_dispatch[gen_redispatchable]))
-            except Exception as e:
-                # TODO check that it canont happen if the chronics are correct.
-                print("epic fail in redispatching with error {}".format(e))
-                pass
-
-            self.actual_dispatch[gen_redispatchable] = self._get_poly(t=t_dispatch,
-                                                                      pmax=gen_max[gen_redispatchable],
-                                                                      pmin=gen_min[gen_redispatchable],
-                                                                      tmp_p=self.actual_dispatch[gen_redispatchable])
+        # and now compute the actual dispatch that is consistent with pmin, pmax, ramp min, ramp max
+        # this emulates the "frequency control" that is automatic.
+        self._compute_actual_dispatch(new_p)
 
         return redisp_act_init, is_illegal, action
 
@@ -763,7 +800,7 @@ class Environment(GridObjects):
             action = self.helper_action_player({})
             return is_illegal, action
         else:
-            self.gen_downtime[gen_connected_this_timestep] = -1
+            self.gen_downtime[gen_connected_this_timestep] = 0
             self.gen_uptime[gen_connected_this_timestep] = 1
         self.gen_uptime[gen_still_connected] += 1
         self.gen_downtime[gen_still_disconnected] += 1
@@ -823,14 +860,15 @@ class Environment(GridObjects):
             # get the modification of generator active setpoint from the environment
             self.env_modification = self._update_actions()
 
-            # remember generator that were "up" before the action
-            gen_up_before = self.gen_activeprod_t > 0.
+            if self.redispatching_unit_commitment_availble:
+                # remember generator that were "up" before the action
+                gen_up_before = self.gen_activeprod_t > 0.
 
-            # compute the redispatching and the new productions active setpoint
-            redisp_act, is_illegal_redisp, action = self._simulate_automaton_redispatching(action)
+                # compute the redispatching and the new productions active setpoint
+                redisp_act, is_illegal_redisp, action = self._simulate_automaton_redispatching(action)
 
-            # check the validity of min downtime and max uptime
-            is_illegal_reco, action = self._handle_updown_times(action, gen_up_before, redisp_act)
+                # check the validity of min downtime and max uptime
+                is_illegal_reco, action = self._handle_updown_times(action, gen_up_before, redisp_act)
 
             try:
                 self.backend.apply_action(action)
@@ -838,7 +876,9 @@ class Environment(GridObjects):
                 # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
                 # "do nothing"
                 is_ambiguous = True
-            action._redispatch = 1. * redisp_act
+
+            if self.redispatching_unit_commitment_availble:
+                action._redispatch = 1. * redisp_act
 
             # now get the new generator voltage setpoint
             # TODO "automaton" to do that!

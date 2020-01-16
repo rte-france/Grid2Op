@@ -117,7 +117,19 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                                 32],
                       'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27,
                                                 33, 38],
+                      'gen_type': ['solar', 'nuclear', 'nuclear', 'nuclear', 'thermal'],
+                      'gen_pmin': [0.0, 0.0, 0.0, 0.0, 0.0],
+                      'gen_pmax': [40.0, 60.0, 80.0, 100.0, 170.0],
+                      'gen_redispatchable': [False, True, True, True, True],
+                      'gen_max_ramp_up': [40.0, 60.0, 80.0, 100.0, 170.0],
+                      'gen_max_ramp_down': [40.0, 60.0, 80.0, 100.0, 170.0],
+                      'gen_min_uptime': [0, 0, 0, 0, 0],
+                      'gen_min_downtime': [0, 1, 0, 0, 0],
+                      'gen_cost_per_MW': [0.0, 0.0, 0.0, 0.0, 10.0],
+                      'gen_startup_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
+                      'gen_shutdown_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'subtype': 'Observation.CompleteObservation'}
+
         self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('float64'), dtype('float64'),
@@ -126,22 +138,24 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                            dtype('float64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('bool'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64')], dtype=object)
+                                           dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64')],
+                               dtype=object)
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20])
-        self.size_obs = 4242 # TODO
+                                            20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20,
+                                 5, 5])
+        self.size_obs = 454
 
     def test_sum_shape_equal_size(self):
         obs = self.env.helper_observation(self.env)
         assert obs.size() == np.sum(obs.shape())
 
     def test_size(self):
-        action = self.env.helper_observation(self.env)
-        action.size()
+        obs = self.env.helper_observation(self.env)
+        obs.size()
 
     def test_proper_size(self):
-        action = self.env.helper_observation(self.env)
-        assert action.size() == self.size_obs
+        obs = self.env.helper_observation(self.env)
+        assert obs.size() == self.size_obs
 
     def test_size_action_space(self):
         assert self.env.helper_observation.size() == self.size_obs

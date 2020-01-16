@@ -334,6 +334,12 @@ class GridObjects:
 
         # for redispatching / unit commitment
         TODO = "TODO COMPLETE THAT BELLOW!!! AND UPDATE THE init methods"
+        self._li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
+                              "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
+                              "gen_startup_cost", "gen_shutdown_cost"]
+
+        self._type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
+
         self.gen_type = None
         self.gen_pmin = None
         self.gen_pmax = None
@@ -1209,6 +1215,87 @@ class GridObjects:
 
         return res
 
+    def to_dict(self):
+        """
+        Convert the object as a dictionnary.
+        Note that unless this method is overidden, a call to it will only output the
+        Returns
+        -------
+
+        """
+        res = {}
+        save_to_dict(res, self, "name_gen", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
+        save_to_dict(res, self, "name_sub", lambda li: [str(el) for el in li])
+
+        save_to_dict(res, self, "sub_info", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_or_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_ex_to_subid", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_or_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_ex_to_sub_pos", lambda li: [int(el) for el in li])
+
+        save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_or_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, self, "line_ex_pos_topo_vect", lambda li: [int(el) for el in li])
+
+        # redispatching
+        if self.redispatching_unit_commitment_availble:
+            for nm_attr, type_attr in zip(self._li_attr_disp, self._type_attr_disp):
+                save_to_dict(res, self, nm_attr, lambda li: [type_attr(el) for el in li])
+        else:
+            for nm_attr in self._li_attr_disp:
+                res[nm_attr] = None
+        return res
+
+    @staticmethod
+    def from_dict(dict_):
+        res = GridObjects()
+        res.name_gen = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
+        res.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
+        res.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
+        res.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
+
+        res.sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(np.int))
+        res.load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
+        res.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
+        res.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(np.int))
+        res.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(np.int))
+
+        res.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        res.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        res.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        res.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
+
+        res.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        res.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        res.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        res.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+
+        res.n_gen = len(res.name_gen)
+        res.n_load = len(res.name_load)
+        res.n_line = len(res.name_line)
+        res.n_sub = len(res.name_sub)
+        res.dim_topo = np.sum(res.sub_info)
+
+        if dict_["gen_type"] is None:
+            res.redispatching_unit_commitment_availble = False
+            # and no need to make anything else, because everything is already initialized at None
+        else:
+            res.redispatching_unit_commitment_availble = True
+            type_attr_disp = [str, np.float, np.float, np.bool, np.float, np.float,
+                              np.int, np.int, np.float, np.float, np.float]
+            for nm_attr, type_attr in zip(res._li_attr_disp, type_attr_disp):
+                res.__dict__[nm_attr] = extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr))
+        return res
+
 
 class SerializableSpace(GridObjects):
     """
@@ -1314,26 +1401,7 @@ class SerializableSpace(GridObjects):
             with open(path, "r", encoding="utf-8") as f:
                 dict_ = json.load(fp=f)
 
-        name_prod = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
-        name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
-        name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
-        name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
-
-        sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(np.int))
-        load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
-        gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
-        line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(np.int))
-        line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(np.int))
-
-        load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
-
-        load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        gridobj = GridObjects.from_dict(dict_)
 
         actionClass_str = extract_from_dict(dict_, "subtype", str)
         actionClass_li = actionClass_str.split('.')
@@ -1372,12 +1440,6 @@ class SerializableSpace(GridObjects):
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
 
-        gridobj = GridObjects()
-        gridobj.init_grid_vect(name_prod, name_load, name_line, name_sub, sub_info,
-                                load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                                load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                                load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect,
-                                line_ex_pos_topo_vect)
         res = SerializableSpace(gridobj=gridobj,
                                 subtype=subtype)
         return res
@@ -1392,26 +1454,7 @@ class SerializableSpace(GridObjects):
             A dictionnary representing this object content. It can be loaded back with
              :func:`SerializableObservationSpace.from_dict`
         """
-        res = {}
-        save_to_dict(res, self, "name_gen", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_sub", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "sub_info", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_or_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_ex_to_subid", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_or_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_ex_to_sub_pos", lambda li: [int(el) for el in li])
-
-        save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_or_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_ex_pos_topo_vect", lambda li: [int(el) for el in li])
+        res = super().to_dict()
 
         save_to_dict(res, self, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
 
@@ -1427,13 +1470,13 @@ class SerializableSpace(GridObjects):
         """
         return self.n
 
-    def from_vect(self, act):
+    def from_vect(self, obj_as_vect):
         """
         Convert an action, represented as a vector to a valid :class:`Action` instance
 
         Parameters
         ----------
-        act: ``numpy.ndarray``
+        obj_as_vect: ``numpy.ndarray``
             A object living in a space represented as a vector (typically an :class:`grid2op.Action.Action` or an
             :class:`grid2op.Observation.Observation` represented as a numpy vector)
 
@@ -1445,5 +1488,5 @@ class SerializableSpace(GridObjects):
 
         """
         res = copy.deepcopy(self.template_obj)
-        res.from_vect(act)
+        res.from_vect(obj_as_vect)
         return res

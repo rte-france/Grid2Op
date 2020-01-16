@@ -80,7 +80,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
 
     def test_step_doesnt_change_action(self):
         # TODO THIS TEST
-        act = self.env.acttion_space()
+        act = self.env.action_space()
         act_init = copy.deepcopy(act)
         res = self.env.step(act)
         assert act == act_init

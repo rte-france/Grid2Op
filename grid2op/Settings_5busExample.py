@@ -9,5 +9,5 @@ import warnings
 
 # the reference powergrid was different than the default case14 of the litterature.
 EXAMPLE_CASEFILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
-                                                "test_PandaPower", "5bus_example.json"))
-EXAMPLE_CHRONICSPATH = os.path.join(pkg_resources.resource_filename(__name__, "data"), "chronics_5bus_example")
+                                                "5bus_example", "5bus_example.json"))
+EXAMPLE_CHRONICSPATH = os.path.join(pkg_resources.resource_filename(__name__, "data"), "5bus_example", "chronics")
