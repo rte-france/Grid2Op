@@ -73,6 +73,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                actionClass=Action)
+        self.array_double_dispatch = np.array([0.,  12.41833569,  10.89081339,   0., -23.30914908])
 
     def tearDown(self):
         pass
@@ -81,31 +82,95 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_basic_redispatch_act(self):
-        act = self.env.action_space({"redispatch": [2, 20]})
+        # test of the implementation of a simple case redispatching on one generator, bellow ramp min and ramp max
+        act = self.env.action_space({"redispatch": [2, 5]})
         obs, reward, done, info = self.env.step(act)
-        pdb.set_trace()
         assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0., -5.2173913, 20., 0., -14.7826087])
+        th_dispatch = np.array([0., -1.30434783,  5.,  0., -3.69565217])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
-
-        target_val = self.chronics_handler.real_data.prod_p[1,:] + self.env.actual_dispatch
+        target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
 
-    # def test_two_redispatch_act(self):
-    #     act = self.env.action_space({"redispatch": [2, 20]})
-    #     obs, reward, done, info = self.env.step(act)
-    #     act = self.env.action_space({"redispatch": [1, 10]})
-    #     obs, reward, done, info = self.env.step(act)
-    #     pdb.set_trace()
-    #     th_dispatch = np.array([0., 10, 20., 0., -30])
-    #     assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
-    #     target_val = self.chronics_handler.real_data.prod_p[2,:] + self.env.actual_dispatch
-    #     assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
-    #     assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-    #
-    # def test_count_turned_on(self):
-    #     act = self.env.action_space()
-    #     obs, reward, done, info = self.env.step(act)
+        # check that the redispatching is apply in the right direction
+        indx_ok = self.env.target_dispatch != 0.
+        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+
+    def test_redispatch_act_above_pmax(self):
+        # in this test, the asked redispatching for generator 2 would make it above pmax, so the environment
+        # need to "cut" it automatically, without invalidating the action
+        act = self.env.action_space({"redispatch": [2, 20]})
+        obs, reward, done, info = self.env.step(act)
+        assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
+        th_dispatch = np.array([0., -2.69837697, 10.89081339,  0., -8.19243642])
+        assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
+        target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
+        assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
+
+    def test_two_redispatch_act(self):
+        act = self.env.action_space({"redispatch": [2, 20]})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space({"redispatch": [1, 10]})
+        obs, reward, done, info = self.env.step(act)
+        th_dispatch = np.array([0., 10, 20., 0., 0.])
+        assert self.compare_vect(self.env.target_dispatch, th_dispatch)
+
+        # check that the redispatching is apply in the right direction
+        indx_ok = self.env.target_dispatch != 0.
+        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+
+        th_dispatch = np.array([0. , 7.37325847,  10.38913319, 0., -17.76239165])
+        assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
+
+        target_val = self.chronics_handler.real_data.prod_p[2, :] + self.env.actual_dispatch
+        assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
+        assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
+
+    def test_redispacth_two_gen(self):
+        act = self.env.action_space({"redispatch": [(2, 20), (1, 10)]})
+        obs, reward, done, info = self.env.step(act)
+
+        th_dispatch = np.array([0., 10, 20., 0., 0.])
+        assert self.compare_vect(self.env.target_dispatch, th_dispatch)
+
+        assert self.compare_vect(self.env.actual_dispatch, self.array_double_dispatch)
+
+        # check that the redispatching is apply in the right direction
+        indx_ok = self.env.target_dispatch != 0.
+        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+
+    def test_redispacth_all_gen(self):
+        # this should be exactly the same as the previous one
+        act = self.env.action_space({"redispatch": [(2, 20.), (1, 10.), (4, -30.)]})
+        obs, reward, done, info = self.env.step(act)
+
+        th_dispatch = np.array([0., 10, 20., 0., -30.])
+        assert self.compare_vect(self.env.target_dispatch, th_dispatch)
+
+        assert self.compare_vect(self.env.actual_dispatch, self.array_double_dispatch)
+
+        # check that the redispatching is apply in the right direction
+        indx_ok = self.env.target_dispatch != 0.
+        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+
+    def test_count_turned_on(self):
+        act = self.env.action_space()
+        obs, reward, done, info = self.env.step(act)
+        assert np.all(self.env.gen_uptime == np.array([0, 1, 1, 0, 1]))
+        assert np.all(self.env.gen_downtime == np.array([1, 0, 0, 1, 0]))
+        obs, reward, done, info = self.env.step(act)
+        assert np.all(self.env.gen_uptime == np.array([0, 2, 2, 0, 2]))
+        assert np.all(self.env.gen_downtime == np.array([2, 0, 0, 2, 0]))
+        for i in range(63):
+            obs, reward, done, info = self.env.step(act)
+
+        obs, reward, done, info = self.env.step(act)
+        assert np.all(self.env.gen_uptime == np.array([ 0, 66, 66,  1, 66]))
+        assert np.all(self.env.gen_downtime == np.array([66, 0, 0, 0, 0]))
+
+        obs, reward, done, info = self.env.step(act)
+        assert np.all(self.env.gen_uptime == np.array([ 1, 67, 67,  2, 67]))
+        assert np.all(self.env.gen_downtime == np.array([0, 0, 0, 0, 0]))
+
 
 # TODO test that if i try to redispatched a turned off generator it breaks everything
 
