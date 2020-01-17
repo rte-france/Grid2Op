@@ -96,6 +96,10 @@ class PandaPowerBackend(Backend):
         self.v_ex = None
         self.a_ex = None
 
+        self.load_p = None
+        self.load_q = None
+        self.load_v = None
+
         self._pf_init = "flat"
         self._pf_init = "results"
         self._nb_bus_before = 0
@@ -489,8 +493,20 @@ class PandaPowerBackend(Backend):
                     self._nb_bus_before = nb_bus
 
                 if self._grid.res_gen.isnull().values.any():
+                    # TODO see if there is a better way here
                     # sometimes pandapower does not detect divergence and put Nan.
-                    raise p.powerflow.LoadflowNotConverged
+                    raise pp.powerflow.LoadflowNotConverged
+
+                # if self._grid.res_load.isnull().values.any():
+                #     # TODO see if there is a better way here
+                #     # some loads are disconnected: it's a game over case!
+                #     raise pp.powerflow.LoadflowNotConverged
+
+                self.load_p, self.load_q, self.load_v = self._loads_info()
+                if not np.all(np.isfinite(self.load_v)):
+                    # TODO see if there is a better way here
+                    # some loads are disconnected: it's a game over case!
+                    raise pp.powerflow.LoadflowNotConverged
 
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
                 self.p_or = self._aux_get_line_info("p_from_mw", "p_hv_mw")
@@ -611,11 +627,14 @@ class PandaPowerBackend(Backend):
                 prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
 
-    def loads_info(self):
+    def _loads_info(self):
         load_p = 1. * self._grid.res_load["p_mw"].values
         load_q = 1. * self._grid.res_load["q_mvar"].values
         load_v = self._grid.res_bus["vm_pu"].values[self._grid.load["bus"]] * self.load_pu_to_kv
         return load_p, load_q, load_v
+
+    def loads_info(self):
+        return self.load_p, self.load_q, self.load_v
 
     def lines_or_info(self):
         return self.p_or, self.q_or, self.v_or, self.a_or

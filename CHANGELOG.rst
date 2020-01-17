@@ -2,11 +2,14 @@ Change Log
 =============
 [0.5.0] - 2020-01-xx
 --------------------
-- [UPDATED] more complete documentation of the Action class (with some examples)
-- [ADDED] more complete documentation of the representation of the powergrid
+- [ADDED] Adding another example notebook `getting_started/Example_5bus.ipynb`
+- [ADDED] Adding another renderer for the live environment.
+- [ADDED] Redispatching possibility for the environment
+- [ADDED] More complete documentation of the representation of the powergrid
   (see documentation of `Space`)
-- [UPDATED] more unit test for observations
-- [UPDATED]remove the TODO's already coded (no more todo then)
+- [UPDATED] More complete documentation of the Action class (with some examples)
+- [UPDATED] More unit test for observations
+- [UPDATED] Remove the TODO's already coded (no more todo then)
 - [UPDATED] GridStateFromFile can now read the starting date and the time interval of the chronics.
 - [BREAKING] Action/Backend has been modified with the implementation of redispatching. If
   you used a custom backend, you'll have to implement the "redispatching" part.
@@ -24,9 +27,9 @@ Change Log
 - [FIXED] checking key-word arguments in "make" function: if an invalid argument is provided,
   it now raises an error.
 - [UPDATED] multiple random generator streams for observations
-- [UPDATED] Refactoring of the Action and Observation Space. They now both ineherit from "Space"
+- [UPDATED] Refactoring of the Action and Observation Space. They now both inherit from "Space"
 - [BREAKING] previous saved Action Spaces and Observation Spaces (as dictionnary) are no more compatible
-- [BREAKING] renaming of attributes describing the powergrid accross classes for better consistency:
+- [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 ====================  =======================  =======================
 Class Name            Old Attribute Name       New Attribute Name

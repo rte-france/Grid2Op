@@ -875,15 +875,16 @@ class Action(GridObjects):
                 - ``True``: change the status of the powerline: disconnect it if it was connected, connect it if it was
                   disconnected
 
-            - "set_bus": (numpy int vector or dictionary) will set the buses to which the objects are connected. It follows a
-              similar interpretation than the line status vector:
+            - "set_bus": (numpy int vector or dictionary) will set the buses to which the objects are connected. It
+              follows a similar interpretation than the line status vector:
 
                 - 0 -> don't change anything
                 - +1 -> set to bus 1,
                 - +2 -> set to bus 2, etc.
                 - -1: You can use this method to disconnect an object by setting the value to -1.
 
-            - "change_bus": (numpy bool vector or dictionary) will change the bus to which the object is connected. True will
+            - "change_bus": (numpy bool vector or dictionary) will change the bus to which the object is connected.
+              True will
               change it (eg switch it from bus 1 to bus 2 or from bus 2 to bus 1). NB this is only active if the system
               has only 2 buses per substation.
 
@@ -906,14 +907,13 @@ class Action(GridObjects):
             be usable.
             This will lead to an :class:`grid2op.Exception.AmbiguousAction` exception.
 
-            **NB**: The length of vectors provided here is NOT check in this function. This method can be "chained" and only on the
-            final
-            action, when used, eg. in the Backend, is checked.
+            **NB**: The length of vectors provided here is NOT check in this function. This method can be "chained" and
+            only on the final action, when used, eg. in the Backend, is checked.
 
             **NB**: If a powerline is disconnected, on maintenance, or suffer an outage, the associated "set_bus" will
             be ignored.
-            Disconnection has the priority on anything. This priority is given because, in case of hazard, the hazard has
-            the priority over the possible actions.
+            Disconnection has the priority on anything. This priority is given because, in case of hazard, the hazard
+            has the priority over the possible actions.
 
         Examples
         --------
@@ -1155,7 +1155,7 @@ class Action(GridObjects):
             raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to which "
                                     "it is connected. This is ambiguous. You must *set* this bus instead.")
 
-    def sample(self):
+    def sample(self, space_prng):
         """
         This method is used to sample action.
 
@@ -1166,6 +1166,10 @@ class Action(GridObjects):
         TODO
 
         By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state.
+
+        Parameters
+        ----------
+        space_prng
 
         Returns
         -------
@@ -1641,11 +1645,15 @@ class TopologyAction(Action):
             self._digest_change_status(dict_)
         return self
 
-    def sample(self):
+    def sample(self, space_prng):
         """
         Sample a Topology action.
 
         This method is not implemented at the moment. TODO
+
+        Parameters
+        ----------
+        space_prng
 
         Returns
         -------
@@ -1681,8 +1689,11 @@ class PowerLineSet(Action):
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
         self.authorized_keys = set([k for k in self.authorized_keys
-                                    if k != "injection" and k != "set_bus" and \
-                                    k != "change_bus" and k != "change_line_status"])
+                                    if k != "injection" and k != "set_bus" and
+                                    k != "change_bus" and k != "change_line_status" and
+                                    k != "redispatch"])
+
+        self.attr_list_vect = ["_set_line_status"]
 
     def __call__(self):
         """
@@ -1710,7 +1721,8 @@ class PowerLineSet(Action):
         if self._dict_inj:
             raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
         self._check_for_ambiguity()
-        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect, self._redispatch
+        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect, \
+               self._redispatch
 
     def update(self, dict_):
         """
@@ -1765,12 +1777,17 @@ class PowerLineSet(Action):
             self._set_topo_vect[self.line_ex_pos_topo_vect[sel_]] = 1
             self._set_topo_vect[self.line_or_pos_topo_vect[sel_]] = 1
 
-    def sample(self):
+    def sample(self, space_prng):
         """
         Sample a PowerlineSwitch Action.
 
         By default, this sampling will act on one random powerline, and it will either
         disconnect it or reconnect it each with equal probability.
+
+        Parameters
+        ----------
+        space_prng: ``numpy.random.RandomState``
+            The pseudo random number generator of the Action space used to sample actions.
 
         Returns
         -------
@@ -1778,7 +1795,8 @@ class PowerLineSet(Action):
             The sampled action
         """
         self.reset()
-        i = np.random.randint(0, self.size())  # the powerline on which we can act
+        # TODO here use the prng state from the ActionSpace !!!!
+        i = space_prng.randint(0, self.size())  # the powerline on which we can act
         val = 2*np.random.randint(0, 2) - 1  # the action: +1 reconnect it, -1 disconnect it
         self._set_line_status[i] = val
         if val == 1:
@@ -1968,7 +1986,8 @@ class SerializableActionSpace(SerializableSpace):
                                       "(\"{}\")".format(type(previous_action), self.actionClass))
             res = previous_action
 
-        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation, type_element, res)
+        dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation,
+                                                                        type_element, res)
         dict_["change_bus"][to_sub_pos[my_id]] = True
         res.update({"change_bus": {"substations_id": [(my_sub_id, dict_["change_bus"])]}})
         # res.update(dict_)
@@ -1986,7 +2005,8 @@ class SerializableActionSpace(SerializableSpace):
         elif extremity is None:
             raise Grid2OpException("It is mandatory to know on which ends you want to change the bus of the powerline")
         else:
-            raise Grid2OpException("unknown extremity specifier \"{}\". Extremity should be \"or\" or \"ex\"".format(extremity))
+            raise Grid2OpException("unknown extremity specifier \"{}\". Extremity should be \"or\" or \"ex\""
+                                   "".format(extremity))
         return to_subid, to_sub_pos, to_name
 
     def _extract_dict_action(self, name_element, extremity=None, substation=None, type_element=None, action=None):
@@ -2086,47 +2106,6 @@ class SerializableActionSpace(SerializableSpace):
                                                                         type_element, res)
         dict_["set_bus"][to_sub_pos[my_id]] = new_bus
         res.update({"set_bus": {"substations_id": [(my_sub_id, dict_["set_bus"])]}})
-        return res
-
-    def reconnect_powerline(self, l_id, bus_or, bus_ex, previous_action=None):
-        """
-        Build the valid not ambiguous action consisting in reconnecting a powerline.
-
-        Parameters
-        ----------
-        l_id: `int`
-            the powerline id to be reconnected
-        bus_or: `int`
-            the bus to which connect the origin end of the powerline
-        bus_ex: `int`
-            the bus to which connect the extremity end the powerline
-
-        previous_action: :class:`Action`, optional
-            The (optional) action to update. It should be of the same type as :attr:`HelperAction.actionClass`
-
-        Returns
-        -------
-        res: :class:`Action`
-            The action with the modification implemented
-
-        Raises
-        ------
-        AmbiguousAction
-            If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
-
-        """
-        if previous_action is None:
-            res = self.actionClass(gridobj=self)
-        else:
-            if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
-                                      "which is not the type of action handled by this helper "
-                                      "(\"{}\")".format(type(previous_action), self.actionClass))
-            res = previous_action
-        res.update({"set_line_status": [(l_id, 1)],
-                    "set_bus": {"lines_or_id": [(l_id, bus_or)],
-                                "lines_ex_id": [(l_id, bus_ex)]}
-                    })
         return res
 
     def get_set_line_status_vect(self):

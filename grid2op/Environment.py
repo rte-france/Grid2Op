@@ -15,28 +15,30 @@ It is however totally possible to use as any gym Environment.
 Example (adapted from gym documentation available at
 `gym random_agent.py <https://github.com/openai/gym/blob/master/examples/agents/random_agent.py>`_ ):
 
->>> import grid2op
->>> from grid2op.Agent import DoNothingAgent
->>> env = grid2op.make()
->>> agent = DoNothingAgent(env.action_space)
->>> env.seed(0)
->>> episode_count = 100
->>> reward = 0
->>> done = False
->>> total_reward = 0
->>> for i in range(episode_count):
->>>        ob = env.reset()
->>>        while True:
->>>            action = agent.act(ob, reward, done)
->>>            ob, reward, done, _ = env.step(action)
->>>            total_reward += reward
->>>            if done:
->>>                # in this case the episode is over
->>>                break
->>>
->>>    # Close the env and write monitor result info to disk
->>>    env.close()
->>> print("The total reward was {:.2f}".format(total_reward))
+.. code-block:: python
+
+    import grid2op
+    from grid2op.Agent import DoNothingAgent
+    env = grid2op.make()
+    agent = DoNothingAgent(env.action_space)
+    env.seed(0)
+    episode_count = 100
+    reward = 0
+    done = False
+    total_reward = 0
+    for i in range(episode_count):
+        ob = env.reset()
+        while True:
+           action = agent.act(ob, reward, done)
+           ob, reward, done, _ = env.step(action)
+           total_reward += reward
+           if done:
+               # in this case the episode is over
+               break
+
+    # Close the env and write monitor result info to disk
+    env.close()
+    print("The total reward was {:.2f}".format(total_reward))
 
 """
 
@@ -54,6 +56,7 @@ try:
     from .Parameters import Parameters
     from .Backend import Backend
     from .ChronicsHandler import ChronicsHandler
+    from .Renderer import Renderer
 except (ModuleNotFoundError, ImportError):
     from Space import GridObjects
     from Action import HelperAction, Action, TopologyAction
@@ -64,6 +67,7 @@ except (ModuleNotFoundError, ImportError):
     from Parameters import Parameters
     from Backend import Backend
     from ChronicsHandler import ChronicsHandler
+    from Renderer import Renderer
 
 import pdb
 
@@ -168,6 +172,9 @@ class Environment(GridObjects):
 
     env_modification: :class:`grid2op.Action.Action`
         Representation of the actions of the environment for the modification of the powergrid.
+
+    current_reward: ``float``
+        The reward of the current time step
 
     TODO update with maintenance, hazards etc. see below
     # store actions "cooldown"
@@ -392,7 +399,12 @@ class Environment(GridObjects):
         self.metadata = {'render.modes': []}
         self.spec = None
 
+        self.current_reward = self.reward_range[0]
+        self.done = False
         self._reset_vectors_and_timings()
+
+    def attach_renderer(self, graph_layout):
+        self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -408,14 +420,18 @@ class Environment(GridObjects):
 
         Examples
         --------
-        >>> import grid2op
-        >>> import grid2op.Agent
-        >>> with grid2op.make() as env:
-        >>>     agent = grid2op.Agent.DoNothingAgent(env.action_space)
-        >>>     act = env.action_space()
-        >>>     obs, r, done, info = env.step(act)
-        >>>     act = agent.act(obs, r, info)
-        >>>     obs, r, done, info = env.step(act)
+
+        .. code-block:: python
+
+            import grid2op
+            import grid2op.Agent
+            with grid2op.make() as env:
+                agent = grid2op.Agent.DoNothingAgent(env.action_space)
+                act = env.action_space()
+                obs, r, done, info = env.step(act)
+                act = agent.act(obs, r, info)
+                obs, r, done, info = env.step(act)
+
         """
         return self
 
@@ -940,15 +956,15 @@ class Environment(GridObjects):
                  "is_ambiguous": is_ambiguous,
                  "is_dipatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco}
+        self.done = self._is_done(has_error, is_done)
+        self.current_reward = self._get_reward(action,
+                                               has_error,
+                                               is_done,
+                                               is_illegal or is_illegal_redisp or is_illegal_reco,
+                                               is_ambiguous)
+
         # TODO documentation on all the possible way to be illegal now
-        return self.current_obs,\
-               self._get_reward(action,
-                                has_error,
-                                is_done,
-                                is_illegal or is_illegal_redisp or is_illegal_reco,
-                                is_ambiguous),\
-               self._is_done(has_error, is_done),\
-               infos
+        return self.current_obs, self.current_reward, self.done, infos
 
     def _reset_vectors_and_timings(self):
         """
@@ -985,6 +1001,10 @@ class Environment(GridObjects):
         self._time_powerflow = 0
         self._time_extract_obs = 0
 
+        # reward and others
+        self.current_reward = self.reward_range[0]
+        self.done = False
+
     def _reset_redispatching(self):
         # redispatching
         self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
@@ -1018,7 +1038,8 @@ class Environment(GridObjects):
 
     def render(self, mode='human'):
         # TODO here, and reuse pypownet
-        pass
+        if self.viewer is not None:
+            self.viewer.render(self.current_obs, reward=self.current_reward, timestamp=self.time_stamp, done=self.done)
 
     def close(self):
         # todo there might be some side effect

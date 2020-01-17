@@ -291,6 +291,10 @@ class PlotObs(object):
         p_nm = 'gen_{}_{}'.format(sub_id, g_id)
         return p_nm
 
+    def plot_observation(self, observation, fig=None):
+        res = self.get_plot_observation(observation, fig=fig)
+        return res
+
     def get_plot_observation(self, observation, fig=None):
         """
         Plot the given observation in the given figure.
