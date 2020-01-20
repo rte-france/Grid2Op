@@ -245,7 +245,8 @@ class Runner(object):
     """
 
     def __init__(self,
-                 init_grid_path: str,  # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
+                 # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
+                 init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
                  parameters_path=None,
                  names_chronics_to_backend=None,
@@ -400,7 +401,8 @@ class Runner(object):
             raise RuntimeError(
                 "Impossible to build the backend. Either AgentClass or agentInstance must be provided and both are None.")
 
-        self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
+        self.logger = ConsoleLog(
+            DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
 
         # store _parameters
         self.init_grid_path = init_grid_path
@@ -452,7 +454,8 @@ class Runner(object):
         ``None``
 
         """
-        self.env, self.agent = self._new_env(self.chronics_handler, self.backend, self.parameters)
+        self.env, self.agent = self._new_env(
+            self.chronics_handler, self.backend, self.parameters)
 
     def reset(self):
         """
@@ -509,11 +512,16 @@ class Runner(object):
 
         times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
-        actions = np.full((nb_timestep_max, env.action_space.n), fill_value=np.NaN, dtype=np.float)
-        env_actions = np.full((nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
-        observations = np.full((nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
-        disc_lines = np.full((nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
-        disc_lines_templ = np.full((1, env.backend.n_line), fill_value=False, dtype=np.bool)
+        actions = np.full((nb_timestep_max, env.action_space.n),
+                          fill_value=np.NaN, dtype=np.float)
+        env_actions = np.full(
+            (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
+        observations = np.full(
+            (nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
+        disc_lines = np.full(
+            (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
+        disc_lines_templ = np.full(
+            (1, env.backend.n_line), fill_value=False, dtype=np.bool)
 
         episode = Episode(actions=actions, env_actions=env_actions,
                           observations=observations,
@@ -522,15 +530,17 @@ class Runner(object):
                           action_space=env.action_space,
                           helper_action_env=env.helper_action_env,
                           path_save=path_save, disc_lines_templ=disc_lines_templ,
-                          logger=logger, indx=os.path.split(env.chronics_handler.get_id())[-1],
-                          name_subs=env.backend.name_subs)
+                          logger=logger, indx=os.path.split(
+                              env.chronics_handler.get_id())[-1],
+                          name_subs=env.backend.name_sub)
 
         episode.set_parameters(env)
 
         beg_ = time.time()
         act = env.helper_action_player({})
         while not done:
-            obs, reward, done, info = env.step(act)  # should load the first time stamp
+            # should load the first time stamp
+            obs, reward, done, info = env.step(act)
             beg__ = time.time()
             act = agent.act(obs, reward, done)
 
@@ -586,7 +596,8 @@ class Runner(object):
         """
         res = [(None, None, None) for _ in range(nb_episode)]
         for i in range(nb_episode):
-            cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i)
+            cum_reward, nb_time_step = self.run_one_episode(
+                path_save=path_save, indx=i)
             id_chron = self.chronics_handler.get_id()
             max_ts = self.chronics_handler.max_timestep()
             res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
@@ -606,7 +617,8 @@ class Runner(object):
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)
-            cum_reward, nb_time_step = Runner._run_one_episode(env, agent, runner.logger, p_id, path_save)
+            cum_reward, nb_time_step = Runner._run_one_episode(
+                env, agent, runner.logger, p_id, path_save)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
             res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
@@ -650,9 +662,11 @@ class Runner(object):
 
         """
         if nb_process <= 0:
-            raise RuntimeError("Runner: you need at least 1 process to run episodes")
+            raise RuntimeError(
+                "Runner: you need at least 1 process to run episodes")
         if nb_process == 1:
-            warnings.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
+            warnings.warn(
+                "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
             return [self.run_sequential(nb_episode, path_save=path_save)]
         else:
             if self.env is not None:
@@ -702,16 +716,19 @@ class Runner(object):
 
         """
         if nb_episode < 0:
-            raise RuntimeError("Impossible to run a negative number of scenarios.")
+            raise RuntimeError(
+                "Impossible to run a negative number of scenarios.")
         if nb_episode == 0:
             res = []
         else:
             if nb_process <= 0:
-                raise RuntimeError("Impossible to run using less than 1 process.")
+                raise RuntimeError(
+                    "Impossible to run using less than 1 process.")
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
                 res = self.run_sequential(nb_episode, path_save=path_save)
             else:
                 self.logger.info("Parrallel runner used.")
-                res = self.run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save)
+                res = self.run_parrallel(
+                    nb_episode, nb_process=nb_process, path_save=path_save)
         return res
