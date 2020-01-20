@@ -1098,20 +1098,21 @@ class Action(GridObjects):
         if force_line_impact['changed']:
             reconnections = force_line_impact['reconnections']
             if reconnections['count'] > 0:
-                res.append("\t - force reconnection of {} powerlines ({})".format(reconnections['count'],
-                                                                                  reconnections['powerlines']))
+                res.append("\t - force reconnection of {} powerlines ({})"
+                           .format(reconnections['count'], reconnections['powerlines']))
+
             disconnections = force_line_impact['disconnections']
             if disconnections['count'] > 0:
-                res.append("\t - force disconnection of {} powerlines ({})".format(disconnections['count'],
-                                                                                   disconnections['powerlines']))
+                res.append("\t - force disconnection of {} powerlines ({})"
+                           .format(disconnections['count'], disconnections['powerlines']))
         else:
             res.append("\t - NOT force any line status")
 
         # swtich line status
         swith_line_impact = impact['switch_line']
         if swith_line_impact['changed']:
-            res.append("\t - switch status of {} powerlines ({})".format(swith_line_impact['count'],
-                                                                         swith_line_impact['powerlines']))
+            res.append("\t - switch status of {} powerlines ({})"
+                       .format(swith_line_impact['count'], swith_line_impact['powerlines']))
         else:
             res.append("\t - NOT switch any line status")
 
@@ -1119,10 +1120,9 @@ class Action(GridObjects):
         bus_switch_impact = impact['topology']['bus_switch']
         if len(bus_switch_impact) > 0:
             res.append("\t - Change the bus of the following element:")
-            res.append(
-                "\t \t - switch bus of {} {} [on substation {}]".format(bus_switch_impact['object_type'],
-                                                                        bus_switch_impact['object_id'],
-                                                                        bus_switch_impact['substation']))
+            res.append("\t \t - switch bus of {} {} [on substation {}]"
+                       .format(bus_switch_impact['object_type'], bus_switch_impact['object_id'],
+                               bus_switch_impact['substation']))
         else:
             res.append("\t - NOT switch anything in the topology")
 
@@ -1131,18 +1131,21 @@ class Action(GridObjects):
         if len(assigned_bus_impact) > 0 or len(disconnect_bus_impact) > 0:
             res.append("\t - Set the bus of the following element:")
             for assigned in assigned_bus_impact:
-                res.append(
-                    "\t \t - assign bus {} to {} {} [on substation {}]".format(assigned['bus'], assigned['object_type'],
-                                                                               assigned['object_id'], assigned['substation']))
+                res.append("\t \t - assign bus {} to {} {} [on substation {}]"
+                           .format(assigned['bus'], assigned['object_type'], assigned['object_id'],
+                                   assigned['substation']))
+
             for disconnected in disconnect_bus_impact:
-                res.append("\t - disconnect {} {} [on substation {}]".format(disconnected['object_type'],
-                                                                             disconnected['object_id'], disconnected['substation']))
+                res.append("\t - disconnect {} {} [on substation {}]"
+                           .format(disconnected['object_type'], disconnected['object_id'],
+                                   disconnected['substation']))
+
         else:
             res.append("\t - NOT force any particular bus configuration")
 
         return "\n".join(res)
 
-    def impact_on_objects(self): # TODO this could be divide and several methods
+    def impact_on_objects(self):
         """
         This will return a dictionary which contains details on objects that will be impacted by the action
 
@@ -1162,12 +1165,12 @@ class Action(GridObjects):
         for k in ["load_p", "prod_p", "load_q", "prod_v"]:
             if k in self._dict_inj:
                 inject_detail['changed'] = True
+                has_impact = True
                 inject_detail['count'] += 1
                 inject_detail['impacted'].append({
                     'set': k,
                     'to': self._dict_inj[k]
                 })
-                has_impact = True
 
         # handles actions on force line status
         force_line_status = {
@@ -1177,15 +1180,15 @@ class Action(GridObjects):
         }
         if np.any(self._set_line_status == 1):
             force_line_status['changed'] = True
+            has_impact = True
             force_line_status['reconnections']['count'] = np.sum(self._set_line_status == 1)
             force_line_status['reconnections']['powerlines'] = np.where(self._set_line_status == 1)[0]
-            has_impact = True
 
         if np.any(self._set_line_status == -1):
             force_line_status['changed'] = True
+            has_impact = True
             force_line_status['disconnections']['count'] = np.sum(self._set_line_status == -1)
             force_line_status['disconnections']['powerlines'] = np.where(self._set_line_status == -1)[0]
-            has_impact = True
 
         # handles action on swtich line status
         switch_line_status = {
@@ -1195,9 +1198,9 @@ class Action(GridObjects):
         }
         if np.sum(self._switch_line_status):
             switch_line_status['changed'] = True
+            has_impact = True
             switch_line_status['count'] = np.sum(self._switch_line_status)
             switch_line_status['powerlines'] = np.where(self._switch_line_status)[0]
-            has_impact = True
 
         topology = {
             'changed': False,
