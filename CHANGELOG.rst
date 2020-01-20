@@ -2,6 +2,9 @@ Change Log
 =============
 [0.5.0] - 2020-01-xx
 --------------------
+- [ADDED] A converter class that allows to pre-process observation, and post-process action
+  when given to an `Agent`. This allows for more flexibility in the `action_space` and
+  `observation_space`.
 - [ADDED] Adding another example notebook `getting_started/Example_5bus.ipynb`
 - [ADDED] Adding another renderer for the live environment.
 - [ADDED] Redispatching possibility for the environment

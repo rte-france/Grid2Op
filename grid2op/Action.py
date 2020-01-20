@@ -40,10 +40,7 @@ powergrid through a call to :func:`Action.__call__`
 
 import numpy as np
 import warnings
-import copy
-import re
-import os
-import json
+import itertools
 
 import pdb
 
@@ -1628,7 +1625,7 @@ class TopologyAction(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self.as_vect = None
+        self._vectorized = None
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
@@ -1879,7 +1876,7 @@ class SerializableActionSpace(SerializableSpace):
         res.sample()
         return res
 
-    def disconnect_powerlin(self, line_id, previous_action=None):
+    def disconnect_powerline(self, line_id, previous_action=None):
         """
         Utilities to disconnect a powerline more easily.
 
@@ -1910,7 +1907,10 @@ class SerializableActionSpace(SerializableSpace):
 
     def reconnect_powerline(self, line_id, bus_or, bus_ex, previous_action=None):
         """
-        Utilities to disconnect a powerline more easily.
+        Utilities to reconnect a powerline more easily.
+
+        Note that in case "bus_or" or "bus_ex" are not the current bus to which the powerline is connected, they
+        will be affected by this action.
 
         Parameters
         ----------
@@ -1939,7 +1939,7 @@ class SerializableActionSpace(SerializableSpace):
         if line_id > self.n_line:
             raise AmbiguousAction("You asked to disconnect powerline of id {} but this id does not exist. The "
                                   "grid counts only {} powerline".format(line_id, self.n_line))
-        res.update({"set_line_status": [(line_id, -1)],
+        res.update({"set_line_status": [(line_id, 1)],
                     "set_bus": {"lines_or_id": [(line_id, bus_or)],
                                 "lines_ex_id": [(line_id, bus_ex)]}})
         return res
@@ -2132,6 +2132,23 @@ class SerializableActionSpace(SerializableSpace):
         """
         return self.template_act.get_change_line_status_vect()
 
+    @staticmethod
+    def get_all_unitary_topologies(action_space):
+        res = []
+        S = [0, 1]
+        for sub_id, num_el in enumerate(action_space.sub_info):
+            if num_el < 4:
+                pass
+            for tup in itertools.product(S, repeat=num_el - 1):
+                indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
+                tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
+                indx[tup] = True
+                if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
+                    # i need 2 elements on each bus at least
+                    action = action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
+                    res.append(action)
+        return res
+
 
 class HelperAction(SerializableActionSpace):
     """
@@ -2156,8 +2173,7 @@ class HelperAction(SerializableActionSpace):
 
 
     """
-    def __init__(self, gridobj,
-                 game_rules, actionClass=Action):
+    def __init__(self, gridobj, legal_action, actionClass=Action):
         """
         All parameters (name_gen, name_load, name_line, sub_info, etc.) are used to fill the attributes having the
         same name. See :class:`HelperAction` for more information.
@@ -2172,14 +2188,12 @@ class HelperAction(SerializableActionSpace):
             Note that this parameter expected a class and not an object of the class. It is used to return the
             appropriate action type.
 
-        game_rules: :class:`grid2op.GameRules.GameRules`
+        legal_action: :class:`grid2op.GameRules.LegalAction`
             Class specifying the rules of the game used to check the legality of the actions.
 
         """
-        SerializableActionSpace.__init__(self, gridobj,
-                                         actionClass=actionClass
-                                         )
-        self.legal_action = game_rules.legal_action
+        SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass)
+        self.legal_action = legal_action
 
     def __call__(self, dict_=None, check_legal=False, env=None):
         """

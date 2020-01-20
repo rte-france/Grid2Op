@@ -144,22 +144,22 @@ class Renderer(BasePlot):
         pygame.init()
         self.video_width, self.video_height = 1300, 700
         self.timestep_duration_seconds = timestep_duration_seconds
+        self.display_called = False
         self.screen = pygame.display.set_mode((self.video_width, self.video_height), pygame.RESIZABLE)
-        pygame.display.set_caption('Grid2Op Renderer')  # Window title
         self.background_color = [70, 70, 73]
-        self.screen.fill(self.background_color)
         self.font = pygame.font.Font(None, fontsize)
+
         # pause button
         self.font_pause = pygame.font.Font(None, 30)
         self.color_text = pygame.Color(255, 255, 255)
         self.text_paused = self.font_pause.render("Game Paused", True, self.color_text)
 
-        # graph layout
-        # convert the layout that is given in standard mathematical orientation, to pygame representation (y axis
-        # inverted)
-        self._layout = {}
-        tmp = self._get_sub_layout(substation_layout)
-        self._layout["substations"] = tmp
+        # # graph layout
+        # # convert the layout that is given in standard mathematical orientation, to pygame representation (y axis
+        # # inverted)
+        # self._layout = {}
+        # tmp = self._get_sub_layout(substation_layout)
+        # self._layout["substations"] = tmp
 
     def _get_sub_layout(self, init_layout):
         tmp = [(el1, -el2) for el1, el2 in init_layout]
@@ -177,21 +177,29 @@ class Renderer(BasePlot):
         return res
 
     def event_looper(self, force=False):
-        # TODO from https://github.com/MarvinLer/pypownet/blob/master/pypownet/environment.py
+        has_quit = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
+                has_quit = True
+                return force, has_quit
+                # pygame.quit()
+                # exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    exit()
+                    has_quit = True
+                    return force, has_quit
+                    # pygame.quit()
+                    # exit()
                 if event.key == pygame.K_SPACE:
                     self.get_plot_pause()
                     # pause_surface = self.draw_plot_pause()
                     # self.screen.blit(pause_surface, (320 + self.left_menu_shape[0], 320))
-                    return not force
-        return force
+                    return not force, has_quit
+        return force, has_quit
+
+    def close(self):
+        self.display_called = False
+        pygame.quit()
 
     def get_plot_pause(self):
         position = 300
@@ -212,11 +220,7 @@ class Renderer(BasePlot):
                          10)
         pygame.display.flip()
 
-    def render(self, obs, reward=None, done=None, timestamp=None):
-        force = self.event_looper(force=False)
-        while self.event_looper(force=force):
-            pygame.time.wait(250)  # it's in ms
-
+    def _make_screen(self, obs, reward=None, done=None, timestamp=None):
         # print("Finally")
         if not "line" in self._layout:
             # update the layout of the objects only once to ensure the same positionning is used
@@ -234,6 +238,26 @@ class Renderer(BasePlot):
             self._draw_loads(observation=obs)
             self._draw_gens(observation=obs)
             self._draw_topos(observation=obs)
+
+    def get_rgb(self, obs, reward=None, done=None, timestamp=None):
+        self._make_screen(obs, reward, done, timestamp)
+        return pygame.surfarray.array3d(self.screen)
+
+    def render(self, obs, reward=None, done=None, timestamp=None):
+        if not self.display_called:
+            self.display_called = True
+            self.screen.fill(self.background_color)
+            pygame.display.set_caption('Grid2Op Renderer')  # Window title
+
+        force, has_quit = self.event_looper(force=False)
+        while force:
+            force, has_quit = self.event_looper(force=force)
+            pygame.time.wait(250)  # it's in ms
+
+        if has_quit:
+            return has_quit
+
+        self._make_screen(obs, reward, done, timestamp)
 
         pygame.display.flip()
 

@@ -305,15 +305,15 @@ class Environment(GridObjects):
                 "grid2op.Observation class, type provided is \"{}\"".format(
                     type(observationClass)))
 
-        # action affecting the _grid that will be made by the agent
+        # action affecting the grid that will be made by the agent
         self.helper_action_player = HelperAction(gridobj=self.backend,
                                                  actionClass=actionClass,
-                                                 game_rules=self.game_rules)
+                                                 legal_action=self.game_rules.legal_action)
 
-        # action that affect the _grid made by the environment.
+        # action that affect the grid made by the environment.
         self.helper_action_env = HelperAction(gridobj=self.backend,
                                               actionClass=Action,
-                                              game_rules=self.game_rules)
+                                              legal_action=self.game_rules.legal_action)
 
         self.helper_observation = ObservationHelper(gridobj=self.backend,
                                                     observationClass=observationClass,
@@ -396,7 +396,7 @@ class Environment(GridObjects):
         self.reward_range = self.reward_helper.range()
         self.viewer = None
 
-        self.metadata = {'render.modes': []}
+        self.metadata = {'render.modes': ["human", "rgb_array"]}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -1037,9 +1037,29 @@ class Environment(GridObjects):
         return self.get_obs()
 
     def render(self, mode='human'):
-        # TODO here, and reuse pypownet
-        if self.viewer is not None:
-            self.viewer.render(self.current_obs, reward=self.current_reward, timestamp=self.time_stamp, done=self.done)
+        err_msg = "Impossible to use the renderer, please set it up with  \"env.init_renderer(graph_layout)\", " \
+                  "graph_layout being the position of each substation of the powergrid that you must provide"
+        if mode == "human":
+            if self.viewer is not None:
+                has_quit = self.viewer.render(self.current_obs,
+                                              reward=self.current_reward,
+                                              timestamp=self.time_stamp,
+                                              done=self.done)
+                if has_quit:
+                    self.close()
+                    exit()
+            else:
+                raise Grid2OpException(err_msg)
+        elif mode == "rgb_array":
+            if self.viewer is not None:
+                return np.array(self.viewer.get_rgb(self.current_obs,
+                                                    reward=self.current_reward,
+                                                    timestamp=self.time_stamp,
+                                                    done=self.done))
+            else:
+                raise Grid2OpException(err_msg)
+        else:
+            raise Grid2OpException("Renderer mode \"{}\" not supported.".format(mode))
 
     def close(self):
         # todo there might be some side effect

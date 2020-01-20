@@ -20,6 +20,13 @@ import numpy as np
 import itertools
 import pdb
 
+try:
+    from .Converters import Converter, IdToAct, ToVect
+    from .Exceptions import Grid2OpException
+except (ModuleNotFoundError, ImportError):
+    from ActionSpaceConverter import Converter, IdToAct, ToVect
+    from Exceptions import Grid2OpException
+
 
 class Agent(ABC):
     """
@@ -113,7 +120,7 @@ class OneChangeThenNothing(Agent):
     what action to do.
 
     """
-    def __init__(self, action_space):
+    def __init__(self, action_space, action_space_converter=None):
         Agent.__init__(self, action_space)
         self.has_changed = False
 
@@ -149,7 +156,7 @@ class GreedyAgent(Agent):
     To make the creation of such Agent, we created this abstract class (object of this class cannot be created). Two
     examples of such greedy agents are provided with :class:`PowerLineSwitch` and :class:`TopologyGreedy`.
     """
-    def __init__(self, action_space):
+    def __init__(self, action_space, action_space_converter=None):
         Agent.__init__(self, action_space)
         self.tested_action = None
 
@@ -252,109 +259,152 @@ class TopologyGreedy(GreedyAgent):
       - changing the topology of one substation.
 
     """
-    def __init__(self, action_space):
-        GreedyAgent.__init__(self, action_space)
+    def __init__(self, action_space, action_space_converter=None):
+        GreedyAgent.__init__(self, action_space, action_space_converter=action_space_converter)
         self.li_actions = None
 
     def _get_tested_action(self, observation):
         if self.li_actions is None:
             res = [self.action_space({})]  # add the do nothing
-            S = [0, 1]
-            for sub_id, num_el in enumerate(self.action_space.sub_info):
-                if num_el < 4:
-                    pass
-                for tup in itertools.product(S, repeat=num_el-1):
-                    indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
-                    tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
-                    indx[tup] = True
-                    if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
-                        # i need 2 elements on each bus at least
-                        action = self.action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
-                        res.append(action)
+            res += self.action_space.get_all_unitary_topologies(self.action_space)
             self.li_actions = res
         return self.li_actions
 
 
-class MLAgent(Agent):
-    """
-    This Agent class has the particularity to handle only vector representation of :class:`grid2op.Action.Action` and
-    :class:`grid2op.Observation.Observation`. It is particularly suited for building Machine Learning Agents.
+class AgentWithConverter(Agent):
+    def __init__(self, action_space, action_space_converter=None, **kwargs_converter):
+        self.action_space_converter = action_space_converter
+        self.init_action_space = action_space
 
-    Attributes
-    ----------
-    do_nothing_vect: ``numpy.ndarray``, dtype:np.float
-        The representation of the "do nothing" Action as a numpy vector.
-
-    """
-    def __init__(self, action_space):
-        Agent.__init__(self, action_space)
-        self.do_nothing_vect = action_space({}).to_vect()
-
-    def convert_from_vect(self, act):
-        """
-        Helper to convert an action, represented as a numpy array as an :class:`grid2op.Action` instance.
-
-        Parameters
-        ----------
-        act: ``numppy.ndarray``
-            An action cast as an :class:`grid2op.Action.Action` instance.
-
-        Returns
-        -------
-        res: :class:`grid2op.Action.Action`
-            The `act` parameters converted into a proper :class:`grid2op.Action.Action` object.
-        """
-        res = self.action_space({})
-        res.from_vect(act)
-        return res
+        if action_space_converter is None:
+            Agent.__init__(self, action_space)
+        else:
+            if isinstance(action_space_converter, type):
+                if issubclass(action_space_converter, Converter):
+                    Agent.__init__(self, action_space_converter(action_space))
+                else:
+                    raise Grid2OpException("Impossible to make an Agent with a converter of type {}. "
+                                           "Please use a converter deriving from grid2op.ActionSpaceConverter.Converter."
+                                           "".format(action_space_converter))
+            elif isinstance(action_space_converter, Converter):
+                if isinstance(action_space_converter.template_act, self.init_action_space.template_act):
+                    Agent.__init__(self, action_space_converter)
+                else:
+                    raise Grid2OpException("Impossible to make an Agent with the provided converter of type {}. "
+                                           "It doesn't use the same type of action as the Agent's action space."
+                                           "".format(action_space_converter))
+            else:
+                raise Grid2OpException("You try to initialize and Agent with an invalid converter \"{}\". It must"
+                                       "either be a type deriving from \"Converter\", or an instance of a class"
+                                       "deriving from it."
+                                       "".format(action_space_converter))
+            self.action_space.init_actions(**kwargs_converter)
 
     def act(self, observation, reward, done=False):
-        """
-        Overloading of the method `act` to deal with vectors representation of :class:`grid2op.Observation` and
-        :class:`grid2op.Action` rather than with class.
+        return self.action_space.convert_act(self.my_act(self.action_space.convert_obs(observation), reward, done))
 
-        Parameters
-        ----------
-        observation: :class:`grid2op.Observation.Observation`
-            The current observation of the :class:`grid2op.Environment`
+    @abstractmethod
+    def my_act(self, transformed_observation, reward, done=False):
+        transformed_action = None
+        return transformed_action
 
-        reward: ``float``
-            The current reward. This is the reward obtained by the previous action
 
-        done: ``bool``
-            Whether the episode has ended or not. Used to maintain gym compatibility
+class RandomAgent(AgentWithConverter):
+    def __init__(self, action_space, action_space_converter=IdToAct, **kwargs_converter):
+        AgentWithConverter.__init__(self, action_space, action_space_converter, **kwargs_converter)
 
-        Returns
-        -------
-        res: :class:`grid2op.Action.Action`
-            The action chosen by the bot / controler / agent.
+    def my_act(self, transformed_observation, reward, done=False):
+        return self.action_space.sample()
 
-        """
-        obs = observation.to_vect()
-        act = self._ml_act(obs, reward, done=done)
-        return self.convert_from_vect(act)
 
-    def _ml_act(self, observation, reward, done=False):
-        """
-        The method to modify that is able to handle numpy array representation of both action and observation.
-        It should be overidden for ML agents using the :class:`MLAgent`.
+class MLAgent(AgentWithConverter):
+    def __init__(self, action_space, action_space_converter=ToVect, **kwargs_converter):
+        AgentWithConverter.__init__(self, action_space, action_space_converter, **kwargs_converter)
+        self.do_nothing_vect = action_space({}).to_vect()
 
-        Parameters
-        ----------
-        observation: ``numppy.ndarray``
-            The current observation of the game, represented as a numpy array vector.
-
-        reward: ``float``
-            The current reward. This is the reward obtained by the previous action
-
-        done: ``bool``
-            Whether the episode has ended or not. Used to maintain gym compatibility
-
-        Returns
-        -------
-        res: ``numppy.ndarray``
-            The action taken at time t, represented as a numpy array vector.
-        """
-
+    def my_act(self, transformed_observation, reward, done=False):
         return self.do_nothing_vect
+
+# class MLAgent(Agent):
+#     """
+#     This Agent class has the particularity to handle only vector representation of :class:`grid2op.Action.Action` and
+#     :class:`grid2op.Observation.Observation`. It is particularly suited for building Machine Learning Agents.
+#
+#     Attributes
+#     ----------
+#     do_nothing_vect: ``numpy.ndarray``, dtype:np.float
+#         The representation of the "do nothing" Action as a numpy vector.
+#
+#     """
+#     def __init__(self, action_space):
+#         Agent.__init__(self, action_space)
+#         self.do_nothing_vect = action_space({}).to_vect()
+#
+#     def convert_from_vect(self, act):
+#         """
+#         Helper to convert an action, represented as a numpy array as an :class:`grid2op.Action` instance.
+#
+#         Parameters
+#         ----------
+#         act: ``numppy.ndarray``
+#             An action cast as an :class:`grid2op.Action.Action` instance.
+#
+#         Returns
+#         -------
+#         res: :class:`grid2op.Action.Action`
+#             The `act` parameters converted into a proper :class:`grid2op.Action.Action` object.
+#         """
+#         res = self.action_space({})
+#         res.from_vect(act)
+#         return res
+#
+#     def act(self, observation, reward, done=False):
+#         """
+#         Overloading of the method `act` to deal with vectors representation of :class:`grid2op.Observation` and
+#         :class:`grid2op.Action` rather than with class.
+#
+#         Parameters
+#         ----------
+#         observation: :class:`grid2op.Observation.Observation`
+#             The current observation of the :class:`grid2op.Environment`
+#
+#         reward: ``float``
+#             The current reward. This is the reward obtained by the previous action
+#
+#         done: ``bool``
+#             Whether the episode has ended or not. Used to maintain gym compatibility
+#
+#         Returns
+#         -------
+#         res: :class:`grid2op.Action.Action`
+#             The action chosen by the bot / controler / agent.
+#
+#         """
+#         obs = observation.to_vect()
+#         act = self._ml_act(obs, reward, done=done)
+#         return self.convert_from_vect(act)
+#
+#     def _ml_act(self, observation, reward, done=False):
+#         """
+#         The method to modify that is able to handle numpy array representation of both action and observation.
+#         It should be overidden for ML agents using the :class:`MLAgent`.
+#
+#         Parameters
+#         ----------
+#         observation: ``numppy.ndarray``
+#             The current observation of the game, represented as a numpy array vector.
+#
+#         reward: ``float``
+#             The current reward. This is the reward obtained by the previous action
+#
+#         done: ``bool``
+#             Whether the episode has ended or not. Used to maintain gym compatibility
+#
+#         Returns
+#         -------
+#         res: ``numppy.ndarray``
+#             The action taken at time t, represented as a numpy array vector.
+#         """
+#
+#         return self.do_nothing_vect
 

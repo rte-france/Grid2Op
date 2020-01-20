@@ -310,80 +310,99 @@ class Runner(object):
 
         if not isinstance(envClass, type):
             raise Grid2OpException(
-                "Parameter \"envClass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                "Parameter \"envClass\" used to build the Runner should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
                     type(envClass)))
         if not issubclass(envClass, Environment):
-            raise RuntimeError("Impossible to create a runner without an evnrionment derived from grid2op.Environement class. Please modify \"envClass\" paramter.")
+            raise RuntimeError("Impossible to create a runner without an evnrionment derived from grid2op.Environement"
+                               " class. Please modify \"envClass\" paramter.")
         self.envClass = envClass
 
         if not isinstance(actionClass, type):
             raise Grid2OpException(
-                "Parameter \"actionClass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                "Parameter \"actionClass\" used to build the Runner should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
                     type(actionClass)))
         if not issubclass(actionClass, Action):
-            raise RuntimeError("Impossible to create a runner without an action class derived from grid2op.Action. Please modify \"actionClass\" paramter.")
+            raise RuntimeError("Impossible to create a runner without an action class derived from grid2op.Action. "
+                               "Please modify \"actionClass\" paramter.")
         self.actionClass = actionClass
 
         if not isinstance(observationClass, type):
             raise Grid2OpException(
-                "Parameter \"observationClass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                "Parameter \"observationClass\" used to build the Runner should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
                     type(observationClass)))
         if not issubclass(observationClass, Observation):
-            raise RuntimeError("Impossible to create a runner without an observation class derived from grid2op.Observation. Please modify \"observationClass\" paramter.")
+            raise RuntimeError("Impossible to create a runner without an observation class derived from "
+                               "grid2op.Observation. Please modify \"observationClass\" paramter.")
         self.observationClass = observationClass
 
         if not isinstance(rewardClass, type):
             raise Grid2OpException(
-                "Parameter \"rewardClass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                "Parameter \"rewardClass\" used to build the Runner should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
                     type(rewardClass)))
         if not issubclass(rewardClass, Reward):
-            raise RuntimeError("Impossible to create a runner without an observation class derived from grid2op.Reward. Please modify \"rewardClass\" paramter.")
+            raise RuntimeError("Impossible to create a runner without an observation class derived from "
+                               "grid2op.Reward. Please modify \"rewardClass\" paramter.")
         self.rewardClass = rewardClass
 
         if not isinstance(gridStateclass, type):
             raise Grid2OpException(
-                "Parameter \"gridStateclass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                "Parameter \"gridStateclass\" used to build the Runner should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
                     type(gridStateclass)))
         if not issubclass(gridStateclass, GridValue):
-            raise RuntimeError("Impossible to create a runner without an chronics class derived from grid2op.GridValue. Please modify \"gridStateclass\" paramter.")
+            raise RuntimeError("Impossible to create a runner without an chronics class derived from "
+                               "grid2op.GridValue. Please modify \"gridStateclass\" paramter.")
         self.gridStateclass = gridStateclass
 
         if not isinstance(legalActClass, type):
             raise Grid2OpException(
-                "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
                     type(legalActClass)))
         if not issubclass(legalActClass, LegalAction):
-            raise RuntimeError("Impossible to create a runner without a class defining legal actions derived from grid2op.LegalAction. Please modify \"legalActClass\" paramter.")
+            raise RuntimeError("Impossible to create a runner without a class defining legal actions derived "
+                               "from grid2op.LegalAction. Please modify \"legalActClass\" paramter.")
         self.legalActClass = legalActClass
 
         if not isinstance(backendClass, type):
             raise Grid2OpException(
-                "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object "
+                "(an instance of a class). It is currently \"{}\"".format(
                     type(backendClass)))
         if not issubclass(backendClass, Backend):
-            raise RuntimeError("Impossible to create a runner without a backend class derived from grid2op.GridValue. Please modify \"backendClass\" paramter.")
+            raise RuntimeError("Impossible to create a runner without a backend class derived from grid2op.GridValue. "
+                               "Please modify \"backendClass\" paramter.")
         self.backendClass = backendClass
 
         if agentClass is not None:
             if agentInstance is not None:
-                raise RuntimeError("Impossible to build the backend. Only one of AgentClass or agentInstance can be used (both are not None).")
+                raise RuntimeError("Impossible to build the backend. Only one of AgentClass or agentInstance can be "
+                                   "used (both are not None).")
             if not isinstance(agentClass, type):
                 raise Grid2OpException(
-                    "Parameter \"agentClass\" used to build the Runner should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(
+                    "Parameter \"agentClass\" used to build the Runner should be a type (a class) and not an object "
+                    "(an instance of a class). It is currently \"{}\"".format(
                         type(agentClass)))
             if not issubclass(agentClass, Agent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. Please modify \"agentClass\" parameter.")
+                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. "
+                                   "Please modify \"agentClass\" parameter.")
             self.agentClass = agentClass
             self._useclass = True
             self.agent = None
         elif agentInstance is not None:
             if not isinstance(agentInstance, Agent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. Please modify \"agentInstance\" parameter.")
+                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. "
+                                   "Please modify \"agentInstance\" parameter.")
             self.agentClass = None
             self._useclass = False
             self.agent = agentInstance
         else:
-            raise RuntimeError("Impossible to build the backend. Either AgentClass or agentInstance must be provided and both are None.")
+            raise RuntimeError("Impossible to build the backend. Either AgentClass or agentInstance must be provided "
+                               "and both are None.")
 
         self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
 
@@ -741,7 +760,8 @@ class Runner(object):
 
             res = []
             with Pool(nb_process) as p:
-                tmp = p.starmap(Runner._one_process_parrallel, [(self, pn, i, path_save) for i, pn in enumerate(process_ids)])
+                tmp = p.starmap(Runner._one_process_parrallel,
+                                [(self, pn, i, path_save) for i, pn in enumerate(process_ids)])
             for el in tmp:
                 res += el
         return res
