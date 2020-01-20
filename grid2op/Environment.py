@@ -56,7 +56,7 @@ try:
     from .Parameters import Parameters
     from .Backend import Backend
     from .ChronicsHandler import ChronicsHandler
-    from .Renderer import Renderer
+    from .PlotPyGame import Renderer
 except (ModuleNotFoundError, ImportError):
     from Space import GridObjects
     from Action import HelperAction, Action, TopologyAction

@@ -530,23 +530,38 @@ class Runner(object):
         efficient_storing = nb_timestep_max > 0
         nb_timestep_max = max(nb_timestep_max, 0)
 
+        if path_save is None:
+            # i don't store anything on drive, so i don't need to store anything on memory
+            nb_timestep_max = 0
+
         times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         actions = np.full((nb_timestep_max, env.action_space.n), fill_value=np.NaN, dtype=np.float)
         env_actions = np.full((nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
-        observations = np.full((nb_timestep_max, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
+        observations = np.full((nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
         disc_lines = np.full((nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
         disc_lines_templ = np.full((1, env.backend.n_line), fill_value=False, dtype=np.bool)
 
         beg_ = time.time()
-        act = env.helper_action_player({})
+
+        obs = env.reset()
+        reward = env.reward_range[0]
+        done = False
+
+        if path_save is not None:
+            # store observation at timestep 0
+            if efficient_storing:
+                observations[time_step, :] = obs.to_vect()
+            else:
+                observations = np.concatenate((observations, obs.to_vect()))
+
         while not done:
-            obs, reward, done, info = env.step(act)  # should load the first time stamp
             beg__ = time.time()
             act = agent.act(obs, reward, done)
-
             end__ = time.time()
             time_act += end__ - beg__
+
+            obs, reward, done, info = env.step(act)  # should load the first time stamp
             cum_reward += reward
             time_step += 1
 
@@ -559,7 +574,7 @@ class Runner(object):
                     rewards[time_step-1] = reward
                     actions[time_step-1, :] = act.to_vect()
                     env_actions[time_step-1, :] = env_act.to_vect()
-                    observations[time_step-1, :] = obs.to_vect()
+                    observations[time_step, :] = obs.to_vect()
                     if "disc_lines" in info:
                         arr = info["disc_lines"]
                         if arr is not None:
