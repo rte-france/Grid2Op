@@ -2,6 +2,7 @@ import grid2op
 from grid2op.Agent import DoNothingAgent
 from grid2op.Agent import GreedyAgent, RandomAgent
 import numpy as np
+import pdb
 
 env = grid2op.make("l2rpn_2019", chronics_path="/home/donnotben/Téléchargements/L2RPN_pypownetBundle/G2Op_L2RPN/starting_kit_1/public_data/L2RPN2019_chronics")
 

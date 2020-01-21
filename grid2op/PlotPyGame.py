@@ -154,12 +154,35 @@ class Renderer(BasePlot):
         self.color_text = pygame.Color(255, 255, 255)
         self.text_paused = self.font_pause.render("Game Paused", True, self.color_text)
 
+        # maximum overflow possible
+        self.rho_max = 2.
+
+        # utilities
+        self.cum_reward = 0.
+        self.nb_timestep = 0
+
         # # graph layout
         # # convert the layout that is given in standard mathematical orientation, to pygame representation (y axis
         # # inverted)
         # self._layout = {}
         # tmp = self._get_sub_layout(substation_layout)
         # self._layout["substations"] = tmp
+
+    def reset(self, env):
+        """
+        Reset the runner in a consistent state, equivalent to a state where it has not run at all.
+
+        Parameters
+        ----------
+        env
+
+        Returns
+        -------
+
+        """
+        self.cum_reward = 0.
+        self.nb_timestep = 0
+        self.rho_max = env.parameters.HARD_OVERFLOW_THRESHOLD
 
     def _get_sub_layout(self, init_layout):
         tmp = [(el1, -el2) for el1, el2 in init_layout]
@@ -188,14 +211,36 @@ class Renderer(BasePlot):
                 if event.key == pygame.K_ESCAPE:
                     has_quit = True
                     return force, has_quit
-                    # pygame.quit()
-                    # exit()
                 if event.key == pygame.K_SPACE:
                     self.get_plot_pause()
                     # pause_surface = self.draw_plot_pause()
                     # self.screen.blit(pause_surface, (320 + self.left_menu_shape[0], 320))
                     return not force, has_quit
         return force, has_quit
+
+    def press_key_to_quit(self):
+        """
+        This utility function waits for the player to press a key to exit the renderer (called when the episode is done)
+
+        Returns
+        -------
+        res: ``bool``, ``bool``
+            ``True`` if the human player closed the window, in this case it will stop the computation: no other episode
+            will be computed. ``False`` otherwise.
+
+        """
+        has_quit = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                has_quit = True
+                return True, has_quit
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    has_quit = True
+                    return True, has_quit
+                if event.key == pygame.K_SPACE:
+                    return True, has_quit
+        return False, has_quit
 
     def close(self):
         self.display_called = False
@@ -221,7 +266,9 @@ class Renderer(BasePlot):
         pygame.display.flip()
 
     def _make_screen(self, obs, reward=None, done=None, timestamp=None):
-        # print("Finally")
+        self.cum_reward += reward
+        self.nb_timestep += 1
+
         if not "line" in self._layout:
             # update the layout of the objects only once to ensure the same positionning is used
             # if more than 1 observation are displayed one after the other.
@@ -231,13 +278,29 @@ class Renderer(BasePlot):
         self.screen.fill(self.background_color)
 
         if not done:
-            # draw the state now
+            # draw the generic information on the right part
             self._draw_generic_info(reward, done, timestamp)
-            self._draw_subs(observation=obs)
-            self._draw_powerlines(observation=obs)
-            self._draw_loads(observation=obs)
-            self._draw_gens(observation=obs)
-            self._draw_topos(observation=obs)
+        else:
+            # inform user that it's over
+            self._draw_final_information(reward, done, timestamp)
+
+        # draw the state now
+        self._draw_subs(observation=obs)
+        self._draw_powerlines(observation=obs)
+        self._draw_loads(observation=obs)
+        self._draw_gens(observation=obs)
+        self._draw_topos(observation=obs)
+
+    def _draw_final_information(self, reward, done, timestamp):
+            text_label = "GAME OVER, press any key to continue to next episode."
+            text_graphic = self.font.render(text_label, True, self.color_text)
+            self.screen.blit(text_graphic, (self.window_grid[0]+100, 100))
+            text_label = "Total cumulated reward: {:.1f}".format(self.cum_reward)
+            text_graphic = self.font.render(text_label, True, self.color_text)
+            self.screen.blit(text_graphic, (self.window_grid[0]+100, 130))
+            text_label = "Total number timesteps: {:.1f}".format(self.nb_timestep)
+            text_graphic = self.font.render(text_label, True, self.color_text)
+            self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
 
     def get_rgb(self, obs, reward=None, done=None, timestamp=None):
         self._make_screen(obs, reward, done, timestamp)
@@ -260,12 +323,26 @@ class Renderer(BasePlot):
         self._make_screen(obs, reward, done, timestamp)
 
         pygame.display.flip()
+        if done:
+            key_pressed = False
+            while not key_pressed:
+                key_pressed, has_quit = self.press_key_to_quit()
+                pygame.time.wait(250)  # it's in ms
+
+        return has_quit
 
     def _draw_generic_info(self, reward=None, done=None, timestamp=None):
         if reward is not None:
             text_label = "Instantaneous reward: {:.1f}".format(reward)
             text_graphic = self.font.render(text_label, True, self.color_text)
             self.screen.blit(text_graphic, (self.window_grid[0]+100, 100))
+            text_label = "Cumulated reward: {:.1f}".format(self.cum_reward)
+            text_graphic = self.font.render(text_label, True, self.color_text)
+            self.screen.blit(text_graphic, (self.window_grid[0]+100, 130))
+            text_label = "Number timesteps: {:.1f}".format(self.nb_timestep)
+            text_graphic = self.font.render(text_label, True, self.color_text)
+            self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
+
         if done is not None:
             pass
 
@@ -296,19 +373,16 @@ class Renderer(BasePlot):
                 # line is connected
 
                 # step 0: compute thickness and color
-                rho_max = 1.5  # TODO here get it back from parameters, or environment or whatever
-
-                if rho < (rho_max / 1.5):
-                    amount_green = 255 - int(255. * 1.5 * rho / rho_max)
+                if rho < (self.rho_max / 1.5):
+                    amount_green = 255 - int(255. * 1.5 * rho / self.rho_max)
                 else:
                     amount_green = 0
 
-                amount_red = int(255 - (50 + int(205. * rho / rho_max)))
-
+                amount_red = int(255 - (50 + int(205. * rho / self.rho_max)))
                 color = pygame.Color(amount_red, amount_green, 20)
 
                 width = 1
-                if rho > rho_max:
+                if rho > self.rho_max:
                     width = 4
                 elif rho > 1.:
                     width = 3

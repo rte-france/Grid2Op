@@ -2133,12 +2133,31 @@ class SerializableActionSpace(SerializableSpace):
         return self.template_act.get_change_line_status_vect()
 
     @staticmethod
-    def get_all_unitary_topologies(action_space):
+    def get_all_unitary_topologies_change(action_space):
+        """
+        This methods allows to compute and return all the unitary topological changes that can be performed on a
+        powergrid.
+
+        The changes will be performed using the "change_bus" method. The "do nothing" action will be counted only
+        once.
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.Action.ActionHelper`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all the topological actions that can be performed.
+
+        """
         res = []
         S = [0, 1]
         for sub_id, num_el in enumerate(action_space.sub_info):
             if num_el < 4:
                 pass
+
             for tup in itertools.product(S, repeat=num_el - 1):
                 indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
                 tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
@@ -2146,6 +2165,49 @@ class SerializableActionSpace(SerializableSpace):
                 if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
                     # i need 2 elements on each bus at least
                     action = action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
+                    res.append(action)
+        return res
+
+    @staticmethod
+    def get_all_unitary_topologies_set(action_space):
+        """
+        This methods allows to compute and return all the unitary topological changes that can be performed on a
+        powergrid.
+
+        The changes will be performed using the "set_bus" method. The "do nothing" action will be counted once
+        per substation in the grid.
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.Action.ActionHelper`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all the topological actions that can be performed.
+
+        """
+        res = []
+        S = [0, 1]
+        for sub_id, num_el in enumerate(action_space.sub_info):
+            if num_el < 4:
+                pass
+            new_topo = np.full(shape=num_el, fill_value=1, dtype=np.int)
+            # perform the action "set everything on bus 1"
+            action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
+            res.append(action)
+
+            # computes all the topologies at 2 buses for this substation
+            for tup in itertools.product(S, repeat=num_el - 1):
+                indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
+                tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
+                indx[tup] = True
+                if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
+                    # i need 2 elements on each bus at least
+                    new_topo = np.full(shape=num_el, fill_value=1, dtype=np.int)
+                    new_topo[~indx] = 2
+                    action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
                     res.append(action)
         return res
 

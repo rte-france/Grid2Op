@@ -34,6 +34,7 @@ class IdToAct(Converter):
 
     def init_actions(self, all_actions=None):
         if all_actions is None:
+            self.all_actions = []
             if "_set_line_status" in self.template_act.attr_list_vect:
                 # powerline switch: disconnection
                 for i in range(self.n_line):
@@ -46,9 +47,13 @@ class IdToAct(Converter):
                             tmp_act = self.reconnect_powerline(line_id=i, bus_ex=bus_ex, bus_or=bus_or)
                             self.all_actions.append(tmp_act)
 
-            if "_set_line_status" in self.template_act.attr_list_vect:
-                # topologies
-                self.all_actions += self.get_all_unitary_topologies(self)
+            if "_set_topo_vect" in self.template_act.attr_list_vect:
+                # topologies using the 'set' method
+                self.all_actions += self.get_all_unitary_topologies_set(self)
+            elif "_change_bus_vect" in self.template_act.attr_list_vect:
+                # topologies 'change'
+                self.all_actions += self.get_all_unitary_topologies_change(self)
+
         else:
             self.all_actions = all_actions
         self.n = len(self.all_actions)

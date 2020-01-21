@@ -405,6 +405,7 @@ class Environment(GridObjects):
 
     def attach_renderer(self, graph_layout):
         self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
+        self.viewer.reset(self)
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -1031,7 +1032,8 @@ class Environment(GridObjects):
         self._reset_maintenance()
         self._reset_redispatching()
         self.reset_grid()
-
+        if self.viewer is not None:
+            self.viewer.reset(self)
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()
         return self.get_obs()
