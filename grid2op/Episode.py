@@ -35,7 +35,7 @@ class Episode:
                  params=None, meta=None, episode_times=None,
                  observation_space=None, action_space=None,
                  helper_action_env=None, path_save=None, disc_lines_templ=None,
-                 logger=None, indx=0, get_dataframes=None, name_subs=None):
+                 logger=None, indx=0, get_dataframes=None):
 
         self.actions = CollectionWrapper(actions, action_space, "actions")
         self.observations = CollectionWrapper(observations, observation_space,
@@ -59,7 +59,7 @@ class Episode:
         self.n_prods = len(self.prod_names)
         self.line_names = action_space.name_line
         self.n_lines = len(self.line_names)
-        self.name_subs = name_subs
+        self.name_sub = action_space.name_sub
 
         if get_dataframes is not None:
             print("computing df")
@@ -141,9 +141,13 @@ class Episode:
                                    columns=['timestep', 'timestamp', 'timestep_reward', 'action_line', 'action_subs',
                                             'set_line', 'switch_line', 'set_topo', 'change_bus', 'distance'])
         action_data_table = pd.DataFrame(index=range(action_size),
-                                         columns=['timestep', 'timestamp', 'timestep_reward', 'action_line', 'action_subs',
+                                         columns=['timestep', 'timestamp', 'timestep_reward', 'action_line',
+                                                  'action_subs',
                                                   'line_action', 'sub_name', 'objets_changed', 'distance'])
-        for (time_step, (obs, act)) in tqdm(enumerate(zip(self.observations, self.actions)), total=len(self.env_actions)):
+        topo_list = []
+        bus_list = []
+        for (time_step, (obs, act)) in tqdm(enumerate(zip(self.observations, self.actions)),
+                                            total=len(self.env_actions)):
             if obs.game_over:
                 continue
             time_stamp = self.timestamp(obs)
@@ -164,7 +168,7 @@ class Episode:
                 pos = time_step
                 action_data.loc[pos, :] = [time_step, time_stamp, self.rewards[time_step],
                                            np.sum(act._switch_line_status), np.sum(
-                                               act._change_bus_vect),
+                        act._change_bus_vect),
                                            act._set_line_status.flatten().astype(np.float),
                                            act._switch_line_status.flatten().astype(np.float),
                                            act._set_topo_vect.flatten().astype(np.float),
@@ -174,34 +178,48 @@ class Episode:
                 open_status = np.where(act._set_line_status == 1)
                 close_status = np.where(act._set_line_status == -1)
                 switch_line = np.where(act._switch_line_status == True)
-                if len(open_status) == 1:
+                if len(open_status[0]) == 1:
                     line_action = "open " + str(self.line_names[open_status[0]])
-                if len(close_status) == 1:
+                if len(close_status[0]) == 1:
                     line_action = "close " + str(self.line_names[close_status[0]])
-                if len(switch_line) == 1:
+                if len(switch_line[0]) == 1:
                     line_action = "switch " + str(self.line_names[switch_line[0]])
                 sub_action = self.get_sub_action(act, obs)
+                object_changed = ""
+                object_changed_set = self.get_object_changed(act._set_topo_vect, topo_list)
+                if object_changed_set is not None:
+                    object_changed = object_changed_set
+                else:
+                    object_changed = self.get_object_changed(act._change_bus_vect, bus_list)
                 action_data_table.loc[pos, :] = [time_step, time_stamp, self.rewards[time_step],
                                                  np.sum(act._switch_line_status), np.sum(act._change_bus_vect),
                                                  line_action,
                                                  sub_action,
-                                                 "todo",
+                                                 object_changed,
                                                  self.get_distance_from_obs(obs)]
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
         rho["value"] = rho["value"].astype(float)
         return load_data, production, rho, action_data, action_data_table
 
+    def get_object_changed(self, vect, list_topo):
+        if np.count_nonzero(vect) is 0:
+            return None
+        for idx, topo_array in enumerate(list_topo):
+            if not np.array_equal(topo_array, vect):
+                return idx
+        # if we havnt found the vect...
+        list_topo.append(vect)
+        return len(list_topo) - 1
+
     def get_sub_action(self, act, obs):
         for sub in range(len(obs.sub_info)):
             effect = act.effect_on(substation_id=sub)
-            if len(np.where(effect["change_bus"] is True)):
-                return sub
-                # return self.name_subs[sub]
-            if len(np.where(effect["set_bus"] == 1)) > 0 or len(np.where(effect.set_bus == -1)) > 0:
-                return sub
-                # return self.name_subs[sub]
-        return "N/A"
+            if np.any(effect["change_bus"] is True):
+                return self.name_sub[sub]
+            if np.any(effect["set_bus"] is 1) or np.any(effect["set_bus"] is -1):
+                return self.name_sub[sub]
+        return None
 
     def get_distance_from_obs(self, obs):
         return len(obs.topo_vect) - np.count_nonzero(obs.topo_vect == 1)

@@ -531,8 +531,7 @@ class Runner(object):
                           helper_action_env=env.helper_action_env,
                           path_save=path_save, disc_lines_templ=disc_lines_templ,
                           logger=logger, indx=os.path.split(
-                              env.chronics_handler.get_id())[-1],
-                          name_subs=env.backend.name_sub)
+                env.chronics_handler.get_id())[-1])
 
         episode.set_parameters(env)
 
