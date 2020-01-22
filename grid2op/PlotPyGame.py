@@ -1,3 +1,12 @@
+"""
+This module defines the :class:`Renderer` that is able to display the state (:class:`grid2op.Observation.Observation`)
+of the powergrid on a dedicated window.
+
+It is also able to output a 3d representation of this representation to be further used by other libraries to
+output gifs for example.
+
+"""
+
 import numpy as np
 import cmath
 import math # for regular real sqrt
@@ -56,7 +65,7 @@ class Point:
         return Point((cplx.real, cplx.imag))
 
 
-def draw_dashed_line(surf, color, start_pos, end_pos, width=1, dash_length=10):
+def _draw_dashed_line(surf, color, start_pos, end_pos, width=1, dash_length=10):
     # https://codereview.stackexchange.com/questions/70143/drawing-a-dashed-line-with-pygame
     origin = Point(start_pos)
     target = Point(end_pos)
@@ -70,8 +79,8 @@ def draw_dashed_line(surf, color, start_pos, end_pos, width=1, dash_length=10):
         pygame.draw.line(surf, color, start.get(), end.get(), width)
 
 
-def draw_arrow(surf, color, start_pos, end_pos, positive_flow, width=1, num_arrows=10,
-               length_arrow=10, angle_arrow=30):
+def _draw_arrow(surf, color, start_pos, end_pos, positive_flow, width=1, num_arrows=10,
+                length_arrow=10, angle_arrow=30):
     if positive_flow:
         origin = Point(start_pos)
         target = Point(end_pos)
@@ -106,9 +115,11 @@ def draw_arrow(surf, color, start_pos, end_pos, positive_flow, width=1, num_arro
 
 class Renderer(BasePlot):
     """
-    TODO
+    This renderer should be used only for "online" representation of a powergrid.
+
     """
-    def __init__(self, substation_layout,
+    def __init__(self,
+                 substation_layout,
                  observation_space,
                  radius_sub=20.,
                  load_prod_dist=70.,
@@ -123,7 +134,24 @@ class Renderer(BasePlot):
             List of tupe given the position of each of the substation of the powergrid.
 
         observation_space: :class:`grid2op.Observation.ObservationHelper`
-            Observation space
+            Observation space used for the display
+
+        radius_sub: ``int``
+            radius (in pixel) of the substations representation.
+
+        load_prod_dist: ``int``
+            distance (in pixels) between the substation and the load or the generator.
+
+        bus_radius: ``int``
+            The buses are represented by small circles. This is the radius (in pixel) for the pixels representing
+            the buses.
+
+        timestep_duration_seconds: ``float``
+            Currently not implemented.
+
+        fontsize: ``int``
+            size of the font used to display the texts.
+
 
         """
         if not can_plot:
@@ -161,20 +189,14 @@ class Renderer(BasePlot):
         self.cum_reward = 0.
         self.nb_timestep = 0
 
-        # # graph layout
-        # # convert the layout that is given in standard mathematical orientation, to pygame representation (y axis
-        # # inverted)
-        # self._layout = {}
-        # tmp = self._get_sub_layout(substation_layout)
-        # self._layout["substations"] = tmp
-
     def reset(self, env):
         """
         Reset the runner in a consistent state, equivalent to a state where it has not run at all.
 
         Parameters
         ----------
-        env
+        env: :class:`grid2op.Environment.Environment`
+            The used environment.
 
         Returns
         -------
@@ -199,7 +221,7 @@ class Renderer(BasePlot):
                for el1, el2 in tmp]
         return res
 
-    def event_looper(self, force=False):
+    def _event_looper(self, force=False):
         has_quit = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -212,13 +234,13 @@ class Renderer(BasePlot):
                     has_quit = True
                     return force, has_quit
                 if event.key == pygame.K_SPACE:
-                    self.get_plot_pause()
+                    self._get_plot_pause()
                     # pause_surface = self.draw_plot_pause()
                     # self.screen.blit(pause_surface, (320 + self.left_menu_shape[0], 320))
                     return not force, has_quit
         return force, has_quit
 
-    def press_key_to_quit(self):
+    def _press_key_to_quit(self):
         """
         This utility function waits for the player to press a key to exit the renderer (called when the episode is done)
 
@@ -243,10 +265,13 @@ class Renderer(BasePlot):
         return False, has_quit
 
     def close(self):
+        """
+        This method is called when the renderer should be close.
+        """
         self.display_called = False
         pygame.quit()
 
-    def get_plot_pause(self):
+    def _get_plot_pause(self):
         position = 300
         start_pause = position + self.text_paused.get_height()
         end_pause = start_pause + 50
@@ -303,18 +328,70 @@ class Renderer(BasePlot):
             self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
 
     def get_rgb(self, obs, reward=None, done=None, timestamp=None):
+        """
+        Computes and returns the rgb 3d array from an observation, and potentially other informations.
+
+        Parameters
+        ----------
+        obs: :class:`grid2op.Observation.Observation`
+            The observation to converte into a 3d array
+
+        reward: ``float``
+            The current reward
+
+        done: ``bool``
+            Whether this is the last frame of the episode.
+
+        timestamp: ``datetime.datetime``
+            The curent datetime corresponding to the observation
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The 3d representation of the observation that can then be converted to a gif, or an image using appropriate
+            softwares.
+
+        """
         self._make_screen(obs, reward, done, timestamp)
         return pygame.surfarray.array3d(self.screen)
 
     def render(self, obs, reward=None, done=None, timestamp=None):
+        """
+        This function is called when the human renderer mode is called. It displays the observation on the screen,
+        and allows for basic interactions, such as pausing or exiting.
+
+        **NB** pressing "escape" key or the "exit" screen button will quit the game. It will end the current episode,
+        and won't start any other episode.
+
+        Parameters
+        ----------
+        obs: :class:`grid2op.Observation.Observation`
+            The observation to converte into a 3d array
+
+        reward: ``float``
+            The current reward
+
+        done: ``bool``
+            Whether this is the last frame of the episode.
+
+        timestamp: ``datetime.datetime``
+            The curent datetime corresponding to the observation
+
+        Returns
+        -------
+        res: ``bool``
+            Whether the human decided to quit the window. If ``True`` then it will completly quit the game, ending all
+            steps of this episode and all episode afterwards.
+
+        """
         if not self.display_called:
             self.display_called = True
             self.screen.fill(self.background_color)
             pygame.display.set_caption('Grid2Op Renderer')  # Window title
 
-        force, has_quit = self.event_looper(force=False)
+        force, has_quit = self._event_looper(force=False)
         while force:
-            force, has_quit = self.event_looper(force=force)
+            force, has_quit = self._event_looper(force=force)
             pygame.time.wait(250)  # it's in ms
 
         if has_quit:
@@ -326,7 +403,7 @@ class Renderer(BasePlot):
         if done:
             key_pressed = False
             while not key_pressed:
-                key_pressed, has_quit = self.press_key_to_quit()
+                key_pressed, has_quit = self._press_key_to_quit()
                 pygame.time.wait(250)  # it's in ms
 
         return has_quit
@@ -368,7 +445,7 @@ class Renderer(BasePlot):
 
             if not status:
                 # line is disconnected
-                draw_dashed_line(self.screen, pygame.Color(0, 0, 0), pos_or, pos_ex)
+                _draw_dashed_line(self.screen, pygame.Color(0, 0, 0), pos_or, pos_ex)
             else:
                 # line is connected
 
@@ -394,10 +471,10 @@ class Renderer(BasePlot):
                 pygame.draw.line(self.screen, color, pos_or, pos_ex, width)
 
                 # step 2: draw arrows indicating current flows
-                draw_arrow(self.screen, color, pos_or, pos_ex,
-                           p_or >= 0.,
-                           num_arrows=width,
-                           width=width)
+                _draw_arrow(self.screen, color, pos_or, pos_ex,
+                            p_or >= 0.,
+                            num_arrows=width,
+                            width=width)
 
     def _aligned_text(self, pos, text_graphic, pos_text):
         pos_x = pos_text.real
@@ -441,7 +518,7 @@ class Renderer(BasePlot):
 
     def _draw_topos(self, observation):
         for sub_id, elements in enumerate(self.subs_elements):
-            buses_z, bus_vect = self.get_topo_coord(sub_id, observation, elements)
+            buses_z, bus_vect = self._get_topo_coord(sub_id, observation, elements)
 
             if not buses_z:
                 # I don't plot details of substations with 1 bus for better quality

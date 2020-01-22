@@ -14,6 +14,8 @@ import pdb
 class Converter(HelperAction):
     def __init__(self, action_space):
         HelperAction.__init__(self, action_space, action_space.legal_action, action_space.subtype)
+        self.space_prng = action_space.space_prng
+        self.seed_used = action_space.seed_used
 
     def init_actions(self):
         pass

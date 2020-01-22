@@ -300,8 +300,16 @@ class AgentWithConverter(Agent):
                                        "".format(action_space_converter))
             self.action_space.init_actions(**kwargs_converter)
 
+    def convert_obs(self, observation):
+        return self.action_space.convert_obs(observation)
+
+    def convert_act(self, act):
+        return self.action_space.convert_act(act)
+
     def act(self, observation, reward, done=False):
-        return self.action_space.convert_act(self.my_act(self.action_space.convert_obs(observation), reward, done))
+        convert_obs = self.convert_obs(observation)
+        act = self.my_act(convert_obs, reward, done)
+        return self.convert_act(act)
 
     @abstractmethod
     def my_act(self, transformed_observation, reward, done=False):
@@ -324,6 +332,24 @@ class MLAgent(AgentWithConverter):
 
     def my_act(self, transformed_observation, reward, done=False):
         return self.do_nothing_vect
+
+    def convert_from_vect(self, act):
+        """
+        Helper to convert an action, represented as a numpy array as an :class:`grid2op.Action` instance.
+
+        Parameters
+        ----------
+        act: ``numppy.ndarray``
+            An action cast as an :class:`grid2op.Action.Action` instance.
+
+        Returns
+        -------
+        res: :class:`grid2op.Action.Action`
+            The `act` parameters converted into a proper :class:`grid2op.Action.Action` object.
+        """
+        res = self.action_space({})
+        res.from_vect(act)
+        return res
 
 # class MLAgent(Agent):
 #     """

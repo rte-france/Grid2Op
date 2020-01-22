@@ -516,6 +516,10 @@ class GridObjects:
                                             "from a vector. Found {} elements instead of {}".format(
                 vect.shape[0], self.size()))
 
+        if np.any(~np.isfinite(vect)):
+            raise AmbiguousAction("The action your provided contained not finite number. It cannot be converted to an"
+                                  " action class.")
+
         self._raise_error_attr_list_none()
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
@@ -1342,7 +1346,39 @@ class GridObjects:
         return res
 
 
-class SerializableSpace(GridObjects):
+class RandomObject(object):
+    """
+    Utility class to deal with randomness in some aspect of the game (chronics, action_space, observation_space for
+    examples.
+
+    Attributes
+    ----------
+    space_prng: ``numpy.random.RandomState``
+        The random state of the observation (in case of non deterministic observations or Action.
+        This should not be used at the
+        moment)
+
+    seed_used: ``int``
+        The seed used throughout the episode in case of non deterministic observations or action.
+
+    """
+    def __init__(self):
+        self.space_prng = np.random.RandomState()
+        self.seed_used = None
+
+    def seed(self, seed):
+        """
+        Use to set the seed in case of non deterministic observations.
+        :param seed:
+        :return:
+        """
+        self.seed_used = seed
+        if self.seed_used is not None:
+            # in this case i have specific seed set. So i force the seed to be deterministic.
+            self.space_prng.seed(seed=self.seed_used)
+
+
+class SerializableSpace(GridObjects, RandomObject):
     """
     This class allows to serialize / de serialize the action space or observation space.
 
@@ -1363,14 +1399,6 @@ class SerializableSpace(GridObjects):
 
     n: ``int``
         Size of the space
-
-    space_prng: ``numpy.random.RandomState``
-        The random state of the observation (in case of non deterministic observations or Action.
-        This should not be used at the
-        moment)
-
-    seed: ``int``
-        The seed used throughout the episode in case of non deterministic observations or action.
 
     shape: ``numpy.ndarray``, dtype:int
         Shape of each of the component of the Object if represented in a flat vector. An instance that derives from a
@@ -1402,30 +1430,18 @@ class SerializableSpace(GridObjects):
                     type(subtype)))
 
         GridObjects.__init__(self)
+        RandomObject.__init__(self)
+
         self.init_grid(gridobj)
 
         self.subtype = subtype
         self.template_obj = self.subtype(gridobj=self)
         self.n = self.template_obj.size()
 
-        self.space_prng = np.random.RandomState()
-        self.seed = None
-
         self.global_vars = None
 
         self.shape = self.template_obj.shape()
         self.dtype = self.template_obj.dtype()
-
-    def seed(self, seed):
-        """
-        Use to set the seed in case of non deterministic observations.
-        :param seed:
-        :return:
-        """
-        self.seed = seed
-        if self.seed is not None:
-            # in this case i have specific seed set. So i force the seed to be deterministic.
-            self.space_prng.seed(seed=self.seed)
 
     @staticmethod
     def from_dict(dict_):

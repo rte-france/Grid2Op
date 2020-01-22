@@ -51,8 +51,10 @@ from datetime import datetime, timedelta
 
 try:
     from .Exceptions import *
+    from .Space import RandomObject
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
+    from Space import RandomObject
 
 from abc import ABC, abstractmethod
 
@@ -1445,7 +1447,7 @@ class Multifolder(GridValue):
         return self.data.max_timestep()
 
 
-class ChronicsHandler:
+class ChronicsHandler(RandomObject):
     """
     Represents a Chronics handler that returns a grid state.
 
@@ -1469,15 +1471,19 @@ class ChronicsHandler:
     real_data: :class:`GridValue`
         An instance of type given by :attr:`ChronicsHandler.chronicsClass`.
 
-    seed: ``float``
-        Seed to use for reproducible experiments (currently not implemented)
     """
     def __init__(self, chronicsClass=ChangeNothing, time_interval=timedelta(minutes=5), max_iter=-1,
                  **kwargs):
+        RandomObject.__init__(self)
         if not isinstance(chronicsClass, type):
-            raise Grid2OpException("Parameter \"chronicsClass\" used to build the ChronicsHandler should be a type (a class) and not an object (an instance of a class). It is currently \"{}\"".format(type(legalActClass)))
+            raise Grid2OpException("Parameter \"chronicsClass\" used to build the ChronicsHandler should be a type "
+                                   "(a class) and not an object (an instance of a class). It is currently "
+                                   "\"{}\"".format(type(chronicsClass)))
+
         if not issubclass(chronicsClass, GridValue):
-            raise ChronicsError("ChronicsHandler: the \"chronicsClass\" argument should be a derivative of the \"Grid2Op.GridValue\" type and not {}.".format(type(chronicsClass)))
+            raise ChronicsError("ChronicsHandler: the \"chronicsClass\" argument should be a derivative of the "
+                                "\"Grid2Op.GridValue\" type and not {}.".format(type(chronicsClass)))
+
         self.chronicsClass = chronicsClass
         self.kwargs = kwargs
         self.max_iter = max_iter
@@ -1487,8 +1493,8 @@ class ChronicsHandler:
             self.real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
                                                 **self.kwargs)
         except TypeError:
-            raise ChronicsError("Impossible to build a chronics of type {} with arguments in {}".format(chronicsClass, self.kwargs))
-        self.seed = None
+            raise ChronicsError("Impossible to build a chronics of type {} with arguments in "
+                                "{}".format(chronicsClass, self.kwargs))
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -1581,16 +1587,3 @@ class ChronicsHandler:
 
         """
         return self.real_data.get_id()
-
-    def seed(self, seed):
-        """
-        Use to set the seed in case of non determinitics chronics.
-
-        Attributes
-        -----------
-        seed: ``float``
-            The seed to set
-
-        """
-        self.seed = seed
-        #TODO set seed in the data

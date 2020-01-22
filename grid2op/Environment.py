@@ -470,7 +470,7 @@ class Environment(GridObjects):
         Logging is for now an incomplete feature. It will get improved
         Parameters
         ----------
-            seed:
+            logger:
                The logger to use
 
         """
@@ -481,18 +481,26 @@ class Environment(GridObjects):
         """
         Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
 
-        This is not supported yet;
+        This is not supported yet.
+
         Parameters
         ----------
             seed: ``int``
                The seed to set.
 
         """
+        try:
+            seed = np.array(seed).astype('int64')
+        except Exception as e:
+            raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
+                                   "numpy 64 integer.")
         # example from gym
         # self.np_random, seed = seeding.np_random(seed)
         # TODO make that more clean, see example of seeding @ https://github.com/openai/gym/tree/master/gym/utils
         self.chronics_handler.seed(seed)
         self.helper_observation.seed(seed)
+        self.helper_action_player.seed(seed)
+        self.helper_action_env.seed(seed)
         return [seed]
 
     def _update_actions(self):

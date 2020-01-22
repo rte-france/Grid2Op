@@ -1,3 +1,11 @@
+"""
+This module is the base module for all graphical representation of the :class:`grid2op.Observation.Observation`.
+
+It allows, from the layout of the graph of the powergrid (*eg* the coordinates of each substation) the position of
+each objects (powerline ends, loads and generators) and the position of the buses in case of "node splitting" (when
+a substations is split into independent electrical buses).
+
+"""
 import cmath
 import numpy as np
 import pdb
@@ -5,7 +13,18 @@ import pdb
 
 class BasePlot(object):
     """
-    TODO
+    Utility class that allows to compute the position of the objects of the powergrid.
+
+    Deriving from this class allows to perform the display of the powergrid.
+
+    **NB** this class only performs the computation of the position, but does not display anything.
+
+    Attributes
+    -----------
+
+    observation_space: :class:`grid2op.Observation.HelperObservation`
+        The observation space used.
+
     """
     def __init__(self, substation_layout,
                  observation_space,
@@ -244,7 +263,7 @@ class BasePlot(object):
 
         return pos_end_line, pos_gen_sub, pos_gen, how_center
 
-    def get_topo_coord(self, sub_id, observation, elements):
+    def _get_topo_coord(self, sub_id, observation, elements):
         pos_center_sub = self._layout["substations"][sub_id]
         z_sub = (pos_center_sub[0] + 1j * pos_center_sub[1])
 

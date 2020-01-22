@@ -413,7 +413,7 @@ class PlotObs(BasePlot):
         res_topo = []
         for sub_id, elements in enumerate(self.subs_elements):
 
-            buses_z, bus_vect = self.get_topo_coord(sub_id, observation, elements)
+            buses_z, bus_vect = self._get_topo_coord(sub_id, observation, elements)
 
             if not buses_z:
                 # I don't plot details of substations with 1 bus for better quality

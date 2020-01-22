@@ -34,7 +34,17 @@ Main module content
    quickstart
    grid2op
    makeenv
+
+
+Plotting capabilities
+----------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   pltgraph
    pltplotly
+   pltpygame
 
 Technical Documentation
 ----------------------------
