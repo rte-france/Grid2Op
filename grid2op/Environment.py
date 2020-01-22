@@ -67,7 +67,7 @@ except (ModuleNotFoundError, ImportError):
     from Parameters import Parameters
     from Backend import Backend
     from ChronicsHandler import ChronicsHandler
-    from Renderer import Renderer
+    from PlotPyGame import Renderer
 
 import pdb
 

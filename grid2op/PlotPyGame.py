@@ -18,6 +18,7 @@ try:
     from .PlotGraph import BasePlot
     can_plot = True
 except:
+    from PlotGraph import BasePlot
     can_plot = False
     pass
 

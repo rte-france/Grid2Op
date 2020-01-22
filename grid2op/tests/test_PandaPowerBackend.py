@@ -81,6 +81,7 @@ class TestLoadingADN(unittest.TestCase):
         backend.runpf()
         backend.assert_grid_correct_after_powerflow()
 
+
 class TestLoadingBackendFunc(unittest.TestCase):
     # Cette méthode sera appelée avant chaque test.
     def setUp(self):
@@ -91,7 +92,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
+        self.action_env = HelperAction(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -122,6 +123,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert conv
         p_or, *_ = self.backend.lines_or_info()
         assert self.compare_vect(p_or, true_values_ac)
+
+    def test_voltage_convert_powerlines(self):
+        conv = self.backend.runpf(is_dc=True)
+        assert conv
+
+        pdb.set_trace()
 
     def test_copy(self):
         conv = self.backend.runpf(is_dc=False)
@@ -375,7 +382,7 @@ class TestTopoAction(unittest.TestCase):
         self.tol_one = 1e-5
 
         self.game_rules = GameRules()
-        self.helper_action = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
+        self.helper_action = HelperAction(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -634,7 +641,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(gridobj=self.backend, game_rules=self.game_rules)
+        self.action_env = HelperAction(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
         self.lines_flows_init = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,
                                            10869.23856329,  4686.71726729, 15612.65903298,   300.07915572,

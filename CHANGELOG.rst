@@ -2,6 +2,7 @@ Change Log
 =============
 [0.5.0] - 2020-01-xx
 --------------------
+- [FIXED] A bug in the conversion from pair unit to kv in pandapower backend. Adding some tests for that too.
 - [ADDED] A converter class that allows to pre-process observation, and post-process action
   when given to an `Agent`. This allows for more flexibility in the `action_space` and
   `observation_space`.

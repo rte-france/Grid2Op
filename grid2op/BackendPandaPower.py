@@ -524,13 +524,13 @@ class PandaPowerBackend(Backend):
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
                 self.p_or = self._aux_get_line_info("p_from_mw", "p_hv_mw")
                 self.q_or = self._aux_get_line_info("q_from_mvar", "q_hv_mvar")
-                self.v_or = self._aux_get_line_info("vm_from_pu", "vm_hv_pu") * self.lines_or_pu_to_kv
+                self.v_or = self._aux_get_line_info("vm_from_pu", "vm_hv_pu")
                 self.a_or = self._aux_get_line_info("i_from_ka", "i_hv_ka") * 1000
                 self.a_or[~np.isfinite(self.a_or)] = 0.
 
                 self.p_ex = self._aux_get_line_info("p_to_mw", "p_lv_mw")
                 self.q_ex = self._aux_get_line_info("q_to_mvar", "q_lv_mvar")
-                self.v_ex = self._aux_get_line_info("vm_to_pu", "vm_lv_pu") * self.lines_ex_pu_to_kv
+                self.v_ex = self._aux_get_line_info("vm_to_pu", "vm_lv_pu")
                 self.a_ex = self._aux_get_line_info("i_to_ka", "i_lv_ka") * 1000
                 self.a_ex[~np.isfinite(self.a_ex)] = 0.
 
