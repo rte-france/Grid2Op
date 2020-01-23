@@ -43,6 +43,8 @@ class Episode:
 
         self.env_actions = CollectionWrapper(env_actions, helper_action_env,
                                              "env_actions")
+        self.observation_space = observation_space
+        self.helper_action_env = helper_action_env
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
@@ -185,7 +187,6 @@ class Episode:
                 if len(switch_line[0]) == 1:
                     line_action = "switch " + str(self.line_names[switch_line[0]])
                 sub_action = self.get_sub_action(act, obs)
-                object_changed = ""
                 object_changed_set = self.get_object_changed(act._set_topo_vect, topo_list)
                 if object_changed_set is not None:
                     object_changed = object_changed_set
