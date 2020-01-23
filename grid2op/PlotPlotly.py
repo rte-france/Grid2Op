@@ -44,8 +44,9 @@ import pdb
 try:
     import plotly.graph_objects as go
     import seaborn as sns
+    from .PlotGraph import BasePlot
     can_plot = True
-except:
+except Exception as e:
     can_plot = False
     pass
 
@@ -162,7 +163,7 @@ def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status):
     return res
 
 
-class PlotObs(object):
+class PlotObs(BasePlot):
     """
     This class aims at simplifying the representation of an observation as a plotly object given a layout of a given
     powergrid substation.
@@ -221,13 +222,14 @@ class PlotObs(object):
             Observation space
 
         """
+        BasePlot.__init__(self,
+                          substation_layout=substation_layout,
+                          observation_space=observation_space,
+                          radius_sub=radius_sub,
+                          load_prod_dist=load_prod_dist,
+                          bus_radius=bus_radius)
         if not can_plot:
             raise RuntimeError("Impossible to plot as plotly cannot be imported.")
-
-        self._layout = {}
-        self._layout["substations"] = substation_layout
-
-        self.subs_elements = [None for _ in observation_space.sub_info]
 
         # define a color palette, whatever...
         sns.set()
@@ -238,62 +240,9 @@ class PlotObs(object):
         pal = sns.light_palette("darkred", 8)
         self.cols = pal.as_hex()[1:]
 
-        self.radius_sub = radius_sub
-        self.load_prod_dist = load_prod_dist # distance between load and generator to the center of the substation
-        self.bus_radius = bus_radius
-        # get the element in each substation
-        for sub_id in range(observation_space.sub_info.shape[0]):
-            this_sub = {}
-            objs = observation_space.get_obj_connect_to(substation_id=sub_id)
-
-            for c_id in objs["loads_id"]:
-                # TODO here get the proper name
-                c_nm = self._get_load_name(sub_id, c_id)
-                this_load = {}
-                this_load["type"] = "load"
-                this_load["sub_pos"] = observation_space.load_to_sub_pos[c_id]
-                this_sub[c_nm] = this_load
-
-            for g_id in objs["generators_id"]:
-                # TODO here get the proper name
-                g_nm = self._get_gen_name(sub_id, g_id)
-                this_gen = {}
-                this_gen["type"] = "gen"
-                this_gen["sub_pos"] = observation_space.gen_to_sub_pos[g_id]
-                this_sub[g_nm] = this_gen
-
-            for lor_id in objs["lines_or_id"]:
-                # TODO here get the proper name
-                ext_id = observation_space.line_ex_to_subid[lor_id]
-                l_nm = self._get_line_name(sub_id, ext_id, lor_id)
-                this_line = {}
-                this_line["type"] = "line"
-                this_line["sub_pos"] = observation_space.line_or_to_sub_pos[lor_id]
-                this_sub[l_nm] = this_line
-
-            for lex_id in objs["lines_ex_id"]:
-                # TODO here get the proper name
-                or_id = observation_space.line_or_to_subid[lex_id]
-                l_nm = self._get_line_name(or_id, sub_id, lex_id)
-                this_line = {}
-                this_line["type"] = "line"
-                this_line["sub_pos"] = observation_space.line_ex_to_sub_pos[lex_id]
-                this_sub[l_nm] = this_line
-
-            self.subs_elements[sub_id] = this_sub
-        self.observation_space = observation_space
-
-    def _get_line_name(self, subor_id, sub_ex_id, line_id):
-        l_nm = 'l_{}_{}_{}'.format(subor_id, sub_ex_id, line_id)
-        return l_nm
-
-    def _get_load_name(self, sub_id, c_id):
-        c_nm = "load_{}_{}".format(sub_id, c_id)
-        return c_nm
-
-    def _get_gen_name(self, sub_id, g_id):
-        p_nm = 'gen_{}_{}'.format(sub_id, g_id)
-        return p_nm
+    def plot_observation(self, observation, fig=None):
+        res = self.get_plot_observation(observation, fig=fig)
+        return res
 
     def get_plot_observation(self, observation, fig=None):
         """
@@ -324,9 +273,6 @@ class PlotObs(object):
         if fig is None:
             fig = go.Figure()
 
-        # draw substation
-        substation_layout = [draw_sub(el, radius=self.radius_sub) for i, el in enumerate(self._layout["substations"])]
-
         # draw name of substation
         # fig.add_trace(go.Scatter(x=[el for el, _ in self._layout["substations"]],
         #                          y=[el for _, el in self._layout["substations"]],
@@ -339,6 +285,8 @@ class PlotObs(object):
             # if more than 1 observation are displayed one after the other.
             self._compute_layout(observation)
 
+        # draw substation
+        subs = self._draw_subs(observation=observation)
         # draw powerlines
         lines = self._draw_powerlines(observation, fig)
         # draw the loads
@@ -348,7 +296,7 @@ class PlotObs(object):
         # draw the topologies
         topos = self._draw_topos(observation, fig)
         # update the figure with all these information
-        fig.update_layout(shapes=substation_layout + lines + loads + gens + topos)
+        fig.update_layout(shapes=subs + lines + loads + gens + topos)
 
         # update legend, background color, size of the plot etc.
         fig.update_xaxes(range=[np.min([el for el, _ in self._layout["substations"]]) - 1.5 * (self.radius_sub + self.load_prod_dist),
@@ -368,6 +316,10 @@ class PlotObs(object):
         )
         return fig
 
+    def _draw_sub(self, center):
+        res = draw_sub(center, radius=self.radius_sub)
+        return res
+
     def _draw_powerlines(self, observation, fig):
         """
         Draw the powerline, between two substations.
@@ -384,16 +336,8 @@ class PlotObs(object):
 
         lines = []
         for line_id, (rho, status) in enumerate(zip(observation.rho, observation.line_status)):
-            # the next 5 lines are always the same, for each observation, it makes sense to compute it once
-            # and then reuse it
-
-            state = observation.state_of(line_id=line_id)
-            sub_or_id, sub_ex_id = self._layout["line"][line_id]
-
-            # TODO have the proper name
-            l_nm = self._get_line_name(sub_or_id, sub_ex_id, line_id)
-            pos_or = self.subs_elements[sub_or_id][l_nm]["pos"]
-            pos_ex = self.subs_elements[sub_ex_id][l_nm]["pos"]
+            # compute the coordinates of the powerlines (coordinates of origin and extremity)
+            pos_or, pos_ex, *_ = self._get_line_coord(line_id)
 
             # this depends on the grid
             # on this powergrid, thermal limit are not set at all. They are basically random.
@@ -403,7 +347,7 @@ class PlotObs(object):
                                    rho=rho,
                                    color_palette=self.cols,
                                    status=status))
-            # TODO adjust position of labels...
+
             fig.add_trace(go.Scatter(x=[(pos_or[0] + pos_ex[0]) / 2],
                                      y=[(pos_or[1] + pos_ex[1]) / 2],
                                      text=["{:.1f}%".format(rho * 100)],
@@ -414,19 +358,7 @@ class PlotObs(object):
     def _draw_loads(self, observation, fig):
         loads = []
         for c_id, por in enumerate(observation.load_p):
-            state = observation.state_of(load_id=c_id)
-            sub_id = state["sub_id"]
-            c_nm = self._get_load_name(sub_id, c_id)
-
-            pos_load_sub = self.subs_elements[sub_id][c_nm]["pos"]
-            pos_center_sub = self._layout["substations"][sub_id]
-
-            z_sub = (pos_center_sub[0] + 1j * pos_center_sub[1])
-            theta = cmath.phase((self.subs_elements[sub_id][c_nm]["z"] - z_sub))
-            pos_load = z_sub + cmath.exp(1j * theta) * self.load_prod_dist
-
-            # position of the end of the line connecting the object to the substation
-            pos_end_line = pos_load - cmath.exp(1j * theta) * 20
+            pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(c_id)
 
             # add the MW load
             fig.add_trace(go.Scatter(x=[pos_load.real],
@@ -453,23 +385,11 @@ class PlotObs(object):
     def _draw_gens(self, observation, fig):
         gens = []
         for g_id, por in enumerate(observation.prod_p):
-            state = observation.state_of(gen_id=g_id)
-            sub_id = state["sub_id"]
-            g_nm = self._get_gen_name(sub_id, g_id)
-
-            pos_load_sub = self.subs_elements[sub_id][g_nm]["pos"]
-            pos_center_sub = self._layout["substations"][sub_id]
-
-            z_sub = (pos_center_sub[0] + 1j * pos_center_sub[1])
-            theta = cmath.phase((self.subs_elements[sub_id][g_nm]["z"] - z_sub))
-            pos_load = z_sub + cmath.exp(1j * theta) * self.load_prod_dist
-
-            # position of the end of the line connecting the object to the substation
-            pos_end_line = pos_load - cmath.exp(1j * theta) * 20
+            pos_end_line, pos_gen_sub, pos_gen, how_center = self._get_gen_coord(g_id)
 
             # add the MW load
-            fig.add_trace(go.Scatter(x=[pos_load.real],
-                                     y=[pos_load.imag],
+            fig.add_trace(go.Scatter(x=[pos_gen.real],
+                                     y=[pos_gen.imag],
                                      text=["+ {:.0f} MW".format(por)],
                                      mode="text",
                                      showlegend=False))
@@ -481,8 +401,8 @@ class PlotObs(object):
                 yref="y",
                 x0=pos_end_line.real,
                 y0=pos_end_line.imag,
-                x1=pos_load_sub[0],
-                y1=pos_load_sub[1],
+                x1=pos_gen_sub[0],
+                y1=pos_gen_sub[1],
                 line=dict(
                 )
             )
@@ -492,39 +412,12 @@ class PlotObs(object):
     def _draw_topos(self, observation, fig):
         res_topo = []
         for sub_id, elements in enumerate(self.subs_elements):
-            pos_center_sub = self._layout["substations"][sub_id]
-            z_sub = (pos_center_sub[0] + 1j * pos_center_sub[1])
 
-            tmp = observation.state_of(substation_id=sub_id)
-            if tmp["nb_bus"] == 1:
-                # not to overload the plot, if everything is at the same bus, i don't plot it
+            buses_z, bus_vect = self._get_topo_coord(sub_id, observation, elements)
+
+            if not buses_z:
+                # I don't plot details of substations with 1 bus for better quality
                 continue
-            # I have at least 2 buses
-
-            # I compute the position of each elements
-            bus_vect = tmp["topo_vect"]
-
-            # i am not supposed to have more than 2 buses
-            buses_z = [None, None]  # center of the different buses
-            nb_co = [0, 0]  # center of the different buses
-
-            # the position of a bus is for now the average of all the elements in there
-            for el_nm, dict_el in elements.items():
-                this_el_bus = bus_vect[dict_el["sub_pos"]] - 1
-                if this_el_bus >= 0:
-                    nb_co[this_el_bus] += 1
-                    if buses_z[this_el_bus] is None:
-                        buses_z[this_el_bus] = dict_el["z"]
-                    else:
-                        buses_z[this_el_bus] += dict_el["z"]
-            buses_z = [el / nb for el, nb in zip(buses_z, nb_co)]
-            theta_z = [cmath.phase((el - z_sub)) for el in buses_z]
-            m_ = np.mean(theta_z) - cmath.pi / 2
-            theta_z = [el-m_ for el in theta_z]
-            buses_z = [z_sub + (self.radius_sub-self.bus_radius)*0.75*cmath.exp(1j * theta) for theta in theta_z]
-
-            # TODO don't just do the average, but afterwards split it more evenly, and at a fixed distance from the
-            # center of the substation
 
             # I plot the buses
             for bus_id, z_bus in enumerate(buses_z):
@@ -556,91 +449,3 @@ class PlotObs(object):
                         line=dict(color='#ff7f0e' if this_el_bus == 0 else '#1f77b4'))
                     res_topo.append(res)
         return res_topo
-
-    def _compute_layout(self, observation):
-        """
-        Compute the position of each of the objects.
-
-        Parameters
-        ----------
-        observation: :class:`grid2op.Observation.Observation`
-            The observation used to know which object belong where.
-
-        Returns
-        -------
-
-        """
-        self._layout["line"] = {}
-
-        # assign powerline coordinates
-        for line_id in range(len(observation.rho)):
-            if line_id not in self._layout["line"]:
-                state = observation.state_of(line_id=line_id)
-                sub_or_id = state["origin"]["sub_id"]
-                sub_ex_id = state["extremity"]["sub_id"]
-                pos_or = self._layout["substations"][sub_or_id]
-                pos_ex = self._layout["substations"][sub_ex_id]
-
-                # make sure the powerline are connected to the circle of the substation and not to the center of it
-                z_or_tmp = pos_or[0] + 1j * pos_or[1]
-                z_ex_tmp = pos_ex[0] + 1j * pos_ex[1]
-
-                module_or = cmath.phase(z_ex_tmp - z_or_tmp)
-                module_ex = cmath.phase(- (z_ex_tmp - z_or_tmp))
-
-                # check parrallel lines:
-                # for now it works only if there are 2 parrallel lines. The idea is to add / withdraw
-                # 10° for each module in this case.
-                # TODO draw line but not straight line in this case, this looks ugly for now :-/
-                deg_parrallel = 25
-                tmp_parrallel = self.observation_space.get_lines_id(from_=sub_or_id, to_=sub_ex_id)
-                if len(tmp_parrallel) > 1:
-                    if line_id == tmp_parrallel[0]:
-                        module_or += deg_parrallel / 360 * 2 * cmath.pi
-                        module_ex -= deg_parrallel / 360 * 2 * cmath.pi
-                    else:
-                        module_or -= deg_parrallel / 360 * 2 * cmath.pi
-                        module_ex += deg_parrallel / 360 * 2 * cmath.pi
-
-                z_or = z_or_tmp + self.radius_sub * cmath.exp(module_or * 1j)
-                z_ex = z_ex_tmp + self.radius_sub * cmath.exp(module_ex * 1j)
-                pos_or = z_or.real, z_or.imag
-                pos_ex = z_ex.real, z_ex.imag
-                self._layout["line"][line_id] = sub_or_id, sub_ex_id
-                # TODO here get proper name
-                l_nm = self._get_line_name(sub_or_id, sub_ex_id, line_id)
-
-                self.subs_elements[sub_or_id][l_nm]["pos"] = pos_or
-                self.subs_elements[sub_or_id][l_nm]["z"] = z_or
-                self.subs_elements[sub_ex_id][l_nm]["pos"] = pos_ex
-                self.subs_elements[sub_ex_id][l_nm]["z"] = z_ex
-
-        # assign loads and generators coordinates
-        # this is done by first computing the "optimal" placement if there were only substation (so splitting equally
-        # the objects around the circle) and then remove the closest position that are taken by the powerlines.
-        for sub_id, elements in enumerate(self.subs_elements):
-            nb_el = len(elements)
-
-            # equally split
-            pos_sub = self._layout["substations"][sub_id]
-            z_sub = pos_sub[0] + 1j * pos_sub[1]
-            pos_possible = [self.radius_sub * cmath.exp(1j * 2 * cmath.pi * i / nb_el) + z_sub
-                            for i in range(nb_el)]
-
-            # remove powerlines (already assigned)
-            for el_nm, dict_el in elements.items():
-                if dict_el["type"] == "line":
-                    z = dict_el["z"]
-                    closest = np.argmin([abs(pos - z)**2 for pos in pos_possible])
-                    pos_possible = [el for i, el in enumerate(pos_possible) if i != closest]
-
-            i = 0
-            # now assign load and generator
-            for el_nm, dict_el in elements.items():
-                if dict_el["type"] != "line":
-                    dict_el["pos"] = (pos_possible[i].real, pos_possible[i].imag)
-                    dict_el["z"] = pos_possible[i]
-                    i += 1
-
-
-

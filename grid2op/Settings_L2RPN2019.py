@@ -364,12 +364,16 @@ class L2RPN2019_Action(Action):
     #         self._set_topo_vect[self.line_ex_pos_topo_vect[sel_]] = 1
     #         self._set_topo_vect[self.line_or_pos_topo_vect[sel_]] = 1
 
-    def sample(self):
+    def sample(self, space_prng):
         """
         Sample a PowerlineSwitch Action.
 
         By default, this sampling will act on one random powerline, and it will either
         disconnect it or reconnect it each with equal probability.
+
+        Parameters
+        ----------
+        space_prng
 
         Returns
         -------

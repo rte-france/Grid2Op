@@ -68,7 +68,7 @@ class ObsCH(object):
         return []
 
 
-class ObsEnv(object):
+class ObsEnv(GridObjects):
     """
     This class is an 'Emulator' of a :class:`grid2op.Environment` used to be able to 'simulate' forecasted grid states.
     It should not be used outside of an :class:`grid2op.Observation` instance, or one of its derivative.
@@ -78,6 +78,9 @@ class ObsEnv(object):
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self, backend_instanciated, parameters, reward_helper, obsClass, action_helper):
+        GridObjects.__init__(self)
+        self.init_grid(backend_instanciated)
+
         self.timestep_overflow = None
         # self.action_helper = action_helper
         self.hard_overflow_threshold = parameters.HARD_OVERFLOW_THRESHOLD
@@ -99,13 +102,20 @@ class ObsEnv(object):
 
         self.chronics_handler = ObsCH()
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
-        self.times_before_topology_actionable = np.zeros(shape=(self.backend.n_sub,), dtype=np.int)
-        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=np.int)
 
         # TODO handle that in forecast!
-        self.time_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.backend.n_line,), dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
+
+        # TOD handle that too !!!
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
+        self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
 
     def copy(self):
         """
@@ -293,50 +303,50 @@ class Observation(GridObjects):
         The current day of the week. Monday = 0, Sunday = 6
 
     prod_p: :class:`numpy.ndarray`, dtype:float
-        The active production value of each generator
+        The active production value of each generator (expressed in MW).
 
     prod_q: :class:`numpy.ndarray`, dtype:float
-        The reactive production value of each generator
+        The reactive production value of each generator (expressed in MVar).
 
     prod_v: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude of the bus to which each generator is connected
+        The voltage magnitude of the bus to which each generator is connected (expressed in V).
 
     load_p: :class:`numpy.ndarray`, dtype:float
-        The active load value of each consumption
+        The active load value of each consumption (expressed in MW).
 
     load_q: :class:`numpy.ndarray`, dtype:float
-        The reactive load value of each consumption
+        The reactive load value of each consumption (expressed in MVar).
 
     load_v: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude of the bus to which each consumption is connected
+        The voltage magnitude of the bus to which each consumption is connected (expressed in V).
 
     p_or: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the origin end of each powerline
+        The active power flow at the origin end of each powerline (expressed in MW).
 
     q_or: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the origin end of each powerline
+        The reactive power flow at the origin end of each powerline (expressed in MVar).
 
     v_or: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the origin end of each powerline is connected
+        The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in V).
 
     a_or: :class:`numpy.ndarray`, dtype:float
-        The current flow at the origin end of each powerline
+        The current flow at the origin end of each powerline (expressed in A).
 
     p_ex: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the extremity end of each powerline
+        The active power flow at the extremity end of each powerline (expressed in MW).
 
     q_ex: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the extremity end of each powerline
+        The reactive power flow at the extremity end of each powerline (expressed in MVar).
 
     v_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the extremity end of each powerline is connected
+        The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in V).
 
     a_ex: :class:`numpy.ndarray`, dtype:float
-        The current flow at the extremity end of each powerline
+        The current flow at the extremity end of each powerline (expressed in A).
 
     rho: :class:`numpy.ndarray`, dtype:float
         The capacity of each powerline. It is defined at the observed current flow divided by the thermal limit of each
-        powerline.
+        powerline (no unit)
 
     connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
         The connectivityt matrix (if computed, or None) see definition of :func:`connectivity_matrix` for
@@ -397,6 +407,20 @@ class Observation(GridObjects):
             - there is a `1`, `2`, ... the powerline will be disconnected for at least `1`, `2`, ... timestep (**NB**
               in all case, the powerline will stay disconnected until a :class:`grid2op.Agent.Agent` performs the
               proper :class:`grid2op.Action.Action` to reconnect it).
+
+    target_dispatch: :class:`numpy.ndarray`, dtype:float
+        For **each** generators, it gives the target redispatching, asked by the agent. This is the sum of all
+        redispatching asked by the agent for during all the episode. It for each generator it is a number between:
+        - pmax and pmax. Note that there is information about all generators there, even the one that are not
+        dispatchable.
+
+    actual_dispatch: :class:`numpy.ndarray`, dtype:float
+        For **each** generators, it gives the redispatching currently implemented by the environment.
+        Indeed, the environment tries to implement at best the :attr:`Observation.target_dispatch`, but sometimes,
+        due to physical limitation (pmin, pmax, ramp min and ramp max) it cannot. In this case, only the best possible
+        redispatching is implemented at the current time step, and this is what this vector stores. Note that there is
+        information about all generators there, even the one that are not
+        dispatchable.
 
     """
     def __init__(self, gridobj,
@@ -466,6 +490,10 @@ class Observation(GridObjects):
         self.bus_connectivity_matrix_ = None
         self.vectorized = None
 
+        # redispatching
+        self.target_dispatch = None
+        self.actual_dispatch = None
+
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
 
@@ -517,6 +545,9 @@ class Observation(GridObjects):
                 - "v" the voltage magnitude of the bus to which the generator is connected
                 - "bus" on which bus the generator is connected in the substation
                 - "sub_id" the id of the substation to which the generator is connected
+                - "actual_dispatch" the actual dispatch implemented for this generator
+                - "target_dispatch" the target dispatch (cumulation of all previously asked dispatch by the agent)
+                  for this generator
 
             - if a powerline is inspected then the keys are "origin" and "extremity" each being dictionnary with keys:
 
@@ -579,7 +610,9 @@ class Observation(GridObjects):
                    "q": self.prod_q[gen_id],
                    "v": self.prod_v[gen_id],
                    "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
-                   "sub_id": self.gen_to_subid[gen_id]
+                   "sub_id": self.gen_to_subid[gen_id],
+                   "target_dispatch": self.target_dispatch[gen_id],
+                   "actual_dispatch": self.target_dispatch[gen_id]
                    }
         elif line_id is not None:
             if substation_id is not None:
@@ -691,6 +724,10 @@ class Observation(GridObjects):
         self._forecasted_inj = []
         self._forecasted_grid = []
 
+        # redispatching
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+
     def __compare_stats(self, other, name):
         if self.__dict__[name] is None and other.__dict__[name] is not None:
             return False
@@ -791,7 +828,8 @@ class Observation(GridObjects):
                         "time_before_cooldown_sub",
                         "time_before_line_reconnectable",
                         "time_next_maintenance",
-                        "duration_next_maintenance"
+                        "duration_next_maintenance",
+                        "target_dispatch", "actual_dispatch"
                         ]:
             if not self.__compare_stats(other, stat_nm):
                 # one of the above stat is not equal in this and in other
@@ -982,6 +1020,10 @@ class CompleteObservation(Observation):
             no maintenance are planned, 0 a maintenance is in operation) [:attr:`Observation.n_line` elements]
         29. :attr:`Observation.duration_next_maintenance` duration of the next maintenance. If a maintenance
             is taking place, this is the number of timestep before it ends. [:attr:`Observation.n_line` elements]
+        30. :attr:`Observation.target_dispatch` the target dispatch for each generator
+            [:attr:`Observation.n_gen` elements]
+        31. :attr:`Observation.actual_dispatch` the actual dispatch for each generator
+            [:attr:`Observation.n_gen` elements]
 
     This behavior is specified in the :attr:`Observation.attr_list_vect` vector.
 
@@ -1011,7 +1053,8 @@ class CompleteObservation(Observation):
                                "topo_vect", "time_before_cooldown_line",
                                "time_before_cooldown_line", "time_before_cooldown_sub",
                                "time_before_line_reconnectable",
-                               "time_next_maintenance", "duration_next_maintenance"
+                               "time_next_maintenance", "duration_next_maintenance",
+                               "target_dispatch", "actual_dispatch"
                                ]
 
     def _reset_matrices(self):
@@ -1068,6 +1111,10 @@ class CompleteObservation(Observation):
         self.time_before_line_reconnectable = env.time_remaining_before_line_reconnection
         self.time_next_maintenance = env.time_next_maintenance
         self.duration_next_maintenance = env.duration_next_maintenance
+
+        # redispatching
+        self.target_dispatch = env.target_dispatch
+        self.actual_dispatch = env.actual_dispatch
 
     def from_vect(self, vect):
         """
@@ -1128,6 +1175,9 @@ class CompleteObservation(Observation):
             self.dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
             self.dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
             self.dictionnarized["time_before_line_reconnectable"] = self.time_before_line_reconnectable
+            self.dictionnarized["redispatching"] = {}
+            self.dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
+            self.dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
 
         return self.dictionnarized
 
@@ -1159,7 +1209,9 @@ class CompleteObservation(Observation):
             beg_ = 0
             end_ = 0
             for sub_id, nb_obj in enumerate(self.sub_info):
-                nb_obj = int(nb_obj)  # i must be a vanilla python integer, otherwise it's not handled by boost python method to index substations for example.
+                # it must be a vanilla python integer, otherwise it's not handled by some backend
+                # especially if written in c++
+                nb_obj = int(nb_obj)
                 end_ += nb_obj
                 tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=np.float)
                 for obj1 in range(nb_obj):
@@ -1230,26 +1282,6 @@ class CompleteObservation(Observation):
                 #     pdb.set_trace()
         return self.bus_connectivity_matrix_
 
-    def size(self):
-        """
-        Return the size of the flatten observation vector.
-        For this CompletObservation:
-
-            - 6 calendar data
-            - each generator is caracterized by 3 values: p, q and v
-            - each load is caracterized by 3 values: p, q and v
-            - each end of a powerline by 4 values: flow p, flow q, v, current flow
-            - each line have also a status
-            - each line can also be impossible to reconnect
-            - the topology vector of dim `dim_topo`
-
-        :return: the size of the flatten observation vector.
-        """
-        # TODO documentation (update)
-        # res = 6 + 3 * self.n_gen + 3 * self.n_load + 15 * self.n_line + self.dim_topo + self.n_sub
-        res = np.sum(self.shape())
-        return res
-
 
 class SerializableObservationSpace(SerializableSpace):
     """
@@ -1276,7 +1308,7 @@ class SerializableObservationSpace(SerializableSpace):
         gridobj: :class:`grid2op.Space.GridObjects`
             Representation of the objects in the powergrid.
 
-        actionClass: ``type``
+        observationClass: ``type``
             Type of action used to build :attr:`Space.SerializableSpace.template_obj`
 
         """
@@ -1330,7 +1362,8 @@ class ObservationHelper(SerializableObservationSpace):
 
     rewardClass: ``type``
         Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
-        :class:`grid2op.Agent.Agent`
+        :class:`grid2op.Agent.Agent`. You can change this class to differentiate between the reward of output of
+        :func:`Observation.simulate`  and the reward used to train the Agent.
 
     action_helper_env: :class:`grid2op.Action.HelperAction`
         Action space used to create action during the :func:`Observation.simulate`

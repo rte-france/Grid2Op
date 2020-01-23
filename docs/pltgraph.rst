@@ -1,7 +1,7 @@
-Interactive plot with plotly
+Basic plotting utilities
 ===================================
 
-.. automodule:: grid2op.PlotPlotly
+.. automodule:: grid2op.PlotGraph
     :members:
     :special-members:
 

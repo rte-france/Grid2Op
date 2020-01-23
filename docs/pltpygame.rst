@@ -1,7 +1,7 @@
-Interactive plot with plotly
+Renderer with pygame
 ===================================
 
-.. automodule:: grid2op.PlotPlotly
+.. automodule:: grid2op.PlotPyGame
     :members:
     :special-members:
 
