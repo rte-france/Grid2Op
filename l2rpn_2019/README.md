@@ -6,3 +6,4 @@ conditions that are as close as possible to the codalab environment.
 
 It also has the getting started notebooks for this previous competition.
 
+TODO: add getting started of the competition, plus the notebooks to make agent run locally.

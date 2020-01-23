@@ -19,6 +19,7 @@ import copy
 
 PATH_DATA = os.path.abspath(os.path.join("data", "data_l2rpn_2019"))
 
+# todo add confirmation to download data
 
 def make_env(path_data=PATH_DATA):
     env = grid2op.make("l2rpn_2019", chronics_class=path_data)

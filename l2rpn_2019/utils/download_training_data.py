@@ -24,6 +24,8 @@ def download_url(url, output_path):
 
 
 if __name__ == "__main__":
+    # todo add argparse
+
     url = "https://github.com/BDonnot/Grid2Op/releases/download/data_l2rpn_2019/data_l2rpn_2019.tar.bz2"
     path_data = "data"
     output_path = os.path.abspath(os.path.join(path_data, "data_l2rpn_2019.tar.bz2"))

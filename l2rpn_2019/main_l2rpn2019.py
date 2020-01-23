@@ -31,6 +31,7 @@ if __name__ == "__main__":
         path_parameter = None
 
     if not os.path.exists(args.path_chronics):
+        # todo complete that
         raise RuntimeError("Unable to find L2RPN 2019 chronics at \"{}\". You can download the training"
                            "set with \"python utils\\\"".format(args.path_chronics))
 
