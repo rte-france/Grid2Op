@@ -309,7 +309,7 @@ class Observation(GridObjects):
         The reactive production value of each generator (expressed in MVar).
 
     prod_v: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude of the bus to which each generator is connected (expressed in V).
+        The voltage magnitude of the bus to which each generator is connected (expressed in kV).
 
     load_p: :class:`numpy.ndarray`, dtype:float
         The active load value of each consumption (expressed in MW).
@@ -318,7 +318,7 @@ class Observation(GridObjects):
         The reactive load value of each consumption (expressed in MVar).
 
     load_v: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude of the bus to which each consumption is connected (expressed in V).
+        The voltage magnitude of the bus to which each consumption is connected (expressed in kV).
 
     p_or: :class:`numpy.ndarray`, dtype:float
         The active power flow at the origin end of each powerline (expressed in MW).
@@ -327,7 +327,7 @@ class Observation(GridObjects):
         The reactive power flow at the origin end of each powerline (expressed in MVar).
 
     v_or: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in V).
+        The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in kV).
 
     a_or: :class:`numpy.ndarray`, dtype:float
         The current flow at the origin end of each powerline (expressed in A).
@@ -339,7 +339,7 @@ class Observation(GridObjects):
         The reactive power flow at the extremity end of each powerline (expressed in MVar).
 
     v_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in V).
+        The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in kV).
 
     a_ex: :class:`numpy.ndarray`, dtype:float
         The current flow at the extremity end of each powerline (expressed in A).
