@@ -303,50 +303,50 @@ class Observation(GridObjects):
         The current day of the week. Monday = 0, Sunday = 6
 
     prod_p: :class:`numpy.ndarray`, dtype:float
-        The active production value of each generator
+        The active production value of each generator (expressed in MW).
 
     prod_q: :class:`numpy.ndarray`, dtype:float
-        The reactive production value of each generator
+        The reactive production value of each generator (expressed in MVar).
 
     prod_v: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude of the bus to which each generator is connected
+        The voltage magnitude of the bus to which each generator is connected (expressed in V).
 
     load_p: :class:`numpy.ndarray`, dtype:float
-        The active load value of each consumption
+        The active load value of each consumption (expressed in MW).
 
     load_q: :class:`numpy.ndarray`, dtype:float
-        The reactive load value of each consumption
+        The reactive load value of each consumption (expressed in MVar).
 
     load_v: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude of the bus to which each consumption is connected
+        The voltage magnitude of the bus to which each consumption is connected (expressed in V).
 
     p_or: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the origin end of each powerline
+        The active power flow at the origin end of each powerline (expressed in MW).
 
     q_or: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the origin end of each powerline
+        The reactive power flow at the origin end of each powerline (expressed in MVar).
 
     v_or: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the origin end of each powerline is connected
+        The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in V).
 
     a_or: :class:`numpy.ndarray`, dtype:float
-        The current flow at the origin end of each powerline
+        The current flow at the origin end of each powerline (expressed in A).
 
     p_ex: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the extremity end of each powerline
+        The active power flow at the extremity end of each powerline (expressed in MW).
 
     q_ex: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the extremity end of each powerline
+        The reactive power flow at the extremity end of each powerline (expressed in MVar).
 
     v_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the extremity end of each powerline is connected
+        The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in V).
 
     a_ex: :class:`numpy.ndarray`, dtype:float
-        The current flow at the extremity end of each powerline
+        The current flow at the extremity end of each powerline (expressed in A).
 
     rho: :class:`numpy.ndarray`, dtype:float
         The capacity of each powerline. It is defined at the observed current flow divided by the thermal limit of each
-        powerline.
+        powerline (no unit)
 
     connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
         The connectivityt matrix (if computed, or None) see definition of :func:`connectivity_matrix` for
@@ -1362,7 +1362,8 @@ class ObservationHelper(SerializableObservationSpace):
 
     rewardClass: ``type``
         Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
-        :class:`grid2op.Agent.Agent`
+        :class:`grid2op.Agent.Agent`. You can change this class to differentiate between the reward of output of
+        :func:`Observation.simulate`  and the reward used to train the Agent.
 
     action_helper_env: :class:`grid2op.Action.HelperAction`
         Action space used to create action during the :func:`Observation.simulate`

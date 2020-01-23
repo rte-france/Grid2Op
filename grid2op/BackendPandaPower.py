@@ -149,7 +149,10 @@ class PandaPowerBackend(Backend):
         if not os.path.exists(full_path):
             raise RuntimeError("There is no powergrid at \"{}\"".format(full_path))
 
-        self._grid = pp.from_json(full_path)
+        with warnings.catch_warnings():
+            # remove deprecationg warnings for old version of pandapower
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self._grid = pp.from_json(full_path)
 
         # add the slack bus that is often not modeled as a generator, but i need it for this backend to work
         bus_gen_added = None
@@ -305,24 +308,10 @@ class PandaPowerBackend(Backend):
         add_topo["in_service"] = False
         self._grid.bus = pd.concat((self._grid.bus, add_topo))
 
-        self.prod_pu_to_kv = self._grid.bus["vn_kv"][self._grid.gen["bus"]].values
-        self.load_pu_to_kv = self._grid.bus["vn_kv"].values[self._grid.load["bus"]]
-        for i, (_, row) in enumerate(self._grid.load.iterrows()):
-            self.load_pu_to_kv[i] = self._grid.bus["vn_kv"][row["bus"]]
-        for i, (_, row) in enumerate(self._grid.gen.iterrows()):
-            self.prod_pu_to_kv[i] = self._grid.bus["vn_kv"][row["bus"]]
-
-        self.lines_or_pu_to_kv  = np.concatenate((self._grid.bus["vn_kv"][self._grid.line["from_bus"].values],
-                                self._grid.bus["vn_kv"][self._grid.trafo["hv_bus"].values]))
-        self.lines_ex_pu_to_kv = np.concatenate((self._grid.bus["vn_kv"][self._grid.line["to_bus"].values],
-                                self._grid.bus["vn_kv"][self._grid.trafo["lv_bus"].values]))
-
-        for i, (_, row) in enumerate(self._grid.line.iterrows()):
-            self.lines_or_pu_to_kv[i] = self._grid.bus["vn_kv"][row["from_bus"]]
-            self.lines_or_pu_to_kv[i] = self._grid.bus["vn_kv"][row["to_bus"]]
-        for i, (_, row) in enumerate(self._grid.trafo.iterrows()):
-            self.lines_or_pu_to_kv[i] = self._grid.bus["vn_kv"][row["hv_bus"]]
-            self.lines_or_pu_to_kv[i] = self._grid.bus["vn_kv"][row["lv_bus"]]
+        self.load_pu_to_kv = self._grid.bus["vn_kv"][self.load_to_subid].values
+        self.prod_pu_to_kv  = self._grid.bus["vn_kv"][self.gen_to_subid].values
+        self.lines_or_pu_to_kv = self._grid.bus["vn_kv"][self.line_or_to_subid].values
+        self.lines_ex_pu_to_kv = self._grid.bus["vn_kv"][self.line_ex_to_subid].values
 
         self._nb_bus_before = self.get_nb_active_bus()
 
@@ -345,7 +334,8 @@ class PandaPowerBackend(Backend):
         """
 
         if not isinstance(action, Action):
-            raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not \"{}\"".format(action.__class__))
+            raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not "
+                                     "\"{}\"".format(action.__class__))
 
         # change the _injection if needed
         dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching = action()
@@ -357,26 +347,16 @@ class PandaPowerBackend(Backend):
                 ok_ind = np.isfinite(val)
                 if k == "prod_v":
                     pass
-                    # continue
                     # convert values back to pu
-                    val /= self.prod_pu_to_kv # self._grid.bus["vn_kv"][self._grid.gen["bus"]].values
-                    # try:
+                    val /= self.prod_pu_to_kv  # self._grid.bus["vn_kv"][self._grid.gen["bus"]].values
                     if self._id_bus_added is not None:
                         # in this case the slack bus where not modeled as an independant generator in the
                         # original data
                         if np.isfinite(val[self._id_bus_added]):
                             # handling of the slack bus, where "2" generators are present.
                             pass
-                            # self._grid._ppc['gen'][self._iref_slack, 5] = val[self._id_bus_added]
-                            # self._grid._ppc['gen'][-1, 5] = val[self._id_bus_added]
                             self._grid["ext_grid"]["vm_pu"] = val[self._id_bus_added]
-                    # ok_ind[self._id_bus_added] = False
-                    # except:
-                    #    pdb.set_trace()
                 tmp[ok_ind] = val[ok_ind]
-                # if k == "prod_v":
-                #    pass
-                #    pdb.set_trace()
             else:
                 warn = "The key {} is not recognized by PandaPowerBackend when setting injections value.".format(k)
                 warnings.warn(warn)
@@ -426,20 +406,14 @@ class PandaPowerBackend(Backend):
                         if nb_bus_before > nb_bus_now:
                             # i must deactivate the unused bus
                             self._grid.bus["in_service"][sub_id + self.n_sub] = False
-                            # print("I deactivated bus {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
                         elif nb_bus_before < nb_bus_now:
                             # i must activate the new bus
                             self._grid.bus["in_service"][sub_id + self.n_sub] = True
-                            # print("I reactivated second bus of substation {} [before: {}; after {}]".format(sub_id,nb_bus_before,nb_bus_now))
 
                         # now assign the proper bus to each element
                         for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
                             self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
 
-                            #if table == "line" or table == "trafo":
-                            #    # I connect it if it was disconnected
-                            #    self._grid[table]["in_service"].iloc[row_id] = True
-                            #    print("I reconnected a powerline")
                     beg_ += nb_obj
 
         # change line status if needed
@@ -467,7 +441,8 @@ class PandaPowerBackend(Backend):
                         bus_or = set_topo_vect[self.line_or_pos_topo_vect[i]]
                         bus_ex = set_topo_vect[self.line_ex_pos_topo_vect[i]]
                         if bus_ex == 0 or bus_or == 0:
-                            raise InvalidLineStatus("Line {} was disconnected. The action switched its status, without providing buses to connect it on both ends.".format(i))
+                            raise InvalidLineStatus("Line {} was disconnected. The action switched its status, "
+                                                    "without providing buses to connect it on both ends.".format(i))
                         # reconnection has then be handled in the topology
                         df["in_service"].iloc[tmp] = True
 
@@ -510,16 +485,12 @@ class PandaPowerBackend(Backend):
                     # sometimes pandapower does not detect divergence and put Nan.
                     raise pp.powerflow.LoadflowNotConverged
 
-                # if self._grid.res_load.isnull().values.any():
-                #     # TODO see if there is a better way here
-                #     # some loads are disconnected: it's a game over case!
-                #     raise pp.powerflow.LoadflowNotConverged
-
                 self.load_p, self.load_q, self.load_v = self._loads_info()
-                if not np.all(np.isfinite(self.load_v)):
-                    # TODO see if there is a better way here
-                    # some loads are disconnected: it's a game over case!
-                    raise pp.powerflow.LoadflowNotConverged
+                if not is_dc:
+                    if not np.all(np.isfinite(self.load_v)):
+                        # TODO see if there is a better way here
+                        # some loads are disconnected: it's a game over case!
+                        raise pp.powerflow.LoadflowNotConverged
 
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
                 self.p_or = self._aux_get_line_info("p_from_mw", "p_hv_mw")
@@ -643,7 +614,7 @@ class PandaPowerBackend(Backend):
     def _loads_info(self):
         load_p = 1. * self._grid.res_load["p_mw"].values
         load_q = 1. * self._grid.res_load["q_mvar"].values
-        load_v = self._grid.res_bus["vm_pu"].values[self._grid.load["bus"]] * self.load_pu_to_kv
+        load_v = self._grid.res_bus["vm_pu"][self.load_to_subid].values * self.load_pu_to_kv
         return load_p, load_q, load_v
 
     def loads_info(self):
@@ -658,7 +629,7 @@ class PandaPowerBackend(Backend):
     def shunt_info(self):
         shunt_p = copy.deepcopy(self._grid.res_shunt["p_mw"].values)
         shunt_q = copy.deepcopy(self._grid.res_shunt["q_mvar"].values)
-        shunt_v = self._grid.res_bus["vm_pu"].values[self._grid.shunt["bus"]] * self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
+        shunt_v = self._grid.res_bus["vm_pu"][self._grid.shunt["bus"]] * self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
         shunt_bus = self._grid.shunt["bus"].values
         return shunt_p, shunt_q, shunt_v, shunt_bus
 

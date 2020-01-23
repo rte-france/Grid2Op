@@ -52,11 +52,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                           line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
                                           line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]))
         # pdb.set_trace()
-        self.helper_action = HelperAction(self.gridobj,
-                                          game_rules=self.game_rules)
+        self.helper_action = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action)
 
-        self.helper_action_env = HelperAction(self.gridobj,
-                                              game_rules=self.game_rules,
+        self.helper_action_env = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action,
                                               actionClass=Action)
 
         self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
@@ -70,20 +68,20 @@ class TestLoadingBackendFunc(unittest.TestCase):
                     'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                     'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
                     'gen_to_subid': [0, 1, 2, 5, 7],
-                'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-                'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
-                'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
-                'gen_to_sub_pos': [2, 5, 3, 5, 1],
-                'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-                'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
-                'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
-                'gen_pos_topo_vect': [2, 8, 12, 29, 34],
-                'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
-                'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
-                'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
-                'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
-                'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
-                'subtype': 'Action.Action'}
+                    'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+                    'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+                    'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
+                    'gen_to_sub_pos': [2, 5, 3, 5, 1],
+                    'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+                    'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+                    'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
+                    'gen_pos_topo_vect': [2, 8, 12, 29, 34],
+                    'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
+                    'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
+                    'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
+                    'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
+                    'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
+                    'subtype': 'Action.Action'}
 
         self.size_act = 229
 
@@ -344,7 +342,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
-        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching action\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
+        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching ' \
+                  'action\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the ' \
+                  'following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of ' \
+                  'load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of ' \
+                  'the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - ' \
+                  'assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 ' \
+                  '[on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
         assert res == act_str
 
     def test_to_vect(self):
@@ -355,9 +359,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
-        tmp = np.array([np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
+        tmp = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                        0., 0., 0., 0., 0., 0.,
                         0., 0., 0., 0., 0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,

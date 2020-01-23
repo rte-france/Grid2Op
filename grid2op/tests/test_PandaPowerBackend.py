@@ -125,10 +125,55 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert self.compare_vect(p_or, true_values_ac)
 
     def test_voltage_convert_powerlines(self):
-        conv = self.backend.runpf(is_dc=True)
+        # i have the correct voltages in powerlines if the formula to link mw, mvar, kv and amps is correct
+        conv = self.backend.runpf(is_dc=False)
         assert conv
 
-        pdb.set_trace()
+        p_or, q_or, v_or, a_or = self.backend.lines_or_info()
+        a_th = np.sqrt(p_or ** 2 + q_or ** 2) * 1e3 / (np.sqrt(3) * v_or)
+        assert self.compare_vect(a_th, a_or)
+
+        p_ex, q_ex, v_ex, a_ex = self.backend.lines_ex_info()
+        a_th = np.sqrt(p_ex ** 2 + q_ex ** 2) * 1e3 / (np.sqrt(3) * v_ex)
+        assert self.compare_vect(a_th, a_ex)
+
+    def test_voltages_correct_load_gen(self):
+        # i have the right voltages to generators and load, if it's the same as the voltage (correct from the above test)
+        # of the powerline connected to it.
+
+        conv = self.backend.runpf(is_dc=False)
+        load_p, load_q, load_v = self.backend.loads_info()
+        gen_p, gen__q, gen_v = self.backend.generators_info()
+        p_or, q_or, v_or, a_or = self.backend.lines_or_info()
+        p_ex, q_ex, v_ex, a_ex = self.backend.lines_ex_info()
+
+        for c_id, sub_id in enumerate(self.backend.load_to_subid):
+            l_id = np.where(self.backend.line_or_to_subid == sub_id)[0]
+            if len(l_id):
+                l_id = l_id[0]
+                assert np.abs(v_or[l_id] - load_v[c_id]) <= self.tol_one, "problem for load {}".format(c_id)
+                continue
+
+            l_id = np.where(self.backend.line_ex_to_subid == sub_id)[0]
+            if len(l_id):
+                l_id = l_id[0]
+                assert np.abs(v_ex[l_id] - load_v[c_id]) <= self.tol_one, "problem for load {}".format(c_id)
+                continue
+            assert False, "load {} has not been checked".format(c_id)
+
+        for g_id, sub_id in enumerate(self.backend.gen_to_subid):
+            l_id = np.where(self.backend.line_or_to_subid == sub_id)[0]
+            if len(l_id):
+                l_id = l_id[0]
+                assert np.abs(v_or[l_id] - gen_v[g_id]) <= self.tol_one, "problem for generator {}".format(g_id)
+                continue
+
+            l_id = np.where(self.backend.line_ex_to_subid == sub_id)[0]
+            if len(l_id):
+                l_id = l_id[0]
+                assert np.abs(v_ex[l_id] - gen_v[g_id]) <= self.tol_one, "problem for generator {}".format(g_id)
+                continue
+            assert False, "generator {} has not been checked".format(g_id)
 
     def test_copy(self):
         conv = self.backend.runpf(is_dc=False)

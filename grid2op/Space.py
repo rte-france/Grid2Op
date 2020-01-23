@@ -83,9 +83,21 @@ class GridObjects:
 
         - method 1 (not recommended):
 
-          i) retrieve the substation to which this object is connected (for example looking at :attr:`GridObjects.line_or_to_subid` [l_id] to know on which substation is connected the origin of powerline with id $l_id$.)
-          ii) once this substation id is known, compute which are the components of the topological vector that encodes information about this substation. For example, if the substation id `sub_id` is 4, we a) count the number of elements in substations with id 0, 1, 2 and 3 (say it's 42) we know, by definition that the substation 4 is encoded in ,:attr:`grid2op.Observation.Observation.topo_vect` starting at component 42 and b) this substations has :attr:`GridObjects.sub_info` [sub_id] elements (for the sake of the example say it's 5) then the end of the vector for substation 4 will be 42+5 = 47. Finally, we got the representation of the "local topology" of the substation 4 by looking at :attr:`grid2op.Observation.Observation.topo_vect` [42:47].
-          iii) retrieve which component of this vector of dimension 5 (remember we assumed substation 4 had 5 elements) encodes information about the origin end of the line with id `l_id`. This information is given in :attr:`GridObjects.line_or_to_sub_pos` [l_id]. This is a number between 0 and 4, say it's 3. 3 being the index of the object in the substation)
+          i) retrieve the substation to which this object is connected (for example looking at
+             :attr:`GridObjects.line_or_to_subid` [l_id] to know on which substation is connected the origin of
+             powerline with id $l_id$.)
+          ii) once this substation id is known, compute which are the components of the topological vector that encodes
+              information about this substation. For example, if the substation id `sub_id` is 4, we a) count the number
+              of elements in substations with id 0, 1, 2 and 3 (say it's 42) we know, by definition that the substation
+              4 is encoded in ,:attr:`grid2op.Observation.Observation.topo_vect` starting at component 42 and b) this
+              substations has :attr:`GridObjects.sub_info` [sub_id] elements (for the sake of the example say it's 5)
+              then the end of the vector for substation 4 will be 42+5 = 47. Finally, we got the representation of the
+              "local topology" of the substation 4 by looking at
+              :attr:`grid2op.Observation.Observation.topo_vect` [42:47].
+          iii) retrieve which component of this vector of dimension 5 (remember we assumed substation 4 had 5 elements)
+               encodes information about the origin end of the line with id `l_id`. This information is given in
+               :attr:`GridObjects.line_or_to_sub_pos` [l_id]. This is a number between 0 and 4, say it's 3. 3 being
+               the index of the object in the substation)
 
         - method 2 (not recommended): all of the above is stored (for the same powerline) in the
           :attr:`GridObjects.line_or_pos_topo_vect` [l_id]. In the example above, we will have:
@@ -120,17 +132,17 @@ class GridObjects:
     Note that if you want to model an environment with unit commitment or redispatching capabilities, you also need
     to provide the following attributes:
 
-          - :attr:`GridObjects.gen_type`
-          - :attr:`GridObjects.gen_pmin`
-          - :attr:`GridObjects.gen_pmax`
-          - :attr:`GridObjects.gen_redispatchable`
-          - :attr:`GridObjects.gen_max_ramp_up`
-          - :attr:`GridObjects.gen_max_ramp_down`
-          - :attr:`GridObjects.gen_min_uptime`
-          - :attr:`GridObjects.gen_min_downtime`
-          - :attr:`GridObjects.gen_cost_per_MW`
-          - :attr:`GridObjects.gen_startup_cost`
-          - :attr:`GridObjects.gen_shutdown_cost`
+    - :attr:`GridObjects.gen_type`
+    - :attr:`GridObjects.gen_pmin`
+    - :attr:`GridObjects.gen_pmax`
+    - :attr:`GridObjects.gen_redispatchable`
+    - :attr:`GridObjects.gen_max_ramp_up`
+    - :attr:`GridObjects.gen_max_ramp_down`
+    - :attr:`GridObjects.gen_min_uptime`
+    - :attr:`GridObjects.gen_min_downtime`
+    - :attr:`GridObjects.gen_cost_per_MW`
+    - :attr:`GridObjects.gen_startup_cost`
+    - :attr:`GridObjects.gen_shutdown_cost`
 
     These information are loaded using the :func:`grid2op.Backend.Backend.load_redispacthing_data` method.
 
@@ -276,8 +288,8 @@ class GridObjects:
         for unit commitment problems or redispacthing action.
 
     gen_cost_per_MW: :class:`numpy.ndarray`, dtype:float
-        For each generator, it gives the "operating cost", eg the cost, in terms of "used currency" for the production of
-        one MW with this generator, if it is already turned on. It's a positive real number. It's the marginal cost
+        For each generator, it gives the "operating cost", eg the cost, in terms of "used currency" for the production
+        of one MW with this generator, if it is already turned on. It's a positive real number. It's the marginal cost
         for each MW. Optional. Used
         for unit commitment problems or redispacthing action.
 

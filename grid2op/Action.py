@@ -285,9 +285,9 @@ class Action(GridObjects):
                 res = self._dict_inj[attr_name]
             else:
                 if attr_name == "prod_p" or attr_name == "prod_v":
-                    res = np.full(self.n_gen, fill_value=np.NaN, dtype=np.float)
+                    res = np.full(self.n_gen, fill_value=0., dtype=np.float)
                 elif attr_name == "load_p" or attr_name == "load_q":
-                    res = np.full(self.n_load, fill_value=np.NaN, dtype=np.float)
+                    res = np.full(self.n_load, fill_value=0., dtype=np.float)
                 else:
                     raise Grid2OpException("Impossible to find the attribute \"{}\" "
                                            "into the Action of type \"{}\"".format(attr_name, type(self)))
@@ -298,7 +298,8 @@ class Action(GridObjects):
             super()._assign_attr_from_name(attr_nm, vect)
         else:
             if np.any(np.isfinite(vect)):
-                self._dict_inj[attr_nm] = vect
+                if np.any(vect != 0.):
+                    self._dict_inj[attr_nm] = vect
 
     def check_space_legit(self):
         self._check_for_ambiguity()
