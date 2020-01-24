@@ -1,6 +1,13 @@
 Change Log
 =============
 
+[0.5.2] -- 2020-01-xx
+---------------------
+- [FIXED] runner skipped half the episode in some cases. Now fixed.
+- [FIXED] Some typos on the notebook "getting_started\4-StudyYourAgent.ipynb".
+- [UPDATED] The first chronics that is processed by a runner is not the "first" one on the hardrive
+  (if sorted in alphabetical order)
+
 [0.5.1] - 2020-01-24
 --------------------
 - [ADDED] extra tag 'all' to install all optional dependencies.
