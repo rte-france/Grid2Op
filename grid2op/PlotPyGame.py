@@ -14,11 +14,14 @@ import time
 import pdb
 
 try:
-    import pygame
     from .PlotGraph import BasePlot
+except (ModuleNotFoundError, ImportError):
+    from PlotGraph import BasePlot
+
+try:
+    import pygame
     can_plot = True
 except:
-    from PlotGraph import BasePlot
     can_plot = False
     pass
 

@@ -163,4 +163,5 @@ grid2op/tests/start_datetime.info
 
 l2rpn_2019/data/
 l2rpn_2019/expe_saved/
+l2rpn_2019/l2rpn2019_utils/data_location.py
 

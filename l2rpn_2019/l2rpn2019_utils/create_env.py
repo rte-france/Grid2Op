@@ -17,9 +17,19 @@ import numpy as np
 import pandas as pd
 import copy
 
-PATH_DATA = os.path.abspath(os.path.join("data", "data_l2rpn_2019"))
+
+PATH_DATA_DEFAULT = os.path.abspath(os.path.join("data", "data_l2rpn_2019"))
+PATH_DATA = PATH_DATA_DEFAULT
+if not os.path.exists(os.path.join("l2rpn2019_utils", "data_location.py")):
+    # the script to download the data has been used, so i use that to retrieve where it has been installed
+    try:
+        from l2rpn2019_utils.data_location import L2RPN_TRAINING_SET as PATH_DATA
+    except Exception as e:
+        # impossible to load the data
+        pass
 
 # todo add confirmation to download data
+
 
 def make_env(path_data=PATH_DATA):
     env = grid2op.make("l2rpn_2019", chronics_class=path_data)

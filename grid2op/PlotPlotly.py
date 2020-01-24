@@ -42,9 +42,13 @@ import cmath
 import pdb
 
 try:
+    from .PlotGraph import BasePlot
+except:
+    from PlotGraph import BasePlot
+
+try:
     import plotly.graph_objects as go
     import seaborn as sns
-    from .PlotGraph import BasePlot
     can_plot = True
 except Exception as e:
     can_plot = False

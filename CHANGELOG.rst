@@ -5,6 +5,7 @@ Change Log
 --------------------
 - [FIXED] issue in the documentation of Observation, voltages are given in kV and not V.
 - [FIXED] a bug in the runner that prevented the right chronics to be read, and output wrong names
+- [FIXED] a bug prevening import in windows.
 
 [0.5.0] - 2020-01-23
 --------------------
