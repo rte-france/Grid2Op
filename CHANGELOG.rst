@@ -1,6 +1,13 @@
 Change Log
 =============
 
+[0.5.1] - 2020-01-24
+--------------------
+- [ADDED] extra tag 'all' to install all optional dependencies.
+- [FIXED] issue in the documentation of Observation, voltages are given in kV and not V.
+- [FIXED] a bug in the runner that prevented the right chronics to be read, and output wrong names
+- [FIXED] a bug preventing import if plotting packages where not installed, that causes the documentation to crash.
+
 [0.5.0] - 2020-01-23
 --------------------
 - [BREAKING] Action/Backend has been modified with the implementation of redispatching. If

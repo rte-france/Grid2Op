@@ -9,7 +9,7 @@ import pkg_resources
 import copy
 import warnings
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 import numpy as np
 import pandas as pd
 
@@ -142,6 +142,10 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         self.prod_v = copy.deepcopy(prod_v.values[:, np.argsort(order_backend_prod_v)])
         self.hazards = copy.deepcopy(hazards.values[:, np.argsort(order_backend_hazards)])
         self.maintenance = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
+
+        # date and time
+        datetimes_ = pd.read_csv(os.path.join(self.path, "_N_datetimes{}".format(read_compressed)), sep=self.sep)
+        self.start_datetime = datetime.strptime(datetimes_.iloc[0, 0], "%Y-%b-%d")
 
         # there are maintenance and hazards only if the value in the file is not 0.
         self.maintenance = self.maintenance != 0.

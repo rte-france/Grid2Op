@@ -507,6 +507,9 @@ class Runner(object):
         time_act = 0.
         cum_reward = 0.
 
+        # reset the environment
+        obs = env.reset()
+
         if path_save is not None:
             path_save = os.path.abspath(path_save)
             if not os.path.exists(path_save):
@@ -545,6 +548,7 @@ class Runner(object):
                 dict_params = env.parameters.to_dict()
                 json.dump(obj=dict_params, fp=f, indent=4, sort_keys=True)
 
+        # compute the size and everything if it needs to be stored
         nb_timestep_max = env.chronics_handler.max_timestep()
         efficient_storing = nb_timestep_max > 0
         nb_timestep_max = max(nb_timestep_max, 0)
@@ -563,7 +567,7 @@ class Runner(object):
 
         beg_ = time.time()
 
-        obs = env.reset()
+
         reward = env.reward_range[0]
         done = False
 

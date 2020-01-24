@@ -820,7 +820,10 @@ class GridStateFromFile(GridValue):
     def _assert_correct_second_stage(self, pandas_name, dict_convert, key, extra=""):
         for i, el in enumerate(pandas_name):
             if not el in dict_convert[key]:
-                raise ChronicsError("Element named {} is found in the data (column {}) but it is not found on the powergrid for data of type \"{}\".\nData in files  are: {}\nConverter data are: {}".format(el, i+1, key, sorted(list(pandas_name)), sorted(list(dict_convert[key].keys()))))
+                raise ChronicsError("Element named {} is found in the data (column {}) but it is not found on the "
+                                    "powergrid for data of type \"{}\".\nData in files  are: {}\n"
+                                    "Converter data are: {}".format(el, i+1, key, sorted(list(pandas_name)),
+                                                                    sorted(list(dict_convert[key].keys()))))
 
     def _init_date_time(self):
         if os.path.exists(os.path.join(self.path, "start_datetime.info")):
@@ -1018,7 +1021,6 @@ class GridStateFromFile(GridValue):
         elif self.max_iter > 0:
             if self.curr_iter > self.max_iter:
                 res = True
-
         return res
 
     def load_next(self):
