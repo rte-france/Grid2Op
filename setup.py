@@ -3,12 +3,17 @@ from setuptools import setup
 extras = {
    'with_pygame': ['pygame'],
     "docs": ["numpydoc", "sphinx", "sphinx_rtd_theme", "sphinxcontrib_trio"],
-    "plots": ["plotly", "searborn"],
+    "plots": ["plotly", "searborn", "pygame"],
     "test": ["nbformat", "jupyter_client", "jyquickhelper"]
 }
 
+all_targets = []
+for el in extras:
+    all_targets += extras[el]
+extras["all"] = list(set(all_targets))
+
 setup(name='Grid2Op',
-      version='0.5.0',
+      version='0.5.1',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
       classifiers=[

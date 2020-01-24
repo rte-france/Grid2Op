@@ -66,15 +66,15 @@ if __name__ == "__main__":
         print("Creating path \"{}\" where l2rpn2019 data will be downloaded".format(path_data))
         os.mkdir(path_data)
     output_path = os.path.abspath(os.path.join(path_data, "data_l2rpn_2019.tar.bz2"))
-    #
-    # # download the data (with progress bar)
-    # print("downloading the training data, this may take a while.")
-    # download_url(URL, output_path)
-    #
-    # tar = tarfile.open(output_path, "r:bz2")
-    # print("Extract the tar archive in {}".format(path_data))
-    # tar.extractall(path_data)
-    # tar.close()
+
+    # download the data (with progress bar)
+    print("downloading the training data, this may take a while.")
+    download_url(URL, output_path)
+
+    tar = tarfile.open(output_path, "r:bz2")
+    print("Extract the tar archive in {}".format(path_data))
+    tar.extractall(path_data)
+    tar.close()
     file_location = os.path.split(os.path.abspath(__file__))[0]
     output_path_str = re.sub("\\\\", "\\\\\\\\", output_path)
     with open(os.path.join(file_location, "data_location.py"), "w") as f:
