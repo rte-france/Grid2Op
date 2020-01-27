@@ -31,8 +31,8 @@ if not os.path.exists(os.path.join("l2rpn2019_utils", "data_location.py")):
 # todo add confirmation to download data
 
 
-def make_env(path_data=PATH_DATA):
-    env = grid2op.make("l2rpn_2019", chronics_class=path_data)
+def make_l2rpn2109_env(path_data=PATH_DATA):
+    env = grid2op.make("l2rpn_2019", chronics_path=path_data)
     return env
 
 

@@ -34,8 +34,8 @@ try:
     from .Reward import FlatReward, Reward, L2RPNReward
     from .GameRules import LegalAction, AllwaysLegal
 
-    from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, L2RPN2019_Action
-    from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+    from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
+    from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
 
 except (ModuleNotFoundError, ImportError):
     from Environment import Environment
@@ -48,8 +48,8 @@ except (ModuleNotFoundError, ImportError):
     from Observation import CompleteObservation, Observation
     from Reward import FlatReward, Reward, L2RPNReward
     from GameRules import LegalAction, AllwaysLegal
-    from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, L2RPN2019_Action
-    from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+    from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
+    from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
 
 
 CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
@@ -150,7 +150,8 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                 raise EnvError(msg_error)
         else:
             if not isinstance(res, type):
-                raise EnvError("Parameter \"{}\" should be a type and not an instance. It means that you provided an object instead of the class to build it.".format(name))
+                raise EnvError("Parameter \"{}\" should be a type and not an instance. It means that you provided an "
+                               "object instead of the class to build it.".format(name))
             # I must create a class, i check whether it's a subclass
             if not issubclass(res, defaultClassApp):
                 raise EnvError(msg_error)
@@ -329,7 +330,8 @@ def make(name_env="case14_fromfile", **kwargs):
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
     else:
-        raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" (default), \"case5_example\" and \"l2rpn_2019\"".format(name_env))
+        raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
+                         "(default), \"case5_example\" and \"l2rpn_2019\"".format(name_env))
 
     # extract powergrid dependant parameters
     ## type of reward the agent will receive
