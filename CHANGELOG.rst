@@ -1,6 +1,19 @@
 Change Log
 =============
 
+[0.5.2] - 2020-01-27
+---------------------
+- [ADDED] Adding a utility to retrieve the starting kit L2RPN 2019 competition.
+- [ADDED] Layout of the powergrid graph of the substations for both the
+  `5bus_example` and the `CASE_14_L2RPN2019`.
+- [FIXED] Runner skipped half the episode in some cases (sequential, even number of scenarios). Now fixed.
+- [FIXED] Some typos on the notebook "getting_started\4-StudyYourAgent.ipynb".
+- [FIXED] Error in the conversion of observation to dictionnary. Twice the same keys were used
+  ('time_next_maintenance') for both `time_next_maintenance` and `duration_next_maintenance`.
+- [UPDATED] The first chronics that is processed by a runner is not the "first" one on the hardrive
+  (if sorted in alphabetical order)
+- [UPDATED] Better layout of substation layout (in case of multiple nodes) in PlotGraph
+
 [0.5.1] - 2020-01-24
 --------------------
 - [ADDED] extra tag 'all' to install all optional dependencies.

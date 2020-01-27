@@ -31,8 +31,8 @@ if not os.path.exists(os.path.join("l2rpn2019_utils", "data_location.py")):
 # todo add confirmation to download data
 
 
-def make_env(path_data=PATH_DATA):
-    env = grid2op.make("l2rpn_2019", chronics_class=path_data)
+def make_l2rpn2109_env(path_data=PATH_DATA):
+    env = grid2op.make("l2rpn_2019", chronics_path=path_data)
     return env
 
 
@@ -57,7 +57,8 @@ def main(path_save=None,
          nb_episode=1,
          nb_process=1,
          path_chronics=PATH_DATA,
-         path_parameters=None):
+         path_parameters=None,
+         max_timestep=None):
 
     if path_save is not None:
         path_save = os.path.abspath(path_save)
@@ -66,12 +67,16 @@ def main(path_save=None,
 
     submitted_controler = get_submitted_controller(submission_dir)
 
+    gridStateclass_kwargs = {"gridvalueClass": ReadPypowNetData}
+    if max_timestep is not None and max_timestep > 0:
+        gridStateclass_kwargs["max_iter"] = int(max_timestep)
+
     res = grid2op.main.main(nb_episode=nb_episode,
                             agent_class=submitted_controler,
                             path_casefile=L2RPN2019_CASEFILE,
                             path_chronics=path_chronics,
                             names_chronics_to_backend=L2RPN2019_DICT_NAMES,
-                            gridStateclass_kwargs={"gridvalueClass": ReadPypowNetData},
+                            gridStateclass_kwargs=gridStateclass_kwargs,
                             reward_class=L2RPNReward,
                             path_save=path_save,
                             nb_process=nb_process,

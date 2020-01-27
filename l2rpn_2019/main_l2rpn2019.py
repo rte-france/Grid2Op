@@ -51,6 +51,7 @@ if __name__ == "__main__":
         if not os.path.exists(root_dir):
             print("Creating the directory \"{}\" in which the experiments will be saved as "
                   "\"{}\"".format(root_dir, repo_exp))
+            os.mkdir(root_dir)
 
     submission_dir = os.path.abspath(args.submission_dir)
     if not os.path.exists(os.path.join(submission_dir, "submission.py")):

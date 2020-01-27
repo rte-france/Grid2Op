@@ -160,7 +160,7 @@ def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status):
         x1=x_1,
         y1=y_1,
         line=dict(
-            color=color_palette[get_col(rho)] if status else "gray",  # 'cymk{}'.format(color_palette(rho))#color_palette(rho)
+            color=color_palette[get_col(rho)] if status else "gray",
             dash=None if status else "dash"
         )
     )
@@ -303,11 +303,15 @@ class PlotObs(BasePlot):
         fig.update_layout(shapes=subs + lines + loads + gens + topos)
 
         # update legend, background color, size of the plot etc.
-        fig.update_xaxes(range=[np.min([el for el, _ in self._layout["substations"]]) - 1.5 * (self.radius_sub + self.load_prod_dist),
-                                np.max([el for el, _ in self._layout["substations"]]) + 1.5 * (self.radius_sub + self.load_prod_dist)],
+        fig.update_xaxes(range=[np.min([el for el, _ in self._layout["substations"]]) - 1.5 * (self.radius_sub +
+                                                                                               self.load_prod_dist),
+                                np.max([el for el, _ in self._layout["substations"]]) + 1.5 * (self.radius_sub +
+                                                                                               self.load_prod_dist)],
                          zeroline=False)
-        fig.update_yaxes(range=[np.min([el for _, el in self._layout["substations"]]) - 1.5 * (self.radius_sub + self.load_prod_dist),
-                                np.max([el for _, el in self._layout["substations"]]) + 1.5 * (self.radius_sub + self.load_prod_dist)])
+        fig.update_yaxes(range=[np.min([el for _, el in self._layout["substations"]]) - 1.5 * (self.radius_sub +
+                                                                                               self.load_prod_dist),
+                                np.max([el for _, el in self._layout["substations"]]) + 1.5 * (self.radius_sub +
+                                                                                               self.load_prod_dist)])
         fig.update_layout(
             margin=dict(
                 l=20,

@@ -24,6 +24,10 @@ except (ModuleNotFoundError, ImportError):
 L2RPN2019_CASEFILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "L2RPN_2019_grid.json"))
 
+CASE_14_L2RPN2019_LAYOUT = graph_layout = [(-280, -81), (-100, -270), (366, -270), (366, -54), (-64, -54), (-64, 54),
+                                           (450, 0), (550, 0), (326, 54), (222, 108), (79, 162), (-170, 270),
+                                           (-64, 270), (222, 216)]
+
 # names of object of the grid were not in the same order as the default one
 L2RPN2019_DICT_NAMES = {'loads': {'2_C-10.61': 'load_1_0',
                                        '3_C151.15': 'load_2_1',

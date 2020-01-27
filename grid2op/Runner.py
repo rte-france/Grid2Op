@@ -508,6 +508,8 @@ class Runner(object):
         cum_reward = 0.
 
         # reset the environment
+        env.chronics_handler.tell_id(indx-1)
+        # the "-1" above is because the environment will be reset. So it will increase id of 1.
         obs = env.reset()
 
         if path_save is not None:
@@ -566,7 +568,6 @@ class Runner(object):
         disc_lines_templ = np.full((1, env.backend.n_line), fill_value=False, dtype=np.bool)
 
         beg_ = time.time()
-
 
         reward = env.reward_range[0]
         done = False
@@ -699,7 +700,6 @@ class Runner(object):
         nb_episode_this_process = len(episode_this_process)
         res = [(None, None, None) for _ in range(nb_episode_this_process)]
         for i, p_id in enumerate(episode_this_process):
-            chronics_handler.tell_id(p_id)
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)

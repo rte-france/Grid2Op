@@ -7,6 +7,7 @@ a substations is split into independent electrical buses).
 
 """
 import cmath
+import math
 import numpy as np
 import pdb
 
@@ -293,8 +294,12 @@ class BasePlot(object):
         #
         buses_z = [el / nb for el, nb in zip(buses_z, nb_co)]
         theta_z = [cmath.phase((el - z_sub)) for el in buses_z]
+
+        # try to have nodes "in opposition" to one another
         NN = np.array(nb_co) / np.sum(nb_co)
-        alpha = cmath.pi - theta_z[1] + theta_z[0]
+        diff_theta = theta_z[0] - theta_z[1]
+        alpha = cmath.pi + diff_theta
+        alpha = math.fmod(alpha, cmath.pi)
         theta_z = [theta_z[0] - alpha * NN[1], theta_z[1] + alpha * NN[0]]
 
         # buses_z = [z_sub + (self.radius_sub - self.bus_radius) * 0.75 * cmath.exp(1j * theta) for theta in theta_z]

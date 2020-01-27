@@ -1170,7 +1170,7 @@ class CompleteObservation(Observation):
 
             self.dictionnarized["maintenance"] = {}
             self.dictionnarized["maintenance"]['time_next_maintenance'] = self.time_next_maintenance
-            self.dictionnarized["maintenance"]['time_next_maintenance'] = self.duration_next_maintenance
+            self.dictionnarized["maintenance"]['duration_next_maintenance'] = self.duration_next_maintenance
             self.dictionnarized["cooldown"] = {}
             self.dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
             self.dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
