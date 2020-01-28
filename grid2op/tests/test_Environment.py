@@ -2,7 +2,7 @@
 import os
 import sys
 import unittest
-
+import copy
 import numpy as np
 import pdb
 
@@ -67,9 +67,9 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         self.env_params = Parameters()
 
         self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=self.env_params,
+                               backend=self.backend,
+                               chronics_handler=self.chronics_handler,
+                               parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend)
 
     def tearDown(self):
@@ -77,6 +77,13 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred- true)) <= self.tolvect
+
+    def test_step_doesnt_change_action(self):
+        # TODO THIS TEST
+        act = self.env.action_space()
+        act_init = copy.deepcopy(act)
+        res = self.env.step(act)
+        assert act == act_init
 
     def test_load_env(self):
         """

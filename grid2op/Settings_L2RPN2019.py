@@ -9,7 +9,7 @@ import pkg_resources
 import copy
 import warnings
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 import numpy as np
 import pandas as pd
 
@@ -23,6 +23,10 @@ except (ModuleNotFoundError, ImportError):
 # the reference powergrid was different than the default case14 of the litterature.
 L2RPN2019_CASEFILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "L2RPN_2019_grid.json"))
+
+CASE_14_L2RPN2019_LAYOUT = graph_layout = [(-280, -81), (-100, -270), (366, -270), (366, -54), (-64, -54), (-64, 54),
+                                           (450, 0), (550, 0), (326, 54), (222, 108), (79, 162), (-170, 270),
+                                           (-64, 270), (222, 216)]
 
 # names of object of the grid were not in the same order as the default one
 L2RPN2019_DICT_NAMES = {'loads': {'2_C-10.61': 'load_1_0',
@@ -143,6 +147,10 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         self.hazards = copy.deepcopy(hazards.values[:, np.argsort(order_backend_hazards)])
         self.maintenance = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
+        # date and time
+        datetimes_ = pd.read_csv(os.path.join(self.path, "_N_datetimes{}".format(read_compressed)), sep=self.sep)
+        self.start_datetime = datetime.strptime(datetimes_.iloc[0, 0], "%Y-%b-%d")
+
         # there are maintenance and hazards only if the value in the file is not 0.
         self.maintenance = self.maintenance != 0.
         self.hazards = self.hazards != 0.
@@ -184,10 +192,10 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         self.maintenance_forecast = copy.deepcopy(maintenance.values[:, np.argsort(order_backend_maintenance)])
 
         # there are maintenance and hazards only if the value in the file is not 0.
-        self.maintenance_time = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int) - 1
-        self.maintenance_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
-        self.hazard_duration = np.zeros(shape=(self.load_p.shape[0], self.n_lines), dtype=np.int)
-        for line_id in range(self.n_lines):
+        self.maintenance_time = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int)
+        self.hazard_duration = np.zeros(shape=(self.load_p.shape[0], self.n_line), dtype=np.int)
+        for line_id in range(self.n_line):
             self.maintenance_time[:, line_id] = self.get_maintenance_time_1d(self.maintenance[:, line_id])
             self.maintenance_duration[:, line_id] = self.get_maintenance_duration_1d(self.maintenance[:, line_id])
             self.hazard_duration[:, line_id] = self.get_maintenance_duration_1d(self.hazards[:, line_id])
@@ -364,12 +372,16 @@ class L2RPN2019_Action(Action):
     #         self._set_topo_vect[self.line_ex_pos_topo_vect[sel_]] = 1
     #         self._set_topo_vect[self.line_or_pos_topo_vect[sel_]] = 1
 
-    def sample(self):
+    def sample(self, space_prng):
         """
         Sample a PowerlineSwitch Action.
 
         By default, this sampling will act on one random powerline, and it will either
         disconnect it or reconnect it each with equal probability.
+
+        Parameters
+        ----------
+        space_prng
 
         Returns
         -------

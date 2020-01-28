@@ -1,4 +1,4 @@
-Basic plotting utilities
+Interactive plot with plotly
 ===================================
 
 .. automodule:: grid2op.PlotPlotly

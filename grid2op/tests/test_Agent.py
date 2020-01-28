@@ -84,9 +84,9 @@ class TestAgent(unittest.TestCase):
         self.env_params = Parameters()
 
         self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=self.env_params,
+                               backend=self.backend,
+                               chronics_handler=self.chronics_handler,
+                               parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass)
 
@@ -135,7 +135,7 @@ class TestAgent(unittest.TestCase):
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent, i_max=10)
-        assert i == 11, "The powerflow diverged before step 30 for greedy agent"
+        assert i == 11, "The powerflow diverged before step 10 for greedy agent"
         assert np.abs(cum_reward - 219.99795) <= self.tol_one, "The reward has not been properly computed"
 
 
