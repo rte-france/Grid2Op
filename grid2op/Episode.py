@@ -117,6 +117,7 @@ class Episode:
         rho_size = len(self.observations) * len(self.observations[0].rho)
         action_size = len(self.actions)
         reward_size = len(self.rewards)
+        flow_voltage_size = len(self.observations)
         cols = ["timestep", "timestamp", "equipement_id", "equipment_name",
                 "value"]
         load_data = pd.DataFrame(index=range(load_size), columns=cols)
@@ -132,9 +133,8 @@ class Episode:
                                                   'line_action', 'sub_name', 'objets_changed', 'distance'])
         computed_rewards = pd.DataFrame(index=range(reward_size), columns=[
             'timestep', 'rewards', 'cum_rewards'])
-        flow_voltage_line_table = pd.DataFrame(index=range(len(self.observations)), columns=pd.MultiIndex.from_product(
-            [self.line_names, ['or', 'ex'], ['active', 'reactive', 'current', 'voltage']]
-        ))
+        cols = pd.MultiIndex.from_product([['or', 'ex'], ['active', 'reactive', 'current', 'voltage'], self.line_names])
+        flow_voltage_line_table = pd.DataFrame(index=range(flow_voltage_size), columns=cols)
         topo_list = []
         bus_list = []
         for (time_step, (obs, act)) in tqdm(enumerate(zip(self.observations, self.actions)),
@@ -192,18 +192,17 @@ class Episode:
                                                   self.rewards[time_step],
                                                   self.rewards.cumsum(axis=0)[time_step]]
 
-            #todo this parts take too long
-            for index, name in enumerate(self.line_names):
-                flow_voltage_line_table.loc[time_step, name] = [
-                    obs.p_ex[index],
-                    obs.q_ex[index],
-                    obs.a_ex[index],
-                    obs.v_ex[index],
-                    obs.p_or[index],
-                    obs.q_or[index],
-                    obs.a_or[index],
-                    obs.v_or[index]
-                ]
+            flow_voltage_line_table.loc[time_step, :] = np.array([
+                obs.p_ex,
+                obs.q_ex,
+                obs.a_ex,
+                obs.v_ex,
+                obs.p_or,
+                obs.q_or,
+                obs.a_or,
+                obs.v_or
+            ]).flatten()
+
 
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
