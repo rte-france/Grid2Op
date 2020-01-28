@@ -67,10 +67,9 @@ class Episode:
             print("computing df")
             beg = time.time()
             print("Environment")
-            self.load, self.production, self.rho, self.action_data, self.action_data_table = self._make_df_from_data()
+            self.load, self.production, self.rho, self.action_data, self.action_data_table, self.computed_reward, self.flow_and_voltage_line = self._make_df_from_data()
             print("Hazards-Maintenances")
             self.hazards, self.maintenances = self._env_actions_as_df()
-            self.computed_reward = self._compute_reward_df_from_data()
             self.timestamps = sorted(self.load.timestamp.unique())
             self.timesteps = sorted(self.load.timestep.unique())
             end = time.time()
@@ -112,26 +111,12 @@ class Episode:
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
 
-    def _compute_reward_df_from_data(self):
-        timestep = []
-        for (time_step, obs) in enumerate(self.observations):
-            if obs.game_over:
-                continue
-            timestep.append(self.timestamp(obs))
-
-        df = pd.DataFrame(index=range(len(self.rewards)))
-        # TODO use timestep from one of _make_df_data() returns to avoid multiple computation
-        df["timestep"] = timestep
-        df["rewards"] = self.rewards
-        df["cum_rewards"] = self.rewards.cumsum(axis=0)
-
-        return df
-
     def _make_df_from_data(self):
         load_size = len(self.observations) * len(self.observations[0].load_p)
         prod_size = len(self.observations) * len(self.observations[0].prod_p)
         rho_size = len(self.observations) * len(self.observations[0].rho)
         action_size = len(self.actions)
+        reward_size = len(self.rewards)
         cols = ["timestep", "timestamp", "equipement_id", "equipment_name",
                 "value"]
         load_data = pd.DataFrame(index=range(load_size), columns=cols)
@@ -139,13 +124,17 @@ class Episode:
         rho = pd.DataFrame(index=range(rho_size), columns=[
             'time', "timestamp", 'equipment', 'value'])
         action_data = pd.DataFrame(index=range(action_size),
-
                                    columns=['timestep', 'timestamp', 'timestep_reward', 'action_line', 'action_subs',
                                             'set_line', 'switch_line', 'set_topo', 'change_bus', 'distance'])
         action_data_table = pd.DataFrame(index=range(action_size),
                                          columns=['timestep', 'timestamp', 'timestep_reward', 'action_line',
                                                   'action_subs',
                                                   'line_action', 'sub_name', 'objets_changed', 'distance'])
+        computed_rewards = pd.DataFrame(index=range(reward_size), columns=[
+            'timestep', 'rewards', 'cum_rewards'])
+        flow_voltage_line_table = pd.DataFrame(index=range(len(self.observations)), columns=pd.MultiIndex.from_product(
+            [self.line_names, ['or', 'ex'], ['active', 'reactive', 'current', 'voltage']]
+        ))
         topo_list = []
         bus_list = []
         for (time_step, (obs, act)) in tqdm(enumerate(zip(self.observations, self.actions)),
@@ -198,10 +187,28 @@ class Episode:
                                                  sub_action,
                                                  object_changed,
                                                  self.get_distance_from_obs(obs)]
+
+            computed_rewards.loc[time_step, :] = [time_stamp,
+                                                  self.rewards[time_step],
+                                                  self.rewards.cumsum(axis=0)[time_step]]
+
+            #todo this parts take too long
+            for index, name in enumerate(self.line_names):
+                flow_voltage_line_table.loc[time_step, name] = [
+                    obs.p_ex[index],
+                    obs.q_ex[index],
+                    obs.a_ex[index],
+                    obs.v_ex[index],
+                    obs.p_or[index],
+                    obs.q_or[index],
+                    obs.a_or[index],
+                    obs.v_or[index]
+                ]
+
         load_data["value"] = load_data["value"].astype(float)
         production["value"] = production["value"].astype(float)
         rho["value"] = rho["value"].astype(float)
-        return load_data, production, rho, action_data, action_data_table
+        return load_data, production, rho, action_data, action_data_table, computed_rewards, flow_voltage_line_table
 
     def get_object_changed(self, vect, list_topo):
         if np.count_nonzero(vect) is 0:
