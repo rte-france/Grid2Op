@@ -10,6 +10,7 @@ import os  # load the python os default module
 import sys  # laod the python sys default module
 import copy
 import re
+import time
 import warnings
 
 import numpy as np
@@ -100,6 +101,10 @@ class PandaPowerBackend(Backend):
         self.load_q = None
         self.load_v = None
 
+        self.prod_p = None
+        self.prod_q = None
+        self.prod_v = None
+
         self._pf_init = "flat"
         self._pf_init = "results"
         self._nb_bus_before = 0
@@ -116,6 +121,7 @@ class PandaPowerBackend(Backend):
         self.dim_topo = -1
         self._vars_action = Action.vars_action
         self._vars_action_set = Action.vars_action_set
+        # self._time_topo_vect = 0.
 
     def get_nb_active_bus(self):
         """
@@ -508,6 +514,8 @@ class PandaPowerBackend(Backend):
                 self.v_or *= self.lines_or_pu_to_kv
                 self.v_ex *= self.lines_ex_pu_to_kv
 
+                self.prod_p, self.prod_q, self.prod_v = self._gens_info()
+
                 return self._grid.converged
 
         except pp.powerflow.LoadflowNotConverged:
@@ -574,6 +582,7 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iloc[id - self._number_true_line] = True
 
     def get_topo_vect(self):
+        # beg__ = time.time()
         # TODO refactor this, this takes a looong time
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
 
@@ -598,9 +607,10 @@ class PandaPowerBackend(Backend):
         for i, (_, row) in enumerate(self._grid.load.iterrows()):
             bus_id = int(row["bus"])
             res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
+        # self._time_topo_vect += time.time() - beg__
         return res
 
-    def generators_info(self):
+    def _gens_info(self):
         prod_p = 1. * self._grid.res_gen["p_mw"].values
         prod_q = 1. * self._grid.res_gen["q_mvar"].values
         prod_v = self._grid.res_gen["vm_pu"].values * self.prod_pu_to_kv
@@ -610,6 +620,9 @@ class PandaPowerBackend(Backend):
                 prod_p[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 1]
                 prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
+
+    def generators_info(self):
+        return self.prod_p, self.prod_q, self.prod_v
 
     def _loads_info(self):
         load_p = 1. * self._grid.res_load["p_mw"].values

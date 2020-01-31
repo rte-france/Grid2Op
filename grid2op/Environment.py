@@ -917,11 +917,13 @@ class Environment(GridObjects):
                 # compute the next _grid state
                 beg_ = time.time()
                 disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
+                test  = 1. * disc_lines
                 self._time_powerflow += time.time() - beg_
 
                 beg_ = time.time()
                 self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                 overflow_lines = self.backend.get_line_overflow()
+                # overflow_lines = np.full(self.n_line, fill_value=False, dtype=np.bool)
 
                 # one timestep passed, i can maybe reconnect some lines
                 self.time_remaining_before_line_reconnection[self.time_remaining_before_line_reconnection > 0] -= 1

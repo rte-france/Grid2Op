@@ -36,6 +36,7 @@ import re
 import warnings
 import json
 import os
+import time
 
 from abc import ABC, abstractmethod
 
@@ -1411,9 +1412,12 @@ class ObservationHelper(SerializableObservationSpace):
         self.empty_obs = self.observationClass(gridobj=self,
                                                obs_env=self.obs_env,
                                                action_helper=self.action_helper_env)
+        self._update_env_time = 0.
 
     def __call__(self, env):
+        # beg_ = time.time()
         self.obs_env.update_grid(env.backend)
+        # self._update_env_time += time.time()-beg_
 
         res = self.observationClass(gridobj=self,
                                     seed=self.seed,
