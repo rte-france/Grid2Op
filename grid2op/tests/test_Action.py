@@ -27,11 +27,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        # from ADNBackend import ADNBackend
-        # self.backend = ADNBackend()
-        # self.path_matpower = "/home/donnotben/Documents/RL4Grid/RL4Grid/data"
-        # self.case_file = "ieee14_ADN.xml"
-        # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
@@ -57,35 +52,38 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                           line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
                                           line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]))
         # pdb.set_trace()
-        self.helper_action = HelperAction(self.gridobj,
-                                          game_rules=self.game_rules)
+        self.helper_action = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action)
 
-
-        self.helper_action_env = HelperAction(self.gridobj,
-                                              game_rules=self.game_rules,
+        self.helper_action_env = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action,
                                               actionClass=Action)
 
         self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
-               'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
-                             'load_7', 'load_8', 'load_9', 'load_10'],
-               'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
-                             'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14', 'line_15',
-                             'line_16', 'line_17', 'line_18', 'line_19'],
-                'name_sub': ["sub_0", "sub_1", "sub_2", "sub_3", "sub_4", "sub_5", "sub_6", "sub_7", "sub_8", "sub_9",
-                             "sub_10", "sub_11", "sub_12", "sub_13"],
-               'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-               'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
-               'gen_to_subid': [0, 1, 2, 5, 7],
-               'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-               'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
-               'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1], 'gen_to_sub_pos': [2, 5, 3, 5, 1],
-               'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-               'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
-               'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
-               'gen_pos_topo_vect': [2, 8, 12, 29, 34],
-               'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
-               'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
-               'subtype': 'Action.Action'}
+                    'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
+                                  'load_7', 'load_8', 'load_9', 'load_10'],
+                    'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
+                                  'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14',
+                                  'line_15', 'line_16', 'line_17', 'line_18', 'line_19'],
+                    'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
+                                 'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
+                    'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+                    'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
+                    'gen_to_subid': [0, 1, 2, 5, 7],
+                    'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+                    'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+                    'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
+                    'gen_to_sub_pos': [2, 5, 3, 5, 1],
+                    'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+                    'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+                    'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
+                    'gen_pos_topo_vect': [2, 8, 12, 29, 34],
+                    'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
+                    'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
+                    'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
+                    'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
+                    'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
+                    'subtype': 'Action.Action'}
+
+        self.size_act = 229
 
     def tearDown(self):
         pass
@@ -107,10 +105,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_proper_size(self):
         action = self.helper_action()
-        assert action.size() == 224
+        assert action.size() == self.size_act
 
     def test_size_action_space(self):
-        assert self.helper_action.size() == 224
+        assert self.helper_action.size() == self.size_act
 
     def test_print_notcrash(self):
         """
@@ -239,7 +237,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         assert action.effect_on(load_id=1)["set_bus"] == 0
         assert action.effect_on(gen_id=0)["set_bus"] == 0
-        # TODO maybe assert different stuff here, for the first modification
 
     def test_update_change_bus_by_dict_obj(self):
         action = self.helper_action({"change_bus": {"loads_id": [1]}})
@@ -274,7 +271,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         assert action.effect_on(load_id=1)["change_bus"] == False
         assert action.effect_on(gen_id=0)["change_bus"] == False
-        # TODO maybe assert different stuff here, for the first modification
 
     def test_ambiguity_topo(self):
         action = self.helper_action({"change_bus": {"lines_or_id": [1]}})  # i switch the bus of the origin of powerline 1
@@ -346,7 +342,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
-        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
+        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching ' \
+                  'action\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the ' \
+                  'following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of ' \
+                  'load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of ' \
+                  'the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - ' \
+                  'assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 ' \
+                  '[on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
         assert res == act_str
 
     def test_to_vect(self):
@@ -357,9 +359,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
-        tmp = np.array([np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,
-                        np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN,0.,  0.,  0.,  0.,  0.,  0.,  0.,
+        tmp = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                        0., 0., 0., 0., 0., 0.,
+                        0., 0., 0., 0., 0.,
+                            0.,  0.,  0.,  0.,  0.,  0.,  0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                             0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
@@ -402,6 +406,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         vect_act1 = action1.to_vect()
         action2.from_vect(vect_act1)
+        # pdb.set_trace()
         # if i load an action with from_vect it's equal to the original one
         assert action1 == action2
         vect_act2 = action2.to_vect()
@@ -410,7 +415,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
         assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
 
-    def test_call_(self):
+    def test_call_change_set(self):
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
@@ -444,7 +449,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                       "injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_line_status": change_status_orig,
                                      "set_line_status": set_status_orig})
-        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect = action()
+        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching = action()
         assert "load_p" in dict_injection
         assert np.all(dict_injection["load_p"] == new_vect)
         assert "load_q" in dict_injection
@@ -579,6 +584,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_shape_correct(self):
         act = self.helper_action_env({})
         assert act.shape().shape == act.dtype().shape
+
+    def test_redispatching(self):
+        act = self.helper_action_env({"redispatch": [1, 10]})
+        act = self.helper_action_env({"redispatch": [(1, 10), (2, 100)]})
+        act = self.helper_action_env({"redispatch": np.array([10, 20, 30, 40, 50])})
 
 if __name__ == "__main__":
     unittest.main()

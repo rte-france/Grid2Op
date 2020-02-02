@@ -256,7 +256,22 @@ class InvalidNumberOfObjectEnds(AmbiguousAction):
 class InvalidBusStatus(AmbiguousAction):
     """
     This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
-    try to bot "set" and "switch" some bus to which an object is connected.
+    try to both "set" and "switch" some bus to which an object is connected.
+    """
+    pass
+
+
+class InvalidRedispatching(AmbiguousAction):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    try to apply an invalid redispatching strategy.
+    """
+    pass
+
+
+class InvalidRedispaching(AmbiguousAction):
+    """
+    It tells that the current redispatching action is not valid.
     """
     pass
 
@@ -313,5 +328,12 @@ class InsufficientData(ChronicsError):
 class BackendError(Grid2OpException):
     """
     Base class of all error regarding the Backend that might be badly configured.
+    """
+    pass
+
+# attempt to use redispatching or unit commit method in an environment not set up.
+class UnitCommitorRedispachingNotAvailable(Grid2OpException):
+    """
+    attempt to use redispatching or unit commit method in an environment not set up.
     """
     pass

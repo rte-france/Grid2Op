@@ -30,9 +30,7 @@ from BackendPandaPower import PandaPowerBackend
 from Environment import Environment
 
 
-# TODO add unit test for obs.connectity_matrix()
-# TODO add unit test for obs.bus_connectivity_matrix()
-# todo add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
+# TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
 # copied]
 
@@ -105,19 +103,33 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                     '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3', 'sub_4',
                                    'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
-                 'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-                 'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
-                 'gen_to_subid': [1, 2, 5, 7, 0],
-                 'line_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
-                 'line_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
-                 'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
-                 'line_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
-                 'line_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
-                 'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
-                 'gen_pos_topo_vect': [7, 11, 28, 34, 2],
-                 'line_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31, 32],
-                 'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27, 33, 38],
-                 'subtype': 'Observation.CompleteObservation'}
+                      'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+                      'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
+                      'gen_to_subid': [1, 2, 5, 7, 0],
+                      'line_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
+                      'line_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+                      'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3], 'gen_to_sub_pos': [4, 2, 4, 1, 2],
+                      'line_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
+                      'line_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+                      'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
+                      'gen_pos_topo_vect': [7, 11, 28, 34, 2],
+                      'line_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22, 31,
+                                                32],
+                      'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27,
+                                                33, 38],
+                      'gen_type': ['solar', 'nuclear', 'nuclear', 'nuclear', 'thermal'],
+                      'gen_pmin': [0.0, 0.0, 0.0, 0.0, 0.0],
+                      'gen_pmax': [40.0, 60.0, 80.0, 100.0, 170.0],
+                      'gen_redispatchable': [False, True, True, True, True],
+                      'gen_max_ramp_up': [40.0, 60.0, 80.0, 100.0, 170.0],
+                      'gen_max_ramp_down': [40.0, 60.0, 80.0, 100.0, 170.0],
+                      'gen_min_uptime': [0, 0, 0, 0, 0],
+                      'gen_min_downtime': [0, 1, 0, 0, 0],
+                      'gen_cost_per_MW': [0.0, 0.0, 0.0, 0.0, 10.0],
+                      'gen_startup_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
+                      'gen_shutdown_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
+                      'subtype': 'Observation.CompleteObservation'}
+
         self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('float64'), dtype('float64'),
@@ -126,18 +138,92 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                            dtype('float64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('bool'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64')], dtype=object)
+                                           dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64')],
+                               dtype=object)
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20])
+                                            20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20,
+                                 5, 5])
+        self.size_obs = 454
 
     def test_sum_shape_equal_size(self):
         obs = self.env.helper_observation(self.env)
         assert obs.size() == np.sum(obs.shape())
 
+    def test_size(self):
+        obs = self.env.helper_observation(self.env)
+        obs.size()
+
+    def test_proper_size(self):
+        obs = self.env.helper_observation(self.env)
+        assert obs.size() == self.size_obs
+
+    def test_size_action_space(self):
+        assert self.env.helper_observation.size() == self.size_obs
+
+    def test_bus_conn_mat(self):
+        obs = self.env.helper_observation(self.env)
+        mat1 = obs.bus_connectivity_matrix()
+        ref_mat = np.array([[1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                           [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                           [0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                           [0., 1., 1., 1., 1., 0., 1., 0., 1., 0., 0., 0., 0., 0.],
+                           [1., 1., 0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+                           [0., 0., 0., 0., 1., 1., 0., 0., 0., 0., 1., 1., 1., 0.],
+                           [0., 0., 0., 1., 0., 0., 1., 1., 1., 0., 0., 0., 0., 0.],
+                           [0., 0., 0., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0., 0.],
+                           [0., 0., 0., 1., 0., 0., 1., 0., 1., 1., 0., 0., 0., 1.],
+                           [0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0.],
+                           [0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1., 0., 0., 0.],
+                           [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 0.],
+                           [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1.],
+                           [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1.]])
+        assert np.all(mat1 == ref_mat)
+
     def test_conn_mat(self):
         obs = self.env.helper_observation(self.env)
-        obs.bus_connectivity_matrix()
-        obs.connectivity_matrix()
+        mat = obs.connectivity_matrix()
+        ref_mat = np.array([[0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            0., 0., 0., 0., 0., 0., 0., 0.],
+                            [1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [1., 0., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [0., 0., 0., 1., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [0., 0., 0., 1., 1., 0., 1., 1., 1., 0., 0., 0., 0., 1., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [0., 0., 0., 1., 1., 1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [0., 0., 0., 1., 1., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [0., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.],
+                            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0.]
+                            ])
+        assert np.all(mat[:10,:] == ref_mat)
 
     def test_observation_space(self):
         obs = self.env.helper_observation(self.env)

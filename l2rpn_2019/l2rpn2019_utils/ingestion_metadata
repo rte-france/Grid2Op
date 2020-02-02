@@ -1,0 +1,1 @@
+command: python $ingestion_program/ingestion.py $input $output $ingestion_program $submission_program

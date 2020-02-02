@@ -13,6 +13,7 @@ from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 
 from helper_path_test import PATH_DATA_TEST
 
+# TODO check these tests, they don't appear to be working
 
 def delete_all(folder):
     """
