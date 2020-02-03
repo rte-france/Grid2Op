@@ -2,7 +2,7 @@
 This module provides a way to serialize on disk et deserialize one run episode along with some 
 methods and utilities to ease its manipulation.
 
-If enabled when usign the :class:`Runner`, the :class:`EpisodeAnalytics` will save the information in a structured way. For each episode there will be a folder
+If enabled when usign the :class:`Runner`, the :class:`Episode` will save the information in a structured way. For each episode there will be a folder
 with:
 
   - "episode_meta.json" that represents some meta information about:
@@ -55,7 +55,7 @@ except (ModuleNotFoundError, ImportError):
     from Utils import ActionSpace, ObservationSpace
 
 
-class EpisodeAnalytics:
+class Episode:
     ACTION_SPACE = "dict_action_space.json"
     OBS_SPACE = "dict_observation_space.json"
     ENV_MODIF_SPACE = "dict_env_modification_space.json"
@@ -124,11 +124,11 @@ class EpisodeAnalytics:
                     "Creating path \"{}\" to save the runner".format(self.agent_path))
 
             act_space_path = os.path.join(
-                self.agent_path, EpisodeAnalytics.ACTION_SPACE)
+                self.agent_path, Episode.ACTION_SPACE)
             obs_space_path = os.path.join(
-                self.agent_path, EpisodeAnalytics.OBS_SPACE)
+                self.agent_path, Episode.OBS_SPACE)
             env_modif_space_path = os.path.join(
-                self.agent_path, EpisodeAnalytics.ENV_MODIF_SPACE)
+                self.agent_path, Episode.ENV_MODIF_SPACE)
 
             if not os.path.exists(act_space_path):
                 dict_action_space = action_space.to_dict()
@@ -310,32 +310,32 @@ class EpisodeAnalytics:
         episode_path = os.path.abspath(os.path.join(agent_path, str(indx)))
 
         try:
-            with open(os.path.join(episode_path, EpisodeAnalytics.PARAMS)) as f:
+            with open(os.path.join(episode_path, Episode.PARAMS)) as f:
                 _parameters = json.load(fp=f)
-            with open(os.path.join(episode_path, EpisodeAnalytics.META)) as f:
+            with open(os.path.join(episode_path, Episode.META)) as f:
                 episode_meta = json.load(fp=f)
-            with open(os.path.join(episode_path, EpisodeAnalytics.TIMES)) as f:
+            with open(os.path.join(episode_path, Episode.TIMES)) as f:
                 episode_times = json.load(fp=f)
 
             times = np.load(os.path.join(
-                episode_path, EpisodeAnalytics.AG_EXEC_TIMES))
-            actions = np.load(os.path.join(episode_path, EpisodeAnalytics.ACTIONS))
+                episode_path, Episode.AG_EXEC_TIMES))
+            actions = np.load(os.path.join(episode_path, Episode.ACTIONS))
             env_actions = np.load(os.path.join(
-                episode_path, EpisodeAnalytics.ENV_ACTIONS))
+                episode_path, Episode.ENV_ACTIONS))
             observations = np.load(os.path.join(
-                episode_path, EpisodeAnalytics.OBSERVATIONS))
+                episode_path, Episode.OBSERVATIONS))
             disc_lines = np.load(os.path.join(
-                episode_path, EpisodeAnalytics.LINES_FAILURES))
-            rewards = np.load(os.path.join(episode_path, EpisodeAnalytics.REWARDS))
+                episode_path, Episode.LINES_FAILURES))
+            rewards = np.load(os.path.join(episode_path, Episode.REWARDS))
         except FileNotFoundError as ex:
-            raise Grid2OpException(f"EpisodeAnalytics file not found \n {str(ex)}")
+            raise Grid2OpException(f"Episode file not found \n {str(ex)}")
 
         observation_space = ObservationSpace.from_dict(
-            os.path.join(agent_path, EpisodeAnalytics.OBS_SPACE))
+            os.path.join(agent_path, Episode.OBS_SPACE))
         action_space = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeAnalytics.ACTION_SPACE))
+            os.path.join(agent_path, Episode.ACTION_SPACE))
         helper_action_env = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeAnalytics.ENV_MODIF_SPACE))
+            os.path.join(agent_path, Episode.ENV_MODIF_SPACE))
 
         return cls(actions, env_actions, observations, rewards, disc_lines,
                    times, _parameters, episode_meta, episode_times,
@@ -426,18 +426,18 @@ class EpisodeAnalytics:
                 json.dump(obj=self.episode_times, fp=f,
                           indent=4, sort_keys=True)
 
-            np.save(os.path.join(self.episode_path, EpisodeAnalytics.AG_EXEC_TIMES),
+            np.save(os.path.join(self.episode_path, Episode.AG_EXEC_TIMES),
                     self.times)
             self.actions.save(
-                os.path.join(self.episode_path, EpisodeAnalytics.ACTIONS))
+                os.path.join(self.episode_path, Episode.ACTIONS))
             self.env_actions.save(
-                os.path.join(self.episode_path, EpisodeAnalytics.ENV_ACTIONS))
+                os.path.join(self.episode_path, Episode.ENV_ACTIONS))
             self.observations.save(
-                os.path.join(self.episode_path, EpisodeAnalytics.OBSERVATIONS))
+                os.path.join(self.episode_path, Episode.OBSERVATIONS))
             np.save(os.path.join(
-                self.episode_path, EpisodeAnalytics.LINES_FAILURES), self.disc_lines)
+                self.episode_path, Episode.LINES_FAILURES), self.disc_lines)
             np.save(os.path.join(self.episode_path,
-                                 EpisodeAnalytics.REWARDS), self.rewards)
+                                 Episode.REWARDS), self.rewards)
 
 
 class CollectionWrapper:
