@@ -30,7 +30,7 @@ try:
     from .BackendPandaPower import PandaPowerBackend
     from .Parameters import Parameters
     from .Agent import DoNothingAgent, Agent
-    from .EpisodeAnalytics import EpisodeAnalytics
+    from .Episode import Episode
 
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -44,7 +44,7 @@ except (ModuleNotFoundError, ImportError):
     from BackendPandaPower import PandaPowerBackend
     from Parameters import Parameters
     from Agent import DoNothingAgent, Agent
-    from EpisodeAnalytics import EpisodeAnalytics
+    from Episode import Episode
 
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
