@@ -233,14 +233,8 @@ class Episode:
                                                   self.rewards.cumsum(axis=0)[time_step]]
 
             flow_voltage_line_table.loc[time_step, :] = np.array([
-                obs.p_ex,
-                obs.q_ex,
-                obs.a_ex,
-                obs.v_ex,
-                obs.p_or,
-                obs.q_or,
-                obs.a_or,
-                obs.v_or
+                obs.p_ex, obs.q_ex, obs.a_ex, obs.v_ex,
+                obs.p_or, obs.q_or, obs.a_or, obs.v_or
             ]).flatten()
 
 
