@@ -506,6 +506,42 @@ class Action(GridObjects):
         self._lines_impacted = None
         self._subs_impacted = None
 
+    def __iadd__(self, other):
+        """
+        Add an action to this one. Add will have the following properties:
+
+            - it erase the previous changes to injections
+            -
+
+        Parameters
+        ----------
+        other: :class:`Action`
+
+        Returns
+        -------
+
+        """
+
+        # deal with injections
+        for el in self.vars_action:
+            if el in other._dict_inj:
+                if el not in self._dict_inj:
+                    self._dict_inj[el] = other._dict_inj[el]
+                else:
+                    val = other._dict_inj[el]
+                    ok_ind = np.isfinite(val)
+                    self._dict_inj[el][ok_ind] = val[ok_ind]
+
+        # redispatching
+        redispatching = other._redispatch
+        if np.any(redispatching != 0.):
+            ok_ind = np.isfinite(redispatching)
+            self._redispatch[ok_ind] += redispatching[ok_ind]
+
+        # set status
+        
+
+
     def __call__(self):
         """
         This method is used to return the effect of the current action in a format understandable by the backend.

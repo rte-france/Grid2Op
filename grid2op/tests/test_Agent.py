@@ -133,18 +133,19 @@ class TestAgent(unittest.TestCase):
                 time_act, end_-beg_, cum_reward))
         return i, cum_reward
 
-    def test_0_donothing(self):
-        agent = DoNothingAgent(self.env.helper_action_player)
-        i, cum_reward = self._aux_test_agent(agent)
-        assert i == 31, "The powerflow diverged before step 30 for do nothing"
-        assert np.abs(cum_reward - 619.994619) <= self.tol_one, "The reward has not been properly computed"
-
-    # def test_1_powerlineswitch(self):
-    #     agent = PowerLineSwitch(self.env.helper_action_player)
+    # def test_0_donothing(self):
+    #     agent = DoNothingAgent(self.env.helper_action_player)
     #     i, cum_reward = self._aux_test_agent(agent)
-    #     assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-    #     assert np.abs(cum_reward - 619.9950) <= self.tol_one, "The reward has not been properly computed"
-    #
+    #     assert i == 31, "The powerflow diverged before step 30 for do nothing"
+    #     assert np.abs(cum_reward - 619.994619) <= self.tol_one, "The reward has not been properly computed"
+
+    def test_1_powerlineswitch(self):
+        agent = PowerLineSwitch(self.env.helper_action_player)
+        i, cum_reward = self._aux_test_agent(agent)
+        assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
+        print("cum_reward: {}".format(cum_reward))
+        assert np.abs(cum_reward - 619.9950) <= self.tol_one, "The reward has not been properly computed"
+
     # def test_2_busswitch(self):
     #     agent = TopologyGreedy(self.env.helper_action_player)
     #     i, cum_reward = self._aux_test_agent(agent, i_max=10)

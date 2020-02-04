@@ -585,12 +585,16 @@ class PandaPowerBackend(Backend):
         # beg__ = time.time()
         # TODO refactor this, this takes a looong time
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
-
+        line_status = self.get_line_status()
         for i, (_, row) in enumerate(self._grid.line.iterrows()):
             bus_or_id = int(row["from_bus"])
             bus_ex_id = int(row["to_bus"])
-            res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
-            res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+            if line_status[i]:
+                res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
+                res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+            else:
+                res[self.line_or_pos_topo_vect[i]] = -1
+                res[self.line_ex_pos_topo_vect[i]] = -1
 
         nb = self._number_true_line
         for i, (_, row) in enumerate(self._grid.trafo.iterrows()):

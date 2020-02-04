@@ -46,10 +46,12 @@ try:
     from .Exceptions import *
     from .Space import SerializableSpace, GridObjects
     from .Reward import ConstantReward, RewardHelper
+    from .Action import Action
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from Space import SerializableSpace, GridObjects
     from Reward import ConstantReward, RewardHelper
+    from Action import Action
 
 # TODO be able to change reward here
 
@@ -98,7 +100,6 @@ class ObsEnv(GridObjects):
         self.reward_helper = reward_helper
         self.obsClass = obsClass
         self.parameters = parameters
-        self.dim_topo = np.sum(self.backend.sub_info)
         self.time_stamp = None
 
         self.chronics_handler = ObsCH()
@@ -106,6 +107,12 @@ class ObsEnv(GridObjects):
         self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
         self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
         self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=np.int)
+
+        self._load_p, self._load_q, _ = None, None, None
+        self._prod_p, _, self._prod_v = None, None, None
+        self._topo_vect = None, None, None
+        self._line_status = None, None, None
+        self._action = None
 
         # TODO handle that in forecast!
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
@@ -159,7 +166,22 @@ class ObsEnv(GridObjects):
         """
         if self.is_init:
             return
-        self.backend.apply_action(new_state_action)
+
+        # backend_test = self.backend.copy()
+        #
+        self._action = Action(gridobj=self)
+        self._action.update({"set_line_status": self._line_status,
+                             "set_bus": self._topo_vect,
+                             "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
+                                           "load_p": self._load_p, "load_q": self._load_q}})
+        self._action += new_state_action
+        # self._action.update({"set_line_status": self._line_status,
+        #                      "set_bus": self._topo_vect})
+        # print("self._action: {}".format(self._action))
+        self.backend.apply_action(self._action)
+        # self.backend.apply_action(new_state_action)
+        # self.backend.runpf()
+
         self.is_init = True
         self.current_obs = None
         self.time_stamp = time_stamp
@@ -235,6 +257,7 @@ class ObsEnv(GridObjects):
         if reward is None:
             reward = self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous)
         self.backend = tmp_backend
+        # self.backend.apply_action(self._action)
 
         return self.current_obs, reward, has_error, {}
 
@@ -270,7 +293,15 @@ class ObsEnv(GridObjects):
         -------
 
         """
-        self.backend = real_backend.copy()
+        # self.backend = real_backend.copy()
+        self._load_p, self._load_q, _ = real_backend.loads_info()
+        self._prod_p, _, self._prod_v = real_backend.generators_info()
+        self._topo_vect = real_backend.get_topo_vect()
+
+        # convert line status to -1 / 1 instead of true / false
+        self._line_status = real_backend.get_line_status().astype(np.int)
+        self._line_status *= 1
+        self._line_status -= 1
         self.is_init = False
 
 
