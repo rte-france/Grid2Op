@@ -30,7 +30,7 @@ try:
     from .BackendPandaPower import PandaPowerBackend
     from .Parameters import Parameters
     from .Agent import DoNothingAgent, Agent
-    from .Episode import Episode
+    from .EpisodeData import EpisodeData
 
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -44,7 +44,7 @@ except (ModuleNotFoundError, ImportError):
     from BackendPandaPower import PandaPowerBackend
     from Parameters import Parameters
     from Agent import DoNothingAgent, Agent
-    from Episode import Episode
+    from EpisodeData import EpisodeData
 
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
@@ -516,7 +516,7 @@ class Runner(object):
             else:
                 observations = np.concatenate((observations, obs.to_vect()))
 
-        episode = Episode(actions=actions, env_actions=env_actions,
+        episode = EpisodeData(actions=actions, env_actions=env_actions,
                           observations=observations,
                           rewards=rewards, disc_lines=disc_lines, times=times,
                           observation_space=env.observation_space,
