@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "C:\\Users\\vrenault\\.virtualenvs\\Grid2Op-91AM6OtG\\Scripts\\python.exe",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true
+}

@@ -9,7 +9,7 @@ import pkg_resources
 __version__ = '0.5.2'
 
 __all__ = ['Action', "BackendPandaPower", "Agent", "Backend", "ChronicsHandler", "Environment", "Exceptions",
-           "Observation", "Parameters", "GameRules", "Reward", "Runner", "main", "Utils", "PlotPlotly"]
+           "Observation", "Parameters", "GameRules", "Reward", "Runner", "main", "Utils", "PlotPlotly", "EpisodeData"]
 
 from .MakeEnv import make
 

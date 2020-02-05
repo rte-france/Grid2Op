@@ -10,11 +10,20 @@ sphinxcontrib-trio = "*"
 chardet = "*"
 autopep8 = "*"
 pylint = "*"
+jupyterlab = "*"
+ipykernel = "*"
+matplotlib = "*"
 
 [packages]
 numpy = "*"
 pandas = "*"
 pandapower = "*"
+numba = "*"
+seaborn = "*"
+plotly = "*"
+ipywidgets = "*"
+autopep8 = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"

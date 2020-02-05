@@ -2,41 +2,6 @@
 This module is here to facilitate the evaluation of agent.
 It can handles all types of :class:`grid2op.Agent`.
 
-If enabled, the :class:`Runner` will save the information in a structured way. For each episode there will be a folder
-with:
-
-  - "episode_meta.json" that represents some meta information about:
-
-    - "backend_type": the name of the :class:`grid2op.Backend` class used
-    - "chronics_max_timestep": the **maximum** number of timestep for the chronics used
-    - "chronics_path": the path where the temporal data (chronics) are located
-    - "env_type": the name of the :class:`grid2op.Environment` class used.
-    - "grid_path": the path where the powergrid has been loaded from
-
-  - "episode_times.json": gives some information about the total time spend in multiple part of the runner, mainly the
-    :class:`grid2op.Agent` (and especially its method :func:`grid2op.Agent.act`) and amount of time spent in the
-    :class:`grid2op.Environment`
-
-  - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters.Parameters` used for this episode
-  - "rewards.npy" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
-    reward at index `i` is the one observed by the agent at time `i` and **NOT** the reward sent by the
-    :class:`grid2op.Environment` after the action has been implemented.
-  - "exec_times.npy" is a numpy 1d array giving the execution time of each time step of the episode
-  - "actions.npy" gives the actions that has been taken by the :class:`grid2op.Agent.Agent`. At row `i` of "actions.npy" is a
-    vectorized representation of the action performed by the agent at timestep `i` *ie.* **after** having observed
-    the observation present at row `i` of "observation.npy" and the reward showed in row `i` of "rewards.npy".
-  - "disc_lines.npy" gives which lines have been disconnected during the simulation of the cascading failure at each
-    time step. The same convention as for "rewards.npy" has been adopted. This means that the powerlines are
-    disconnected when the :class:`grid2op.Agent` takes the :class:`grid2op.Action` at time step `i`.
-  - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.Observation.Observation` at the disposal of the
-    :class:`grid2op.Agent` when he took his action.
-  - "env_modifications.npy" is a 2d numpy array representing the modification of the powergrid from the environment.
-    these modification usually concerns the hazards, maintenance, as well as modification of the generators production
-    setpoint or the loads consumption.
-
-All of the above should allow to read back, and better understand the behaviour of some :class:`grid2op.Agent.Agent`, even
-though such utility functions have not been coded yet.
-
 """
 import time
 import warnings
@@ -65,6 +30,7 @@ try:
     from .BackendPandaPower import PandaPowerBackend
     from .Parameters import Parameters
     from .Agent import DoNothingAgent, Agent
+    from .EpisodeData import EpisodeData
 
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -78,6 +44,8 @@ except (ModuleNotFoundError, ImportError):
     from BackendPandaPower import PandaPowerBackend
     from Parameters import Parameters
     from Agent import DoNothingAgent, Agent
+    from EpisodeData import EpisodeData
+
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -115,6 +83,7 @@ class ConsoleLog(DoNothingLog):
     """
     A class to emulate the behaviour of a logger, but that prints on the console
     """
+
     def __init__(self, max_level=2):
         DoNothingLog.__init__(self, max_level)
 
@@ -241,8 +210,10 @@ class Runner(object):
         Additional keyword arguments used to build the :attr:`Runner.chronics_handler`
 
     """
+
     def __init__(self,
-                 init_grid_path: str,  # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
+                 # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
+                 init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
                  parameters_path=None,
                  names_chronics_to_backend=None,
@@ -251,9 +222,10 @@ class Runner(object):
                  rewardClass=FlatReward,
                  legalActClass=AllwaysLegal,
                  envClass=Environment,
-                 gridStateclass=GridStateFromFile, #type of chronics to use. For example GridStateFromFile if forecasts are not used, or GridStateFromFileWithForecasts otherwise
+                 gridStateclass=GridStateFromFile,
+                 # type of chronics to use. For example GridStateFromFile if forecasts are not used, or GridStateFromFileWithForecasts otherwise
                  backendClass=PandaPowerBackend,
-                 agentClass=DoNothingAgent,  #class used to build the agent
+                 agentClass=DoNothingAgent,  # class used to build the agent
                  agentInstance=None,
                  verbose=False,
                  gridStateclass_kwargs={},
@@ -315,7 +287,7 @@ class Runner(object):
                     type(envClass)))
         if not issubclass(envClass, Environment):
             raise RuntimeError("Impossible to create a runner without an evnrionment derived from grid2op.Environement"
-                               " class. Please modify \"envClass\" paramter.")
+                               " class. Please modify \"envClass\" parameter.")
         self.envClass = envClass
 
         if not isinstance(actionClass, type):
@@ -325,7 +297,7 @@ class Runner(object):
                     type(actionClass)))
         if not issubclass(actionClass, Action):
             raise RuntimeError("Impossible to create a runner without an action class derived from grid2op.Action. "
-                               "Please modify \"actionClass\" paramter.")
+                               "Please modify \"actionClass\" parameter.")
         self.actionClass = actionClass
 
         if not isinstance(observationClass, type):
@@ -335,7 +307,7 @@ class Runner(object):
                     type(observationClass)))
         if not issubclass(observationClass, Observation):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.Observation. Please modify \"observationClass\" paramter.")
+                               "grid2op.Observation. Please modify \"observationClass\" parameter.")
         self.observationClass = observationClass
 
         if not isinstance(rewardClass, type):
@@ -343,9 +315,10 @@ class Runner(object):
                 "Parameter \"rewardClass\" used to build the Runner should be a type (a class) and not an object "
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(rewardClass)))
+    
         if not issubclass(rewardClass, Reward):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.Reward. Please modify \"rewardClass\" paramter.")
+                               "grid2op.Reward. Please modify \"rewardClass\" parameter.")
         self.rewardClass = rewardClass
 
         if not isinstance(gridStateclass, type):
@@ -355,7 +328,7 @@ class Runner(object):
                     type(gridStateclass)))
         if not issubclass(gridStateclass, GridValue):
             raise RuntimeError("Impossible to create a runner without an chronics class derived from "
-                               "grid2op.GridValue. Please modify \"gridStateclass\" paramter.")
+                               "grid2op.GridValue. Please modify \"gridStateclass\" parameter.")
         self.gridStateclass = gridStateclass
 
         if not isinstance(legalActClass, type):
@@ -364,8 +337,9 @@ class Runner(object):
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(legalActClass)))
         if not issubclass(legalActClass, LegalAction):
+
             raise RuntimeError("Impossible to create a runner without a class defining legal actions derived "
-                               "from grid2op.LegalAction. Please modify \"legalActClass\" paramter.")
+                               "from grid2op.LegalAction. Please modify \"legalActClass\" parameter.")
         self.legalActClass = legalActClass
 
         if not isinstance(backendClass, type):
@@ -375,7 +349,7 @@ class Runner(object):
                     type(backendClass)))
         if not issubclass(backendClass, Backend):
             raise RuntimeError("Impossible to create a runner without a backend class derived from grid2op.GridValue. "
-                               "Please modify \"backendClass\" paramter.")
+                               "Please modify \"backendClass\" parameter.")
         self.backendClass = backendClass
 
         if agentClass is not None:
@@ -404,7 +378,8 @@ class Runner(object):
             raise RuntimeError("Impossible to build the backend. Either AgentClass or agentInstance must be provided "
                                "and both are None.")
 
-        self.logger = ConsoleLog(DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
+        self.logger = ConsoleLog(
+            DoNothingLog.INFO if verbose else DoNothingLog.ERROR)
 
         # store _parameters
         self.init_grid_path = init_grid_path
@@ -427,7 +402,6 @@ class Runner(object):
         # build the environment
         self.env = None
 
-        # miscellaneous
         self.verbose = verbose
 
     def _new_env(self, chronics_handler, backend, parameters):
@@ -456,7 +430,8 @@ class Runner(object):
         ``None``
 
         """
-        self.env, self.agent = self._new_env(self.chronics_handler, self.backend, self.parameters)
+        self.env, self.agent = self._new_env(
+            self.chronics_handler, self.backend, self.parameters)
 
     def reset(self):
         """
@@ -512,44 +487,6 @@ class Runner(object):
         # the "-1" above is because the environment will be reset. So it will increase id of 1.
         obs = env.reset()
 
-        if path_save is not None:
-            path_save = os.path.abspath(path_save)
-            if not os.path.exists(path_save):
-                os.mkdir(path_save)
-                logger.info("Creating path \"{}\" to save the runner".format(path_save))
-
-            if not os.path.exists(os.path.join(path_save, "dict_action_space.json")):
-                dict_action_space = env.action_space.to_dict()
-                with open(os.path.join(path_save, "dict_action_space.json"), "w", encoding='utf8') as f:
-                    json.dump(obj=dict_action_space, fp=f, indent=4, sort_keys=True)
-            if not os.path.exists(os.path.join(path_save, "dict_observation_space.json")):
-                dict_observation_space = env.observation_space.to_dict()
-                with open(os.path.join(path_save, "dict_observation_space.json"), "w", encoding='utf8') as f:
-                    json.dump(obj=dict_observation_space, fp=f, indent=4, sort_keys=True)
-            if not os.path.exists(os.path.join(path_save, "dict_env_modification_space.json")):
-                dict_action_space = env.helper_action_env.to_dict()
-                with open(os.path.join(path_save, "dict_env_modification_space.json"), "w", encoding='utf8') as f:
-                    json.dump(obj=dict_action_space, fp=f, indent=4, sort_keys=True)
-
-            this_path = os.path.join(path_save, "{}".format(os.path.split(env.chronics_handler.get_id())[-1]))
-            if not os.path.exists(this_path):
-                os.mkdir(this_path)
-                logger.info("Creating path \"{}\" to save the episode {}".format(this_path, indx))
-        else:
-            this_path = None
-
-        if path_save is not None:
-            dict_ = {}
-            dict_["chronics_path"] = "{}".format(env.chronics_handler.get_id())
-            dict_["chronics_max_timestep"] = "{}".format(env.chronics_handler.max_timestep())
-            dict_["grid_path"] = "{}".format(env.init_grid_path)
-            dict_["backend_type"] = "{}".format(type(env.backend).__name__)
-            dict_["env_type"] = "{}".format(type(env).__name__)
-
-            with open(os.path.join(this_path, "_parameters.json"), "w") as f:
-                dict_params = env.parameters.to_dict()
-                json.dump(obj=dict_params, fp=f, indent=4, sort_keys=True)
-
         # compute the size and everything if it needs to be stored
         nb_timestep_max = env.chronics_handler.max_timestep()
         efficient_storing = nb_timestep_max > 0
@@ -561,16 +498,16 @@ class Runner(object):
 
         times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
         rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
-        actions = np.full((nb_timestep_max, env.action_space.n), fill_value=np.NaN, dtype=np.float)
-        env_actions = np.full((nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
-        observations = np.full((nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
-        disc_lines = np.full((nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
-        disc_lines_templ = np.full((1, env.backend.n_line), fill_value=False, dtype=np.bool)
-
-        beg_ = time.time()
-
-        reward = env.reward_range[0]
-        done = False
+        actions = np.full((nb_timestep_max, env.action_space.n),
+                          fill_value=np.NaN, dtype=np.float)
+        env_actions = np.full(
+            (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
+        observations = np.full(
+            (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
+        disc_lines = np.full(
+            (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
+        disc_lines_templ = np.full(
+            (1, env.backend.n_line), fill_value=False, dtype=np.bool)
 
         if path_save is not None:
             # store observation at timestep 0
@@ -578,6 +515,23 @@ class Runner(object):
                 observations[time_step, :] = obs.to_vect()
             else:
                 observations = np.concatenate((observations, obs.to_vect()))
+
+        episode = EpisodeData(actions=actions, env_actions=env_actions,
+                          observations=observations,
+                          rewards=rewards, disc_lines=disc_lines, times=times,
+                          observation_space=env.observation_space,
+                          action_space=env.action_space,
+                          helper_action_env=env.helper_action_env,
+                          path_save=path_save, disc_lines_templ=disc_lines_templ,
+                          logger=logger, indx=os.path.split(
+                env.chronics_handler.get_id())[-1])
+
+        episode.set_parameters(env)
+
+        beg_ = time.time()
+
+        reward = env.reward_range[0]
+        done = False
 
         while not done:
             beg__ = time.time()
@@ -589,72 +543,24 @@ class Runner(object):
             cum_reward += reward
             time_step += 1
 
-            # save the results
-            if path_save is not None:
-                env_act = env.env_modification
-                if efficient_storing:
-                    # efficient way of writing
-                    times[time_step-1] = end__ - beg__
-                    rewards[time_step-1] = reward
-                    actions[time_step-1, :] = act.to_vect()
-                    env_actions[time_step-1, :] = env_act.to_vect()
-                    observations[time_step, :] = obs.to_vect()
-                    if "disc_lines" in info:
-                        arr = info["disc_lines"]
-                        if arr is not None:
-                            disc_lines[time_step-1, :] = arr
-                        else:
-                            disc_lines[time_step - 1, :] = disc_lines_templ
-                else:
-                    # completely inefficient way of writing
-                    times = np.concatenate((times, (end__ - beg__, )))
-                    rewards = np.concatenate((rewards, (reward, )))
-                    actions = np.concatenate((actions, act.to_vect()))
-                    env_actions = np.concatenate((actions, env_act.to_vect()))
-                    observations = np.concatenate((observations, obs.to_vect()))
-                    if "disc_lines" in info:
-                        arr = info["disc_lines"]
-                        if arr is not None:
-                            disc_lines = np.concatenate((disc_lines, arr))
-                        else:
-                            disc_lines = np.concatenate((disc_lines, disc_lines_templ))
-        if path_save is not None:
-            dict_["nb_timestep_played"] = time_step
-            dict_["cumulative_reward"] = cum_reward
+            episode.incr_store(efficient_storing, time_step, end__ - beg__,
+                               reward, env.env_modification, act, obs, info)
         end_ = time.time()
 
-        if path_save is not None:
-            with open(os.path.join(this_path, "episode_meta.json"), "w") as f:
-                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
-
-            np.save(os.path.join(this_path, "agent_exec_times.npy"), times)
-            np.save(os.path.join(this_path, "actions.npy"), actions)
-            np.save(os.path.join(this_path, "env_modifications.npy"), env_actions)
-            np.save(os.path.join(this_path, "observations.npy"), observations)
-            np.save(os.path.join(this_path, "disc_lines_cascading_failure.npy"), disc_lines)
-            np.save(os.path.join(this_path, "rewards.npy"), rewards)
+        episode.set_meta(env, time_step, cum_reward)
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
                    "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
                    "Cumulative reward: {:1f}"]
         msg_ = "\n".join(li_text)
         logger.info(msg_.format(
-            env._time_apply_act+env._time_powerflow+env._time_extract_obs,
+            env._time_apply_act + env._time_powerflow + env._time_extract_obs,
             env._time_apply_act, env._time_powerflow, env._time_extract_obs,
-            time_act, end_-beg_, cum_reward))
+            time_act, end_ - beg_, cum_reward))
 
-        if path_save is not None:
-            with open(os.path.join(this_path, "episode_times.json"), "w") as f:
-                dict_ = {}
-                dict_["Env"] = {}
-                dict_["Env"]["total"] = float(env._time_apply_act+env._time_powerflow+env._time_extract_obs)
-                dict_["Env"]["apply_act"] = float(env._time_apply_act)
-                dict_["Env"]["powerflow_computation"] = float(env._time_powerflow)
-                dict_["Env"]["observation_computation"] = float(env._time_extract_obs)
-                dict_["Agent"] = {}
-                dict_["Agent"]["total"] = float(time_act)
-                dict_["total"] = float(end_-beg_)
-                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+        episode.set_episode_times(env, time_act, beg_, end_)
+
+        episode.todisk()
 
         return cum_reward, int(time_step)
 
@@ -684,7 +590,8 @@ class Runner(object):
         """
         res = [(None, None, None) for _ in range(nb_episode)]
         for i in range(nb_episode):
-            cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i)
+            cum_reward, nb_time_step = self.run_one_episode(
+                path_save=path_save, indx=i)
             id_chron = self.chronics_handler.get_id()
             max_ts = self.chronics_handler.max_timestep()
             res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
@@ -703,7 +610,8 @@ class Runner(object):
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)
-            cum_reward, nb_time_step = Runner._run_one_episode(env, agent, runner.logger, p_id, path_save)
+            cum_reward, nb_time_step = Runner._run_one_episode(
+                env, agent, runner.logger, p_id, path_save)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
             res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
@@ -747,9 +655,11 @@ class Runner(object):
 
         """
         if nb_process <= 0:
-            raise RuntimeError("Runner: you need at least 1 process to run episodes")
+            raise RuntimeError(
+                "Runner: you need at least 1 process to run episodes")
         if nb_process == 1:
-            warnings.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
+            warnings.warn(
+                "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
             return [self.run_sequential(nb_episode, path_save=path_save)]
         else:
             if self.env is not None:
@@ -799,16 +709,19 @@ class Runner(object):
 
         """
         if nb_episode < 0:
-            raise RuntimeError("Impossible to run a negative number of scenarios.")
+            raise RuntimeError(
+                "Impossible to run a negative number of scenarios.")
         if nb_episode == 0:
             res = []
         else:
             if nb_process <= 0:
-                raise RuntimeError("Impossible to run using less than 1 process.")
+                raise RuntimeError(
+                    "Impossible to run using less than 1 process.")
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
                 res = self.run_sequential(nb_episode, path_save=path_save)
             else:
                 self.logger.info("Parrallel runner used.")
-                res = self.run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save)
+                res = self.run_parrallel(
+                    nb_episode, nb_process=nb_process, path_save=path_save)
         return res
