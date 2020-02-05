@@ -194,7 +194,7 @@ class GreedyAgent(Agent):
 
             reward_idx = np.argmax(all_rewards)  # rewards.index(max(rewards))
             best_action = self.tested_action[reward_idx]
-            print("reward_idx: {}".format(reward_idx))
+            # print("reward_idx: {}".format(reward_idx))
         else:
             best_action = self.tested_action[0]
         return best_action

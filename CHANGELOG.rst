@@ -1,8 +1,14 @@
 Change Log
 =============
-[0.5.2] - 2020-02-xx
+[0.5.3] - 2020-02-05
 ---------------------
+- [ADDED] parrallel processing of the environment: evaluation in parrallel of the same agent in different environments.
+- [ADDED] a way to shuffle the order in which different chronics are read from the hard drive (see MultiFolder.shuffle)
 - [FIXED] utility script to push docker file
+- [FIXED] some tests were not passed on the main file, because of a file ignore by git.
+- [FIXED] improve stability of pandapower backend.
+- [UPDATED] avoid copying the grid to build observation
+
 
 [0.5.2] - 2020-01-27
 ---------------------

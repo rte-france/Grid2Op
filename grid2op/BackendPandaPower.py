@@ -344,12 +344,12 @@ class PandaPowerBackend(Backend):
                                      "\"{}\"".format(action.__class__))
 
         # change the _injection if needed
-        dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching = action()
+        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching = action()
 
         for k in dict_injection:
             if k in self._vars_action_set:
                 tmp = self._get_vector_inj[k](self._grid)
-                val = dict_injection[k]
+                val = 1. * dict_injection[k]
                 ok_ind = np.isfinite(val)
                 if k == "prod_v":
                     pass
@@ -399,11 +399,11 @@ class PandaPowerBackend(Backend):
                         actual_topo[this_topo_switch] = st
                     if np.any(this_topo_set != 0):
                         # some buses have been set
-                        sel_ = this_topo_set != 0
+                        sel_ = (this_topo_set != 0)
                         actual_topo[sel_] = this_topo_set[sel_]
 
                     # in case the topo vector is 2,2,2 etc. i convert it back to 1,1,1 etc.
-                    actual_topo = actual_topo - np.min(actual_topo) + 1
+                    actual_topo = actual_topo - np.min(actual_topo[actual_topo > 0.]) + 1
                     # implement in on the _grid
                     # change the topology in case it doesn't match the original one
                     if np.any(actual_topo != origin_topo):
@@ -419,13 +419,16 @@ class PandaPowerBackend(Backend):
                         # now assign the proper bus to each element
                         for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
                             self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
+                            # if actual_topo[i] <0:
+                            #     pdb.set_trace()
+                            # self._grid[table][col_name].iloc[i] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
 
                     beg_ += nb_obj
 
         # change line status if needed
         # note that it is a specification that lines status must override buses reconfiguration.
-        if np.any(change_status != 0.):
-            for i, el in enumerate(change_status):
+        if np.any(set_status != 0.):
+            for i, el in enumerate(set_status):
                 # TODO performance optim here, it can be vectorized
                 if el == -1:
                     self._disconnect_line(i)
@@ -585,7 +588,9 @@ class PandaPowerBackend(Backend):
         # beg__ = time.time()
         # TODO refactor this, this takes a looong time
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
+
         line_status = self.get_line_status()
+
         for i, (_, row) in enumerate(self._grid.line.iterrows()):
             bus_or_id = int(row["from_bus"])
             bus_ex_id = int(row["to_bus"])
@@ -601,8 +606,15 @@ class PandaPowerBackend(Backend):
             bus_or_id = int(row["hv_bus"])
             bus_ex_id = int(row["lv_bus"])
 
-            res[self.line_or_pos_topo_vect[i + nb]] = 1 if bus_or_id == self.line_or_to_subid[i + nb] else 2
-            res[self.line_ex_pos_topo_vect[i + nb]] = 1 if bus_ex_id == self.line_ex_to_subid[i + nb] else 2
+            # res[self.line_or_pos_topo_vect[i + nb]] = 1 if bus_or_id == self.line_or_to_subid[i + nb] else 2
+            # res[self.line_ex_pos_topo_vect[i + nb]] = 1 if bus_ex_id == self.line_ex_to_subid[i + nb] else 2
+            j = i + nb
+            if line_status[j]:
+                res[self.line_or_pos_topo_vect[j]] = 1 if bus_or_id == self.line_or_to_subid[j] else 2
+                res[self.line_ex_pos_topo_vect[j]] = 1 if bus_ex_id == self.line_ex_to_subid[j] else 2
+            else:
+                res[self.line_or_pos_topo_vect[j]] = -1
+                res[self.line_ex_pos_topo_vect[j]] = -1
 
         for i, (_, row) in enumerate(self._grid.gen.iterrows()):
             bus_id = int(row["bus"])

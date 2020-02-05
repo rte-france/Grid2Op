@@ -337,3 +337,8 @@ class UnitCommitorRedispachingNotAvailable(Grid2OpException):
     attempt to use redispatching or unit commit method in an environment not set up.
     """
     pass
+
+# multi environment
+class MultiEnvException(Grid2OpException):
+    """General exception raised by :class:`grid2Op.MultiEnv.MultiEnvironment` """
+    pass

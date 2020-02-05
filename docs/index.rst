@@ -35,7 +35,6 @@ Main module content
    grid2op
    makeenv
 
-
 Plotting capabilities
 ----------------------
 
@@ -53,13 +52,14 @@ Technical Documentation
    :maxdepth: 1
 
    action
-   converters
    agent
    backend
    backendpp
    chronicshandler
+   converters
    environment
    gamerules
+   multienv
    observation
    parameters
    reward

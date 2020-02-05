@@ -167,20 +167,14 @@ class ObsEnv(GridObjects):
         if self.is_init:
             return
 
-        # backend_test = self.backend.copy()
-        #
+        # update the action that set the grid to the real value
         self._action = Action(gridobj=self)
-        self._action.update({"set_line_status": self._line_status,
+        self._action.update({"set_line_status": np.array(self._line_status),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
                                            "load_p": self._load_p, "load_q": self._load_q}})
+
         self._action += new_state_action
-        # self._action.update({"set_line_status": self._line_status,
-        #                      "set_bus": self._topo_vect})
-        # print("self._action: {}".format(self._action))
-        self.backend.apply_action(self._action)
-        # self.backend.apply_action(new_state_action)
-        # self.backend.runpf()
 
         self.is_init = True
         self.current_obs = None
@@ -192,7 +186,8 @@ class ObsEnv(GridObjects):
         This function is the core method of the :class:`ObsEnv`. It allows to perform a simulation of what would
         give and action if it were to be implemented on the "forecasted" powergrid.
 
-        It has the same signature as :func:`grid2op.Environment.step`. One of the major difference is that it doesn't
+        It has the same signature as :func:`grid2op.Environment.Environment.step`. One of the major difference is that
+        it doesn't
         check whether the action is illegal or not (but an implementation could be provided for this method). The
         reason for this is that there is not one single and unique way to "forecast" how the thermal limit will behave,
         which lines will be available or not, which actions will be done or not between the time stamp at which
@@ -205,7 +200,7 @@ class ObsEnv(GridObjects):
 
         Returns
         -------
-        observation: :class:`grid2op.Observation`
+        observation: :class:`grid2op.Observation.Observation`
             agent's observation of the current environment
 
         reward: ``float``
@@ -224,14 +219,14 @@ class ObsEnv(GridObjects):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
+        # TODO mimic the whole environment stuff, really have a base class for that...
         has_error = True
-        tmp_backend = self.backend.copy()
         is_done = False
         reward = None
-
         is_illegal = False
         is_ambiguous = False
 
+        self.backend.apply_action(self._action)
         try:
             self.backend.apply_action(action)
         except AmbiguousAction:
@@ -253,12 +248,10 @@ class ObsEnv(GridObjects):
         except Grid2OpException as e:
             has_error = True
             reward = self.reward_helper.range()[0]
-        # print("reward_helper in ObsEnv: {}".format(self.reward_helper.template_reward))
         if reward is None:
             reward = self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous)
-        self.backend = tmp_backend
+        # set the backend back to its original state
         # self.backend.apply_action(self._action)
-
         return self.current_obs, reward, has_error, {}
 
     def _get_reward(self, action, has_error, is_done,is_illegal, is_ambiguous):
@@ -294,15 +287,20 @@ class ObsEnv(GridObjects):
 
         """
         # self.backend = real_backend.copy()
+
         self._load_p, self._load_q, _ = real_backend.loads_info()
         self._prod_p, _, self._prod_v = real_backend.generators_info()
         self._topo_vect = real_backend.get_topo_vect()
 
-        # convert line status to -1 / 1 instead of true / false
-        self._line_status = real_backend.get_line_status().astype(np.int)
-        self._line_status *= 1
-        self._line_status -= 1
+        # convert line status to -1 / 1 instead of false / true
+        self._line_status = real_backend.get_line_status().astype(np.int)  # false -> 0 true -> 1
+        self._line_status *= 2  # false -> 0 true -> 2
+        self._line_status -= 1  # false -> -1; true -> 1
         self.is_init = False
+
+        # self.backend.apply_action(self._action)
+        # self.backend._pf_init = "auto"  # remove the optimization where the powerflow re used the old value
+        # pdb.set_trace()
 
 
 class Observation(GridObjects):
@@ -473,7 +471,7 @@ class Observation(GridObjects):
         self.day_of_week = 0
 
         # for non deterministic observation that would not use default np.random module
-        self.seed = seed
+        self.seed = None
 
         # handles the forecasts here
         self._forecasted_grid = []
@@ -802,7 +800,7 @@ class Observation(GridObjects):
 
         Parameters
         ----------
-        other: :class:`Action`
+        other: :class:`Observation`
             An instance of class Action to which "self" will be compared.
 
         Returns
@@ -1451,7 +1449,6 @@ class ObservationHelper(SerializableObservationSpace):
         # self._update_env_time += time.time()-beg_
 
         res = self.observationClass(gridobj=self,
-                                    seed=self.seed,
                                     obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)
 
