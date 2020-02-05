@@ -728,8 +728,16 @@ class Backend(GridObjects, ABC):
         if not os.path.exists(fullpath):
             self.redispatching_unit_commitment_availble = False
             return
+        try:
+            df = pd.read_csv(fullpath)
+        except Exception as e:
+            return
 
-        df = pd.read_csv(fullpath)
+        for el in ["type", "Pmax", "Pmin", "max_ramp_up", "max_ramp_down", "start_cost",
+                   "shut_down_cost", "marginal_cost", "min_up_time", "min_down_time"]:
+            if el not in df.columns:
+                return
+
         gen_info = {}
         for _, row in df.iterrows():
             gen_info[row["name"]] = {"type": row["type"],

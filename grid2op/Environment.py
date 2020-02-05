@@ -45,6 +45,7 @@ Example (adapted from gym documentation available at
 import numpy as np
 import time
 import os
+import copy
 
 try:
     from .Space import GridObjects
@@ -256,6 +257,8 @@ class Environment(GridObjects):
                 "type provided is \"{}\"".format(
                     type(rewardClass)))
         self.rewardClass = rewardClass
+        self.actionClass = actionClass
+        self.observationClass = observationClass
 
         # backend
         self.init_grid_path = os.path.abspath(init_grid_path)
@@ -283,6 +286,7 @@ class Environment(GridObjects):
                 "grid2op.LegalAction class, type provided is \"{}\"".format(
                     type(legalActClass)))
         self.game_rules = GameRules(legalActClass=legalActClass)
+        self.legalActClass = legalActClass
 
         # action helper
         if not isinstance(actionClass, type):
@@ -917,11 +921,13 @@ class Environment(GridObjects):
                 # compute the next _grid state
                 beg_ = time.time()
                 disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
+                test  = 1. * disc_lines
                 self._time_powerflow += time.time() - beg_
 
                 beg_ = time.time()
                 self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                 overflow_lines = self.backend.get_line_overflow()
+                # overflow_lines = np.full(self.n_line, fill_value=False, dtype=np.bool)
 
                 # one timestep passed, i can maybe reconnect some lines
                 self.time_remaining_before_line_reconnection[self.time_remaining_before_line_reconnection > 0] -= 1
@@ -1105,4 +1111,32 @@ class Environment(GridObjects):
             raise RuntimeError("Impossible to solve for this equilibrium, not enough production")
         else:
             res = res[0]
+        return res
+
+    def copy(self):
+        """
+        performs a deep copy of the environment
+
+        Returns
+        -------
+
+        """
+        tmp_backend = self.backend
+        self.backend = None
+        res = copy.deepcopy(self)
+        res.backend = tmp_backend.copy()
+        self.backend = tmp_backend
+        return res
+
+    def get_kwargs(self):
+        res = {}
+        res["init_grid_path"] = self.init_grid_path
+        res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+        res["parameters"] = copy.deepcopy(self.parameters)
+        res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
+        res["actionClass"] = self.actionClass
+        res["observationClass"] = self.observationClass
+        res["rewardClass"] = self.rewardClass
+        res["legalActClass"] = self.legalActClass
+        res["epsilon_poly"] = self._epsilon_poly
         return res
