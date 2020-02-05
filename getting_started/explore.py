@@ -2,7 +2,7 @@ import os
 import grid2op
 from grid2op.Agent import PowerLineSwitch
 from grid2op.ChronicsHandler import GridStateFromFileWithForecasts, Multifolder
-from grid2op.Episode import Episode
+from grid2op.EpisodeData import EpisodeData
 from grid2op.Reward import L2RPNReward
 from grid2op.Runner import Runner
 
@@ -10,7 +10,7 @@ path_agent = "study_agent_getting_started_maintenances"
 path_agent = "study_agent_getting_started_long"
 path_agent = "nodisc_badagent"
 
-episode = Episode.fromdisk(
+episode = EpisodeData.fromdisk(
     "D:/Projects/RTE - Grid2Viz/20200127_data_scripts/20200127_agents_log/" + path_agent, "3_with_hazards")
 
 # max_iter = 2
@@ -38,7 +38,7 @@ episode = Episode.fromdisk(
 #         nb_time_step, max_ts)
 #     print(msg_tmp)
 
-# episode = Episode.fromdisk(path_agent, indx=1)
+# episode = EpisodeData.fromdisk(path_agent, indx=1)
 
 # with open("getting_started/episode.pickle", "wb") as f:
 #     pickle.dump(episode, f)
