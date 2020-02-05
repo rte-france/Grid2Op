@@ -1,9 +1,0 @@
-{
-    "backend_type": "PandaPowerBackend",
-    "chronics_max_timestep": "575",
-    "chronics_path": "/home/donnotben/Documents/L2RPN_2ndEdition/chronics_testset_adapted/4",
-    "cumulative_reward": 76.57897844960578,
-    "env_type": "Environment",
-    "grid_path": "/home/donnotben/Documents/L2RPN_2ndEdition/case14_from_pypownet.json",
-    "nb_timestep_played": 6
-}

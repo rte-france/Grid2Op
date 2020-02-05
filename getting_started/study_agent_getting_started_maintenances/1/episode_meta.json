@@ -1,9 +1,0 @@
-{
-    "backend_type": "PandaPowerBackend",
-    "chronics_max_timestep": "287",
-    "chronics_path": "D:\\Projects\\RTE - Grid2Viz\\grid2op\\grid2op\\data\\test_multi_chronics\\1",
-    "cumulative_reward": 5739.958601377427,
-    "env_type": "Environment",
-    "grid_path": "D:\\Projects\\RTE - Grid2Viz\\grid2op\\grid2op\\data\\test_PandaPower\\test_case14.json",
-    "nb_timestep_played": 287
-}
