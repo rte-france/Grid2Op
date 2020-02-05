@@ -1271,9 +1271,10 @@ class Action(GridObjects):
         bus_switch_impact = impact['topology']['bus_switch']
         if len(bus_switch_impact) > 0:
             res.append("\t - Change the bus of the following element:")
-            res.append("\t \t - switch bus of {} {} [on substation {}]"
-                       .format(bus_switch_impact['object_type'], bus_switch_impact['object_id'],
-                               bus_switch_impact['substation']))
+            for switch in bus_switch_impact:
+                res.append("\t \t - switch bus of {} {} [on substation {}]"
+                           .format(switch['object_type'], switch['object_id'],
+                                   switch['substation']))
         else:
             res.append("\t - NOT switch anything in the topology")
 
