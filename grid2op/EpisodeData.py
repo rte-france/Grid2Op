@@ -140,6 +140,9 @@ class EpisodeData:
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.indx))
 
+    def __len__(self):
+        return self.meta["chronics_max_timestep"]
+
     @classmethod
     def fromdisk(cls, agent_path, indx=0):
 
@@ -298,8 +301,10 @@ class CollectionWrapper:
         The name of one element of the collection.
     i: ``int``
         Integer used for iteration.
-    game_over: ``int``
-        The time step at which the game_over occurs. -1 if there is no game_over
+    _game_over: ``int``
+        The time step at which the game_over occurs. None if there is no game_over
+    objects:
+        The collection of objects built with the `from_vect` method
 
     Methods
     -------
