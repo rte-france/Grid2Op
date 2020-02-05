@@ -10,6 +10,7 @@ import os  # load the python os default module
 import sys  # laod the python sys default module
 import copy
 import re
+import time
 import warnings
 
 import numpy as np
@@ -100,6 +101,10 @@ class PandaPowerBackend(Backend):
         self.load_q = None
         self.load_v = None
 
+        self.prod_p = None
+        self.prod_q = None
+        self.prod_v = None
+
         self._pf_init = "flat"
         self._pf_init = "results"
         self._nb_bus_before = 0
@@ -116,6 +121,7 @@ class PandaPowerBackend(Backend):
         self.dim_topo = -1
         self._vars_action = Action.vars_action
         self._vars_action_set = Action.vars_action_set
+        # self._time_topo_vect = 0.
 
     def get_nb_active_bus(self):
         """
@@ -338,12 +344,12 @@ class PandaPowerBackend(Backend):
                                      "\"{}\"".format(action.__class__))
 
         # change the _injection if needed
-        dict_injection, change_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching = action()
+        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching = action()
 
         for k in dict_injection:
             if k in self._vars_action_set:
                 tmp = self._get_vector_inj[k](self._grid)
-                val = dict_injection[k]
+                val = 1. * dict_injection[k]
                 ok_ind = np.isfinite(val)
                 if k == "prod_v":
                     pass
@@ -393,11 +399,11 @@ class PandaPowerBackend(Backend):
                         actual_topo[this_topo_switch] = st
                     if np.any(this_topo_set != 0):
                         # some buses have been set
-                        sel_ = this_topo_set != 0
+                        sel_ = (this_topo_set != 0)
                         actual_topo[sel_] = this_topo_set[sel_]
 
                     # in case the topo vector is 2,2,2 etc. i convert it back to 1,1,1 etc.
-                    actual_topo = actual_topo - np.min(actual_topo) + 1
+                    actual_topo = actual_topo - np.min(actual_topo[actual_topo > 0.]) + 1
                     # implement in on the _grid
                     # change the topology in case it doesn't match the original one
                     if np.any(actual_topo != origin_topo):
@@ -413,13 +419,16 @@ class PandaPowerBackend(Backend):
                         # now assign the proper bus to each element
                         for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
                             self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
+                            # if actual_topo[i] <0:
+                            #     pdb.set_trace()
+                            # self._grid[table][col_name].iloc[i] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
 
                     beg_ += nb_obj
 
         # change line status if needed
         # note that it is a specification that lines status must override buses reconfiguration.
-        if np.any(change_status != 0.):
-            for i, el in enumerate(change_status):
+        if np.any(set_status != 0.):
+            for i, el in enumerate(set_status):
                 # TODO performance optim here, it can be vectorized
                 if el == -1:
                     self._disconnect_line(i)
@@ -508,6 +517,8 @@ class PandaPowerBackend(Backend):
                 self.v_or *= self.lines_or_pu_to_kv
                 self.v_ex *= self.lines_ex_pu_to_kv
 
+                self.prod_p, self.prod_q, self.prod_v = self._gens_info()
+
                 return self._grid.converged
 
         except pp.powerflow.LoadflowNotConverged:
@@ -574,22 +585,36 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iloc[id - self._number_true_line] = True
 
     def get_topo_vect(self):
+        # beg__ = time.time()
         # TODO refactor this, this takes a looong time
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
+
+        line_status = self.get_line_status()
 
         for i, (_, row) in enumerate(self._grid.line.iterrows()):
             bus_or_id = int(row["from_bus"])
             bus_ex_id = int(row["to_bus"])
-            res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
-            res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+            if line_status[i]:
+                res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
+                res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+            else:
+                res[self.line_or_pos_topo_vect[i]] = -1
+                res[self.line_ex_pos_topo_vect[i]] = -1
 
         nb = self._number_true_line
         for i, (_, row) in enumerate(self._grid.trafo.iterrows()):
             bus_or_id = int(row["hv_bus"])
             bus_ex_id = int(row["lv_bus"])
 
-            res[self.line_or_pos_topo_vect[i + nb]] = 1 if bus_or_id == self.line_or_to_subid[i + nb] else 2
-            res[self.line_ex_pos_topo_vect[i + nb]] = 1 if bus_ex_id == self.line_ex_to_subid[i + nb] else 2
+            # res[self.line_or_pos_topo_vect[i + nb]] = 1 if bus_or_id == self.line_or_to_subid[i + nb] else 2
+            # res[self.line_ex_pos_topo_vect[i + nb]] = 1 if bus_ex_id == self.line_ex_to_subid[i + nb] else 2
+            j = i + nb
+            if line_status[j]:
+                res[self.line_or_pos_topo_vect[j]] = 1 if bus_or_id == self.line_or_to_subid[j] else 2
+                res[self.line_ex_pos_topo_vect[j]] = 1 if bus_ex_id == self.line_ex_to_subid[j] else 2
+            else:
+                res[self.line_or_pos_topo_vect[j]] = -1
+                res[self.line_ex_pos_topo_vect[j]] = -1
 
         for i, (_, row) in enumerate(self._grid.gen.iterrows()):
             bus_id = int(row["bus"])
@@ -598,9 +623,10 @@ class PandaPowerBackend(Backend):
         for i, (_, row) in enumerate(self._grid.load.iterrows()):
             bus_id = int(row["bus"])
             res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
+        # self._time_topo_vect += time.time() - beg__
         return res
 
-    def generators_info(self):
+    def _gens_info(self):
         prod_p = 1. * self._grid.res_gen["p_mw"].values
         prod_q = 1. * self._grid.res_gen["q_mvar"].values
         prod_v = self._grid.res_gen["vm_pu"].values * self.prod_pu_to_kv
@@ -610,6 +636,9 @@ class PandaPowerBackend(Backend):
                 prod_p[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 1]
                 prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
+
+    def generators_info(self):
+        return self.prod_p, self.prod_q, self.prod_v
 
     def _loads_info(self):
         load_p = 1. * self._grid.res_load["p_mw"].values

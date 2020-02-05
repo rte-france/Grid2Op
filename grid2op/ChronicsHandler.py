@@ -620,6 +620,22 @@ class GridValue(ABC):
         # warnings.warn("Class {} has possibly and infinite duration.".format(type(self).__name__))
         return self.max_iter
 
+    def shuffle(self, shuffler):
+        """
+        This method can be overiden if the data that are represented by this object need to be shuffle.
+
+        By default it does nothing.
+        Parameters
+        ----------
+        shuffler: ``object``
+            Any function that can be used to shuffle the data.
+
+        Returns
+        -------
+
+        """
+        pass
+
 
 class ChangeNothing(GridValue):
     """
@@ -1279,7 +1295,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         return self.path
 
 
-# TODO change the order of the reading.
 class Multifolder(GridValue):
     """
     The classes :class:`GridStateFromFile` and :class:`GridStateFromFileWithForecasts` implemented the reading of a
@@ -1327,6 +1342,8 @@ class Multifolder(GridValue):
         self.subpaths = [os.path.join(self.path, el) for el in os.listdir(self.path)
                          if os.path.isdir(os.path.join(self.path, el))]
         self.subpaths.sort()
+        self.subpaths = np.array(self.subpaths)
+
         if len(self.subpaths) == 0:
             raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "
                                         "1 chronics folder there.".format(self.path))
@@ -1447,6 +1464,40 @@ class Multifolder(GridValue):
 
     def max_timestep(self):
         return self.data.max_timestep()
+
+    def shuffle(self, shuffler):
+        """
+        This method is used to have a better control on the order in which the subfolder containing the episode are
+        processed.
+
+        It can focus the evaluation on one specific folder, shuffle the folders, use only a subset of them etc. See the
+        examples for more information.
+
+        Parameters
+        ----------
+        shuffler: ``object``
+            Shuffler should be a function that is called on :attr:`MultiFolder.subpaths` that will shuffle them.
+            It can also be used to remove some path if needed (see example).
+
+        Examples
+        ---------
+        If you want to simply shuffle the data you can do:
+
+        .. code-block:: python
+
+            import numpy as np
+            data = Multifolder(path=".")
+            data.shuffle(shuffler=lambda x: x[np.random.choice(len(x), size=len(x), replace=False)])
+
+        If you want to use only a subset of the path, say for example the path with index 1, 5, and 6
+
+        .. code-block:: python
+
+            data = Multifolder(path=".")
+            data.shuffle(shuffler=lambda x: x[1, 5, 6])
+
+        """
+        self.subpaths = shuffler(self.subpaths)
 
 
 class ChronicsHandler(RandomObject):
@@ -1589,3 +1640,18 @@ class ChronicsHandler(RandomObject):
 
         """
         return self.real_data.get_id()
+
+    def shuffle(self, shuffler):
+        """
+        Will attempt to shuffle the underlying data.
+
+        Note that a call to this function might not do anything is the :func:`GridValue.shuffle` is not implemented
+        for :attr:`ChronicsHandler.real_data`.
+
+        Parameters
+        ----------
+        shuffler: ``object``
+            Anything that is used to shuffle the data.
+
+        """
+        self.real_data.shuffle(shuffler)

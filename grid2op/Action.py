@@ -506,6 +506,82 @@ class Action(GridObjects):
         self._lines_impacted = None
         self._subs_impacted = None
 
+    def __iadd__(self, other):
+        """
+        Add an action to this one.
+        Adding an action to myself is equivalent to perform myself, and then perform other.
+
+        Add will have the following properties:
+
+            - it erase the previous changes to injections
+            -
+
+        Parameters
+        ----------
+        other: :class:`Action`
+
+        Returns
+        -------
+
+        """
+        # TODO test that
+
+        # deal with injections
+        for el in self.vars_action:
+            if el in other._dict_inj:
+                if el not in self._dict_inj:
+                    self._dict_inj[el] = other._dict_inj[el]
+                else:
+                    val = other._dict_inj[el]
+                    ok_ind = np.isfinite(val)
+                    self._dict_inj[el][ok_ind] = val[ok_ind]
+
+        # redispatching
+        redispatching = other._redispatch
+        if np.any(redispatching != 0.):
+            ok_ind = np.isfinite(redispatching)
+            self._redispatch[ok_ind] += redispatching[ok_ind]
+
+        # set and change status
+        other_set = other._set_line_status
+        other_change = other._switch_line_status
+        me_set = self._set_line_status
+        me_change = self._switch_line_status
+
+        # i set, but the other change, so it's equivalent to setting to the opposite
+        # so change +1 becomes -1 and -1 becomes +1
+        me_set[other_change] *= -1
+        # i set, the other set
+        me_set[other_set != 0] = other_set[other_set != 0]
+        # i change, but so does the other, i do nothing
+        me_change[other_change] = False
+        # i change, but the other set, it's erased
+        me_change[other_set != 0] = False
+        self._set_line_status = me_set
+        self._switch_line_status = me_change
+
+        # set and change bus
+        other_set = other._set_topo_vect
+        other_change = other._change_bus_vect
+        me_set = self._set_topo_vect
+        me_change = self._change_bus_vect
+
+        # i set, but the other change, so it's equivalent to setting to the opposite
+        # so change +1 becomes +2 and +2 becomes +1
+        me_set[other_change] -= 1  # 1 becomes 0 and 2 becomes 1
+        me_set[other_change] *= -1  # 1 is 0 and 2 becomes -1
+        me_set[other_change] += 2  # 1 is 2 and 2 becomes 1
+
+        # i set, the other set
+        me_set[other_set != 0] = other_set[other_set != 0]
+        # i change, but so does the other, i do nothing
+        me_change[other_change] = False
+        # i change, but the other set, it's erased
+        me_change[other_set != 0] = False
+        self._set_topo_vect = me_set
+        self._change_bus_vect = me_change
+        return self
+
     def __call__(self):
         """
         This method is used to return the effect of the current action in a format understandable by the backend.
