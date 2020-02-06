@@ -31,6 +31,8 @@
 #build
 build/*
 .idea/*
+*.iml
+.vscode
 
 *.orig
 
@@ -114,6 +116,9 @@ target/
 
 # celery beat schedule file
 celerybeat-schedule
+
+# pipenv
+Pipfile.lock
 
 # dotenv
 .env

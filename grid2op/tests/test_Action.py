@@ -13,7 +13,6 @@ from Action import HelperAction, Action
 from GameRules import GameRules
 from Space import GridObjects
 
-from grid2op.MakeEnv import make
 
 # TODO test that "twice change" is reset to normal. when i update an action twice, nothing is done.
 # TODO test for all class of Action

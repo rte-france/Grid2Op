@@ -529,7 +529,7 @@ class GridObjects:
                 vect.shape[0], self.size()))
 
         if np.any(~np.isfinite(vect)):
-            raise AmbiguousAction("The action your provided contained not finite number. It cannot be converted to an"
+            raise AmbiguousAction("The action you provided contained not finite number. It cannot be converted to an"
                                   " action class.")
 
         self._raise_error_attr_list_none()

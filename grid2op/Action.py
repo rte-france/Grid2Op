@@ -51,6 +51,7 @@ except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from Space import SerializableSpace, GridObjects
 
+
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
 
@@ -624,6 +625,7 @@ class Action(GridObjects):
         """
 
         self._check_for_ambiguity()
+
         dict_inj = self._dict_inj
         set_line_status = self._set_line_status
         switch_line_status = self._switch_line_status
@@ -638,7 +640,7 @@ class Action(GridObjects):
         if "injection" in dict_:
             if dict_["injection"] is not None:
                 tmp_d = dict_["injection"]
-                for k in tmp_d: #["load_p", "prod_p", "load_q", "prod_v"]:
+                for k in tmp_d:  # ["load_p", "prod_p", "load_q", "prod_v"]:
                     if k in self.vars_action_set:
                         self._dict_inj[k] = np.array(tmp_d[k])
                     else:
@@ -1208,6 +1210,7 @@ class Action(GridObjects):
                 # i reconnect a powerline, i need to check that it's connected on both ends
                 if self._set_topo_vect[self.line_or_pos_topo_vect[q_id]] == 0 or \
                         self._set_topo_vect[self.line_ex_pos_topo_vect[q_id]] == 0:
+
                     raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
                                             " which bus.".format(q_id))
 
@@ -1220,7 +1223,7 @@ class Action(GridObjects):
                                             "to a certain bus.")
         if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                 np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
-                    raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
+            raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
 
         if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[self._set_line_status == 1]]):
             raise InvalidLineStatus("You ask to connect an origin powerline but also to *change* the bus  to which it "
@@ -1249,7 +1252,6 @@ class Action(GridObjects):
         -------
         self: :class:`Action`
             The action sampled among the action space.
-
         """
         self.reset()
         # TODO code the sampling now
@@ -1303,63 +1305,182 @@ class Action(GridObjects):
 
         """
         res = ["This action will:"]
-        # handles actions on injections
-        inj_changed = False
-        for k in ["load_p", "prod_p", "load_q", "prod_v"]:
-            if k in self._dict_inj:
-                inj_changed = True
-                res.append("\t - set {} to {}".format(k, list(self._dict_inj[k])))
-        if not inj_changed:
-            res.append("\t - NOT change anything to the injections")
+        impact = self.impact_on_objects()
 
+        # injections
+        injection_impact = impact['injection']
+        if injection_impact['changed']:
+            for change in injection_impact['impacted']:
+                res.append("\t - set {} to {}".format(change['set'], change['to']))
+        else:
+            res.append("\t - NOT change anything to the injections")
+        
         if np.any(self._redispatch != 0.):
             res.append("\t - perform the following redispatching action: {}".format(self._redispatch))
         else:
             res.append("\t - NOT perform any redispatching action")
 
-        # handles actions on force line status
-        force_linestatus_change = False
-        if np.any(self._set_line_status == 1):
-            res.append("\t - force reconnection of {} powerlines ({})".format(np.sum(self._set_line_status == 1),
-                                                                              np.where(self._set_line_status == 1)[0]))
-            force_linestatus_change = True
-        if np.any(self._set_line_status == -1):
-            res.append("\t - force disconnection of {} powerlines ({})".format(np.sum(self._set_line_status == -1),
-                                                                               np.where(self._set_line_status == -1)[0]))
-            force_linestatus_change = True
-        if not force_linestatus_change:
+        # force line status
+        force_line_impact = impact['force_line']
+        if force_line_impact['changed']:
+            reconnections = force_line_impact['reconnections']
+            if reconnections['count'] > 0:
+                res.append("\t - force reconnection of {} powerlines ({})"
+                           .format(reconnections['count'], reconnections['powerlines']))
+
+            disconnections = force_line_impact['disconnections']
+            if disconnections['count'] > 0:
+                res.append("\t - force disconnection of {} powerlines ({})"
+                           .format(disconnections['count'], disconnections['powerlines']))
+        else:
             res.append("\t - NOT force any line status")
 
-        # handles action on swtich line status
-        if np.sum(self._switch_line_status):
-            res.append("\t - switch status of {} powerlines ({})".format(np.sum(self._switch_line_status),
-                                                                         np.where(self._switch_line_status)[0]))
+        # swtich line status
+        swith_line_impact = impact['switch_line']
+        if swith_line_impact['changed']:
+            res.append("\t - switch status of {} powerlines ({})"
+                       .format(swith_line_impact['count'], swith_line_impact['powerlines']))
         else:
             res.append("\t - NOT switch any line status")
 
-        # handles topology
-        if np.any(self._change_bus_vect):
+        # topology
+        bus_switch_impact = impact['topology']['bus_switch']
+        if len(bus_switch_impact) > 0:
             res.append("\t - Change the bus of the following element:")
-            for id_, k in enumerate(self._change_bus_vect):
-                if k:
-                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
-                    res.append("\t \t - switch bus of {} {} [on substation {}]".format(objt_type, obj_id, substation_id))
+            for switch in bus_switch_impact:
+                res.append("\t \t - switch bus of {} {} [on substation {}]"
+                           .format(switch['object_type'], switch['object_id'],
+                                   switch['substation']))
         else:
             res.append("\t - NOT switch anything in the topology")
 
-        if np.any(self._set_topo_vect != 0):
+        assigned_bus_impact = impact['topology']['assigned_bus']
+        disconnect_bus_impact = impact['topology']['disconnect_bus']
+        if len(assigned_bus_impact) > 0 or len(disconnect_bus_impact) > 0:
             res.append("\t - Set the bus of the following element:")
-            for id_, k in enumerate(self._set_topo_vect):
-                if k > 0:
-                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
-                    res.append("\t \t - assign bus {} to {} {} [on substation {}]".format(k, objt_type, obj_id, substation_id))
-                if k < 0:
-                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
-                    res.append("\t - disconnect {} {} [on substation {}]".format(k, objt_type, obj_id, substation_id))
+            for assigned in assigned_bus_impact:
+                res.append("\t \t - assign bus {} to {} {} [on substation {}]"
+                           .format(assigned['bus'], assigned['object_type'], assigned['object_id'],
+                                   assigned['substation']))
+
+            for disconnected in disconnect_bus_impact:
+                res.append("\t - disconnect {} {} [on substation {}]"
+                           .format(disconnected['object_type'], disconnected['object_id'],
+                                   disconnected['substation']))
+
         else:
             res.append("\t - NOT force any particular bus configuration")
 
         return "\n".join(res)
+
+    def impact_on_objects(self):
+        """
+        This will return a dictionary which contains details on objects that will be impacted by the action
+
+         Returns
+        -------
+        dict: :class:`dict`
+            The dictionary representation of an action impact on objects
+        """
+        # TODO: include redispatching 
+         
+        # handles actions on injections
+        has_impact = False
+
+        inject_detail = {
+            'changed': False,
+            'count': 0,
+            'impacted': []
+        }
+        for k in ["load_p", "prod_p", "load_q", "prod_v"]:
+            if k in self._dict_inj:
+                inject_detail['changed'] = True
+                has_impact = True
+                inject_detail['count'] += 1
+                inject_detail['impacted'].append({
+                    'set': k,
+                    'to': self._dict_inj[k]
+                })
+
+        # handles actions on force line status
+        force_line_status = {
+            'changed': False,
+            'reconnections': {'count': 0, 'powerlines': []},
+            'disconnections': {'count': 0, 'powerlines': []}
+        }
+        if np.any(self._set_line_status == 1):
+            force_line_status['changed'] = True
+            has_impact = True
+            force_line_status['reconnections']['count'] = np.sum(self._set_line_status == 1)
+            force_line_status['reconnections']['powerlines'] = np.where(self._set_line_status == 1)[0]
+
+        if np.any(self._set_line_status == -1):
+            force_line_status['changed'] = True
+            has_impact = True
+            force_line_status['disconnections']['count'] = np.sum(self._set_line_status == -1)
+            force_line_status['disconnections']['powerlines'] = np.where(self._set_line_status == -1)[0]
+
+        # handles action on swtich line status
+        switch_line_status = {
+            'changed': False,
+            'count': 0,
+            'powerlines': []
+        }
+        if np.sum(self._switch_line_status):
+            switch_line_status['changed'] = True
+            has_impact = True
+            switch_line_status['count'] = np.sum(self._switch_line_status)
+            switch_line_status['powerlines'] = np.where(self._switch_line_status)[0]
+
+        topology = {
+            'changed': False,
+            'bus_switch': [],
+            'assigned_bus': [],
+            'disconnect_bus': []
+        }
+        # handles topology
+        if np.any(self._change_bus_vect):
+            for id_, k in enumerate(self._change_bus_vect):
+                if k:
+                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
+                    topology['bus_switch'].append({
+                        'bus': k,
+                        'object_type': objt_type,
+                        'object_id': obj_id,
+                        'substation': substation_id
+                    })
+            topology['changed'] = True
+            has_impact = True
+
+        if np.any(self._set_topo_vect != 0):
+            for id_, k in enumerate(self._set_topo_vect):
+                if k > 0:
+                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
+                    topology['assigned_bus'].append({
+                        'bus': k,
+                        'object_type': objt_type,
+                        'object_id': obj_id,
+                        'substation': substation_id
+                    })
+
+                if k < 0:
+                    obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
+                    topology['disconnect_bus'].append({
+                        'bus': k,
+                        'object_type': objt_type,
+                        'object_id': obj_id,
+                        'substation': substation_id
+                    })
+            topology['changed'] = True
+            has_impact = True
+
+        return {
+            'has_impact': has_impact,
+            'injection': inject_detail,
+            'force_line': force_line_status,
+            'switch_line': switch_line_status,
+            'topology': topology
+        }
 
     def as_dict(self):
         """
@@ -1466,7 +1587,7 @@ class Action(GridObjects):
             res["set_bus_vect"]["nb_modif_objects"] = np.sum(self._set_topo_vect)
             all_subs = set()
             for id_, k in enumerate(self._set_topo_vect):
-                if k !=  0:
+                if k != 0:
                     obj_id, objt_type, substation_id = self._obj_caract_from_topo_id(id_)
                     sub_id = "{}".format(substation_id)
                     if not sub_id in res["set_bus_vect"]:
@@ -1635,6 +1756,7 @@ class TopologyAction(Action):
     It is also here to show an example on how to implement a valid class deriving from :class:`Action`.
 
     """
+
     def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
@@ -1752,6 +1874,7 @@ class PowerLineSet(Action):
     of their substations.
 
     """
+
     def __init__(self, gridobj):
         """
         See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
@@ -1867,6 +1990,7 @@ class PowerLineSet(Action):
         -------
         res: :class:`PowerLineSwitch`
             The sampled action
+            
         """
         self.reset()
         # TODO here use the prng state from the ActionSpace !!!!
@@ -2312,6 +2436,7 @@ class HelperAction(SerializableActionSpace):
 
 
     """
+    
     def __init__(self, gridobj, legal_action, actionClass=Action):
         """
         All parameters (name_gen, name_load, name_line, sub_info, etc.) are used to fill the attributes having the
