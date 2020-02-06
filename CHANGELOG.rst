@@ -1,5 +1,13 @@
 Change Log
 =============
+[0.5.4] - 2020-02-xx
+---------------------
+- [???] refactoring env and obs_env
+- [???] env.step now propagate the error in info
+- [???] better explanation of the notebook 3 with action silently
+- [???] notebooks for multi env and redispatching
+- [???] creation of a redispatching environment for the case14.
+
 [0.5.4] - 2020-02-06
 ---------------------
 - [ADDED] better handling of serialization of scenarios.
