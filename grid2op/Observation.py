@@ -462,9 +462,6 @@ class Observation(GridObjects):
 
         self.action_helper = action_helper
 
-        # Game over
-        self.game_over = None
-
         # time stamp information
         self.year = 1970
         self.month = 0
