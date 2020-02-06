@@ -1,5 +1,9 @@
 Change Log
 =============
+[0.5.4] - 2020-02-06
+---------------------
+- [ADDED] better handling of serialization of scenarios.
+
 [0.5.3] - 2020-02-05
 ---------------------
 - [ADDED] parrallel processing of the environment: evaluation in parrallel of the same agent in different environments.
