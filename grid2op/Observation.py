@@ -36,11 +36,7 @@ import re
 import warnings
 import json
 import os
-<<<<<<< HEAD
-import math
-=======
 import time
->>>>>>> 526c019ac6f47c40707ac5b0beefc26cff61ef30
 
 from abc import ABC, abstractmethod
 
