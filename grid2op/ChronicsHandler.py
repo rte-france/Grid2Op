@@ -1641,6 +1641,16 @@ class ChronicsHandler(RandomObject):
         """
         return self.real_data.get_id()
 
+    def get_name(self):
+        """
+        This method retrieve a unique name that is used to serialize episode data on
+        disk. 
+        
+        See definition of :mod:`EpisodeData` for more information about this method.
+
+        """
+        return str(os.path.split(self.get_id())[-1])
+
     def shuffle(self, shuffler):
         """
         Will attempt to shuffle the underlying data.

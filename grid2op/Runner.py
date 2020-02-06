@@ -523,8 +523,7 @@ class Runner(object):
                           action_space=env.action_space,
                           helper_action_env=env.helper_action_env,
                           path_save=path_save, disc_lines_templ=disc_lines_templ,
-                          logger=logger, indx=os.path.split(
-                env.chronics_handler.get_id())[-1])
+                          logger=logger, name=env.chronics_handler.get_name())
 
         episode.set_parameters(env)
 
@@ -560,9 +559,11 @@ class Runner(object):
 
         episode.set_episode_times(env, time_act, beg_, end_)
 
-        episode.todisk()
+        episode.to_disk()
 
-        return cum_reward, int(time_step)
+        name_chron = env.chronics_handler.get_name()
+
+        return name_chron, cum_reward, int(time_step)
 
     def run_sequential(self, nb_episode, path_save=None):
         """
@@ -590,11 +591,11 @@ class Runner(object):
         """
         res = [(None, None, None) for _ in range(nb_episode)]
         for i in range(nb_episode):
-            cum_reward, nb_time_step = self.run_one_episode(
+            name_chron, cum_reward, nb_time_step = self.run_one_episode(
                 path_save=path_save, indx=i)
             id_chron = self.chronics_handler.get_id()
             max_ts = self.chronics_handler.max_timestep()
-            res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
+            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
         return res
 
     @staticmethod
@@ -610,11 +611,11 @@ class Runner(object):
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)
-            cum_reward, nb_time_step = Runner._run_one_episode(
+            name_chron, cum_reward, nb_time_step = Runner._run_one_episode(
                 env, agent, runner.logger, p_id, path_save)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
-            res[i] = (id_chron, cum_reward, nb_time_step, max_ts)
+            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
         return res
 
     def run_parrallel(self, nb_episode, nb_process=1, path_save=None):

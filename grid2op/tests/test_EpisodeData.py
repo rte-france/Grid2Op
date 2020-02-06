@@ -86,11 +86,30 @@ class TestEpisodeData(unittest.TestCase):
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()
-        cum_reward, timestep = self.runner.run_one_episode(path_save=f)
-        episodeData = EpisodeData.fromdisk(agent_path=f, indx=1)
-        assert int(episodeData.meta["chronics_max_timestep"]) == 287
+        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+        assert int(episode_data.meta["chronics_max_timestep"]) == 287
         assert np.abs(
-            float(episodeData.meta["cumulative_reward"]) - 5739.945516) <= self.tol_one
+            float(episode_data.meta["cumulative_reward"]) - 5739.951023) <= self.tol_one
+
+    def test_3_episode_with_saving(self):
+        f = tempfile.mkdtemp()
+        res = self.runner.run_sequential(nb_episode=3, path_save=f)
+        for i, episode_name, cum_reward, timestep, total_ts in res:
+            episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+            assert int(episode_data.meta["chronics_max_timestep"]) == 287
+            assert np.abs(
+                float(episode_data.meta["cumulative_reward"]) - 5739.951023) <= self.tol_one
+
+    def test_3_episode_3process_with_saving(self):
+        f = tempfile.mkdtemp()
+        res = self.runner.run_parrallel(nb_episode=3, nb_process=3, path_save=f)
+        assert len(res) == 3
+        for i, episode_name, cum_reward, timestep, total_ts in res:
+            episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+            assert int(episode_data.meta["chronics_max_timestep"]) == 287
+            assert np.abs(
+                float(episode_data.meta["cumulative_reward"]) - 5739.951023) <= self.tol_one
 
 
 if __name__ == "__main__":
