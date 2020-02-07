@@ -21,6 +21,7 @@ with a Grid2Op environment. An example of such modifications is exposed in the g
 """
 import os
 import pkg_resources
+import warnings
 
 try:
     from .Environment import Environment
@@ -28,14 +29,15 @@ try:
     from .BackendPandaPower import PandaPowerBackend
     from .Parameters import Parameters
     from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
-    from .Action import Action, TopologyAction
+    from .Action import Action, TopologyAction, TopoAndRedispAction
     from .Exceptions import *
     from .Observation import CompleteObservation, Observation
-    from .Reward import FlatReward, Reward, L2RPNReward
+    from .Reward import FlatReward, Reward, L2RPNReward, EconomicReward
     from .GameRules import LegalAction, AllwaysLegal
 
     from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+    from .Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
 
 except (ModuleNotFoundError, ImportError):
     from Environment import Environment
@@ -43,14 +45,16 @@ except (ModuleNotFoundError, ImportError):
     from BackendPandaPower import PandaPowerBackend
     from Parameters import Parameters
     from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
-    from Action import Action, TopologyAction
+    from Action import Action, TopologyAction, TopoAndRedispAction
     from Exceptions import *
     from Observation import CompleteObservation, Observation
-    from Reward import FlatReward, Reward, L2RPNReward
+    from Reward import FlatReward, Reward, L2RPNReward, EconomicCost
     from GameRules import LegalAction, AllwaysLegal
     from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+    from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
 
+import pdb
 
 CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "test_case14.json"))
@@ -329,9 +333,21 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
+    elif name_env.lower() == "case14_redisp":
+        if chronics_path == '':
+            chronics_path = case14_redisp_CHRONICSPATH
+            warnings.warn("Your are using only 2 chronics for this environment. More can be download with TODO")
+
+        default_grid_path = case14_redisp_CASEFILE
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+                                           "gridvalueClass": GridStateFromFileWithForecasts}
+        default_name_converter = {}
+        data_feeding_default_class = ChronicsHandler
+        default_action_class = TopoAndRedispAction
+        default_reward_class = EconomicReward
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
-                         "(default), \"case5_example\" and \"l2rpn_2019\"".format(name_env))
+                         "(default), \"case5_example\", \"case14_redisp\" and \"l2rpn_2019\"".format(name_env))
 
     # extract powergrid dependant parameters
     ## type of reward the agent will receive
@@ -368,11 +384,13 @@ def make(name_env="case14_fromfile", **kwargs):
     data_feeding_kwargs = _get_default_aux("data_feeding_kwargs", kwargs,
                                  defaultClassApp=dict, defaultinstance=defaultinstance_chronics_kwargs,
                                  msg_error=msg_error)
+
+
     ### the chronics generator
-    msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding_kwargs\")"
-    msg_error += " should be a dictionnary."
+    msg_error = "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
+    msg_error += " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler."
     data_feeding = _get_default_aux("chronics_class", kwargs,
-                                    defaultClassApp=GridValue,
+                                    defaultClassApp=ChronicsHandler,
                                     defaultClass=data_feeding_default_class,
                                     build_kwargs=data_feeding_kwargs,
                                     msg_error=msg_error)
@@ -391,4 +409,8 @@ def make(name_env="case14_fromfile", **kwargs):
                       rewardClass=reward_class,
                       legalActClass=gamerules_class
                       )
+
+    # update the thermal limit if any
+    if name_env.lower() == "case14_redisp":
+        env.set_thermal_limit(case14_redisp_TH_LIM)
     return env

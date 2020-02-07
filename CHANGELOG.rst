@@ -1,12 +1,19 @@
 Change Log
 =============
-[0.5.4] - 2020-02-xx
+[0.5.5] - 2020-02-xx
 ---------------------
+- [UPDATED] gitignore to really download the prod_charac.csv file
+- [ADDED] a easier way to set the thermal limits directly from the environment
+- [ADDED] a new environment with redispatching capabilities (case14_redisp) including data
+- [ADDED] a new class to compute the economical cost
+- [ADDED] a method to check if an action is ambiguous
+- [ADDED] a method to set more efficiently the id of the chronics used
 - [???] refactoring env and obs_env
 - [???] env.step now propagate the error in info
 - [???] better explanation of the notebook 3 with action silently
 - [???] notebooks for multi env and redispatching
 - [???] creation of a redispatching environment for the case14.
+- [???] make a test in action: it shouldn't be possible to assign something to busbar 3.
 
 [0.5.4] - 2020-02-06
 ---------------------

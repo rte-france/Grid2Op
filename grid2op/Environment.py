@@ -406,6 +406,44 @@ class Environment(GridObjects):
         self.current_reward = self.reward_range[0]
         self.done = False
         self._reset_vectors_and_timings()
+        self._thermal_limit_a = None
+
+    def set_thermal_limit(self, thermal_limit):
+        """
+        Set the thermal limit effectively.
+
+        Parameters
+        ----------
+        thermal_limit: ``numpy.ndarray``
+            The new thermal limit. It must be a numpy ndarray vector (or convertible to it). For each powerline it
+            gives the new thermal limit.
+        """
+        try:
+            tmp = np.array(thermal_limit).flatten().astype(np.float)
+        except Exception as e:
+            raise Grid2OpException("Impossible to convert the vector as input into a 1d numpy float array.")
+        if tmp.shape[0] != self.n_line:
+            raise Grid2OpException("Attempt to set thermal limit on {} powerlines while there are {}"
+                                   "on the grid".format(tmp.shape[0], self.n_line))
+        if np.any(~np.isfinite(tmp)):
+            raise Grid2OpException("Impossible to use non finite value for thermal limits.")
+
+        self._thermal_limit_a = tmp
+        self.backend.set_thermal_limit(self._thermal_limit_a)
+
+    def set_id(self, id_):
+        """
+        Set the id that will be used at the next call to :func:`Environment.reset`.
+
+        **NB** this has no effect if the chronics does not support this feature. TODO see xxx for more information
+
+        Parameters
+        ----------
+        id_: ``int``
+            the id of the chronics used.
+
+        """
+        self.chronics_handler.tell_id(id_-1)
 
     def attach_renderer(self, graph_layout):
         self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
@@ -457,13 +495,17 @@ class Environment(GridObjects):
         """
         Reset the backend to a clean state by reloading the powergrid from the hard drive. This might takes some time.
 
+        If the thermal has been modified, it also modify them into the new backend.
+
         """
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
         self.backend.assert_grid_correct()
 
+        if self._thermal_limit_a is not None:
+            self.backend.set_thermal_limit(self._thermal_limit_a)
+
         do_nothing = self.helper_action_env({})
         self.step(do_nothing)
-
         # test the backend returns object of the proper size
         self.backend.assert_grid_correct_after_powerflow()
 
@@ -886,6 +928,7 @@ class Environment(GridObjects):
                 action = self.helper_action_player({})
                 # todo a flag here
 
+
             # get the modification of generator active setpoint from the environment
             self.env_modification = self._update_actions()
 
@@ -1125,6 +1168,8 @@ class Environment(GridObjects):
         self.backend = None
         res = copy.deepcopy(self)
         res.backend = tmp_backend.copy()
+        if self._thermal_limit_a is not None:
+            res.backend.set_thermal_limit(self._thermal_limit_a)
         self.backend = tmp_backend
         return res
 
