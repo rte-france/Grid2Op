@@ -1203,10 +1203,11 @@ class Action(GridObjects):
             if np.any(self._redispatch[~self.gen_redispatchable] != 0.):
                 raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
 
-            if np.any(self._redispatch > self.gen_max_ramp_up):
-                raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
-            if np.any(-self._redispatch > self.gen_max_ramp_down):
-                raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
+            # TODO check that when action is made (and check also the buses id, don't put 3 for example...)
+            # if np.any(self._redispatch > self.gen_max_ramp_up):
+            #    raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
+            # if np.any(-self._redispatch > self.gen_max_ramp_down):
+            #    raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
 
             if "prod_p" in self._dict_inj:
                 new_p = self._dict_inj["prod_p"]
@@ -2112,7 +2113,7 @@ class SerializableActionSpace(SerializableSpace):
     actionClass: ``type``
         Type used to build the :attr:`SerializableActionSpace.template_act`
 
-    template_act: :class:`Action`
+    _template_act: :class:`Action`
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
         action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
@@ -2126,14 +2127,14 @@ class SerializableActionSpace(SerializableSpace):
             Representation of the underlying powergrid.
 
         actionClass: ``type``
-            Type of action used to build :attr:`Space.SerializableSpace.template_obj`. It should derived from
+            Type of action used to build :attr:`Space.SerializableSpace._template_obj`. It should derived from
             :class:`Action`.
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
 
         self.actionClass = self.subtype
-        self.template_act = self.template_obj
+        self._template_act = self._template_obj
 
     @staticmethod
     def from_dict(dict_):
@@ -2415,7 +2416,7 @@ class SerializableActionSpace(SerializableSpace):
             A vector that doesn't affect the grid, but can be used in "set_line_status"
 
         """
-        return self.template_act.get_set_line_status_vect()
+        return self._template_act.get_set_line_status_vect()
 
     def get_change_line_status_vect(self):
         """
@@ -2427,7 +2428,7 @@ class SerializableActionSpace(SerializableSpace):
             A vector that doesn't affect the grid, but can be used in "change_line_status"
 
         """
-        return self.template_act.get_change_line_status_vect()
+        return self._template_act.get_change_line_status_vect()
 
     @staticmethod
     def get_all_unitary_topologies_change(action_space):

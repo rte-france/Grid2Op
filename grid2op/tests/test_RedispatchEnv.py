@@ -73,7 +73,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                actionClass=Action)
-        self.array_double_dispatch = np.array([0.,  12.41833569,  10.89081339,   0., -23.30914908])
+        self.array_double_dispatch = np.array([0.,  10.,  20.,   0., -30.])
 
     def tearDown(self):
         pass
@@ -101,7 +101,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         act = self.env.action_space({"redispatch": [2, 20]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0., -2.69837697, 10.89081339,  0., -8.19243642])
+        th_dispatch = np.array([0.,  -5.2173913,  20.,   0., -14.7826087])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
         target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
@@ -117,8 +117,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         # check that the redispatching is apply in the right direction
         indx_ok = self.env.target_dispatch != 0.
         assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
-
-        th_dispatch = np.array([0. , 7.37325847,  10.38913319, 0., -17.76239165])
+        th_dispatch = np.array([0.,  10.,  20.,   0., -30.])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
 
         target_val = self.chronics_handler.real_data.prod_p[2, :] + self.env.actual_dispatch
@@ -145,7 +144,6 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
 
         th_dispatch = np.array([0., 10, 20., 0., -30.])
         assert self.compare_vect(self.env.target_dispatch, th_dispatch)
-
         assert self.compare_vect(self.env.actual_dispatch, self.array_double_dispatch)
 
         # check that the redispatching is apply in the right direction
@@ -164,12 +162,39 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             obs, reward, done, info = self.env.step(act)
 
         obs, reward, done, info = self.env.step(act)
-        assert np.all(self.env.gen_uptime == np.array([ 0, 66, 66,  1, 66]))
+        assert np.all(self.env.gen_uptime == np.array([0, 66, 66,  1, 66]))
         assert np.all(self.env.gen_downtime == np.array([66, 0, 0, 0, 0]))
 
         obs, reward, done, info = self.env.step(act)
-        assert np.all(self.env.gen_uptime == np.array([ 1, 67, 67,  2, 67]))
+        assert np.all(self.env.gen_uptime == np.array([1, 67, 67,  2, 67]))
         assert np.all(self.env.gen_downtime == np.array([0, 0, 0, 0, 0]))
+
+    def test_redispacth_twice_same(self):
+        # this should be exactly the same as the previous one
+        act = self.env.action_space({"redispatch": [(2, 5.)]})
+        obs, reward, done, info = self.env.step(act)
+        assert np.all(obs.target_dispatch == np.array([ 0.,  0., 5.,  0.,  0.]))
+        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -1.30434783, 5.,  0., -3.69565217]))
+        act = self.env.action_space({"redispatch": [(2, 5.)]})
+        obs, reward, done, info = self.env.step(act)
+        assert np.all(obs.target_dispatch == np.array([ 0.,  0., 10.,  0.,  0.]))
+        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -2.60869565, 10.,  0., -7.39130435]))
+
+    def test_redispacth_secondabovepmax(self):
+        # this should be exactly the same as the previous one
+        act = self.env.action_space({"redispatch": [(2, 20.)]})
+        obs, reward, done, info = self.env.step(act)
+        assert np.all(obs.target_dispatch == np.array([0.,  0., 20.,  0.,  0.]))
+        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -5.2173913, 20., 0., -14.7826087]))
+        act = self.env.action_space({"redispatch": [(2, 20.)]})
+        obs, reward, done, info = self.env.step(act)
+
+        assert np.all(obs.target_dispatch == np.array([0.,  0., 40.,  0.,  0.]))
+        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -7.62913671, 29.88662192,   0., -22.25748521]))
 
 
 # TODO test that if i try to redispatched a turned off generator it breaks everything

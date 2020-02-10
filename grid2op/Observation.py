@@ -1324,9 +1324,9 @@ class SerializableObservationSpace(SerializableSpace):
     ----------
 
     observationClass: ``type``
-        Type used to build the :attr:`SerializableActionSpace.template_act`
+        Type used to build the :attr:`SerializableActionSpace._template_act`
 
-    empty_obs: :class:`Observation`
+    _empty_obs: :class:`Observation`
         An instance of the "*observationClass*" provided used to provide higher level utilities
 
     """
@@ -1339,13 +1339,13 @@ class SerializableObservationSpace(SerializableSpace):
             Representation of the objects in the powergrid.
 
         observationClass: ``type``
-            Type of action used to build :attr:`Space.SerializableSpace.template_obj`
+            Type of action used to build :attr:`Space.SerializableSpace._template_obj`
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=observationClass)
 
         self.observationClass = self.subtype
-        self.empty_obs = self.template_obj
+        self._empty_obs = self._template_obj
 
     @staticmethod
     def from_dict(dict_):
@@ -1384,7 +1384,7 @@ class ObservationHelper(SerializableObservationSpace):
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
 
-    empty_obs: ``Observation.Observation``
+    _empty_obs: ``Observation.Observation``
         An empty observation with the proper dimensions.
 
     parameters: :class:`grid2op.Parameters.Parameters`
@@ -1404,7 +1404,7 @@ class ObservationHelper(SerializableObservationSpace):
     obs_env: :class:`ObsEnv`
         Instance of the environenment used by the Observation Helper to provide forcecast of the grid state.
 
-    empty_obs: :class:`Observation`
+    _empty_obs: :class:`Observation`
         An instance of the observation that is updated and will be sent to he Agent.
 
     """
@@ -1438,15 +1438,13 @@ class ObservationHelper(SerializableObservationSpace):
                               parameters=env.parameters, reward_helper=self.reward_helper,
                               action_helper=self.action_helper_env)
 
-        self.empty_obs = self.observationClass(gridobj=self,
-                                               obs_env=self.obs_env,
-                                               action_helper=self.action_helper_env)
+        self._empty_obs = self.observationClass(gridobj=self,
+                                                obs_env=self.obs_env,
+                                                action_helper=self.action_helper_env)
         self._update_env_time = 0.
 
     def __call__(self, env):
-        # beg_ = time.time()
         self.obs_env.update_grid(env.backend)
-        # self._update_env_time += time.time()-beg_
 
         res = self.observationClass(gridobj=self,
                                     obs_env=self.obs_env,

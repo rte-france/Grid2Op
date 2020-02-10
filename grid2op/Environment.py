@@ -824,9 +824,9 @@ class Environment(GridObjects):
         self.target_dispatch += redisp_act
         self.actual_dispatch = 1. * self.target_dispatch
 
-        if np.abs(np.sum(redisp_act)) >= 1e-6:
+        if np.abs(np.sum(self.actual_dispatch)) >= 1e-6:
             # make sure the redispatching action is zero sum
-            redisp_act, is_illegal, action = self._get_redisp_zero_sum(action, redisp_act, new_p)
+            redisp_act, is_illegal, action = self._get_redisp_zero_sum(action, self.actual_dispatch, new_p)
             if is_illegal:
                 return redisp_act, is_illegal, action
 
@@ -911,6 +911,10 @@ class Environment(GridObjects):
                         due to overflow
                     - "is_illegal" (``bool``) whether the action given as input was illegal
                     - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
+                    - "is_illegal_redisp" (``bool``) was the action illegal due to redispatching
+                    - "is_illegal_reco" (``bool``) was the action illegal due to a powerline reconnection
+                    - "exception" (:class:`Exceptions.Exceptions.Grid2OpException` if an exception was raised
+                       or ``None`` if everything was fine.)
 
         """
         has_error = True
@@ -920,6 +924,8 @@ class Environment(GridObjects):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
+        except_ = None
+
         try:
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
@@ -927,7 +933,6 @@ class Environment(GridObjects):
                 # action is replace by do nothing
                 action = self.helper_action_player({})
                 # todo a flag here
-
 
             # get the modification of generator active setpoint from the environment
             self.env_modification = self._update_actions()
@@ -944,10 +949,11 @@ class Environment(GridObjects):
 
             try:
                 self.backend.apply_action(action)
-            except AmbiguousAction:
+            except AmbiguousAction as e:
                 # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
                 # "do nothing"
                 is_ambiguous = True
+                except_ = e
 
             if self.redispatching_unit_commitment_availble:
                 action._redispatch = 1. * redisp_act
@@ -1004,16 +1010,20 @@ class Environment(GridObjects):
 
                 has_error = False
             except Grid2OpException as e:
+                except_ = e
                 if self.logger is not None:
                     self.logger.error("Impossible to compute next _grid state with error \"{}\"".format(e))
+
         except StopIteration:
             # episode is over
             is_done = True
+
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,
                  "is_dipatching_illegal": is_illegal_redisp,
-                 "is_illegal_reco": is_illegal_reco}
+                 "is_illegal_reco": is_illegal_reco,
+                 "exception": except_}
         self.done = self._is_done(has_error, is_done)
         self.current_reward = self._get_reward(action,
                                                has_error,

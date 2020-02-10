@@ -48,7 +48,7 @@ except (ModuleNotFoundError, ImportError):
     from Action import Action, TopologyAction, TopoAndRedispAction
     from Exceptions import *
     from Observation import CompleteObservation, Observation
-    from Reward import FlatReward, Reward, L2RPNReward, EconomicCost
+    from Reward import FlatReward, Reward, L2RPNReward, EconomicReward
     from GameRules import LegalAction, AllwaysLegal
     from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
