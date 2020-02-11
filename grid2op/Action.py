@@ -278,6 +278,8 @@ class Action(GridObjects):
                                "_set_line_status", "_switch_line_status",
                                "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance"]
 
+        self._single_act = True
+
     def _get_array_from_attr_name(self, attr_name):
         if attr_name in self.__dict__:
             res = super()._get_array_from_attr_name(attr_name)
@@ -1203,28 +1205,38 @@ class Action(GridObjects):
             if np.any(self._redispatch[~self.gen_redispatchable] != 0.):
                 raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
 
-            # TODO check that when action is made (and check also the buses id, don't put 3 for example...)
-            # if np.any(self._redispatch > self.gen_max_ramp_up):
-            #    raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
-            # if np.any(-self._redispatch > self.gen_max_ramp_down):
-            #    raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
+            if self._single_act:
+                # TODO check that when action is made (and check also the buses id, don't put 3 for example...)
+                if np.any(self._redispatch > self.gen_max_ramp_up):
+                   raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
+                if np.any(-self._redispatch > self.gen_max_ramp_down):
+                   raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
 
-            if "prod_p" in self._dict_inj:
-                new_p = self._dict_inj["prod_p"]
-                tmp_p = new_p + self._redispatch
-                indx_ok = np.isfinite(new_p)
-                if np.any(tmp_p[indx_ok] > self.gen_pmax[indx_ok]):
-                    raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
-                                               "are above pmax for some generator.")
-                if np.any(tmp_p[indx_ok] < self.gen_pmin[indx_ok]):
-                    raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
-                                               "are below pmin for some generator.")
+                if "prod_p" in self._dict_inj:
+                    new_p = self._dict_inj["prod_p"]
+                    tmp_p = new_p + self._redispatch
+                    indx_ok = np.isfinite(new_p)
+                    if np.any(tmp_p[indx_ok] > self.gen_pmax[indx_ok]):
+                        raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                                   "are above pmax for some generator.")
+                    if np.any(tmp_p[indx_ok] < self.gen_pmin[indx_ok]):
+                        raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                                   "are below pmin for some generator.")
 
         # topological action
         if np.any(self._set_topo_vect[self._change_bus_vect] != 0):
             raise InvalidBusStatus("You asked to change the bus of an object with"
                                    " using the keyword \"change_bus\" and set this same object state in \"set_bus\""
                                    ". This ambiguous behaviour is not supported")
+        if np.any(self._set_topo_vect < -1):
+            raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
+                                   "1 (assign this object to bus one) or 2 (assign this object to bus"
+                                   "2). A negative number has been found.")
+        if np.any(self._set_topo_vect > 2):
+            raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
+                                   "1 (assign this object to bus one) or 2 (assign this object to bus"
+                                   "2). A number higher than 2 has been found: substations with more than 2 busbars"
+                                   "are not supported by grid2op.")
 
         for q_id, status in enumerate(self._set_line_status):
             if status == 1:

@@ -233,7 +233,8 @@ class PlotObs(BasePlot):
                           load_prod_dist=load_prod_dist,
                           bus_radius=bus_radius)
         if not can_plot:
-            raise RuntimeError("Impossible to plot as plotly cannot be imported.")
+            raise RuntimeError("Impossible to plot as plotly cannot be imported. Please install \"plotly\" and "
+                               "\"seaborn\" with \"pip install --update plotly seaborn\"")
 
         # define a color palette, whatever...
         sns.set()

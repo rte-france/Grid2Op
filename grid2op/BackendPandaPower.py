@@ -368,9 +368,11 @@ class PandaPowerBackend(Backend):
                 warnings.warn(warn)
 
         if np.any(redispatching != 0.):
+            # print('before tmp[ok_ind]: {}'.format(self._get_vector_inj["prod_p"](self._grid)))
             tmp = self._get_vector_inj["prod_p"](self._grid)
             ok_ind = np.isfinite(redispatching)
             tmp[ok_ind] += redispatching[ok_ind]
+            # print('after tmp[ok_ind]: {}'.format(self._get_vector_inj["prod_p"](self._grid)))
 
         # topology
         # run through all substations, find the topology. If it has changed, then update it.
@@ -627,9 +629,9 @@ class PandaPowerBackend(Backend):
         return res
 
     def _gens_info(self):
-        prod_p = 1. * self._grid.res_gen["p_mw"].values
-        prod_q = 1. * self._grid.res_gen["q_mvar"].values
-        prod_v = self._grid.res_gen["vm_pu"].values * self.prod_pu_to_kv
+        prod_p = 1.0 * self._grid.res_gen["p_mw"].values
+        prod_q = 1.0 * self._grid.res_gen["q_mvar"].values
+        prod_v = 1.0 * self._grid.res_gen["vm_pu"].values * self.prod_pu_to_kv
         if self._iref_slack is not None:
             # slack bus and added generator are on same bus. I need to add power of slack bus to this one.
             if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
@@ -656,8 +658,8 @@ class PandaPowerBackend(Backend):
         return self.p_ex, self.q_ex, self.v_ex, self.a_ex
 
     def shunt_info(self):
-        shunt_p = copy.deepcopy(self._grid.res_shunt["p_mw"].values)
-        shunt_q = copy.deepcopy(self._grid.res_shunt["q_mvar"].values)
+        shunt_p = 1.0 * self._grid.res_shunt["p_mw"].values
+        shunt_q = 1.0 * self._grid.res_shunt["q_mvar"].values
         shunt_v = self._grid.res_bus["vm_pu"][self._grid.shunt["bus"]] * self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
         shunt_bus = self._grid.shunt["bus"].values
         return shunt_p, shunt_q, shunt_v, shunt_bus

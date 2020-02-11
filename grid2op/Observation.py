@@ -1121,10 +1121,10 @@ class CompleteObservation(Observation):
         self.topo_vect = copy.copy(env.backend.get_topo_vect())
 
         # get the values related to continuous values
-        self.prod_p, self.prod_q, self.prod_v = env.backend.generators_info()
-        self.load_p, self.load_q, self.load_v = env.backend.loads_info()
-        self.p_or, self.q_or, self.v_or, self.a_or = env.backend.lines_or_info()
-        self.p_ex, self.q_ex, self.v_ex, self.a_ex = env.backend.lines_ex_info()
+        self.prod_p[:], self.prod_q[:], self.prod_v[:] = env.backend.generators_info()
+        self.load_p[:], self.load_q[:], self.load_v[:] = env.backend.loads_info()
+        self.p_or[:], self.q_or[:], self.v_or[:], self.a_or[:] = env.backend.lines_or_info()
+        self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = env.backend.lines_ex_info()
 
         # handles forecasts here
         self._forecasted_inj = env.chronics_handler.forecasts()
@@ -1136,15 +1136,15 @@ class CompleteObservation(Observation):
         self.rho = env.backend.get_relative_flow()
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = env.times_before_line_status_actionable
-        self.time_before_cooldown_sub = env.times_before_topology_actionable
-        self.time_before_line_reconnectable = env.time_remaining_before_line_reconnection
-        self.time_next_maintenance = env.time_next_maintenance
-        self.duration_next_maintenance = env.duration_next_maintenance
+        self.time_before_cooldown_line[:] = env.times_before_line_status_actionable
+        self.time_before_cooldown_sub[:] = env.times_before_topology_actionable
+        self.time_before_line_reconnectable[:] = env.time_remaining_before_line_reconnection
+        self.time_next_maintenance[:] = env.time_next_maintenance
+        self.duration_next_maintenance[:] = env.duration_next_maintenance
 
         # redispatching
-        self.target_dispatch = env.target_dispatch
-        self.actual_dispatch = env.actual_dispatch
+        self.target_dispatch[:] = env.target_dispatch
+        self.actual_dispatch[:] = env.actual_dispatch
 
     def from_vect(self, vect):
         """

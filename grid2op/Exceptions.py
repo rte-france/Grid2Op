@@ -269,9 +269,18 @@ class InvalidRedispatching(AmbiguousAction):
     pass
 
 
-class InvalidRedispaching(AmbiguousAction):
+class GeneratorTurnedOnTooSoon(AmbiguousAction):
     """
-    It tells that the current redispatching action is not valid.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that a generator has been turned on
+    before gen_min_up_time time steps.
+    """
+    pass
+
+
+class GeneratorTurnedOffTooSoon(AmbiguousAction):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that a generator has been turned off
+    before gen_min_down_time time steps.
     """
     pass
 

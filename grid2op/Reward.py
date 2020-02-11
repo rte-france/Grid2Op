@@ -174,7 +174,7 @@ class EconomicReward(Reward):
         if not env.redispatching_unit_commitment_availble:
             raise Grid2OpException("Impossible to use the EconomicReward reward with an environment without generators"
                                    "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
-        self.worst_cost = np.max(env.gen_cost_per_MW) * np.sum(env.gen_pmax)
+        self.worst_cost = np.sum(env.gen_cost_per_MW *env.gen_pmax)
         self.reward_min = -1.
         self.reward_max = self.worst_cost
 

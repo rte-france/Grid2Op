@@ -13,11 +13,16 @@ Change Log
 - [ADDED] creation of a redispatching environment for the case14.
 - [ADDED] env.step now propagate the error in info
 - [ADDED] notebooks for redispatching
+- [UPDATED] more information in the error when plotly and seaborn are not installed and trying to load the
+  graph of the network.
+- [UPDATED] make a test in action: it shouldn't be possible to assign something to busbar 3.
 - [???] refactoring env and obs_env
 - [???] better explanation of the notebook 3 with action silently
 - [???] notebooks for multi env
-- [???] make a test in action: it shouldn't be possible to assign something to busbar 3.
 - [???] do something to help grid2viz to parse back action.
+- [???] implement other "rewards" to look at
+- [???] have something remembering the topology in the environment, and when an object is
+  reconnected, and no buses are specified, then it connects it to last buses.
 
 [0.5.4] - 2020-02-06
 ---------------------
