@@ -23,6 +23,9 @@ Change Log
 - [???] implement other "rewards" to look at
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
+- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] add the anti-agent
 
 [0.5.4] - 2020-02-06
 ---------------------

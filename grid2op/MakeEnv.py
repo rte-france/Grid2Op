@@ -32,7 +32,7 @@ try:
     from .Action import Action, TopologyAction, TopoAndRedispAction
     from .Exceptions import *
     from .Observation import CompleteObservation, Observation
-    from .Reward import FlatReward, Reward, L2RPNReward, EconomicReward
+    from .Reward import FlatReward, Reward, L2RPNReward, RedispReward
     from .GameRules import LegalAction, AllwaysLegal
 
     from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
@@ -48,7 +48,7 @@ except (ModuleNotFoundError, ImportError):
     from Action import Action, TopologyAction, TopoAndRedispAction
     from Exceptions import *
     from Observation import CompleteObservation, Observation
-    from Reward import FlatReward, Reward, L2RPNReward, EconomicReward
+    from Reward import FlatReward, Reward, L2RPNReward, RedispReward
     from GameRules import LegalAction, AllwaysLegal
     from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
@@ -344,7 +344,7 @@ def make(name_env="case14_fromfile", **kwargs):
         default_name_converter = {}
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopoAndRedispAction
-        default_reward_class = EconomicReward
+        default_reward_class = RedispReward
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
                          "(default), \"case5_example\", \"case14_redisp\" and \"l2rpn_2019\"".format(name_env))
