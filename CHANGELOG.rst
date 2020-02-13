@@ -16,6 +16,7 @@ Change Log
 - [???] add the anti-agent
 - [???] Implement redispatching in simulate
 - [???] simulate in MultiEnv
+- [???] add a "max_iter" in the runner.
 
 [0.5.5] - 2020-02-xx
 ---------------------

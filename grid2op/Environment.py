@@ -1309,7 +1309,7 @@ class Environment(GridObjects):
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["path_chron"] = self.chronics_handler.path
-        res["parameters_path"] # TODO
+        # res["parameters_path"] # TODO
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
         res["actionClass"] = self.actionClass
         res["observationClass"] = self.observationClass
@@ -1319,6 +1319,12 @@ class Environment(GridObjects):
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = type(self.backend)  # TODO
         res["verbose"] = False
-        res["gridStateclass_kwargs"] = self.chronics_handler.kwargs
+        dict_ = copy.deepcopy(self.chronics_handler.kwargs)
+        if 'path' in dict_:
+            # path is handled elsewhere
+            del dict_["path"]
+        res["gridStateclass_kwargs"] = dict_
         res["thermal_limit_a"] = self._thermal_limit_a
+
+        # TODO make a test for that
         return res

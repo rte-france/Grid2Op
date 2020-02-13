@@ -423,8 +423,9 @@ class Runner(object):
                             observationClass=self.observationClass,
                             rewardClass=self.rewardClass,
                             legalActClass=self.legalActClass)
+
         if self.thermal_limit_a is not None:
-            self.env.set_thermal_limit(self.thermal_limit_a)
+            res.set_thermal_limit(self.thermal_limit_a)
 
         if self._useclass:
             agent = self.agentClass(res.helper_action_player)

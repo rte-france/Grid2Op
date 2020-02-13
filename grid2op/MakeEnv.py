@@ -292,7 +292,7 @@ def make(name_env="case14_fromfile", **kwargs):
 
     # bulid the default parameters for each case file
     defaultinstance_chronics_kwargs = {}
-    gamerules_class = LegalAction
+    gamerules_class = AllwaysLegal
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
         if chronics_path == '':
