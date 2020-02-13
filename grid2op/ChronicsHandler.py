@@ -1526,6 +1526,9 @@ class ChronicsHandler(RandomObject):
     real_data: :class:`GridValue`
         An instance of type given by :attr:`ChronicsHandler.chronicsClass`.
 
+    path: ``str`` (or None)
+        path where the data are located.
+
     """
     def __init__(self, chronicsClass=ChangeNothing, time_interval=timedelta(minutes=5), max_iter=-1,
                  **kwargs):
@@ -1542,6 +1545,10 @@ class ChronicsHandler(RandomObject):
         self.chronicsClass = chronicsClass
         self.kwargs = kwargs
         self.max_iter = max_iter
+
+        self.path = None
+        if "path" in kwargs:
+            self.path = kwargs["path"]
 
         self.real_data = None
         try:

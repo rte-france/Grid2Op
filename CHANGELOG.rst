@@ -1,5 +1,22 @@
 Change Log
 =============
+[0.6.0] - 2020-02-xx
+--------------------
+- [???] display the grid layout and the position of the element
+- [???] fix the bug in the notebook of l2rpn2019 with the
+- [???] refactoring env and obs_env
+- [???] better explanation of the notebook 3 with action silently
+- [???] notebooks for multi env
+- [???] do something to help grid2viz to parse back action.
+- [???] implement other "rewards" to look at
+- [???] have something remembering the topology in the environment, and when an object is
+  reconnected, and no buses are specified, then it connects it to last buses.
+- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] add the anti-agent
+- [???] Implement redispatching in simulate
+- [???] simulate in MultiEnv
+
 [0.5.5] - 2020-02-xx
 ---------------------
 - [UPDATED] gitignore to really download the prod_charac.csv file
@@ -16,16 +33,7 @@ Change Log
 - [UPDATED] more information in the error when plotly and seaborn are not installed and trying to load the
   graph of the network.
 - [UPDATED] make a test in action: it shouldn't be possible to assign something to busbar 3.
-- [???] refactoring env and obs_env
-- [???] better explanation of the notebook 3 with action silently
-- [???] notebooks for multi env
-- [???] do something to help grid2viz to parse back action.
-- [???] implement other "rewards" to look at
-- [???] have something remembering the topology in the environment, and when an object is
-  reconnected, and no buses are specified, then it connects it to last buses.
-- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
-- [???] add the anti-agent
+- [ADDED] now able to initialize a runner from a valid environment.
 
 [0.5.4] - 2020-02-06
 ---------------------

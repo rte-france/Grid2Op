@@ -37,6 +37,7 @@ try:
 
     from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+    from .Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
     from .Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
 
 except (ModuleNotFoundError, ImportError):
@@ -53,6 +54,7 @@ except (ModuleNotFoundError, ImportError):
     from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
     from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
+    from Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
 
 import pdb
 
@@ -333,6 +335,19 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
+    elif name_env.lower() == "case14_test":
+        if chronics_path == '':
+            chronics_path = case14_test_CHRONICSPATH
+            warnings.warn("Your are using a case designed for testing purpose. Consider using the \"case14_redisp\" "
+                          "environment instead.")
+
+        default_grid_path = case14_test_CASEFILE
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+                                           "gridvalueClass": GridStateFromFileWithForecasts}
+        default_name_converter = {}
+        data_feeding_default_class = ChronicsHandler
+        default_action_class = TopoAndRedispAction
+        default_reward_class = RedispReward
     elif name_env.lower() == "case14_redisp":
         if chronics_path == '':
             chronics_path = case14_redisp_CHRONICSPATH
@@ -411,6 +426,8 @@ def make(name_env="case14_fromfile", **kwargs):
                       )
 
     # update the thermal limit if any
+    if name_env.lower() == "case14_test":
+        env.set_thermal_limit(case14_test_TH_LIM)
     if name_env.lower() == "case14_redisp":
         env.set_thermal_limit(case14_redisp_TH_LIM)
     return env

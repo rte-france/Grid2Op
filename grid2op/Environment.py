@@ -642,6 +642,7 @@ class Environment(GridObjects):
         min_disp = np.sum(delta_gen_min[avail_gen])
         max_disp = np.sum(delta_gen_max[avail_gen])
         new_redisp = None
+        except_ = None
         val_sum = +np.sum(redisp_act[avail_gen])-np.sum(redisp_act)
         if val_sum < min_disp:
             except_ = InvalidRedispatching("Impossible to perform this redispatching. Minimum ramp (or pmin) for "
@@ -651,6 +652,9 @@ class Environment(GridObjects):
             except_ = InvalidRedispatching("Impossible to perform this redispatching. Maximum ramp (or pmax) for "
                                            "available generators is not enough to absord "
                                            "{}MW, max possible is {}MW".format(val_sum, max_disp))
+        elif np.abs(val_sum) <= 1e-6:
+            # i don't need to modify anything so i should be good
+            new_redisp = 0.0 * redisp_act
         else:
             new_redisp, except_ = self._aux_aux_redisp(delta_gen_min,
                                                        delta_gen_max,
@@ -666,7 +670,7 @@ class Environment(GridObjects):
         if not np.sum(avail_gen):
             # there are no available generators
             except_ = NotEnoughGenerators("Sum of available generator is too low to meet the demand.")
-            return except_
+            return None, except_
 
         try:
             t_zerosum = self._get_t(redisp_act[avail_gen],
@@ -846,7 +850,9 @@ class Environment(GridObjects):
         if np.abs(np.sum(self.actual_dispatch)) >= 1e-6 or \
                 np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= 1e-6:
             # make sure the redispatching action is zero sum
-            new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch, self.gen_activeprod_t, redisp_act_orig)
+            new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch,
+                                                            self.gen_activeprod_t,
+                                                            redisp_act_orig)
             if except_ is not None:
                 # if there is an error, then remove the above "action" and propagate it
                 self.actual_dispatch = previous_redisp
@@ -1274,4 +1280,42 @@ class Environment(GridObjects):
         res["rewardClass"] = self.rewardClass
         res["legalActClass"] = self.legalActClass
         res["epsilon_poly"] = self._epsilon_poly
+        return res
+
+    def init_runner(self):
+        """
+        This method is used to initialize a proper :class:`grid2op.Runner.Runner` to use this specific environment.
+
+        Examples
+        --------
+        It should be used as followed:
+
+        .. code-block:: python
+            import grid2op
+            from grid2op.Runner import Runner
+            env = grid2op.make()  # create the environment of your choice
+            agent = DoNothingAgent(env.actoin_space)
+
+            # create the proper runner
+            runner = Runner(**env.init_backend(), agentClass=DoNothingAgent)
+
+            # now you can run
+            runner.run(nb_episode=1)  # run for 1 episode
+
+        """
+        res = {}
+        res["init_grid_path"] = self.init_grid_path
+        res["path_chron"] = self.chronics_handler.path
+        res["parameters_path"] # TODO
+        res["names_chronics_to_backend"] = self.names_chronics_to_backend
+        res["actionClass"] = self.actionClass
+        res["observationClass"] = self.observationClass
+        res["rewardClass"] = self.rewardClass
+        res["legalActClass"] = self.legalActClass
+        res["envClass"] = Environment
+        res["gridStateclass"] = self.chronics_handler.chronicsClass
+        res["backendClass"] = type(self.backend)  # TODO
+        res["verbose"] = False
+        res["gridStateclass_kwargs"] = self.chronics_handler.kwargs
+        res["thermal_limit_a"] = self._thermal_limit_a
         return res
