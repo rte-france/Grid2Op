@@ -632,8 +632,12 @@ class Environment(GridObjects):
                                                                   self._hazard_duration)
 
     def _aux_redisp(self, redisp_act, target_p, avail_gen, previous_redisp):
-        delta_gen_min = np.maximum(-self.gen_max_ramp_down+previous_redisp, self.gen_pmin-target_p)
-        delta_gen_max = np.minimum(self.gen_max_ramp_up+previous_redisp, self.gen_pmax-target_p)
+        # delta_gen_min = np.maximum(-self.gen_max_ramp_down+previous_redisp, self.gen_pmin-target_p)
+        # delta_gen_max = np.minimum(self.gen_max_ramp_up+previous_redisp, self.gen_pmax-target_p)
+        delta_gen_min = np.maximum(-self.gen_max_ramp_down+previous_redisp,
+                                   self.gen_pmin - (target_p - previous_redisp))
+        delta_gen_max = np.minimum(self.gen_max_ramp_up+previous_redisp,
+                                   self.gen_pmax - (target_p - previous_redisp))
 
         min_disp = np.sum(delta_gen_min[avail_gen])
         max_disp = np.sum(delta_gen_max[avail_gen])
@@ -648,14 +652,12 @@ class Environment(GridObjects):
                                            "available generators is not enough to absord "
                                            "{}MW, max possible is {}MW".format(val_sum, max_disp))
         else:
-            # except_ = self._aux_aux_redisp(delta_gen_min, delta_gen_max, avail_gen, redisp_act, -np.sum(redisp_act))
             new_redisp, except_ = self._aux_aux_redisp(delta_gen_min,
                                                        delta_gen_max,
                                                        avail_gen,
                                                        redisp_act,
                                                        val_sum)
-                                           # -np.sum(redisp_act))
-                                           #  0.)
+
         return new_redisp, except_
 
     def _aux_aux_redisp(self, delta_gen_min, delta_gen_max, avail_gen, redisp_act, sum_value):
@@ -685,7 +687,7 @@ class Environment(GridObjects):
         # self.actual_dispatch[avail_gen] = actual_dispatch_tmp
         return new_redisp, except_
 
-    def _get_redisp_zero_sum(self, redisp_act, new_p):
+    def _get_redisp_zero_sum(self, redisp_act, new_p, redisp_this_act):
         """
 
         Parameters
@@ -702,20 +704,20 @@ class Environment(GridObjects):
         -------
 
         """
+
         # make the target dispatch a 0-sum vector (using only dispatchable unit, not dispatched)
         # dispatch only the generator that are at zero
         avail_gen = self.target_dispatch == 0.  # generators with a redispatching target cannot be redispatched again
+        avail_gen = avail_gen & (redisp_this_act == 0.)  # generator on which I act this time step cannot be redispatched again
         avail_gen = avail_gen & self.gen_redispatchable  # i can only redispatched dispatchable generators
         avail_gen = avail_gen & (new_p > 0.)
 
         # get back the previous value for the dispatchable generators
         target_disp = 1.0 * redisp_act
-        target_disp[avail_gen] = self.actual_dispatch[avail_gen]
+        # target_disp[avail_gen] = self.actual_dispatch[avail_gen]
         new_redisp, except_ = self._aux_redisp(target_disp, new_p, avail_gen, self.actual_dispatch)
         if except_ is None:
             new_redisp += redisp_act
-        # if np.abs(np.sum(new_redisp)) > 1e-2:
-        #     pdb.set_trace()
         return new_redisp, except_
 
     def _compute_actual_dispatch(self, new_p):
@@ -723,16 +725,14 @@ class Environment(GridObjects):
         except_ = None
         turned_on_gen = new_p > 0.
         gen_redispatchable = self.gen_redispatchable & turned_on_gen
-        # print("sum self.actual_dispatch {}".format(np.sum(self.actual_dispatch)))
+
         # make sure that rampmin and max are met
         new_p_if_redisp_ok = new_p + self.actual_dispatch
         gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t - self.gen_max_ramp_down)
         gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t + self.gen_max_ramp_up)
-        # pdb.set_trace()
 
-        # print("self.actual_dispatch: {}".format(self.actual_dispatch))
-        if np.any((gen_min[gen_redispatchable] > new_p[gen_redispatchable]) |
-                   (new_p[gen_redispatchable] > gen_max[gen_redispatchable])) and \
+        if np.any((gen_min[gen_redispatchable] > new_p_if_redisp_ok[gen_redispatchable]) |
+                   (new_p_if_redisp_ok[gen_redispatchable] > gen_max[gen_redispatchable])) and \
             np.any(self.gen_activeprod_t != 0.):
 
             # i am in a case where the target redispatching is not possible, due to the new values
@@ -768,10 +768,8 @@ class Environment(GridObjects):
                                                        gen_redispatchable,
                                                        new_dispatch,
                                                        0.)
-            print("new_redisp: {}".format(new_redisp))
+
             return new_redisp, except_
-        # print("after self.actual_dispatch: {}".format(self.actual_dispatch))
-        # print("sum self.actual_dispatch: {}".format(np.sum(self.actual_dispatch)))
         return self.actual_dispatch, except_
 
     def _get_new_prod_setpoint(self, action):
@@ -845,25 +843,17 @@ class Environment(GridObjects):
 
         # get the target redispatching (cumulation starting from the first element of the scenario)
         self.target_dispatch += redisp_act_orig
-        # self.actual_dispatch[:] = self.target_dispatch[:]
-        # self.actual_dispatch += redisp_act_orig
-        if np.abs(np.sum(self.target_dispatch)) >= 1e-6:
+        if np.abs(np.sum(self.actual_dispatch)) >= 1e-6 or \
+                np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= 1e-6:
             # make sure the redispatching action is zero sum
-            new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch, self.gen_activeprod_t)
+            new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch, self.gen_activeprod_t, redisp_act_orig)
             if except_ is not None:
                 # if there is an error, then remove the above "action" and propagate it
                 self.actual_dispatch = previous_redisp
                 self.target_dispatch -= redisp_act_orig
                 return except_
             else:
-                # self.actual_dispatch += new_redisp + redisp_act_orig
-                # self.actual_dispatch += new_redisp
                 self.actual_dispatch = new_redisp
-        # print("redisp_act_orig: {}".format(redisp_act_orig))
-        # print("actual_dispatch: {}".format(self.actual_dispatch))
-        # print("sum act_disp = {}".format(np.sum(self.actual_dispatch)))
-        if np.abs(np.sum(self.actual_dispatch)) > 0.1:
-            pdb.set_trace()
         return except_
 
     def _handle_updown_times(self, gen_up_before, redisp_act):
@@ -895,6 +885,7 @@ class Environment(GridObjects):
         else:
             self.gen_downtime[gen_connected_this_timestep] = -1
             self.gen_uptime[gen_connected_this_timestep] = 1
+
         if np.any(self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]):
             # i disconnected a generator before the minimum time allowed
             id_gen = self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]
@@ -960,6 +951,7 @@ class Environment(GridObjects):
         except_ = []
         init_disp = 1.0 * action._redispatch
         previous_disp = 1.0 * self.actual_dispatch
+        previous_target_disp = 1.0 * self.target_dispatch
         try:
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
@@ -999,16 +991,21 @@ class Environment(GridObjects):
                 # and now compute the actual dispatch that is consistent with pmin, pmax, ramp min, ramp max
                 # this emulates the "frequency control" that is automatic.
                 new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
-                # self.actual_dispatch = redisp_act
                 if except_tmp is not None:
                     action = self.helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
                     self.actual_dispatch = previous_disp
-                    print("previous_disp : {}".format(previous_disp))
+                    self.target_dispatch = previous_target_disp
+                    new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
+                    if except_tmp is None:
+                        self.actual_dispatch = new_dispatch
+                    else:
+                        pass
+                        # TODO what can i do if do nothing cannot be performed.
+                        # probably a game over !
                 else:
                     self.actual_dispatch = new_dispatch
-                    print("actual_dispatch: {}".format(self.actual_dispatch))
 
                 # check the validity of min downtime and max uptime
                 except_tmp = self._handle_updown_times(gen_up_before, self.actual_dispatch)
@@ -1036,6 +1033,9 @@ class Environment(GridObjects):
             # action, for redispatching is composed of multiple actions, so basically i won't check
             # ramp_min and ramp_max
             self.env_modification._single_act = False
+
+            # have the opponent here
+            # TODO code the opponent part here
 
             self.backend.apply_action(self.env_modification)
             self._time_apply_act += time.time() - beg_
