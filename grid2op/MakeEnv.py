@@ -33,7 +33,7 @@ try:
     from .Exceptions import *
     from .Observation import CompleteObservation, Observation
     from .Reward import FlatReward, Reward, L2RPNReward, RedispReward
-    from .GameRules import LegalAction, AllwaysLegal
+    from .GameRules import LegalAction, AllwaysLegal, DefaultRules
 
     from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
@@ -50,7 +50,7 @@ except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from Observation import CompleteObservation, Observation
     from Reward import FlatReward, Reward, L2RPNReward, RedispReward
-    from GameRules import LegalAction, AllwaysLegal
+    from GameRules import LegalAction, AllwaysLegal, DefaultRules
     from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
     from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
@@ -285,14 +285,6 @@ def make(name_env="case14_fromfile", **kwargs):
                                          isclass=True)
 
     ## type of rules of the game (mimic the operationnal constraints)
-    msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
-    msg_error += " must be a subclass of grid2op.LegalAction"
-    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=AllwaysLegal,
-                                    defaultClassApp=LegalAction,
-                                    msg_error=msg_error,
-                                    isclass=True)
-
-    ## type of rules of the game (mimic the operationnal constraints)
     msg_error = "The path where the data is located (keyword \"chronics_path\") should be a string."
     chronics_path = _get_default_aux("chronics_path", kwargs,
                                      defaultClassApp=str, defaultinstance='',
@@ -300,6 +292,7 @@ def make(name_env="case14_fromfile", **kwargs):
 
     # bulid the default parameters for each case file
     defaultinstance_chronics_kwargs = {}
+    gamerules_class = LegalAction
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
         if chronics_path == '':
@@ -324,6 +317,7 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
+        gamerules_class = DefaultRules
     elif name_env.lower() == "case5_example":
         if chronics_path == '':
             chronics_path = EXAMPLE_CHRONICSPATH
@@ -335,6 +329,7 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
+        gamerules_class = DefaultRules
     elif name_env.lower() == "case14_test":
         if chronics_path == '':
             chronics_path = case14_test_CHRONICSPATH
@@ -348,6 +343,7 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopoAndRedispAction
         default_reward_class = RedispReward
+        gamerules_class = DefaultRules
     elif name_env.lower() == "case14_redisp":
         if chronics_path == '':
             chronics_path = case14_redisp_CHRONICSPATH
@@ -360,11 +356,20 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopoAndRedispAction
         default_reward_class = RedispReward
+        gamerules_class = DefaultRules
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
                          "(default), \"case5_example\", \"case14_redisp\" and \"l2rpn_2019\"".format(name_env))
 
     # extract powergrid dependant parameters
+    ## type of rules of the game (mimic the operationnal constraints)
+    msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
+    msg_error += " must be a subclass of grid2op.LegalAction"
+    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=gamerules_class,
+                                    defaultClassApp=LegalAction,
+                                    msg_error=msg_error,
+                                    isclass=True)
+
     ## type of reward the agent will receive
     msg_error = "The type of observation of the environment (keyword \"reward_class\")"
     msg_error += " must be a subclass of grid2op.Reward"

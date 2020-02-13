@@ -1282,7 +1282,7 @@ class Environment(GridObjects):
         res["epsilon_poly"] = self._epsilon_poly
         return res
 
-    def init_runner(self):
+    def get_params_for_runner(self):
         """
         This method is used to initialize a proper :class:`grid2op.Runner.Runner` to use this specific environment.
 
