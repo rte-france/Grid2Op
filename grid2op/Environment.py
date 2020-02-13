@@ -206,7 +206,8 @@ class Environment(GridObjects):
                  observationClass=CompleteObservation,
                  rewardClass=FlatReward,
                  legalActClass=AllwaysLegal,
-                 epsilon_poly=1e-2):
+                 epsilon_poly=1e-2,
+                 tol_poly=1e-6):
         """
         Initialize the environment. See the descirption of :class:`grid2op.Environment.Environment` for more information.
 
@@ -233,6 +234,7 @@ class Environment(GridObjects):
         self._time_powerflow = 0
         self._time_extract_obs = 0
         self._epsilon_poly = epsilon_poly
+        self._tol_poly = tol_poly
 
         # define logger
         self.logger = None
@@ -652,7 +654,7 @@ class Environment(GridObjects):
             except_ = InvalidRedispatching("Impossible to perform this redispatching. Maximum ramp (or pmax) for "
                                            "available generators is not enough to absord "
                                            "{}MW, max possible is {}MW".format(val_sum, max_disp))
-        elif np.abs(val_sum) <= 1e-6:
+        elif np.abs(val_sum) <= self._tol_poly:
             # i don't need to modify anything so i should be good
             new_redisp = 0.0 * redisp_act
         else:
@@ -847,8 +849,8 @@ class Environment(GridObjects):
 
         # get the target redispatching (cumulation starting from the first element of the scenario)
         self.target_dispatch += redisp_act_orig
-        if np.abs(np.sum(self.actual_dispatch)) >= 1e-6 or \
-                np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= 1e-6:
+        if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
+                np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= self._tol_poly:
             # make sure the redispatching action is zero sum
             new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch,
                                                             self.gen_activeprod_t,
@@ -1280,6 +1282,7 @@ class Environment(GridObjects):
         res["rewardClass"] = self.rewardClass
         res["legalActClass"] = self.legalActClass
         res["epsilon_poly"] = self._epsilon_poly
+        res["tol_poly"] = self._tol_poly
         return res
 
     def get_params_for_runner(self):

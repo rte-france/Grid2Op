@@ -110,7 +110,7 @@ class TestRedispatch(unittest.TestCase):
         act = self.env.action_space({"redispatch": [2, 5]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0., -1.26379812,  5.,  0., -3.73620188])
+        th_dispatch = np.array([0., -1.44301856,  5.,  0., -3.55698144])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
         target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
@@ -124,10 +124,10 @@ class TestRedispatch(unittest.TestCase):
     def test_redispatch_act_above_pmax(self):
         # in this test, the asked redispatching for generator 2 would make it above pmax, so the environment
         # need to "cut" it automatically, without invalidating the action
-        act = self.env.action_space({"redispatch": [2, 20]})
+        act = self.env.action_space({"redispatch": [2, 60]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0.,  -4.64121498,  20., 0., -15.35878502])
+        th_dispatch = np.array([0., -10.46650072,  50.89066718,   0., -40.42416646])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
         target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
@@ -219,7 +219,7 @@ class TestRedispatch(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([ 0.,  0., 5.,  0.,  0.]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert self.compare_vect(obs.actual_dispatch, np.array([0., -1.26379812,  5.,  0., -3.73620188]))
+        assert self.compare_vect(obs.actual_dispatch, np.array([ 0., -1.44301856,  5.,  0., -3.55698144]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -227,7 +227,7 @@ class TestRedispatch(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([ 0.,  0., 10.,  0.,  0.]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert self.compare_vect(obs.actual_dispatch, np.array([0., -2.45340249, 10.,  0., -7.54659751]))
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -2.81339987, 10.,  0., -7.18660013]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -236,19 +236,19 @@ class TestRedispatch(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([0.,  0., 20.,  0.,  0.]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert self.compare_vect(obs.actual_dispatch, np.array([0.,  -4.64121498,  20.,   0., -15.35878502]))
+        assert self.compare_vect(obs.actual_dispatch, np.array([0.,  -5.34776078,  20.,   0., -14.65223922]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
-        act = self.env.action_space({"redispatch": [(2, 20.)]})
+        act = self.env.action_space({"redispatch": [(2, 40.)]})
         obs, reward, done, info = self.env.step(act)
-        assert np.all(obs.target_dispatch == np.array([0.,  0., 40.,  0.,  0.]))
-        assert self.compare_vect(obs.actual_dispatch, np.array([0., -5.77603921, 30.39084553, 0., -24.61480632]))
+        assert np.all(obs.target_dispatch == np.array([0.,  0., 60.,  0.,  0.]))
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -10.31164036, 50.39070301, 0., -40.07906265]))
         assert np.all(obs.prod_p[:-1] <= self.env.gen_pmax[:-1])
         assert np.all(obs.prod_p[:-1] >= self.env.gen_pmin[:-1])
 
 
-# TODO test that if i try to redispatched a turned off generator it breaks everything
+# # TODO test that if i try to redispatched a turned off generator it breaks everything
 class TestLoadingBackendPandaPower(unittest.TestCase):
     def setUp(self):
         # powergrid

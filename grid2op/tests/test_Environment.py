@@ -172,7 +172,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.disable()
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
-        assert np.abs(cum_reward - 5739.929117641016) <= self.tol_one, "Wrong reward"
+        assert np.abs(cum_reward - 5739.92911) <= self.tol_one, "Wrong reward"
 
 
 class TestIllegalAmbiguous(unittest.TestCase):
@@ -184,7 +184,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
     def setUp(self):
         # powergrid
         self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tol_one = 1e-4
         self.env = make("case5_example")
 
     def compare_vect(self, pred, true):
