@@ -381,7 +381,7 @@ class AgentWithConverter(Agent):
                                            "Please use a converter deriving from grid2op.ActionSpaceConverter.Converter."
                                            "".format(action_space_converter))
             elif isinstance(action_space_converter, Converter):
-                if isinstance(action_space_converter.template_act, self.init_action_space.template_act):
+                if isinstance(action_space_converter._template_act, self.init_action_space.template_act):
                     Agent.__init__(self, action_space_converter)
                 else:
                     raise Grid2OpException("Impossible to make an Agent with the provided converter of type {}. "

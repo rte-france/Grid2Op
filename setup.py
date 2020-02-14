@@ -13,7 +13,7 @@ for el in extras:
 extras["all"] = list(set(all_targets))
 
 setup(name='Grid2Op',
-      version='0.5.4',
+      version='0.5.5',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
       classifiers=[
@@ -36,7 +36,9 @@ setup(name='Grid2Op',
       # package_data={"": ["./data/chronics/*", "./data/test_multi_chronics/1/*", "./data/test_multi_chronics/2/*",
       #                    "./data/test_multi_chronics/chronics/*", "./data/test_PandaPower/*",
       #                    "data/chronics"]},
-      install_requires=["numpy", "pandas", "pandapower"],
+      install_requires=["numpy", "pandas", "pandapower", "tqdm"],
       extras_require=extras,
       zip_safe=False,
-      entry_points={'console_scripts': ['Grid2Op=grid2op.command_line:main']})
+      entry_points={'console_scripts': ['grid2op.main=grid2op.command_line:main',
+                                        'grid2op.download=grid2op.command_line:download'
+                                        ]})

@@ -21,6 +21,7 @@ with a Grid2Op environment. An example of such modifications is exposed in the g
 """
 import os
 import pkg_resources
+import warnings
 
 try:
     from .Environment import Environment
@@ -28,14 +29,16 @@ try:
     from .BackendPandaPower import PandaPowerBackend
     from .Parameters import Parameters
     from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
-    from .Action import Action, TopologyAction
+    from .Action import Action, TopologyAction, TopoAndRedispAction
     from .Exceptions import *
     from .Observation import CompleteObservation, Observation
-    from .Reward import FlatReward, Reward, L2RPNReward
-    from .GameRules import LegalAction, AllwaysLegal
+    from .Reward import FlatReward, Reward, L2RPNReward, RedispReward
+    from .GameRules import LegalAction, AllwaysLegal, DefaultRules
 
     from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+    from .Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
+    from .Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
 
 except (ModuleNotFoundError, ImportError):
     from Environment import Environment
@@ -43,14 +46,17 @@ except (ModuleNotFoundError, ImportError):
     from BackendPandaPower import PandaPowerBackend
     from Parameters import Parameters
     from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
-    from Action import Action, TopologyAction
+    from Action import Action, TopologyAction, TopoAndRedispAction
     from Exceptions import *
     from Observation import CompleteObservation, Observation
-    from Reward import FlatReward, Reward, L2RPNReward
-    from GameRules import LegalAction, AllwaysLegal
+    from Reward import FlatReward, Reward, L2RPNReward, RedispReward
+    from GameRules import LegalAction, AllwaysLegal, DefaultRules
     from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+    from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
+    from Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
 
+import pdb
 
 CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "test_case14.json"))
@@ -192,7 +198,7 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
     return res
 
 
-def make(name_env="case14_fromfile", **kwargs):
+def make(name_env="case14_redisp", **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -279,14 +285,6 @@ def make(name_env="case14_fromfile", **kwargs):
                                          isclass=True)
 
     ## type of rules of the game (mimic the operationnal constraints)
-    msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
-    msg_error += " must be a subclass of grid2op.LegalAction"
-    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=AllwaysLegal,
-                                    defaultClassApp=LegalAction,
-                                    msg_error=msg_error,
-                                    isclass=True)
-
-    ## type of rules of the game (mimic the operationnal constraints)
     msg_error = "The path where the data is located (keyword \"chronics_path\") should be a string."
     chronics_path = _get_default_aux("chronics_path", kwargs,
                                      defaultClassApp=str, defaultinstance='',
@@ -294,6 +292,7 @@ def make(name_env="case14_fromfile", **kwargs):
 
     # bulid the default parameters for each case file
     defaultinstance_chronics_kwargs = {}
+    gamerules_class = AllwaysLegal
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
         if chronics_path == '':
@@ -308,8 +307,10 @@ def make(name_env="case14_fromfile", **kwargs):
     elif name_env.lower() == "l2rpn_2019":
         if chronics_path == '':
             msg_error = "Default chronics (provided in this package) cannot be used with the environment "
-            msg_error += "\"l2rpn_2019\". Please set \"chronics_path\" argument with a dataset that can be use with "
-            msg_error += "the \"l2rpn_2019\" environment."
+            msg_error += "\"l2rpn_2019\". Please download the training data using either the method described in" \
+                         "Grid2Op/l2rpn_2019/README.md (if you downloaded the github repository) or\n" \
+                         "running the command line script (in a terminal):\n" \
+                         "python -m grid2op.download --name \"l2rpn_2019\" --path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD"
             raise EnvError(msg_error)
         default_grid_path = L2RPN2019_CASEFILE
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
@@ -318,6 +319,7 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
+        gamerules_class = DefaultRules
     elif name_env.lower() == "case5_example":
         if chronics_path == '':
             chronics_path = EXAMPLE_CHRONICSPATH
@@ -329,11 +331,50 @@ def make(name_env="case14_fromfile", **kwargs):
         data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
+        gamerules_class = DefaultRules
+    elif name_env.lower() == "case14_test":
+        if chronics_path == '':
+            chronics_path = case14_test_CHRONICSPATH
+            warnings.warn("Your are using a case designed for testing purpose. Consider using the \"case14_redisp\" "
+                          "environment instead.")
+
+        default_grid_path = case14_test_CASEFILE
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+                                           "gridvalueClass": GridStateFromFileWithForecasts}
+        default_name_converter = {}
+        data_feeding_default_class = ChronicsHandler
+        default_action_class = TopoAndRedispAction
+        default_reward_class = RedispReward
+        gamerules_class = DefaultRules
+    elif name_env.lower() == "case14_redisp":
+        if chronics_path == '':
+            chronics_path = case14_redisp_CHRONICSPATH
+            warnings.warn("Your are using only 2 chronics for this environment. More can be download by running, "
+                          "from a command line:\n"
+                          "python -m grid2op.download --name \"case14_redisp\" "
+                          "--path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD\DATA")
+
+        default_grid_path = case14_redisp_CASEFILE
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+                                           "gridvalueClass": GridStateFromFileWithForecasts}
+        default_name_converter = {}
+        data_feeding_default_class = ChronicsHandler
+        default_action_class = TopoAndRedispAction
+        default_reward_class = RedispReward
+        gamerules_class = DefaultRules
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
-                         "(default), \"case5_example\" and \"l2rpn_2019\"".format(name_env))
+                         "(default), \"case5_example\", \"case14_redisp\" and \"l2rpn_2019\"".format(name_env))
 
     # extract powergrid dependant parameters
+    ## type of rules of the game (mimic the operationnal constraints)
+    msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
+    msg_error += " must be a subclass of grid2op.LegalAction"
+    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=gamerules_class,
+                                    defaultClassApp=LegalAction,
+                                    msg_error=msg_error,
+                                    isclass=True)
+
     ## type of reward the agent will receive
     msg_error = "The type of observation of the environment (keyword \"reward_class\")"
     msg_error += " must be a subclass of grid2op.Reward"
@@ -368,11 +409,13 @@ def make(name_env="case14_fromfile", **kwargs):
     data_feeding_kwargs = _get_default_aux("data_feeding_kwargs", kwargs,
                                  defaultClassApp=dict, defaultinstance=defaultinstance_chronics_kwargs,
                                  msg_error=msg_error)
+
+
     ### the chronics generator
-    msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding_kwargs\")"
-    msg_error += " should be a dictionnary."
+    msg_error = "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
+    msg_error += " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler."
     data_feeding = _get_default_aux("chronics_class", kwargs,
-                                    defaultClassApp=GridValue,
+                                    defaultClassApp=ChronicsHandler,
                                     defaultClass=data_feeding_default_class,
                                     build_kwargs=data_feeding_kwargs,
                                     msg_error=msg_error)
@@ -391,4 +434,10 @@ def make(name_env="case14_fromfile", **kwargs):
                       rewardClass=reward_class,
                       legalActClass=gamerules_class
                       )
+
+    # update the thermal limit if any
+    if name_env.lower() == "case14_test":
+        env.set_thermal_limit(case14_test_TH_LIM)
+    if name_env.lower() == "case14_redisp":
+        env.set_thermal_limit(case14_redisp_TH_LIM)
     return env

@@ -278,6 +278,8 @@ class Action(GridObjects):
                                "_set_line_status", "_switch_line_status",
                                "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance"]
 
+        self._single_act = True
+
     def _get_array_from_attr_name(self, attr_name):
         if attr_name in self.__dict__:
             res = super()._get_array_from_attr_name(attr_name)
@@ -1083,6 +1085,26 @@ class Action(GridObjects):
 
         return self
 
+    def is_ambiguous(self):
+        """
+        Says if the action, as defined is ambiguous or not.
+
+        Returns
+        -------
+        res: ``True`` if the action is ambiguous, ``False`` otherwise.
+
+        info: ``dict`` or not
+            More information about the error. If the action is not ambiguous, it values to ``None``
+        """
+        try:
+            self._check_for_ambiguity()
+            res = False
+            info = None
+        except AmbiguousAction as e:
+            info = e
+            res = True
+        return res, info
+
     def _check_for_ambiguity(self):
         """
         This method checks if an action is ambiguous or not. If the instance is ambiguous, an
@@ -1180,30 +1202,41 @@ class Action(GridObjects):
                 raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
                                                            "environment. Please set up the proper costs for generator")
 
-            if np.any(self._redispatch > self.gen_max_ramp_up):
-                raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
-            if np.any(-self._redispatch > self.gen_max_ramp_down):
-                raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
-
             if np.any(self._redispatch[~self.gen_redispatchable] != 0.):
                 raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
 
-            if "prod_p" in self._dict_inj:
-                new_p = self._dict_inj["prod_p"]
-                tmp_p = new_p + self._redispatch
-                indx_ok = np.isfinite(new_p)
-                if np.any(tmp_p[indx_ok] > self.gen_pmax[indx_ok]):
-                    raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
-                                               "are above pmax for some generator.")
-                if np.any(tmp_p[indx_ok] < self.gen_pmin[indx_ok]):
-                    raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
-                                               "are below pmin for some generator.")
+            if self._single_act:
+                # TODO check that when action is made (and check also the buses id, don't put 3 for example...)
+                if np.any(self._redispatch > self.gen_max_ramp_up):
+                   raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
+                if np.any(-self._redispatch > self.gen_max_ramp_down):
+                   raise InvalidRedispatching("Some redispatching amount are bellow the maximum ramp down")
+
+                if "prod_p" in self._dict_inj:
+                    new_p = self._dict_inj["prod_p"]
+                    tmp_p = new_p + self._redispatch
+                    indx_ok = np.isfinite(new_p)
+                    if np.any(tmp_p[indx_ok] > self.gen_pmax[indx_ok]):
+                        raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                                   "are above pmax for some generator.")
+                    if np.any(tmp_p[indx_ok] < self.gen_pmin[indx_ok]):
+                        raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
+                                                   "are below pmin for some generator.")
 
         # topological action
         if np.any(self._set_topo_vect[self._change_bus_vect] != 0):
             raise InvalidBusStatus("You asked to change the bus of an object with"
                                    " using the keyword \"change_bus\" and set this same object state in \"set_bus\""
                                    ". This ambiguous behaviour is not supported")
+        if np.any(self._set_topo_vect < -1):
+            raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
+                                   "1 (assign this object to bus one) or 2 (assign this object to bus"
+                                   "2). A negative number has been found.")
+        if np.any(self._set_topo_vect > 2):
+            raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
+                                   "1 (assign this object to bus one) or 2 (assign this object to bus"
+                                   "2). A number higher than 2 has been found: substations with more than 2 busbars"
+                                   "are not supported by grid2op.")
 
         for q_id, status in enumerate(self._set_line_status):
             if status == 1:
@@ -1745,6 +1778,84 @@ class Action(GridObjects):
         return res
 
 
+class TopoAndRedispAction(Action):
+    def __init__(self, gridobj):
+        Action.__init__(self, gridobj)
+        self.authorized_keys = set([k for k in self.authorized_keys if k != "injection"])
+
+        self.attr_list_vect = ["_set_line_status", "_switch_line_status",
+                               "_set_topo_vect", "_change_bus_vect",
+                               "_redispatch"]
+
+    def __call__(self):
+        """
+        Compare to the ancestor :func:`Action.__call__` this type of Action doesn't allow to change the injections.
+        The only difference is in the returned value *dict_injection* that is always an empty dictionary.
+
+        Returns
+        -------
+        dict_injection: ``dict``
+            This dictionary is always empty
+
+        set_line_status: :class:`numpy.ndarray`, dtype:int
+            This array is :attr:`Action._set_line_status`
+
+        switch_line_status: :class:`numpy.ndarray`, dtype:bool
+            This array is :attr:`Action._switch_line_status`
+
+        set_topo_vect: :class:`numpy.ndarray`, dtype:int
+            This array is :attr:`Action._set_topo_vect`
+
+        change_bus_vect: :class:`numpy.ndarray`, dtype:bool
+            This array is :attr:`Action._change_bus_vect`
+
+        redispatch: :class:`numpy.ndarray`, dtype:float
+            Thie array is :attr:`Action._redispatch`
+
+        """
+        if self._dict_inj:
+            raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
+        self._check_for_ambiguity()
+        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect,\
+               self._redispatch
+
+    def update(self, dict_):
+        """
+        As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
+        :class:`Action`.
+
+        It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
+        doesn't update the :attr:`Action._dict_inj`. It raises a warning if attempting to change them.
+
+        Parameters
+        ----------
+        dict_: :class:`dict`
+            See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
+            "injection" part is irrelevant for this subclass.
+
+        Returns
+        -------
+        self: :class:`TopologyAction`
+            Return object itself thus allowing multiple calls to "update" to be chained.
+
+        """
+        self._vectorized = None
+        if dict_ is not None:
+            for kk in dict_.keys():
+                if kk not in self.authorized_keys:
+                    warn = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
+                    warn = warn.format(kk, self.authorized_keys)
+                    warnings.warn(warn)
+
+            # self._digest_injection(dict_)  # only difference compared to the base class implementation.
+            self._digest_setbus(dict_)
+            self._digest_change_bus(dict_)
+            self._digest_set_status(dict_)
+            self._digest_change_status(dict_)
+            self._digest_redispatching(dict_)
+        return self
+
+
 class TopologyAction(Action):
     """
     This class is model only topological actions.
@@ -1836,8 +1947,6 @@ class TopologyAction(Action):
             self._digest_setbus(dict_)
             self._digest_change_bus(dict_)
             self._digest_set_status(dict_)
-            self._digest_hazards(dict_)
-            self._digest_maintenance(dict_)
             self._digest_change_status(dict_)
         return self
 
@@ -2016,7 +2125,7 @@ class SerializableActionSpace(SerializableSpace):
     actionClass: ``type``
         Type used to build the :attr:`SerializableActionSpace.template_act`
 
-    template_act: :class:`Action`
+    _template_act: :class:`Action`
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
         action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
@@ -2030,14 +2139,14 @@ class SerializableActionSpace(SerializableSpace):
             Representation of the underlying powergrid.
 
         actionClass: ``type``
-            Type of action used to build :attr:`Space.SerializableSpace.template_obj`. It should derived from
+            Type of action used to build :attr:`Space.SerializableSpace._template_obj`. It should derived from
             :class:`Action`.
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
 
         self.actionClass = self.subtype
-        self.template_act = self.template_obj
+        self._template_act = self._template_obj
 
     @staticmethod
     def from_dict(dict_):
@@ -2319,7 +2428,7 @@ class SerializableActionSpace(SerializableSpace):
             A vector that doesn't affect the grid, but can be used in "set_line_status"
 
         """
-        return self.template_act.get_set_line_status_vect()
+        return self._template_act.get_set_line_status_vect()
 
     def get_change_line_status_vect(self):
         """
@@ -2331,7 +2440,7 @@ class SerializableActionSpace(SerializableSpace):
             A vector that doesn't affect the grid, but can be used in "change_line_status"
 
         """
-        return self.template_act.get_change_line_status_vect()
+        return self._template_act.get_change_line_status_vect()
 
     @staticmethod
     def get_all_unitary_topologies_change(action_space):

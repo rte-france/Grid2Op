@@ -1049,17 +1049,19 @@ class GridStateFromFile(GridValue):
                 raise StopIteration
 
         res = {}
-        res["injection"] = {"load_p": self.load_p[self.current_index, :], "load_q": self.load_q[self.current_index, :],
-                            "prod_p": self.prod_p[self.current_index, :], "prod_v": self.prod_v[self.current_index, :]}
+        res["injection"] = {"load_p": 1.0 * self.load_p[self.current_index, :],
+                            "load_q": 1.0 * self.load_q[self.current_index, :],
+                            "prod_p": 1.0 * self.prod_p[self.current_index, :],
+                            "prod_v": 1.0 * self.prod_v[self.current_index, :]}
         res["maintenance"] = self.maintenance[self.current_index, :]
         res["hazards"] = self.hazards[self.current_index, :]
 
         self.current_datetime += self.time_interval
         self.curr_iter += 1
 
-        maintenance_time = self.maintenance_time[self.current_index, :]
-        maintenance_duration = self.maintenance_duration[self.current_index, :]
-        hazard_duration = self.hazard_duration[self.current_index, :]
+        maintenance_time = 1 * self.maintenance_time[self.current_index, :]
+        maintenance_duration = 1 * self.maintenance_duration[self.current_index, :]
+        hazard_duration = 1 * self.hazard_duration[self.current_index, :]
 
         return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration
 
@@ -1282,10 +1284,10 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
         """
         res = {}
-        res["injection"] = {"load_p": self.load_p_forecast[self.current_index, :],
-                            "load_q": self.load_q_forecast[self.current_index, :],
-                            "prod_p": self.prod_p_forecast[self.current_index, :],
-                            "prod_v": self.prod_v_forecast[self.current_index, :]}
+        res["injection"] = {"load_p": 1.0 * self.load_p_forecast[self.current_index, :],
+                            "load_q": 1.0 * self.load_q_forecast[self.current_index, :],
+                            "prod_p": 1.0 * self.prod_p_forecast[self.current_index, :],
+                            "prod_v": 1.0 * self.prod_v_forecast[self.current_index, :]}
         res["maintenance"] = self.maintenance_forecast[self.current_index, :]
 
         forecast_datetime = self.current_datetime + self.time_interval
@@ -1524,6 +1526,9 @@ class ChronicsHandler(RandomObject):
     real_data: :class:`GridValue`
         An instance of type given by :attr:`ChronicsHandler.chronicsClass`.
 
+    path: ``str`` (or None)
+        path where the data are located.
+
     """
     def __init__(self, chronicsClass=ChangeNothing, time_interval=timedelta(minutes=5), max_iter=-1,
                  **kwargs):
@@ -1540,6 +1545,10 @@ class ChronicsHandler(RandomObject):
         self.chronicsClass = chronicsClass
         self.kwargs = kwargs
         self.max_iter = max_iter
+
+        self.path = None
+        if "path" in kwargs:
+            self.path = kwargs["path"]
 
         self.real_data = None
         try:

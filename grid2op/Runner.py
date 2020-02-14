@@ -209,6 +209,8 @@ class Runner(object):
     gridStateclass_kwargs: ``dict``
         Additional keyword arguments used to build the :attr:`Runner.chronics_handler`
 
+    thermal_limit_a: ``numpy.ndarray``
+        The thermal limit for the environment (if any).
     """
 
     def __init__(self,
@@ -229,6 +231,7 @@ class Runner(object):
                  agentInstance=None,
                  verbose=False,
                  gridStateclass_kwargs={},
+                 thermal_limit_a=None
                  ):
         """
         Initialize the Runner.
@@ -278,6 +281,10 @@ class Runner(object):
 
         verbose: ``bool``, optional
             Used to initialize :attr:`Runner.verbose`.
+
+        thermal_limit_a: ``numpy.ndarray``
+            The thermal limit for the environment (if any).
+
         """
 
         if not isinstance(envClass, type):
@@ -404,6 +411,8 @@ class Runner(object):
 
         self.verbose = verbose
 
+        self.thermal_limit_a = thermal_limit_a
+
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
                             chronics_handler=chronics_handler,
@@ -414,6 +423,10 @@ class Runner(object):
                             observationClass=self.observationClass,
                             rewardClass=self.rewardClass,
                             legalActClass=self.legalActClass)
+
+        if self.thermal_limit_a is not None:
+            res.set_thermal_limit(self.thermal_limit_a)
+
         if self._useclass:
             agent = self.agentClass(res.helper_action_player)
         else:
@@ -472,7 +485,8 @@ class Runner(object):
 
         """
         self.reset()
-        return self._run_one_episode(self.env, self.agent, self.logger, indx, path_save)
+        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save)
+        return res
 
     @staticmethod
     def _run_one_episode(env, agent, logger, indx, path_save=None):
@@ -581,18 +595,18 @@ class Runner(object):
         Returns
         -------
         res: ``list``
-            List of tuple. Each tuple having 3 elements:
+            List of tuple. Each tuple having 5 elements:
 
-              - "i" unique identifier of the episode
+              - "id_chron" unique identifier of the episode
+              - "name_chron" name of chronics
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
               - "max_ts" : the maximum number of time steps of the chronics
 
         """
-        res = [(None, None, None) for _ in range(nb_episode)]
+        res = [(None, None, None, None, None) for _ in range(nb_episode)]
         for i in range(nb_episode):
-            name_chron, cum_reward, nb_time_step = self.run_one_episode(
-                path_save=path_save, indx=i)
+            name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i)
             id_chron = self.chronics_handler.get_id()
             max_ts = self.chronics_handler.max_timestep()
             res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)

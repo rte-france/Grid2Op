@@ -1404,7 +1404,7 @@ class SerializableSpace(GridObjects, RandomObject):
         Type use to build the template object :attr:`SerializableSpace.template_obj`. This type should derive
         from :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`.
 
-    template_obj: :class:`grid2op.GridObjects`
+    _template_obj: :class:`grid2op.GridObjects`
         An instance of the "*subtype*" provided used to provide higher level utilities, such as the size of the
         action (see :func:`grid2op.Action.Action.size`) or to sample a new Action
         (see :func:`grid2op.Action.Action.sample`) for example.
@@ -1430,7 +1430,7 @@ class SerializableSpace(GridObjects, RandomObject):
         """
 
         subtype: ``type``
-            Type of action used to build :attr:`SerializableActionSpace.template_act`. This type should derive
+            Type of action used to build :attr:`SerializableActionSpace._template_act`. This type should derive
             from :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation` .
 
         """
@@ -1447,13 +1447,13 @@ class SerializableSpace(GridObjects, RandomObject):
         self.init_grid(gridobj)
 
         self.subtype = subtype
-        self.template_obj = self.subtype(gridobj=self)
-        self.n = self.template_obj.size()
+        self._template_obj = self.subtype(gridobj=self)
+        self.n = self._template_obj.size()
 
         self.global_vars = None
 
-        self.shape = self.template_obj.shape()
-        self.dtype = self.template_obj.dtype()
+        self.shape = self._template_obj.shape()
+        self.dtype = self._template_obj.dtype()
 
     @staticmethod
     def from_dict(dict_):
@@ -1570,9 +1570,9 @@ class SerializableSpace(GridObjects, RandomObject):
         -------
         res: :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`
             The corresponding action (or observation) as an object (and not as a vector). The return type is given
-            by the type of :attr:`SerializableSpace.template_obj`
+            by the type of :attr:`SerializableSpace._template_obj`
 
         """
-        res = copy.deepcopy(self.template_obj)
+        res = copy.deepcopy(self._template_obj)
         res.from_vect(obj_as_vect)
         return res

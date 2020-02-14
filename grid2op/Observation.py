@@ -248,6 +248,9 @@ class ObsEnv(GridObjects):
         except Grid2OpException as e:
             has_error = True
             reward = self.reward_helper.range()[0]
+
+        self.gen_activeprod_t, *_ = self.backend.generators_info()
+
         if reward is None:
             reward = self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous)
         # set the backend back to its original state
@@ -1121,10 +1124,10 @@ class CompleteObservation(Observation):
         self.topo_vect = copy.copy(env.backend.get_topo_vect())
 
         # get the values related to continuous values
-        self.prod_p, self.prod_q, self.prod_v = env.backend.generators_info()
-        self.load_p, self.load_q, self.load_v = env.backend.loads_info()
-        self.p_or, self.q_or, self.v_or, self.a_or = env.backend.lines_or_info()
-        self.p_ex, self.q_ex, self.v_ex, self.a_ex = env.backend.lines_ex_info()
+        self.prod_p[:], self.prod_q[:], self.prod_v[:] = env.backend.generators_info()
+        self.load_p[:], self.load_q[:], self.load_v[:] = env.backend.loads_info()
+        self.p_or[:], self.q_or[:], self.v_or[:], self.a_or[:] = env.backend.lines_or_info()
+        self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = env.backend.lines_ex_info()
 
         # handles forecasts here
         self._forecasted_inj = env.chronics_handler.forecasts()
@@ -1136,15 +1139,15 @@ class CompleteObservation(Observation):
         self.rho = env.backend.get_relative_flow()
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = env.times_before_line_status_actionable
-        self.time_before_cooldown_sub = env.times_before_topology_actionable
-        self.time_before_line_reconnectable = env.time_remaining_before_line_reconnection
-        self.time_next_maintenance = env.time_next_maintenance
-        self.duration_next_maintenance = env.duration_next_maintenance
+        self.time_before_cooldown_line[:] = env.times_before_line_status_actionable
+        self.time_before_cooldown_sub[:] = env.times_before_topology_actionable
+        self.time_before_line_reconnectable[:] = env.time_remaining_before_line_reconnection
+        self.time_next_maintenance[:] = env.time_next_maintenance
+        self.duration_next_maintenance[:] = env.duration_next_maintenance
 
         # redispatching
-        self.target_dispatch = env.target_dispatch
-        self.actual_dispatch = env.actual_dispatch
+        self.target_dispatch[:] = env.target_dispatch
+        self.actual_dispatch[:] = env.actual_dispatch
 
     def from_vect(self, vect):
         """
@@ -1324,9 +1327,9 @@ class SerializableObservationSpace(SerializableSpace):
     ----------
 
     observationClass: ``type``
-        Type used to build the :attr:`SerializableActionSpace.template_act`
+        Type used to build the :attr:`SerializableActionSpace._template_act`
 
-    empty_obs: :class:`Observation`
+    _empty_obs: :class:`Observation`
         An instance of the "*observationClass*" provided used to provide higher level utilities
 
     """
@@ -1339,13 +1342,13 @@ class SerializableObservationSpace(SerializableSpace):
             Representation of the objects in the powergrid.
 
         observationClass: ``type``
-            Type of action used to build :attr:`Space.SerializableSpace.template_obj`
+            Type of action used to build :attr:`Space.SerializableSpace._template_obj`
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=observationClass)
 
         self.observationClass = self.subtype
-        self.empty_obs = self.template_obj
+        self._empty_obs = self._template_obj
 
     @staticmethod
     def from_dict(dict_):
@@ -1384,7 +1387,7 @@ class ObservationHelper(SerializableObservationSpace):
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
 
-    empty_obs: ``Observation.Observation``
+    _empty_obs: ``Observation.Observation``
         An empty observation with the proper dimensions.
 
     parameters: :class:`grid2op.Parameters.Parameters`
@@ -1404,7 +1407,7 @@ class ObservationHelper(SerializableObservationSpace):
     obs_env: :class:`ObsEnv`
         Instance of the environenment used by the Observation Helper to provide forcecast of the grid state.
 
-    empty_obs: :class:`Observation`
+    _empty_obs: :class:`Observation`
         An instance of the observation that is updated and will be sent to he Agent.
 
     """
@@ -1438,15 +1441,13 @@ class ObservationHelper(SerializableObservationSpace):
                               parameters=env.parameters, reward_helper=self.reward_helper,
                               action_helper=self.action_helper_env)
 
-        self.empty_obs = self.observationClass(gridobj=self,
-                                               obs_env=self.obs_env,
-                                               action_helper=self.action_helper_env)
+        self._empty_obs = self.observationClass(gridobj=self,
+                                                obs_env=self.obs_env,
+                                                action_helper=self.action_helper_env)
         self._update_env_time = 0.
 
     def __call__(self, env):
-        # beg_ = time.time()
         self.obs_env.update_grid(env.backend)
-        # self._update_env_time += time.time()-beg_
 
         res = self.observationClass(gridobj=self,
                                     obs_env=self.obs_env,

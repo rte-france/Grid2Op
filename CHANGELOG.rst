@@ -1,5 +1,53 @@
 Change Log
 =============
+[0.6.0] - 2020-02-xx
+--------------------
+TODO for next version
+
+- [???] display the grid layout and the position of the element
+- [???] fix the bug in the notebook of case5_example with the layout of the 2 buses
+- [???] refactoring env and obs_env
+- [???] better explanation of the notebook 3 with action silently
+- [???] notebooks for multi env
+- [???] do something to help grid2viz to parse back action.
+- [???] implement other "rewards" to look at
+- [???] have something remembering the topology in the environment, and when an object is
+  reconnected, and no buses are specified, then it connects it to last buses.
+- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] add the "anti-agent"
+- [???] Implement redispatching in simulate
+- [???] simulate in MultiEnv
+- [???] add a "max_iter" in the runner.
+- [???] rationalize the public and private part of the API. Some members now are public but should be private.
+- [???] quick implementation of "replay" using PlotPygame and EpisodeData
+- [???] add the "prod_charac.csv" for the test environment "case14_test"
+- [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
+  ( for now if you change default env, it doesn't affect the runner, so it crashes)
+
+[0.5.5] - 2020-02-14
+---------------------
+- [ADDED] a easier way to set the thermal limits directly from the environment (`env.set_thermal_limit`)
+- [ADDED] a new environment with redispatching capabilities (`case14_redisp`) including data
+- [ADDED] a new convenient script to download the dataset, run `python3 -m grid2op.download --name "case14_redisp"`
+  from the command line.
+- [ADDED] new rewards to better take into account redispatching (`EconomicReward` and `RedispReward`)
+- [ADDED] a method to check if an action is ambiguous (`act.is_ambiguous()`)
+- [ADDED] a method to set more efficiently the id of the chronics used in the environment (`env.set_id`)
+- [ADDED] env.step now propagate the error in "info" output (but not yet in  `obs.simulate`)
+- [ADDED] notebooks for redispatching (see `getting_started/5_RedispacthingAgent.ipynb`)
+- [ADDED] now able to initialize a runner from a valid environment (see `env.get_params_for_runner`)
+- [FIXED] reconnecting too soon a powerline is now forbidden in l2rpn2019 (added the proper legal action)
+- [UPDATED] more information in the error when plotly and seaborn are not installed and trying to load the
+  graph of the grid.
+- [UPDATED] setting an object to a busbar higher (or equal) than 2 now leads to an ambiguous action.
+- [UPDATED] gitignore to really download the "prod_charac.csv" file
+- [UPDATED] private member in action space and observation space (`_template_act` and `_empty_obs`)
+  to make it clear it's not part of the public API.
+- [UPDATED] change default environment to `case14_redisp`
+- [UPDATED] notebook 2 now explicitely says the proposed action is ambiguous in a python cell code (and not just
+  in the comments) see issue (`issue 27 <https://github.com/rte-france/Grid2Op/issues/27>`_)
+
 [0.5.4] - 2020-02-06
 ---------------------
 - [ADDED] better handling of serialization of scenarios.

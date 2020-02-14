@@ -89,7 +89,8 @@ class Backend(GridObjects, ABC):
 
     def assert_grid_correct_after_powerflow(self):
         """
-        This method is called by the environment. It ensure that the backend remains consistent even after a powerflow has be run with :func:`Backend.runpf` method.
+        This method is called by the environment. It ensure that the backend remains consistent even after a powerflow
+        has be run with :func:`Backend.runpf` method.
 
         :return: ``None``
         :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.

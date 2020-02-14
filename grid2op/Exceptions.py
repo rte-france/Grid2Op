@@ -269,12 +269,28 @@ class InvalidRedispatching(AmbiguousAction):
     pass
 
 
-class InvalidRedispaching(AmbiguousAction):
+class GeneratorTurnedOnTooSoon(InvalidRedispatching):
     """
-    It tells that the current redispatching action is not valid.
+    This is a more precise exception than :class:`AmbiguousAction` indicating that a generator has been turned on
+    before gen_min_up_time time steps.
     """
     pass
 
+
+class GeneratorTurnedOffTooSoon(InvalidRedispatching):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that a generator has been turned off
+    before gen_min_down_time time steps.
+    """
+    pass
+
+
+class NotEnoughGenerators(InvalidRedispatching):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that there is not enough turned off
+    generators to meet the demand.
+    """
+    pass
 
 # powerflow exception
 class DivergingPowerFlow(Grid2OpException):

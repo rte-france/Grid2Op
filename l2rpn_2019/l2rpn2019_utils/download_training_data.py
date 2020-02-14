@@ -18,6 +18,7 @@ import sys
 from tqdm import tqdm
 import re
 
+from grid2op.DownloadDataset import download_url
 import tarfile
 
 import pdb
@@ -26,37 +27,12 @@ try:
 except Exception as e:
     raise RuntimeError("Impossible to find library urllib. Please install it.")
 
+
 URL = "https://github.com/BDonnot/Grid2Op/releases/download/data_l2rpn_2019/data_l2rpn_2019.tar.bz2"
 DEFAULT_PATH_DATA = "data"
 
-
-class DownloadProgressBar(tqdm):
-    """
-    This class is here to show the progress bar when downloading this dataset
-    """
-    def update_to(self, b=1, bsize=1, tsize=None):
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
-
-
-def download_url(url, output_path):
-    """
-    This function download the file located at 'url' and save it to 'output_path'
-    Parameters
-    ----------
-    url: ``str``
-        The url of the file to download
-
-    output_path: ``str``
-        The path where the data will be stored.
-    """
-    with DownloadProgressBar(unit='B', unit_scale=True, miniters=1, desc=url.split('/')[-1]) as t:
-        urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
-
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Launch the evaluation of the Grid2Op ("Grid To Operate") code.')
+    parser = argparse.ArgumentParser(description='Download the l2rpn 2019 training data')
     parser.add_argument('--path_save', default=DEFAULT_PATH_DATA, type=str,
                         help='The path where the data will be downloaded.')
     args = parser.parse_args()
@@ -72,7 +48,7 @@ if __name__ == "__main__":
     download_url(URL, output_path)
 
     tar = tarfile.open(output_path, "r:bz2")
-    print("Extract the tar archive in {}".format(path_data))
+    print("Extract the tar archive in \"{}\"".format(os.path.abspath(path_data)))
     tar.extractall(path_data)
     tar.close()
     file_location = os.path.split(os.path.abspath(__file__))[0]
