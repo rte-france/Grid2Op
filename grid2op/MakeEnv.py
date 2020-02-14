@@ -198,7 +198,7 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
     return res
 
 
-def make(name_env="case14_fromfile", **kwargs):
+def make(name_env="case14_redisp", **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -307,8 +307,10 @@ def make(name_env="case14_fromfile", **kwargs):
     elif name_env.lower() == "l2rpn_2019":
         if chronics_path == '':
             msg_error = "Default chronics (provided in this package) cannot be used with the environment "
-            msg_error += "\"l2rpn_2019\". Please set \"chronics_path\" argument with a dataset that can be use with "
-            msg_error += "the \"l2rpn_2019\" environment."
+            msg_error += "\"l2rpn_2019\". Please download the training data using either the method described in" \
+                         "Grid2Op/l2rpn_2019/README.md (if you downloaded the github repository) or\n" \
+                         "running the command line script (in a terminal):\n" \
+                         "python -m grid2op.download --name \"l2rpn_2019\" --path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD"
             raise EnvError(msg_error)
         default_grid_path = L2RPN2019_CASEFILE
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
@@ -347,7 +349,10 @@ def make(name_env="case14_fromfile", **kwargs):
     elif name_env.lower() == "case14_redisp":
         if chronics_path == '':
             chronics_path = case14_redisp_CHRONICSPATH
-            warnings.warn("Your are using only 2 chronics for this environment. More can be download with TODO")
+            warnings.warn("Your are using only 2 chronics for this environment. More can be download by running, "
+                          "from a command line:\n"
+                          "python -m grid2op.download --name \"case14_redisp\" "
+                          "--path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD\DATA")
 
         default_grid_path = case14_redisp_CASEFILE
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,

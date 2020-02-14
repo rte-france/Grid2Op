@@ -248,6 +248,9 @@ class ObsEnv(GridObjects):
         except Grid2OpException as e:
             has_error = True
             reward = self.reward_helper.range()[0]
+
+        self.gen_activeprod_t, *_ = self.backend.generators_info()
+
         if reward is None:
             reward = self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous)
         # set the backend back to its original state

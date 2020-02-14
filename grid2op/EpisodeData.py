@@ -205,6 +205,7 @@ class EpisodeData:
 
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, info):
+
         if self.serialize:
             self.actions.update(time_step, act.to_vect(), efficient_storing)
             self.env_actions.update(

@@ -272,6 +272,7 @@ class Environment(GridObjects):
                     type(backend)))
         self.backend = backend
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
+
         self.backend.load_redispacthing_data(os.path.split(self.init_grid_path)[0])
         self.backend.assert_grid_correct()
         self.init_grid(backend)
@@ -440,10 +441,34 @@ class Environment(GridObjects):
 
         **NB** this has no effect if the chronics does not support this feature. TODO see xxx for more information
 
+        **NB** The environment need to be **reset** for this to take effect.
+
         Parameters
         ----------
         id_: ``int``
             the id of the chronics used.
+
+        Examples
+        --------
+        Here an example that will loop 10 times through the same chronics (always using the same injection then):
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op import make
+            from grid2op.Agent import DoNothingAgent
+
+            env = make("case14_redisp")  # create an environment
+            agent = DoNothingAgent(env.action_space)  # create an Agent
+
+            for i in range(10):
+                env.set_id(0)  # tell the environment you simply want to use the chronics with ID 0
+                obs = env.reset()  # it is necessary to perform a reset
+                reward = env.reward_range[0]
+                done = False
+                while not done:
+                    act = agent.act(obs, reward, done)
+                    obs, reward, done, info = env.step(act)
 
         """
         self.chronics_handler.tell_id(id_-1)
@@ -945,10 +970,12 @@ class Environment(GridObjects):
                     - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
                     - "is_illegal_redisp" (``bool``) was the action illegal due to redispatching
                     - "is_illegal_reco" (``bool``) was the action illegal due to a powerline reconnection
-                    - "exception" (:class:`Exceptions.Exceptions.Grid2OpException` if an exception was raised
-                       or ``None`` if everything was fine.)
+                    - "exception" (``list`` of :class:`Exceptions.Exceptions.Grid2OpException` if an exception was raised
+                       or ``[]`` if everything was fine.)
 
         """
+        # TODO update the documentation
+
         has_error = True
         is_done = False
         disc_lines = None
@@ -1294,6 +1321,7 @@ class Environment(GridObjects):
         It should be used as followed:
 
         .. code-block:: python
+
             import grid2op
             from grid2op.Runner import Runner
             env = grid2op.make()  # create the environment of your choice

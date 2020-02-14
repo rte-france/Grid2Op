@@ -15,6 +15,8 @@ from MakeEnv import make, _get_default_aux
 import time
 # TODO check that _get_default_aux properly catches the exception too
 
+# TODO test basic properties of all envs, like simulate, redispatch available etc.
+
 
 class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_case14_fromfile(self):
@@ -23,7 +25,9 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
 
     def test_l2rpn_2019(self):
         try:
-            env = make("l2rpn_2019")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env = make("l2rpn_2019")
         except EnvError as e:
             pass
 
