@@ -2,6 +2,8 @@ Change Log
 =============
 [0.6.0] - 2020-02-xx
 --------------------
+- [FIXED]
+
 TODO for next version
 
 - [???] display the grid layout and the position of the element
@@ -24,6 +26,13 @@ TODO for next version
 - [???] add the "prod_charac.csv" for the test environment "case14_test"
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   ( for now if you change default env, it doesn't affect the runner, so it crashes)
+
+[0.5.6] - 2020-02-xx
+--------------------
+- [FIXED] Environment now properly built in MultiEnvironment
+- [ADDED] Notebook 6 to explain multi environment
+- [FIXED] Notebook 3 to now work with both neural network
+- [FIXED] remove the "print" that displayed the path of the data used in MultiEnvironment
 
 [0.5.5] - 2020-02-14
 ---------------------

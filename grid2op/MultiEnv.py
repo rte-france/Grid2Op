@@ -146,15 +146,14 @@ class RemoteEnv(Process):
                 self.remote.send((self.env.observation_space, self.env.action_space))
             elif cmd == 's':
                 # perform a step
-                obs, reward, done, info = env.step(data)
+                obs, reward, done, info = self.env.step(data)
                 if done:
-                    obs = env.reset()
-                    print("chron_id {}".format(self.env.chronics_handler.get_id()))
+                    obs = self.env.reset()
                 self._clean_observation(obs)
                 self.remote.send((obs, reward, done, info))
             elif cmd == 'r':
                 # perfom a reset
-                obs = env.reset()
+                obs = self.env.reset()
                 self._clean_observation(obs)
                 self.remote.send(obs)
             elif cmd == 'c':
@@ -175,8 +174,7 @@ class MultiEnvironment(GridObjects):
 
     It uses the multiprocessing python module as a way to handle this parallelism. As some objects are not pickable,
     all the process are completely independant. It is not possible to directly get back in the main process (the one
-    where this environment has been created) any attributes of any of the underlying underlying environment.
-
+    where this environment has been created) any attributes of any of the underlying environment.
 
     Attributes
     -----------
