@@ -2,8 +2,6 @@ Change Log
 =============
 [0.6.0] - 2020-02-xx
 --------------------
-- [FIXED]
-
 TODO for next version
 
 - [???] display the grid layout and the position of the element
@@ -12,7 +10,7 @@ TODO for next version
 - [???] better explanation of the notebook 3 with action silently
 - [???] notebooks for multi env
 - [???] do something to help grid2viz to parse back action.
-- [???] implement other "rewards" to look at
+- [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
@@ -22,17 +20,20 @@ TODO for next version
 - [???] simulate in MultiEnv
 - [???] add a "max_iter" in the runner.
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-- [???] quick implementation of "replay" using PlotPygame and EpisodeData
+- [???] fast implementation of "replay" using PlotPygame and EpisodeData
 - [???] add the "prod_charac.csv" for the test environment "case14_test"
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
-  ( for now if you change default env, it doesn't affect the runner, so it crashes)
+  (for now if you change default env, it doesn't affect the runner, so it crashes)
 
 [0.5.6] - 2020-02-xx
 --------------------
-- [FIXED] Environment now properly built in MultiEnvironment
 - [ADDED] Notebook 6 to explain multi environment
+- [ADDED] more type of agents in the notebook 3
+- [FIXED] Environment now properly built in MultiEnvironment
 - [FIXED] Notebook 3 to now work with both neural network
 - [FIXED] remove the "print" that displayed the path of the data used in MultiEnvironment
+- [UPDATED] the action space for "IdToAct" now reduces the number of possible actions to only actions that don't
+  directly cause a game over.
 
 [0.5.5] - 2020-02-14
 ---------------------

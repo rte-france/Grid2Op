@@ -2501,12 +2501,15 @@ class SerializableActionSpace(SerializableSpace):
         res = []
         S = [0, 1]
         for sub_id, num_el in enumerate(action_space.sub_info):
-            if num_el < 4:
-                pass
+            tmp = []
             new_topo = np.full(shape=num_el, fill_value=1, dtype=np.int)
             # perform the action "set everything on bus 1"
             action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
-            res.append(action)
+            tmp.append(action)
+
+            powerlines_or_id = action_space.line_or_to_sub_pos[action_space.line_or_to_subid == sub_id]
+            powerlines_ex_id = action_space.line_ex_to_sub_pos[action_space.line_ex_to_subid == sub_id]
+            powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
 
             # computes all the topologies at 2 buses for this substation
             for tup in itertools.product(S, repeat=num_el - 1):
@@ -2517,8 +2520,19 @@ class SerializableActionSpace(SerializableSpace):
                     # i need 2 elements on each bus at least
                     new_topo = np.full(shape=num_el, fill_value=1, dtype=np.int)
                     new_topo[~indx] = 2
+
+                    if np.sum(indx[powerlines_id]) == 0 or np.sum(~indx[powerlines_id]) == 0:
+                        # if there is a "node" without a powerline, the topology is not valid
+                        continue
+
                     action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
-                    res.append(action)
+                    tmp.append(action)
+
+            if len(tmp) >= 2:
+                # if i have only one single topology on this substation, it doesn't make any action
+                # i cannot change the topology is there is only one.
+                res += tmp
+
         return res
 
 
