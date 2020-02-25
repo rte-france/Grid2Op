@@ -207,7 +207,8 @@ class Environment(GridObjects):
                  rewardClass=FlatReward,
                  legalActClass=AllwaysLegal,
                  epsilon_poly=1e-2,
-                 tol_poly=1e-6):
+                 tol_poly=1e-6,
+                 thermal_limit_a=None):
         """
         Initialize the environment. See the descirption of :class:`grid2op.Environment.Environment` for more information.
 
@@ -410,7 +411,7 @@ class Environment(GridObjects):
         self.current_reward = self.reward_range[0]
         self.done = False
         self._reset_vectors_and_timings()
-        self._thermal_limit_a = None
+        self._thermal_limit_a = thermal_limit_a
 
     def set_thermal_limit(self, thermal_limit):
         """
@@ -1310,6 +1311,7 @@ class Environment(GridObjects):
         res["legalActClass"] = self.legalActClass
         res["epsilon_poly"] = self._epsilon_poly
         res["tol_poly"] = self._tol_poly
+        res["thermal_limit_a"] = self._thermal_limit_a
         return res
 
     def get_params_for_runner(self):
