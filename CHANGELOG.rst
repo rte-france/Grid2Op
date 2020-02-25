@@ -25,7 +25,7 @@ TODO for next version
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 
-[0.5.6] - 2020-02-xx
+[0.5.6] - 2020-02-25
 --------------------
 - [ADDED] Notebook 6 to explain multi environment
 - [ADDED] more type of agents in the notebook 3
