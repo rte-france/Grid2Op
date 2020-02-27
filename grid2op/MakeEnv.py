@@ -39,6 +39,7 @@ try:
     from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
     from .Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
     from .Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
+    from .Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
 
 except (ModuleNotFoundError, ImportError):
     from Environment import Environment
@@ -55,6 +56,7 @@ except (ModuleNotFoundError, ImportError):
     from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
     from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
     from Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
+    from Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
 
 import pdb
 
@@ -198,7 +200,7 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
     return res
 
 
-def make(name_env="case14_redisp", **kwargs):
+def make(name_env="case14_realistic", **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -362,9 +364,26 @@ def make(name_env="case14_redisp", **kwargs):
         default_action_class = TopoAndRedispAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules
+    elif name_env.lower() == "case14_realistic":
+        if chronics_path == '':
+            chronics_path = case14_real_CHRONICSPATH
+            warnings.warn("Your are using only 2 chronics for this environment. More can be download by running, "
+                          "from a command line:\n"
+                          "python -m grid2op.download --name \"case14_realistic\" "
+                          "--path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD\DATA")
+
+        default_grid_path = case14_real_CASEFILE
+        defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+                                           "gridvalueClass": GridStateFromFileWithForecasts}
+        default_name_converter = {}
+        data_feeding_default_class = ChronicsHandler
+        default_action_class = TopoAndRedispAction
+        default_reward_class = RedispReward
+        gamerules_class = DefaultRules
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
-                         "(default), \"case5_example\", \"case14_redisp\" and \"l2rpn_2019\"".format(name_env))
+                         "(default), \"case5_example\", \"case14_redisp\", \"case14_realistic\" "
+                         "and \"l2rpn_2019\"".format(name_env))
 
     # extract powergrid dependant parameters
     ## type of rules of the game (mimic the operationnal constraints)
@@ -440,4 +459,6 @@ def make(name_env="case14_redisp", **kwargs):
         env.set_thermal_limit(case14_test_TH_LIM)
     if name_env.lower() == "case14_redisp":
         env.set_thermal_limit(case14_redisp_TH_LIM)
+    if name_env.lower() == "case14_realistic":
+        env.set_thermal_limit(case14_real_TH_LIM)
     return env

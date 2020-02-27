@@ -11,8 +11,13 @@ import math
 import numpy as np
 import pdb
 
+try:
+    from .Space import GridObjects
+except:
+    from Space import GridObjects
 
-class BasePlot(object):
+
+class BasePlot(GridObjects):
     """
     Utility class that allows to compute the position of the objects of the powergrid.
 
@@ -27,11 +32,15 @@ class BasePlot(object):
         The observation space used.
 
     """
-    def __init__(self, substation_layout,
+    def __init__(self,
+                 substation_layout,
                  observation_space,
                  radius_sub=20.,
                  load_prod_dist=70.,
                  bus_radius=6.):
+
+        GridObjects.__init__(self)
+        self.init_grid(observation_space)
 
         self.observation_space = observation_space
         self._layout = {}
@@ -41,42 +50,44 @@ class BasePlot(object):
         self.load_prod_dist = load_prod_dist # distance between load and generator to the center of the substation
         self.bus_radius = bus_radius
 
-        self.subs_elements = [None for _ in observation_space.sub_info]
+        self.subs_elements = [None for _ in self.observation_space.sub_info]
+
         # get the element in each substation
-        for sub_id in range(observation_space.sub_info.shape[0]):
+        for sub_id in range(self.observation_space.sub_info.shape[0]):
             this_sub = {}
-            objs = observation_space.get_obj_connect_to(substation_id=sub_id)
+            objs = self.observation_space.get_obj_connect_to(substation_id=sub_id)
 
             for c_id in objs["loads_id"]:
                 c_nm = self._get_load_name(sub_id, c_id)
                 this_load = {}
                 this_load["type"] = "load"
-                this_load["sub_pos"] = observation_space.load_to_sub_pos[c_id]
+                this_load["sub_pos"] = self.observation_space.load_to_sub_pos[c_id]
                 this_sub[c_nm] = this_load
 
             for g_id in objs["generators_id"]:
                 g_nm = self._get_gen_name(sub_id, g_id)
                 this_gen = {}
                 this_gen["type"] = "gen"
-                this_gen["sub_pos"] = observation_space.gen_to_sub_pos[g_id]
+                this_gen["sub_pos"] = self.observation_space.gen_to_sub_pos[g_id]
                 this_sub[g_nm] = this_gen
 
             for lor_id in objs["lines_or_id"]:
-                ext_id = observation_space.line_ex_to_subid[lor_id]
+                ext_id = self.observation_space.line_ex_to_subid[lor_id]
                 l_nm = self._get_line_name(sub_id, ext_id, lor_id)
                 this_line = {}
                 this_line["type"] = "line"
-                this_line["sub_pos"] = observation_space.line_or_to_sub_pos[lor_id]
+                this_line["sub_pos"] = self.observation_space.line_or_to_sub_pos[lor_id]
                 this_sub[l_nm] = this_line
 
             for lex_id in objs["lines_ex_id"]:
-                or_id = observation_space.line_or_to_subid[lex_id]
+                or_id = self.observation_space.line_or_to_subid[lex_id]
                 l_nm = self._get_line_name(or_id, sub_id, lex_id)
                 this_line = {}
                 this_line["type"] = "line"
-                this_line["sub_pos"] = observation_space.line_ex_to_sub_pos[lex_id]
+                this_line["sub_pos"] = self.observation_space.line_ex_to_sub_pos[lex_id]
                 this_sub[l_nm] = this_line
             self.subs_elements[sub_id] = this_sub
+        self._compute_layout()
 
     def _get_sub_layout(self, init_layout):
         return init_layout
@@ -93,7 +104,7 @@ class BasePlot(object):
         p_nm = 'gen_{}_{}'.format(sub_id, g_id)
         return p_nm
 
-    def _compute_layout(self, observation):
+    def _compute_layout(self):
         """
         Compute the position of each of the objects.
 
@@ -109,11 +120,11 @@ class BasePlot(object):
         self._layout["line"] = {}
 
         # assign powerline coordinates
-        for line_id in range(len(observation.rho)):
+        for line_id in range(self.n_line):
             if line_id not in self._layout["line"]:
-                state = observation.state_of(line_id=line_id)
-                sub_or_id = state["origin"]["sub_id"]
-                sub_ex_id = state["extremity"]["sub_id"]
+                # state = observation.state_of(line_id=line_id)
+                sub_or_id = self.line_or_to_subid[line_id]  # state["origin"]["sub_id"]
+                sub_ex_id = self.line_ex_to_subid[line_id]  # state["extremity"]["sub_id"]
                 pos_or = self._layout["substations"][sub_or_id]
                 pos_ex = self._layout["substations"][sub_ex_id]
 
@@ -179,15 +190,17 @@ class BasePlot(object):
                     i += 1
 
         self._layout["load"] = {}
-        for c_id, por in enumerate(observation.load_p):
-            state = observation.state_of(load_id=c_id)
-            sub_id = state["sub_id"]
+        for c_id in range(self.n_load):
+            # state = observation.state_of(load_id=c_id)
+            # sub_id = state["sub_id"]
+            sub_id = self.load_to_subid[c_id]
             self._layout["load"][c_id] = sub_id
 
         self._layout["gen"] = {}
-        for g_id, por in enumerate(observation.prod_p):
-            state = observation.state_of(gen_id=g_id)
-            sub_id = state["sub_id"]
+        for g_id in range(self.n_gen):
+            # state = observation.state_of(gen_id=g_id)
+            # sub_id = state["sub_id"]
+            sub_id = self.gen_to_subid[g_id]
             self._layout["gen"][g_id] = sub_id
 
     def _draw_subs(self, observation):

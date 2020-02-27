@@ -41,6 +41,12 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             env = make("case14_redisp")
             obs = env.reset()
 
+    def test_case14_realistic(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("case14_realistic")
+            obs = env.reset()
+
     def test_case14_test(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

@@ -298,10 +298,10 @@ class Renderer(BasePlot):
         self.cum_reward += reward
         self.nb_timestep += 1
 
-        if not "line" in self._layout:
-            # update the layout of the objects only once to ensure the same positionning is used
-            # if more than 1 observation are displayed one after the other.
-            self._compute_layout(obs)
+        # if not "line" in self._layout:
+        #     # update the layout of the objects only once to ensure the same positionning is used
+        #     # if more than 1 observation are displayed one after the other.
+        #     self._compute_layout(obs)
 
         # The game is not paused anymore (or never has been), I can render the next surface
         self.screen.fill(self.background_color)

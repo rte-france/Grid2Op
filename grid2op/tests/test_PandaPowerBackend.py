@@ -6,6 +6,7 @@ import unittest
 import numpy as np
 import copy
 import pdb
+import warnings
 
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
 
@@ -872,17 +873,20 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
 
 class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_set_bus(self):
-        env = make()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make()
         env.reset()
         # action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
-
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
 
     def test_change_bus(self):
-        env = make()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make()
         env.reset()
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -890,7 +894,9 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
 
     def test_change_bustwice(self):
-        env = make()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make()
         env.reset()
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)

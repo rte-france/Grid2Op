@@ -10,7 +10,7 @@ __version__ = '0.5.6'
 
 __all__ = ['Action', "BackendPandaPower", "Agent", "Backend", "ChronicsHandler", "Environment", "Exceptions",
            "Observation", "Parameters", "GameRules", "Reward", "Runner", "main", "Utils", "PlotPlotly", "EpisodeData",
-           "DownloadDataset"]
+           "DownloadDataset", "PlotMatplotlib"]
 
 from .MakeEnv import make
 

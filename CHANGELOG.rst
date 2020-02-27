@@ -25,6 +25,15 @@ TODO for next version
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 
+[0.5.7] - 2020-02-xx
+--------------------
+- [ADDED] A new environment with consistant voltages based on the case14 grid of pandapower (`case14_relistic`)
+- [ADDED] New default environment (case14_relistic)
+- [ADDED] a function to get the name on the element of the graphical representation.
+- [UPDATED] Notebook 6 to train agent more efficiently (example: prediction of actions in batch)
+- [UPDATED] PlotGraph to derive from `GridObjects` allowing to be inialize at creation and not when first
+  observation is loaded.
+
 [0.5.6] - 2020-02-25
 --------------------
 - [ADDED] Notebook 6 to explain multi environment
