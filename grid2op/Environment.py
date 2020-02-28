@@ -413,6 +413,46 @@ class Environment(GridObjects):
         self._reset_vectors_and_timings()
         self._thermal_limit_a = thermal_limit_a
 
+    def set_chunk_size(self, new_chunk_size):
+        """
+        For an efficient data pipeline, it can be usefull to not read all part of the input data
+        (for example for load_p, prod_p, load_q, prod_v). Grid2Op support the reading of large chronics by "chunk"
+        of given size.
+
+        Reading data in chunk can also reduce the memory footprint, useful in case of multiprocessing environment while
+        large chronics.
+
+        It is critical to set a small chunk_size in case of training machine learning algorithm (reinforcement
+        learning agent) at the beginning when the agent performs poorly, the software might spend most of its time
+        loading the data.
+
+        **NB** this has no effect if the chronics does not support this feature. TODO see xxx for more information
+
+        **NB** The environment need to be **reset** for this to take effect (it won't affect the chronics already
+        loaded)
+
+        Parameters
+        ----------
+        new_chunk_size: ``int`` or ``None``
+            The new chunk size (positive integer)
+
+        """
+        if new_chunk_size is None:
+            self.chronics_handler.set_chunk_size(new_chunk_size)
+            return
+
+        try:
+            new_chunk_size = int(new_chunk_size)
+        except Exception as e:
+            raise Grid2OpException("Impossible to set the chunk size. It should be convertible a integer, and not"
+                                   "{}".format(new_chunk_size))
+
+        if new_chunk_size <= 0:
+            raise Grid2OpException("Impossible to read less than 1 data at a time. Please make sure \"new_chunk_size\""
+                                   "is a positive integer.")
+
+        self.chronics_handler.set_chunk_size(new_chunk_size)
+
     def set_thermal_limit(self, thermal_limit):
         """
         Set the thermal limit effectively.

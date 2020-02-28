@@ -66,7 +66,7 @@ class Backend(GridObjects, ABC):
         Thermal limit of the powerline in amps for each powerline. Thie thermal limit is relevant on only one
         side of the powerline: the same side returned by :func:`Backend.get_line_overflow`
     """
-    def __init__(self, detailed_infos_for_cascading_failures=True):
+    def __init__(self, detailed_infos_for_cascading_failures=False):
         """
         Initialize an instance of Backend. This does nothing per se. Only the call to :func:`Backend.load_grid`
         should guarantee the backend is properly configured.

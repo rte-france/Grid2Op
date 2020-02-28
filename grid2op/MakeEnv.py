@@ -294,6 +294,7 @@ def make(name_env="case14_realistic", **kwargs):
 
     # bulid the default parameters for each case file
     defaultinstance_chronics_kwargs = {}
+    data_feeding_default_class = ChronicsHandler
     gamerules_class = AllwaysLegal
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
@@ -303,7 +304,6 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = NAMES_CHRONICS_TO_BACKEND
-        data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
     elif name_env.lower() == "l2rpn_2019":
@@ -318,7 +318,6 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": ReadPypowNetData}
         default_name_converter = L2RPN2019_DICT_NAMES
-        data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
         gamerules_class = DefaultRules
@@ -330,7 +329,6 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = {}
-        data_feeding_default_class = ChronicsHandler
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
         gamerules_class = DefaultRules
@@ -344,7 +342,6 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = {}
-        data_feeding_default_class = ChronicsHandler
         default_action_class = TopoAndRedispAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules
@@ -360,7 +357,6 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = {}
-        data_feeding_default_class = ChronicsHandler
         default_action_class = TopoAndRedispAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules
@@ -376,7 +372,6 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = {}
-        data_feeding_default_class = ChronicsHandler
         default_action_class = TopoAndRedispAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules

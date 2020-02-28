@@ -680,7 +680,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
     Test the "next_grid_state" method of the back-end
     """
     def setUp(self):
-        self.backend = PandaPowerBackend()
+        self.backend = PandaPowerBackend(detailed_infos_for_cascading_failures=True)
         self.path_matpower = PATH_DATA_TEST
         self.case_file = "test_case14.json"
         self.backend.load_grid(self.path_matpower, self.case_file)
@@ -749,7 +749,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.backend.set_thermal_limit(thermal_limit)
 
         disco, infos = self.backend.next_grid_state(env, is_dc=False)
-        assert not infos # check that don't simulate a cascading failure
+        assert not infos  # check that don't simulate a cascading failure
         assert np.sum(disco) == 0
 
     def test_nb_timestep_overflow_disc0(self):
