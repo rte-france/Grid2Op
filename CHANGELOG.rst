@@ -4,11 +4,10 @@ Change Log
 --------------------
 TODO for next version
 
-- [???] display the grid layout and the position of the element
+
 - [???] fix the bug in the notebook of case5_example with the layout of the 2 buses
 - [???] refactoring env and obs_env
 - [???] better explanation of the notebook 3 with action silently
-- [???] notebooks for multi env
 - [???] do something to help grid2viz to parse back action.
 - [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
 - [???] have something remembering the topology in the environment, and when an object is
@@ -27,12 +26,16 @@ TODO for next version
 
 [0.5.7] - 2020-02-xx
 --------------------
-- [ADDED] A new environment with consistant voltages based on the case14 grid of pandapower (`case14_relistic`)
-- [ADDED] New default environment (case14_relistic)
+- [ADDED] a new environment with consistant voltages based on the case14 grid of pandapower (`case14_relistic`)
 - [ADDED] a function to get the name on the element of the graphical representation.
+- [ADDED] a new class to (PlotMatPlotlib) to display the grid layout and the position of the element,
+  as well as their name and ID
+- [ADDED] possibility to read by chunk the data (memory efficiency and huge speed up at the beginning of training)
 - [UPDATED] Notebook 6 to train agent more efficiently (example: prediction of actions in batch)
 - [UPDATED] PlotGraph to derive from `GridObjects` allowing to be inialize at creation and not when first
   observation is loaded.
+- [UPDATED] new default environment (`case14_relistic`)
+- [UPDATED] data for the new created environment.
 
 [0.5.6] - 2020-02-25
 --------------------

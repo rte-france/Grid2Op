@@ -15,12 +15,13 @@ import re
 import tarfile
 
 import pdb
+
 try:
     import urllib.request
 except Exception as e:
     raise RuntimeError("Impossible to find library urllib. Please install it.")
 
-URL = None  #"https://github.com/BDonnot/Grid2Op/releases/download/data_l2rpn_2019/data_l2rpn_2019.tar.bz2"
+URL = None
 DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
 DICT_URL_GRID2OP_DL = {"l2rpn_2019":
                     ("https://github.com/BDonnot/Grid2Op/releases/download/data_l2rpn_2019/data_l2rpn_2019.tar.bz2",
@@ -28,10 +29,15 @@ DICT_URL_GRID2OP_DL = {"l2rpn_2019":
             "case14_redisp": (
                 "https://github.com/BDonnot/Grid2Op/releases/download/case14_redisp/case14_redisp.tar.bz2",
                 "case14_redisp"
+            ),
+            "case14_realistic": (
+                "https://github.com/BDonnot/Grid2Op/releases/download/case14_redisp/case14_realistic.tar.bz2",
+                "case14_realistic"
             )
             }
 
 LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()])
+
 
 class DownloadProgressBar(tqdm):
     """

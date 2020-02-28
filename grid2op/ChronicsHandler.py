@@ -586,7 +586,8 @@ class GridValue(ABC):
         -------
         ``None``
         """
-        warnings.warn("Class {} doesn't handle different input folder. \"tell_id\" method has no impact.".format(type(self).__name__))
+        warnings.warn("Class {} doesn't handle different input folder. \"tell_id\" method has no impact."
+                      "".format(type(self).__name__))
 
     def get_id(self) -> str:
         """
@@ -602,7 +603,8 @@ class GridValue(ABC):
             specific folder, this could be the path to this folder.
 
         """
-        warnings.warn("Class {} doesn't handle different input folder. \"get_id\" method will return \"\".".format(type(self).__name__))
+        warnings.warn("Class {} doesn't handle different input folder. \"get_id\" method will return \"\"."
+                      "".format(type(self).__name__))
         return ""
 
     def max_timestep(self):
@@ -777,8 +779,13 @@ class GridStateFromFile(GridValue):
         This directory matches the name of the objects (line extremity, generator or load) to the same object in the
         backed. See the help of :func:`GridValue.initialize` for more information).
     """
-    def __init__(self, path, sep=";", time_interval=timedelta(minutes=5), max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1)):
+    def __init__(self,
+                 path,
+                 sep=";",
+                 time_interval=timedelta(minutes=5),
+                 max_iter=-1,
+                 start_datetime=datetime(year=2019, month=1, day=1),
+                 chunk_size=None):
         """
         Build an instance of GridStateFromFile. Such an instance should be built before an :class:`grid2op.Environment`
         is created.
@@ -815,6 +822,8 @@ class GridStateFromFile(GridValue):
         self.sep = sep
 
         self.names_chronics_to_backend = None
+
+        self.chunk_size = None
 
     def _assert_correct(self, dict_convert, order_backend):
         len_backend = len(order_backend)
@@ -950,7 +959,9 @@ class GridStateFromFile(GridValue):
             else:
                 raise ChronicsNotFoundError(
                     "GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
+
         load_p = pd.read_csv(os.path.join(self.path, "load_p{}".format(read_compressed)), sep=self.sep)
+
         load_q = pd.read_csv(os.path.join(self.path, "load_q{}".format(read_compressed)), sep=self.sep)
         prod_p = pd.read_csv(os.path.join(self.path, "prod_p{}".format(read_compressed)), sep=self.sep)
         prod_v = pd.read_csv(os.path.join(self.path, "prod_v{}".format(read_compressed)), sep=self.sep)
@@ -1209,7 +1220,8 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
                 read_compressed = ".csv.xz"
             else:
                 raise RuntimeError(
-                    "GridStateFromFileWithForecasts: unable to locate the data files that should be at \"{}\"".format(self.path))
+                    "GridStateFromFileWithForecasts: unable to locate the data files that should be at \"{}\""
+                    "".format(self.path))
 
         load_p = pd.read_csv(os.path.join(self.path, "load_p_forecasted{}".format(read_compressed)), sep=self.sep)
         load_q = pd.read_csv(os.path.join(self.path, "load_q_forecasted{}".format(read_compressed)), sep=self.sep)
@@ -1246,24 +1258,30 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         super(GridStateFromFileWithForecasts, self).check_validity(backend)
 
         if self.load_p_forecast.shape[1] != backend.n_load:
-            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}".format(backend.n_load, len(self.load_p)))
+            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}"
+                                         "".format(backend.n_load, len(self.load_p)))
         if self.load_q_forecast.shape[1] != backend.n_load:
-            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}".format(backend.n_load, len(self.load_q)))
+            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}"
+                                         "".format(backend.n_load, len(self.load_q)))
 
         if self.prod_p_forecast.shape[1] != backend.n_gen:
-            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}".format(backend.n_gen, len(self.prod_p)))
+            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}"
+                                              "".format(backend.n_gen, len(self.prod_p)))
         if self.prod_v_forecast.shape[1] != backend.n_gen:
-            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}".format(backend.n_gen, len(self.prod_v)))
+            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}"
+                                              "".format(backend.n_gen, len(self.prod_v)))
 
         if self.maintenance_forecast.shape[1] != backend.n_line:
-            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}".format(backend.n_line, len(self.maintenance)))
+            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}"
+                                         "".format(backend.n_line, len(self.maintenance)))
 
         n = self.load_p.shape[0]
         for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "outage"],
                                  [self.load_q_forecast, self.load_p_forecast, self.prod_v_forecast,
                                   self.prod_p_forecast, self.maintenance_forecast]):
             if arr.shape[0] < n:
-                raise EnvError("Array for forecast {}_forecasted as not the same number of rows of load_p. The chronics cannot be loaded properly.".format(name_arr))
+                raise EnvError("Array for forecast {}_forecasted as not the same number of rows of load_p. "
+                               "The chronics cannot be loaded properly.".format(name_arr))
 
     def forecasts(self):
         """

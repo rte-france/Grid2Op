@@ -420,19 +420,19 @@ class SAC(object):
         self.Is_nan = False
         self.training_param = training_param
 
-        self.construct_q_network()
-
         self.model_value_target = None
         self.model_Q = None
         self.model_Q2 = None
         self.model_value = None
         self.model_policy = None
 
+        self.construct_q_network()
+
     def build_q_NN(self):
         model = Sequential()
         
-        input_states = Input(shape = (self.observation_size,))
-        input_action = Input(shape = (self.action_size,))
+        input_states = Input(shape=(self.observation_size,))
+        input_action = Input(shape=(self.action_size,))
         input_layer = Concatenate()([input_states, input_action])
         
         lay1 = Dense(self.observation_size)(input_layer)
@@ -615,14 +615,13 @@ class DeepQAgent(AgentWithConverter):
     # of classes)
 
     def convert_obs(self, observation):
-        return observation.to_vect()
+        return np.concatenate((observation.rho, observation.topo_vect))
 
     def my_act(self, transformed_observation, reward, done=False):
         if self.deep_q is None:
             self.init_deep_q(transformed_observation)
-        predict_movement_int, *_ = self.deep_q.predict_movement(transformed_observation, epsilon=0.0)
-        # print("predict_movement_int: {}".format(predict_movement_int))
-        return predict_movement_int
+        predict_movement_int, *_ = self.deep_q.predict_movement(transformed_observation.reshape(1, -1), epsilon=0.0)
+        return int(predict_movement_int)
 
     def init_deep_q(self, transformed_observation):
         if self.deep_q is None:
@@ -631,13 +630,13 @@ class DeepQAgent(AgentWithConverter):
                 cls = DeepQ
             elif self.mode == "DDQN":
                 cls = DuelQ
-            elif self.mode == "RealQ":
-                cls = RealQ
+            # elif self.mode == "RealQ":
+            #     cls = RealQ
             elif self.mode == "SAC":
                 cls = SAC
             else:
                 raise RuntimeError("Unknown neural network named \"{}\"".format(self.mode))
-            self.deep_q = cls(self.action_space.size(), observation_size=transformed_observation.shape[0], lr=self.lr)
+            self.deep_q = cls(self.action_space.size(), observation_size=transformed_observation.shape[-1], lr=self.lr)
 
     def __init__(self, action_space, mode="DDQN", lr=1e-5, training_param=TrainingParam()):
         # this function has been adapted.
@@ -656,22 +655,10 @@ class DeepQAgent(AgentWithConverter):
         self.mode = mode
         self.lr = lr
         self.training_param = training_param
-        self.process_buffer = []
 
     def load_network(self, path):
         # not modified compare to original implementation
         self.deep_q.load_network(path)
-    
-    def convert_process_buffer(self):
-        """Converts the list of NUM_FRAMES images in the process buffer
-        into one training sample"""
-        # here i simply concatenate the action in case of multiple action in the "buffer"
-        # this function existed in the original implementation, bus has been adapted.
-        if self.training_param.NUM_FRAMES != 1:
-            raise RuntimeError("can only use self.training_param.NUM_FRAMES = 1 for now")
-        return np.array(self.process_buffer)
-        # return np.concatenate(self.process_buffer)
-        # TODO fix cases where NUM_FRAMES is not 1 !!!!
 
 
 class DeepQAgent_Improve(DeepQAgent):
@@ -680,118 +667,3 @@ class DeepQAgent_Improve(DeepQAgent):
 
     def convert_obs(self, observation):
         return observation.rho
-
-
-class TrainAgent(object):
-    def __init__(self, agent, reward_fun=RedispReward, env=None, training_param=TrainingParam()):
-        self.agent = agent
-        self.reward_fun = reward_fun
-        self.env = env
-        self.training_param = training_param
-        
-    def _build_valid_env(self, training_param):
-        # now we are creating a valid Environment
-        # it's mandatory because no environment are created when the agent is 
-        # an Agent should not get direct access to the environment, but can interact with it only by:
-        # * receiving reward
-        # * receiving observation
-        # * sending action
-        
-        close_env = False
-        
-        if self.env is None:
-            self.env = grid2op.make(action_class=type(self.agent.action_space({})),
-                                    reward_class=self.reward_fun)
-            close_env = True
-                               
-        # I make sure the action space of the user and the environment are the same.
-        if not isinstance(self.agent.init_action_space, type(self.env.action_space)):
-            raise RuntimeError("Imposssible to build an agent with 2 different action space")
-        if not isinstance(self.env.action_space, type(self.agent.init_action_space)):
-            raise RuntimeError("Imposssible to build an agent with 2 different action space")
-        
-        # A buffer that keeps the last `NUM_FRAMES` images
-        self.agent.replay_buffer.clear()
-        self.agent.process_buffer = []
-        
-        # make sure the environment is reset
-        obs = self.env.reset()
-        self.agent.process_buffer.append(self.agent.convert_obs(obs))
-        do_nothing = self.env.action_space()
-        for _ in range(training_param.NUM_FRAMES-1):
-            # Initialize buffer with the first frames
-            s1, r1, _, _ = self.env.step(do_nothing)
-            self.agent.process_buffer.append(self.agent.convert_obs(s1))            
-        return close_env
-    
-    def train(self, num_frames, env=None, training_param=TrainingParam()):
-        # this function existed in the original implementation, but has been slightly adapted.
-        
-        # first we create an environment or make sure the given environment is valid
-        close_env = self._build_valid_env(training_param)
-        
-        # bellow that, only slight modification has been made. They are highlighted
-        observation_num = 0
-        curr_state = self.agent.convert_process_buffer()
-        epsilon = self.training_param.INITIAL_EPSILON
-        alive_frame = 0
-        total_reward = 0
-
-        while observation_num < num_frames:
-            if observation_num % 1000 == 999:
-                print(("Executing loop %d" %observation_num))
-
-            # Slowly decay the learning rate
-            if epsilon > training_param.FINAL_EPSILON:
-                epsilon -= (training_param.INITIAL_EPSILON-training_param.FINAL_EPSILON)/training_param.EPSILON_DECAY
-
-            initial_state = self.agent.convert_process_buffer()
-            self.agent.process_buffer = []
-
-            # it's a bit less convenient that using the SpaceInvader environment.
-            # first we need to initiliaze the neural network
-            self.agent.init_deep_q(curr_state)
-            # then we need to predict the next move
-            predict_movement_int, predict_q_value = self.agent.deep_q.predict_movement(curr_state, epsilon)
-            # and then we convert it to a valid action
-            act = self.agent.convert_act(predict_movement_int)
-            
-            reward, done = 0, False
-            for i in range(self.training_param.NUM_FRAMES):
-                temp_observation_obj, temp_reward, temp_done, _ = self.env.step(act)
-                # here it has been adapted too. The observation get from the environment is
-                # first converted to vector
-                
-                # below this line no changed have been made to the original implementation.
-                reward += temp_reward
-                self.agent.process_buffer.append(self.agent.convert_obs(temp_observation_obj))
-                done = done | temp_done
-
-            if done:
-                print("Lived with maximum time ", alive_frame)
-                print("Earned a total of reward equal to ", total_reward)
-                # reset the environment
-                self.env.reset()
-                
-                alive_frame = 0
-                total_reward = 0
-
-            new_state = self.agent.convert_process_buffer()
-            self.agent.replay_buffer.add(initial_state, predict_movement_int, reward, done, new_state)
-            total_reward += reward
-            if self.agent.replay_buffer.size() > training_param.MIN_OBSERVATION:
-                s_batch, a_batch, r_batch, d_batch, s2_batch = self.agent.replay_buffer.sample(training_param.MINIBATCH_SIZE)
-                self.agent.deep_q.train(s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num)
-                self.agent.deep_q.target_train()
-
-            # Save the network every 100000 iterations
-            if observation_num % 10000 == 9999 or observation_num == num_frames-1:
-                print("Saving Network")
-                self.agent.deep_q.save_network("saved.h5")
-
-            alive_frame += 1
-            observation_num += 1
-            
-        if close_env:
-            print("closing env")
-            self.env.close()
