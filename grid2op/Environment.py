@@ -1379,7 +1379,7 @@ class Environment(GridObjects):
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["path_chron"] = self.chronics_handler.path
-        # res["parameters_path"] # TODO
+        res["parameters_path"] = self.parameters.to_dict() # TODO
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
         res["actionClass"] = self.actionClass
         res["observationClass"] = self.observationClass

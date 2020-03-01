@@ -244,8 +244,9 @@ class Runner(object):
         path_chron: ``str``
             Madantory where to look for chronics data, used to initialize :attr:`Runner.path_chron`.
 
-        parameters_path: ``str``, optional
-            Used to initialize :attr:`Runner.parameters_path`.
+        parameters_path: ``str`` or ``dict``, optional
+            Used to initialize :attr:`Runner.parameters_path`. If it's a string, this will suppose parameters are
+            located at this path, if it's a dictionary, this will use the parameters converted from this dictionary.
 
         names_chronics_to_backend: ``dict``, optional
             Used to initialize :attr:`Runner.names_chronics_to_backend`.
@@ -393,8 +394,15 @@ class Runner(object):
         self.names_chronics_to_backend = names_chronics_to_backend
 
         # game _parameters
-        self.parameters_path = parameters_path
-        self.parameters = Parameters(parameters_path)
+        if isinstance(parameters_path, str):
+            self.parameters_path = parameters_path
+            self.parameters = Parameters(parameters_path)
+        elif isinstance(parameters_path, dict):
+            self.parameters = Parameters()
+            self.parameters.init_from_dict(parameters_path)
+        else:
+            raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either"
+                               "be a string or a dictionary.")
 
         # chronics of grid state
         self.path_chron = path_chron
