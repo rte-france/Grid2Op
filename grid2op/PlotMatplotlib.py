@@ -96,7 +96,8 @@ class GetLayout(BasePlot):
     def __init__(self, substation_layout, observation_space,
                  radius_sub=25.,
                  load_prod_dist=70.,
-                 bus_radius=4.):
+                 bus_radius=4.,
+                 alpha_obj=0.3):
         """
 
         Parameters
@@ -118,180 +119,207 @@ class GetLayout(BasePlot):
             raise RuntimeError("Impossible to plot as matplotlib cannot be imported. Please install \"matplotlib\" "
                                " with \"pip install --update matplotlib\"")
 
+        self.alpha_obj = alpha_obj
+
+        self.col_line = "b"
+        self.col_sub = "r"
+        self.col_load = "k"
+        self.col_gen = "g"
+
     def plot_layout(self):
         fig, ax = plt.subplots(1, 1, figsize=(15, 15))
-        col_line = "b"
-        col_sub = "r"
-        col_load = "k"
-        col_gen = "g"
 
-        legend_help = [Line2D([0], [0], color=col_line, lw=4),
-                       Line2D([0], [0], color=col_sub, lw=4),
-                       Line2D([0], [0], color=col_load, lw=4),
-                       Line2D([0], [0], color=col_gen, lw=4)]
+        legend_help = [Line2D([0], [0], color=self.col_line, lw=4),
+                       Line2D([0], [0], color=self.col_sub, lw=4),
+                       Line2D([0], [0], color=self.col_load, lw=4),
+                       Line2D([0], [0], color=self.col_gen, lw=4)]
 
         # draw powerline
-        for line_id in range(self.n_line):
-            pos_or, pos_ex, *_ = self._get_line_coord(line_id)
-            ax.plot([pos_or[0], pos_ex[0]], [pos_or[1], pos_ex[1]],
-                    color=col_line)
-            ax.text((pos_or[0] + pos_ex[0]) * 0.5,
-                    (pos_or[1] + pos_ex[1]) * 0.5,
-                    "{}\nid: {}".format(self.name_line[line_id], line_id),
-                    color=col_line,
-                    horizontalalignment='center',
-                    verticalalignment='center')
+        self._draw_powerlines(ax)
 
         # draw substation
-        for sub_id, center in enumerate(self._layout["substations"]):
-            sub_circ = plt.Circle(center, self.radius_sub, color=col_sub, fill=False)
-            ax.add_artist(sub_circ)
-            ax.text(center[0],
-                    center[1],
-                    "{}\nid: {}".format(self.name_sub[sub_id], sub_id),
-                    color=col_sub,
-                    horizontalalignment='center',
-                    verticalalignment='center')
+        self._draw_subs(ax)
 
         # draw loads
-        for c_id in range(self.n_load):
-            pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(c_id)
-            ax.plot([pos_load_sub[0], pos_load.real],
-                    [pos_load_sub[1], pos_load.imag],
-                    color=col_load)
-            ax.text(pos_load.real,
-                    pos_load.imag,
-                    "{}\nid: {}".format(self.name_load[c_id], c_id),
-                    color=col_load,
-                    horizontalalignment=how_center.split('|')[1],
-                    verticalalignment="bottom" if how_center.split('|')[0] == "up" else "top")
+        self._draw_loads(ax)
 
         # draw gens
-        for g_id in range(self.n_gen):
-            pos_end_line, pos_gen_sub, pos_gen, how_center = self._get_gen_coord(g_id)
-            ax.plot([pos_gen_sub[0], pos_gen.real],
-                    [pos_gen_sub[1], pos_gen.imag],
-                    color="g")
-            ax.text(pos_gen.real,
-                    pos_gen.imag,
-                    "{}\nid: {}".format(self.name_gen[g_id], g_id),
-                    color="g",
-                    horizontalalignment=how_center.split('|')[1],
-                    verticalalignment="bottom" if how_center.split('|')[0] == "up" else "top")
+        self._draw_gens(ax)
         ax.legend(legend_help, ["powerline", "substation", "load", "generator"])
         return fig
 
-    def _draw_sub_layout(self, center, name):
-        circle = plt.Circle((5, 5), 0.5, color='b', fill=False)
-        return circle
+    def plot_info(self, line_info=None, load_info=None, gen_info=None, sub_info=None,
+                  colormap=None):
+        """
+        colormap: ``str``
+            If not None, one of "line", "load", "gen" or "sub". If None, default colors will be used for each
+            elements.
+            If not None, all elements will be black, and the selected element will be highlighted.
 
-    def _draw_powerlines(self, observation):
+        """
+        fig, ax = plt.subplots(1, 1, figsize=(15, 15))
 
-        for line_id, (rho, status, p_or) in enumerate(zip(observation.rho, observation.line_status, observation.p_or)):
-            # the next 5 lines are always the same, for each observation, it makes sense to compute it once
-            # and then reuse it
+        if colormap is None:
+            legend_help = [Line2D([0], [0], color=self.col_line, lw=4),
+                           Line2D([0], [0], color=self.col_sub, lw=4),
+                           Line2D([0], [0], color=self.col_load, lw=4),
+                           Line2D([0], [0], color=self.col_gen, lw=4)]
 
-            pos_or, pos_ex, *_ = self._get_line_coord(line_id)
+        # draw powerline
+        texts_line = None
+        if line_info is not None:
+            texts_line = ["{:.2f}".format(el) if el is not None else None for el in line_info]
+        self._draw_powerlines(ax, texts_line, colormap=colormap)
 
-            if not status:
-                # line is disconnected
-                _draw_dashed_line(self.screen, pygame.Color(0, 0, 0), pos_or, pos_ex)
+        # draw substation
+        texts_sub = None
+        if sub_info is not None:
+            texts_sub = ["{:.2f}".format(el) if el is not None else None for el in sub_info]
+        self._draw_subs(ax, texts_sub, colormap=colormap)
+
+        # draw loads
+        texts_load = None
+        if load_info is not None:
+            texts_load = ["{:.2f}".format(el) if el is not None else None for el in load_info]
+        self._draw_loads(ax, texts_load, colormap=colormap)
+
+        # draw gens
+        texts_gen = None
+        if gen_info is not None:
+            texts_gen = ["{:.2f}".format(el) if el is not None else None for el in gen_info]
+        self._draw_gens(ax, texts_gen, colormap=colormap)
+
+        if colormap is None:
+            ax.legend(legend_help, ["powerline", "substation", "load", "generator"])
+        return fig
+
+    def _draw_powerlines(self, ax, texts=None, colormap=None):
+        colormap_ = lambda x: self.col_line
+        vals = [0. for _ in range(self.n_line)]
+        if texts is not None:
+            vals = [float(text if text is not None else 0.) for text in texts]
+
+        if colormap is not None:
+            colormap_ = lambda x: "k"
+            if colormap == "line":
+                colormap_ = plt.get_cmap("Reds")
+                vals = self._get_vals(vals)
+
+        for line_id in range(self.n_line):
+            if texts is None:
+                text = "{}\nid: {}".format(self.name_line[line_id], line_id)
+                this_col = colormap_("")
             else:
-                # line is connected
+                text = texts[line_id]
+                this_col = colormap_(vals[line_id])
+            pos_or, pos_ex, *_ = self._get_line_coord(line_id)
+            ax.plot([pos_or[0], pos_ex[0]], [pos_or[1], pos_ex[1]],
+                    color=this_col, alpha=self.alpha_obj)
+            ax.text((pos_or[0] + pos_ex[0]) * 0.5,
+                    (pos_or[1] + pos_ex[1]) * 0.5,
+                    text,
+                    color=this_col,
+                    horizontalalignment='center',
+                    verticalalignment='center')
 
-                # step 0: compute thickness and color
-                if rho < (self.rho_max / 1.5):
-                    amount_green = 255 - int(255. * 1.5 * rho / self.rho_max)
-                else:
-                    amount_green = 0
+    def _draw_subs(self, ax, texts=None, colormap=None):
+        colormap_ = lambda x: self.col_sub
+        vals = [0. for _ in range(self.n_line)]
+        if texts is not None:
+            vals = [float(text if text is not None else 0.) for text in texts]
 
-                amount_red = int(255 - (50 + int(205. * rho / self.rho_max)))
-                color = pygame.Color(amount_red, amount_green, 20)
+        if colormap is not None:
+            colormap_ = lambda x: "k"
+            if colormap == "sub":
+                colormap_ = plt.get_cmap("Reds")
+                vals = self._get_vals(vals)
 
-                width = 1
-                if rho > self.rho_max:
-                    width = 4
-                elif rho > 1.:
-                    width = 3
-                elif rho > 0.9:
-                    width = 2
-                width += 3
+        vals = [0. for _ in self._layout["substations"]]
+        if texts is not None:
+            vals = [float(text if text is not None else 0.) for text in texts]
 
-                # step 1: draw the powerline with right color and thickness
-                pygame.draw.line(self.screen, color, pos_or, pos_ex, width)
+        for sub_id, center in enumerate(self._layout["substations"]):
+            if texts is None:
+                text = "{}\nid: {}".format(self.name_sub[sub_id], sub_id)
+                this_col = colormap_("")
+            else:
+                text = texts[sub_id]
+                this_col = colormap_(vals[sub_id])
+            sub_circ = plt.Circle(center, self.radius_sub, color=this_col, fill=False, alpha=self.alpha_obj)
+            ax.add_artist(sub_circ)
+            ax.text(center[0],
+                    center[1],
+                    text,
+                    color=this_col,
+                    horizontalalignment='center',
+                    verticalalignment='center')
 
-                # step 2: draw arrows indicating current flows
-                _draw_arrow(self.screen, color, pos_or, pos_ex,
-                            p_or >= 0.,
-                            num_arrows=width,
-                            width=width)
+    def _draw_loads(self, ax, texts=None, colormap=None):
+        colormap_ = lambda x: self.col_load
+        vals = [0. for _ in range(self.n_load)]
+        if texts is not None:
+            vals = [float(text if text is not None else 0.) for text in texts]
 
-    def _aligned_text(self, pos, text_graphic, pos_text):
-        pos_x = pos_text.real
-        pos_y = pos_text.imag
-        width = text_graphic.get_width()
-        height = text_graphic.get_height()
+        if colormap is not None:
+            colormap_ = lambda x: "k"
+            if colormap == "load":
+                colormap_ = plt.get_cmap("Reds")
+                vals = self._get_vals(vals)
 
-        if pos == "center|left":
-            pos_y -= height // 2
-        elif pos == "up|center":
-            pos_x -= width // 2
-            pos_y -= height
-        elif pos == "center|right":
-            pos_x -= width
-            pos_y -= height // 2
-        elif pos == "down|center":
-            pos_x -= width // 2
-        self.screen.blit(text_graphic, (pos_x, pos_y))
-
-    def _draw_loads(self, observation):
-        for c_id, por in enumerate(observation.load_p):
+        for c_id in range(self.n_load):
+            if texts is None:
+                text = "{}\nid: {}".format(self.name_load[c_id], c_id)
+                this_col = colormap_(vals[c_id])
+            else:
+                text = texts[c_id]
+                this_col = colormap_(float(text if text is not None else 0.))
             pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(c_id)
+            ax.plot([pos_load_sub[0], pos_load.real],
+                    [pos_load_sub[1], pos_load.imag],
+                    color=this_col, alpha=self.alpha_obj)
+            ax.text(pos_load.real,
+                    pos_load.imag,
+                    text,
+                    color=this_col,
+                    horizontalalignment=how_center.split('|')[1],
+                    verticalalignment="bottom" if how_center.split('|')[0] == "up" else "top")
 
-            color = pygame.Color(0, 0, 0)
-            width = 2
-            pygame.draw.line(self.screen, color, pos_load_sub, (pos_end_line.real, pos_end_line.imag), width)
-            text_label = "- {:.1f} MW".format(por)
-            text_graphic = self.font.render(text_label, True, color)
-            self._aligned_text(how_center, text_graphic, pos_load)
+    def _get_vals(self, vals):
+        min_ = np.min(vals)
+        max_ = np.max(vals)
+        vals -= min_
+        vals /= (max_ - min_ + 1e-5)
+        # now vals is between 0 and 1, i push it toward 1 a bit to better see it
+        vals += 0.5
+        vals /= 1.5
+        return vals
 
-    def _draw_gens(self, observation):
-        for g_id, por in enumerate(observation.prod_p):
+    def _draw_gens(self, ax, texts=None, colormap=None):
+        colormap_ = lambda x: self.col_gen
+        vals = [0. for _ in range(self.n_gen)]
+        if texts is not None:
+            vals = [float(text if text is not None else 0.) for text in texts]
+
+        if colormap is not None:
+            colormap_ = lambda x: "k"
+            if colormap == "gen":
+                colormap_ = plt.get_cmap("Reds")
+                vals = self._get_vals(vals)
+
+        for g_id in range(self.n_gen):
+            if texts is None:
+                text = "{}\nid: {}".format(self.name_gen[g_id], g_id)
+                this_col = colormap_("")
+            else:
+                text = texts[g_id]
+                this_col = colormap_(vals[g_id])
             pos_end_line, pos_gen_sub, pos_gen, how_center = self._get_gen_coord(g_id)
-
-            color = pygame.Color(0, 0, 0)
-            width = 2
-            pygame.draw.line(self.screen, color, pos_gen_sub, (pos_end_line.real, pos_end_line.imag), width)
-            text_label = "+ {:.1f} MW".format(por)
-            text_graphic = self.font.render(text_label, True, color)
-            self._aligned_text(how_center, text_graphic, pos_gen)
-
-    def _draw_topos(self, observation):
-        for sub_id, elements in enumerate(self.subs_elements):
-            buses_z, bus_vect = self._get_topo_coord(sub_id, observation, elements)
-
-            if not buses_z:
-                # I don't plot details of substations with 1 bus for better quality
-                continue
-
-            colors = [pygame.Color(255, 127, 14), pygame.Color(31, 119, 180)]
-
-            # I plot the buses
-            for bus_id, z_bus in enumerate(buses_z):
-                pygame.draw.circle(self.screen,
-                                   colors[bus_id],
-                                   [int(z_bus.real), int(z_bus.imag)],
-                                   int(self.bus_radius),
-                                   0)
-
-            # i connect every element to the proper bus with the proper color
-            for el_nm, dict_el in elements.items():
-                this_el_bus = bus_vect[dict_el["sub_pos"]] -1
-                if this_el_bus >= 0:
-                    pygame.draw.line(self.screen,
-                                     colors[this_el_bus],
-                                     [int(dict_el["z"].real), int(dict_el["z"].imag)],
-                                     [int(buses_z[this_el_bus].real), int(buses_z[this_el_bus].imag)],
-                                     2)
-
-
+            ax.plot([pos_gen_sub[0], pos_gen.real],
+                    [pos_gen_sub[1], pos_gen.imag],
+                    color=this_col, alpha=self.alpha_obj)
+            ax.text(pos_gen.real,
+                    pos_gen.imag,
+                    text,
+                    color=this_col,
+                    horizontalalignment=how_center.split('|')[1],
+                    verticalalignment="bottom" if how_center.split('|')[0] == "up" else "top")
