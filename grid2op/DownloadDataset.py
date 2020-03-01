@@ -31,7 +31,7 @@ DICT_URL_GRID2OP_DL = {"l2rpn_2019":
                 "case14_redisp"
             ),
             "case14_realistic": (
-                "https://github.com/BDonnot/Grid2Op/releases/download/case14_redisp/case14_realistic.tar.bz2",
+                "https://github.com/BDonnot/Grid2Op/releases/download/case14_realistic/case14_realistic.tar.bz2",
                 "case14_realistic"
             )
             }
