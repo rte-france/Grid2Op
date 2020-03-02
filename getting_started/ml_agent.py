@@ -1,6 +1,7 @@
 from collections import deque
 import random
 import numpy as np
+import pdb
 
 #tf2.0 friendly
 import warnings
@@ -406,8 +407,9 @@ class SAC(RLQvalue):
     """Constructs the desired deep q learning network"""
     def __init__(self, action_size, observation_size, lr=1e-5,
                  training_param=TrainingParam()):
-
         RLQvalue.__init__(self, action_size, observation_size, lr, training_param)
+        # TODO add as meta param the number of "Q" you want to use (here 2)
+        # TODO add as meta param size and types of the networks
         self.average_reward = 0
         self.life_spent = 1
         self.qvalue_evolution = np.zeros((0,))
@@ -421,7 +423,7 @@ class SAC(RLQvalue):
 
         self.construct_q_network()
 
-    def build_q_NN(self):
+    def _build_q_NN(self):
         input_states = Input(shape=(self.observation_size,))
         input_action = Input(shape=(self.action_size,))
         input_layer = Concatenate()([input_states, input_action])
@@ -441,61 +443,41 @@ class SAC(RLQvalue):
         model.compile(loss='mse', optimizer=Adam(lr=self.lr_))
         
         return model
-    
+
+    def _build_model_value(self):
+        input_states = Input(shape=(self.observation_size,))
+        lay1 = Dense(self.observation_size)(input_states)
+        lay1 = Activation('relu')(lay1)
+
+        lay3 = Dense(2 * self.action_size)(lay1)
+        lay3 = Activation('relu')(lay3)
+        advantage = Dense(self.action_size, activation='relu')(lay3)
+        state_value = Dense(1, activation='linear')(advantage)
+        model = Model(inputs=[input_states], outputs=[state_value])
+        model.compile(loss='mse', optimizer=Adam(lr=self.lr_))
+        return model
+
     def construct_q_network(self):
         # construct double Q networks
-        self.model_Q = self.build_q_NN()
-        self.model_Q2 = self.build_q_NN()
+        self.model_Q = self._build_q_NN()
+        self.model_Q2 = self._build_q_NN()
 
         # state value function approximation
-        self.model_value = Sequential()
-        
-        input_states = Input(shape = (self.observation_size,))
-        
-        lay1 = Dense(self.observation_size)(input_states)
-        lay1 = Activation('relu')(lay1)
-        
-        lay3 = Dense(2*self.action_size)(lay1)
-        lay3 = Activation('relu')(lay3)
-        
-        advantage = Dense(self.action_size, activation = 'relu')(lay3)
-        state_value = Dense(1, activation = 'linear')(advantage)
-        
-        self.model_value = Model(inputs=[input_states], outputs=[state_value])
-        self.model_value.compile(loss='mse', optimizer=Adam(lr=self.lr_))
-        
-        self.model_value_target = Sequential()
-        
-        input_states = Input(shape = (self.observation_size,))
-        
-        lay1 = Dense(self.observation_size)(input_states)
-        lay1 = Activation('relu')(lay1)
-        
-        lay3 = Dense(2*self.action_size)(lay1)
-        lay3 = Activation('relu')(lay3)
-        
-        advantage = Dense(self.action_size, activation = 'relu')(lay3)
-        state_value = Dense(1, activation = 'linear')(advantage)
-        
-        self.model_value_target = Model(inputs=[input_states], outputs=[state_value])
-        self.model_value_target.compile(loss='mse', optimizer=Adam(lr=self.lr_))
+        self.model_value = self._build_model_value()
+        self.model_value_target = self._build_model_value()
         self.model_value_target.set_weights(self.model_value.get_weights())
+
         # policy function approximation
-        
         self.model_policy = Sequential()
         # proba of choosing action a depending on policy pi
         input_states = Input(shape = (self.observation_size,))
         lay1 = Dense(self.observation_size)(input_states)
         lay1 = Activation('relu')(lay1)
-        
         lay2 = Dense(self.observation_size)(lay1)
         lay2 = Activation('relu')(lay2)
-        
         lay3 = Dense(2*self.action_size)(lay2)
         lay3 = Activation('relu')(lay3)
-        
         soft_proba = Dense(self.action_size, activation="softmax", kernel_initializer='uniform')(lay3)
-        
         self.model_policy = Model(inputs=[input_states], outputs=[soft_proba])
         self.model_policy.compile(loss='categorical_crossentropy', optimizer=Adam(lr=self.lr_))
         
@@ -523,14 +505,17 @@ class SAC(RLQvalue):
         opt_policy = 1.0 * opt_policy_orig
         opt_policy[rand_val < epsilon] = np.random.randint(0, self.action_size, size=(np.sum(rand_val < epsilon)))
 
-        # TODO update qvalue here, see TODO of "train"
+        # store the qvalue_evolution (lots of computation time maybe here)
         tmp = np.zeros((data.shape[0], self.action_size))
         tmp[np.arange(data.shape[0]), opt_policy_orig] = 1.0
         q_actions0 = self.model_Q.predict([data, tmp])
         q_actions2 = self.model_Q2.predict([data, tmp])
-        q_actions = np.fmin(q_actions0, q_actions2)
+        q_actions = np.fmin(q_actions0, q_actions2).reshape(-1)
         self.qvalue_evolution = np.concatenate((self.qvalue_evolution, q_actions))
-        return opt_policy.astype(np.int), p_actions[:, opt_policy]
+        # above is not mandatory for predicting a movement so, might need to be moved somewhere else...
+
+        opt_policy = opt_policy.astype(np.int)
+        return opt_policy, p_actions[:, opt_policy]
 
     def train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num):
         """Trains networks to fit given parameters"""
@@ -541,6 +526,10 @@ class SAC(RLQvalue):
         
         # training of the action state value networks
         last_action = np.zeros((batch_size, self.action_size))
+        fut_action = self.model_value_target.predict(s2_batch).reshape(-1)
+        target[:, 0] = r_batch + (1 - d_batch) * self.training_param.DECAY_RATE * fut_action
+        loss = self.model_Q.train_on_batch([s_batch, last_action], target)
+        loss_2 = self.model_Q2.train_on_batch([s_batch, last_action], target)
 
         # for i in range(batch_size):
         #     last_action[i,a_batch[i]] = 1
@@ -557,25 +546,22 @@ class SAC(RLQvalue):
         # TODO have something like below, but maybe store q value instead, with min Q, Q2
         # TODO have it in predict_movment
         # self.qvalue_evolution.append(v_t[0])
-        fut_action = self.model_value_target.predict(s2_batch)
-        target[:, 0] = r_batch + (1 - d_batch) * self.training_param.DECAY_RATE * fut_action
-
-        loss = self.model_Q.train_on_batch([s_batch, last_action], target)
-        loss_2 = self.model_Q2.train_on_batch([s_batch, last_action], target)
 
         # TODO ok pour avoir mis ca la, mais revoir la temperature
         self.life_spent += 1
         temp = 1 / np.log(self.life_spent) / 2
         tiled_batch = np.tile(s_batch, (self.action_size, 1))
         # tiled_batch: output something like: batch, batch, batch
-        tmp = np.repeat(np.eye(self.action_size), 4*np.ones(batch_size), axis=0)
+        # TODO save that somewhere not to compute it each time, you can even save this in the
+        # tensorflow graph!
+        tmp = np.repeat(np.eye(self.action_size), batch_size*np.ones(self.action_size, dtype=np.int), axis=0)
         # tmp is something like [1,0,0] (batch size times), [0,1,0,...] batch size time etc.
 
         action_v1_orig = self.model_Q.predict([tiled_batch, tmp]).reshape(batch_size, -1)
         action_v2_orig = self.model_Q2.predict([tiled_batch, tmp]).reshape(batch_size, -1)
         # TODO check that this '-1' takes is in the right dimension... i don't trust that at all
-        action_v1 = action_v1_orig - np.amax(action_v1_orig, axis=-1)
-        new_proba = np.exp(action_v1 / temp) / np.sum(np.exp(action_v1 / temp), axis=-1)
+        action_v1 = action_v1_orig - np.amax(action_v1_orig, axis=-1).reshape(batch_size, 1)
+        new_proba = np.exp(action_v1 / temp) / np.sum(np.exp(action_v1 / temp), axis=-1).reshape(batch_size, 1)
         loss_policy = self.model_policy.train_on_batch(s_batch, new_proba)
 
         # training of the policy
@@ -614,6 +600,7 @@ class SAC(RLQvalue):
                np.all(np.isfinite(loss_value))
 
     def save_network(self, path):
+        # TODO rework that: if multiple netw need to be saved, i cannot add something in front of a path
         # Saves model at specified path as h5 file
         # nothing has changed
         self.model_policy.save("policy_"+path)
@@ -621,6 +608,7 @@ class SAC(RLQvalue):
         print("Successfully saved network.")
 
     def load_network(self, path):
+        # TODO rework that: if multiple netw need to be saved, i cannot add something in front of a path
         # nothing has changed
         self.model_policy = load_model("policy_"+path)
         self.model_value_target = load_model("value_"+path)
