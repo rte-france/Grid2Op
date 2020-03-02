@@ -23,6 +23,7 @@ TODO for next version
 - [???] add the "prod_charac.csv" for the test environment "case14_test"
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
+- [???] include grid2Viz in a notebook (the notebook "StudyYourAgent")
 
 [0.5.7] - 2020-02-xx
 --------------------
@@ -31,9 +32,12 @@ TODO for next version
 - [ADDED] a new class to (PlotMatPlotlib) to display the grid layout and the position of the element,
   as well as their name and ID
 - [ADDED] possibility to read by chunk the data (memory efficiency and huge speed up at the beginning of training)
+  (`issue 21 <https://github.com/rte-france/Grid2Op/issues/21>`_)
+- [ADDED] improved method to limit the episode length in chronics handler.
+- [ADDED] a method to project some data on the layout of the grid (`GetLayout.plot_info`)
 - [UPDATED] Notebook 6 to train agent more efficiently (example: prediction of actions in batch)
-- [UPDATED] PlotGraph to derive from `GridObjects` allowing to be inialize at creation and not when first
-  observation is loaded.
+- [UPDATED] PlotGraph to derive from `GridObjects` allowing to be inialized at creation and not when first
+  observation is loaded (usable without observation)
 - [UPDATED] new default environment (`case14_relistic`)
 - [UPDATED] data for the new created environment.
 

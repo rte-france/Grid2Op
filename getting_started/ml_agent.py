@@ -13,12 +13,11 @@ with warnings.catch_warnings():
     from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense, subtract, add
     from tensorflow.keras.layers import Input, Lambda, Concatenate
 
+
 import grid2op
 from grid2op.Agent import AgentWithConverter
 from grid2op.Converters import IdToAct
 from grid2op.Reward import RedispReward
-
-
 class TrainingParam(object):
     def __init__(self,
                  DECAY_RATE=0.9,
@@ -38,7 +37,7 @@ class TrainingParam(object):
         self.MINIBATCH_SIZE = MINIBATCH_SIZE
         self.TOT_FRAME = TOT_FRAME
         self.EPSILON_DECAY = EPSILON_DECAY
-        self.MIN_OBSERVATION = MIN_OBSERVATION #5000
+        self.MIN_OBSERVATION = MIN_OBSERVATION   # 5000
         self.FINAL_EPSILON = FINAL_EPSILON  # have on average 1 random action per scenario of approx 287 time steps
         self.INITIAL_EPSILON = INITIAL_EPSILON
         self.TAU = TAU
@@ -84,7 +83,6 @@ class ReplayBuffer:
         if buffer contains enough elements. Otherwise return all elements"""
 
         batch = []
-
         if self.count < batch_size:
             batch = random.sample(self.buffer, self.count)
         else:
@@ -101,50 +99,21 @@ class ReplayBuffer:
         self.count = 0
 
 
-# Credit Abhinav Sagar: 
-# https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial
-# Code under MIT license, available at:
-# https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial/blob/master/LICENSE
-class DeepQ(object):
-    """Constructs the desired deep q learning network"""
-
+class RLQvalue(object):
     def __init__(self, action_size, observation_size,
                  lr=1e-5,
                  training_param=TrainingParam()):
-        # It is not modified from  Abhinav Sagar's code, except for adding the possibility to change the learning rate
-        # in parameter is also present the size of the action space
-        # (it used to be a global variable in the original code)
         self.action_size = action_size
         self.observation_size = observation_size
-        self.model = None
-        self.target_model = None
         self.lr_ = lr
         self.qvalue_evolution = np.zeros((0,))
         self.training_param = training_param
-        self.construct_q_network()
+
+        self.model = None
+        self.target_model = None
 
     def construct_q_network(self):
-        # replacement of the Convolution layers by Dense layers, and change the size of the input space and output space
-
-        # Uses the network architecture found in DeepMind paper
-        self.model = Sequential()
-        input_layer = Input(shape=(self.observation_size * self.training_param.NUM_FRAMES,))
-        layer1 = Dense(self.observation_size * self.training_param.NUM_FRAMES)(input_layer)
-        layer1 = Activation('relu')(layer1)
-        layer2 = Dense(self.observation_size)(layer1)
-        layer2 = Activation('relu')(layer2)
-        layer3 = Dense(self.observation_size)(layer2)
-        layer3 = Activation('relu')(layer3)
-        layer4 = Dense(2 * self.action_size)(layer3)
-        layer4 = Activation('relu')(layer4)
-        output = Dense(self.action_size)(layer4)
-
-        self.model = Model(inputs=[input_layer], outputs=[output])
-        self.model.compile(loss='mse', optimizer=Adam(lr=self.lr_))
-
-        self.target_model = Model(inputs=[input_layer], outputs=[output])
-        self.target_model.compile(loss='mse', optimizer=Adam(lr=self.lr_))
-        self.target_model.set_weights(self.model.get_weights())
+        raise NotImplementedError("Not implemented")
 
     def predict_movement(self, data, epsilon):
         """Predict movement of game controler where is epsilon
@@ -179,6 +148,7 @@ class DeepQ(object):
     def load_network(self, path):
         # nothing has changed
         self.model = load_model(path)
+        self.target_model = load_model(path)
         print("Succesfully loaded network.")
 
     def target_train(self):
@@ -191,24 +161,51 @@ class DeepQ(object):
         self.target_model.set_weights(target_model_weights)
 
 
-class DuelQ(object):
+# Credit Abhinav Sagar:
+# https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial
+# Code under MIT license, available at:
+# https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial/blob/master/LICENSE
+class DeepQ(RLQvalue):
+    """Constructs the desired deep q learning network"""
+
+    def __init__(self,
+                 action_size,
+                 observation_size,
+                 lr=1e-5,
+                 training_param=TrainingParam()):
+        RLQvalue.__init__(self, action_size, observation_size, lr, training_param)
+        self.construct_q_network()
+
+    def construct_q_network(self):
+        # replacement of the Convolution layers by Dense layers, and change the size of the input space and output space
+
+        # Uses the network architecture found in DeepMind paper
+        self.model = Sequential()
+        input_layer = Input(shape=(self.observation_size * self.training_param.NUM_FRAMES,))
+        layer1 = Dense(self.observation_size * self.training_param.NUM_FRAMES)(input_layer)
+        layer1 = Activation('relu')(layer1)
+        layer2 = Dense(self.observation_size)(layer1)
+        layer2 = Activation('relu')(layer2)
+        layer3 = Dense(self.observation_size)(layer2)
+        layer3 = Activation('relu')(layer3)
+        layer4 = Dense(2 * self.action_size)(layer3)
+        layer4 = Activation('relu')(layer4)
+        output = Dense(self.action_size)(layer4)
+
+        self.model = Model(inputs=[input_layer], outputs=[output])
+        self.model.compile(loss='mse', optimizer=Adam(lr=self.lr_))
+
+        self.target_model = Model(inputs=[input_layer], outputs=[output])
+        self.target_model.compile(loss='mse', optimizer=Adam(lr=self.lr_))
+        self.target_model.set_weights(self.model.get_weights())
+
+
+class DuelQ(RLQvalue):
     """Constructs the desired deep q learning network"""
     def __init__(self, action_size, observation_size,
                  lr=0.00001,
                  training_param=TrainingParam()):
-        # It is not modified from  Abhinav Sagar's code, except for adding the possibility to change the learning rate
-        # in parameter is also present the size of the action space
-        # (it used to be a global variable in the original code)
-        self.action_size = action_size
-        self.observation_size = observation_size
-        self.lr_ = lr
-        self.model = None
-        self.target_model = None
-        self.qvalue_evolution = np.zeros((0,))
-        self.training_param = training_param
-
-        self.target_model = None
-
+        RLQvalue.__init__(self, action_size, observation_size, lr, training_param)
         self.construct_q_network()
 
     def construct_q_network(self):
@@ -233,7 +230,7 @@ class DuelQ(object):
         
         meaner = Lambda(lambda x: K.mean(x, axis=1) )
         mn_ = meaner(advantage)  
-        tmp = subtract([advantage, mn_])  # keras doesn't like this part...
+        tmp = subtract([advantage, mn_])
         policy = add([tmp, value])
 
         self.model = Model(inputs=[input_layer], outputs=[policy])
@@ -243,58 +240,58 @@ class DuelQ(object):
         self.target_model.compile(loss='mse', optimizer=Adam(lr=self.lr_))
         print("Successfully constructed networks.")
     
-    def predict_movement(self, data, epsilon):
-        """Predict movement of game controler where is epsilon
-        probability randomly move."""
-        # only changes lie in adapting the input shape
-        # q_actions = self.model.predict(data.reshape(1, self.observation_size*self.training_param.NUM_FRAMES),
-        #                               batch_size = 1)
-        q_actions = self.model.predict(data)
-        opt_policy = np.argmax(q_actions, axis=-1)
-        rand_val = np.random.random(data.shape[0])
-        opt_policy[rand_val < epsilon] = np.random.randint(0, self.action_size, size=(np.sum(rand_val < epsilon)))
-        self.qvalue_evolution = np.concatenate((self.qvalue_evolution, q_actions[0, opt_policy]))
-
-        return opt_policy, q_actions[0, opt_policy]
-
-    def train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num):
-        """Trains network to fit given parameters"""
-        # nothing has changed except adapting the input shapes
-        batch_size = s_batch.shape[0]
-        targets = np.zeros((batch_size, self.action_size))
-
-        for i in range(batch_size):
-            targets[i] = self.model.predict(s_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES),
-                                            batch_size=1)
-            fut_action = self.target_model.predict(s2_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES),
-                                                   batch_size=1)
-            targets[i, a_batch[i]] = r_batch[i]
-            if d_batch[i] == False:
-                targets[i, a_batch[i]] += self.training_param.DECAY_RATE * np.max(fut_action)
-
-        loss = self.model.train_on_batch(s_batch, targets)
-
-        # Print the loss every 100 iterations.
-        if observation_num % 100 == 0:
-            print("We had a loss equal to ", loss)
-        return np.all(np.isfinite(loss))
-
-    def save_network(self, path):
-        # Saves model at specified path as h5 file
-        # nothing has changed
-        self.model.save(path)
-        print("Successfully saved network.")
-
-    def load_network(self, path):
-        # nothing has changed
-        self.model.load_weights(path)
-        self.target_model.load_weights(path)
-        print("Succesfully loaded network.")
-
-    def target_train(self):
-        # nothing has changed
-        model_weights = self.model.get_weights()
-        self.target_model.set_weights(model_weights)
+    # def predict_movement(self, data, epsilon):
+    #     """Predict movement of game controler where is epsilon
+    #     probability randomly move."""
+    #     # only changes lie in adapting the input shape
+    #     # q_actions = self.model.predict(data.reshape(1, self.observation_size*self.training_param.NUM_FRAMES),
+    #     #                               batch_size = 1)
+    #     q_actions = self.model.predict(data)
+    #     opt_policy = np.argmax(q_actions, axis=-1)
+    #     rand_val = np.random.random(data.shape[0])
+    #     opt_policy[rand_val < epsilon] = np.random.randint(0, self.action_size, size=(np.sum(rand_val < epsilon)))
+    #     self.qvalue_evolution = np.concatenate((self.qvalue_evolution, q_actions[0, opt_policy]))
+    #
+    #     return opt_policy, q_actions[0, opt_policy]
+    #
+    # def train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num):
+    #     """Trains network to fit given parameters"""
+    #     # nothing has changed except adapting the input shapes
+    #     batch_size = s_batch.shape[0]
+    #     targets = np.zeros((batch_size, self.action_size))
+    #
+    #     for i in range(batch_size):
+    #         targets[i] = self.model.predict(s_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES),
+    #                                         batch_size=1)
+    #         fut_action = self.target_model.predict(s2_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES),
+    #                                                batch_size=1)
+    #         targets[i, a_batch[i]] = r_batch[i]
+    #         if d_batch[i] == False:
+    #             targets[i, a_batch[i]] += self.training_param.DECAY_RATE * np.max(fut_action)
+    #
+    #     loss = self.model.train_on_batch(s_batch, targets)
+    #
+    #     # Print the loss every 100 iterations.
+    #     if observation_num % 100 == 0:
+    #         print("We had a loss equal to ", loss)
+    #     return np.all(np.isfinite(loss))
+    #
+    # def save_network(self, path):
+    #     # Saves model at specified path as h5 file
+    #     # nothing has changed
+    #     self.model.save(path)
+    #     print("Successfully saved network.")
+    #
+    # def load_network(self, path):
+    #     # nothing has changed
+    #     self.model.load_weights(path)
+    #     self.target_model.load_weights(path)
+    #     print("Succesfully loaded network.")
+    #
+    # def target_train(self):
+    #     # nothing has changed
+    #     model_weights = self.model.get_weights()
+    #     self.target_model.set_weights(model_weights)
 
 
 # class RealQ(object):
@@ -404,33 +401,27 @@ class DuelQ(object):
 #         self.model_copy.set_weights(model_weights)
 
 
-class SAC(object):
+# link to paper to take form the notebook
+class SAC(RLQvalue):
     """Constructs the desired deep q learning network"""
     def __init__(self, action_size, observation_size, lr=1e-5,
                  training_param=TrainingParam()):
 
-        self.action_size = action_size
-        self.observation_size = observation_size
-        self.model = None
-        self.target_model = None
-        self.lr_ = lr
+        RLQvalue.__init__(self, action_size, observation_size, lr, training_param)
         self.average_reward = 0
         self.life_spent = 1
         self.qvalue_evolution = np.zeros((0,))
         self.Is_nan = False
-        self.training_param = training_param
 
         self.model_value_target = None
+        self.model_value = None
         self.model_Q = None
         self.model_Q2 = None
-        self.model_value = None
         self.model_policy = None
 
         self.construct_q_network()
 
     def build_q_NN(self):
-        model = Sequential()
-        
         input_states = Input(shape=(self.observation_size,))
         input_action = Input(shape=(self.action_size,))
         input_layer = Concatenate()([input_states, input_action])
@@ -492,6 +483,7 @@ class SAC(object):
         # policy function approximation
         
         self.model_policy = Sequential()
+        # proba of choosing action a depending on policy pi
         input_states = Input(shape = (self.observation_size,))
         lay1 = Dense(self.observation_size)(input_states)
         lay1 = Activation('relu')(lay1)
@@ -527,58 +519,90 @@ class SAC(object):
         rand_val = np.random.random(data.shape[0])
         # q_actions = self.model.predict(data)
         p_actions = self.model_policy.predict(data)
-        opt_policy = np.argmax(np.abs(p_actions), axis=-1)
+        opt_policy_orig = np.argmax(np.abs(p_actions), axis=-1)
+        opt_policy = 1.0 * opt_policy_orig
         opt_policy[rand_val < epsilon] = np.random.randint(0, self.action_size, size=(np.sum(rand_val < epsilon)))
 
-        self.qvalue_evolution = np.concatenate((self.qvalue_evolution, p_actions[:, opt_policy]))
+        # TODO update qvalue here, see TODO of "train"
+        tmp = np.zeros((data.shape[0], self.action_size))
+        tmp[np.arange(data.shape[0]), opt_policy_orig] = 1.0
+        q_actions0 = self.model_Q.predict([data, tmp])
+        q_actions2 = self.model_Q2.predict([data, tmp])
+        q_actions = np.fmin(q_actions0, q_actions2)
+        self.qvalue_evolution = np.concatenate((self.qvalue_evolution, q_actions))
         return opt_policy.astype(np.int), p_actions[:, opt_policy]
 
     def train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num):
         """Trains networks to fit given parameters"""
-        # TODO vectorize that !!!!
-        # nothing has changed from the original implementation, except for changing the input dimension 'reshape'
         batch_size = s_batch.shape[0]
         target = np.zeros((batch_size, 1))
         new_proba = np.zeros((batch_size, self.action_size))
-        last_action=np.zeros((batch_size, self.action_size))
+        last_action = np.zeros((batch_size, self.action_size))
         
         # training of the action state value networks
-        last_action=np.zeros((batch_size, self.action_size))
+        last_action = np.zeros((batch_size, self.action_size))
 
-        for i in range(batch_size):
-            last_action[i,a_batch[i]] = 1
+        # for i in range(batch_size):
+        #     last_action[i,a_batch[i]] = 1
+        #
+        #     v_t = self.model_value_target.predict(s_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES), batch_size = 1)
+        #
+        #     # self.qvalue_evolution.append(v_t[0])
+        #     self.qvalue_evolution = np.concatenate((self.qvalue_evolution, v_t[:,0]))
+        #     fut_action = self.model_value_target.predict(s2_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES), batch_size = 1)
+        #
+        #     target[i,0] = r_batch[i] + (1 - d_batch[i]) * self.training_param.DECAY_RATE * fut_action
 
-            v_t = self.model_value_target.predict(s_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES), batch_size = 1)
-            
-            # self.qvalue_evolution.append(v_t[0])
-            self.qvalue_evolution = np.concatenate((self.qvalue_evolution, v_t[:,0]))
-            fut_action = self.model_value_target.predict(s2_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES), batch_size = 1)
-
-            target[i,0] = r_batch[i] + (1 - d_batch[i]) * self.training_param.DECAY_RATE * fut_action
+        # v_t = self.model_value_target.predict(s_batch)
+        # TODO have something like below, but maybe store q value instead, with min Q, Q2
+        # TODO have it in predict_movment
+        # self.qvalue_evolution.append(v_t[0])
+        fut_action = self.model_value_target.predict(s2_batch)
+        target[:, 0] = r_batch + (1 - d_batch) * self.training_param.DECAY_RATE * fut_action
 
         loss = self.model_Q.train_on_batch([s_batch, last_action], target)
-        loss_2 = self.model_Q2.train_on_batch([s_batch, last_action], target) 
-            
-        # training of the policy
-        for i in range(batch_size):
-            self.life_spent += 1
-            temp =  1 / np.log(self.life_spent) / 2
-            new_values = self.model_Q.predict([np.tile(s_batch[i].reshape(1, self.observation_size),(self.action_size,1)),
-                                                      np.eye(self.action_size)]).reshape(1,-1)
-            new_values -= np.amax(new_values, axis=-1)
-            new_proba[i] = np.exp(new_values / temp) / np.sum(np.exp(new_values / temp), axis=-1)
-            
+        loss_2 = self.model_Q2.train_on_batch([s_batch, last_action], target)
+
+        # TODO ok pour avoir mis ca la, mais revoir la temperature
+        self.life_spent += 1
+        temp = 1 / np.log(self.life_spent) / 2
+        tiled_batch = np.tile(s_batch, (self.action_size, 1))
+        # tiled_batch: output something like: batch, batch, batch
+        tmp = np.repeat(np.eye(self.action_size), 4*np.ones(batch_size), axis=0)
+        # tmp is something like [1,0,0] (batch size times), [0,1,0,...] batch size time etc.
+
+        action_v1_orig = self.model_Q.predict([tiled_batch, tmp]).reshape(batch_size, -1)
+        action_v2_orig = self.model_Q2.predict([tiled_batch, tmp]).reshape(batch_size, -1)
+        # TODO check that this '-1' takes is in the right dimension... i don't trust that at all
+        action_v1 = action_v1_orig - np.amax(action_v1_orig, axis=-1)
+        new_proba = np.exp(action_v1 / temp) / np.sum(np.exp(action_v1 / temp), axis=-1)
         loss_policy = self.model_policy.train_on_batch(s_batch, new_proba)
+
+        # training of the policy
+        # for i in range(batch_size):
+        #     # TODO vectorize that
+        #     new_values = self.model_Q.predict([np.tile(s_batch[i].reshape(1, self.observation_size),(self.action_size,1)),
+        #                                               np.eye(self.action_size)]).reshape(1,-1)
+        #     new_values -= np.amax(new_values, axis=-1)
+        #     new_proba[i] = np.exp(new_values / temp) / np.sum(np.exp(new_values / temp), axis=-1)
+        #     # do the same for Q2 and take the minimum
+
+
     
         # training of the value_function
         value_target = np.zeros(batch_size)
-        for i in range(batch_size):
-            target_pi = self.model_policy.predict(s_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES), batch_size = 1)
-            action_v1 = self.model_Q.predict([np.tile(s_batch[i].reshape(1, self.observation_size),(self.action_size,1)),
-                                                      np.eye(self.action_size)]).reshape(1,-1)
-            action_v2 = self.model_Q2.predict([np.tile(s_batch[i].reshape(1, self.observation_size),(self.action_size,1)),
-                                                      np.eye(self.action_size)]).reshape(1,-1)
-            value_target[i] = np.fmin(action_v1[0,a_batch[i]], action_v2[0,a_batch[i]]) - np.sum(target_pi * np.log(target_pi + 1e-6))
+        target_pi = self.model_policy.predict(s_batch)
+        value_target = np.fmin(action_v1_orig[0, a_batch], action_v2_orig[0, a_batch]) - np.sum(target_pi * np.log(target_pi + 1e-6))
+        # for i in range(batch_size):
+        #     # TODO vectorize that
+        #     target_pi = self.model_policy.predict(s_batch[i].reshape(1, self.observation_size*self.training_param.NUM_FRAMES), batch_size = 1)
+        #     # dont repredict with model_Q and model_Q2, reuse what was before
+        #     action_v1 = self.model_Q.predict([np.tile(s_batch[i].reshape(1, self.observation_size),(self.action_size,1)),
+        #                                               np.eye(self.action_size)]).reshape(1,-1)
+        #     action_v2 = self.model_Q2.predict([np.tile(s_batch[i].reshape(1, self.observation_size),(self.action_size,1)),
+        #                                               np.eye(self.action_size)]).reshape(1,-1)
+        #
+        #     value_target[i] = np.fmin(action_v1[0,a_batch[i]], action_v2[0,a_batch[i]]) - np.sum(target_pi * np.log(target_pi + 1e-6))
         
         loss_value = self.model_value.train_on_batch(s_batch, value_target.reshape(-1,1))
         
@@ -586,7 +610,8 @@ class SAC(object):
         # Print the loss every 100 iterations.
         if observation_num % 100 == 0:
             print("We had a loss equal to ", loss, loss_2, loss_policy, loss_value)
-        return np.all(np.isfinite(loss))
+        return np.all(np.isfinite(loss)) & np.all(np.isfinite(loss_2)) & np.all(np.isfinite(loss_policy)) & \
+               np.all(np.isfinite(loss_value))
 
     def save_network(self, path):
         # Saves model at specified path as h5 file
@@ -611,11 +636,8 @@ class SAC(object):
 
 
 class DeepQAgent(AgentWithConverter):
-    # first change: An Agent must derived from grid2op.Agent (in this case MLAgent, because we manipulate vector instead
-    # of classes)
-
     def convert_obs(self, observation):
-        return np.concatenate((observation.rho, observation.topo_vect))
+        return np.concatenate((observation.rho, observation.line_status, observation.topo_vect))
 
     def my_act(self, transformed_observation, reward, done=False):
         if self.deep_q is None:
@@ -659,11 +681,3 @@ class DeepQAgent(AgentWithConverter):
     def load_network(self, path):
         # not modified compare to original implementation
         self.deep_q.load_network(path)
-
-
-class DeepQAgent_Improve(DeepQAgent):
-    def __init__(self, action_space, mode="DDQN", training_param=TrainingParam()):
-        DeepQAgent.__init__(self, action_space, mode=mode, training_param=training_param)
-
-    def convert_obs(self, observation):
-        return observation.rho

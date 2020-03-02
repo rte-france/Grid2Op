@@ -136,6 +136,19 @@ class RemoteEnv(Process):
         obs._obs_env = None
         obs.action_helper = None
 
+    def get_obs_ifnotconv(self):
+        # TODO dirty hack because of wrong chronics
+        # need to check!!!
+        conv = False
+        obs = None
+        while not conv:
+            try:
+                obs = self.env.reset()
+                conv = True
+            except:
+                pass
+        return obs
+
     def run(self):
         if self.env is None:
             self.init_env()
@@ -148,12 +161,13 @@ class RemoteEnv(Process):
                 # perform a step
                 obs, reward, done, info = self.env.step(data)
                 if done:
-                    obs = self.env.reset()
+                    # if done do a reset
+                    obs = self.get_obs_ifnotconv()
                 self._clean_observation(obs)
                 self.remote.send((obs, reward, done, info))
             elif cmd == 'r':
                 # perfom a reset
-                obs = self.env.reset()
+                obs = self.get_obs_ifnotconv()
                 self._clean_observation(obs)
                 self.remote.send(obs)
             elif cmd == 'c':
