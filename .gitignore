@@ -161,6 +161,7 @@ documentation
 grid2op/data/*/*.csv
 !grid2op/data/test_PandaPower/prods_charac.csv
 !grid2op/data/case14_redisp/prods_charac.csv
+!grid2op/data/*/prods_charac.csv
 **token.json
 getting_started/study_agent_getting_started/
 **Untitled.ipynb
@@ -178,3 +179,4 @@ l2rpn_2019/exped_saved/
 
 **-Copy1.ipynb
 **_old.ipynb
+Untitled*.ipynb

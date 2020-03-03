@@ -13,8 +13,10 @@ import pdb
 
 try:
     from .Space import GridObjects
+    from .Exceptions import Grid2OpException
 except:
     from Space import GridObjects
+    from Exceptions import Grid2OpException
 
 
 class BasePlot(GridObjects):
@@ -38,6 +40,9 @@ class BasePlot(GridObjects):
                  radius_sub=20.,
                  load_prod_dist=70.,
                  bus_radius=6.):
+        if substation_layout is None:
+            raise Grid2OpException("Impossible to use plotting abilities without specifying a layout (coordinates) "
+                                   "of the substations.")
 
         GridObjects.__init__(self)
         self.init_grid(observation_space)

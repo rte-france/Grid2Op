@@ -243,6 +243,8 @@ class Environment(_BasicEnv):
         self.metadata = None
         self.spec = None
 
+        # for plotting
+        self.graph_layout = None
         self.init_backend(init_grid_path, chronics_handler, backend,
                           names_chronics_to_backend, actionClass, observationClass,
                           rewardClass, legalActClass)
@@ -280,6 +282,11 @@ class Environment(_BasicEnv):
         self.backend.assert_grid_correct()
         self.init_grid(backend)
         self._has_been_initialized()
+        if self._thermal_limit_a is None:
+            self._thermal_limit_a = self.backend.thermal_limit_a
+        else:
+            self.backend.set_thermal_limit(thermal_limit_a)
+
         *_, tmp = self.backend.generators_info()
 
         # rules of the game
@@ -452,7 +459,8 @@ class Environment(_BasicEnv):
         """
         self.chronics_handler.tell_id(id_-1)
 
-    def attach_renderer(self, graph_layout):
+    def attach_renderer(self, graph_layout=None):
+        graph_layout = self.graph_layout if graph_layout is None else graph_layout
         self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
         self.viewer.reset(self)
 
