@@ -285,10 +285,10 @@ class PlotObs(BasePlot):
         #                          mode="text",
         #                          showlegend=False))
 
-        if not "line" in self._layout:
-            # update the layout of the objects only once to ensure the same positionning is used
-            # if more than 1 observation are displayed one after the other.
-            self._compute_layout(observation)
+        # if not "line" in self._layout:
+        #     # update the layout of the objects only once to ensure the same positionning is used
+        #     # if more than 1 observation are displayed one after the other.
+        #     self._compute_layout()
 
         # draw substation
         subs = self._draw_subs(observation=observation)

@@ -6,11 +6,11 @@ Document will be made later on.
 import os
 import pkg_resources
 
-__version__ = '0.5.6'
+__version__ = '0.5.7'
 
 __all__ = ['Action', "BackendPandaPower", "Agent", "Backend", "ChronicsHandler", "Environment", "Exceptions",
            "Observation", "Parameters", "GameRules", "Reward", "Runner", "main", "Utils", "PlotPlotly", "EpisodeData",
-           "DownloadDataset"]
+           "DownloadDataset", "PlotMatplotlib"]
 
 from .MakeEnv import make
 

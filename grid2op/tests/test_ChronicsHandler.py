@@ -5,6 +5,7 @@ import unittest
 
 import numpy as np
 import pdb
+import warnings
 
 # making sure test can be ran from:
 # root package directory
@@ -12,6 +13,7 @@ import pdb
 # RL4Grid/tests subdirectory
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
 
+from MakeEnv import make
 from Exceptions import *
 from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder
 from ChronicsHandler import GridValue
@@ -175,8 +177,25 @@ class TestLoadingChronicsHandler(unittest.TestCase):
         vect = [18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6]
         assert self.compare_vect(res["injection"]['load_p'], vect)
 
+    def test_chronicsloading_chunk(self):
+        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path, chunk_size=5)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                     self.order_backend_lines, self.order_backend_subs)
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
+        vect = [18.8, 86.5, 44.5, 7.1, 10.4, 27.6, 8.1, 3.2, 5.6, 11.9, 13.6]
+        assert self.compare_vect(res["injection"]['load_p'], vect)
+
     def test_chronicsloading_secondtimestep(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                     self.order_backend_lines, self.order_backend_subs)
+        _ = chron_handl.next_time_step()  # should load the first time stamp
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
+        vect = [18.8, 85.1, 44.3, 7.1, 10.2, 27.1, 8.2, 3.2, 5.7, 11.8, 13.8]
+        assert self.compare_vect(res["injection"]['load_p'], vect)
+
+    def test_chronicsloading_secondtimestep_chunksize(self):
+        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path, chunk_size=1)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
         _ = chron_handl.next_time_step()  # should load the first time stamp
@@ -377,8 +396,36 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
         assert self.compare_vect(res["injection"]['load_p'], vect)
         assert chron_handl.done()
 
+    def test_done_chunk_size(self):
+        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path, chunk_size=1)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                     self.order_backend_lines, self.order_backend_subs,
+                               self.names_chronics_to_backend)
+        for i in range(288):
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
+        vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
+        vect = vect[self.id_chron_to_back_load]
+        assert self.compare_vect(res["injection"]['load_p'], vect)
+        assert chron_handl.done()
+
     def test_stopiteration(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                     self.order_backend_lines, self.order_backend_subs,
+                               self.names_chronics_to_backend)
+        for i in range(288):
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
+        vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
+        vect = vect[self.id_chron_to_back_load]
+        assert self.compare_vect(res["injection"]['load_p'], vect)
+        try:
+            res = chron_handl.next_time_step()  # should load the first time stamp
+            raise RuntimeError("This should have thrown a StopIteration exception")
+        except StopIteration:
+            pass
+
+    def test_stopiteration_chunk_size(self):
+        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path, chunk_size=1)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
@@ -418,6 +465,7 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
             raise RuntimeError("This should have thrown a StopIteration exception")
         except StopIteration:
             pass
+
 
 class TestLoadingMultiFolder(unittest.TestCase):
     def setUp(self):
@@ -475,7 +523,7 @@ class TestLoadingMultiFolder(unittest.TestCase):
                                self.order_backend_lines, self.order_backend_subs,
                                self.names_chronics_to_backend)
         _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
-        for i in range(self.max_iter ):
+        for i in range(self.max_iter):
             _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
 
         try:
@@ -483,6 +531,54 @@ class TestLoadingMultiFolder(unittest.TestCase):
             raise RuntimeError("This should have thrown a StopIteration exception")
         except StopIteration:
             pass
+
+    def test_stopiteration_chunksize(self):
+        chron_handl = ChronicsHandler(chronicsClass=Multifolder,
+                                      path=self.path,
+                                      gridvalueClass=GridStateFromFileWithForecasts,
+                                      max_iter=self.max_iter,
+                                      chunk_size=5)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                               self.order_backend_lines, self.order_backend_subs,
+                               self.names_chronics_to_backend)
+        _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
+        for i in range(self.max_iter):
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
+
+        try:
+            _, res, *_ = chron_handl.next_time_step()  # should load the first time stamp
+            raise RuntimeError("This should have thrown a StopIteration exception")
+        except StopIteration:
+            pass
+
+
+class TestEnvChunk(unittest.TestCase):
+    def setUp(self):
+        self.max_iter = 10
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("case14_realistic")
+            self.env.chronics_handler.set_max_iter(self.max_iter)
+
+    def test_normal(self):
+        # self.env.set_chunk_size()
+        self.env.reset()
+        i = 0
+        done = False
+        while not done:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        assert i == self.max_iter  # I used 1 data to intialize the environment
+
+    def test_normal_chunck(self):
+        self.env.set_chunk_size(1)
+        self.env.reset()
+        i = 0
+        done = False
+        while not done:
+            obs, reward, done, info = self.env.step(self.env.action_space())
+            i += 1
+        assert i == self.max_iter  # I used 1 data to intialize the environment
 
 
 if __name__ == "__main__":

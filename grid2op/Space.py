@@ -1414,13 +1414,13 @@ class SerializableSpace(GridObjects, RandomObject):
 
     shape: ``numpy.ndarray``, dtype:int
         Shape of each of the component of the Object if represented in a flat vector. An instance that derives from a
-        GridObject (for example :class:`grid2op.Action.Action` or :grid2op:`Observation.Observation`) can be
+        GridObject (for example :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`) can be
         thought of as being concatenation of independant spaces. This vector gives the dimension of all the basic
         spaces they are made of.
 
     dtype: ``numpy.ndarray``, dtype:int
         Data type of each of the component of the Object if represented in a flat vector. An instance that derives from
-        a GridObject (for example :class:`grid2op.Action.Action` or :grid2op:`Observation.Observation`) can be
+        a GridObject (for example :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`) can be
         thought of as being concatenation of independant spaces. This vector gives the type of all the basic
         spaces they are made of.
 

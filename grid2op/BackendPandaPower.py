@@ -81,8 +81,8 @@ class PandaPowerBackend(Backend):
         The voltage magnitude at the extremity bus of the powerline
 
     """
-    def __init__(self):
-        Backend.__init__(self)
+    def __init__(self, detailed_infos_for_cascading_failures=False):
+        Backend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
         self.prod_pu_to_kv = None
         self.load_pu_to_kv = None
         self.lines_or_pu_to_kv = None

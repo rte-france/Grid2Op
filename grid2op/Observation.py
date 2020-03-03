@@ -45,13 +45,19 @@ import pdb
 try:
     from .Exceptions import *
     from .Space import SerializableSpace, GridObjects
+    from .BasicEnv import _BasicEnv
     from .Reward import ConstantReward, RewardHelper
     from .Action import Action
+    from .GameRules import GameRules, LegalAction
+    from .ChronicsHandler import ChangeNothing
 except (ModuleNotFoundError, ImportError):
     from Exceptions import *
     from Space import SerializableSpace, GridObjects
+    from BasicEnv import _BasicEnv
     from Reward import ConstantReward, RewardHelper
     from Action import Action
+    from GameRules import GameRules, LegalAction
+    from ChronicsHandler import ChangeNothing
 
 # TODO be able to change reward here
 
@@ -63,7 +69,7 @@ except (ModuleNotFoundError, ImportError):
 
 # TODO fix "bug" when action not initalized, return nan in to_vect
 
-class ObsCH(object):
+class ObsCH(ChangeNothing):
     """
     This class is reserved to internal use. Do not attempt to do anything with it.
     """
@@ -71,7 +77,7 @@ class ObsCH(object):
         return []
 
 
-class ObsEnv(GridObjects):
+class ObsEnv(_BasicEnv):
     """
     This class is an 'Emulator' of a :class:`grid2op.Environment` used to be able to 'simulate' forecasted grid states.
     It should not be used outside of an :class:`grid2op.Observation` instance, or one of its derivative.
@@ -80,50 +86,85 @@ class ObsEnv(GridObjects):
 
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
-    def __init__(self, backend_instanciated, parameters, reward_helper, obsClass, action_helper):
-        GridObjects.__init__(self)
-        self.init_grid(backend_instanciated)
-
-        self.timestep_overflow = None
-        # self.action_helper = action_helper
-        self.hard_overflow_threshold = parameters.HARD_OVERFLOW_THRESHOLD
-        # try:
-        self.nb_timestep_overflow_allowed = np.full(shape=(backend_instanciated.n_line,),
-                                                    fill_value=parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
-        self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
-        self.backend = backend_instanciated.copy()
-        # except:
-        #     pdb.set_trace()
-        self.is_init = False
-        self.env_dc = parameters.FORECAST_DC
-        self.current_obs = None
+    def __init__(self, backend_instanciated, parameters, reward_helper, obsClass,
+                 action_helper, thermal_limit_a, legalActClass, donothing_act):
+        _BasicEnv.__init__(self, parameters, thermal_limit_a)
+        self.donothing_act = donothing_act
         self.reward_helper = reward_helper
-        self.obsClass = obsClass
-        self.parameters = parameters
-        self.time_stamp = None
-
-        self.chronics_handler = ObsCH()
-
-        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
-        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
-        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=np.int)
-
-        self._load_p, self._load_q, _ = None, None, None
-        self._prod_p, _, self._prod_v = None, None, None
-        self._topo_vect = None, None, None
-        self._line_status = None, None, None
+        self.obsClass = None
         self._action = None
+        self.init_grid(backend_instanciated)
+        self.init_backend(init_grid_path=None,
+                          chronics_handler=ObsCH(),
+                          backend=backend_instanciated,
+                          names_chronics_to_backend=None,
+                          actionClass=action_helper.actionClass,
+                          observationClass=obsClass,
+                          rewardClass=None,
+                          legalActClass=legalActClass)
+        self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
 
-        # TODO handle that in forecast!
-        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self._load_p, self._load_q, _ =  None, None, None
+        self._prod_p, _, self._prod_v = None, None, None
+        self._topo_vect = None
 
-        # TOD handle that too !!!
-        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
-        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
-        self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
+        # convert line status to -1 / 1 instead of false / true
+        self._line_status = None
+        self.is_init = False
+
+    def init_backend(self,
+                     init_grid_path, chronics_handler, backend,
+                     names_chronics_to_backend, actionClass, observationClass,
+                     rewardClass, legalActClass):
+        """
+        backend should not be the backend of the environment!!!
+
+        Parameters
+        ----------
+        init_grid_path
+        chronics_handler
+        backend
+        names_chronics_to_backend
+        actionClass
+        observationClass
+        rewardClass
+        legalActClass
+
+        Returns
+        -------
+
+        """
+        self.env_dc = self.parameters.FORECAST_DC
+        self.chronics_handler = chronics_handler
+        self.backend = backend
+        self.init_grid(self.backend)
+        self._has_been_initialized()
+        self.obsClass = observationClass
+
+        if not issubclass(legalActClass, LegalAction):
+            raise Grid2OpException(
+                "Parameter \"legalActClass\" used to build the Environment should derived form the "
+                "grid2op.LegalAction class, type provided is \"{}\"".format(
+                    type(legalActClass)))
+        self.game_rules = GameRules(legalActClass=legalActClass)
+        self.legalActClass = legalActClass
+        self.helper_action_player = lambda x: self.donothing_act
+
+    def _update_actions(self):
+        """
+        Retrieve the actions to perform the update of the underlying powergrid represented by
+         the :class:`grid2op.Backend`in the next time step.
+        A call to this function will also read the next state of :attr:`chronics_handler`, so it must be called only
+        once per time step.
+
+        Returns
+        --------
+        res: :class:`grid2op.Action.Action`
+            The action representing the modification of the powergrid induced by the Backend.
+        """
+        # TODO consider disconnecting maintenance forecasted :-)
+        # This "environment" doesn't modify anything
+        return self.donothing_act
 
     def copy(self):
         """
@@ -195,7 +236,7 @@ class ObsEnv(GridObjects):
 
         Parameters
         ----------
-        action: :class:`grid2op.Action`
+        action: :class:`grid2op.Action.Action`
             The action to test
 
         Returns
@@ -219,43 +260,9 @@ class ObsEnv(GridObjects):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
-        # TODO mimic the whole environment stuff, really have a base class for that...
-        has_error = True
-        is_done = False
-        reward = None
-        is_illegal = False
-        is_ambiguous = False
-
         self.backend.apply_action(self._action)
-        try:
-            self.backend.apply_action(action)
-        except AmbiguousAction:
-            # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
-            # "do nothing"
-            is_ambiguous = True
-
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=RuntimeWarning)
-                disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
-            self.current_obs = self.obsClass(gridobj=self.backend,
-                                             seed=None,
-                                             obs_env=None,
-                                             action_helper=None)
-            self.current_obs.update(self)
-            has_error = False
-
-        except Grid2OpException as e:
-            has_error = True
-            reward = self.reward_helper.range()[0]
-
-        self.gen_activeprod_t, *_ = self.backend.generators_info()
-
-        if reward is None:
-            reward = self._get_reward(action, has_error, is_done, is_illegal, is_ambiguous)
-        # set the backend back to its original state
-        # self.backend.apply_action(self._action)
-        return self.current_obs, reward, has_error, {}
+        return self.step(action)
+        # return self.current_obs, reward, has_error, {}
 
     def _get_reward(self, action, has_error, is_done,is_illegal, is_ambiguous):
         if has_error:
@@ -273,6 +280,13 @@ class ObsEnv(GridObjects):
         res: :class:`grid2op.Observation.Observation`
             The observation available.
         """
+
+        self.current_obs = self.obsClass(gridobj=self.backend,
+                                         seed=None,
+                                         obs_env=None,
+                                         action_helper=None)
+
+        self.current_obs.update(self)
         res = self.current_obs
         return res
 
@@ -301,9 +315,10 @@ class ObsEnv(GridObjects):
         self._line_status -= 1  # false -> -1; true -> 1
         self.is_init = False
 
-        # self.backend.apply_action(self._action)
-        # self.backend._pf_init = "auto"  # remove the optimization where the powerflow re used the old value
-        # pdb.set_trace()
+        # TODO get the state of redispatching and other vectors as well
+        # TODO check redispatching and simulate are working as intended
+        # TODO also update the status of hazards, maintenance etc.
+        # TODO and simulate also when a maintenance is forcasted!
 
 
 class Observation(GridObjects):
@@ -1436,10 +1451,18 @@ class ObservationHelper(SerializableObservationSpace):
         # helpers
         self.action_helper_env = env.helper_action_env
         self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
+        self.reward_helper.initialize(env)
 
-        self.obs_env = ObsEnv(backend_instanciated=env.backend, obsClass=self.observationClass,
-                              parameters=env.parameters, reward_helper=self.reward_helper,
-                              action_helper=self.action_helper_env)
+        # TODO here: have another backend maybe
+        self.backend_obs = env.backend.copy()
+
+        self.obs_env = ObsEnv(backend_instanciated=self.backend_obs, obsClass=self.observationClass,
+                              parameters=env.parameters,
+                              reward_helper=self.reward_helper,
+                              action_helper=self.action_helper_env,
+                              thermal_limit_a=self.backend_obs.thermal_limit_a,
+                              legalActClass=env.legalActClass,
+                              donothing_act=env.helper_action_player())
 
         self._empty_obs = self.observationClass(gridobj=self,
                                                 obs_env=self.obs_env,

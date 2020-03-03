@@ -147,17 +147,16 @@ class Parameters:
             raise RuntimeError(msg.format(arg))
         return res
 
-    def _init_from_json(self, dict_):
+    def init_from_dict(self, dict_):
         """
-        Initialize the object given a dictionnary.
+        Initialize the object given a dictionary. All keys are optional. If a key is not present in the dictionnary,
+        the default parameters is used.
+
         Parameters
         ----------
         dict_: ``dict``
-            The dictionnary representing the _parameters to load.
+            The dictionary representing the parameters to load.
 
-        Returns
-        -------
-        ``None``
         """
         if "NO_OVERFLOW_DISCONNECTION" in dict_:
             self.NO_OVERFLOW_DISCONNECTION = Parameters._isok_txt(dict_["NO_OVERFLOW_DISCONNECTION"])
@@ -236,5 +235,5 @@ class Parameters:
         with open(json_path) as f:
             dict_ = json.load(f)
         res = Parameters()
-        res._init_from_json(dict_)
+        res.init_from_dict(dict_)
         return res
