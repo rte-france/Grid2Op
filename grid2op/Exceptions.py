@@ -358,3 +358,8 @@ class UnitCommitorRedispachingNotAvailable(Grid2OpException):
 class MultiEnvException(Grid2OpException):
     """General exception raised by :class:`grid2Op.MultiEnv.MultiEnvironment` """
     pass
+
+# plot error
+class PlotError(Grid2OpException):
+    """General exception raised by any class that handles plots"""
+    pass

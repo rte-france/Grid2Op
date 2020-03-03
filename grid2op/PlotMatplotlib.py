@@ -31,8 +31,10 @@ import pdb
 
 try:
     from .PlotGraph import BasePlot
-except:
+    from .Exceptions import PlotError
+except (ModuleNotFoundError, ImportError):
     from PlotGraph import BasePlot
+    from Exceptions import PlotError
 
 try:
     import matplotlib.pyplot as plt
@@ -50,65 +52,20 @@ from grid2op.PlotGraph import BasePlot
 
 class GetLayout(BasePlot):
     """
-    This class aims at simplifying the representation of an observation as a plotly object given a layout of a given
-    powergrid substation.
-    It "automatically" handles the positionning of the powerlines, loads and generators based on that.
+    This class aims at simplifying the representation of the grid using matplotlib graphical libraries.
 
-    This class is just here as an inspection tool. The results can be of course improved, epsecially the label of the
-    powerlines, or the ppositioning of the loads and generators.
-
-    Attributes
-    ----------
-    _layout: ``dict``
-        Initial layout of the powergrid.
-
-    subs_elements: ``list``
-        For each substation, it gives a representation of all the object connected to it. So, for each substation, it
-        has a dictionnary with:
-
-            - key: the name of the objects
-            - value: a dictionnary representing this object containing:
-
-                - "type" : its type, among "load", "gen" and "line"
-                - "sub_pos" (``int``) and index representing which element of the substation represents this object
-                - "pos" : its position as a tuple
-                - "z": its position as a complex number
-
-    cols: ``object``
-        A color palette, this should not be changed for now.
-
-    radius_sub: ``float``
-        The radius of each substation. The bigger this number, the better the topology will be visible, but the more
-        space taken on the overall plot
-
-    load_prod_dist: ``float``
-        The distance between a load and a generator from the center of the substation. This must be higher than
-        :attr:`PlotObs.radius_sub`
-
-    bus_radius: ``float``
-        The radius of the bus. When multiple buses are present in a substation, they are materialized by a filled
-        circle. This number represents the size of these circles.
-
-
+    It can be used to inspect position of elements, or to project some static data on this plot. It can be usefull
+    to have a look at the thermal limit or the maximum value produced by generators etc.
 
     """
 
-    def __init__(self, substation_layout, observation_space,
+    def __init__(self,
+                 substation_layout,
+                 observation_space,
                  radius_sub=25.,
                  load_prod_dist=70.,
                  bus_radius=4.,
                  alpha_obj=0.3):
-        """
-
-        Parameters
-        ----------
-        substation_layout: ``list``
-            List of tupe given the position of each of the substation of the powergrid.
-
-        observation_space: :class:`grid2op.Observation.ObservationHelper`
-            Observation space
-
-        """
         BasePlot.__init__(self,
                           substation_layout=substation_layout,
                           observation_space=observation_space,
@@ -127,6 +84,10 @@ class GetLayout(BasePlot):
         self.col_gen = "g"
 
     def plot_layout(self):
+        """
+        This function plot the layout of the grid, as well as the object. You will see the name of each elements and
+        their id.
+        """
         fig, ax = plt.subplots(1, 1, figsize=(15, 15))
 
         legend_help = [Line2D([0], [0], color=self.col_line, lw=4),
@@ -150,10 +111,28 @@ class GetLayout(BasePlot):
 
     def plot_info(self, line_info=None, load_info=None, gen_info=None, sub_info=None,
                   colormap=None):
+
         """
+        Plot some information on the powergrid. For now, only numeric data are supported.
+
+        Parameters
+        ----------
+        line_info: ``list``
+            information to be displayed in the powerlines, in place of their name and id (for example their
+            thermal limit) [must have the same size as the number of powerlines]
+        load_info: ``list``
+            information to display in the generators, in place of their name and id
+            [must have the same size as the number of loads]
+        gen_info: ``list``
+            information to display in the generators, in place of their name and id (for example their pmax)
+            [must have the same size as the number of generators]
+        sub_info: ``list``
+            information to display in the substation, in place of their name and id (for example the number of
+            different topologies possible at this substation) [must have the same size as the number of substations]
+
         colormap: ``str``
             If not None, one of "line", "load", "gen" or "sub". If None, default colors will be used for each
-            elements.
+            elements (default color is the coloring of
             If not None, all elements will be black, and the selected element will be highlighted.
 
         """
@@ -169,24 +148,36 @@ class GetLayout(BasePlot):
         texts_line = None
         if line_info is not None:
             texts_line = ["{:.2f}".format(el) if el is not None else None for el in line_info]
+            if len(texts_line) != self.n_line:
+                raise PlotError("Impossible to display these information on the powerlines: there are {} elements"
+                                "provided while {} powerlines on this grid".format(len(texts_line), self.n_line))
         self._draw_powerlines(ax, texts_line, colormap=colormap)
 
         # draw substation
         texts_sub = None
         if sub_info is not None:
             texts_sub = ["{:.2f}".format(el) if el is not None else None for el in sub_info]
+            if len(texts_sub) != self.n_sub:
+                raise PlotError("Impossible to display these information on the substations: there are {} elements"
+                                "provided while {} substations on this grid".format(len(texts_sub), self.n_sub))
         self._draw_subs(ax, texts_sub, colormap=colormap)
 
         # draw loads
         texts_load = None
         if load_info is not None:
             texts_load = ["{:.2f}".format(el) if el is not None else None for el in load_info]
+            if len(texts_load) != self.n_load:
+                raise PlotError("Impossible to display these information on the loads: there are {} elements"
+                                "provided while {} loads on this grid".format(len(texts_load), self.n_load))
         self._draw_loads(ax, texts_load, colormap=colormap)
 
         # draw gens
         texts_gen = None
         if gen_info is not None:
             texts_gen = ["{:.2f}".format(el) if el is not None else None for el in gen_info]
+            if len(texts_gen) != self.n_gen:
+                raise PlotError("Impossible to display these information on the generators: there are {} elements"
+                                "provided while {} generators on this grid".format(len(texts_gen), self.n_gen))
         self._draw_gens(ax, texts_gen, colormap=colormap)
 
         if colormap is None:
@@ -215,16 +206,18 @@ class GetLayout(BasePlot):
             pos_or, pos_ex, *_ = self._get_line_coord(line_id)
             ax.plot([pos_or[0], pos_ex[0]], [pos_or[1], pos_ex[1]],
                     color=this_col, alpha=self.alpha_obj)
-            ax.text((pos_or[0] + pos_ex[0]) * 0.5,
-                    (pos_or[1] + pos_ex[1]) * 0.5,
-                    text,
-                    color=this_col,
-                    horizontalalignment='center',
-                    verticalalignment='center')
+            if text is not None:
+                ax.text((pos_or[0] + pos_ex[0]) * 0.5,
+                        (pos_or[1] + pos_ex[1]) * 0.5,
+                        text,
+                        color=this_col,
+                        horizontalalignment='center',
+                        verticalalignment='center')
 
     def _draw_subs(self, ax, texts=None, colormap=None):
         colormap_ = lambda x: self.col_sub
-        vals = [0. for _ in range(self.n_line)]
+        vals = [0. for _ in self._layout["substations"]]
+
         if texts is not None:
             vals = [float(text if text is not None else 0.) for text in texts]
 
@@ -234,7 +227,6 @@ class GetLayout(BasePlot):
                 colormap_ = plt.get_cmap("Reds")
                 vals = self._get_vals(vals)
 
-        vals = [0. for _ in self._layout["substations"]]
         if texts is not None:
             vals = [float(text if text is not None else 0.) for text in texts]
 
@@ -247,12 +239,13 @@ class GetLayout(BasePlot):
                 this_col = colormap_(vals[sub_id])
             sub_circ = plt.Circle(center, self.radius_sub, color=this_col, fill=False, alpha=self.alpha_obj)
             ax.add_artist(sub_circ)
-            ax.text(center[0],
-                    center[1],
-                    text,
-                    color=this_col,
-                    horizontalalignment='center',
-                    verticalalignment='center')
+            if text is not None:
+                ax.text(center[0],
+                        center[1],
+                        text,
+                        color=this_col,
+                        horizontalalignment='center',
+                        verticalalignment='center')
 
     def _draw_loads(self, ax, texts=None, colormap=None):
         colormap_ = lambda x: self.col_load
@@ -273,16 +266,27 @@ class GetLayout(BasePlot):
             else:
                 text = texts[c_id]
                 this_col = colormap_(float(text if text is not None else 0.))
+
             pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(c_id)
             ax.plot([pos_load_sub[0], pos_load.real],
                     [pos_load_sub[1], pos_load.imag],
                     color=this_col, alpha=self.alpha_obj)
-            ax.text(pos_load.real,
-                    pos_load.imag,
-                    text,
-                    color=this_col,
-                    horizontalalignment=how_center.split('|')[1],
-                    verticalalignment="bottom" if how_center.split('|')[0] == "up" else "top")
+            if text is not None:
+                verticalalignment = self._getverticalalignment(how_center)
+                ax.text(pos_load.real,
+                        pos_load.imag,
+                        text,
+                        color=this_col,
+                        horizontalalignment=how_center.split('|')[1],
+                        verticalalignment=verticalalignment)
+
+    def _getverticalalignment(self, how_center):
+        verticalalignment = "center"
+        if how_center.split('|')[0] == "up":
+            verticalalignment = "bottom"
+        elif how_center.split('|')[0] == "down":
+            verticalalignment = "top"
+        return verticalalignment
 
     def _get_vals(self, vals):
         min_ = np.min(vals)
@@ -317,9 +321,11 @@ class GetLayout(BasePlot):
             ax.plot([pos_gen_sub[0], pos_gen.real],
                     [pos_gen_sub[1], pos_gen.imag],
                     color=this_col, alpha=self.alpha_obj)
-            ax.text(pos_gen.real,
-                    pos_gen.imag,
-                    text,
-                    color=this_col,
-                    horizontalalignment=how_center.split('|')[1],
-                    verticalalignment="bottom" if how_center.split('|')[0] == "up" else "top")
+            if text is not None:
+                verticalalignment = self._getverticalalignment(how_center)
+                ax.text(pos_gen.real,
+                        pos_gen.imag,
+                        text,
+                        color=this_col,
+                        horizontalalignment=how_center.split('|')[1],
+                        verticalalignment=verticalalignment)

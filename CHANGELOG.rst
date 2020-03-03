@@ -2,30 +2,26 @@ Change Log
 =============
 [0.6.0] - 2020-xx-yy
 --------------------
-TODO for next version
+TODO for next versions
 
-
-- [???] fix the bug in the notebook of case5_example with the layout of the 2 buses
-- [???] refactoring env and obs_env
-- [???] better explanation of the notebook 3 with action silently
-- [???] do something to help grid2viz to parse back action.
+- [???] include grid2Viz in a notebook (the notebook "StudyYourAgent")
+- [???] add the "anti-agent"
+- [???] rationalize the public and private part of the API. Some members now are public but should be private.
+- [???] rationalize the names of plotting utilities
 - [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
+- [???] do something to help grid2viz to parse back action.
+- [???] better explanation of the notebook 3 with action silently
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
-- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
-- [???] add the "anti-agent"
-- [???] Implement redispatching in simulate
 - [???] simulate in MultiEnv
 - [???] add a "max_iter" in the runner.
-- [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] fast implementation of "replay" using PlotPygame and EpisodeData
-- [???] add the "prod_charac.csv" for the test environment "case14_test"
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
-- [???] include grid2Viz in a notebook (the notebook "StudyYourAgent")
+- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
-[0.5.7] - 2020-02-xx
+[0.5.7] - 2020-03-03
 --------------------
 - [ADDED] a new environment with consistant voltages based on the case14 grid of pandapower (`case14_relistic`)
 - [ADDED] a function to get the name on the element of the graphical representation.
@@ -36,6 +32,9 @@ TODO for next version
 - [ADDED] improved method to limit the episode length in chronics handler.
 - [ADDED] a method to project some data on the layout of the grid (`GetLayout.plot_info`)
 - [FIXED] a bug in the simulated reward (it was not initialized properly)
+- [FIXED] add the "prod_charac.csv" for the test environment `case14_test`, `case14_redisp`, `case14_realistic` and
+  `case5_example`
+- [FIXED] fix the display bug in the notebook of the l2rpn starting kit with the layout of the 2 buses
 - [UPDATED] now attaching the layout metadata directly into the environment
 - [UPDATED] `obs.simulate` now has the same code as `env.step` this include the same signature and the
   possibility to simulate redispatching actions as well.
@@ -44,6 +43,8 @@ TODO for next version
   observation is loaded (usable without observation)
 - [UPDATED] new default environment (`case14_relistic`)
 - [UPDATED] data for the new created environment.
+- [UPDATED] implement redispatching action in `obs.simulate`
+- [UPDATED] refactoring `Environment` and `ObsEnv` to inherit from the same base class.
 
 [0.5.6] - 2020-02-25
 --------------------

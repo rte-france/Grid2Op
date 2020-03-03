@@ -1408,12 +1408,13 @@ class Action(GridObjects):
 
     def impact_on_objects(self):
         """
-        This will return a dictionary which contains details on objects that will be impacted by the action
+        This will return a dictionary which contains details on objects that will be impacted by the action.
 
          Returns
         -------
         dict: :class:`dict`
             The dictionary representation of an action impact on objects
+
         """
         # TODO: include redispatching 
          

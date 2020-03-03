@@ -285,7 +285,7 @@ class Environment(_BasicEnv):
         if self._thermal_limit_a is None:
             self._thermal_limit_a = self.backend.thermal_limit_a
         else:
-            self.backend.set_thermal_limit(thermal_limit_a)
+            self.backend.set_thermal_limit(self._thermal_limit_a)
 
         *_, tmp = self.backend.generators_info()
 
@@ -672,7 +672,7 @@ class Environment(_BasicEnv):
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["path_chron"] = self.chronics_handler.path
-        res["parameters_path"] = self.parameters.to_dict() # TODO
+        res["parameters_path"] = self.parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
         res["actionClass"] = self.actionClass
         res["observationClass"] = self.observationClass

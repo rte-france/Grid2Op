@@ -400,6 +400,9 @@ class Runner(object):
         elif isinstance(parameters_path, dict):
             self.parameters = Parameters()
             self.parameters.init_from_dict(parameters_path)
+        elif parameters_path is None:
+            self.parameters_path = parameters_path
+            self.parameters = Parameters()
         else:
             raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either"
                                "be a string or a dictionary.")

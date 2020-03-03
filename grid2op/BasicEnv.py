@@ -83,6 +83,11 @@ class _BasicEnv(GridObjects, ABC):
 
         self._thermal_limit_a = thermal_limit_a
 
+        # maintenance / hazards
+        self.time_next_maintenance = None
+        self.duration_next_maintenance = None
+        self.time_remaining_before_reconnection = None
+
         # store environment modifications
         self._injection = None
         self._maintenance = None
@@ -138,6 +143,12 @@ class _BasicEnv(GridObjects, ABC):
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
+
+        # initialize maintenance / hazards
+        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+
         self._reset_redispatching()
         self.__is_init = True
 
@@ -204,7 +215,7 @@ class _BasicEnv(GridObjects, ABC):
     @staticmethod
     def _get_t(tmp_p, pmin, pmax, total_dispatch):
         # to_dispatch = too_much.sum() + not_enough.sum()
-        p_0, p_1, p_2 = BasicEnv._get_poly_coeff(tmp_p, pmin, pmax)
+        p_0, p_1, p_2 = _BasicEnv._get_poly_coeff(tmp_p, pmin, pmax)
 
         res = np.roots((p_2, p_1, p_0-(total_dispatch)))
         res = res[np.isreal(res)]

@@ -44,6 +44,7 @@ Plotting capabilities
    pltgraph
    pltplotly
    pltpygame
+   pltmatplotlib
 
 Technical Documentation
 ----------------------------
