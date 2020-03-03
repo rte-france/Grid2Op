@@ -613,5 +613,6 @@ class TestObservationMaintenance(unittest.TestCase):
         assert np.all(obs.duration_next_maintenance == np.array([ 0,  0,  0,  0, 11,  0, 12,  0,  0,  0,  0,  0,  0,
                                                                   0,  0,  0,  0, 0,  0,  0]))
 
+
 if __name__ == "__main__":
     unittest.main()

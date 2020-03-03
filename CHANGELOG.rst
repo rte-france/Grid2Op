@@ -35,6 +35,9 @@ TODO for next version
   (`issue 21 <https://github.com/rte-france/Grid2Op/issues/21>`_)
 - [ADDED] improved method to limit the episode length in chronics handler.
 - [ADDED] a method to project some data on the layout of the grid (`GetLayout.plot_info`)
+- [FIXED] a bug in the simulated reward (it was not initialized properly)
+- [UPDATED] `obs.simulate` now has the same code as `env.step` this include the same signature and the
+  possibility to simulate redispatching actions as well.
 - [UPDATED] Notebook 6 to train agent more efficiently (example: prediction of actions in batch)
 - [UPDATED] PlotGraph to derive from `GridObjects` allowing to be inialized at creation and not when first
   observation is loaded (usable without observation)
