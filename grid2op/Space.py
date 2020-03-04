@@ -1040,7 +1040,6 @@ class GridObjects:
                     except Exception as e:
                         raise InvalidRedispatching("{} should be convertible data should be convertible to "
                                                    "{}".format(el, type_))
-
             if np.any(self.gen_max_ramp_up[self.gen_redispatchable] > self.gen_pmax[self.gen_redispatchable]):
                 raise InvalidRedispatching("Invalid maximum ramp for some generator (above pmax)")
 

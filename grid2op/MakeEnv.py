@@ -28,7 +28,7 @@ try:
     from .Backend import Backend
     from .BackendPandaPower import PandaPowerBackend
     from .Parameters import Parameters
-    from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
+    from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
     from .Action import Action, TopologyAction, TopoAndRedispAction
     from .Exceptions import *
     from .Observation import CompleteObservation, Observation
@@ -46,7 +46,7 @@ except (ModuleNotFoundError, ImportError):
     from Backend import Backend
     from BackendPandaPower import PandaPowerBackend
     from Parameters import Parameters
-    from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue
+    from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
     from Action import Action, TopologyAction, TopoAndRedispAction
     from Exceptions import *
     from Observation import CompleteObservation, Observation
@@ -250,6 +250,9 @@ def make(name_env="case14_realistic", **kwargs):
         The type of chronics that represents the dynamics of the Environment created. Usually they come from different
         folders.
 
+    data_feeding: ``type``, optional
+        The type of chronics handler you want to use.
+
     chronics_path: ``str``
         Path where to look for the chronics dataset.
 
@@ -293,9 +296,9 @@ def make(name_env="case14_realistic", **kwargs):
                                      msg_error=msg_error)
 
     # bulid the default parameters for each case file
-    defaultinstance_chronics_kwargs = {}
     data_feeding_default_class = ChronicsHandler
     gamerules_class = AllwaysLegal
+    defaultinstance_chronics_kwargs = {}
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
         if chronics_path == '':
@@ -375,10 +378,19 @@ def make(name_env="case14_realistic", **kwargs):
         default_action_class = TopoAndRedispAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules
+    elif name_env.lower() == "blank":
+        default_name_converter = {}
+        default_grid_path = ""
+        default_action_class = TopologyAction
+        default_reward_class = L2RPNReward
+        gamerules_class = AllwaysLegal
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
                          "(default), \"case5_example\", \"case14_redisp\", \"case14_realistic\" "
                          "and \"l2rpn_2019\"".format(name_env))
+
+    if "chronicsClass" not in defaultinstance_chronics_kwargs:
+        defaultinstance_chronics_kwargs["chronicsClass"] = ChangeNothing
 
     # extract powergrid dependant parameters
     ## type of rules of the game (mimic the operationnal constraints)
@@ -421,14 +433,27 @@ def make(name_env="case14_realistic", **kwargs):
     msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding_kwargs\")"
     msg_error += " should be a dictionnary."
     data_feeding_kwargs = _get_default_aux("data_feeding_kwargs", kwargs,
-                                 defaultClassApp=dict, defaultinstance=defaultinstance_chronics_kwargs,
-                                 msg_error=msg_error)
-
+                                           defaultClassApp=dict,
+                                           defaultinstance=defaultinstance_chronics_kwargs,
+                                           msg_error=msg_error)
+    for el in defaultinstance_chronics_kwargs:
+        if not el in data_feeding_kwargs:
+            data_feeding_kwargs[el] = defaultinstance_chronics_kwargs[el]
 
     ### the chronics generator
     msg_error = "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
+    msg_error += " should be a class that inherit grid2op.ChronicsHandler.GridValue."
+    chronics_class_used = _get_default_aux("chronics_class", kwargs,
+                                    defaultClassApp=GridValue,
+                                    defaultClass=data_feeding_kwargs["chronicsClass"],
+                                    msg_error=msg_error,
+                                    isclass=True)
+    data_feeding_kwargs["chronicsClass"] = chronics_class_used
+
+    ### the chronics generator
+    msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding\")"
     msg_error += " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler."
-    data_feeding = _get_default_aux("chronics_class", kwargs,
+    data_feeding = _get_default_aux("data_feeding", kwargs,
                                     defaultClassApp=ChronicsHandler,
                                     defaultClass=data_feeding_default_class,
                                     build_kwargs=data_feeding_kwargs,

@@ -31,6 +31,7 @@ try:
     from .Parameters import Parameters
     from .Agent import DoNothingAgent, Agent
     from .EpisodeData import EpisodeData
+    from ._utils import _FakePbar
 
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -45,6 +46,7 @@ except (ModuleNotFoundError, ImportError):
     from Parameters import Parameters
     from Agent import DoNothingAgent, Agent
     from EpisodeData import EpisodeData
+    from _utils import _FakePbar
 
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
@@ -231,7 +233,8 @@ class Runner(object):
                  agentInstance=None,
                  verbose=False,
                  gridStateclass_kwargs={},
-                 thermal_limit_a=None
+                 thermal_limit_a=None,
+                 max_iter=-1
                  ):
         """
         Initialize the Runner.
@@ -410,6 +413,9 @@ class Runner(object):
         # chronics of grid state
         self.path_chron = path_chron
         self.gridStateclass_kwargs = gridStateclass_kwargs
+        self.max_iter = max_iter
+        if max_iter > 0:
+            self.gridStateclass["max_iter"] = max_iter
         self.chronics_handler = ChronicsHandler(chronicsClass=self.gridStateclass,
                                                 path=self.path_chron,
                                                 **self.gridStateclass_kwargs)
@@ -472,7 +478,7 @@ class Runner(object):
         else:
             self.env.reset()
 
-    def run_one_episode(self, indx=0, path_save=None):
+    def run_one_episode(self, indx=0, path_save=None, pbar=False):
         """
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
 
@@ -496,11 +502,11 @@ class Runner(object):
 
         """
         self.reset()
-        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save)
+        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save, pbar=pbar)
         return res
 
     @staticmethod
-    def _run_one_episode(env, agent, logger, indx, path_save=None):
+    def _run_one_episode(env, agent, logger, indx, path_save=None, pbar=False):
         done = False
         time_step = int(0)
         dict_ = {}
@@ -557,6 +563,12 @@ class Runner(object):
         reward = env.reward_range[0]
         done = False
 
+        if pbar:
+            from tqdm import tqdm
+            pbar_ = tqdm(total=nb_timestep_max, desc="step")
+        else:
+            pbar_ = _FakePbar()
+
         while not done:
             beg__ = time.time()
             act = agent.act(obs, reward, done)
@@ -566,10 +578,12 @@ class Runner(object):
             obs, reward, done, info = env.step(act)  # should load the first time stamp
             cum_reward += reward
             time_step += 1
+            pbar_.update(1)
 
             episode.incr_store(efficient_storing, time_step, end__ - beg__,
                                reward, env.env_modification, act, obs, info)
         end_ = time.time()
+        pbar_.close()
 
         episode.set_meta(env, time_step, cum_reward)
 
@@ -590,7 +604,7 @@ class Runner(object):
 
         return name_chron, cum_reward, int(time_step)
 
-    def run_sequential(self, nb_episode, path_save=None):
+    def run_sequential(self, nb_episode, path_save=None, pbar=False):
         """
         This method is called to see how well an agent performed on a sequence of episode.
 
@@ -616,11 +630,19 @@ class Runner(object):
 
         """
         res = [(None, None, None, None, None) for _ in range(nb_episode)]
+        if pbar:
+            from tqdm import tqdm
+            pbar_ = tqdm(total=nb_episode, desc="episode")
+        else:
+            pbar_ = _FakePbar()
         for i in range(nb_episode):
-            name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i)
+            name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i, pbar=pbar)
             id_chron = self.chronics_handler.get_id()
             max_ts = self.chronics_handler.max_timestep()
             res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+            pbar_.update(1)
+
+        pbar_.close()
         return res
 
     @staticmethod
@@ -706,7 +728,7 @@ class Runner(object):
                 res += el
         return res
 
-    def run(self, nb_episode, nb_process=1, path_save=None):
+    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
         1 or :func:`Runner.run_parrallel` if nb_process >= 2.
@@ -743,9 +765,11 @@ class Runner(object):
             if nb_process <= 0:
                 raise RuntimeError(
                     "Impossible to run using less than 1 process.")
+            if max_iter is not None:
+                self.chronics_handler.set_max_iter(max_iter)
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
-                res = self.run_sequential(nb_episode, path_save=path_save)
+                res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar)
             else:
                 self.logger.info("Parrallel runner used.")
                 res = self.run_parrallel(

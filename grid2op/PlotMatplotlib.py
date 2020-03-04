@@ -83,12 +83,12 @@ class GetLayout(BasePlot):
         self.col_load = "k"
         self.col_gen = "g"
 
-    def plot_layout(self):
+    def plot_layout(self, figsize=(15, 15)):
         """
         This function plot the layout of the grid, as well as the object. You will see the name of each elements and
         their id.
         """
-        fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
         legend_help = [Line2D([0], [0], color=self.col_line, lw=4),
                        Line2D([0], [0], color=self.col_sub, lw=4),

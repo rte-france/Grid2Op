@@ -14,12 +14,18 @@ TODO for next versions
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
 - [???] simulate in MultiEnv
-- [???] add a "max_iter" in the runner.
 - [???] fast implementation of "replay" using PlotPygame and EpisodeData
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+
+[0.5.8] - 2020-03-03
+--------------------
+- [ADDED] runner now is able to show a progress bar
+- [ADDED] add a "max_iter" in the runner.
+- [ADDED] a repository in this github for the baseline (work in progress)
+- [UPDATED] add a blank environment for easier use.
 
 [0.5.7] - 2020-03-03
 --------------------
