@@ -13,10 +13,10 @@ import pdb
 
 try:
     from .Space import GridObjects
-    from .Exceptions import Grid2OpException
+    from .Exceptions import PlotError
 except:
     from Space import GridObjects
-    from Exceptions import Grid2OpException
+    from Exceptions import PlotError
 
 
 class BasePlot(GridObjects):
@@ -41,9 +41,12 @@ class BasePlot(GridObjects):
                  load_prod_dist=70.,
                  bus_radius=6.):
         if substation_layout is None:
-            raise Grid2OpException("Impossible to use plotting abilities without specifying a layout (coordinates) "
+            raise PlotError("Impossible to use plotting abilities without specifying a layout (coordinates) "
                                    "of the substations.")
 
+        if len(substation_layout) != observation_space.n_sub:
+            raise PlotError("You provided a layout with {} elements while there are {} substations on the powergrid. "
+                            "Your layout is invalid".format(len(substation_layout), observation_space.n_sub))
         GridObjects.__init__(self)
         self.init_grid(observation_space)
 

@@ -548,13 +548,13 @@ class Runner(object):
                 observations = np.concatenate((observations, obs.to_vect()))
 
         episode = EpisodeData(actions=actions, env_actions=env_actions,
-                          observations=observations,
-                          rewards=rewards, disc_lines=disc_lines, times=times,
-                          observation_space=env.observation_space,
-                          action_space=env.action_space,
-                          helper_action_env=env.helper_action_env,
-                          path_save=path_save, disc_lines_templ=disc_lines_templ,
-                          logger=logger, name=env.chronics_handler.get_name())
+                              observations=observations,
+                              rewards=rewards, disc_lines=disc_lines, times=times,
+                              observation_space=env.observation_space,
+                              action_space=env.action_space,
+                              helper_action_env=env.helper_action_env,
+                              path_save=path_save, disc_lines_templ=disc_lines_templ,
+                              logger=logger, name=env.chronics_handler.get_name())
 
         episode.set_parameters(env)
 
@@ -641,7 +641,6 @@ class Runner(object):
             max_ts = self.chronics_handler.max_timestep()
             res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
             pbar_.update(1)
-
         pbar_.close()
         return res
 

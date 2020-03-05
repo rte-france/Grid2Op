@@ -509,12 +509,14 @@ class PandaPowerBackend(Backend):
                 self.v_or = self._aux_get_line_info("vm_from_pu", "vm_hv_pu")
                 self.a_or = self._aux_get_line_info("i_from_ka", "i_hv_ka") * 1000
                 self.a_or[~np.isfinite(self.a_or)] = 0.
+                self.v_or[~np.isfinite(self.v_or)] = 0.
 
                 self.p_ex = self._aux_get_line_info("p_to_mw", "p_lv_mw")
                 self.q_ex = self._aux_get_line_info("q_to_mvar", "q_lv_mvar")
                 self.v_ex = self._aux_get_line_info("vm_to_pu", "vm_lv_pu")
                 self.a_ex = self._aux_get_line_info("i_to_ka", "i_lv_ka") * 1000
                 self.a_ex[~np.isfinite(self.a_ex)] = 0.
+                self.v_ex[~np.isfinite(self.v_ex)] = 0.
 
                 self.v_or *= self.lines_or_pu_to_kv
                 self.v_ex *= self.lines_ex_pu_to_kv

@@ -25,7 +25,10 @@ TODO for next versions
 - [ADDED] runner now is able to show a progress bar
 - [ADDED] add a "max_iter" in the runner.
 - [ADDED] a repository in this github for the baseline (work in progress)
+- [FIXED] voltages are now set to 0 when the powerline are disconnected, instead of being set to Nan in
+  pandapower backend.
 - [UPDATED] add a blank environment for easier use.
+- [UPDATED] now raise an error if the substations layout does not match the number of substations on the powergrid.
 
 [0.5.7] - 2020-03-03
 --------------------
