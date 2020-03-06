@@ -460,9 +460,14 @@ class Environment(_BasicEnv):
         self.chronics_handler.tell_id(id_-1)
 
     def attach_renderer(self, graph_layout=None):
+        if self.viewer is not None:
+            return
         graph_layout = self.graph_layout if graph_layout is None else graph_layout
-        self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
-        self.viewer.reset(self)
+        if graph_layout is not None:
+            self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
+            self.viewer.reset(self)
+        else:
+            raise PlotError("No layout are available for the powergrid. Renderer is not possible.")
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -586,6 +591,7 @@ class Environment(_BasicEnv):
     def render(self, mode='human'):
         err_msg = "Impossible to use the renderer, please set it up with  \"env.init_renderer(graph_layout)\", " \
                   "graph_layout being the position of each substation of the powergrid that you must provide"
+        self.attach_renderer()
         if mode == "human":
             if self.viewer is not None:
                 has_quit = self.viewer.render(self.current_obs,

@@ -4,7 +4,7 @@ from grid2op.Agent import GreedyAgent, RandomAgent
 import numpy as np
 import pdb
 
-env = grid2op.make("l2rpn_2019", chronics_path="/home/donnotben/Téléchargements/L2RPN_pypownetBundle/G2Op_L2RPN/starting_kit_1/public_data/L2RPN2019_chronics")
+env = grid2op.make("case14_realistic")
 
 class MyExpertAgent(GreedyAgent):
     def __init__(self, action_space):
@@ -101,7 +101,7 @@ class MyExpertAgent(GreedyAgent):
         return res
     
 my_agent = MyExpertAgent(env.action_space)
-my_agent = RandomAgent(env.action_space)
+# my_agent = RandomAgent(env.action_space)
 print("Total unitary action possible: {}".format(my_agent.action_space.n))
       
 all_obs = []
@@ -110,14 +110,14 @@ all_obs.append(obs)
 reward = env.reward_range[0]
 done = False
 nb_step = 0
-graph_layout = [(280, -81), (100, -270), (-366, -270), (-366, -54), (64, -54), (64, 54), (-450, 0), 
-                (-550, 0), (-326, 54), (-222, 108), (-79, 162), (170, 270), (64, 270), (-222, 216)]
-env.attach_renderer(graph_layout)
+# graph_layout = [(280, -81), (100, -270), (-366, -270), (-366, -54), (64, -54), (64, 54), (-450, 0),
+#                 (-550, 0), (-326, 54), (-222, 108), (-79, 162), (170, 270), (64, 270), (-222, 216)]
+# env.attach_renderer(graph_layout)
 while True:
+    env.render()
     action = my_agent.act(obs, reward, done)
     obs, reward, done, _ = env.step(action)
     print("Rendering timestep {}".format(nb_step))
-    env.render()
     if done:
         break
     all_obs.append(obs)

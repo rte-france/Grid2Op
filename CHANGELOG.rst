@@ -14,6 +14,8 @@ TODO for next versions
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
 - [???] simulate in MultiEnv
+- [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
+   it in parrallel and transfer the resulting data.
 - [???] fast implementation of "replay" using PlotPygame and EpisodeData
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
