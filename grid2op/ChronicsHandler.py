@@ -140,7 +140,7 @@ class GridValue(ABC):
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
                  start_datetime=datetime(year=2019, month=1, day=1),
-                 chunksize=None):
+                 chunk_size=None):
         self.time_interval = time_interval
         self.current_datetime = start_datetime
         self.start_datetime = start_datetime
@@ -660,8 +660,9 @@ class ChangeNothing(GridValue):
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
                  start_datetime=datetime(year=2019, month=1, day=1),
-                 chunksize=None):
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime)
+                 chunk_size=None):
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
+                           chunk_size=chunk_size)
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -820,7 +821,8 @@ class GridStateFromFile(GridValue):
             Used to initialize :attr:`GridValue.max_iter`
 
         """
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime)
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
+                           chunk_size=chunk_size)
 
         self.path = path
 
@@ -1518,7 +1520,7 @@ class Multifolder(GridValue):
                  gridvalueClass=GridStateFromFile,
                  sep=";", max_iter=-1,
                  chunk_size=None):
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter)
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, chunk_size=chunk_size)
         self.gridvalueClass = gridvalueClass
         self.data = None
         self.path = os.path.abspath(path)
