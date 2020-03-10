@@ -139,7 +139,8 @@ class GridValue(ABC):
 
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1)):
+                 start_datetime=datetime(year=2019, month=1, day=1),
+                 chunksize=None):
         self.time_interval = time_interval
         self.current_datetime = start_datetime
         self.start_datetime = start_datetime
@@ -658,7 +659,8 @@ class ChangeNothing(GridValue):
     It does nothing exceptie increasing :attr:`GridValue.max_iter` and the :attr:`GridValue.current_datetime`.
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1)):
+                 start_datetime=datetime(year=2019, month=1, day=1),
+                 chunksize=None):
         GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime)
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,

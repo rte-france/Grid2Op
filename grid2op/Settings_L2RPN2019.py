@@ -69,7 +69,9 @@ L2RPN2019_DICT_NAMES = {'loads': {'2_C-10.61': 'load_1_0',
 
 # Names of the csv were not the same
 class ReadPypowNetData(GridStateFromFileWithForecasts):
-    def __init__(self, path, sep=";", time_interval=timedelta(minutes=5), max_iter=-1):
+    def __init__(self, path, sep=";", time_interval=timedelta(minutes=5),
+                 max_iter=-1,
+                 chunksize=None):
         GridStateFromFileWithForecasts.__init__(self, path, sep=sep, time_interval=time_interval, max_iter=max_iter)
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
