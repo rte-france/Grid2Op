@@ -328,7 +328,7 @@ class TestRedispatchChangeNothingEnvironment(unittest.TestCase):
         redispatch_act = self.env.action_space({"redispatch": [(1, 5.)]})
         obs, reward, done, info = self.env.step(redispatch_act)
         
-        assert info['is_dipatching_illegal'] == True
+        assert info['is_dispatching_illegal'] == True
 
 class TestLoadingBackendPandaPower(unittest.TestCase):
     def setUp(self):
