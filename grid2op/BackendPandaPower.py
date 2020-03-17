@@ -24,15 +24,18 @@ try:
     from .Backend import Backend
     from .Action import Action
     from .Exceptions import *
-except ModuleNotFoundError:
-    from Backend import Backend
-    from Action import Action
-    from Exceptions import *
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     from Backend import Backend
     from Action import Action
     from Exceptions import *
 
+try:
+    import numba
+    numba_ = True
+except (ImportError, ModuleNotFoundError):
+    numba_ = False
+    warnings.warn("Numba cannot be loaded. You will gain possibly massive speed if installing it by "
+                  "\n\t{} -m pip install numba\n".format(sys.executable))
 import pdb
 
 
@@ -166,7 +169,7 @@ class PandaPowerBackend(Backend):
         self._iref_slack = None
         self._id_bus_added = None
 
-        pp.runpp(self._grid)
+        pp.runpp(self._grid, numba=numba_)
         if np.all(~self._grid.gen["slack"]):
             # there are not defined slack bus on the data, i need to hack it up a little bit
             pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
@@ -191,7 +194,7 @@ class PandaPowerBackend(Backend):
                           slack=True,
                           controllable=True)
 
-        pp.runpp(self._grid)
+        pp.runpp(self._grid, numba=numba_)
         # this has the effect to divide by 2 the active power in the added generator, if this generator and the "slack bus"
         # one are connected to the same bus.
         # if not, it must not be done. So basically, i create a vector for which p and q for generator must be multiply
@@ -202,9 +205,9 @@ class PandaPowerBackend(Backend):
         self.n_line = copy.deepcopy(self._grid.line.shape[0]) + copy.deepcopy(self._grid.trafo.shape[0])
         self.name_line = ['{from_bus}_{to_bus}_{id_powerline_me}'.format(**row, id_powerline_me=i)
                           for i, (_, row) in enumerate(self._grid.line.iterrows())]
-        transfo =  [('{hv_bus}'.format(**row), '{lv_bus}'.format(**row))
+        transfo = [('{hv_bus}'.format(**row), '{lv_bus}'.format(**row))
                     for i, (_, row) in enumerate(self._grid.trafo.iterrows())]
-        transfo =  [sorted(el) for el in transfo]
+        transfo = [sorted(el) for el in transfo]
         self.name_line += ['{}_{}_{}'.format(*el, i + self._grid.line.shape[0]) for i, el in enumerate(transfo)]
         self.name_line = np.array(self.name_line)
 
@@ -488,7 +491,7 @@ class PandaPowerBackend(Backend):
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = None  # if dc i start normally next time i call an ac powerflow
                 else:
-                    pp.runpp(self._grid, check_connectivity=False, init=self._pf_init)
+                    pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
                     self._nb_bus_before = nb_bus
 
                 if self._grid.res_gen.isnull().values.any():

@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from setuptools import setup
 
 extras = {
@@ -12,10 +14,18 @@ for el in extras:
     all_targets += extras[el]
 extras["all"] = list(set(all_targets))
 
+# try to install numba, not compatible on every platform
+try:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "numba"])
+except subprocess.CalledProcessError:
+    print("Numba is not available for your platform. You could gain massive speed up if you could install it.")
+
 setup(name='Grid2Op',
       version='0.5.7',
       description='An environment that allows to perform powergrid optimization.',
-      long_description='Built with modularity in mind, this package allows to perform the same operations independantly of the software used to compute powerflow or method to generate grid states or forecasts.',
+      long_description='Built with modularity in mind, this package allows to perform the same operations '
+                       'independently of the software used to compute powerflow or method to generate grid '
+                       'states or forecasts.',
       classifiers=[
           'Development Status :: 4 - Beta',
           'Programming Language :: Python :: 3.6',
@@ -33,9 +43,6 @@ setup(name='Grid2Op',
       license='MPL',
       packages=['grid2op'],
       include_package_data=True,
-      # package_data={"": ["./data/chronics/*", "./data/test_multi_chronics/1/*", "./data/test_multi_chronics/2/*",
-      #                    "./data/test_multi_chronics/chronics/*", "./data/test_PandaPower/*",
-      #                    "data/chronics"]},
       install_requires=["numpy", "pandas", "pandapower", "tqdm"],
       extras_require=extras,
       zip_safe=False,

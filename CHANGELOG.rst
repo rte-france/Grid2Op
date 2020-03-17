@@ -32,6 +32,7 @@ TODO for next versions
 - [FIXED] `ReadPypowNetData` does not crash when argument "chunk_size" is provided now.
 - [UPDATED] add a blank environment for easier use.
 - [UPDATED] now raise an error if the substations layout does not match the number of substations on the powergrid.
+- [UPDATE] better handling of system without numba `issue 42 <https://github.com/rte-france/Grid2Op/issues/42>`_)
 
 [0.5.7] - 2020-03-03
 --------------------
