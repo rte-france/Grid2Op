@@ -207,6 +207,11 @@ anything with the help of mybinder:
 # Make the tests
 Some tests (unit test, non regression test etc.) are provided with this package. They are located at grid2op/tests.
 
+Additional packages are required to run the tests:
+```
+pip install -e .[test]
+```
+
 The tests can be performed with the command:
 ```commandline
 cd grid2op/tests

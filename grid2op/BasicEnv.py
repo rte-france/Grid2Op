@@ -745,7 +745,7 @@ class _BasicEnv(GridObjects, ABC):
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,
-                 "is_dipatching_illegal": is_illegal_redisp,
+                 "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
                  "exception": except_}
         self.done = self._is_done(has_error, is_done)
