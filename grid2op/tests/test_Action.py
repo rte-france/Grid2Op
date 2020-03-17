@@ -1,6 +1,7 @@
 # making some test that the backned is working as expected
 import os
 import sys
+import copy
 import unittest
 import json
 import numpy as np
@@ -14,7 +15,6 @@ from GameRules import GameRules
 from Space import GridObjects
 
 
-# TODO test that "twice change" is reset to normal. when i update an action twice, nothing is done.
 # TODO test for all class of Action
 
 # TODO clean the test to have it for all class of actions without recoding everything each time
@@ -236,6 +236,36 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         assert action.effect_on(load_id=1)["set_bus"] == 0
         assert action.effect_on(gen_id=0)["set_bus"] == 0
+
+    def test_update_undo_change_bus(self):
+        # Create dummy change_bus action
+        action = self.helper_action({"change_bus": {"loads_id": [1]}})
+        # Check it is valid
+        assert action.effect_on(load_id=0)["set_bus"] == 0
+        assert action.effect_on(load_id=0)["change_bus"] == False
+        assert action.effect_on(load_id=1)["set_bus"] == 0
+        assert action.effect_on(load_id=1)["change_bus"] == True
+        # Save a copy
+        action_copy = copy.deepcopy(action)
+
+        # Update it
+        action.update({"change_bus": {"loads_id": [1]}})
+        # Check it's updated
+        assert action.effect_on(load_id=0)["set_bus"] == 0
+        assert action.effect_on(load_id=0)["change_bus"] == False
+        assert action.effect_on(load_id=1)["set_bus"] == 0
+        assert action.effect_on(load_id=1)["change_bus"] == False
+
+        # Update back to original
+        action.update({"change_bus": {"loads_id": [1]}})
+        # Check it's updated
+        assert action.effect_on(load_id=0)["set_bus"] == 0
+        assert action.effect_on(load_id=0)["change_bus"] == False
+        assert action.effect_on(load_id=1)["set_bus"] == 0
+        assert action.effect_on(load_id=1)["change_bus"] == True
+
+        # Check it's equal to original
+        assert action == action_copy
 
     def test_update_change_bus_by_dict_obj(self):
         action = self.helper_action({"change_bus": {"loads_id": [1]}})
