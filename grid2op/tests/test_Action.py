@@ -15,12 +15,6 @@ from Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, Po
 from GameRules import GameRules
 from Space import GridObjects
 
-
-# TODO test for all class of Action
-
-# TODO clean the test to have it for all class of actions without recoding everything each time
-
-
 class TestActionBase(ABC):
 
     @abstractmethod
