@@ -1,26 +1,30 @@
 # making some test that the backned is working as expected
 import os
 import sys
+import copy
 import unittest
 import json
 import numpy as np
 import pdb
+from abc import ABC, abstractmethod
 
 import helper_path_test  # usefull to set poperly the sys.path
 
 from Exceptions import *
-from Action import HelperAction, Action
+from Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
 from GameRules import GameRules
 from Space import GridObjects
 
+class TestActionBase(ABC):
 
-# TODO test that "twice change" is reset to normal. when i update an action twice, nothing is done.
-# TODO test for all class of Action
+    @abstractmethod
+    def _action_env_setup(self):
+        pass
 
-# TODO clean the test to have it for all class of actions without recoding everything each time
+    def _skipMissingKey(self, key):
+        if key not in self.authorized_keys:
+            unittest.TestCase.skipTest(self, "Skipped: Missing authorized_key {key}")
 
-
-class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
@@ -51,11 +55,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                           line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
                                           line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]))
         # pdb.set_trace()
-        self.helper_action = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action)
-
-        self.helper_action_env = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action,
-                                              actionClass=Action)
-
         self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
                     'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
                                   'load_7', 'load_8', 'load_9', 'load_10'],
@@ -84,9 +83,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.size_act = 229
 
+        self.helper_action = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.helper_action_env = self._action_env_setup()
+        self.authorized_keys = self.helper_action_env().authorized_keys
+
     def tearDown(self):
+        self.authorized_keys = {}
         pass
-        # self.backend._grid.delete()
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
@@ -122,6 +125,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         :return:
         """
+        self._skipMissingKey('injection')
+
         new_vect = np.random.randn(self.helper_action.n_load)
         action = self.helper_action({"injection": {"load_p": new_vect}})
         self.compare_vect(action._dict_inj["load_p"], new_vect)
@@ -133,6 +138,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         :return:
         """
+        self._skipMissingKey('injection')
+
         new_vect = np.random.randn(self.helper_action.n_gen)
         action = self.helper_action({"injection": {"prod_v": new_vect}})
         self.compare_vect(action._dict_inj["prod_v"], new_vect)
@@ -144,6 +151,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         :return:
         """
+        self._skipMissingKey('injection')
+
         new_vect = np.random.randn(self.helper_action.n_load)
         new_vect2 = np.random.randn(self.helper_action.n_load)
         action = self.helper_action({"injection": {"load_p": new_vect, "load_q": new_vect2}})
@@ -158,6 +167,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         Test if the disconnection is working properly
         :return:
         """
+        self._skipMissingKey('set_line_status')
+
         for i in range(self.helper_action.n_line):
             disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=np.int)
             disco[i] = 1
@@ -171,6 +182,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         Test if the disconnection is working properly
         :return:
         """
+        self._skipMissingKey('set_line_status')
+
         for i in range(self.helper_action.n_line):
             disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=np.int)
             disco[i] = -1
@@ -184,6 +197,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         Same test as above, but with hazard
         :return:
         """
+        self._skipMissingKey('hazards')
+
         for i in range(self.helper_action.n_line):
             disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=np.bool)
             disco[i] = True
@@ -194,6 +209,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_status(self):
+        self._skipMissingKey('change_line_status')
+
         for i in range(self.helper_action.n_line):
             disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=np.bool)
             disco[i] = True
@@ -204,6 +221,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                 assert action.effect_on(line_id=j)["change_line_status"] == expected_res
 
     def test_update_set_topo_by_dict_obj(self):
+        self._skipMissingKey('set_bus')
+
         action = self.helper_action({"set_bus": {"loads_id": [(1, 3)]}})
         assert action.effect_on(load_id=1)["set_bus"] == 3
         assert action.effect_on(load_id=1)["change_bus"] == False
@@ -211,6 +230,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action.effect_on(load_id=0)["change_bus"] == False
 
     def test_update_set_topo_by_dict_sub(self):
+        self._skipMissingKey('set_bus')
+
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["set_bus_or"] == 1
@@ -224,6 +245,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action.effect_on(gen_id=0)["set_bus"] == 0
 
     def test_update_set_topo_by_dict_sub2(self):
+        self._skipMissingKey('set_bus')
+
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         arr3 = np.array([1, 2, 1, 2, 1, 2], dtype=np.int)
         action = self.helper_action({"set_bus": {"substations_id": [(3, arr3), (1, arr)]}})
@@ -237,7 +260,41 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action.effect_on(load_id=1)["set_bus"] == 0
         assert action.effect_on(gen_id=0)["set_bus"] == 0
 
+    def test_update_undo_change_bus(self):
+        self._skipMissingKey('change_bus')
+
+        # Create dummy change_bus action
+        action = self.helper_action({"change_bus": {"loads_id": [1]}})
+        # Check it is valid
+        assert action.effect_on(load_id=0)["set_bus"] == 0
+        assert action.effect_on(load_id=0)["change_bus"] == False
+        assert action.effect_on(load_id=1)["set_bus"] == 0
+        assert action.effect_on(load_id=1)["change_bus"] == True
+        # Save a copy
+        action_copy = copy.deepcopy(action)
+
+        # Update it
+        action.update({"change_bus": {"loads_id": [1]}})
+        # Check it's updated
+        assert action.effect_on(load_id=0)["set_bus"] == 0
+        assert action.effect_on(load_id=0)["change_bus"] == False
+        assert action.effect_on(load_id=1)["set_bus"] == 0
+        assert action.effect_on(load_id=1)["change_bus"] == False
+
+        # Update back to original
+        action.update({"change_bus": {"loads_id": [1]}})
+        # Check it's updated
+        assert action.effect_on(load_id=0)["set_bus"] == 0
+        assert action.effect_on(load_id=0)["change_bus"] == False
+        assert action.effect_on(load_id=1)["set_bus"] == 0
+        assert action.effect_on(load_id=1)["change_bus"] == True
+
+        # Check it's equal to original
+        assert action == action_copy
+
     def test_update_change_bus_by_dict_obj(self):
+        self._skipMissingKey('change_bus')
+
         action = self.helper_action({"change_bus": {"loads_id": [1]}})
         assert action.effect_on(load_id=1)["set_bus"] == 0
         assert action.effect_on(load_id=1)["change_bus"] == True
@@ -245,6 +302,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action.effect_on(load_id=0)["change_bus"] == False
 
     def test_update_change_bus_by_dict_sub(self):
+        self._skipMissingKey('change_bus')
+
         arr = np.array([True, True, True, False, False, False], dtype=np.bool)
         action = self.helper_action({"change_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["change_bus_or"] == True
@@ -258,6 +317,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action.effect_on(gen_id=0)["change_bus"] == False
 
     def test_update_change_bus_by_dict_sub2(self):
+        self._skipMissingKey('change_bus')
+
         arr = np.array([True, True, True, False, False, False], dtype=np.bool)
         arr3 = np.array([True, False, True, False, True, False], dtype=np.bool)
         action = self.helper_action({"change_bus": {"substations_id": [(3, arr3), (1, arr)]}})
@@ -272,6 +333,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action.effect_on(gen_id=0)["change_bus"] == False
 
     def test_ambiguity_topo(self):
+        self._skipMissingKey('change_bus')
+
         action = self.helper_action({"change_bus": {"lines_or_id": [1]}})  # i switch the bus of the origin of powerline 1
         action.update({"set_bus": {"lines_or_id": [(1,1)]}})  # i set the origin of powerline 1 to bus 1
         try:
@@ -281,6 +344,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
             pass
 
     def test_ambiguity_line_status_when_set_and_change(self):
+        self._skipMissingKey('set_line_status')
+        self._skipMissingKey('change_line_status')
+
         arr = np.zeros(self.helper_action.n_line)
         arr[1] = -1
         action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "disconnected"
@@ -292,6 +358,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
             pass
 
     def test_ambiguity_line_reconnected_without_bus(self):
+        self._skipMissingKey('set_line_status')
+
         arr = np.zeros(self.helper_action.n_line)
         arr[1] = 1
         action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "connected"
@@ -307,6 +375,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         :return:
         """
+        self._skipMissingKey('set_bus')
+
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_=2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
@@ -324,6 +394,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         :return:
         """
+        self._skipMissingKey('set_bus')
+        self._skipMissingKey('hazards')
+
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
@@ -334,6 +407,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action.effect_on(line_id=id_)["set_bus_ex"] == 0
 
     def test_action_str(self):
+        self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
+
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
@@ -351,6 +427,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert res == act_str
 
     def test_to_vect(self):
+        self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
+
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
@@ -382,6 +461,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(np.isfinite(res) == np.isfinite(tmp))
 
     def test__eq__(self):
+        self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
+
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
@@ -395,6 +477,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert action1 != action3
 
     def test_from_vect(self):
+        self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
+
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
@@ -415,6 +500,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
 
     def test_call_change_set(self):
+        self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
+        self._skipMissingKey('set_line_status')
+        self._skipMissingKey('change_line_status')
+        self._skipMissingKey('injection')
+
+
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
@@ -460,6 +552,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(switcth_topo_vect == change_topo_vect_orig)
 
     def test_get_topological_impact(self):
+        self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
+        self._skipMissingKey('set_line_status')
+        self._skipMissingKey('change_line_status')
+
         id_1 = 1
         id_2 = 12
         id_line = 17
@@ -585,9 +682,44 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert act.shape().shape == act.dtype().shape
 
     def test_redispatching(self):
+        self._skipMissingKey('redispatch')
+
         act = self.helper_action_env({"redispatch": [1, 10]})
         act = self.helper_action_env({"redispatch": [(1, 10), (2, 100)]})
         act = self.helper_action_env({"redispatch": np.array([10, 20, 30, 40, 50])})
+
+
+class TestAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the Action class
+    """
+
+    def _action_env_setup(self):
+        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=Action)
+
+class TestTopologyAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologyAction class
+    """
+
+    def _action_env_setup(self):
+        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
+
+class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologyAndRedisp class
+    """
+
+    def _action_env_setup(self):
+        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
+
+class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerLineSet class
+    """
+
+    def _action_env_setup(self):
+        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
 
 if __name__ == "__main__":
     unittest.main()
