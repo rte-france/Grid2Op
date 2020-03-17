@@ -248,19 +248,20 @@ class TestRedispatch(unittest.TestCase):
         assert np.all(obs.prod_p[:-1] >= self.env.gen_pmin[:-1])
 
     def test_redispacth_non_dispatchable_generator(self):
-        """ Cannot dispatch a non dispatchable generator """
+        """ Dispatch a non redispatchable generator is ambiguous """
         act = self.env.action_space()
         obs, reward, done, info = self.env.step(act)
 
-        # Generator 0 is non-dispatchable
+        # Check that generator 0 isn't redispatchable
+        assert self.env.gen_redispatchable[0] == False
         # Check that generator 0 is off
         assert self.env.gen_downtime[0] >= 1
 
         # Try to redispatch
         redispatch_act = self.env.action_space({"redispatch": [(0, 5.)]})
         obs, reward, done, info = self.env.step(redispatch_act)
-        assert done == True
 
+        assert info['is_ambiguous'] == True
 
 class TestRedispatchChangeNothingEnvironment(unittest.TestCase):
     def setUp(self):
@@ -310,11 +311,15 @@ class TestRedispatchChangeNothingEnvironment(unittest.TestCase):
         self.env.close()
 
     def test_redispatch_generator_off(self):
-        """ Redispatch a turned off generator should terminate """
+        """ Redispatch a turned off generator is illegal """
 
         # Step into simulation once
         nothing_act = self.env.action_space()
         obs, reward, done, info = self.env.step(nothing_act)
+
+        # Check that generator 1 is redispatchable                                                                     
+        assert self.env.gen_redispatchable[1] == True
+        
         # Check that generator 1 is off
         assert obs.prod_p[1] == 0
         assert self.env.gen_downtime[1] >= 1
@@ -323,8 +328,7 @@ class TestRedispatchChangeNothingEnvironment(unittest.TestCase):
         redispatch_act = self.env.action_space({"redispatch": [(1, 5.)]})
         obs, reward, done, info = self.env.step(redispatch_act)
         
-        assert done == True
-        
+        assert info['is_dipatching_illegal'] == True
 
 class TestLoadingBackendPandaPower(unittest.TestCase):
     def setUp(self):
