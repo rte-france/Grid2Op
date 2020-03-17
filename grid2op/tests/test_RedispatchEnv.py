@@ -335,6 +335,8 @@ class TestRedispTooLowHigh(HelperTests):
         # i don't want to be bother by ramps in these test (note that is NOT recommended to change that)
         self.env.gen_max_ramp_down[:] = 5000
         self.env.gen_max_ramp_up[:] = 5000
+        self.msg_ = 'Grid2OpException AmbiguousAction InvalidRedispatching NotEnoughGenerators "Attempt to use a ' \
+               'redispatch action that does not sum to 0., but a'
 
     def tearDown(self):
         self.env.close()
@@ -373,9 +375,7 @@ class TestRedispTooLowHigh(HelperTests):
             {"redispatch": [(0, 4.9999784936326535), (1, 4.78524395611872), (4, -9.999591852954794)]})
         obs, reward, done, info = self.env.step(act)
         assert info["is_dispatching_illegal"]
-        msg_ = 'Grid2OpException AmbiguousAction InvalidRedispatching NotEnoughGenerators "Attempt to use a ' \
-               'redispatch action that does not sum to 0., but a'
-        assert info["exception"][0].__str__()[:140] == msg_
+        assert info["exception"][0].__str__()[:140] == self.msg_
 
     def test_error_message_notzerosum_threesteps(self):
 
@@ -390,9 +390,7 @@ class TestRedispTooLowHigh(HelperTests):
         act = self.env.action_space({"redispatch": [(4, -9.999591852954794)]})
         obs, reward, done, info = self.env.step(act)
         assert info["is_dispatching_illegal"]
-        msg_ = 'Grid2OpException AmbiguousAction InvalidRedispatching NotEnoughGenerators "Attempt to use a ' \
-               'redispatch action that does not sum to 0., but a'
-        assert info["exception"][0].__str__()[:140] == msg_
+        assert info["exception"][0].__str__()[:140] == self.msg_
 
 
 
