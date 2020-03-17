@@ -707,7 +707,7 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
 
 class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
     """
-    Test suite using the TopologyAction class
+    Test suite using the TopologyAndRedisp class
     """
 
     def _action_env_setup(self):
@@ -715,7 +715,7 @@ class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
 
 class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
     """
-    Test suite using the TopologyAction class
+    Test suite using the PowerLineSet class
     """
 
     def _action_env_setup(self):
