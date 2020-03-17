@@ -248,7 +248,20 @@ class TestRedispatch(unittest.TestCase):
         assert np.all(obs.prod_p[:-1] >= self.env.gen_pmin[:-1])
 
 
-# # TODO test that if i try to redispatched a turned off generator it breaks everything
+    def test_redispacth_generator_off(self):
+        """ Redispatching a turned off generator should terminate """
+        act = self.env.action_space()
+        obs, reward, done, info = self.env.step(act)
+
+        assert np.all(self.env.gen_uptime == np.array([0, 1, 1, 0, 1]))
+        assert np.all(self.env.gen_downtime == np.array([1, 0, 0, 1, 0]))
+        assert np.all(obs.prod_p <= self.env.gen_pmax)
+        assert np.all(obs.prod_p >= self.env.gen_pmin)
+
+        redispatch_act = self.env.action_space({"redispatch": [(0, 5.)]})
+        obs, reward, done, info = self.env.step(redispatch_act)
+        assert done == True
+
 class TestLoadingBackendPandaPower(unittest.TestCase):
     def setUp(self):
         # powergrid
