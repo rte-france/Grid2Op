@@ -15,7 +15,7 @@ TODO for next versions
   reconnected, and no buses are specified, then it connects it to last buses.
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
-   it in parrallel and transfer the resulting data.
+  it in parrallel and transfer the resulting data.
 - [???] fast implementation of "replay" using PlotPygame and EpisodeData
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
@@ -30,9 +30,14 @@ TODO for next versions
 - [FIXED] voltages are now set to 0 when the powerline are disconnected, instead of being set to Nan in
   pandapower backend.
 - [FIXED] `ReadPypowNetData` does not crash when argument "chunk_size" is provided now.
+- [FIXED] some typos in the Readme
+- [FIXED] some redispatching declared illegal but are in fact legal (due to
+  a wrong assessment) (see `issue 44 <https://github.com/rte-france/Grid2Op/issues/44>`_)
 - [UPDATED] add a blank environment for easier use.
 - [UPDATED] now raise an error if the substations layout does not match the number of substations on the powergrid.
-- [UPDATE] better handling of system without numba `issue 42 <https://github.com/rte-france/Grid2Op/issues/42>`_)
+- [UPDATED] better handling of system without numba `issue 42 <https://github.com/rte-france/Grid2Op/issues/42>`_)
+- [UPDATED] better display of the error message if all dispatchable generators are set
+  `issue 39 <https://github.com/rte-france/Grid2Op/issues/39>`_
 
 [0.5.7] - 2020-03-03
 --------------------

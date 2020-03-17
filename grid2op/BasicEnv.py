@@ -311,6 +311,12 @@ class _BasicEnv(GridObjects, ABC):
         avail_gen = avail_gen & self.gen_redispatchable  # i can only redispatched dispatchable generators
         avail_gen = avail_gen & (new_p > 0.)
 
+        if (np.abs(np.sum(redisp_act)) >= self._tol_poly) and (np.sum(avail_gen) == 0):
+            except_ = NotEnoughGenerators("Attempt to use a redispatch action that does not sum to 0., but all "
+                                          "turned on dispatchable generators that could 'compensate' are modified in"
+                                          "this action or in previous actions.")
+            return None, except_
+
         # get back the previous value for the dispatchable generators
         target_disp = 1.0 * redisp_act
         # target_disp[avail_gen] = self.actual_dispatch[avail_gen]
@@ -418,30 +424,41 @@ class _BasicEnv(GridObjects, ABC):
         if np.all(redisp_act_orig == 0.) and np.all(self.target_dispatch == 0.) and np.all(self.actual_dispatch == 0.):
             return except_
 
+        self.target_dispatch += redisp_act_orig
         # check that everything is consistent with pmin, pmax:
-        if np.any(self.target_dispatch > self.gen_pmax):
+        if np.any(self.target_dispatch > self.gen_pmax - self.gen_pmin):
             # action is invalid, the target redispatching would be above pmax for at least a generator
-            except_ = InvalidRedispatching("Target redispatching above pmax for generators "
-                                           "{}".format(np.where(self.target_dispatch > self.gen_pmax)[0]))
+            cond_invalid = self.target_dispatch > self.gen_pmax - self.gen_pmin
+            except_ = InvalidRedispatching("You cannot ask for a dispatch higher than pmax - pmin  [it would be always "
+                                           "invalid because, even if the sepoint is pmin, this dispatch would set it "
+                                           "to a number higher than pmax, which is impossible]. Invalid dispatch for "
+                                           "generator(s): "
+                                           "{}".format(np.where(cond_invalid)[0]))
+            self.target_dispatch -= redisp_act_orig
             return except_
 
-        if np.any(self.target_dispatch < self.gen_pmin):
+        if np.any(self.target_dispatch < self.gen_pmin - self.gen_pmax):
             # action is invalid, the target redispatching would be below pmin for at least a generator
-            except_ = InvalidRedispatching("Target redispatching bellow pmin for generators "
-                                           "{}".format(np.where(self.target_dispatch < self.gen_pmin)[0]))
+            cond_invalid = self.target_dispatch < self.gen_pmin - self.gen_pmax
+            except_ = InvalidRedispatching("You cannot ask for a dispatch lower than pmin - pmax  [it would be always "
+                                           "invalid because, even if the sepoint is pmax, this dispatch would set it "
+                                           "to a number bellow pmin, which is impossible]. Invalid dispatch for "
+                                           "generator(s): "
+                                           "{}".format(np.where(cond_invalid)[0]))
+            self.target_dispatch -= redisp_act_orig
             return except_
 
         # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
         if np.any(redisp_act_orig[new_p == 0.]):
             # action is invalid, a generator has been redispatched, but it's turned off
             except_ = InvalidRedispatching("Impossible to dispatched a turned off generator")
+            self.target_dispatch -= redisp_act_orig
             return except_
 
         redisp_act_orig[new_p == 0.] = 0.
         # TODO add a flag here too, like before (the action has been "cut")
 
         # get the target redispatching (cumulation starting from the first element of the scenario)
-        self.target_dispatch += redisp_act_orig
         if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
                 np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= self._tol_poly:
             # make sure the redispatching action is zero sum

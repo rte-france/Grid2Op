@@ -174,7 +174,7 @@ For example, the  "getting started" notebooks referenced some pages of the help.
 
 ## Getting Started / Examples
 Some Jupyter notebook are provided as example of the use of the Grid2Op package. They are located in the 
-[getting_start](getting_started) directories. 
+[getting_started](getting_started) directories. 
 
 These notebooks will help you in understanding how this framework is used and cover the most
 interesting part of this framework:
