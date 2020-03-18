@@ -79,7 +79,6 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_step_doesnt_change_action(self):
-        # TODO THIS TEST
         act = self.env.action_space()
         act_init = copy.deepcopy(act)
         res = self.env.step(act)
