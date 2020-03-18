@@ -4,6 +4,7 @@ import sys
 import unittest
 import datetime
 import json
+import warnings
 from io import StringIO
 import numpy as np
 from numpy import dtype
@@ -16,7 +17,7 @@ import pdb
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
 
 from Exceptions import *
-from Observation import ObservationHelper, CompleteObservation, ObsEnv
+from Observation import ObservationHelper, CompleteObservation, ObsEnv, Observation
 
 from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
 
@@ -28,7 +29,7 @@ from Parameters import Parameters
 
 from BackendPandaPower import PandaPowerBackend
 from Environment import Environment
-
+from MakeEnv import make
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -612,6 +613,157 @@ class TestObservationMaintenance(unittest.TestCase):
                                                               -1,  -1, -1,  -1,  -1,  -1,  -1,  -1,  -1]))
         assert np.all(obs.duration_next_maintenance == np.array([ 0,  0,  0,  0, 11,  0, 12,  0,  0,  0,  0,  0,  0,
                                                                   0,  0,  0,  0, 0,  0,  0]))
+
+
+class TestUpdateEnvironement(unittest.TestCase):
+    def setUp(self):
+
+        # Create env and obs in left hand
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.lenv = make("case5_example")
+            self.lobs = self.lenv.reset()
+
+        # Create env and obs in right hand
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.renv = make("case5_example")
+            # Step once to make it different
+            self.robs, _, _, _ = self.renv.step(self.renv.action_space())
+
+        # Update left obs with right hand side environement
+        self.lobs.update(self.renv)
+
+    def tearDown(self):
+        self.lenv.close()
+        self.renv.close()
+
+    def test_topology_updates(self):
+        # Check left observation topology is updated to the right observation topology 
+        assert np.all(self.lobs.timestep_overflow == self.robs.timestep_overflow)
+        assert np.all(self.lobs.line_status == self.robs.line_status)
+        assert np.all(self.lobs.topo_vect == self.robs.topo_vect)
+
+    def test_prods_updates(self):
+        # Check left loads are updated to the right loads 
+        assert np.all(self.lobs.prod_p == self.robs.prod_p)
+        assert np.all(self.lobs.prod_q == self.robs.prod_q)
+        assert np.all(self.lobs.prod_v == self.robs.prod_v)
+
+    def test_loads_updates(self):
+        # Check left loads are updated to the right loads 
+        assert np.all(self.lobs.load_p == self.robs.load_p)
+        assert np.all(self.lobs.load_q == self.robs.load_q)
+        assert np.all(self.lobs.load_v == self.robs.load_v)
+
+    def test_lines_or_updates(self):
+        # Check left loads are updated to the right loads 
+        assert np.all(self.lobs.p_or == self.robs.p_or)
+        assert np.all(self.lobs.q_or == self.robs.q_or)
+        assert np.all(self.lobs.v_or == self.robs.v_or)
+        assert np.all(self.lobs.a_or == self.robs.a_or)
+
+    def test_lines_ex_updates(self):
+        # Check left loads are updated to the rhs loads 
+        assert np.all(self.lobs.p_ex == self.robs.p_ex)
+        assert np.all(self.lobs.q_ex == self.robs.q_ex)
+        assert np.all(self.lobs.v_ex == self.robs.v_ex)
+        assert np.all(self.lobs.a_ex == self.robs.a_ex)
+
+    def test_forecasts_updates(self):
+        # Check left forecasts are updated to the rhs forecasts
+        # Check forecasts sizes
+        assert len(self.lobs._forecasted_inj) == len(self.robs._forecasted_inj)
+        # Check each forecast
+        for i in range(len(self.lobs._forecasted_inj)):
+            # Check timestamp
+            assert self.lobs._forecasted_inj[i][0] == self.robs._forecasted_inj[i][0]
+            # Check load_p
+            l_load_p = self.lobs._forecasted_inj[i][1]['injection']['load_p']
+            r_load_p = self.robs._forecasted_inj[i][1]['injection']['load_p']
+            assert np.all(l_load_p == r_load_p)
+            # Check load_q
+            l_load_q = self.lobs._forecasted_inj[i][1]['injection']['load_q']
+            r_load_q = self.robs._forecasted_inj[i][1]['injection']['load_q']
+            assert np.all(l_load_q == r_load_q)
+            # Check prod_p
+            l_prod_p = self.lobs._forecasted_inj[i][1]['injection']['prod_p']
+            r_prod_p = self.robs._forecasted_inj[i][1]['injection']['prod_p']
+            assert np.all(l_prod_p == r_prod_p)
+            # Check prod_v
+            l_prod_v = self.lobs._forecasted_inj[i][1]['injection']['prod_v']
+            r_prod_v = self.robs._forecasted_inj[i][1]['injection']['prod_v']
+            assert np.all(l_prod_v == r_prod_v)
+            # Check maintenance
+            l_maintenance = self.lobs._forecasted_inj[i][1]['maintenance']
+            r_maintenance = self.robs._forecasted_inj[i][1]['maintenance']
+            assert np.all(l_maintenance == r_maintenance)
+
+        # Check relative flows
+        assert np.all(self.lobs.rho == self.robs.rho)
+
+    def test_cooldowns_updates(self):
+        # Check left cooldowns are updated to the rhs CDs
+        assert np.all(self.lobs.time_before_cooldown_line == self.robs.time_before_cooldown_line)
+        assert np.all(self.lobs.time_before_cooldown_sub == self.robs.time_before_cooldown_sub)
+        assert np.all(self.lobs.time_before_line_reconnectable == self.robs.time_before_line_reconnectable)
+        assert np.all(self.lobs.time_next_maintenance == self.robs.time_next_maintenance)
+        assert np.all(self.lobs.duration_next_maintenance == self.robs.duration_next_maintenance)
+
+    def test_redispatch_updates(self):
+        # Check left redispatch are updated to the rhs redispatches
+        assert np.all(self.lobs.target_dispatch == self.robs.target_dispatch)
+        assert np.all(self.lobs.actual_dispatch == self.robs.actual_dispatch)
+
+class TestSimulateEqualsStep(unittest.TestCase):
+    def setUp(self):
+        # Create env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("case14_realistic")
+
+        self.obs = self.env.reset()
+        
+        # Set forecasts to actual values so that simulate runs on the same numbers as step
+        self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
+        #print(self.env.chronics_handler.real_data.data.prod_p[1])
+        #print(self.env.chronics_handler.real_data.data.prod_p_forecast[0])
+
+        self.obs.update(self.env)
+            
+
+        self.sim_obs = None
+        self.step_obs = None
+        
+            
+    def tearDown(self):
+        self.env.close()
+
+    @staticmethod
+    def _obs_to_json(obs):
+        def np_array_default(obj):
+            if type(obj).__module__ == np.__name__:
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                else:
+                    return obj.item()
+            raise TypeError('Unknown type:', type(obj))
+        return json.dumps(obs, indent=2, default=np_array_default)
+        
+    def test_DoNothing(self):
+        donothing_act = self.env.action_space()
+        self.sim_obs, _, _, _ = self.obs.simulate(donothing_act)
+        self.step_obs, _, _, _ = self.env.step(donothing_act)
+        #print(self.step_obs.prod_p)
+        #print(self.sim_obs.prod_p)
+
+        #with open('sim_obs.json', 'w') as sim_f:
+        #    print (self._obs_to_json(self.sim_obs.to_dict()["prods"]), file=sim_f)
+        #with open('step_obs.json', 'w') as step_f:
+        #    print (self._obs_to_json(self.step_obs.to_dict()["prods"]), file=step_f)
+
+        
+        assert self.sim_obs == self.step_obs
 
 
 if __name__ == "__main__":
