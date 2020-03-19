@@ -1024,5 +1024,8 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Test observations are the same
         assert self.sim_obs == self.step_obs
 
+## TODO test -- Add test to cover simulation vs step when there is a planned maintenance operation
+
+        
 if __name__ == "__main__":
     unittest.main()
