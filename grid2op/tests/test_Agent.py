@@ -9,7 +9,7 @@ import time
 import numpy as np
 import pdb
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
 
 from Exceptions import *
 from Observation import ObservationHelper, CompleteObservation, ObsEnv
@@ -34,14 +34,12 @@ if DEBUG:
     print("pandapower version : {}".format(pp.__version__))
 
 
-class TestAgent(unittest.TestCase):
+class TestAgent(HelperTests):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
         self.game_rules = GameRules()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()
@@ -57,8 +55,6 @@ class TestAgent(unittest.TestCase):
         self.path_chron = os.path.join(PATH_CHRONICS, "chronics_with_forecast")
         self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFileWithForecasts, path=self.path_chron)
 
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
 
         # force the verbose backend
@@ -94,6 +90,9 @@ class TestAgent(unittest.TestCase):
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass)
 
+    def tearDown(self):
+        self.env.close()
+
     def _aux_test_agent(self, agent, i_max=30):
         done = False
         i = 0
@@ -109,6 +108,9 @@ class TestAgent(unittest.TestCase):
             time_act += end__ - beg__
             cum_reward += reward
             i += 1
+            if done:
+                print("Oups i diverged :-(")
+                pdb.set_trace()
             if i > i_max:
                 break
 
@@ -133,21 +135,22 @@ class TestAgent(unittest.TestCase):
                 time_act, end_-beg_, cum_reward))
         return i, cum_reward
 
-    def test_0_donothing(self):
-        agent = DoNothingAgent(self.env.helper_action_player)
-        i, cum_reward = self._aux_test_agent(agent)
-        assert i == 31, "The powerflow diverged before step 30 for do nothing"
-        assert np.abs(cum_reward - 619.994619) <= self.tol_one, "The reward has not been properly computed"
-
-    def test_1_powerlineswitch(self):
-        agent = PowerLineSwitch(self.env.helper_action_player)
-        i, cum_reward = self._aux_test_agent(agent)
-        assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-        assert np.abs(cum_reward - 619.9950) <= self.tol_one, "The reward has not been properly computed"
+    # def test_0_donothing(self):
+    #     agent = DoNothingAgent(self.env.helper_action_player)
+    #     i, cum_reward = self._aux_test_agent(agent)
+    #     assert i == 31, "The powerflow diverged before step 30 for do nothing"
+    #     assert np.abs(cum_reward - 619.994619) <= self.tol_one, "The reward has not been properly computed"
+    #
+    # def test_1_powerlineswitch(self):
+    #     agent = PowerLineSwitch(self.env.helper_action_player)
+    #     i, cum_reward = self._aux_test_agent(agent)
+    #     assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
+    #     assert np.abs(cum_reward - 619.9950) <= self.tol_one, "The reward has not been properly computed"
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent, i_max=10)
+        pdb.set_trace()
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
         assert np.abs(cum_reward - 219.99795) <= self.tol_one, "The reward has not been properly computed"
 

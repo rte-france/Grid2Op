@@ -14,6 +14,7 @@ TODO for next versions
 - [???] better explanation of the notebook 3 with action silently
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
+- [???] change the link to the doc in the notebook to point to readthedoc
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.

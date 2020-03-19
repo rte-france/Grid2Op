@@ -227,29 +227,31 @@ class GridValue(ABC):
         In this case, instead of renaming the powergrid (in the backend) of the data files, it is advised to build the
         following elements and initialize the object gridval of type :class:`GridValue` with:
 
-        >>> gridval = GridValue()  # Note: this code won't execute because "GridValue" is an abstract class
-        >>> order_backend_loads = ['load_1', 'load_2', 'load_13', 'load_3', 'load_4', 'load_5', 'load_8', 'load_9',
-        >>>                         'load_10', 'load_11', 'load_12']
-        >>> order_backend_prods = ['gen_1', 'gen_2', 'gen_5', 'gen_7', 'gen_0']
-        >>> order_backend_lines = ['0_1', '0_4', '8_9', '8_13', '9_10', '11_12', '12_13', '1_2', '1_3', '1_4', '2_3',
-        >>>                            '3_4', '5_10', '5_11', '5_12', '3_6', '3_8', '4_5', '6_7', '6_8']
-        >>> order_backend_subs = ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3', 'sub_4',
-        >>>                           'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9']
-        >>> names_chronics_to_backend = {"loads": {"2_C": 'load_1', "3_C": 'load_2',
-        >>>                                            "14": 'load_13', "4_C": 'load_3', "5_C": 'load_4',
-        >>>                                            "6_C": 'load_5', "9_C": 'load_8', "10_C": 'load_9',
-        >>>                                            "11_C": 'load_10', "12_C": 'load_11',
-        >>>                                            "13_C": 'load_12'},
-        >>>                                  "lines": {'1_2_1': '0_1', '1_5_2': '0_4', '9_10_16': '8_9', '9_14_17': '8_13',
-        >>>                                            '10_11_18': '9_10', '12_13_19': '11_12', '13_14_20': '12_13',
-        >>>                                            '2_3_3': '1_2', '2_4_4': '1_3', '2_5_5': '1_4', '3_4_6': '2_3',
-        >>>                                            '4_5_7': '3_4', '6_11_11': '5_10', '6_12_12': '5_11',
-        >>>                                            '6_13_13': '5_12', '4_7_8': '3_6', '4_9_9': '3_8', '5_6_10': '4_5',
-        >>>                                           '7_8_14': '6_7', '7_9_15': '6_8'},
-        >>>                                  "prods": {"1_G": 'gen_0', "3_G": "gen_2", "6_G": "gen_5",
-        >>>                                            "2_G": "gen_1", "8_G": "gen_7"},
-        >>>                                 }
-        >>> gridval.initialize(order_backend_loads, order_backend_prods, order_backend_lines, names_chronics_to_backend)
+        .. code-block:: python
+
+            gridval = GridValue()  # Note: this code won't execute because "GridValue" is an abstract class
+            order_backend_loads = ['load_1', 'load_2', 'load_13', 'load_3', 'load_4', 'load_5', 'load_8', 'load_9',
+                                     'load_10', 'load_11', 'load_12']
+            order_backend_prods = ['gen_1', 'gen_2', 'gen_5', 'gen_7', 'gen_0']
+            order_backend_lines = ['0_1', '0_4', '8_9', '8_13', '9_10', '11_12', '12_13', '1_2', '1_3', '1_4', '2_3',
+                                       '3_4', '5_10', '5_11', '5_12', '3_6', '3_8', '4_5', '6_7', '6_8']
+            order_backend_subs = ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3', 'sub_4',
+                                      'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9']
+            names_chronics_to_backend = {"loads": {"2_C": 'load_1', "3_C": 'load_2',
+                                                       "14": 'load_13', "4_C": 'load_3', "5_C": 'load_4',
+                                                       "6_C": 'load_5', "9_C": 'load_8', "10_C": 'load_9',
+                                                       "11_C": 'load_10', "12_C": 'load_11',
+                                                       "13_C": 'load_12'},
+                                             "lines": {'1_2_1': '0_1', '1_5_2': '0_4', '9_10_16': '8_9', '9_14_17': '8_13',
+                                                      '10_11_18': '9_10', '12_13_19': '11_12', '13_14_20': '12_13',
+                                                       '2_3_3': '1_2', '2_4_4': '1_3', '2_5_5': '1_4', '3_4_6': '2_3',
+                                                       '4_5_7': '3_4', '6_11_11': '5_10', '6_12_12': '5_11',
+                                                       '6_13_13': '5_12', '4_7_8': '3_6', '4_9_9': '3_8', '5_6_10': '4_5',
+                                                      '7_8_14': '6_7', '7_9_15': '6_8'},
+                                             "prods": {"1_G": 'gen_0', "3_G": "gen_2", "6_G": "gen_5",
+                                                       "2_G": "gen_1", "8_G": "gen_7"},
+                                            }
+            gridval.initialize(order_backend_loads, order_backend_prods, order_backend_lines, names_chronics_to_backend)
 
         """
         self.curr_iter += 1
@@ -286,21 +288,28 @@ class GridValue(ABC):
 
         If no maintenance are planned:
 
-        >>> maintenance_time = GridValue.get_maintenance_time_1d(np.array([0 for _ in range(10)]))
-        >>> assert np.all(maintenance_time == np.array([-1  for _ in range(10)]))
+        .. code-block:: python
+
+            maintenance_time = GridValue.get_maintenance_time_1d(np.array([0 for _ in range(10)]))
+            assert np.all(maintenance_time == np.array([-1  for _ in range(10)]))
+
 
         If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
-        >>> maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
-        >>> assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+            maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+            assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1]))
 
         If a maintenance planned of 3 time steps starting at timestep 6
         (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
-        >>> maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
-        >>> assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,4,3,2,1,0,0,-1,-1,-1]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+            maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+            assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,4,3,2,1,0,0,-1,-1,-1]))
 
         """
 
@@ -354,22 +363,28 @@ class GridValue(ABC):
 
         If no maintenance are planned:
 
-        >>> maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
-        >>> assert np.all(maintenance_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+            maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+            assert np.all(maintenance_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
-        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
-        >>> assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+            maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+            assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6
         (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
-        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
-        >>> assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+            maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+            assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
 
         """
 
@@ -426,22 +441,28 @@ class GridValue(ABC):
 
         If no maintenance are planned:
 
-        >>> hazard = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
-        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            hazard = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+            hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+            assert np.all(hazard_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
 
-        >>> hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
-        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
-        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+            hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+            assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6
         (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
 
-        >>> hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
-        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
-        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,2,1,0,0,0]))
+        .. code-block:: python
+
+            hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+            hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+            assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,2,1,0,0,0]))
 
         """
 
@@ -1267,6 +1288,7 @@ class GridStateFromFile(GridValue):
 
         res = {}
         dict_ = {}
+        prod_v = None
         if self.load_p is not None:
             dict_["load_p"] =  1.0 * self.load_p[self.current_index, :]
         if self.load_q is not None:
@@ -1274,7 +1296,8 @@ class GridStateFromFile(GridValue):
         if self.prod_p is not None:
             dict_["prod_p"] = 1.0 * self.prod_p[self.current_index, :]
         if self.prod_v is not None:
-            dict_["prod_v"] =  1.0 * self.prod_v[self.current_index, :]
+            prod_v = 1.0 * self.prod_v[self.current_index, :]
+            # dict_["prod_v"] = prod_v
         if dict_:
             res["injection"] = dict_
 
@@ -1298,7 +1321,7 @@ class GridStateFromFile(GridValue):
         else:
             hazard_duration = np.full(self.n_line, fill_value=-1, dtype=np.int)
 
-        return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration
+        return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration, prod_v
 
     def check_validity(self, backend):
         """
@@ -1518,16 +1541,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         order_backend_prods = {el: i for i, el in enumerate(order_backend_prods)}
         order_backend_lines = {el: i for i, el in enumerate(order_backend_lines)}
 
-        # order_chronics_load_p = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-        #                                   for el in load_p.columns]).astype(np.int)
-        # order_backend_load_q = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-        #                                  for el in load_q.columns]).astype(np.int)
-        # order_backend_prod_p = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-        #                                  for el in prod_p.columns]).astype(np.int)
-        # order_backend_prod_v = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-        #                                  for el in prod_v.columns]).astype(np.int)
-        # order_backend_maintenance = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
-        #                                       for el in maintenance.columns]).astype(np.int)
         order_chronics_load_p, order_backend_load_q, \
         order_backend_prod_p, order_backend_prod_v, \
         order_backend_hazards, order_backend_maintenance \
@@ -1615,7 +1628,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
                                        "The chronics cannot be loaded properly.".format(name_arr))
 
     def _load_next_chunk_in_memory_forecast(self):
-        # print("I loaded another chunk")
         # i load the next chunk as dataframes
         load_p, load_q, prod_p, prod_v = self._get_next_chunk_forecasted()
         # i put these dataframes in the right order (columns)
