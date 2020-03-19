@@ -11,7 +11,7 @@ import warnings
 # root package directory
 # RL4Grid subdirectory
 # RL4Grid/tests subdirectory
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
 
 from MakeEnv import make
 from Exceptions import *
@@ -20,12 +20,10 @@ from ChronicsHandler import GridValue
 from BackendPandaPower import PandaPowerBackend
 
 
-class TestProperHandlingHazardsMaintenance(unittest.TestCase):
+class TestProperHandlingHazardsMaintenance(HelperTests):
     def setUp(self):
         self.path_hazard = os.path.join(PATH_CHRONICS, "chronics_with_hazards")
         self.path_maintenance = os.path.join(PATH_CHRONICS, "chronics_with_maintenance")
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
 
         self.n_gen = 5
         self.n_load = 11
@@ -133,11 +131,9 @@ class TestProperHandlingHazardsMaintenance(unittest.TestCase):
         assert maintenance_time[19] == 263, "incorrect time for next maintenance on powerline 19 at finish"
 
 
-class TestLoadingChronicsHandler(unittest.TestCase):
+class TestLoadingChronicsHandler(HelperTests):
     def setUp(self):
         self.path = os.path.join(PATH_CHRONICS, "chronics")
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
 
         self.n_gen = 5
         self.n_load = 11
@@ -155,9 +151,6 @@ class TestLoadingChronicsHandler(unittest.TestCase):
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
         pass
-
-    def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_check_validity(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
@@ -251,12 +244,10 @@ class TestLoadingChronicsHandler(unittest.TestCase):
             pass
 
 
-class TestLoadingChronicsHandlerWithForecast(unittest.TestCase):
+class TestLoadingChronicsHandlerWithForecast(HelperTests):
     # Cette méthode sera appelée avant chaque test.
     def setUp(self):
         self.path = os.path.join(PATH_CHRONICS, "chronics_with_forecast")
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
 
         self.n_gen = 5
         self.n_load = 11
@@ -289,14 +280,11 @@ class TestLoadingChronicsHandlerWithForecast(unittest.TestCase):
         chron_handl.check_validity(backend)
 
 
-class TestLoadingChronicsHandlerPP(unittest.TestCase):
+class TestLoadingChronicsHandlerPP(HelperTests):
     # Cette méthode sera appelée avant chaque test.
     def setUp(self):
         self.pathfake = os.path.join(PATH_CHRONICS, "chronics")
         self.path = os.path.join(PATH_CHRONICS, "chronics")
-
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
 
         self.n_gen = 5
         self.n_load = 11
@@ -334,9 +322,6 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
                                           }
 
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
-
-    def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_check_validity(self):
         # load a "fake" chronics with name in the correct order
@@ -467,11 +452,9 @@ class TestLoadingChronicsHandlerPP(unittest.TestCase):
             pass
 
 
-class TestLoadingMultiFolder(unittest.TestCase):
+class TestLoadingMultiFolder(HelperTests):
     def setUp(self):
         self.path = os.path.join(PATH_CHRONICS, "test_multi_chronics")
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
 
         self.n_gen = 5
         self.n_load = 11
@@ -552,13 +535,15 @@ class TestLoadingMultiFolder(unittest.TestCase):
             pass
 
 
-class TestEnvChunk(unittest.TestCase):
+class TestEnvChunk(HelperTests):
     def setUp(self):
         self.max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = make("case14_realistic")
             self.env.chronics_handler.set_max_iter(self.max_iter)
+    def tearDown(self):
+        self.env.close()
 
     def test_normal(self):
         # self.env.set_chunk_size()
@@ -581,7 +566,56 @@ class TestEnvChunk(unittest.TestCase):
         assert i == self.max_iter  # I used 1 data to intialize the environment
 
 
+class TestMissingData(HelperTests):
+    def test_load_error(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with self.assertRaises(ChronicsError):
+                with make("case14_realistic", chronics_path="/home/benjamin/Documents/grid2op_dev/grid2op/tests"):
+                    pass
+
+    def run_env_till_over(self, env, max_iter):
+        nb_it = 0
+        done = False
+        obs = None
+        while not done:
+            obs, reward, done, info = env.step(env.action_space())
+            nb_it += 1
+        # assert i == max_iter
+        return nb_it, obs
+
+    def test_load_still(self):
+        max_iter = 10
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example",
+                      chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) as env:
+                # test a first time without chunks
+                env.set_id(0)
+                env.chronics_handler.set_max_iter(max_iter)
+                obs = env.reset()
+
+                # check that simulate is working
+                simul_obs, *_ = obs.simulate(env.action_space())
+                # check that load_p is indeed modified
+                assert np.all(simul_obs.load_p == env.chronics_handler.real_data.data.load_p_forecast[1, :])
+
+                # check that the environment goes till the end
+                nb_it, final_obs = self.run_env_till_over(env, max_iter)
+                assert nb_it == max_iter
+                # check the that the "missing" files is properly handled: data is not modified
+                assert np.all(obs.load_q == final_obs.load_q)
+                # check that other data are modified properly
+                assert np.any(obs.prod_p != final_obs.prod_p)
+
+                # test a second time with chunk
+                env.set_id(0)
+                env.set_chunk_size(3)
+                obs = env.reset()
+                nb_it, obs = self.run_env_till_over(env, max_iter)
+                assert nb_it == max_iter
+                pass
+
+
 if __name__ == "__main__":
     unittest.main()
-
-

@@ -223,7 +223,7 @@ All tests should pass. Performing all the tests take roughly 5 minutes
 
 # License information
 
-Copyright 2019 RTE France
+Copyright 2019-2020 RTE France
 
     RTE: http://www.rte-france.com
 

@@ -4,11 +4,12 @@ Change Log
 --------------------
 TODO for next versions
 
-- [???] include grid2Viz in a notebook (the notebook "StudyYourAgent")
+- [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
 - [???] add the "anti-agent"
+- [???] add the "voltage controler"
+- [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] rationalize the names of plotting utilities
-- [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
 - [???] do something to help grid2viz to parse back action.
 - [???] better explanation of the notebook 3 with action silently
 - [???] have something remembering the topology in the environment, and when an object is
@@ -27,6 +28,9 @@ TODO for next versions
 - [ADDED] runner now is able to show a progress bar
 - [ADDED] add a "max_iter" in the runner.
 - [ADDED] a repository in this github for the baseline (work in progress)
+- [ADDED] include grid2Viz in a notebook (the notebook "StudyYourAgent")
+- [ADDED] when a file is not present in the chronics, the chronics_handler behaves as if
+  nothing changes. If no files at all are provided, it raises an error.
 - [FIXED] voltages are now set to 0 when the powerline are disconnected, instead of being set to Nan in
   pandapower backend.
 - [FIXED] `ReadPypowNetData` does not crash when argument "chunk_size" is provided now.
