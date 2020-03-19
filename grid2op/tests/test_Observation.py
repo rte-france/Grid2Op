@@ -722,15 +722,14 @@ class TestSimulateEqualsStep(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = make("case14_realistic")
 
-        self.obs = self.env.reset()
-        
         # Set forecasts to actual values so that simulate runs on the same numbers as step
         self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
+        self.env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
+        self.env.chronics_handler.real_data.data.load_p_forecast = np.roll(self.env.chronics_handler.real_data.data.load_p, -1, axis=0)
+        self.env.chronics_handler.real_data.data.load_q_forecast = np.roll(self.env.chronics_handler.real_data.data.load_q, -1, axis=0)
         #print(self.env.chronics_handler.real_data.data.prod_p[1])
         #print(self.env.chronics_handler.real_data.data.prod_p_forecast[0])
-
-        self.obs.update(self.env)
-            
+        self.obs, _, _, _ = self.env.step(self.env.action_space())
 
         self.sim_obs = None
         self.step_obs = None
