@@ -305,6 +305,30 @@ class Action(GridObjects):
                     self._dict_inj[attr_nm] = vect
 
     def check_space_legit(self):
+        """
+        This method allows to check if this method is ambiguous **per se** (defined more formally as:
+        whatever the observation at time *t*, and the changes that can occur between *t* and *t+1*, this
+        action will be ambiguous).
+
+        For example, an action that try to assign something to busbar 3 will be ambiguous *per se*. An action
+        that tries to dispatch a non dispatchable generator will be also ambiguous *per se*.
+
+        However, an action that "switch" (change) the status (connected / disconnected) of a powerline can be
+        ambiguous and it will not be detected here. This is because the ambiguity depends on the current state
+        of the powerline:
+
+        - if the powerline is disconnected, changing its status means reconnecting it. And we cannot reconnect a
+          powerline without specifying on which bus.
+        - on the contrary if the powerline is connected, changing its status means disconnecting it, which is
+          always feasible.
+
+        In case of "switch" as we see here, the action can be ambiguous, but not ambiguous *per se*. This method
+        will **never** throw any error in this case.
+
+        Returns
+        -------
+
+        """
         self._check_for_ambiguity()
 
     def get_set_line_status_vect(self):
@@ -1087,7 +1111,9 @@ class Action(GridObjects):
 
     def is_ambiguous(self):
         """
-        Says if the action, as defined is ambiguous or not.
+        Says if the action, as defined is ambiguous *per se* or not.
+
+        See definition of :func:`Action.check_space_legit` for more details about *ambiguity per se*.
 
         Returns
         -------
@@ -1410,7 +1436,7 @@ class Action(GridObjects):
         """
         This will return a dictionary which contains details on objects that will be impacted by the action.
 
-         Returns
+        Returns
         -------
         dict: :class:`dict`
             The dictionary representation of an action impact on objects

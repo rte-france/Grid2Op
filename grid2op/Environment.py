@@ -638,6 +638,32 @@ class Environment(_BasicEnv):
         return res
 
     def get_kwargs(self):
+        """
+        This function allows to make another Environment with the same parameters as the one that have been used
+        to make this one.
+
+        This is usefull especially in cases where Environment is not pickable (for example if some non pickable c++
+        code are used) but you still want to make parallel processing using "MultiProcessing" module. In that case,
+        you can send this dictionnary to each child process, and have each child process make a copy of ``self``
+
+        Returns
+        -------
+        res: ``dict``
+            A dictionnary that helps build an environment like ``self``
+
+        Examples
+        --------
+        It should be used as follow:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import Environment
+            env = grid2op.make()  # create the environment of your choice
+            copy_of_env = Environment(**env.get_kwargs())
+            # And you can use this one as you would any other environment.
+
+        """
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
@@ -669,7 +695,7 @@ class Environment(_BasicEnv):
             agent = DoNothingAgent(env.actoin_space)
 
             # create the proper runner
-            runner = Runner(**env.init_backend(), agentClass=DoNothingAgent)
+            runner = Runner(**env.get_params_for_runner(), agentClass=DoNothingAgent)
 
             # now you can run
             runner.run(nb_episode=1)  # run for 1 episode
