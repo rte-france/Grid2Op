@@ -724,46 +724,296 @@ class TestSimulateEqualsStep(unittest.TestCase):
 
         # Set forecasts to actual values so that simulate runs on the same numbers as step
         self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
-        self.env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
+        self.env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_v, -1, axis=0)
         self.env.chronics_handler.real_data.data.load_p_forecast = np.roll(self.env.chronics_handler.real_data.data.load_p, -1, axis=0)
         self.env.chronics_handler.real_data.data.load_q_forecast = np.roll(self.env.chronics_handler.real_data.data.load_q, -1, axis=0)
-        #print(self.env.chronics_handler.real_data.data.prod_p[1])
-        #print(self.env.chronics_handler.real_data.data.prod_p_forecast[0])
         self.obs, _, _, _ = self.env.step(self.env.action_space())
 
         self.sim_obs = None
         self.step_obs = None
-        
             
     def tearDown(self):
         self.env.close()
 
-    @staticmethod
-    def _obs_to_json(obs):
-        def np_array_default(obj):
-            if type(obj).__module__ == np.__name__:
-                if isinstance(obj, np.ndarray):
-                    return obj.tolist()
-                else:
-                    return obj.item()
-            raise TypeError('Unknown type:', type(obj))
-        return json.dumps(obs, indent=2, default=np_array_default)
-        
-    def test_DoNothing(self):
+    def test_do_nothing(self):
+        # Create action
         donothing_act = self.env.action_space()
+        # Simulate & Step
         self.sim_obs, _, _, _ = self.obs.simulate(donothing_act)
-        self.step_obs, _, _, _ = self.env.step(donothing_act)
-        #print(self.step_obs.prod_p)
-        #print(self.sim_obs.prod_p)
-
-        #with open('sim_obs.json', 'w') as sim_f:
-        #    print (self._obs_to_json(self.sim_obs.to_dict()["prods"]), file=sim_f)
-        #with open('step_obs.json', 'w') as step_f:
-        #    print (self._obs_to_json(self.step_obs.to_dict()["prods"]), file=step_f)
-
-        
+        self.step_obs, _, _, _ = self.env.step(donothing_act)        
+        # Test observations are the same
         assert self.sim_obs == self.step_obs
 
+    def test_change_line_status(self):
+        # Get change status vector
+        change_status = self.env.action_space.get_change_line_status_vect()
+        # Make a change
+        change_status[0] = True
+        # Create change action
+        change_act = self.env.action_space({'change_line_status': change_status})
+        # Simulate & Step
+        self.sim_obs, _, _, _ = self.obs.simulate(change_act)
+        self.step_obs, _, _, _ = self.env.step(change_act)        
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def test_set_line_status(self):
+        # Get set status vector
+        set_status = self.env.action_space.get_set_line_status_vect()
+        # Make a change
+        set_status[0] = -1 if self.obs.line_status[0] else 1
+        # Create set action
+        set_act = self.env.action_space({'set_line_status': set_status})
+        # Simulate & Step
+        self.sim_obs, _, _, _ = self.obs.simulate(set_act)
+        self.step_obs, _, _, _ = self.env.step(set_act)        
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def test_change_bus(self):
+        # Create a change bus action for all types
+        change_act = self.env.action_space(
+            {'change_bus':
+             {
+                 "loads_id": [0],
+                 "generators_ids": [0],
+                 "lines_or_id": [0],
+                 "lines_ex_id": [0]
+             }
+            })
+        # Simulate & Step
+        self.sim_obs, _, _, _ = self.obs.simulate(change_act)
+        self.step_obs, _, _, _ = self.env.step(change_act)
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def test_set_bus(self):
+        # Increment buses from current topology
+        new_load_bus = self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] + 1
+        new_gen_bus = self.obs.topo_vect[self.obs.gen_pos_topo_vect[0]] + 1
+        new_lor_bus = self.obs.topo_vect[self.obs.line_or_pos_topo_vect[0]] + 1
+        new_lex_bus = self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[0]] + 1
+
+        # Create a set bus action for all types
+        set_act = self.env.action_space(
+            {'set_bus':
+             {
+                 "loads_id": [(0, new_load_bus)],
+                 "generators_ids": [(0, new_gen_bus)],
+                 "lines_or_id": [(0, new_lor_bus)],
+                 "lines_ex_id": [(0, new_lex_bus)]
+             }
+            })
+        # Simulate & Step
+        self.sim_obs, _, _, _ = self.obs.simulate(set_act)
+        self.step_obs, _, _, _ = self.env.step(set_act)
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def test_redispatch(self):
+        # Find first redispatchable generator
+        gen_id = next((i for i, j in enumerate(self.obs.gen_redispatchable) if j), None) 
+        # Create valid ramp up
+        redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
+        # Create redispatch action
+        redisp_act = self.env.action_space({"redispatch": [(gen_id,redisp_val)]})
+        # Simulate & Step
+        self.sim_obs, _, _, _ = self.obs.simulate(redisp_act)
+        self.step_obs, _, _, _ = self.env.step(redisp_act)
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def _multi_actions_sample(self):
+        actions = []
+        ## do_nothing action
+        donothing_act = self.env.action_space()
+        actions.append(donothing_act)
+
+        ## change_status action
+        # Get change status vector
+        change_status = self.env.action_space.get_change_line_status_vect()
+        # Make a change
+        change_status[0] = True
+        # Register change action
+        change_act = self.env.action_space({'change_line_status': change_status})
+        actions.append(change_act)
+
+        ## set_status action
+        # Get set status vector
+        set_status = self.env.action_space.get_set_line_status_vect()
+        # Make a change
+        set_status[0] = -1 if self.obs.line_status[0] else 1
+        # Register set action
+        set_act = self.env.action_space({'set_line_status': set_status})
+        actions.append(set_act)
+
+        ## change_bus action
+        # Register a change bus action for all types
+        change_bus_act = self.env.action_space(
+            {'change_bus':
+             {
+                 "loads_id": [0],
+                 "generators_ids": [0],
+                 "lines_or_id": [0],
+                 "lines_ex_id": [0]
+             }
+            })
+        actions.append(change_bus_act)
+
+        ## set_bus_action
+        # Increment buses from current topology
+        new_load_bus = self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] + 1
+        new_gen_bus = self.obs.topo_vect[self.obs.gen_pos_topo_vect[0]] + 1
+        new_lor_bus = self.obs.topo_vect[self.obs.line_or_pos_topo_vect[0]] + 1
+        new_lex_bus = self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[0]] + 1
+        # Create a set bus action for all types
+        set_bus_act = self.env.action_space(
+            {'set_bus':
+             {
+                 "loads_id": [(0, new_load_bus)],
+                 "generators_ids": [(0, new_gen_bus)],
+                 "lines_or_id": [(0, new_lor_bus)],
+                 "lines_ex_id": [(0, new_lex_bus)]
+             }
+            })
+        actions.append(set_bus_act)
+
+        ## redispatch action
+        # Find first redispatchable generator
+        gen_id = next((i for i, j in enumerate(self.obs.gen_redispatchable) if j), None) 
+        # Create valid ramp up
+        redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
+        # Create redispatch action
+        redisp_act = self.env.action_space({"redispatch": [(gen_id,redisp_val)]})
+        actions.append(redisp_act)
+
+        return actions
+        
+    def test_multi_simulate_last_do_nothing(self):
+        actions = self._multi_actions_sample()
+
+        # Add do_nothing last
+        actions.append(self.env.action_space())
+
+        # Simulate all actions
+        for act in actions:
+            self.sim_obs, _, _, _ = self.obs.simulate(act)
+        # Step with last action
+        self.step_obs, _, _, _ = self.env.step(actions[-1])
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def test_multi_simulate_last_change_line_status(self):
+        actions = self._multi_actions_sample()
+
+        ## Add change_line_status last
+        # Get change status vector
+        change_status = self.env.action_space.get_change_line_status_vect()
+        # Make a change
+        change_status[0] = True
+        # Register change action
+        change_act = self.env.action_space({'change_line_status': change_status})
+        actions.append(change_act)
+
+        # Simulate all actions
+        for act in actions:
+            self.sim_obs, _, _, _ = self.obs.simulate(act)
+        # Step with last action
+        self.step_obs, _, _, _ = self.env.step(actions[-1])
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+        
+    def test_multi_simulate_last_set_line_status(self):
+        actions = self._multi_actions_sample()
+        ## Add set_status action last
+        # Get set status vector
+        set_status = self.env.action_space.get_set_line_status_vect()
+        # Make a change
+        set_status[0] = -1 if self.obs.line_status[0] else 1
+        # Register set action
+        set_act = self.env.action_space({'set_line_status': set_status})
+        actions.append(set_act)
+        
+        # Simulate all actions
+        for act in actions:
+            self.sim_obs, _, _, _ = self.obs.simulate(act)
+        # Step with last action
+        self.step_obs, _, _, _ = self.env.step(actions[-1])
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def test_multi_simulate_last_change_bus(self):
+        actions = self._multi_actions_sample()
+
+        ## Add change_bus action last
+        # Register a change bus action for all types
+        change_bus_act = self.env.action_space(
+            {'change_bus':
+             {
+                 "loads_id": [0],
+                 "generators_ids": [0],
+                 "lines_or_id": [0],
+                 "lines_ex_id": [0]
+             }
+            })
+        actions.append(change_bus_act)
+        
+        # Simulate all actions
+        for act in actions:
+            self.sim_obs, _, _, _ = self.obs.simulate(act)
+        # Step with last action
+        self.step_obs, _, _, _ = self.env.step(actions[-1])
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+
+    def test_multi_simulate_last_set_bus(self):
+        actions = self._multi_actions_sample()
+        ## Add set_bus_action last
+        # Increment buses from current topology
+        new_load_bus = self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] + 1
+        new_gen_bus = self.obs.topo_vect[self.obs.gen_pos_topo_vect[0]] + 1
+        new_lor_bus = self.obs.topo_vect[self.obs.line_or_pos_topo_vect[0]] + 1
+        new_lex_bus = self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[0]] + 1
+        # Create a set bus action for all types
+        set_bus_act = self.env.action_space(
+            {'set_bus':
+             {
+                 "loads_id": [(0, new_load_bus)],
+                 "generators_ids": [(0, new_gen_bus)],
+                 "lines_or_id": [(0, new_lor_bus)],
+                 "lines_ex_id": [(0, new_lex_bus)]
+             }
+            })
+        actions.append(set_bus_act)
+
+        # Simulate all actions
+        for act in actions:
+            self.sim_obs, _, _, _ = self.obs.simulate(act)
+        # Step with last action
+        self.step_obs, _, _, _ = self.env.step(actions[-1])
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
+
+    def test_multi_simulate_last_redispatch(self):
+        actions = self._multi_actions_sample()
+
+        ## Add redispatch action last
+        # Find first redispatchable generator
+        gen_id = next((i for i, j in enumerate(self.obs.gen_redispatchable) if j), None) 
+        # Create valid ramp up
+        redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
+        # Create redispatch action
+        redisp_act = self.env.action_space({"redispatch": [(gen_id,redisp_val)]})
+        actions.append(redisp_act)
+
+        # Simulate all actions
+        for act in actions:
+            self.sim_obs, _, _, _ = self.obs.simulate(act)
+        # Step with last action
+        self.step_obs, _, _, _ = self.env.step(actions[-1])
+        # Test observations are the same
+        assert self.sim_obs == self.step_obs
 
 if __name__ == "__main__":
     unittest.main()
