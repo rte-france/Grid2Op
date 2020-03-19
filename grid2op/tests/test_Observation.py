@@ -1008,6 +1008,8 @@ class TestSimulateEqualsStep(unittest.TestCase):
                 gen_id = i
             if matches == 2:
                 break
+        # Make sure we have a generator
+        assert gen_id != -1
         # Create valid ramp up
         redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
         # Create redispatch action
