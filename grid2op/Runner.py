@@ -32,6 +32,7 @@ try:
     from .Agent import DoNothingAgent, Agent
     from .EpisodeData import EpisodeData
     from ._utils import _FakePbar
+    from .VoltageControler import ControlVoltageFromFile
 
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -47,6 +48,7 @@ except (ModuleNotFoundError, ImportError):
     from Agent import DoNothingAgent, Agent
     from EpisodeData import EpisodeData
     from _utils import _FakePbar
+    from VoltageControler import ControlVoltageFromFile
 
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
@@ -116,6 +118,8 @@ class ConsoleLog(DoNothingLog):
                 print("WARNING: \"{}\"".format(", ".join(args)))
             if kwargs:
                 print("WARNING: {}".format(kwargs))
+
+#TODO i think runner.env are not close, like, never closed :eyes:
 
 
 class Runner(object):
@@ -233,6 +237,7 @@ class Runner(object):
                  agentInstance=None,
                  verbose=False,
                  gridStateclass_kwargs={},
+                 voltageControlerClass=ControlVoltageFromFile,
                  thermal_limit_a=None,
                  max_iter=-1
                  ):
@@ -288,6 +293,9 @@ class Runner(object):
 
         thermal_limit_a: ``numpy.ndarray``
             The thermal limit for the environment (if any).
+
+        voltagecontrolerClass: :class:`grid2op.VoltageControler.ControlVoltageFromFile`, optional
+            The controler that will change the voltage setpoints of the generators.
 
         """
 
@@ -430,6 +438,11 @@ class Runner(object):
 
         self.thermal_limit_a = thermal_limit_a
 
+        # controler for voltage
+        if not issubclass(voltageControlerClass, ControlVoltageFromFile):
+            raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
+        self.voltageControlerClass = voltageControlerClass
+
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
                             chronics_handler=chronics_handler,
@@ -439,7 +452,8 @@ class Runner(object):
                             actionClass=self.actionClass,
                             observationClass=self.observationClass,
                             rewardClass=self.rewardClass,
-                            legalActClass=self.legalActClass)
+                            legalActClass=self.legalActClass,
+                            voltagecontrolerClass=self.voltageControlerClass)
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
@@ -460,8 +474,7 @@ class Runner(object):
         ``None``
 
         """
-        self.env, self.agent = self._new_env(
-            self.chronics_handler, self.backend, self.parameters)
+        self.env, self.agent = self._new_env(self.chronics_handler, self.backend, self.parameters)
 
     def reset(self):
         """

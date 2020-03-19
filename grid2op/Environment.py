@@ -209,7 +209,7 @@ class Environment(_BasicEnv):
                  observationClass=CompleteObservation,
                  rewardClass=FlatReward,
                  legalActClass=AllwaysLegal,
-                 voltagecontrolClass=ControlVoltageFromFile,
+                 voltagecontrolerClass=ControlVoltageFromFile,
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6
@@ -239,7 +239,7 @@ class Environment(_BasicEnv):
                           epsilon_poly=epsilon_poly,
                           tol_poly=tol_poly)
         # the voltage controler
-        self.voltagecontrolClass = voltagecontrolClass
+        self.voltagecontrolerClass = voltagecontrolerClass
         self.voltage_controler = None
 
         # for gym compatibility (initialized below)
@@ -365,11 +365,11 @@ class Environment(_BasicEnv):
         self.reward_helper.initialize(self)
 
         # controler for voltage
-        if not issubclass(self.voltagecontrolClass, ControlVoltageFromFile):
+        if not issubclass(self.voltagecontrolerClass, ControlVoltageFromFile):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
-        self.voltage_controler = self.voltagecontrolClass(gridobj=self.backend,
-                                                          controler_backend=self.backend)
+        self.voltage_controler = self.voltagecontrolerClass(gridobj=self.backend,
+                                                            controler_backend=self.backend)
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
@@ -650,6 +650,7 @@ class Environment(_BasicEnv):
         res["epsilon_poly"] = self._epsilon_poly
         res["tol_poly"] = self._tol_poly
         res["thermal_limit_a"] = self._thermal_limit_a
+        res["voltagecontrolerClass"] = self.voltagecontrolerClass
         return res
 
     def get_params_for_runner(self):
@@ -693,6 +694,7 @@ class Environment(_BasicEnv):
             del dict_["path"]
         res["gridStateclass_kwargs"] = dict_
         res["thermal_limit_a"] = self._thermal_limit_a
+        res["voltageControlerClass"] = self.voltagecontrolerClass
 
         # TODO make a test for that
         return res
