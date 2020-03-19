@@ -58,6 +58,7 @@ try:
     from .Backend import Backend
     from .ChronicsHandler import ChronicsHandler
     from .PlotPyGame import Renderer
+    from .VoltageControler import ControlVoltageFromFile
 except (ModuleNotFoundError, ImportError):
     from Space import GridObjects
     from BasicEnv import _BasicEnv
@@ -70,6 +71,7 @@ except (ModuleNotFoundError, ImportError):
     from Backend import Backend
     from ChronicsHandler import ChronicsHandler
     from PlotPyGame import Renderer
+    from VoltageControler import ControlVoltageFromFile
 
 import pdb
 
@@ -207,9 +209,11 @@ class Environment(_BasicEnv):
                  observationClass=CompleteObservation,
                  rewardClass=FlatReward,
                  legalActClass=AllwaysLegal,
+                 voltagecontrolClass=ControlVoltageFromFile,
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
-                 tol_poly=1e-6,):
+                 tol_poly=1e-6
+                 ):
         """
         Initialize the environment. See the descirption of :class:`grid2op.Environment.Environment` for more information.
 
@@ -234,6 +238,9 @@ class Environment(_BasicEnv):
                           thermal_limit_a=thermal_limit_a,
                           epsilon_poly=epsilon_poly,
                           tol_poly=tol_poly)
+        # the voltage controler
+        self.voltagecontrolClass = voltagecontrolClass
+        self.voltage_controler = None
 
         # for gym compatibility (initialized below)
         self.action_space = None
@@ -353,9 +360,16 @@ class Environment(_BasicEnv):
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
 
-        # reward
+        # reward function
         self.reward_helper = RewardHelper(rewardClass=rewardClass)
         self.reward_helper.initialize(self)
+
+        # controler for voltage
+        if not issubclass(self.voltagecontrolClass, ControlVoltageFromFile):
+            raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
+
+        self.voltage_controler = self.voltagecontrolClass(gridobj=self.backend,
+                                                          controler_backend=self.backend)
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
@@ -380,6 +394,27 @@ class Environment(_BasicEnv):
         self.current_reward = self.reward_range[0]
         self.done = False
         self._reset_vectors_and_timings()
+
+    def _voltage_control(self, agent_action, prod_v_chronics):
+        """
+        Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
+        function can be overide for a more complex handling of the voltages.
+
+        It mush update (if needed) the voltages of the environment action :attr:`BasicEnv.env_modification`
+
+        Parameters
+        ----------
+        agent_action: :class:`grid2op.Action.Action`
+            The action performed by the player (or do nothing is player action were not legal or ambiguous)
+
+        prod_v_chronics: ``numpy.ndarray`` or ``None``
+            The voltages that has been specified in the chronics
+
+        """
+        self.env_modification += self.voltage_controler.fix_voltage(self.current_obs,
+                                                                    agent_action,
+                                                                    self.env_modification,
+                                                                    prod_v_chronics)
 
     def set_chunk_size(self, new_chunk_size):
         """
@@ -476,35 +511,6 @@ class Environment(_BasicEnv):
         #     return '<{} instance>'.format(type(self).__name__)
         # else:
         #     return '<{}<{}>>'.format(type(self).__name__, self.spec.id)
-
-    def __enter__(self):
-        """
-        Support *with-statement* for the environment.
-
-        Examples
-        --------
-
-        .. code-block:: python
-
-            import grid2op
-            import grid2op.Agent
-            with grid2op.make() as env:
-                agent = grid2op.Agent.DoNothingAgent(env.action_space)
-                act = env.action_space()
-                obs, r, done, info = env.step(act)
-                act = agent.act(obs, r, info)
-                obs, r, done, info = env.step(act)
-
-        """
-        return self
-
-    def __exit__(self, *args):
-        """
-        Support *with-statement* for the environment.
-        """
-        self.close()
-        # propagate exception
-        return False
 
     def reset_grid(self):
         """
@@ -613,13 +619,6 @@ class Environment(_BasicEnv):
                 raise Grid2OpException(err_msg)
         else:
             raise Grid2OpException("Renderer mode \"{}\" not supported.".format(mode))
-
-    def close(self):
-        # todo there might be some side effect
-        if self.viewer:
-            self.viewer.close()
-            self.viewer = None
-        self.backend.close()
 
     def copy(self):
         """

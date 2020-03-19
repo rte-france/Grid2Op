@@ -617,7 +617,7 @@ class Runner(object):
               (episode) but not at lower levels (setp during the episode)
         """
         pbar_ = _FakePbar()
-        next_pbar[0] = None
+        next_pbar[0] = False
 
         if isinstance(pbar, bool):
             if pbar:
@@ -632,7 +632,6 @@ class Runner(object):
             next_pbar[0] = pbar
         elif isinstance(pbar, object):
             pbar_ = pbar
-            next_pbar[0] = False
         return pbar_
 
     def run_sequential(self, nb_episode, path_save=None, pbar=False):

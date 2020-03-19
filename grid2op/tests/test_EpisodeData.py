@@ -103,7 +103,7 @@ class TestEpisodeData(unittest.TestCase):
 
     def test_3_episode_3process_with_saving(self):
         f = tempfile.mkdtemp()
-        res = self.runner.run_parrallel(nb_episode=3, nb_process=3, path_save=f)
+        res = self.runner.run_parrallel(nb_episode=3, nb_process=2, path_save=f)
         assert len(res) == 3
         for i, episode_name, cum_reward, timestep, total_ts in res:
             episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)

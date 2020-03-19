@@ -506,7 +506,7 @@ class _BasicEnv(GridObjects, ABC):
         return self.helper_action_env({"injection": self._injection, "maintenance": self._maintenance,
                                        "hazards": self._hazards}), prod_v
 
-    def _voltage_control(self, prod_v):
+    def _voltage_control(self, agent_action, prod_v_chronics):
         """
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
         function can be overide for a more complex handling of the voltages.
@@ -515,12 +515,15 @@ class _BasicEnv(GridObjects, ABC):
 
         Parameters
         ----------
-        prod_v: ``numpy.ndarray`` or ``None``
+        agent_action: :class:`grid2op.Action.Action`
+            The action performed by the player (or do nothing is player action were not legal or ambiguous)
+
+        prod_v_chronics: ``numpy.ndarray`` or ``None``
             The voltages that has been specified in the chronics
 
         """
-        if prod_v is not None:
-            self.env_modification.update({"injection": {"prod_v": prod_v}})
+        if prod_v_chronics is not None:
+            self.env_modification.update({"injection": {"prod_v": prod_v_chronics}})
 
     def _handle_updown_times(self, gen_up_before, redisp_act):
         # get the generators that are not connected after the action
@@ -715,7 +718,7 @@ class _BasicEnv(GridObjects, ABC):
             self.env_modification._single_act = False
 
             # now get the new generator voltage setpoint
-            self._voltage_control(prod_v=prod_v_chronics)
+            self._voltage_control(action, prod_v_chronics)
 
             # have the opponent here
             # TODO code the opponent part here
@@ -865,3 +868,39 @@ class _BasicEnv(GridObjects, ABC):
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
         self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+
+    def __enter__(self):
+        """
+        Support *with-statement* for the environment.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            import grid2op
+            import grid2op.Agent
+            with grid2op.make() as env:
+                agent = grid2op.Agent.DoNothingAgent(env.action_space)
+                act = env.action_space()
+                obs, r, done, info = env.step(act)
+                act = agent.act(obs, r, info)
+                obs, r, done, info = env.step(act)
+
+        """
+        return self
+
+    def __exit__(self, *args):
+        """
+        Support *with-statement* for the environment.
+        """
+        self.close()
+        # propagate exception
+        return False
+
+    def close(self):
+        # todo there might be some side effect
+        if self.viewer:
+            self.viewer.close()
+            self.viewer = None
+        self.backend.close()

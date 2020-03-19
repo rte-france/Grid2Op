@@ -725,7 +725,7 @@ class ChangeNothing(GridValue):
         """
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration
+        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration, None
 
     def check_validity(self, backend):
         """

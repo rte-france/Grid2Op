@@ -88,22 +88,22 @@ class TestProperHandlingHazardsMaintenance(HelperTests):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_hazard)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
-        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration, prod_v = chron_handl.next_time_step()
         assert np.all(hazard_duration == 0)
 
         for i in range(12):
-            current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+            current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration, prod_v = chron_handl.next_time_step()
             assert np.sum(hazard_duration == 0) == 19
             assert hazard_duration[17] == 12-i, "error at iteration {}".format(i)
 
-        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration, prod_v = chron_handl.next_time_step()
         assert np.all(hazard_duration == 0)
 
     def test_loadchornics_maintenance_ok(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_maintenance)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
                      self.order_backend_lines, self.order_backend_subs)
-        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration, prod_v = chron_handl.next_time_step()
 
         assert np.sum(maintenance_duration == 0) == 18
         assert maintenance_duration[17] == 12, "incorrect duration of maintenance on powerline 17"
@@ -114,7 +114,7 @@ class TestProperHandlingHazardsMaintenance(HelperTests):
         assert maintenance_time[19] == 276, "incorrect time for next maintenance on powerline 19"
 
         for i in range(12):
-            current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+            current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration, prod_v = chron_handl.next_time_step()
             assert np.sum(maintenance_duration == 0) == 18
             assert int(maintenance_duration[17]) == int(12-i), "incorrect duration of maintenance on powerline 17 at iteration {}: it is {} and should be {}".format(i, maintenance_duration[17], int(12-i))
             assert maintenance_duration[19] == 12, "incorrect duration of maintenance on powerline 19 at iteration {}".format(i)
@@ -123,7 +123,7 @@ class TestProperHandlingHazardsMaintenance(HelperTests):
             assert maintenance_time[17] == 0, "incorrect time for next maintenance on powerline 17 at iteration {}".format(i)
             assert maintenance_time[19] == 275-i, "incorrect time for next maintenance on powerline 19 at iteration {}".format(i)
 
-        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration = chron_handl.next_time_step()
+        current_datetime, dict_, maintenance_time, maintenance_duration, hazard_duration, prod_v = chron_handl.next_time_step()
         assert np.sum(maintenance_duration == 0) == 19
         assert maintenance_duration[19] == 12, "incorrect duration of maintenance on powerline 19 at finish"
 
