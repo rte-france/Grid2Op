@@ -520,8 +520,7 @@ class _BasicEnv(GridObjects, ABC):
 
         """
         if prod_v is not None:
-            pass
-            # self.env_modification.update({"injection": {"prod_v": prod_v}})
+            self.env_modification.update({"injection": {"prod_v": prod_v}})
 
     def _handle_updown_times(self, gen_up_before, redisp_act):
         # get the generators that are not connected after the action
