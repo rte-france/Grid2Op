@@ -563,27 +563,22 @@ class Runner(object):
         reward = env.reward_range[0]
         done = False
 
-        if pbar:
-            from tqdm import tqdm
-            pbar_ = tqdm(total=nb_timestep_max, desc="step")
-        else:
-            pbar_ = _FakePbar()
+        next_pbar = [False]
+        with Runner._make_progress_bar(pbar, nb_timestep_max, next_pbar) as pbar_:
+            while not done:
+                beg__ = time.time()
+                act = agent.act(obs, reward, done)
+                end__ = time.time()
+                time_act += end__ - beg__
 
-        while not done:
-            beg__ = time.time()
-            act = agent.act(obs, reward, done)
-            end__ = time.time()
-            time_act += end__ - beg__
+                obs, reward, done, info = env.step(act)  # should load the first time stamp
+                cum_reward += reward
+                time_step += 1
+                pbar_.update(1)
 
-            obs, reward, done, info = env.step(act)  # should load the first time stamp
-            cum_reward += reward
-            time_step += 1
-            pbar_.update(1)
-
-            episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                               reward, env.env_modification, act, obs, info)
-        end_ = time.time()
-        pbar_.close()
+                episode.incr_store(efficient_storing, time_step, end__ - beg__,
+                                   reward, env.env_modification, act, obs, info)
+            end_ = time.time()
 
         episode.set_meta(env, time_step, cum_reward)
 
@@ -604,6 +599,42 @@ class Runner(object):
 
         return name_chron, cum_reward, int(time_step)
 
+    @staticmethod
+    def _make_progress_bar(pbar, total, next_pbar):
+        """
+        Parameters
+        ----------
+        pbar: ``bool`` or ``type`` or ``object``
+            How to display the progress bar, understood as follow:
+
+            - if pbar is ``None`` nothing is done.
+            - if pbar is a boolean, tqdm pbar are used, if tqdm package is available and installed on the system
+              [if ``true``]. If it's false it's equivalent to pbar being ``None``
+            - if pbar is a ``type`` ( a class), it is used to build a progress bar at the highest level (episode) and
+              and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
+              and "desc" when being built, and the closing is ensured by this method.
+            - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
+              (episode) but not at lower levels (setp during the episode)
+        """
+        pbar_ = _FakePbar()
+        next_pbar[0] = None
+
+        if isinstance(pbar, bool):
+            if pbar:
+                try:
+                    from tqdm import tqdm
+                    pbar_ = tqdm(total=total, desc="episode")
+                    next_pbar[0] = True
+                except (ImportError, ModuleNotFoundError):
+                    pass
+        elif isinstance(pbar, type):
+            pbar_ = pbar(total=total, desc="episode")
+            next_pbar[0] = pbar
+        elif isinstance(pbar, object):
+            pbar_ = pbar
+            next_pbar[0] = False
+        return pbar_
+
     def run_sequential(self, nb_episode, path_save=None, pbar=False):
         """
         This method is called to see how well an agent performed on a sequence of episode.
@@ -616,6 +647,18 @@ class Runner(object):
         path_save: ``str``, optional
             If not None, it specifies where to store the data. See the description of this module :mod:`Runner` for
             more information
+
+        pbar: ``bool`` or ``type`` or ``object``
+            How to display the progress bar, understood as follow:
+
+            - if pbar is ``None`` nothing is done.
+            - if pbar is a boolean, tqdm pbar are used, if tqdm package is available and installed on the system
+              [if ``true``]. If it's false it's equivalent to pbar being ``None``
+            - if pbar is a ``type`` ( a class), it is used to build a progress bar at the highest level (episode) and
+              and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
+              and "desc" when being built, and the closing is ensured by this method.
+            - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
+              (episode) but not at lower levels (setp during the episode)
 
         Returns
         -------
@@ -630,18 +673,15 @@ class Runner(object):
 
         """
         res = [(None, None, None, None, None) for _ in range(nb_episode)]
-        if pbar:
-            from tqdm import tqdm
-            pbar_ = tqdm(total=nb_episode, desc="episode")
-        else:
-            pbar_ = _FakePbar()
-        for i in range(nb_episode):
-            name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i, pbar=pbar)
-            id_chron = self.chronics_handler.get_id()
-            max_ts = self.chronics_handler.max_timestep()
-            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
-            pbar_.update(1)
-        pbar_.close()
+
+        next_pbar = [False]
+        with self._make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
+            for i in range(nb_episode):
+                name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i, pbar=next_pbar[0])
+                id_chron = self.chronics_handler.get_id()
+                max_ts = self.chronics_handler.max_timestep()
+                res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+                pbar_.update(1)
         return res
 
     @staticmethod

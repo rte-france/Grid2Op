@@ -1125,30 +1125,29 @@ class GridStateFromFile(GridValue):
         self._init_attrs(load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance)
 
         self.curr_iter = 0
+        if self.maintenance is not None:
+            n_ = self.maintenance.shape[0]
+        elif self.hazards is not None:
+            n_ = self.hazards.shape[0]
+        else:
+            n_ = None
+            for fn in ["prod_p", "load_p", "prod_v", "load_q"]:
+                ext_ = self._get_fileext(fn)
+                if ext_ is not None:
+                    n_ = self._file_len(os.path.join(self.path, "{}{}".format(fn, ext_)), ext_)
+                    break
+            if n_ is None:
+                raise ChronicsError("No files are found in directory \"{}\". If you don't want to load any chronics,"
+                                    " use  \"ChangeNothing\" and not \"{}\" to load chronics."
+                                    "".format(self.path, type(self)))
+        self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
+
         if self.max_iter == -1:
             # if the number of maximum time step is not set yet, we set it to be the number of
             # data in the chronics (number of rows of the files) -1.
             # the -1 is present because the initial grid state doesn't count as a "time step" but is read
             # from these data.
-            if self.maintenance is not None:
-                n_ = self.maintenance.shape[0]
-            elif self.hazards is not None:
-                n_ = self.hazards.shape[0]
-            else:
-                n_ = None
-                for fn in ["prod_p", "load_p", "prod_v", "load_q"]:
-                    ext_ = self._get_fileext(fn)
-                    if ext_ is not None:
-                        n_ = self._file_len(os.path.join(self.path, "{}{}".format(fn, ext_)), ext_)
-                        break
-                if n_ is None:
-                    raise ChronicsError("No files are found in directory \"{}\". If you don't want to load any chronics,"
-                                        " use  \"ChangeNothing\" and not \"{}\" to load chronics."
-                                        "".format(self.path, type(self)))
-            self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
-            self.max_iter = n_ -1
-        else:
-            self.n_ = self.max_iter
+            self.max_iter = self.n_ -1
 
     @staticmethod
     def _file_len(fname, ext_):

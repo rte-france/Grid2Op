@@ -33,6 +33,9 @@ class _FakePbar(object):
     """
     Just a fake progress bar with same interface as tqdm
     """
+    def __init__(self, total=0, desc=""):
+        pass
+
     def update(self, int):
         pass
 
@@ -40,7 +43,7 @@ class _FakePbar(object):
         pass
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        return False
