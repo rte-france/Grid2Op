@@ -910,7 +910,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Get change status vector
         change_status = self.env.action_space.get_change_line_status_vect()
         # Make a change
-        change_status[0] = True
+        change_status[1] = True
         # Register change action
         change_act = self.env.action_space({'change_line_status': change_status})
         actions.append(change_act)
@@ -929,7 +929,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Get set status vector
         set_status = self.env.action_space.get_set_line_status_vect()
         # Make a change
-        set_status[0] = -1 if self.obs.line_status[0] else 1
+        set_status[1] = -1 if self.obs.line_status[0] else 1
         # Register set action
         set_act = self.env.action_space({'set_line_status': set_status})
         actions.append(set_act)
@@ -950,10 +950,10 @@ class TestSimulateEqualsStep(unittest.TestCase):
         change_bus_act = self.env.action_space(
             {'change_bus':
              {
-                 "loads_id": [0],
-                 "generators_ids": [0],
-                 "lines_or_id": [0],
-                 "lines_ex_id": [0]
+                 "loads_id": [1],
+                 "generators_ids": [1],
+                 "lines_or_id": [1],
+                 "lines_ex_id": [1]
              }
             })
         actions.append(change_bus_act)
@@ -971,18 +971,18 @@ class TestSimulateEqualsStep(unittest.TestCase):
         actions = self._multi_actions_sample()
         ## Add set_bus_action last
         # Increment buses from current topology
-        new_load_bus = self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] + 1
-        new_gen_bus = self.obs.topo_vect[self.obs.gen_pos_topo_vect[0]] + 1
-        new_lor_bus = self.obs.topo_vect[self.obs.line_or_pos_topo_vect[0]] + 1
-        new_lex_bus = self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[0]] + 1
+        new_load_bus = self.obs.topo_vect[self.obs.load_pos_topo_vect[1]] + 1
+        new_gen_bus = self.obs.topo_vect[self.obs.gen_pos_topo_vect[1]] + 1
+        new_lor_bus = self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] + 1
+        new_lex_bus = self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] + 1
         # Create a set bus action for all types
         set_bus_act = self.env.action_space(
             {'set_bus':
              {
-                 "loads_id": [(0, new_load_bus)],
-                 "generators_ids": [(0, new_gen_bus)],
-                 "lines_or_id": [(0, new_lor_bus)],
-                 "lines_ex_id": [(0, new_lex_bus)]
+                 "loads_id": [(1, new_load_bus)],
+                 "generators_ids": [(1, new_gen_bus)],
+                 "lines_or_id": [(1, new_lor_bus)],
+                 "lines_ex_id": [(1, new_lex_bus)]
              }
             })
         actions.append(set_bus_act)
@@ -999,8 +999,15 @@ class TestSimulateEqualsStep(unittest.TestCase):
         actions = self._multi_actions_sample()
 
         ## Add redispatch action last
-        # Find first redispatchable generator
-        gen_id = next((i for i, j in enumerate(self.obs.gen_redispatchable) if j), None) 
+        # Find second redispatchable generator
+        matches = 0
+        gen_id = -1
+        for i, j in enumerate(self.obs.gen_redispatchable):
+            if j:
+                matches += 1
+                gen_id = i
+            if matches == 2:
+                break
         # Create valid ramp up
         redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
         # Create redispatch action
