@@ -571,7 +571,7 @@ class TestMissingData(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with self.assertRaises(ChronicsError):
-                with make("case14_realistic", chronics_path="/home/benjamin/Documents/grid2op_dev/grid2op/tests"):
+                with make("case14_realistic", chronics_path="/answer/life/42"):
                     pass
 
     def run_env_till_over(self, env, max_iter):

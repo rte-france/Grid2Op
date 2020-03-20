@@ -1726,10 +1726,14 @@ class Multifolder(GridValue):
         self.data = None
         self.path = os.path.abspath(path)
         self.sep = sep
-        self.subpaths = [os.path.join(self.path, el) for el in os.listdir(self.path)
-                         if os.path.isdir(os.path.join(self.path, el))]
-        self.subpaths.sort()
-        self.subpaths = np.array(self.subpaths)
+        try:
+            self.subpaths = [os.path.join(self.path, el) for el in os.listdir(self.path)
+                             if os.path.isdir(os.path.join(self.path, el))]
+            self.subpaths.sort()
+            self.subpaths = np.array(self.subpaths)
+        except FileNotFoundError:
+            raise ChronicsError("Path \"{}\" doesn't exists.".format(self.path)) from None
+
 
         if len(self.subpaths) == 0:
             raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "
