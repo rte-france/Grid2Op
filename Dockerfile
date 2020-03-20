@@ -22,7 +22,7 @@ RUN git clone https://github.com/rte-france/Grid2Op
 # Install Grid2Op (including necessary packages installation)
 WORKDIR Grid2Op/
 RUN cd /Grid2Op
-RUN git checkout v0.4.2 && pip install -U . && cd ..
+RUN git pull && git checkout v0.5.4 && pip install -U . && cd ..
 
 # Make port 80 available to the world outside this container
 EXPOSE 80

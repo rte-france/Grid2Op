@@ -49,7 +49,10 @@ if __name__ == "__main__":
     with open(dockerfile, "w") as f:
         f.write(new_setup)
 
-    # # push new version to dockerhub
-    # for vers_ in [version, "latest"]:
-    #     subprocess.run(["docker", "build", "-t", "bdonnot/grid2op:{}".format(version), "."], cwd=path)
-    #     subprocess.run(["docker", "push", "bdonnot/grid2op:{}".format(version), "."], cwd=path)
+    # push new version to dockerhub
+    for vers_ in [version]: #, "latest"]:
+        subprocess.run(["docker", "build", "-t", "bdonnot/grid2op:{}".format(version), "."], cwd=path)
+        # import pdb
+        # pdb.set_trace()
+        subprocess.run(["docker", "push", "bdonnot/grid2op:{}".format(version)], cwd=path)
+        print("Done for {}".format(version))
