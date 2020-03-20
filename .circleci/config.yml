@@ -37,7 +37,7 @@ jobs:
           command: |
             source venv_grid2op/bin/activate
             cd ./grid2op/tests/
-            circleci tests glob "test_*.py" | circleci tests split --split-by=timings
+            circleci tests glob "test_*.py" | circleci tests split
 
 workflows:
   version: 2.1
