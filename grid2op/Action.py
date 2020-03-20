@@ -488,19 +488,45 @@ class Action(GridObjects):
             :attr:`Action._subs_impacted` for more information.
 
         """
+        if self._lines_impacted is None:
+            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
+
         if self._subs_impacted is None:
+            # supposes tha self._lines_impacted
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
             beg_ = 0
             end_ = 0
+            powerlines_reco = np.where(self._set_line_status == 1)[0]  # all the id of the powerlines reconnected
+            sub_or_id = self.line_or_to_subid[powerlines_reco]
+            sub_ex_id = self.line_ex_to_subid[powerlines_reco]
+            sub_id = np.concatenate((sub_or_id, sub_ex_id))
+            sub_id_unique, sub_counts = np.unique(sub_id, return_counts=True)
+            sub_counts = dict(zip(sub_id_unique, sub_counts))
+            is_sub_concerned = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
+            is_sub_concerned[sub_id_unique] = True
             for sub_id, nb_obj in enumerate(self.sub_info):
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
-                if np.any(self._change_bus_vect[beg_:end_]) or np.any(self._set_topo_vect[beg_:end_] != 0):
+                if np.any(self._change_bus_vect[beg_:end_]):
+                    # change always impact the substations
                     self._subs_impacted[sub_id] = True
+                nb_set = np.sum(self._set_topo_vect[beg_:end_] != 0)
+                if nb_set > 0:
+                    # if a powerline has been reconnected, don't count busor and busex as "impacted" if the action
+                    # concerned only the reconnected powerline
+                    # in some cases, set does not impact it then.
+                    if not is_sub_concerned[sub_id]:
+                        # no powerline are connected here so
+                        self._subs_impacted[sub_id] = True
+                    else:
+                        # in this case, i reconnected a powerline having one of its end on a substation, so you might not
+                        # need to count this action
+                        if sub_counts[sub_id] != nb_set:
+                            # in this case, only actions regarding reconnection of powerlines are performed
+                            self._subs_impacted[sub_id] = True
+
                 beg_ += nb_obj
 
-        if self._lines_impacted is None:
-            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
         return self._lines_impacted, self._subs_impacted
 
     def reset(self):
@@ -551,7 +577,6 @@ class Action(GridObjects):
         -------
 
         """
-        # TODO test that
 
         # deal with injections
         for el in self.vars_action:
@@ -928,6 +953,18 @@ class Action(GridObjects):
             else:
                 raise AmbiguousAction("Impossible to understand the redispatching action implemented.")
 
+    def _reset_vect(self):
+        """
+        Need to be called when update is called !
+
+        Returns
+        -------
+
+        """
+        self._vectorized = None
+        self._subs_impacted = None
+        self._lines_impacted = None
+
     def update(self, dict_):
         """
         Update the action with a comprehensible format specified by a dictionary.
@@ -1087,9 +1124,7 @@ class Action(GridObjects):
             Return the modified instance. This is handy to chain modifications if needed.
 
         """
-        self._vectorized = None
-        self._subs_impacted = None
-        self._lines_impacted = None
+        self._reset_vect()
 
         if dict_ is not None:
             for kk in dict_.keys():
@@ -1866,7 +1901,9 @@ class TopoAndRedispAction(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self._vectorized = None
+
+        self._reset_vect()
+
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
@@ -1962,7 +1999,8 @@ class TopologyAction(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self._vectorized = None
+        self._reset_vect()
+
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
@@ -2048,7 +2086,8 @@ class VoltageOnlyAction(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self._vectorized = None
+        self._reset_vect()
+
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
@@ -2142,7 +2181,8 @@ class PowerLineSet(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self._vectorized = None
+        self._reset_vect()
+
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
