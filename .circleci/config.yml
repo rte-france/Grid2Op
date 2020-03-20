@@ -40,4 +40,4 @@ workflows:
       - install
       - test:
           requires:
-            - build
+            - install
