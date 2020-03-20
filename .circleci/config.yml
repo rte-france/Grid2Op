@@ -1,0 +1,28 @@
+version: 2.1
+jobs:
+  install-and-test:
+    working_directory: ~/grid2op-ci
+    docker: # run the steps with Docker
+      # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
+      - image: circleci/python:3.6.4
+    steps:
+      - checkout
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
+      - restore_cache:
+          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
+      - run:
+          command: |
+            sudo pip3 install -U virtualenv
+            python3 -m virtualenv venv_grid2op
+            source venv_grid2op/bin/activate
+            pip install -U .
+            pip install -e .[test]
+            pip list --format=freeze > requirements.txt
+      - save_cache: # cache Python dependencies using checksum of requirements as the cache-key
+          key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          paths:
+            - "venv_grid2op"
+      - run:
+          command: |
+            python -m unittest discover ./grid2op/tests
