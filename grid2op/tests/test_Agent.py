@@ -14,6 +14,7 @@ from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
 from Exceptions import *
 from MakeEnv import make
 from Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
+from Parameters import Parameters
 
 import pdb
 
@@ -29,9 +30,11 @@ class TestAgent(HelperTests):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
+        param = Parameters()
+        param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_redisp")
+            self.env = make("case14_redisp", param=param)
 
     def tearDown(self):
         self.env.close()
@@ -91,7 +94,7 @@ class TestAgent(HelperTests):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent, i_max=10)
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
-        assert np.abs(cum_reward - 5361.58359) <= self.tol_one, "The reward has not been properly computed"
+        assert np.abs(cum_reward - 4285.13952) <= self.tol_one, "The reward has not been properly computed"
 
 
 if __name__ == "__main__":

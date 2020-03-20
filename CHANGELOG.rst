@@ -12,7 +12,7 @@ TODO for next versions
 - [???] better explanation of the notebook 3 with action silently
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
-- [???] change the link to the doc in the notebook to point to readthedoc
+- [???] see if "simulate" performances can be improved, and performances in general.
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
@@ -22,7 +22,7 @@ TODO for next versions
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
-[0.5.8] - 2020-03-xx
+[0.5.8] - 2020-03-20
 --------------------
 - [ADDED] runner now is able to show a progress bar
 - [ADDED] add a "max_iter" in the runner.
@@ -32,6 +32,7 @@ TODO for next versions
   nothing changes. If no files at all are provided, it raises an error.
 - [ADDED] possibility to change the controler for the generator voltage setpoints
   (See `VoltageControler` for more information). It can be customized as of now.
+- [ADDED] lots of new tests for majority of classes (ChronicsHandler, Action, Observations etc.)
 - [FIXED] voltages are now set to 0 when the powerline are disconnected, instead of being set to Nan in
   pandapower backend.
 - [FIXED] `ReadPypowNetData` does not crash when argument "chunk_size" is provided now.
@@ -45,6 +46,7 @@ TODO for next versions
 - [UPDATED] better handling of system without numba `issue 42 <https://github.com/rte-france/Grid2Op/issues/42>`_)
 - [UPDATED] better display of the error message if all dispatchable generators are set
   `issue 39 <https://github.com/rte-france/Grid2Op/issues/39>`_
+- [UPDATED] change the link to the doc in the notebook to point to readthedoc and not to local documentation.
 
 [0.5.7] - 2020-03-03
 --------------------

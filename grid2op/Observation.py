@@ -1006,6 +1006,8 @@ class Observation(GridObjects):
         inj_action = self.action_helper(inj_forecasted)
         # initialize the "simulation environment" with the proper injections
         self._forecasted_grid[time_step] = self._obs_env.copy()
+        # TODO avoid un necessary copy above. Have one backend for all "simulate" and save instead the
+        # TODO obs_env._action that set the backend to the sate we want to simulate
         self._forecasted_grid[time_step].init(inj_action, time_stamp=timestamp,
                                               timestep_overflow=self.timestep_overflow)
 

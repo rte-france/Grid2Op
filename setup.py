@@ -16,12 +16,15 @@ extras["all"] = list(set(all_targets))
 
 # try to install numba, not compatible on every platform
 try:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "numba"])
-except subprocess.CalledProcessError:
-    print("Numba is not available for your platform. You could gain massive speed up if you could install it.")
+    import numba
+except (ImportError, ModuleNotFoundError):
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "numba"])
+    except subprocess.CalledProcessError:
+        print("Numba is not available for your platform. You could gain massive speed up if you could install it.")
 
 setup(name='Grid2Op',
-      version='0.5.7',
+      version='0.5.8',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations '
                        'independently of the software used to compute powerflow or method to generate grid '
