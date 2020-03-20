@@ -20,7 +20,6 @@ jobs:
             source venv_grid2op/bin/activate
             pip install -U .
             pip install -e .[test]
-            pip list --format=freeze > requirements.txt
       - save_cache: # cache Python dependencies using checksum of requirements as the cache-key
           key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
