@@ -727,7 +727,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_v, -1, axis=0)
         self.env.chronics_handler.real_data.data.load_p_forecast = np.roll(self.env.chronics_handler.real_data.data.load_p, -1, axis=0)
         self.env.chronics_handler.real_data.data.load_q_forecast = np.roll(self.env.chronics_handler.real_data.data.load_q, -1, axis=0)
-        self.obs, _, _, _ = self.env.step(self.env.action_space())
+        self.obs, _, _, _ = self.env.step(self.env.action_space({}))
 
         self.sim_obs = None
         self.step_obs = None
@@ -929,7 +929,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Get set status vector
         set_status = self.env.action_space.get_set_line_status_vect()
         # Make a change
-        set_status[1] = -1 if self.obs.line_status[0] else 1
+        set_status[1] = -1 if self.obs.line_status[1] else 1
         # Register set action
         set_act = self.env.action_space({'set_line_status': set_status})
         actions.append(set_act)
