@@ -478,6 +478,7 @@ class PandaPowerBackend(Backend):
             with warnings.catch_warnings():
                 # remove the warning if _grid non connex. And it that case load flow as not converged
                 warnings.filterwarnings("ignore", category=scipy.sparse.linalg.MatrixRankWarning)
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
                 # warnings.filterwarnings("ignore", category=RuntimeWarning)
                 if nb_bus == self._nb_bus_before:
                     self._pf_init = "results"

@@ -12,7 +12,7 @@ import helper_path_test  # usefull to set poperly the sys.path
 
 from Exceptions import *
 from Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
-from GameRules import GameRules
+from GameRules import GameRules, DefaultRules
 from Space import GridObjects
 
 class TestActionBase(ABC):
@@ -688,6 +688,38 @@ class TestActionBase(ABC):
         act = self.helper_action_env({"redispatch": [(1, 10), (2, 100)]})
         act = self.helper_action_env({"redispatch": np.array([10, 20, 30, 40, 50])})
 
+    def test_possibility_reconnect_powerlines(self):
+        self._skipMissingKey('set_line_status')
+        self._skipMissingKey('set_bus')
+        self.helper_action_env.legal_action = DefaultRules()
+
+        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        line_impact, sub_impact = act.get_topological_impact()
+        assert np.sum(line_impact) == 1
+        assert np.sum(sub_impact) == 0
+
+        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        act.update({"set_bus": {"generators_id": [(1,2)]}})
+        line_impact, sub_impact = act.get_topological_impact()
+        assert np.sum(line_impact) == 1
+        assert np.all(sub_impact == [False, True] + [False for _ in range(12)])
+
+        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        act.update({"set_bus": {"generators_id": [(0, 2)]}})
+        line_impact, sub_impact = act.get_topological_impact()
+        assert np.sum(line_impact) == 1
+        assert np.all(sub_impact == [True] + [False for _ in range(13)])
+
+        # there were a bug that occurred when updating an action, some vectors were not reset
+        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        line_impact, sub_impact = act.get_topological_impact()
+        assert np.sum(line_impact) == 1
+        assert np.sum(sub_impact) == 0
+        act.update({"set_bus": {"generators_id": [(1, 2)]}})
+        line_impact, sub_impact = act.get_topological_impact()
+        assert np.sum(line_impact) == 1
+        assert np.all(sub_impact == [False, True] + [False for _ in range(12)])
+
 
 class TestAction(TestActionBase, unittest.TestCase):
     """
@@ -697,6 +729,7 @@ class TestAction(TestActionBase, unittest.TestCase):
     def _action_env_setup(self):
         return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=Action)
 
+
 class TestTopologyAction(TestActionBase, unittest.TestCase):
     """
     Test suite using the TopologyAction class
@@ -705,6 +738,7 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
     def _action_env_setup(self):
         return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
 
+
 class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
     """
     Test suite using the TopologyAndRedisp class
@@ -712,6 +746,7 @@ class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
 
     def _action_env_setup(self):
         return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
+
 
 class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
     """

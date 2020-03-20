@@ -34,6 +34,7 @@ try:
     from .Observation import CompleteObservation, Observation
     from .Reward import FlatReward, Reward, L2RPNReward, RedispReward
     from .GameRules import LegalAction, AllwaysLegal, DefaultRules
+    from .VoltageControler import ControlVoltageFromFile
 
     from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
     from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
@@ -57,6 +58,7 @@ except (ModuleNotFoundError, ImportError):
     from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
     from Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
     from Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
+    from VoltageControler import ControlVoltageFromFile
 
 import pdb
 
@@ -255,6 +257,9 @@ def make(name_env="case14_realistic", **kwargs):
     chronics_path: ``str``
         Path where to look for the chronics dataset.
 
+    volagecontroler_class: ``type``, optional
+        The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
+
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
@@ -443,10 +448,10 @@ def make(name_env="case14_realistic", **kwargs):
     msg_error = "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
     msg_error += " should be a class that inherit grid2op.ChronicsHandler.GridValue."
     chronics_class_used = _get_default_aux("chronics_class", kwargs,
-                                    defaultClassApp=GridValue,
-                                    defaultClass=data_feeding_kwargs["chronicsClass"],
-                                    msg_error=msg_error,
-                                    isclass=True)
+                                           defaultClassApp=GridValue,
+                                           defaultClass=data_feeding_kwargs["chronicsClass"],
+                                           msg_error=msg_error,
+                                           isclass=True)
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
 
     ### the chronics generator
@@ -457,6 +462,15 @@ def make(name_env="case14_realistic", **kwargs):
                                     defaultClass=data_feeding_default_class,
                                     build_kwargs=data_feeding_kwargs,
                                     msg_error=msg_error)
+
+    ### controler for voltages
+    msg_error = "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")"
+    msg_error += " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile."
+    volagecontroler_class = _get_default_aux("volagecontroler_class", kwargs,
+                                             defaultClassApp=ControlVoltageFromFile,
+                                             defaultClass=ControlVoltageFromFile,
+                                             msg_error=msg_error,
+                                             isclass=True)
 
     if not os.path.exists(grid_path):
         raise EnvError("There is noting at \"{}\" where the powergrid should be located".format(
@@ -470,7 +484,8 @@ def make(name_env="case14_realistic", **kwargs):
                       actionClass=action_class,
                       observationClass=observation_class,
                       rewardClass=reward_class,
-                      legalActClass=gamerules_class
+                      legalActClass=gamerules_class,
+                      voltagecontrolerClass=volagecontroler_class
                       )
 
     # update the thermal limit if any

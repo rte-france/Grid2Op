@@ -66,6 +66,7 @@ Technical Documentation
    reward
    runner
    space
+   voltagecontroler
 
 Main Exceptions
 -----------------------

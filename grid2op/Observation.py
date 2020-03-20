@@ -165,7 +165,7 @@ class ObsEnv(_BasicEnv):
         """
         # TODO consider disconnecting maintenance forecasted :-)
         # This "environment" doesn't modify anything
-        return self.donothing_act
+        return self.donothing_act, None
 
     def copy(self):
         """
