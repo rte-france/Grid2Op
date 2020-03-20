@@ -1,16 +1,13 @@
 version: 2.1
 jobs:
-  build:
+  install:
     working_directory: ~/grid2op-ci
-    docker: # run the steps with Docker
-      # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
+    docker: # CircleCI Python images: https://hub.docker.com/r/circleci/python/
       - image: circleci/python:3.6.4
     steps:
       - checkout
       - run: sudo chown -R circleci:circleci /usr/local/bin
       - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
-      - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           command: |
             sudo pip3 install -U virtualenv
@@ -23,7 +20,22 @@ jobs:
           key: deps9-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - "venv_grid2op"
+  test:
+    working_directory: ~/grid2op-ci
+    docker:
+      - image: circleci/python:3.6.4
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           command: |
             cd ./grid2op/tests/
             python -m unittest discover
+
+workflows:
+  version: 2.1
+  install_and_test:
+    jobs:
+      - install
+      - test
