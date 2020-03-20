@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  install-and-test:
+  build:
     working_directory: ~/grid2op-ci
     docker: # run the steps with Docker
       # CircleCI Python images available at: https://hub.docker.com/r/circleci/python/
@@ -25,4 +25,5 @@ jobs:
             - "venv_grid2op"
       - run:
           command: |
-            python -m unittest discover ./grid2op/tests
+	    cd ./grid2op/tests/
+            python -m unittest discover
