@@ -38,7 +38,7 @@ jobs:
             source venv_grid2op/bin/activate
             cd ./grid2op/tests/
             circleci tests glob "test_*.py" | circleci tests split > /tmp/torun
-	    python3 $(cat /tmp/torun)
+            python3 $(cat /tmp/torun)
 
 workflows:
   version: 2.1
