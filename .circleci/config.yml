@@ -1,9 +1,14 @@
 version: 2.1
-jobs:
-  install:
-    working_directory: ~/grid2op-ci
+
+executors:
+  grid2op-executor:
     docker: # CircleCI Python images: https://hub.docker.com/r/circleci/python/
       - image: circleci/python:3.6.4
+    working_directory: ~/grid2op-ci
+
+jobs:
+  install:
+    executor: grid2op-executor
     steps:
       - checkout
       - run: sudo chown -R circleci:circleci /usr/local/bin
@@ -21,15 +26,14 @@ jobs:
           paths:
             - "venv_grid2op"
   test:
-    working_directory: ~/grid2op-ci
-    docker:
-      - image: circleci/python:3.6.4
+    executor: grid2op-executor
     steps:
       - checkout
       - restore_cache:
           key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           command: |
+            source venv_grid2op/bin/activate
             cd ./grid2op/tests/
             python -m unittest discover
 
