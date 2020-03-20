@@ -28,6 +28,7 @@ jobs:
             - "venv_grid2op"
   test:
     executor: grid2op-executor
+    parallelism: 4
     steps:
       - checkout
       - restore_cache:
@@ -36,7 +37,7 @@ jobs:
           command: |
             source venv_grid2op/bin/activate
             cd ./grid2op/tests/
-            python -m unittest discover
+            circleci tests glob "test_*.py" | circleci tests split --split-by=timings
 
 workflows:
   version: 2.1
