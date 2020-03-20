@@ -104,8 +104,8 @@ class ObsEnv(_BasicEnv):
                           legalActClass=legalActClass)
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
 
-        self._load_p, self._load_q, _ =  None, None, None
-        self._prod_p, _, self._prod_v = None, None, None
+        self._load_p, self._load_q, self._load_v =  None, None, None
+        self._prod_p, self._prod_q, self._prod_v = None, None, None
         self._topo_vect = None
 
         # convert line status to -1 / 1 instead of false / true
@@ -149,6 +149,7 @@ class ObsEnv(_BasicEnv):
         self.game_rules = GameRules(legalActClass=legalActClass)
         self.legalActClass = legalActClass
         self.helper_action_player = lambda x: self.donothing_act
+        self.backend.set_thermal_limit(self._thermal_limit_a)
 
     def _update_actions(self):
         """
@@ -164,7 +165,7 @@ class ObsEnv(_BasicEnv):
         """
         # TODO consider disconnecting maintenance forecasted :-)
         # This "environment" doesn't modify anything
-        return self.donothing_act
+        return self.donothing_act, None
 
     def copy(self):
         """
@@ -260,6 +261,7 @@ class ObsEnv(_BasicEnv):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
+        self.backend.set_thermal_limit(self._thermal_limit_a)
         self.backend.apply_action(self._action)
         return self.step(action)
         # return self.current_obs, reward, has_error, {}
@@ -290,23 +292,22 @@ class ObsEnv(_BasicEnv):
         res = self.current_obs
         return res
 
-    def update_grid(self, real_backend):
+    def update_grid(self, env):
         """
         Update this "emulated" environment with the real powergrid.
 
         Parameters
         ----------
-        real_backend: :class:`grid2op.Backend.Backend`
-            The real grid of the environment.
+        env: :class:`grid2op.Environement._BasicEnv`
+            A reference to the environement
 
         Returns
         -------
 
         """
-        # self.backend = real_backend.copy()
-
-        self._load_p, self._load_q, _ = real_backend.loads_info()
-        self._prod_p, _, self._prod_v = real_backend.generators_info()
+        real_backend = env.backend
+        self._load_p, self._load_q, self._load_v = real_backend.loads_info()
+        self._prod_p, self._prod_q, self._prod_v = real_backend.generators_info()
         self._topo_vect = real_backend.get_topo_vect()
 
         # convert line status to -1 / 1 instead of false / true
@@ -315,7 +316,16 @@ class ObsEnv(_BasicEnv):
         self._line_status -= 1  # false -> -1; true -> 1
         self.is_init = False
 
-        # TODO get the state of redispatching and other vectors as well
+        # Make a copy of env state for simulation
+        self._thermal_limit_a = env._thermal_limit_a
+        self.gen_activeprod_t[:] = env.gen_activeprod_t[:]
+        self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable[:]
+        self.times_before_topology_actionable[:]  = env.times_before_topology_actionable[:]
+        self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection[:]
+        self.time_next_maintenance[:] = env.time_next_maintenance[:]
+        self.duration_next_maintenance[:] = env.duration_next_maintenance[:]
+        self.target_dispatch[:] = env.target_dispatch[:]
+        self.actual_dispatch[:] = env.actual_dispatch[:]
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!
@@ -992,13 +1002,15 @@ class Observation(GridObjects):
         if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
 
-        if self._forecasted_grid[time_step] is None:
-            # initialize the "simulation environment" with the proper injections
-            self._forecasted_grid[time_step] = self._obs_env.copy()
-            timestamp, inj_forecasted = self._forecasted_inj[time_step]
-            inj_action = self.action_helper(inj_forecasted)
-            self._forecasted_grid[time_step].init(inj_action, time_stamp=timestamp,
-                                                  timestep_overflow=self.timestep_overflow)
+        timestamp, inj_forecasted = self._forecasted_inj[time_step]
+        inj_action = self.action_helper(inj_forecasted)
+        # initialize the "simulation environment" with the proper injections
+        self._forecasted_grid[time_step] = self._obs_env.copy()
+        # TODO avoid un necessary copy above. Have one backend for all "simulate" and save instead the
+        # TODO obs_env._action that set the backend to the sate we want to simulate
+        self._forecasted_grid[time_step].init(inj_action, time_stamp=timestamp,
+                                              timestep_overflow=self.timestep_overflow)
+
         return self._forecasted_grid[time_step].simulate(action)
 
     def copy(self):
@@ -1460,7 +1472,7 @@ class ObservationHelper(SerializableObservationSpace):
                               parameters=env.parameters,
                               reward_helper=self.reward_helper,
                               action_helper=self.action_helper_env,
-                              thermal_limit_a=self.backend_obs.thermal_limit_a,
+                              thermal_limit_a=env._thermal_limit_a,
                               legalActClass=env.legalActClass,
                               donothing_act=env.helper_action_player())
 
@@ -1470,7 +1482,7 @@ class ObservationHelper(SerializableObservationSpace):
         self._update_env_time = 0.
 
     def __call__(self, env):
-        self.obs_env.update_grid(env.backend)
+        self.obs_env.update_grid(env)
 
         res = self.observationClass(gridobj=self,
                                     obs_env=self.obs_env,

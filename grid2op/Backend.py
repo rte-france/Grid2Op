@@ -758,8 +758,8 @@ class Backend(GridObjects, ABC):
         self.gen_pmin = np.full(self.n_gen, fill_value=1., dtype=np.float)
         self.gen_pmax = np.full(self.n_gen, fill_value=1., dtype=np.float)
         self.gen_redispatchable = np.full(self.n_gen, fill_value=False, dtype=np.bool)
-        self.gen_max_ramp_up = np.full(self.n_gen, fill_value=1., dtype=np.float)
-        self.gen_max_ramp_down = np.full(self.n_gen, fill_value=1., dtype=np.float)
+        self.gen_max_ramp_up = np.full(self.n_gen, fill_value=0., dtype=np.float)
+        self.gen_max_ramp_down = np.full(self.n_gen, fill_value=0., dtype=np.float)
         self.gen_min_uptime = np.full(self.n_gen, fill_value=-1, dtype=np.int)
         self.gen_min_downtime = np.full(self.n_gen, fill_value=-1, dtype=np.int)
         self.gen_cost_per_MW = np.full(self.n_gen, fill_value=1., dtype=np.float)  # marginal cost
@@ -772,8 +772,12 @@ class Backend(GridObjects, ABC):
             self.gen_pmin[i] = float(tmp_gen["pmin"])
             self.gen_pmax[i] = float(tmp_gen["pmax"])
             self.gen_redispatchable[i] = bool(tmp_gen["type"] not in ["wind", "solar"])
-            self.gen_max_ramp_up[i] = float(tmp_gen["max_ramp_up"])
-            self.gen_max_ramp_down[i] = float(tmp_gen["max_ramp_down"])
+            tmp = float(tmp_gen["max_ramp_up"])
+            if np.isfinite(tmp):
+                self.gen_max_ramp_up[i] = tmp
+            tmp = float(tmp_gen["max_ramp_down"])
+            if np.isfinite(tmp):
+                self.gen_max_ramp_down[i] = tmp
             self.gen_min_uptime[i] = int(tmp_gen["min_up_time"])
             self.gen_min_downtime[i] = int(tmp_gen["min_down_time"])
             self.gen_cost_per_MW[i] = float(tmp_gen["marginal_cost"])

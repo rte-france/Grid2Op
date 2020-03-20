@@ -58,6 +58,7 @@ try:
     from .Backend import Backend
     from .ChronicsHandler import ChronicsHandler
     from .PlotPyGame import Renderer
+    from .VoltageControler import ControlVoltageFromFile
 except (ModuleNotFoundError, ImportError):
     from Space import GridObjects
     from BasicEnv import _BasicEnv
@@ -70,6 +71,7 @@ except (ModuleNotFoundError, ImportError):
     from Backend import Backend
     from ChronicsHandler import ChronicsHandler
     from PlotPyGame import Renderer
+    from VoltageControler import ControlVoltageFromFile
 
 import pdb
 
@@ -207,9 +209,11 @@ class Environment(_BasicEnv):
                  observationClass=CompleteObservation,
                  rewardClass=FlatReward,
                  legalActClass=AllwaysLegal,
+                 voltagecontrolerClass=ControlVoltageFromFile,
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
-                 tol_poly=1e-6,):
+                 tol_poly=1e-6
+                 ):
         """
         Initialize the environment. See the descirption of :class:`grid2op.Environment.Environment` for more information.
 
@@ -234,6 +238,9 @@ class Environment(_BasicEnv):
                           thermal_limit_a=thermal_limit_a,
                           epsilon_poly=epsilon_poly,
                           tol_poly=tol_poly)
+        # the voltage controler
+        self.voltagecontrolerClass = voltagecontrolerClass
+        self.voltage_controler = None
 
         # for gym compatibility (initialized below)
         self.action_space = None
@@ -353,9 +360,16 @@ class Environment(_BasicEnv):
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
 
-        # reward
+        # reward function
         self.reward_helper = RewardHelper(rewardClass=rewardClass)
         self.reward_helper.initialize(self)
+
+        # controler for voltage
+        if not issubclass(self.voltagecontrolerClass, ControlVoltageFromFile):
+            raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
+
+        self.voltage_controler = self.voltagecontrolerClass(gridobj=self.backend,
+                                                            controler_backend=self.backend)
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
@@ -380,6 +394,27 @@ class Environment(_BasicEnv):
         self.current_reward = self.reward_range[0]
         self.done = False
         self._reset_vectors_and_timings()
+
+    def _voltage_control(self, agent_action, prod_v_chronics):
+        """
+        Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
+        function can be overide for a more complex handling of the voltages.
+
+        It mush update (if needed) the voltages of the environment action :attr:`BasicEnv.env_modification`
+
+        Parameters
+        ----------
+        agent_action: :class:`grid2op.Action.Action`
+            The action performed by the player (or do nothing is player action were not legal or ambiguous)
+
+        prod_v_chronics: ``numpy.ndarray`` or ``None``
+            The voltages that has been specified in the chronics
+
+        """
+        self.env_modification += self.voltage_controler.fix_voltage(self.current_obs,
+                                                                    agent_action,
+                                                                    self.env_modification,
+                                                                    prod_v_chronics)
 
     def set_chunk_size(self, new_chunk_size):
         """
@@ -460,9 +495,14 @@ class Environment(_BasicEnv):
         self.chronics_handler.tell_id(id_-1)
 
     def attach_renderer(self, graph_layout=None):
+        if self.viewer is not None:
+            return
         graph_layout = self.graph_layout if graph_layout is None else graph_layout
-        self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
-        self.viewer.reset(self)
+        if graph_layout is not None:
+            self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
+            self.viewer.reset(self)
+        else:
+            raise PlotError("No layout are available for the powergrid. Renderer is not possible.")
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -471,35 +511,6 @@ class Environment(_BasicEnv):
         #     return '<{} instance>'.format(type(self).__name__)
         # else:
         #     return '<{}<{}>>'.format(type(self).__name__, self.spec.id)
-
-    def __enter__(self):
-        """
-        Support *with-statement* for the environment.
-
-        Examples
-        --------
-
-        .. code-block:: python
-
-            import grid2op
-            import grid2op.Agent
-            with grid2op.make() as env:
-                agent = grid2op.Agent.DoNothingAgent(env.action_space)
-                act = env.action_space()
-                obs, r, done, info = env.step(act)
-                act = agent.act(obs, r, info)
-                obs, r, done, info = env.step(act)
-
-        """
-        return self
-
-    def __exit__(self, *args):
-        """
-        Support *with-statement* for the environment.
-        """
-        self.close()
-        # propagate exception
-        return False
 
     def reset_grid(self):
         """
@@ -586,6 +597,7 @@ class Environment(_BasicEnv):
     def render(self, mode='human'):
         err_msg = "Impossible to use the renderer, please set it up with  \"env.init_renderer(graph_layout)\", " \
                   "graph_layout being the position of each substation of the powergrid that you must provide"
+        self.attach_renderer()
         if mode == "human":
             if self.viewer is not None:
                 has_quit = self.viewer.render(self.current_obs,
@@ -608,13 +620,6 @@ class Environment(_BasicEnv):
         else:
             raise Grid2OpException("Renderer mode \"{}\" not supported.".format(mode))
 
-    def close(self):
-        # todo there might be some side effect
-        if self.viewer:
-            self.viewer.close()
-            self.viewer = None
-        self.backend.close()
-
     def copy(self):
         """
         performs a deep copy of the environment
@@ -633,6 +638,32 @@ class Environment(_BasicEnv):
         return res
 
     def get_kwargs(self):
+        """
+        This function allows to make another Environment with the same parameters as the one that have been used
+        to make this one.
+
+        This is usefull especially in cases where Environment is not pickable (for example if some non pickable c++
+        code are used) but you still want to make parallel processing using "MultiProcessing" module. In that case,
+        you can send this dictionnary to each child process, and have each child process make a copy of ``self``
+
+        Returns
+        -------
+        res: ``dict``
+            A dictionnary that helps build an environment like ``self``
+
+        Examples
+        --------
+        It should be used as follow:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import Environment
+            env = grid2op.make()  # create the environment of your choice
+            copy_of_env = Environment(**env.get_kwargs())
+            # And you can use this one as you would any other environment.
+
+        """
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
@@ -645,6 +676,7 @@ class Environment(_BasicEnv):
         res["epsilon_poly"] = self._epsilon_poly
         res["tol_poly"] = self._tol_poly
         res["thermal_limit_a"] = self._thermal_limit_a
+        res["voltagecontrolerClass"] = self.voltagecontrolerClass
         return res
 
     def get_params_for_runner(self):
@@ -663,7 +695,7 @@ class Environment(_BasicEnv):
             agent = DoNothingAgent(env.actoin_space)
 
             # create the proper runner
-            runner = Runner(**env.init_backend(), agentClass=DoNothingAgent)
+            runner = Runner(**env.get_params_for_runner(), agentClass=DoNothingAgent)
 
             # now you can run
             runner.run(nb_episode=1)  # run for 1 episode
@@ -688,6 +720,7 @@ class Environment(_BasicEnv):
             del dict_["path"]
         res["gridStateclass_kwargs"] = dict_
         res["thermal_limit_a"] = self._thermal_limit_a
+        res["voltageControlerClass"] = self.voltagecontrolerClass
 
         # TODO make a test for that
         return res

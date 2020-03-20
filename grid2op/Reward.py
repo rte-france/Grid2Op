@@ -174,7 +174,7 @@ class RedispReward(Reward):
         worst_marginal_cost = np.max(env.gen_cost_per_MW)
         worst_load = np.sum(env.gen_pmax)
         worst_losses = 0.05 * worst_load  # it's not the worst, but definitely an upper bound
-        worst_redisp = np.sum(env.gen_pmax)  # not realistic, but an upper bound
+        worst_redisp = self.alpha_redisph * np.sum(env.gen_pmax)  # not realistic, but an upper bound
         self.max_regret = (worst_losses + worst_redisp)*worst_marginal_cost
         self.reward_min = -10
 
@@ -198,7 +198,7 @@ class RedispReward(Reward):
             marginal_cost = np.max(env.gen_cost_per_MW[env.gen_activeprod_t > 0.])
 
             # redispatching amount
-            redisp_cost = np.sum(np.abs(env.actual_dispatch)) * marginal_cost
+            redisp_cost = self.alpha_redisph * np.sum(np.abs(env.actual_dispatch)) * marginal_cost
 
             # cost of losses
             losses_cost = losses * marginal_cost

@@ -305,6 +305,30 @@ class Action(GridObjects):
                     self._dict_inj[attr_nm] = vect
 
     def check_space_legit(self):
+        """
+        This method allows to check if this method is ambiguous **per se** (defined more formally as:
+        whatever the observation at time *t*, and the changes that can occur between *t* and *t+1*, this
+        action will be ambiguous).
+
+        For example, an action that try to assign something to busbar 3 will be ambiguous *per se*. An action
+        that tries to dispatch a non dispatchable generator will be also ambiguous *per se*.
+
+        However, an action that "switch" (change) the status (connected / disconnected) of a powerline can be
+        ambiguous and it will not be detected here. This is because the ambiguity depends on the current state
+        of the powerline:
+
+        - if the powerline is disconnected, changing its status means reconnecting it. And we cannot reconnect a
+          powerline without specifying on which bus.
+        - on the contrary if the powerline is connected, changing its status means disconnecting it, which is
+          always feasible.
+
+        In case of "switch" as we see here, the action can be ambiguous, but not ambiguous *per se*. This method
+        will **never** throw any error in this case.
+
+        Returns
+        -------
+
+        """
         self._check_for_ambiguity()
 
     def get_set_line_status_vect(self):
@@ -464,19 +488,45 @@ class Action(GridObjects):
             :attr:`Action._subs_impacted` for more information.
 
         """
+        if self._lines_impacted is None:
+            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
+
         if self._subs_impacted is None:
+            # supposes tha self._lines_impacted
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
             beg_ = 0
             end_ = 0
+            powerlines_reco = np.where(self._set_line_status == 1)[0]  # all the id of the powerlines reconnected
+            sub_or_id = self.line_or_to_subid[powerlines_reco]
+            sub_ex_id = self.line_ex_to_subid[powerlines_reco]
+            sub_id = np.concatenate((sub_or_id, sub_ex_id))
+            sub_id_unique, sub_counts = np.unique(sub_id, return_counts=True)
+            sub_counts = dict(zip(sub_id_unique, sub_counts))
+            is_sub_concerned = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
+            is_sub_concerned[sub_id_unique] = True
             for sub_id, nb_obj in enumerate(self.sub_info):
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
-                if np.any(self._change_bus_vect[beg_:end_]) or np.any(self._set_topo_vect[beg_:end_] != 0):
+                if np.any(self._change_bus_vect[beg_:end_]):
+                    # change always impact the substations
                     self._subs_impacted[sub_id] = True
+                nb_set = np.sum(self._set_topo_vect[beg_:end_] != 0)
+                if nb_set > 0:
+                    # if a powerline has been reconnected, don't count busor and busex as "impacted" if the action
+                    # concerned only the reconnected powerline
+                    # in some cases, set does not impact it then.
+                    if not is_sub_concerned[sub_id]:
+                        # no powerline are connected here so
+                        self._subs_impacted[sub_id] = True
+                    else:
+                        # in this case, i reconnected a powerline having one of its end on a substation, so you might not
+                        # need to count this action
+                        if sub_counts[sub_id] != nb_set:
+                            # in this case, only actions regarding reconnection of powerlines are performed
+                            self._subs_impacted[sub_id] = True
+
                 beg_ += nb_obj
 
-        if self._lines_impacted is None:
-            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
         return self._lines_impacted, self._subs_impacted
 
     def reset(self):
@@ -527,7 +577,6 @@ class Action(GridObjects):
         -------
 
         """
-        # TODO test that
 
         # deal with injections
         for el in self.vars_action:
@@ -904,6 +953,18 @@ class Action(GridObjects):
             else:
                 raise AmbiguousAction("Impossible to understand the redispatching action implemented.")
 
+    def _reset_vect(self):
+        """
+        Need to be called when update is called !
+
+        Returns
+        -------
+
+        """
+        self._vectorized = None
+        self._subs_impacted = None
+        self._lines_impacted = None
+
     def update(self, dict_):
         """
         Update the action with a comprehensible format specified by a dictionary.
@@ -1063,9 +1124,7 @@ class Action(GridObjects):
             Return the modified instance. This is handy to chain modifications if needed.
 
         """
-        self._vectorized = None
-        self._subs_impacted = None
-        self._lines_impacted = None
+        self._reset_vect()
 
         if dict_ is not None:
             for kk in dict_.keys():
@@ -1087,7 +1146,9 @@ class Action(GridObjects):
 
     def is_ambiguous(self):
         """
-        Says if the action, as defined is ambiguous or not.
+        Says if the action, as defined is ambiguous *per se* or not.
+
+        See definition of :func:`Action.check_space_legit` for more details about *ambiguity per se*.
 
         Returns
         -------
@@ -1410,7 +1471,7 @@ class Action(GridObjects):
         """
         This will return a dictionary which contains details on objects that will be impacted by the action.
 
-         Returns
+        Returns
         -------
         dict: :class:`dict`
             The dictionary representation of an action impact on objects
@@ -1840,7 +1901,9 @@ class TopoAndRedispAction(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self._vectorized = None
+
+        self._reset_vect()
+
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
@@ -1936,7 +1999,8 @@ class TopologyAction(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self._vectorized = None
+        self._reset_vect()
+
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
@@ -1967,6 +2031,72 @@ class TopologyAction(Action):
             The current action (useful to chain some calls to methods)
         """
         self.reset()
+        return self
+
+
+class VoltageOnlyAction(Action):
+    """
+    This class is here to serve as a base class for the controler of the voltages (if any). It allows to perform
+    only modification of the generator voltage set point.
+
+    Only action of type "injection" are supported, and only setting "prod_v" keyword.
+    """
+
+    def __init__(self, gridobj):
+        """
+        See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
+        in this constructor.
+
+        """
+        Action.__init__(self, gridobj)
+        self.authorized_keys = {"injection"}
+        self.attr_list_vect = ["prod_v"]
+
+    def _check_dict(self):
+        """
+        Check that nothing, beside prod_v has been updated with this action.
+
+        Returns
+        -------
+
+        """
+        if self._dict_inj:
+            for el in self._dict_inj:
+                if el not in self.attr_list_vect:
+                    raise AmbiguousAction("Impossible to modify something different than \"prod_v\" using "
+                                          "\"VoltageOnlyAction\" action.")
+
+    def update(self, dict_):
+        """
+        As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
+        :class:`Action`.
+
+        It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
+        doesn't update the :attr:`Action._dict_inj`. It raises a warning if attempting to change them.
+
+        Parameters
+        ----------
+        dict_: :class:`dict`
+            See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
+            "injection", "change bus", "set bus", or "change line status" are irrelevant for this subclass.
+
+        Returns
+        -------
+        self: :class:`PowerLineSet`
+            Return object itself thus allowing multiple calls to "update" to be chained.
+
+        """
+        self._reset_vect()
+
+        if dict_ is not None:
+            for kk in dict_.keys():
+                if kk not in self.authorized_keys:
+                    warn = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
+                    warn = warn.format(kk, self.authorized_keys)
+                    warnings.warn(warn)
+
+            self._digest_injection(dict_)
+            self._check_dict()
         return self
 
 
@@ -2051,7 +2181,8 @@ class PowerLineSet(Action):
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
-        self._vectorized = None
+        self._reset_vect()
+
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:

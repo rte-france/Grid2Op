@@ -7,13 +7,13 @@ import numpy as np
 import pdb
 import warnings
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
 
 from Exceptions import *
 from Environment import Environment
 from BackendPandaPower import PandaPowerBackend
 from Parameters import Parameters
-from ChronicsHandler import ChronicsHandler, GridStateFromFile
+from ChronicsHandler import ChronicsHandler, GridStateFromFile, ChangeNothing
 from Reward import L2RPNReward
 from MakeEnv import make
 from GameRules import GameRules, DefaultRules
@@ -28,7 +28,7 @@ if PROFILE_CODE:
     import cProfile
 
 
-class TestRedispatch(unittest.TestCase):
+class TestRedispatch(HelperTests):
     def setUp(self):
         # powergrid
         self.backend = PandaPowerBackend()
@@ -37,8 +37,6 @@ class TestRedispatch(unittest.TestCase):
         # chronics
         self.path_chron = os.path.join(PATH_CHRONICS, "chronics")
         self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
 
         # force the verbose backend
@@ -74,10 +72,7 @@ class TestRedispatch(unittest.TestCase):
         self.array_double_dispatch = np.array([0.,  10.,  20.,   0., -30.])
 
     def tearDown(self):
-        pass
-
-    def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        self.env.close()
 
     def test_negative_dispatch(self):
         act = self.env.action_space({"redispatch": [(1, -10)]})
@@ -247,169 +242,314 @@ class TestRedispatch(unittest.TestCase):
         assert np.all(obs.prod_p[:-1] <= self.env.gen_pmax[:-1])
         assert np.all(obs.prod_p[:-1] >= self.env.gen_pmin[:-1])
 
+    def test_redispacth_non_dispatchable_generator(self):
+        """ Dispatch a non redispatchable generator is ambiguous """
+        act = self.env.action_space()
+        obs, reward, done, info = self.env.step(act)
 
-# # TODO test that if i try to redispatched a turned off generator it breaks everything
-class TestLoadingBackendPandaPower(unittest.TestCase):
+        # Check that generator 0 isn't redispatchable
+        assert self.env.gen_redispatchable[0] == False
+        # Check that generator 0 is off
+        assert self.env.gen_downtime[0] >= 1
+
+        # Try to redispatch
+        redispatch_act = self.env.action_space({"redispatch": [(0, 5.)]})
+        obs, reward, done, info = self.env.step(redispatch_act)
+
+        assert info['is_ambiguous']
+
+
+class TestRedispatchChangeNothingEnvironment(HelperTests):
     def setUp(self):
         # powergrid
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.backend = PandaPowerBackend()
+        self.path_matpower = PATH_DATA_TEST_PP
+        self.case_file = "test_case14.json"
+        # chronics
+        self.path_chron = os.path.join(PATH_CHRONICS, "chronics")
+        self.chronics_handler = ChronicsHandler(chronicsClass=ChangeNothing)
+        self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
+
+        # force the verbose backend
+        self.backend.detailed_infos_for_cascading_failures = True
+        self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
+                                                    "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
+                                                    "5_C201.84": 'load_4_4',
+                                                    "6_C-6.27": 'load_5_5', "9_C130.49": 'load_8_6',
+                                                    "10_C228.66": 'load_9_7',
+                                                    "11_C-138.89": 'load_10_8', "12_C-27.88": 'load_11_9',
+                                                    "13_C-13.33": 'load_12_10'},
+                                          "lines": {'1_2_1': '0_1_0', '1_5_2': '0_4_1', '9_10_16': '8_9_2',
+                                                    '9_14_17': '8_13_3',
+                                                    '10_11_18': '9_10_4', '12_13_19': '11_12_5', '13_14_20': '12_13_6',
+                                                    '2_3_3': '1_2_7', '2_4_4': '1_3_8', '2_5_5': '1_4_9',
+                                                    '3_4_6': '2_3_10',
+                                                    '4_5_7': '3_4_11', '6_11_11': '5_10_12', '6_12_12': '5_11_13',
+                                                    '6_13_13': '5_12_14', '4_7_8': '3_6_15', '4_9_9': '3_8_16',
+                                                    '5_6_10': '4_5_17',
+                                                    '7_8_14': '6_7_18', '7_9_15': '6_8_19'},
+                                          "prods": {"1_G137.1": 'gen_0_4', "3_G36.31": "gen_2_1", "6_G63.29": "gen_5_2",
+                                                    "2_G-56.47": "gen_1_0", "8_G40.43": "gen_7_3"},
+                                          }
+
+        # _parameters for the environment
+        self.env_params = Parameters()
+        self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                               backend=self.backend,
+                               chronics_handler=self.chronics_handler,
+                               parameters=self.env_params,
+                               names_chronics_to_backend=self.names_chronics_to_backend,
+                               actionClass=Action)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_redispatch_generator_off(self):
+        """ Redispatch a turned off generator is illegal """
+
+        # Step into simulation once
+        nothing_act = self.env.action_space()
+        obs, reward, done, info = self.env.step(nothing_act)
+
+        # Check that generator 1 is redispatchable
+        assert self.env.gen_redispatchable[1] == True
+
+        # Check that generator 1 is off
+        assert obs.prod_p[1] == 0
+        assert self.env.gen_downtime[1] >= 1
+
+        # Try to redispatch generator 1
+        redispatch_act = self.env.action_space({"redispatch": [(1, 5.)]})
+        obs, reward, done, info = self.env.step(redispatch_act)
+
+        assert info['is_dispatching_illegal'] == True
+
+
+class TestRedispTooLowHigh(HelperTests):
+    # test bug reported in issues https://github.com/rte-france/Grid2Op/issues/44
+    def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_test")
+            self.env = make("case14_redisp")
 
-    def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        # i don't want to be bother by ramps in these test (note that is NOT recommended to change that)
+        self.env.gen_max_ramp_down[:] = 5000
+        self.env.gen_max_ramp_up[:] = 5000
+        self.msg_ = 'Grid2OpException AmbiguousAction InvalidRedispatching NotEnoughGenerators "Attempt to use a ' \
+               'redispatch action that does not sum to 0., but a'
 
-    def test_invalid_dispatch(self):
-        self.env.set_id(0)  # make sure to use the same environment input data.
-        obs_init = self.env.reset()  # reset the environment
-        act = self.env.action_space()
-        for i in range(2):  # number cherry picked to introduce explain the behaviour in the cells bellow
-            obsinit, rewardinit, doneinit, infoinit = self.env.step(act)
-        act = self.env.action_space({"redispatch": [(0, -10)]})
+    def tearDown(self):
+        self.env.close()
+
+    def test_redisp_toohigh_toolow(self):
+        """
+        This test that: 1) if i do a valid redispatching, it's valid
+        2) if i set up a redispatching too high (higher than pmax - pmin for a generator) it's not valid
+        3) if i set up a redispatching too low (demanding to decrease more than pmax - pmin) it's not valid
+        :return:
+        """
+        # this dispatch (though legal) broke everything
+        act = self.env.action_space({"redispatch": [0, -1]})
         obs, reward, done, info = self.env.step(act)
-        assert len(info["exception"])
-
-    def test_redispatch_rampminmax(self):
-        # test that the redispatch value is always above the ramp min and below the ramp max
-        self.env.set_id(0)  # make sure to use the same environment input data.
-        obs_init = self.env.reset()  # reset the environment
-        act = self.env.action_space()
-        for i in range(2):  # number cherry picked to introduce explain the behaviour in the cells bellow
-            obsinit, rewardinit, doneinit, infoinit = self.env.step(act)
-        act = self.env.action_space({"redispatch": [(0, -5)]})
-        # act = env.action_space({"redispatch": [(4,0)]})
+        assert info["is_dispatching_illegal"] is False
+        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
+        act = self.env.action_space({"redispatch": [0, 0]})
         obs, reward, done, info = self.env.step(act)
-        target_p = self.env.chronics_handler.real_data.data.prod_p[3, :]
-        target_p_t = self.env.chronics_handler.real_data.data.prod_p[2, :]
-        assert self.compare_vect(obsinit.prod_p[:-1], target_p_t[:-1])
-        # only look at dispatchable generator, remove slack bus (last generator)
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+        assert info["is_dispatching_illegal"] is False
+        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
 
-    def test_redispatch_noneedtocurtaildispact(self):
-        # test that the redispatch value is always above the ramp min and below the ramp max
-        self.env.set_id(0)  # make sure to use the same environment input data.
-        obs_init = self.env.reset()  # reset the environment
-        act = self.env.action_space()
-        for i in range(2):  # number cherry picked to introduce explain the behaviour in the cells bellow
-            obsinit, rewardinit, doneinit, infoinit = self.env.step(act)
-            assert len(infoinit["exception"]) == 0
-        act = self.env.action_space({"redispatch": [(0, +5)]})
+        # this one is not correct: too high decrease
+        act = self.env.action_space({"redispatch": [0, self.env.gen_pmin[0] - self.env.gen_pmax[0]]})
         obs, reward, done, info = self.env.step(act)
-        target_p = self.env.chronics_handler.real_data.data.prod_p[3, :]
-        target_p_t = self.env.chronics_handler.real_data.data.prod_p[2, :]
-        assert self.compare_vect(obsinit.prod_p[:-1], target_p_t[:-1])
-        # only look at dispatchable generator, remove slack bus (last generator)
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.all(np.abs(self.env.actual_dispatch - np.array([5., -2.5,  0.,  0., -2.5])) <= self.tol_one)
+        assert info["is_dispatching_illegal"]
+        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
 
-    def test_sum0_again(self):
-        # perform a valid redispatching action
-        self.env.set_id(0)  # make sure to use the same environment input data.
-        obs_init = self.env.reset()  # reset the environment
-        act = self.env.action_space({"redispatch": [(0, +10)]})
+        # this one is not correct: too high increase
+        act = self.env.action_space({"redispatch": [0, self.env.gen_pmax[0] - self.env.gen_pmin[0] +2 ]})
         obs, reward, done, info = self.env.step(act)
-        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        assert info["is_dispatching_illegal"]
+        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0. ,0.])
 
-    def test_sum0_again2(self):
-        env = self.env
-        # perform a valid redispatching action
-        env.set_id(0)  # make sure to use the same environment input data.
-        obs_init = env.reset()  # reset the environment
-        act = env.action_space()
-        act = env.action_space({"redispatch": [(0, +5)]})
-        obs, reward, done, info = env.step(act)
-        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
-        donothing = env.action_space()
-        obsinit, reward, done, info = env.step(donothing)
-        act = env.action_space({"redispatch": [(0, -5)]})
-        # act = env.action_space({"redispatch": [(0,0)]})
-        obs, reward, done, info = env.step(act)
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+    def test_error_message_notzerosum_oneshot(self):
+        act = self.env.action_space(
+            {"redispatch": [(0, 4.9999784936326535), (1, 4.78524395611872), (4, -9.999591852954794)]})
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_dispatching_illegal"]
+        assert info["exception"][0].__str__()[:140] == self.msg_
 
-    def test_sum0_again3(self):
-        env = self.env
-        # perform a valid redispatching action
-        env.set_id(0)  # make sure to use the same environment input data.
-        obs_init = env.reset()  # reset the environment
-        act = env.action_space()
+    def test_error_message_notzerosum_threesteps(self):
 
-        # ask +5
-        act = env.action_space({"redispatch": [(0, +5)]})
-        obs, reward, done, info = env.step(act)
-        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
-        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.all(obs.actual_dispatch == np.array([5.0, -2.5, 0., 0., -2.5]))
-        assert len(info['exception']) == 0
+        act = self.env.action_space({"redispatch": [(0, 4.9999784936326535)]}) #, (1, 4.78524395611872), (4, -9.999591852954794)]})
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_dispatching_illegal"] is False
 
-        # wait for the setpoint to be reached
-        donothing = env.action_space()
-        obsinit, reward, done, info = env.step(donothing)
-        assert np.all(obs.actual_dispatch == np.array([5.0, -2.5, 0., 0., -2.5]))
-        assert len(info['exception']) == 0
+        act = self.env.action_space({"redispatch": [(1, 4.78524395611872)]})
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_dispatching_illegal"] is False
 
-        # "cancel" action
-        act = env.action_space({"redispatch": [(0, -5)]})
-        obs, reward, done, info = env.step(act)
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert len(info['exception']) == 0
+        act = self.env.action_space({"redispatch": [(4, -9.999591852954794)]})
+        obs, reward, done, info = self.env.step(act)
+        assert info["is_dispatching_illegal"]
+        assert info["exception"][0].__str__()[:140] == self.msg_
 
-        # wait for setpoint to be reached
-        obsfinal, reward, done, info = env.step(donothing)
-        assert np.all(obsfinal.prod_p[0:2] - obs.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obsfinal.prod_p[0:2] - obs.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.abs(np.sum(obsfinal.actual_dispatch)) <= self.tol_one
-        # pdb.set_trace()
-        assert np.sum(np.abs(obsfinal.actual_dispatch)) <= self.tol_one  # redispatching should be canceled by now
-        assert len(info['exception']) == 0
 
-    def test_dispatch_still_not_zero(self):
-        env = self.env
 
-        max_iter = 26
-        # agent = GreedyEconomic(env.action_space)
-        done = False
-        # reward = env.reward_range[0]
-
-        env.set_id(0)  # reset the env to the same id
-        obs_init = env.reset()
-        i = 0
-        act = env.action_space({"redispatch": [(0, obs_init.gen_max_ramp_up[0])]})
-        while not done:
-            obs, reward, done, info = env.step(act)
-            # print("act._redisp {}".format(act._redispatch))
-            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-            assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
-            assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
-            assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-            assert len(info['exception']) == 0, "error at iteration {}".format(i)
-            i += 1
-            obs_init = obs
-            if i >= max_iter:
-                break
-
-        obs, reward, done, info = env.step(act)
-        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
-        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
-        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert len(info['exception']), "this redispatching should not be possible"
+# class TestLoadingBackendPandaPower(HelperTests):
+#     def setUp(self):
+#         # powergrid
+#         with warnings.catch_warnings():
+#             warnings.filterwarnings("ignore")
+#             self.env = make("case14_test")
+#
+#     def test_invalid_dispatch(self):
+#         self.env.set_id(0)  # make sure to use the same environment input data.
+#         obs_init = self.env.reset()  # reset the environment
+#         act = self.env.action_space()
+#         for i in range(2):  # number cherry picked to introduce explain the behaviour in the cells bellow
+#             obsinit, rewardinit, doneinit, infoinit = self.env.step(act)
+#         act = self.env.action_space({"redispatch": [(0, -10)]})
+#         obs, reward, done, info = self.env.step(act)
+#         assert len(info["exception"])
+#
+#     def test_redispatch_rampminmax(self):
+#         # test that the redispatch value is always above the ramp min and below the ramp max
+#         self.env.set_id(0)  # make sure to use the same environment input data.
+#         obs_init = self.env.reset()  # reset the environment
+#         act = self.env.action_space()
+#         for i in range(2):  # number cherry picked to introduce explain the behaviour in the cells bellow
+#             obsinit, rewardinit, doneinit, infoinit = self.env.step(act)
+#         act = self.env.action_space({"redispatch": [(0, -5)]})
+#         # act = env.action_space({"redispatch": [(4,0)]})
+#         obs, reward, done, info = self.env.step(act)
+#         target_p = self.env.chronics_handler.real_data.data.prod_p[3, :]
+#         target_p_t = self.env.chronics_handler.real_data.data.prod_p[2, :]
+#         assert self.compare_vect(obsinit.prod_p[:-1], target_p_t[:-1])
+#         # only look at dispatchable generator, remove slack bus (last generator)
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#
+#     def test_redispatch_noneedtocurtaildispact(self):
+#         # test that the redispatch value is always above the ramp min and below the ramp max
+#         self.env.set_id(0)  # make sure to use the same environment input data.
+#         obs_init = self.env.reset()  # reset the environment
+#         act = self.env.action_space()
+#         for i in range(2):  # number cherry picked to introduce explain the behaviour in the cells bellow
+#             obsinit, rewardinit, doneinit, infoinit = self.env.step(act)
+#             assert len(infoinit["exception"]) == 0
+#         act = self.env.action_space({"redispatch": [(0, +5)]})
+#         obs, reward, done, info = self.env.step(act)
+#         target_p = self.env.chronics_handler.real_data.data.prod_p[3, :]
+#         target_p_t = self.env.chronics_handler.real_data.data.prod_p[2, :]
+#         assert self.compare_vect(obsinit.prod_p[:-1], target_p_t[:-1])
+#         # only look at dispatchable generator, remove slack bus (last generator)
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#         assert np.all(np.abs(self.env.actual_dispatch - np.array([5., -2.5,  0.,  0., -2.5])) <= self.tol_one)
+#
+#     def test_sum0_again(self):
+#         # perform a valid redispatching action
+#         self.env.set_id(0)  # make sure to use the same environment input data.
+#         obs_init = self.env.reset()  # reset the environment
+#         act = self.env.action_space({"redispatch": [(0, +10)]})
+#         obs, reward, done, info = self.env.step(act)
+#         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+#         indx_ok = self.env.target_dispatch != 0.
+#         assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+#
+#     def test_sum0_again2(self):
+#         env = self.env
+#         # perform a valid redispatching action
+#         env.set_id(0)  # make sure to use the same environment input data.
+#         obs_init = env.reset()  # reset the environment
+#         act = env.action_space()
+#         act = env.action_space({"redispatch": [(0, +5)]})
+#         obs, reward, done, info = env.step(act)
+#         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+#         indx_ok = self.env.target_dispatch != 0.
+#         assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+#         donothing = env.action_space()
+#         obsinit, reward, done, info = env.step(donothing)
+#         act = env.action_space({"redispatch": [(0, -5)]})
+#         # act = env.action_space({"redispatch": [(0,0)]})
+#         obs, reward, done, info = env.step(act)
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+#
+#     def test_sum0_again3(self):
+#         env = self.env
+#         # perform a valid redispatching action
+#         env.set_id(0)  # make sure to use the same environment input data.
+#         obs_init = env.reset()  # reset the environment
+#         act = env.action_space()
+#
+#         # ask +5
+#         act = env.action_space({"redispatch": [(0, +5)]})
+#         obs, reward, done, info = env.step(act)
+#         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+#         indx_ok = self.env.target_dispatch != 0.
+#         assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+#         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#         assert np.all(obs.actual_dispatch == np.array([5.0, -2.5, 0., 0., -2.5]))
+#         assert len(info['exception']) == 0
+#
+#         # wait for the setpoint to be reached
+#         donothing = env.action_space()
+#         obsinit, reward, done, info = env.step(donothing)
+#         assert np.all(obs.actual_dispatch == np.array([5.0, -2.5, 0., 0., -2.5]))
+#         assert len(info['exception']) == 0
+#
+#         # "cancel" action
+#         act = env.action_space({"redispatch": [(0, -5)]})
+#         obs, reward, done, info = env.step(act)
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+#         assert len(info['exception']) == 0
+#
+#         # wait for setpoint to be reached
+#         obsfinal, reward, done, info = env.step(donothing)
+#         assert np.all(obsfinal.prod_p[0:2] - obs.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#         assert np.all(obsfinal.prod_p[0:2] - obs.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#         assert np.abs(np.sum(obsfinal.actual_dispatch)) <= self.tol_one
+#         # pdb.set_trace()
+#         assert np.sum(np.abs(obsfinal.actual_dispatch)) <= self.tol_one  # redispatching should be canceled by now
+#         assert len(info['exception']) == 0
+#
+#     def test_dispatch_still_not_zero(self):
+#         env = self.env
+#
+#         max_iter = 26
+#         # agent = GreedyEconomic(env.action_space)
+#         done = False
+#         # reward = env.reward_range[0]
+#
+#         env.set_id(0)  # reset the env to the same id
+#         obs_init = env.reset()
+#         i = 0
+#         act = env.action_space({"redispatch": [(0, obs_init.gen_max_ramp_up[0])]})
+#         while not done:
+#             obs, reward, done, info = env.step(act)
+#             # print("act._redisp {}".format(act._redispatch))
+#             assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#             assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#             assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
+#             assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
+#             assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+#             assert len(info['exception']) == 0, "error at iteration {}".format(i)
+#             i += 1
+#             obs_init = obs
+#             if i >= max_iter:
+#                 break
+#
+#         obs, reward, done, info = env.step(act)
+#         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
+#         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+#         assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
+#         assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
+#         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+#         assert len(info['exception']), "this redispatching should not be possible"
 
 
 if __name__ == "__main__":

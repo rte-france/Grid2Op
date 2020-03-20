@@ -3,7 +3,7 @@ import os
 import sys
 import unittest
 import datetime
-
+import warnings
 import time
 
 import numpy as np
@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('Grid2Op/'))
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
 
 from Exceptions import *
@@ -33,21 +33,18 @@ from Parameters import Parameters
 
 from BackendPandaPower import PandaPowerBackend
 from Environment import Environment
-
+from MakeEnv import make
 from Runner import Runner
 
 DEBUG = True
 
 
-class TestAgent(unittest.TestCase):
+class TestRunner(HelperTests):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
-
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
@@ -86,18 +83,25 @@ class TestAgent(unittest.TestCase):
         assert np.abs(cum_reward - 5739.951023) <= self.tol_one
 
     def test_3_episode(self):
-        res = self.runner.run_sequential(nb_episode=3)
-        assert len(res) == 3
+        res = self.runner.run_sequential(nb_episode=2)
+        assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 287
-            assert np.abs(cum_reward - 5739.951023) <= self.tol_one
+            assert np.abs(cum_reward - 5739.95102) <= self.tol_one
 
     def test_3_episode_3process(self):
-        res = self.runner.run_parrallel(nb_episode=3, nb_process=3)
-        assert len(res) == 3
+        res = self.runner.run_parrallel(nb_episode=2, nb_process=2)
+        assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 287
-            assert np.abs(cum_reward - 5739.951023) <= self.tol_one
+            assert np.abs(cum_reward - 5739.95102) <= self.tol_one
+
+    def test_init_from_env(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case14_test") as env:
+                runner = Runner(**env.get_params_for_runner())
+
 
 
 if __name__ == "__main__":

@@ -4,22 +4,49 @@ Change Log
 --------------------
 TODO for next versions
 
-- [???] include grid2Viz in a notebook (the notebook "StudyYourAgent")
+- [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
 - [???] add the "anti-agent"
+- [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] rationalize the names of plotting utilities
-- [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
-- [???] do something to help grid2viz to parse back action.
 - [???] better explanation of the notebook 3 with action silently
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
+- [???] see if "simulate" performances can be improved, and performances in general.
 - [???] simulate in MultiEnv
-- [???] add a "max_iter" in the runner.
+- [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
+  it in parrallel and transfer the resulting data.
 - [???] fast implementation of "replay" using PlotPygame and EpisodeData
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+
+[0.5.8] - 2020-03-20
+--------------------
+- [ADDED] runner now is able to show a progress bar
+- [ADDED] add a "max_iter" in the runner.
+- [ADDED] a repository in this github for the baseline (work in progress)
+- [ADDED] include grid2Viz in a notebook (the notebook "StudyYourAgent")
+- [ADDED] when a file is not present in the chronics, the chronics_handler behaves as if
+  nothing changes. If no files at all are provided, it raises an error.
+- [ADDED] possibility to change the controler for the generator voltage setpoints
+  (See `VoltageControler` for more information). It can be customized as of now.
+- [ADDED] lots of new tests for majority of classes (ChronicsHandler, Action, Observations etc.)
+- [FIXED] voltages are now set to 0 when the powerline are disconnected, instead of being set to Nan in
+  pandapower backend.
+- [FIXED] `ReadPypowNetData` does not crash when argument "chunk_size" is provided now.
+- [FIXED] some typos in the Readme
+- [FIXED] some redispatching declared illegal but are in fact legal (due to
+  a wrong assessment) (see `issue 44 <https://github.com/rte-france/Grid2Op/issues/44>`_)
+- [FIXED] reconnecting a powerline now does not count the mandatory actions on both its ends (previously you could not
+  reconnect a powerline with the L2RPN 2019 rules because it required acting on 2 substations) as "substation action"
+- [UPDATED] add a blank environment for easier use.
+- [UPDATED] now raise an error if the substations layout does not match the number of substations on the powergrid.
+- [UPDATED] better handling of system without numba `issue 42 <https://github.com/rte-france/Grid2Op/issues/42>`_)
+- [UPDATED] better display of the error message if all dispatchable generators are set
+  `issue 39 <https://github.com/rte-france/Grid2Op/issues/39>`_
+- [UPDATED] change the link to the doc in the notebook to point to readthedoc and not to local documentation.
 
 [0.5.7] - 2020-03-03
 --------------------

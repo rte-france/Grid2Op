@@ -311,6 +311,12 @@ class _BasicEnv(GridObjects, ABC):
         avail_gen = avail_gen & self.gen_redispatchable  # i can only redispatched dispatchable generators
         avail_gen = avail_gen & (new_p > 0.)
 
+        if (np.abs(np.sum(redisp_act)) >= self._tol_poly) and (np.sum(avail_gen) == 0):
+            except_ = NotEnoughGenerators("Attempt to use a redispatch action that does not sum to 0., but all "
+                                          "turned on dispatchable generators that could 'compensate' are modified in"
+                                          "this action or in previous actions.")
+            return None, except_
+
         # get back the previous value for the dispatchable generators
         target_disp = 1.0 * redisp_act
         # target_disp[avail_gen] = self.actual_dispatch[avail_gen]
@@ -418,30 +424,41 @@ class _BasicEnv(GridObjects, ABC):
         if np.all(redisp_act_orig == 0.) and np.all(self.target_dispatch == 0.) and np.all(self.actual_dispatch == 0.):
             return except_
 
+        self.target_dispatch += redisp_act_orig
         # check that everything is consistent with pmin, pmax:
-        if np.any(self.target_dispatch > self.gen_pmax):
+        if np.any(self.target_dispatch > self.gen_pmax - self.gen_pmin):
             # action is invalid, the target redispatching would be above pmax for at least a generator
-            except_ = InvalidRedispatching("Target redispatching above pmax for generators "
-                                           "{}".format(np.where(self.target_dispatch > self.gen_pmax)[0]))
+            cond_invalid = self.target_dispatch > self.gen_pmax - self.gen_pmin
+            except_ = InvalidRedispatching("You cannot ask for a dispatch higher than pmax - pmin  [it would be always "
+                                           "invalid because, even if the sepoint is pmin, this dispatch would set it "
+                                           "to a number higher than pmax, which is impossible]. Invalid dispatch for "
+                                           "generator(s): "
+                                           "{}".format(np.where(cond_invalid)[0]))
+            self.target_dispatch -= redisp_act_orig
             return except_
 
-        if np.any(self.target_dispatch < self.gen_pmin):
+        if np.any(self.target_dispatch < self.gen_pmin - self.gen_pmax):
             # action is invalid, the target redispatching would be below pmin for at least a generator
-            except_ = InvalidRedispatching("Target redispatching bellow pmin for generators "
-                                           "{}".format(np.where(self.target_dispatch < self.gen_pmin)[0]))
+            cond_invalid = self.target_dispatch < self.gen_pmin - self.gen_pmax
+            except_ = InvalidRedispatching("You cannot ask for a dispatch lower than pmin - pmax  [it would be always "
+                                           "invalid because, even if the sepoint is pmax, this dispatch would set it "
+                                           "to a number bellow pmin, which is impossible]. Invalid dispatch for "
+                                           "generator(s): "
+                                           "{}".format(np.where(cond_invalid)[0]))
+            self.target_dispatch -= redisp_act_orig
             return except_
 
         # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
         if np.any(redisp_act_orig[new_p == 0.]):
             # action is invalid, a generator has been redispatched, but it's turned off
             except_ = InvalidRedispatching("Impossible to dispatched a turned off generator")
+            self.target_dispatch -= redisp_act_orig
             return except_
 
         redisp_act_orig[new_p == 0.] = 0.
         # TODO add a flag here too, like before (the action has been "cut")
 
         # get the target redispatching (cumulation starting from the first element of the scenario)
-        self.target_dispatch += redisp_act_orig
         if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
                 np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= self._tol_poly:
             # make sure the redispatching action is zero sum
@@ -469,7 +486,7 @@ class _BasicEnv(GridObjects, ABC):
         res: :class:`grid2op.Action.Action`
             The action representing the modification of the powergrid induced by the Backend.
         """
-        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration = self.chronics_handler.next_time_step()
+        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration, prod_v = self.chronics_handler.next_time_step()
         if "injection" in tmp:
             self._injection = tmp["injection"]
         else:
@@ -487,7 +504,26 @@ class _BasicEnv(GridObjects, ABC):
         self.time_next_maintenance = maintenance_time
         self._hazard_duration = hazard_duration
         return self.helper_action_env({"injection": self._injection, "maintenance": self._maintenance,
-                                       "hazards": self._hazards})
+                                       "hazards": self._hazards}), prod_v
+
+    def _voltage_control(self, agent_action, prod_v_chronics):
+        """
+        Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
+        function can be overide for a more complex handling of the voltages.
+
+        It mush update (if needed) the voltages of the environment action :attr:`BasicEnv.env_modification`
+
+        Parameters
+        ----------
+        agent_action: :class:`grid2op.Action.Action`
+            The action performed by the player (or do nothing is player action were not legal or ambiguous)
+
+        prod_v_chronics: ``numpy.ndarray`` or ``None``
+            The voltages that has been specified in the chronics
+
+        """
+        if prod_v_chronics is not None:
+            self.env_modification.update({"injection": {"prod_v": prod_v_chronics}})
 
     def _handle_updown_times(self, gen_up_before, redisp_act):
         # get the generators that are not connected after the action
@@ -619,7 +655,7 @@ class _BasicEnv(GridObjects, ABC):
                 except_.append(except_tmp)
 
             # get the modification of generator active setpoint from the environment
-            self.env_modification = self._update_actions()
+            self.env_modification, prod_v_chronics = self._update_actions()
             if self.redispatching_unit_commitment_availble:
                 # remember generator that were "up" before the action
                 gen_up_before = self.gen_activeprod_t > 0.
@@ -676,13 +712,13 @@ class _BasicEnv(GridObjects, ABC):
                 except_.append(e)
             action._redispatch[:] = init_disp
 
-            # now get the new generator voltage setpoint
-            # TODO "automaton" to do that!
-
             self.env_modification._redispatch = self.actual_dispatch
             # action, for redispatching is composed of multiple actions, so basically i won't check
             # ramp_min and ramp_max
             self.env_modification._single_act = False
+
+            # now get the new generator voltage setpoint
+            self._voltage_control(action, prod_v_chronics)
 
             # have the opponent here
             # TODO code the opponent part here
@@ -745,7 +781,7 @@ class _BasicEnv(GridObjects, ABC):
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,
-                 "is_dipatching_illegal": is_illegal_redisp,
+                 "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
                  "exception": except_}
         self.done = self._is_done(has_error, is_done)
@@ -832,3 +868,39 @@ class _BasicEnv(GridObjects, ABC):
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
         self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+
+    def __enter__(self):
+        """
+        Support *with-statement* for the environment.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            import grid2op
+            import grid2op.Agent
+            with grid2op.make() as env:
+                agent = grid2op.Agent.DoNothingAgent(env.action_space)
+                act = env.action_space()
+                obs, r, done, info = env.step(act)
+                act = agent.act(obs, r, info)
+                obs, r, done, info = env.step(act)
+
+        """
+        return self
+
+    def __exit__(self, *args):
+        """
+        Support *with-statement* for the environment.
+        """
+        self.close()
+        # propagate exception
+        return False
+
+    def close(self):
+        # todo there might be some side effect
+        if self.viewer:
+            self.viewer.close()
+            self.viewer = None
+        self.backend.close()

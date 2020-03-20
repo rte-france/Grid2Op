@@ -267,7 +267,7 @@ class MultiEnvironment(GridObjects):
 
         dones: ``list``
             List all the "done" returned by each underlying environment. If one of this value is "True" this means
-            the environment encounter a game over, and
+            the environment encounter a game over.
 
         infos
         """

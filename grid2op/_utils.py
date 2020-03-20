@@ -27,3 +27,23 @@ def save_to_dict(res_dict, me, key, converter):
                    " and is not supported."
         raise Grid2OpException(msg_err_.format(key))
     res_dict[key] = res
+
+
+class _FakePbar(object):
+    """
+    Just a fake progress bar with same interface as tqdm
+    """
+    def __init__(self, total=0, desc=""):
+        pass
+
+    def update(self, int):
+        pass
+
+    def close(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False

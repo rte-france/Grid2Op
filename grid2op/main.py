@@ -131,7 +131,7 @@ if __name__ == "__main__":
                names_chronics_to_backend=names_chronics_to_backend
                )
     print("The results are:")
-    for chron_name, cum_reward, nb_time_step, max_ts in res:
+    for chron_name, _, cum_reward, nb_time_step, max_ts in res:
         msg_tmp = "\tFor chronics located at {}\n".format(chron_name)
         msg_tmp += "\t\t - cumulative reward: {:.2f}\n".format(cum_reward)
         msg_tmp += "\t\t - number of time steps completed: {:.0f} / {:.0f}".format(nb_time_step, max_ts)

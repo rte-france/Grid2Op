@@ -174,7 +174,7 @@ For example, the  "getting started" notebooks referenced some pages of the help.
 
 ## Getting Started / Examples
 Some Jupyter notebook are provided as example of the use of the Grid2Op package. They are located in the 
-[getting_start](getting_started) directories. 
+[getting_started](getting_started) directories. 
 
 These notebooks will help you in understanding how this framework is used and cover the most
 interesting part of this framework:
@@ -207,6 +207,11 @@ anything with the help of mybinder:
 # Make the tests
 Some tests (unit test, non regression test etc.) are provided with this package. They are located at grid2op/tests.
 
+Additional packages are required to run the tests:
+```
+pip install -e .[test]
+```
+
 The tests can be performed with the command:
 ```commandline
 cd grid2op/tests
@@ -218,7 +223,7 @@ All tests should pass. Performing all the tests take roughly 5 minutes
 
 # License information
 
-Copyright 2019 RTE France
+Copyright 2019-2020 RTE France
 
     RTE: http://www.rte-france.com
 

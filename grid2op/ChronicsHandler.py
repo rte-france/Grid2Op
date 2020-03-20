@@ -139,7 +139,8 @@ class GridValue(ABC):
 
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1)):
+                 start_datetime=datetime(year=2019, month=1, day=1),
+                 chunk_size=None):
         self.time_interval = time_interval
         self.current_datetime = start_datetime
         self.start_datetime = start_datetime
@@ -226,29 +227,31 @@ class GridValue(ABC):
         In this case, instead of renaming the powergrid (in the backend) of the data files, it is advised to build the
         following elements and initialize the object gridval of type :class:`GridValue` with:
 
-        >>> gridval = GridValue()  # Note: this code won't execute because "GridValue" is an abstract class
-        >>> order_backend_loads = ['load_1', 'load_2', 'load_13', 'load_3', 'load_4', 'load_5', 'load_8', 'load_9',
-        >>>                         'load_10', 'load_11', 'load_12']
-        >>> order_backend_prods = ['gen_1', 'gen_2', 'gen_5', 'gen_7', 'gen_0']
-        >>> order_backend_lines = ['0_1', '0_4', '8_9', '8_13', '9_10', '11_12', '12_13', '1_2', '1_3', '1_4', '2_3',
-        >>>                            '3_4', '5_10', '5_11', '5_12', '3_6', '3_8', '4_5', '6_7', '6_8']
-        >>> order_backend_subs = ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3', 'sub_4',
-        >>>                           'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9']
-        >>> names_chronics_to_backend = {"loads": {"2_C": 'load_1', "3_C": 'load_2',
-        >>>                                            "14": 'load_13', "4_C": 'load_3', "5_C": 'load_4',
-        >>>                                            "6_C": 'load_5', "9_C": 'load_8', "10_C": 'load_9',
-        >>>                                            "11_C": 'load_10', "12_C": 'load_11',
-        >>>                                            "13_C": 'load_12'},
-        >>>                                  "lines": {'1_2_1': '0_1', '1_5_2': '0_4', '9_10_16': '8_9', '9_14_17': '8_13',
-        >>>                                            '10_11_18': '9_10', '12_13_19': '11_12', '13_14_20': '12_13',
-        >>>                                            '2_3_3': '1_2', '2_4_4': '1_3', '2_5_5': '1_4', '3_4_6': '2_3',
-        >>>                                            '4_5_7': '3_4', '6_11_11': '5_10', '6_12_12': '5_11',
-        >>>                                            '6_13_13': '5_12', '4_7_8': '3_6', '4_9_9': '3_8', '5_6_10': '4_5',
-        >>>                                           '7_8_14': '6_7', '7_9_15': '6_8'},
-        >>>                                  "prods": {"1_G": 'gen_0', "3_G": "gen_2", "6_G": "gen_5",
-        >>>                                            "2_G": "gen_1", "8_G": "gen_7"},
-        >>>                                 }
-        >>> gridval.initialize(order_backend_loads, order_backend_prods, order_backend_lines, names_chronics_to_backend)
+        .. code-block:: python
+
+            gridval = GridValue()  # Note: this code won't execute because "GridValue" is an abstract class
+            order_backend_loads = ['load_1', 'load_2', 'load_13', 'load_3', 'load_4', 'load_5', 'load_8', 'load_9',
+                                     'load_10', 'load_11', 'load_12']
+            order_backend_prods = ['gen_1', 'gen_2', 'gen_5', 'gen_7', 'gen_0']
+            order_backend_lines = ['0_1', '0_4', '8_9', '8_13', '9_10', '11_12', '12_13', '1_2', '1_3', '1_4', '2_3',
+                                       '3_4', '5_10', '5_11', '5_12', '3_6', '3_8', '4_5', '6_7', '6_8']
+            order_backend_subs = ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3', 'sub_4',
+                                      'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9']
+            names_chronics_to_backend = {"loads": {"2_C": 'load_1', "3_C": 'load_2',
+                                                       "14": 'load_13', "4_C": 'load_3', "5_C": 'load_4',
+                                                       "6_C": 'load_5', "9_C": 'load_8', "10_C": 'load_9',
+                                                       "11_C": 'load_10', "12_C": 'load_11',
+                                                       "13_C": 'load_12'},
+                                             "lines": {'1_2_1': '0_1', '1_5_2': '0_4', '9_10_16': '8_9', '9_14_17': '8_13',
+                                                      '10_11_18': '9_10', '12_13_19': '11_12', '13_14_20': '12_13',
+                                                       '2_3_3': '1_2', '2_4_4': '1_3', '2_5_5': '1_4', '3_4_6': '2_3',
+                                                       '4_5_7': '3_4', '6_11_11': '5_10', '6_12_12': '5_11',
+                                                       '6_13_13': '5_12', '4_7_8': '3_6', '4_9_9': '3_8', '5_6_10': '4_5',
+                                                      '7_8_14': '6_7', '7_9_15': '6_8'},
+                                             "prods": {"1_G": 'gen_0', "3_G": "gen_2", "6_G": "gen_5",
+                                                       "2_G": "gen_1", "8_G": "gen_7"},
+                                            }
+            gridval.initialize(order_backend_loads, order_backend_prods, order_backend_lines, names_chronics_to_backend)
 
         """
         self.curr_iter += 1
@@ -285,21 +288,28 @@ class GridValue(ABC):
 
         If no maintenance are planned:
 
-        >>> maintenance_time = GridValue.get_maintenance_time_1d(np.array([0 for _ in range(10)]))
-        >>> assert np.all(maintenance_time == np.array([-1  for _ in range(10)]))
+        .. code-block:: python
+
+            maintenance_time = GridValue.get_maintenance_time_1d(np.array([0 for _ in range(10)]))
+            assert np.all(maintenance_time == np.array([-1  for _ in range(10)]))
+
 
         If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
-        >>> maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
-        >>> assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+            maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+            assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1]))
 
         If a maintenance planned of 3 time steps starting at timestep 6
         (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
-        >>> maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
-        >>> assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,4,3,2,1,0,0,-1,-1,-1]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+            maintenance_time = GridValue.get_maintenance_time_1d(maintenance)
+            assert np.all(maintenance_time == np.array([5,4,3,2,1,0,0,0,4,3,2,1,0,0,-1,-1,-1]))
 
         """
 
@@ -353,22 +363,28 @@ class GridValue(ABC):
 
         If no maintenance are planned:
 
-        >>> maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
-        >>> assert np.all(maintenance_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+            maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+            assert np.all(maintenance_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
-        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
-        >>> assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+            maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+            assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6
         (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
 
-        >>> maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
-        >>> maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
-        >>> assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
+        .. code-block:: python
+
+            maintenance = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+            maintenance_duration = GridValue.get_maintenance_duration_1d(maintenance)
+            assert np.all(maintenance_duration == np.array([3,3,3,3,3,3,2,1,2,2,2,2,2,1,0,0,0]))
 
         """
 
@@ -425,22 +441,28 @@ class GridValue(ABC):
 
         If no maintenance are planned:
 
-        >>> hazard = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
-        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            hazard = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+            hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+            assert np.all(hazard_duration == np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6 (index 5 - index starts at 0)
 
-        >>> hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
-        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
-        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,0,0,0,0]))
+        .. code-block:: python
+
+            hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0])
+            hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+            assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,0,0,0,0]))
 
         If a maintenance planned of 3 time steps starting at timestep 6
         (index 5 - index starts at 0), and a second one for 2 time steps at time step 13
 
-        >>> hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
-        >>> hazard_duration = GridValue.get_hazard_duration_1d(hazard)
-        >>> assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,2,1,0,0,0]))
+        .. code-block:: python
+
+            hazard = np.array([0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0])
+            hazard_duration = GridValue.get_hazard_duration_1d(hazard)
+            assert np.all(hazard_duration == np.array([0,0,0,0,0,3,2,1,0,0,0,0,2,1,0,0,0]))
 
         """
 
@@ -658,8 +680,10 @@ class ChangeNothing(GridValue):
     It does nothing exceptie increasing :attr:`GridValue.max_iter` and the :attr:`GridValue.current_datetime`.
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
-                 start_datetime=datetime(year=2019, month=1, day=1)):
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime)
+                 start_datetime=datetime(year=2019, month=1, day=1),
+                 chunk_size=None):
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
+                           chunk_size=chunk_size)
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -701,7 +725,7 @@ class ChangeNothing(GridValue):
         """
         self.current_datetime += self.time_interval
         self.curr_iter += 1
-        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration
+        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration, None
 
     def check_validity(self, backend):
         """
@@ -732,8 +756,6 @@ class ChangeNothing(GridValue):
         self.current_datetime = self.start_datetime
         self.curr_iter = 0
 
-
-# TODO handle case of missing files: equivalent to "change nothing" probably
 
 class GridStateFromFile(GridValue):
     """
@@ -818,10 +840,12 @@ class GridStateFromFile(GridValue):
             Used to initialize :attr:`GridValue.max_iter`
 
         """
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime)
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
+                           chunk_size=chunk_size)
 
         self.path = path
-
+        self.n_ = None  # maximum number of rows of the array
+        self.tmp_max_index = None  # size maximum of the current tables in memory
         self.load_p = None  # numpy array corresponding to the current active load values in the power _grid. It has the same size as the number of loads
         self.load_q = None  # numpy array corresponding to the current reactive load values in the power _grid. It has the same size as the number of loads
         self.prod_p = None  # numpy array corresponding to the current active production values in the power _grid. It has the same size as the number of generators
@@ -898,58 +922,93 @@ class GridStateFromFile(GridValue):
                                             "format.")
             self.time_interval = timedelta(hours=tmp.hour, minutes=tmp.minute)
 
-    def _get_fileext(self):
+    def _get_fileext(self, data_name):
         read_compressed = ".csv"
-        if not os.path.exists(os.path.join(self.path, "load_p.csv")):
+        if not os.path.exists(os.path.join(self.path, "{}.csv".format(data_name))):
             # try to read compressed data
-            if os.path.exists(os.path.join(self.path, "load_p.csv.bz2")):
+            if os.path.exists(os.path.join(self.path, "{}.csv.bz2".format(data_name))):
                 read_compressed = ".csv.bz2"
-            elif os.path.exists(os.path.join(self.path, "load_p.zip")):
+            elif os.path.exists(os.path.join(self.path, "{}.zip".format(data_name))):
                 read_compressed = ".zip"
-            elif os.path.exists(os.path.join(self.path, "load_p.csv.gzip")):
+            elif os.path.exists(os.path.join(self.path, "{}.csv.gzip".format(data_name))):
                 read_compressed = ".csv.gzip"
-            elif os.path.exists(os.path.join(self.path, "load_p.csv.xz")):
+            elif os.path.exists(os.path.join(self.path, "{}.csv.xz".format(data_name))):
                 read_compressed = ".csv.xz"
             else:
-                raise ChronicsNotFoundError(
-                    "GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
+                read_compressed = None
+                # raise ChronicsNotFoundError(
+                #     "GridStateFromFile: unable to locate the data files that should be at \"{}\"".format(self.path))
         return read_compressed
+
+    def _get_data(self, data_name):
+        file_ext = self._get_fileext(data_name)
+        if file_ext is not None:
+            res = pd.read_csv(os.path.join(self.path, "{}{}".format(data_name, file_ext)),
+                        sep=self.sep, chunksize=self.chunk_size)
+        else:
+            res = None
+        return res
 
     def _get_orders(self, load_p, load_q, prod_p, prod_v, hazards, maintenance,
                     order_backend_loads, order_backend_prods, order_backend_lines):
-        self._assert_correct_second_stage(load_p.columns, self.names_chronics_to_backend, "loads", "active")
-        order_chronics_load_p = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-                                          for el in load_p.columns]).astype(np.int)
 
-        self._assert_correct_second_stage(load_q.columns, self.names_chronics_to_backend, "loads", "reactive")
-        order_backend_load_q = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-                                         for el in load_q.columns]).astype(np.int)
+        order_chronics_load_p = None
+        order_backend_load_q = None
+        order_backend_prod_p = None
+        order_backend_prod_v = None
+        order_backend_hazards = None
+        order_backend_maintenance = None
 
-        self._assert_correct_second_stage(prod_p.columns, self.names_chronics_to_backend, "prods", "active")
-        order_backend_prod_p = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-                                         for el in prod_p.columns]).astype(np.int)
+        if load_p is not None:
+            self._assert_correct_second_stage(load_p.columns, self.names_chronics_to_backend, "loads", "active")
+            order_chronics_load_p = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
+                                              for el in load_p.columns]).astype(np.int)
+        if load_q is not None:
+            self._assert_correct_second_stage(load_q.columns, self.names_chronics_to_backend, "loads", "reactive")
+            order_backend_load_q = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
+                                             for el in load_q.columns]).astype(np.int)
 
-        self._assert_correct_second_stage(prod_v.columns, self.names_chronics_to_backend, "prods", "voltage magnitude")
-        order_backend_prod_v = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-                                         for el in prod_v.columns]).astype(np.int)
+        if prod_p is not None:
+            self._assert_correct_second_stage(prod_p.columns, self.names_chronics_to_backend, "prods", "active")
+            order_backend_prod_p = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
+                                             for el in prod_p.columns]).astype(np.int)
 
-        self._assert_correct_second_stage(hazards.columns, self.names_chronics_to_backend, "lines", "hazards")
-        order_backend_hazards = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
-                                          for el in hazards.columns]).astype(np.int)
+        if prod_v is not None:
+            self._assert_correct_second_stage(prod_v.columns, self.names_chronics_to_backend, "prods", "voltage magnitude")
+            order_backend_prod_v = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
+                                             for el in prod_v.columns]).astype(np.int)
 
-        self._assert_correct_second_stage(maintenance.columns, self.names_chronics_to_backend, "lines", "maintenance")
-        order_backend_maintenance = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
-                                              for el in maintenance.columns]).astype(np.int)
+        if hazards is not None:
+            self._assert_correct_second_stage(hazards.columns, self.names_chronics_to_backend, "lines", "hazards")
+            order_backend_hazards = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
+                                              for el in hazards.columns]).astype(np.int)
+
+        if maintenance is not None:
+            self._assert_correct_second_stage(maintenance.columns, self.names_chronics_to_backend, "lines", "maintenance")
+            order_backend_maintenance = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
+                                                  for el in maintenance.columns]).astype(np.int)
 
         return order_chronics_load_p, order_backend_load_q, \
                order_backend_prod_p, order_backend_prod_v, \
                order_backend_hazards, order_backend_maintenance
 
     def _get_next_chunk(self):
-        load_p = next(self._data_chunk["load_p"])
-        load_q = next(self._data_chunk["load_q"])
-        prod_p = next(self._data_chunk["prod_p"])
-        prod_v = next(self._data_chunk["prod_v"])
+        load_p = None
+        load_q = None
+        prod_p = None
+        prod_v = None
+        if self._data_chunk["load_p"] is not None:
+            load_p = next(self._data_chunk["load_p"])
+            self.tmp_max_index = load_p.shape[0]
+        if self._data_chunk["load_q"] is not None:
+            load_q = next(self._data_chunk["load_q"])
+            self.tmp_max_index = load_q.shape[0]
+        if self._data_chunk["prod_p"] is not None:
+            prod_p = next(self._data_chunk["prod_p"])
+            self.tmp_max_index = prod_p.shape[0]
+        if self._data_chunk["prod_v"] is not None:
+            prod_v = next(self._data_chunk["prod_v"])
+            self.tmp_max_index = prod_v.shape[0]
         return load_p, load_q, prod_p, prod_v
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
@@ -1020,21 +1079,24 @@ class GridStateFromFile(GridValue):
 
         self._init_date_time()
 
-        read_compressed = self._get_fileext()
-
         # read the data
-        load_p_iter = pd.read_csv(os.path.join(self.path, "load_p{}".format(read_compressed)),
-                                  sep=self.sep, chunksize=self.chunk_size)
-        load_q_iter = pd.read_csv(os.path.join(self.path, "load_q{}".format(read_compressed)),
-                                  sep=self.sep, chunksize=self.chunk_size)
-        prod_p_iter = pd.read_csv(os.path.join(self.path, "prod_p{}".format(read_compressed)),
-                                  sep=self.sep, chunksize=self.chunk_size)
-        prod_v_iter = pd.read_csv(os.path.join(self.path, "prod_v{}".format(read_compressed)),
-                                  sep=self.sep, chunksize=self.chunk_size)
-        hazards = pd.read_csv(os.path.join(self.path, "hazards{}".format(read_compressed)),
-                                   sep=self.sep)
-        maintenance = pd.read_csv(os.path.join(self.path, "maintenance{}".format(read_compressed)),
+        load_p_iter = self._get_data("load_p")
+        load_q_iter = self._get_data("load_q")
+        prod_p_iter = self._get_data("prod_p")
+        prod_v_iter = self._get_data("prod_v")
+        read_compressed = self._get_fileext("hazards")
+        if read_compressed is not None:
+            hazards = pd.read_csv(os.path.join(self.path, "hazards{}".format(read_compressed)),
                                        sep=self.sep)
+        else:
+            hazards = None
+
+        read_compressed = self._get_fileext("maintenance")
+        if read_compressed is not None:
+            maintenance = pd.read_csv(os.path.join(self.path, "maintenance{}".format(read_compressed)),
+                                           sep=self.sep)
+        else:
+            maintenance = None
 
         # put the proper name in order
         order_backend_loads = {el: i for i, el in enumerate(order_backend_loads)}
@@ -1046,11 +1108,24 @@ class GridStateFromFile(GridValue):
             load_q = load_q_iter
             prod_p = prod_p_iter
             prod_v = prod_v_iter
+            if load_p is not None:
+                self.tmp_max_index = load_p.shape[0]
+            elif load_q is not None:
+                self.tmp_max_index = load_q.shape[0]
+            elif prod_p is not None:
+                self.tmp_max_index = prod_p.shape[0]
+            elif prod_v is not None:
+                self.tmp_max_index = prod_v.shape[0]
+            else:
+                raise ChronicsError("No files are found in directory \"{}\". If you don't want to load any chronics,"
+                                    " use  \"ChangeNothing\" and not \"{}\" to load chronics."
+                                    "".format(self.path, type(self)))
+
         else:
-            self._data_chunk = {"load_p" : load_p_iter,
-                                "load_q" : load_q_iter,
-                                "prod_p" : prod_p_iter,
-                                "prod_v" : prod_v_iter}
+            self._data_chunk = {"load_p": load_p_iter,
+                                "load_q": load_q_iter,
+                                "prod_p": prod_p_iter,
+                                "prod_v": prod_v_iter}
             load_p, load_q, prod_p, prod_v = self._get_next_chunk()
 
         # get the chronics in order
@@ -1070,22 +1145,65 @@ class GridStateFromFile(GridValue):
 
         self._init_attrs(load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance)
 
-        # TODO have a function for piece of chunk below
-        # TODO it doesn't work with chunk size different of None
         self.curr_iter = 0
+        if self.maintenance is not None:
+            n_ = self.maintenance.shape[0]
+        elif self.hazards is not None:
+            n_ = self.hazards.shape[0]
+        else:
+            n_ = None
+            for fn in ["prod_p", "load_p", "prod_v", "load_q"]:
+                ext_ = self._get_fileext(fn)
+                if ext_ is not None:
+                    n_ = self._file_len(os.path.join(self.path, "{}{}".format(fn, ext_)), ext_)
+                    break
+            if n_ is None:
+                raise ChronicsError("No files are found in directory \"{}\". If you don't want to load any chronics,"
+                                    " use  \"ChangeNothing\" and not \"{}\" to load chronics."
+                                    "".format(self.path, type(self)))
+        self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
+
         if self.max_iter == -1:
             # if the number of maximum time step is not set yet, we set it to be the number of
             # data in the chronics (number of rows of the files) -1.
             # the -1 is present because the initial grid state doesn't count as a "time step" but is read
             # from these data.
-            self.max_iter = self.maintenance.shape[0]-1
+            self.max_iter = self.n_ -1
+
+    @staticmethod
+    def _file_len(fname, ext_):
+        # i = -1
+        # reading_mode = "r"
+        # if ext_ != ".csv":
+        #     reading_mode += "b"
+        # with open(fname, reading_mode) as f:
+        #     for i, l in enumerate(f):
+        #         pass
+        res = pd.read_csv(fname, sep="@", dtype=str).shape[0]
+        return res
 
     def _init_attrs(self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None):
-        self.load_p = copy.deepcopy(load_p.values[:, self._order_load_p])
-        self.load_q = copy.deepcopy(load_q.values[:, self._order_load_q])
-        self.prod_p = copy.deepcopy(prod_p.values[:, self._order_prod_p])
-        self.prod_v = copy.deepcopy(prod_v.values[:, self._order_prod_v])
+        self.load_p = None
+        self.load_q = None
+        self.prod_p = None
+        self.prod_v = None
+        self.hazards = None
+        self.hazard_duration = None
+        self.maintenance = None
+        self.maintenance_time = None
+        self.maintenance_duration = None
 
+        if load_p is not None:
+            self.load_p = copy.deepcopy(load_p.values[:, self._order_load_p])
+        if load_q is not None:
+            self.load_q = copy.deepcopy(load_q.values[:, self._order_load_q])
+        if prod_p is not None:
+            self.prod_p = copy.deepcopy(prod_p.values[:, self._order_prod_p])
+        if prod_v is not None:
+            self.prod_v = copy.deepcopy(prod_v.values[:, self._order_prod_v])
+
+        # TODO optimize this piece of code, and the whole laoding process if hazards.csv and maintenance.csv are
+        # provided in the proper format.
         if hazards is not None:
             # hazards and maintenance cannot be computed by chunk. So we need to differenciate their behaviour
             self.hazards = copy.deepcopy(hazards.values[:, self._order_hazards])
@@ -1124,7 +1242,8 @@ class GridStateFromFile(GridValue):
 
         """
         res = False
-        if self.current_index+1 >= self.maintenance.shape[0]:
+        # if self.current_index+1 >= self.tmp_max_index:
+        if self.current_index > self.n_:
             res = True
         elif self.max_iter > 0:
             if self.curr_iter > self.max_iter:
@@ -1161,28 +1280,48 @@ class GridStateFromFile(GridValue):
             except StopIteration as e:
                 raise e
 
-        if self.current_index >= self.load_q.shape[0]:
+        if self.current_index >= self.tmp_max_index:
             raise StopIteration
         if self.max_iter > 0:
             if self.curr_iter > self.max_iter:
                 raise StopIteration
 
         res = {}
-        res["injection"] = {"load_p": 1.0 * self.load_p[self.current_index, :],
-                            "load_q": 1.0 * self.load_q[self.current_index, :],
-                            "prod_p": 1.0 * self.prod_p[self.current_index, :],
-                            "prod_v": 1.0 * self.prod_v[self.current_index, :]}
-        res["maintenance"] = self.maintenance[self.current_index, :]
-        res["hazards"] = self.hazards[self.current_index, :]
+        dict_ = {}
+        prod_v = None
+        if self.load_p is not None:
+            dict_["load_p"] =  1.0 * self.load_p[self.current_index, :]
+        if self.load_q is not None:
+            dict_["load_q"] = 1.0 * self.load_q[self.current_index, :]
+        if self.prod_p is not None:
+            dict_["prod_p"] = 1.0 * self.prod_p[self.current_index, :]
+        if self.prod_v is not None:
+            prod_v = 1.0 * self.prod_v[self.current_index, :]
+            # dict_["prod_v"] = prod_v
+        if dict_:
+            res["injection"] = dict_
+
+        if self.maintenance is not None:
+            res["maintenance"] = self.maintenance[self.current_index, :]
+        if self.hazards is not None:
+            res["hazards"] = self.hazards[self.current_index, :]
 
         self.current_datetime += self.time_interval
         self.curr_iter += 1
 
-        maintenance_time = 1 * self.maintenance_time[self.current_index, :]
-        maintenance_duration = 1 * self.maintenance_duration[self.current_index, :]
-        hazard_duration = 1 * self.hazard_duration[self.current_index, :]
+        if self.maintenance_time is not None:
+            maintenance_time = 1 * self.maintenance_time[self.current_index, :]
+            maintenance_duration = 1 * self.maintenance_duration[self.current_index, :]
+        else:
+            maintenance_time = np.full(self.n_line, fill_value=-1, dtype=np.int)
+            maintenance_duration = np.full(self.n_line, fill_value=0, dtype=np.int)
 
-        return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration
+        if self.hazard_duration is not None:
+            hazard_duration = 1 * self.hazard_duration[self.current_index, :]
+        else:
+            hazard_duration = np.full(self.n_line, fill_value=-1, dtype=np.int)
+
+        return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration, prod_v
 
     def check_validity(self, backend):
         """
@@ -1199,54 +1338,79 @@ class GridStateFromFile(GridValue):
         -------
         ``None``
         """
+        at_least_one = False
+        if self.load_p is not None:
+            if self.load_p.shape[1] != backend.n_load:
+                msg_err = "for the active part. It should be {} but is in fact {}"
+                raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_p.shape[1]))
+            at_least_one = True
 
-        if self.load_p.shape[1] != backend.n_load:
-            msg_err = "for the active part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_p.shape[1]))
-        if self.load_q.shape[1] != backend.n_load:
-            msg_err = "for the reactive part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_q.shape[1]))
+        if self.load_q is not None:
+            if self.load_q.shape[1] != backend.n_load:
+                msg_err = "for the reactive part. It should be {} but is in fact {}"
+                raise IncorrectNumberOfLoads(msg_err.format(backend.n_load, self.load_q.shape[1]))
+            at_least_one = True
+        if self.prod_p is not None:
+            if self.prod_p.shape[1] != backend.n_gen:
+                msg_err = "for the active part. It should be {} but is in fact {}"
+                raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_p.shape[1]))
+            at_least_one = True
 
-        if self.prod_p.shape[1] != backend.n_gen:
-            msg_err = "for the active part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_p.shape[1]))
-        if self.prod_v.shape[1] != backend.n_gen:
-            msg_err = "for the voltage part. It should be {} but is in fact {}"
-            raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_v.shape[1]))
+        if self.prod_v is not None:
+            if self.prod_v.shape[1] != backend.n_gen:
+                msg_err = "for the voltage part. It should be {} but is in fact {}"
+                raise IncorrectNumberOfGenerators(msg_err.format(backend.n_gen, self.prod_v.shape[1]))
+            at_least_one = True
 
-        if self.hazards.shape[1] != backend.n_line:
-            msg_err = "for the outage. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazards.shape[1]))
-        if self.maintenance.shape[1] != backend.n_line:
-            msg_err = "for the maintenance. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance.shape[1]))
+        if self.hazards is not None:
+            if self.hazards.shape[1] != backend.n_line:
+                msg_err = "for the outage. It should be {} but is in fact {}"
+                raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazards.shape[1]))
+            at_least_one = True
 
-        if self.maintenance_time.shape[1] != backend.n_line:
-            msg_err = "for the maintenance times. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_time.shape[1]))
+        if self.maintenance is not None:
+            if self.maintenance.shape[1] != backend.n_line:
+                msg_err = "for the maintenance. It should be {} but is in fact {}"
+                raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance.shape[1]))
+            at_least_one = True
 
-        if self.maintenance_duration.shape[1] != backend.n_line:
-            msg_err = "for the maintenance durations. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_duration.shape[1]))
+        if self.maintenance_time is not None:
+            if self.maintenance_time.shape[1] != backend.n_line:
+                msg_err = "for the maintenance times. It should be {} but is in fact {}"
+                raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_time.shape[1]))
+            at_least_one = True
 
-        if self.hazard_duration.shape[1] != backend.n_line:
-            msg_err = "for the hazard durations. It should be {} but is in fact {}"
-            raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazard_duration.shape[1]))
+        if self.maintenance_duration is not None:
+            if self.maintenance_duration.shape[1] != backend.n_line:
+                msg_err = "for the maintenance durations. It should be {} but is in fact {}"
+                raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.maintenance_duration.shape[1]))
+            at_least_one = True
 
-        n = self.load_p.shape[0]
+        if self.hazard_duration is not None:
+            if self.hazard_duration.shape[1] != backend.n_line:
+                msg_err = "for the hazard durations. It should be {} but is in fact {}"
+                raise IncorrectNumberOfLines(msg_err.format(backend.n_line, self.hazard_duration.shape[1]))
+            at_least_one = True
+
+        if not at_least_one:
+            raise ChronicsError("No files are found in directory \"{}\". If you don't want to load any chronics, use "
+                                "\"ChangeNothing\" and not \"{}\" to load chronics."
+                                "".format(self.path, type(self)))
+
         for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "hazards",
                                   "maintenance time", "maintenance duration", "hazard duration"],
                                  [self.load_q, self.load_p, self.prod_v, self.prod_p, self.maintenance, self.hazards,
                                   self.maintenance_time, self.maintenance_duration, self.hazard_duration]):
-            if arr.shape[0] != n:
-                msg_err = "Array {} has not the same number of rows of load_p. The chronics cannot be loaded properly."
-                raise EnvError(msg_err.format(name_arr))
+            if arr is not None:
+                if self.chunk_size is None:
+                    if arr.shape[0] != self.n_:
+                        msg_err = "Array {} has not the same number of rows of load_p. The chronics cannot be loaded properly."
+                        raise EnvError(msg_err.format(name_arr))
 
         if self.max_iter > 0:
-            if self.max_iter > self.maintenance.shape[0]:
-                # TODO make a test for that! : is this > or >= ????
+            if self.max_iter > self.n_:
                 msg_err = "Files count {} rows and you ask this episode to last at {} timestep."
-                raise InsufficientData(msg_err.format(self.maintenance.shape[0], self.max_iter))
+                raise InsufficientData(msg_err.format(self.n_, self.max_iter))
 
     def next_chronics(self):
         self.current_datetime = datetime(year=2019, month=1, day=1)
@@ -1308,10 +1472,18 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
     def _get_next_chunk_forecasted(self):
         # TODO merge this class with GridStateFromFile
-        load_p = next(self._data_chunk["load_p_forecasted"])
-        load_q = next(self._data_chunk["load_q_forecasted"])
-        prod_p = next(self._data_chunk["prod_p_forecasted"])
-        prod_v = next(self._data_chunk["prod_v_forecasted"])
+        load_p = None
+        load_q = None
+        prod_p = None
+        prod_v = None
+        if self._data_chunk["load_p_forecasted"] is not None:
+            load_p = next(self._data_chunk["load_p_forecasted"])
+        if self._data_chunk["load_q_forecasted"] is not None:
+            load_q = next(self._data_chunk["load_q_forecasted"])
+        if self._data_chunk["prod_p_forecasted"] is not None:
+            prod_p = next(self._data_chunk["prod_p_forecasted"])
+        if self._data_chunk["prod_v_forecasted"] is not None:
+            prod_v = next(self._data_chunk["prod_v_forecasted"])
         return load_p, load_q, prod_p, prod_v
 
     def _data_in_memory(self):
@@ -1340,18 +1512,18 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         super().initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                            names_chronics_to_backend)
 
-        read_compressed = self._get_fileext()
+        load_p_iter = self._get_data("load_p_forecasted")
+        load_q_iter = self._get_data("load_q_forecasted")
+        prod_p_iter = self._get_data("prod_p_forecasted")
+        prod_v_iter = self._get_data("prod_v_forecasted")
+        hazards = None  # no hazards in forecast
 
-        load_p_iter = pd.read_csv(os.path.join(self.path, "load_p_forecasted{}".format(read_compressed)),
-                             sep=self.sep, chunksize=self.chunk_size)
-        load_q_iter = pd.read_csv(os.path.join(self.path, "load_q_forecasted{}".format(read_compressed)),
-                             sep=self.sep, chunksize=self.chunk_size)
-        prod_p_iter = pd.read_csv(os.path.join(self.path, "prod_p_forecasted{}".format(read_compressed)),
-                             sep=self.sep, chunksize=self.chunk_size)
-        prod_v_iter = pd.read_csv(os.path.join(self.path, "prod_v_forecasted{}".format(read_compressed)),
-                             sep=self.sep, chunksize=self.chunk_size)
-        maintenance = pd.read_csv(os.path.join(self.path, "maintenance_forecasted{}".format(read_compressed)),
-                                  sep=self.sep)
+        read_compressed = self._get_fileext("maintenance_forecasted")
+        if read_compressed is not None:
+            maintenance = pd.read_csv(os.path.join(self.path, "maintenance_forecasted{}".format(read_compressed)),
+                                      sep=self.sep)
+        else:
+            maintenance = None
 
         if self.chunk_size is None:
             load_p = load_p_iter
@@ -1369,16 +1541,11 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         order_backend_prods = {el: i for i, el in enumerate(order_backend_prods)}
         order_backend_lines = {el: i for i, el in enumerate(order_backend_lines)}
 
-        order_chronics_load_p = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-                                          for el in load_p.columns]).astype(np.int)
-        order_backend_load_q = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-                                         for el in load_q.columns]).astype(np.int)
-        order_backend_prod_p = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-                                         for el in prod_p.columns]).astype(np.int)
-        order_backend_prod_v = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-                                         for el in prod_v.columns]).astype(np.int)
-        order_backend_maintenance = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
-                                              for el in maintenance.columns]).astype(np.int)
+        order_chronics_load_p, order_backend_load_q, \
+        order_backend_prod_p, order_backend_prod_v, \
+        order_backend_hazards, order_backend_maintenance \
+            = self._get_orders(load_p, load_q, prod_p, prod_v, hazards, maintenance,
+                               order_backend_loads, order_backend_prods, order_backend_lines)
 
         self._order_load_p_forecasted = np.argsort(order_chronics_load_p)
         self._order_load_q_forecasted = np.argsort(order_backend_load_q)
@@ -1389,48 +1556,78 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self._init_attrs_forecast(load_p, load_q, prod_p, prod_v, maintenance=maintenance)
 
     def _init_attrs_forecast(self, load_p, load_q, prod_p, prod_v, maintenance=None):
-        self.load_p_forecast = copy.deepcopy(load_p.values[:, self._order_load_p_forecasted])
-        self.load_q_forecast = copy.deepcopy(load_q.values[:, self._order_load_q_forecasted])
-        self.prod_p_forecast = copy.deepcopy(prod_p.values[:, self._order_prod_p_forecasted])
-        self.prod_v_forecast = copy.deepcopy(prod_v.values[:, self._order_prod_v_forecasted])
+        # TODO refactor that with _init_attrs from super()
+        self.maintenance_forecast = None
+        self.load_p_forecast = None
+        self.load_q_forecast = None
+        self.prod_p_forecast = None
+        self.prod_v_forecast = None
+
+        if load_p is not None:
+            self.load_p_forecast = copy.deepcopy(load_p.values[:, self._order_load_p_forecasted])
+        if load_q is not None:
+            self.load_q_forecast = copy.deepcopy(load_q.values[:, self._order_load_q_forecasted])
+        if prod_p is not None:
+            self.prod_p_forecast = copy.deepcopy(prod_p.values[:, self._order_prod_p_forecasted])
+        if prod_v is not None:
+            self.prod_v_forecast = copy.deepcopy(prod_v.values[:, self._order_prod_v_forecasted])
 
         if maintenance is not None:
-            self.maintenance_forecast = copy.deepcopy(maintenance.values[:, np.argsort(self._order_maintenance)])
+            if maintenance is not None:
+                self.maintenance_forecast = copy.deepcopy(maintenance.values[:, np.argsort(self._order_maintenance)])
 
-        # there are _maintenance and hazards only if the value in the file is not 0.
-        self.maintenance_forecast = self.maintenance != 0.
+            # there are _maintenance and hazards only if the value in the file is not 0.
+            self.maintenance_forecast = self.maintenance != 0.
 
     def check_validity(self, backend):
         super(GridStateFromFileWithForecasts, self).check_validity(backend)
+        at_least_one = False
 
-        if self.load_p_forecast.shape[1] != backend.n_load:
-            raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}"
-                                         "".format(backend.n_load, len(self.load_p)))
-        if self.load_q_forecast.shape[1] != backend.n_load:
-            raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}"
-                                         "".format(backend.n_load, len(self.load_q)))
+        if self.load_p_forecast is not None:
+            if self.load_p_forecast.shape[1] != backend.n_load:
+                raise IncorrectNumberOfLoads("for the active part. It should be {} but is in fact {}"
+                                             "".format(backend.n_load, len(self.load_p)))
+            at_least_one = True
 
-        if self.prod_p_forecast.shape[1] != backend.n_gen:
-            raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}"
-                                              "".format(backend.n_gen, len(self.prod_p)))
-        if self.prod_v_forecast.shape[1] != backend.n_gen:
-            raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}"
-                                              "".format(backend.n_gen, len(self.prod_v)))
+        if self.load_q_forecast is not None:
+            if self.load_q_forecast.shape[1] != backend.n_load:
+                raise IncorrectNumberOfLoads("for the reactive part. It should be {} but is in fact {}"
+                                             "".format(backend.n_load, len(self.load_q)))
+            at_least_one = True
 
-        if self.maintenance_forecast.shape[1] != backend.n_line:
-            raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}"
-                                         "".format(backend.n_line, len(self.maintenance)))
+        if self.prod_p_forecast is not None:
+            if self.prod_p_forecast.shape[1] != backend.n_gen:
+                raise IncorrectNumberOfGenerators("for the active part. It should be {} but is in fact {}"
+                                                  "".format(backend.n_gen, len(self.prod_p)))
+            at_least_one = True
 
-        n = self.load_p.shape[0]
-        for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance", "outage"],
+        if self.prod_v_forecast is not None:
+            if self.prod_v_forecast.shape[1] != backend.n_gen:
+                raise IncorrectNumberOfGenerators("for the voltage part. It should be {} but is in fact {}"
+                                                  "".format(backend.n_gen, len(self.prod_v)))
+            at_least_one = True
+
+        if self.maintenance_forecast is not None:
+            if self.maintenance_forecast.shape[1] != backend.n_line:
+                raise IncorrectNumberOfLines("for the _maintenance. It should be {} but is in fact {}"
+                                             "".format(backend.n_line, len(self.maintenance)))
+            at_least_one = True
+
+        if not at_least_one:
+            raise ChronicsError("You used a class that read forecasted data, yet there is no forecasted data in"
+                                "\"{}\". Please fall back to using class \"GridStateFromFile\" instead of "
+                                "\"{}\"".format(self.path, type(self)))
+
+        for name_arr, arr in zip(["load_q", "load_p", "prod_v", "prod_p", "maintenance"],
                                  [self.load_q_forecast, self.load_p_forecast, self.prod_v_forecast,
                                   self.prod_p_forecast, self.maintenance_forecast]):
-            if arr.shape[0] < n:
-                raise EnvError("Array for forecast {}_forecasted as not the same number of rows of load_p. "
-                               "The chronics cannot be loaded properly.".format(name_arr))
+            if arr is not None:
+                if self.chunk_size is None:
+                    if arr.shape[0] < self.n_:
+                        raise EnvError("Array for forecast {}_forecasted as not the same number of rows of load_p. "
+                                       "The chronics cannot be loaded properly.".format(name_arr))
 
     def _load_next_chunk_in_memory_forecast(self):
-        # print("I loaded another chunk")
         # i load the next chunk as dataframes
         load_p, load_q, prod_p, prod_v = self._get_next_chunk_forecasted()
         # i put these dataframes in the right order (columns)
@@ -1456,18 +1653,26 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
         """
         if not self._data_already_in_mem:
-            # TODO test that with chunk
             try:
                 self._load_next_chunk_in_memory_forecast()
             except StopIteration as e:
                 raise e
 
         res = {}
-        res["injection"] = {"load_p": 1.0 * self.load_p_forecast[self.current_index, :],
-                            "load_q": 1.0 * self.load_q_forecast[self.current_index, :],
-                            "prod_p": 1.0 * self.prod_p_forecast[self.current_index, :],
-                            "prod_v": 1.0 * self.prod_v_forecast[self.current_index, :]}
-        res["maintenance"] = self.maintenance_forecast[self.current_index, :]
+        dict_ = {}
+        if self.load_p_forecast is not None:
+            dict_["load_p"] = 1.0 * self.load_p_forecast[self.current_index, :]
+        if self.load_q_forecast is not None:
+            dict_["load_q"] = 1.0 * self.load_q_forecast[self.current_index, :]
+        if self.prod_p_forecast is not None:
+            dict_["prod_p"] = 1.0 * self.prod_p_forecast[self.current_index, :]
+        if self.prod_v_forecast is not None:
+            dict_["prod_v"] = 1.0 * self.prod_v_forecast[self.current_index, :]
+        if dict_:
+            res["injection"] = dict_
+
+        if self.maintenance_forecast is not None:
+            res["maintenance"] = self.maintenance_forecast[self.current_index, :]
 
         forecast_datetime = self.current_datetime + self.time_interval
         return [(forecast_datetime, res)]
@@ -1516,15 +1721,19 @@ class Multifolder(GridValue):
                  gridvalueClass=GridStateFromFile,
                  sep=";", max_iter=-1,
                  chunk_size=None):
-        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter)
+        GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, chunk_size=chunk_size)
         self.gridvalueClass = gridvalueClass
         self.data = None
         self.path = os.path.abspath(path)
         self.sep = sep
-        self.subpaths = [os.path.join(self.path, el) for el in os.listdir(self.path)
-                         if os.path.isdir(os.path.join(self.path, el))]
-        self.subpaths.sort()
-        self.subpaths = np.array(self.subpaths)
+        try:
+            self.subpaths = [os.path.join(self.path, el) for el in os.listdir(self.path)
+                             if os.path.isdir(os.path.join(self.path, el))]
+            self.subpaths.sort()
+            self.subpaths = np.array(self.subpaths)
+        except FileNotFoundError:
+            raise ChronicsError("Path \"{}\" doesn't exists.".format(self.path)) from None
+
 
         if len(self.subpaths) == 0:
             raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "

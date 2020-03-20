@@ -31,6 +31,8 @@ try:
     from .Parameters import Parameters
     from .Agent import DoNothingAgent, Agent
     from .EpisodeData import EpisodeData
+    from ._utils import _FakePbar
+    from .VoltageControler import ControlVoltageFromFile
 
 except (ModuleNotFoundError, ImportError):
     from Action import HelperAction, Action, TopologyAction
@@ -45,6 +47,8 @@ except (ModuleNotFoundError, ImportError):
     from Parameters import Parameters
     from Agent import DoNothingAgent, Agent
     from EpisodeData import EpisodeData
+    from _utils import _FakePbar
+    from VoltageControler import ControlVoltageFromFile
 
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
@@ -114,6 +118,8 @@ class ConsoleLog(DoNothingLog):
                 print("WARNING: \"{}\"".format(", ".join(args)))
             if kwargs:
                 print("WARNING: {}".format(kwargs))
+
+#TODO i think runner.env are not close, like, never closed :eyes:
 
 
 class Runner(object):
@@ -231,7 +237,9 @@ class Runner(object):
                  agentInstance=None,
                  verbose=False,
                  gridStateclass_kwargs={},
-                 thermal_limit_a=None
+                 voltageControlerClass=ControlVoltageFromFile,
+                 thermal_limit_a=None,
+                 max_iter=-1
                  ):
         """
         Initialize the Runner.
@@ -285,6 +293,9 @@ class Runner(object):
 
         thermal_limit_a: ``numpy.ndarray``
             The thermal limit for the environment (if any).
+
+        voltagecontrolerClass: :class:`grid2op.VoltageControler.ControlVoltageFromFile`, optional
+            The controler that will change the voltage setpoints of the generators.
 
         """
 
@@ -410,6 +421,9 @@ class Runner(object):
         # chronics of grid state
         self.path_chron = path_chron
         self.gridStateclass_kwargs = gridStateclass_kwargs
+        self.max_iter = max_iter
+        if max_iter > 0:
+            self.gridStateclass["max_iter"] = max_iter
         self.chronics_handler = ChronicsHandler(chronicsClass=self.gridStateclass,
                                                 path=self.path_chron,
                                                 **self.gridStateclass_kwargs)
@@ -424,6 +438,11 @@ class Runner(object):
 
         self.thermal_limit_a = thermal_limit_a
 
+        # controler for voltage
+        if not issubclass(voltageControlerClass, ControlVoltageFromFile):
+            raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
+        self.voltageControlerClass = voltageControlerClass
+
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
                             chronics_handler=chronics_handler,
@@ -433,7 +452,8 @@ class Runner(object):
                             actionClass=self.actionClass,
                             observationClass=self.observationClass,
                             rewardClass=self.rewardClass,
-                            legalActClass=self.legalActClass)
+                            legalActClass=self.legalActClass,
+                            voltagecontrolerClass=self.voltageControlerClass)
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
@@ -454,8 +474,7 @@ class Runner(object):
         ``None``
 
         """
-        self.env, self.agent = self._new_env(
-            self.chronics_handler, self.backend, self.parameters)
+        self.env, self.agent = self._new_env(self.chronics_handler, self.backend, self.parameters)
 
     def reset(self):
         """
@@ -472,7 +491,7 @@ class Runner(object):
         else:
             self.env.reset()
 
-    def run_one_episode(self, indx=0, path_save=None):
+    def run_one_episode(self, indx=0, path_save=None, pbar=False):
         """
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
 
@@ -496,11 +515,11 @@ class Runner(object):
 
         """
         self.reset()
-        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save)
+        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save, pbar=pbar)
         return res
 
     @staticmethod
-    def _run_one_episode(env, agent, logger, indx, path_save=None):
+    def _run_one_episode(env, agent, logger, indx, path_save=None, pbar=False):
         done = False
         time_step = int(0)
         dict_ = {}
@@ -542,13 +561,13 @@ class Runner(object):
                 observations = np.concatenate((observations, obs.to_vect()))
 
         episode = EpisodeData(actions=actions, env_actions=env_actions,
-                          observations=observations,
-                          rewards=rewards, disc_lines=disc_lines, times=times,
-                          observation_space=env.observation_space,
-                          action_space=env.action_space,
-                          helper_action_env=env.helper_action_env,
-                          path_save=path_save, disc_lines_templ=disc_lines_templ,
-                          logger=logger, name=env.chronics_handler.get_name())
+                              observations=observations,
+                              rewards=rewards, disc_lines=disc_lines, times=times,
+                              observation_space=env.observation_space,
+                              action_space=env.action_space,
+                              helper_action_env=env.helper_action_env,
+                              path_save=path_save, disc_lines_templ=disc_lines_templ,
+                              logger=logger, name=env.chronics_handler.get_name())
 
         episode.set_parameters(env)
 
@@ -557,19 +576,22 @@ class Runner(object):
         reward = env.reward_range[0]
         done = False
 
-        while not done:
-            beg__ = time.time()
-            act = agent.act(obs, reward, done)
-            end__ = time.time()
-            time_act += end__ - beg__
+        next_pbar = [False]
+        with Runner._make_progress_bar(pbar, nb_timestep_max, next_pbar) as pbar_:
+            while not done:
+                beg__ = time.time()
+                act = agent.act(obs, reward, done)
+                end__ = time.time()
+                time_act += end__ - beg__
 
-            obs, reward, done, info = env.step(act)  # should load the first time stamp
-            cum_reward += reward
-            time_step += 1
+                obs, reward, done, info = env.step(act)  # should load the first time stamp
+                cum_reward += reward
+                time_step += 1
+                pbar_.update(1)
 
-            episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                               reward, env.env_modification, act, obs, info)
-        end_ = time.time()
+                episode.incr_store(efficient_storing, time_step, end__ - beg__,
+                                   reward, env.env_modification, act, obs, info)
+            end_ = time.time()
 
         episode.set_meta(env, time_step, cum_reward)
 
@@ -590,7 +612,42 @@ class Runner(object):
 
         return name_chron, cum_reward, int(time_step)
 
-    def run_sequential(self, nb_episode, path_save=None):
+    @staticmethod
+    def _make_progress_bar(pbar, total, next_pbar):
+        """
+        Parameters
+        ----------
+        pbar: ``bool`` or ``type`` or ``object``
+            How to display the progress bar, understood as follow:
+
+            - if pbar is ``None`` nothing is done.
+            - if pbar is a boolean, tqdm pbar are used, if tqdm package is available and installed on the system
+              [if ``true``]. If it's false it's equivalent to pbar being ``None``
+            - if pbar is a ``type`` ( a class), it is used to build a progress bar at the highest level (episode) and
+              and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
+              and "desc" when being built, and the closing is ensured by this method.
+            - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
+              (episode) but not at lower levels (setp during the episode)
+        """
+        pbar_ = _FakePbar()
+        next_pbar[0] = False
+
+        if isinstance(pbar, bool):
+            if pbar:
+                try:
+                    from tqdm import tqdm
+                    pbar_ = tqdm(total=total, desc="episode")
+                    next_pbar[0] = True
+                except (ImportError, ModuleNotFoundError):
+                    pass
+        elif isinstance(pbar, type):
+            pbar_ = pbar(total=total, desc="episode")
+            next_pbar[0] = pbar
+        elif isinstance(pbar, object):
+            pbar_ = pbar
+        return pbar_
+
+    def run_sequential(self, nb_episode, path_save=None, pbar=False):
         """
         This method is called to see how well an agent performed on a sequence of episode.
 
@@ -602,6 +659,18 @@ class Runner(object):
         path_save: ``str``, optional
             If not None, it specifies where to store the data. See the description of this module :mod:`Runner` for
             more information
+
+        pbar: ``bool`` or ``type`` or ``object``
+            How to display the progress bar, understood as follow:
+
+            - if pbar is ``None`` nothing is done.
+            - if pbar is a boolean, tqdm pbar are used, if tqdm package is available and installed on the system
+              [if ``true``]. If it's false it's equivalent to pbar being ``None``
+            - if pbar is a ``type`` ( a class), it is used to build a progress bar at the highest level (episode) and
+              and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
+              and "desc" when being built, and the closing is ensured by this method.
+            - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
+              (episode) but not at lower levels (setp during the episode)
 
         Returns
         -------
@@ -616,11 +685,15 @@ class Runner(object):
 
         """
         res = [(None, None, None, None, None) for _ in range(nb_episode)]
-        for i in range(nb_episode):
-            name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i)
-            id_chron = self.chronics_handler.get_id()
-            max_ts = self.chronics_handler.max_timestep()
-            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+
+        next_pbar = [False]
+        with self._make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
+            for i in range(nb_episode):
+                name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i, pbar=next_pbar[0])
+                id_chron = self.chronics_handler.get_id()
+                max_ts = self.chronics_handler.max_timestep()
+                res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+                pbar_.update(1)
         return res
 
     @staticmethod
@@ -706,7 +779,7 @@ class Runner(object):
                 res += el
         return res
 
-    def run(self, nb_episode, nb_process=1, path_save=None):
+    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
         1 or :func:`Runner.run_parrallel` if nb_process >= 2.
@@ -743,9 +816,11 @@ class Runner(object):
             if nb_process <= 0:
                 raise RuntimeError(
                     "Impossible to run using less than 1 process.")
+            if max_iter is not None:
+                self.chronics_handler.set_max_iter(max_iter)
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
-                res = self.run_sequential(nb_episode, path_save=path_save)
+                res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar)
             else:
                 self.logger.info("Parrallel runner used.")
                 res = self.run_parrallel(

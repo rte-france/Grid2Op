@@ -66,6 +66,9 @@ var/
 .installed.cfg
 *.egg
 
+# VirtualEnv
+venv_grid2op/
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -180,3 +183,5 @@ l2rpn_2019/exped_saved/
 **-Copy1.ipynb
 **_old.ipynb
 Untitled*.ipynb
+**config.ini
+getting_started/study_agent_getting_started.zip
