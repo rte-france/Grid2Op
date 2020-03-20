@@ -176,8 +176,7 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                 try:
                     res = defaultClass(**build_kwargs)
                 except Exception as e:
-                    err_msg = "Cannot create and instance of {} with parameters \"{}\""
-                    print(err_msg.format(name, defaultClass, build_kwargs))
+                    e.args = e.args + ("Cannot create and instance of {} with parameters \"{}\"".format(defaultClass, build_kwargs),)
                     raise
             elif defaultinstance is not None:
                 if len(build_kwargs):
