@@ -1732,7 +1732,7 @@ class Multifolder(GridValue):
             self.subpaths.sort()
             self.subpaths = np.array(self.subpaths)
         except FileNotFoundError:
-            raise ChronicsError("Path \"{}\" doesn't exists.".format(self.path))
+            raise ChronicsError("Path \"{}\" doesn't exists.".format(self.path)) from None
 
 
         if len(self.subpaths) == 0:

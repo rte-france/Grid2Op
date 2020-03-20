@@ -570,7 +570,7 @@ class TestMissingData(HelperTests):
     def test_load_error(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with self.assertRaises(ChronicsNotFoundError):
+            with self.assertRaises(ChronicsError):
                 with make("case14_realistic", chronics_path="/answer/life/42"):
                     pass
 
