@@ -25,5 +25,5 @@ jobs:
             - "venv_grid2op"
       - run:
           command: |
-	    cd ./grid2op/tests/
+            cd ./grid2op/tests/
             python -m unittest discover
