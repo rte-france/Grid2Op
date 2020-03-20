@@ -617,7 +617,7 @@ class Runner(object):
               (episode) but not at lower levels (setp during the episode)
         """
         pbar_ = _FakePbar()
-        next_pbar[0] = None
+        next_pbar[0] = False
 
         if isinstance(pbar, bool):
             if pbar:
