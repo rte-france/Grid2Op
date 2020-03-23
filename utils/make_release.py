@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # Commit
     subprocess.run(["git", "commit", "-m", "Release v{}".format(version)])
     os.path.expanduser("~")
-    subprocess.run(["git", "push", "--tag"], env=os.environ, check=True, shell=True)
+    subprocess.run(["git", "push", "--tags"], env=os.environ, check=True, shell=True)
     
     # Create new docker containers
     for vers_ in [version, "latest"]:
