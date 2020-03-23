@@ -22,8 +22,9 @@ RUN git clone https://github.com/Tezirg/Grid2Op
 WORKDIR Grid2Op/
 RUN cd /Grid2Op
 # Use the latest release
-RUN git pull && git fetch --all --tags
-RUN git checkout tags/v0.5.9 -b "v0.5.9-branch"
+RUN git pull
+RUN git fetch --all --tags
+RUN git checkout "tags/v0.5.10" -b "v0.5.10-branch"
 # Install Dependencies
 RUN pip3 install -U .
 RUN pip3 install -e .[optional]
