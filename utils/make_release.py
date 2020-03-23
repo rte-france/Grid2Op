@@ -93,11 +93,11 @@ if __name__ == "__main__":
     # Commit
     os.path.expanduser("~")
     subprocess.run(["git", "commit", "-m", "Release v{}".format(version)])
-    subprocess.run(["git", "push"], env=os.environ, check=True, shell=True)
+    subprocess.run(["git", "push"], env=os.environ)
 
     # Create a new git tag
     subprocess.run(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
-    subprocess.run(["git", "push", "--tags"], env=os.environ, check=True, shell=True)
+    subprocess.run(["git", "push", "--tags"], env=os.environ)
     
     # Create new docker containers
     for vers_ in [version, "latest"]:
