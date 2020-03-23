@@ -18,13 +18,16 @@ pkgs = {
         ],
         "optional": [
             "numba==0.48.0",
+            "matplotlib==3.2.1",
             "plotly==4.5.4",
-            "pygame==1.9.6",
-            "seaborn==0.10.0"
+            "seaborn==0.10.0",
+            "pygame==1.9.6"
         ],
         "challenge": [
             "Keras==2.3.1",
-            "tensorflow==2.1.0"
+            "tensorflow==2.1.0",
+            "statsmodels==0.11.1",
+            "scikit-learn==0.22.2.post1"
         ],
         "docs": [
             "numpydoc==0.9.2",
