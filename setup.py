@@ -4,17 +4,17 @@ from setuptools import setup
 
 pkgs = {
     "required": [
-        "numpy==1.18.2",
-        "scipy==1.4.1",
-        "pandas==1.0.3",
-        "pandapower==2.2.2",
-        "tqdm==4.43.0"
+        "numpy>=1.18.2",
+        "scipy>=1.4.1",
+        "pandas>=1.0.3",
+        "pandapower>=2.2.2",
+        "tqdm>=4.43.0"
     ],
     "extras": {
         "test": [
-            "nbformat==5.0.4",
-            "jupyter-client==6.1.0",
-            "jyquickhelper==0.3.128"
+            "nbformat>=5.0.4",
+            "jupyter-client>=6.1.0",
+            "jyquickhelper>=0.3.128"
         ],
         "optional": [
             "numba==0.48.0",
@@ -30,10 +30,10 @@ pkgs = {
             "scikit-learn==0.22.2.post1"
         ],
         "docs": [
-            "numpydoc==0.9.2",
-            "sphinx==2.4.4",
-            "sphinx-rtd-theme==0.4.3",
-            "sphinxcontrib-trio==1.1.0"
+            "numpydoc>=0.9.2",
+            "sphinx>=2.4.4",
+            "sphinx-rtd-theme>=0.4.3",
+            "sphinxcontrib-trio>=1.1.0"
         ]
     }
 }
