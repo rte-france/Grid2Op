@@ -98,10 +98,9 @@ if __name__ == "__main__":
     # Create a new git tag
     subprocess.run(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
     subprocess.run(["git", "push", "--tags"], env=os.environ, check=True, shell=True)
-
     
     # Create new docker containers
     for vers_ in [version, "latest"]:
-        subprocess.run(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, version), "."], cwd=path)
-        subprocess.run(["docker", "push", "{}/grid2op:{}".format(dockeruser, version)], cwd=path)
+        subprocess.run(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
+        subprocess.run(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
     
