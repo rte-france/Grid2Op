@@ -2,17 +2,38 @@ import subprocess
 import sys
 from setuptools import setup
 
-extras = {
-   'with_pygame': ['pygame'],
-    "docs": ["numpydoc", "sphinx", "sphinx_rtd_theme", "sphinxcontrib_trio"],
-    "plots": ["plotly", "searborn", "pygame"],
-    "test": ["nbformat", "jupyter_client", "jyquickhelper"]
+pkgs = {
+    "required": [
+        "numpy==1.18.2",
+        "scipy==1.4.1",
+        "pandas==1.0.3",
+        "pandapower==2.2.2",
+        "tqdm==4.43.0"
+    ],
+    "extras": {
+        "test": [
+            "nbformat==5.0.4",
+            "jupyter-client==6.1.0",
+            "jyquickhelper==0.3.128"
+        ],
+        "optional": [
+            "numba==0.48.0",
+            "plotly==4.5.4",
+            "pygame==1.9.6",
+            "seaborn==0.10.0"
+        ],
+        "challenge": [
+            "Keras==2.3.1",
+            "tensorflow==2.1.0"
+        ],
+        "docs": [
+            "numpydoc==0.9.2",
+            "sphinx==2.4.4",
+            "sphinx-rtd-theme==0.4.3",
+            "sphinxcontrib-trio==1.1.0"
+        ]
+    }
 }
-
-all_targets = []
-for el in extras:
-    all_targets += extras[el]
-extras["all"] = list(set(all_targets))
 
 # try to install numba, not compatible on every platform
 try:
@@ -30,7 +51,7 @@ setup(name='Grid2Op',
                        'independently of the software used to compute powerflow or method to generate grid '
                        'states or forecasts.',
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Beta',
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
           "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
@@ -46,9 +67,13 @@ setup(name='Grid2Op',
       license='MPL',
       packages=['grid2op'],
       include_package_data=True,
-      install_requires=["numpy", "pandas", "pandapower", "tqdm"],
-      extras_require=extras,
+      install_requires=pkgs["required"],
+      extras_require=pkgs["extras"],
       zip_safe=False,
-      entry_points={'console_scripts': ['grid2op.main=grid2op.command_line:main',
-                                        'grid2op.download=grid2op.command_line:download'
-                                        ]})
+      entry_points= {
+          'console_scripts': [
+              'grid2op.main=grid2op.command_line:main',
+              'grid2op.download=grid2op.command_line:download'
+          ]
+      }
+)

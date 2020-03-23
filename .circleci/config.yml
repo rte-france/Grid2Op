@@ -2,37 +2,16 @@ version: 2.1
 
 executors:
   grid2op-executor:
-    docker: # CircleCI Python images: https://hub.docker.com/r/circleci/python/
-      - image: circleci/python:3.6.4
+    docker:
+      - image: tezirg/grid2op:v0.5.8
     working_directory: ~/grid2op-ci
 
 jobs:
-  install:
-    executor: grid2op-executor
-    steps:
-      - checkout
-      - run: sudo chown -R circleci:circleci /usr/local/bin
-      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
-      - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
-      - run:
-          command: |
-            sudo pip3 install -U virtualenv
-            python3 -m virtualenv venv_grid2op
-            source venv_grid2op/bin/activate
-            pip install -U .
-            pip install -e .[test]
-      - save_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
-          paths:
-            - "venv_grid2op"
   test:
     executor: grid2op-executor
     parallelism: 4
     steps:
       - checkout
-      - restore_cache:
-          key: deps-{{ .Branch }}-{{ checksum "requirements.txt" }}
       - run:
           command: |
             source venv_grid2op/bin/activate
@@ -42,9 +21,6 @@ jobs:
 
 workflows:
   version: 2.1
-  install_and_test:
+  test:
     jobs:
-      - install
       - test:
-          requires:
-            - install
