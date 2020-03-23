@@ -89,14 +89,16 @@ if __name__ == "__main__":
         f.write(new_setup)
     # Stage in git
     subprocess.run(["git", "add", dockerfile])
-    
+        
+    # Commit
+    os.path.expanduser("~")
+    subprocess.run(["git", "commit", "-m", "Release v{}".format(version)])
+    subprocess.run(["git", "push"], env=os.environ, check=True, shell=True)
+
     # Create a new git tag
     subprocess.run(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
+    subprocess.run(["git", "push", "--tags"], env=os.environ, check=True, shell=True)
 
-    # Commit
-    subprocess.run(["git", "commit", "-m", "Release v{}".format(version)])
-    os.path.expanduser("~")
-    subprocess.run(["git", "push", "origin", "--tags"], env=os.environ, check=True, shell=True)
     
     # Create new docker containers
     for vers_ in [version, "latest"]:
