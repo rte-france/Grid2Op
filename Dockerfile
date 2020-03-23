@@ -23,7 +23,7 @@ WORKDIR Grid2Op/
 RUN cd /Grid2Op
 # Use the latest release
 RUN git pull && git fetch --all --tags
-RUN git checkout tags/`git describe --abbrev=0` -b "`git describe --abbrev=0`-branch"
+RUN git checkout tags/v0.5.9 -b "v0.5.9-branch"
 # Install Dependencies
 RUN pip3 install -U .
 RUN pip3 install -e .[optional]
