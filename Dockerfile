@@ -24,7 +24,7 @@ RUN cd /Grid2Op
 # Use the latest release
 RUN git pull
 RUN git fetch --all --tags
-RUN git checkout "tags/v0.5.10" -b "v0.5.10-branch"
+RUN git checkout "tags/v0.5.8" -b "v0.5.8-branch"
 # Install Dependencies
 RUN pip3 install -U .
 RUN pip3 install -e .[optional]
