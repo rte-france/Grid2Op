@@ -16,13 +16,15 @@ RUN apt-get update && \
     ca-certificates
 
 # Retrieve Grid2Op
-RUN git clone https://github.com/rte-france/Grid2Op
+RUN git clone https://github.com/Tezirg/Grid2Op
 
-# Install Grid2Op (including necessary packages installation)
+# Install Grid2Op
 WORKDIR Grid2Op/
 RUN cd /Grid2Op
+# Use the latest release
 RUN git pull && git fetch --all --tags
-RUN git checkout tags/`git describe --abbrev=0` -b `git describe --abbrev=0`-branch
+RUN git checkout tags/`git describe --abbrev=0` -b "`git describe --abbrev=0`-branch"
+# Install Dependencies
 RUN pip3 install -U .
 RUN pip3 install -e .[optional]
 RUN pip3 install -e .[test]
