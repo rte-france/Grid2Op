@@ -14,7 +14,6 @@ jobs:
       - checkout
       - run:
           command: |
-            source venv_grid2op/bin/activate
             cd ./grid2op/tests/
             circleci tests glob "test_*.py" | circleci tests split > /tmp/torun
             python -m unittest $(cat /tmp/torun)
