@@ -24,8 +24,9 @@ pkgs = {
             "pygame==1.9.6"
         ],
         "challenge": [
-            "Keras==2.3.1",
             "tensorflow==2.1.0",
+            "Keras==2.3.1",
+            "torch==1.4.0",
             "statsmodels==0.11.1",
             "scikit-learn==0.22.2.post1"
         ],
