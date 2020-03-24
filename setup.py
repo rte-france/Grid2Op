@@ -2,6 +2,7 @@ import subprocess
 import sys
 from setuptools import setup
 
+
 pkgs = {
     "required": [
         "numpy>=1.18.2",
