@@ -12,6 +12,7 @@ import pdb
 import json
 import subprocess
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Update the version of grid2op in the python files.')
     parser.add_argument('--version', default=None,
@@ -47,6 +48,7 @@ if __name__ == "__main__":
                        new_setup)
     with open(setup_path, "w") as f:
         f.write(new_setup)
+
     # Stage in git
     subprocess.run(["git", "add", setup_path])
 
@@ -97,10 +99,11 @@ if __name__ == "__main__":
     subprocess.run(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
 
     # Wait for user to push changes
-    pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
+    # pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
     
     # Create new docker containers
     for vers_ in [version, "latest"]:
-        subprocess.run(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
-        subprocess.run(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
+        pass
+        # subprocess.run(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
+        # subprocess.run(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
     
