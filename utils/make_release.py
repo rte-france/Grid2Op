@@ -11,6 +11,13 @@ import sys
 import pdb
 import json
 import subprocess
+import time
+
+
+def start_subprocess_print(li, sleepbefore=2):
+    print("Will execute command after {}s: \n\t{}".format(sleepbefore, " ".join(li)))
+    time.sleep(sleepbefore)
+    subprocess.run(li)
 
 
 if __name__ == "__main__":
@@ -43,6 +50,17 @@ if __name__ == "__main__":
         raise RuntimeError("script \"update_version\" cannot find the root path of Grid2op. Please provide a valid \"--path\" argument.")
     with open(setup_path, "r") as f:
         new_setup = f.read()
+    try:
+        old_version = re.search("version='[0-9]+\.[0-9]+\.[0-9]+'", new_setup).group(0)
+    except Exception as e:
+        raise RuntimeError("Impossible to find the old version number. Stopping here")
+    old_version = re.sub("version=", "", old_version)
+    old_version = re.sub("'", "", old_version)
+    old_version = re.sub('"', "", old_version)
+    if version <= old_version:
+        raise RuntimeError("You provided the \"new\" version \"{}\" which is older (or equal) to the current version "
+                           "found: \"{}\".".format(version, old_version))
+
     new_setup = re.sub("version='[0-9]+\.[0-9]+\.[0-9]+'",
                        "version='{}'".format(version),
                        new_setup)
@@ -50,7 +68,7 @@ if __name__ == "__main__":
         f.write(new_setup)
 
     # Stage in git
-    subprocess.run(["git", "add", setup_path])
+    start_subprocess_print(["git", "add", setup_path])
 
     #grid2op/__init__.py
     grid2op_init = os.path.join(path, "grid2op", "__init__.py")
@@ -62,7 +80,7 @@ if __name__ == "__main__":
     with open(grid2op_init, "w") as f:
         f.write(new_setup)
     # Stage in git
-    subprocess.run(["git", "add", grid2op_init])
+    start_subprocess_print(["git", "add", grid2op_init])
     
     # docs/conf.py
     docs_conf = os.path.join(path, "docs", "conf.py")
@@ -77,7 +95,7 @@ if __name__ == "__main__":
     with open(docs_conf, "w") as f:
         f.write(new_setup)
     # Stage in git
-    subprocess.run(["git", "add", docs_conf])
+    start_subprocess_print(["git", "add", docs_conf])
 
     # Dockerfile
     template_dockerfile = os.path.join(path, "utils", "templateDockerFile")
@@ -90,20 +108,20 @@ if __name__ == "__main__":
     with open(dockerfile, "w") as f:
         f.write(new_setup)
     # Stage in git
-    subprocess.run(["git", "add", dockerfile])
+    start_subprocess_print(["git", "add", dockerfile])
         
     # Commit
     os.path.expanduser("~")
-    subprocess.run(["git", "commit", "-m", "Release v{}".format(version)])
+    start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])
     # Create a new git tag
-    subprocess.run(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
+    start_subprocess_print(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
 
     # Wait for user to push changes
-    # pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
+    pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
     
     # Create new docker containers
     for vers_ in [version, "latest"]:
         pass
-        # subprocess.run(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
-        # subprocess.run(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
+        # start_subprocess_print(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
+        # start_subprocess_print(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
     
