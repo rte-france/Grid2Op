@@ -4,6 +4,7 @@
 [![PyPi_Compat](https://img.shields.io/pypi/pyversions/grid2op.svg)](https://pypi.org/project/Grid2Op/)
 [![LICENSE](https://img.shields.io/pypi/l/grid2op.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
 [![Documentation Status](https://readthedocs.org/projects/grid2op/badge/?version=latest)](https://grid2op.readthedocs.io/en/latest/?badge=latest)
+[![circleci](https://circleci.com/gh/BDonnot/Grid2Op.svg?style=shield)](https://circleci.com/gh/BDonnot/Grid2Op)
 
 Grid2Op is a plateform, built with modularity in mind, that allows to perform powergrid operation.
 And that's what it stands for: Grid To Operate.
