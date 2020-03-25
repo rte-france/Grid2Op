@@ -29,7 +29,7 @@ RUN pip3 install -U .
 RUN pip3 install -e .[optional]
 RUN pip3 install -e .[test]
 RUN pip3 install -e .[challenge]
-WORKDIR /Grid2Op
+WORKDIR /
 
 # Make port 80 available to the world outside this container
 EXPOSE 80
