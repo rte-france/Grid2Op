@@ -22,6 +22,10 @@ TODO for next versions
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+[0.5.9] - 2020-03-??
+---------------------
+- [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
+
 [0.5.8] - 2020-03-20
 --------------------
 - [ADDED] runner now is able to show a progress bar
