@@ -20,6 +20,7 @@ with a Grid2Op environment. An example of such modifications is exposed in the g
 
 """
 import os
+import importlib.util
 import pkg_resources
 import warnings
 import pdb
@@ -28,7 +29,8 @@ import json
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
+from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
+from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
 from grid2op.Action import Action, TopologyAction, TopoAndRedispAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, Observation
@@ -70,10 +72,30 @@ NAMES_CHRONICS_TO_BACKEND = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'lo
 ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class", "chronics_path", "reward_class",
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
                        "chronics_class", "volagecontroler_class"}
-
+ALLOWED_KWARGS_MAKE2 = {"param", "backend", "observation_class", "gamerules_class", "reward_class",
+                       "action_class", "data_feeding_kwargs", "chronics_class", "volagecontroler_class"}
+ERR_MSG_KWARGS = {
+    "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
+    "observation": "The type of observation of the environment (keyword \"observation_class\")" \
+    " must be a subclass of grid2op.Observation",
+    "param": "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters",
+    "rules": "The type of rules of the environment (keyword \"gamerules_class\")" \
+    " must be a subclass of grid2op.LegalAction",
+    "reward": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.Reward",
+    "action": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action",
+    "data_feeding_kwargs": "The argument to build the data generation process [chronics]" \
+    "  (keyword \"data_feeding_kwargs\") should be a dictionnary.",
+    "chronics": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")" \
+    " should be a class that inherit grid2op.Chronics.GridValue.",
+    "chronics_handler": "The argument to build the data generation process [chronics] (keyword \"data_feeding\")" \
+    " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
+    "voltage": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
+    " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
+    "chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary."
+}
 NAME_CHRONICS_FOLDER = "chronics"
 NAME_GRID_FILE = "grid.json"
-NAME_CONFIG_FILE = "config.json"
+NAME_CONFIG_FILE = "config.py"
 
 def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                      msg_error="Error when building the default parameter",
@@ -185,16 +207,8 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
 
 
 def _check_kwargs(kwargs):
-    ALLOWED_KWARGS = { "param",
-                       "backend",
-                       "observation_class",
-                       "gamerules_class",
-                       "reward_class",
-                       "action_class",
-                       "data_feeding_kwargs",
-                       "chronics_class" }
     for el in kwargs:
-        if not el in ALLOWED_KWARGS:
+        if not el in ALLOWED_KWARGS_MAKE2:
             raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
                            "No Environment will be created. "
                            "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS)))
@@ -269,116 +283,137 @@ def make2(dataset_path="/", **kwargs):
     grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
     _check_path(grid_path_abs, "Dataset power flow solver configuration")
 
+    # Check provided config overrides are valid
+    _check_kwargs(kwargs)
+
     # Compute and find config file
     config_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CONFIG_FILE))
-    _check_path(grid_path_abs, "Dataset environement configuration")
-    # Read and validate config file
-    config_data = {}
+    _check_path(grid_path_abs, "Dataset environment configuration")
+    # Read config file
     try:
-        with open(config_path_abs) as config_file:
-            config_data = json.load(config_file)
-    except:
+        spec = importlib.util.spec_from_file_location("config.config", config_path_abs)
+        config_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config_module)
+        config_data = config_module.config
+    except Exception as e:
+        print (e)
         raise EnvError("Invalid dataset config file: {}".format(config_path_abs)) from None
+
+    # Get graph layout
     if "graph_layout" not in config_data:
         raise EnvError("Dataset configuration {} is missing [graph_layout]".format(config_path_abs))
+
+    # Get thermal limits
     thermal_limits = None
     if "thermal_limits" in config_data:
         thermal_limits = config_data["thermal_limits"]
-    name_converter = {}
+
+    # Get chronics_to_backend
+    name_converter = None
     if "chronics_to_grid" in config_data:
         name_converter = config_data["chronics_to_grid"]
-
-    # Check provided overrides are valid
-    _check_kwargs(kwargs)
-
-    ## Create the parameters of the game, thermal limits threshold, simulate cascading failure, powerflow mode etc. (the gamification of the game)
-    msg_error = "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters"
-    param = _get_default_aux('param', kwargs, defaultClass=Parameters, defaultClassApp=Parameters,
-                             msg_error=msg_error)
-
+    if name_converter is None:
+        name_converter = {}
+    names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
+                                                 defaultClassApp=dict, defaultinstance=name_converter,
+                                                 msg_error=ERR_MSG_KWARGS["chronics_to_grid"])
+    # Get default backend class
+    backend_class_cfg = PandaPowerBackend
+    if "backend_class" in config_data and config_data["backend_class"] is not None:
+        backend_class_cfg = config_data["backend_class"]
     ## Create the backend, to compute the powerflow
-    msg_error = "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend"
-    backend = _get_default_aux("backend", kwargs, defaultClass=PandaPowerBackend,
-                               defaultClassApp=Backend,
-                               msg_error=msg_error)
+    backend = _get_default_aux("backend", kwargs, defaultClass=backend_class_cfg,
+                               defaultClassApp=Backend, msg_error=ERR_MSG_KWARGS["backend"])
 
+    # Get default observation class
+    observation_class_cfg = CompleteObservation
+    if "observation_class" in config_data and config_data["observation_class"] is not None:
+        observation_class_cfg = config_data["observation_class"]
     ## Setup the type of observation the agent will receive
-    msg_error = "The type of observation of the environment (keyword \"observation_class\")"
-    msg_error += " must be a subclass of grid2op.Observation"
-    observation_class = _get_default_aux("observation_class", kwargs, defaultClass=CompleteObservation,
-                                         defaultClassApp=Observation,
-                                         msg_error=msg_error,
-                                         isclass=True)
+    observation_class = _get_default_aux("observation_class", kwargs, defaultClass=observation_class_cfg, isclass=True,
+                                         defaultClassApp=Observation, msg_error=ERR_MSG_KWARGS["observation"])
+    
+    ## Create the parameters of the game, thermal limits threshold,
+    # simulate cascading failure, powerflow mode etc. (the gamification of the game)
+    param = _get_default_aux('param', kwargs, defaultClass=Parameters,
+                             defaultClassApp=Parameters, msg_error=ERR_MSG_KWARGS["param"])
 
+    # Get default rules class
+    rules_class_cfg = DefaultRules
+    if "rules_class" in config_data and config_data["rules_class"] is not None:
+        rules_class_cfg = config_data["rules_class"]
     ## Create the rules of the game (mimic the operationnal constraints)
-    msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
-    msg_error += " must be a subclass of grid2op.LegalAction"
-    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=DefaultRules,
-                                    defaultClassApp=LegalAction,
-                                    msg_error=msg_error,
+    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=rules_class_cfg,
+                                    defaultClassApp=LegalAction, msg_error=ERR_MSG_KWARGS["rules"],
                                     isclass=True)
 
+    # Get default reward class
+    reward_class_cfg = L2RPNReward
+    if "reward_class" in config_data and config_data["reward_class"] is not None:
+        reward_class_cfg = config_data["reward_class"]
     ## Setup the reward the agent will receive
-    msg_error = "The type of observation of the environment (keyword \"reward_class\")"
-    msg_error += " must be a subclass of grid2op.Reward"
-    reward_class = _get_default_aux("reward_class", kwargs, defaultClass=L2RPNReward,
-                                    defaultClassApp=Reward,
-                                    msg_error=msg_error,
+    reward_class = _get_default_aux("reward_class", kwargs, defaultClass=reward_class_cfg,
+                                    defaultClassApp=Reward, msg_error=ERR_MSG_KWARGS["reward"],
                                     isclass=True)
 
+    # Get default Action class
+    action_class_cfg = Action
+    if "action_class" in config_data and config_data["action_class"] is not None:
+        action_class_cfg = config_data["action_class"]
     ## Setup the type of action the Agent can perform
-    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action"
-    action_class = _get_default_aux("action_class", kwargs, defaultClass=Action,
-                                    defaultClassApp=Action,
-                                    msg_error=msg_error,
+    action_class = _get_default_aux("action_class", kwargs, defaultClass=action_class_cfg,
+                                    defaultClassApp=Action, msg_error=ERR_MSG_KWARGS["action"],
                                     isclass=True)    
     
-    defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path_abs,
-                                       "gridvalueClass": GridStateFromFileWithForecasts}
-    msg_error = "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary."
-    names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
-                                 defaultClassApp=dict, defaultinstance=name_converter,
-                                 msg_error=msg_error)
+    # Get default Voltage class
+    voltage_class_cfg = ControlVoltageFromFile
+    if "voltage_class" in config_data and config_data["voltage_class"] is not None:
+        voltage_class_cfg = config_data["voltage_class"]
+    ### Create controler for voltages
+    volagecontroler_class = _get_default_aux("volagecontroler_class", kwargs,
+                                             defaultClassApp=voltage_class_cfg,
+                                             defaultClass=ControlVoltageFromFile,
+                                             msg_error=ERR_MSG_KWARGS["voltage"], isclass=True)
+
+    # Get default Chronics class
+    chronics_class_cfg = ChangeNothing
+    if "chronics_class" in config_data and config_data["chronics_class"] is not None:
+        chronics_class_cfg = config_data["chronics_class"]
+    # Get default Grid class
+    grid_value_class_cfg = GridStateFromFile
+    if "grid_value_class" in config_data and config_data["grid_value_class"] is not None:
+        grid_value_class_cfg = config_data["grid_value_class"]
+    
     ## the chronics to use
     ### the arguments used to build the data, note that the arguments must be compatible with the chronics class
-    msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding_kwargs\")"
-    msg_error += " should be a dictionnary."
+    default_chronics_kwargs = {
+        "chronicsClass": chronics_class_cfg,
+        "path": chronics_path_abs,
+        "gridvalueClass": grid_value_class_cfg
+    }
+
     data_feeding_kwargs = _get_default_aux("data_feeding_kwargs", kwargs,
                                            defaultClassApp=dict,
-                                           defaultinstance=defaultinstance_chronics_kwargs,
-                                           msg_error=msg_error)
-    for el in defaultinstance_chronics_kwargs:
+                                           defaultinstance=default_chronics_kwargs,
+                                           msg_error=ERR_MSG_KWARGS["data_feeding_kwargs"])
+    for el in default_chronics_kwargs:
         if not el in data_feeding_kwargs:
-            data_feeding_kwargs[el] = defaultinstance_chronics_kwargs[el]
+            data_feeding_kwargs[el] = default_chronics_kwargs[el]
 
     ### the chronics generator
-    msg_error = "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
-    msg_error += " should be a class that inherit grid2op.Chronics.GridValue."
     chronics_class_used = _get_default_aux("chronics_class", kwargs,
                                            defaultClassApp=GridValue,
                                            defaultClass=data_feeding_kwargs["chronicsClass"],
-                                           msg_error=msg_error,
+                                           msg_error=ERR_MSG_KWARGS["chronics"],
                                            isclass=True)
     data_feeding_kwargs["chronicsClass"] = chronics_class_used
-
-    ### the chronics generator
-    msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding\")"
-    msg_error += " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler."
     data_feeding = _get_default_aux("data_feeding", kwargs,
                                     defaultClassApp=ChronicsHandler,
                                     defaultClass=ChronicsHandler,
                                     build_kwargs=data_feeding_kwargs,
-                                    msg_error=msg_error)
+                                    msg_error=ERR_MSG_KWARGS["chronics_handler"])
 
-    ### controler for voltages
-    msg_error = "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")"
-    msg_error += " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile."
-    volagecontroler_class = _get_default_aux("volagecontroler_class", kwargs,
-                                             defaultClassApp=ControlVoltageFromFile,
-                                             defaultClass=ControlVoltageFromFile,
-                                             msg_error=msg_error,
-                                             isclass=True)
-
+    # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
                       backend=backend,
