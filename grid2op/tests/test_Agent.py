@@ -8,8 +8,7 @@ import warnings
 import numpy as np
 import pandapower as pp
 
-
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
+from helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make

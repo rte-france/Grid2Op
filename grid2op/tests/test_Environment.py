@@ -6,7 +6,7 @@ import copy
 import numpy as np
 import pdb
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.Environment import Environment

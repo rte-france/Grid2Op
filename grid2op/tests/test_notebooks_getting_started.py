@@ -11,7 +11,7 @@ import pdb
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 
-from helper_path_test import PATH_DATA_TEST
+from helper_path_test import *
 
 # TODO check these tests, they don't appear to be working
 

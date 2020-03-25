@@ -8,7 +8,7 @@ import numpy as np
 import pdb
 from abc import ABC, abstractmethod
 
-import helper_path_test  # usefull to set poperly the sys.path
+from helper_path_test import *  # usefull to set poperly the sys.path
 
 from grid2op.Exceptions import *
 from grid2op.Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet

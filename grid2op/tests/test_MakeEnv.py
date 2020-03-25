@@ -7,7 +7,8 @@ import warnings
 import numpy as np
 import pdb
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import *
+
 from grid2op.Chronics.Settings_case14_redisp import case14_redisp_TH_LIM
 from grid2op.Chronics.Settings_case14_test import case14_test_TH_LIM
 from grid2op.Chronics.Settings_case14_realistic import case14_real_TH_LIM

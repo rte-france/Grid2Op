@@ -8,7 +8,7 @@ import copy
 import pdb
 import warnings
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import *
 
 from grid2op.Action import HelperAction
 from grid2op.Backend import PandaPowerBackend

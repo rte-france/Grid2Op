@@ -14,7 +14,7 @@ import pdb
 # root package directory
 # RL4Grid subdirectory
 # RL4Grid/tests subdirectory
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv, Observation

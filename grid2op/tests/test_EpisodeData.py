@@ -14,11 +14,7 @@ import pdb
 # root package directory
 # RL4Grid subdirectory
 # RL4Grid/tests subdirectory
-sys.path.insert(0, os.path.abspath('./'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('Grid2Op/'))
-
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from helper_path_test import *
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
 
 from grid2op.Exceptions import *

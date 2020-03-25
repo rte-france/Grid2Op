@@ -11,7 +11,7 @@ import warnings
 # root package directory
 # RL4Grid subdirectory
 # RL4Grid/tests subdirectory
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
+from helper_path_test import *
 
 from grid2op.MakeEnv import make
 from grid2op.Exceptions import *

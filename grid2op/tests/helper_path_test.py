@@ -6,22 +6,18 @@ import sys
 import os
 import unittest
 import numpy as np
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath('./'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./grid2op'))
-sys.path.insert(0, os.path.abspath('../grid2op/'))
+test_dir = os.fspath(Path(__file__).parent.absolute())
+grid2op_dir = os.fspath(Path(__file__).parent.parent.absolute())
+data_dir = os.path.abspath(os.path.join(grid2op_dir, "data"))
 
-PATH_DATA_TEST = os.path.abspath("../data/")
-PATH_CHRONICS = os.path.abspath("../data")
+sys.path.insert(0, grid2op_dir)
+
+PATH_DATA_TEST = data_dir
+PATH_CHRONICS = data_dir
 if not os.path.exists(os.path.join(PATH_DATA_TEST, "chronics_with_forecast")):
-    PATH_DATA_TEST = os.path.abspath("./data/")
-    PATH_CHRONICS = os.path.abspath("./data/")
-    if not os.path.exists(os.path.join(PATH_DATA_TEST, "chronics_with_forecast")):
-        PATH_DATA_TEST = os.path.abspath("grid2op/data/")
-        PATH_CHRONICS = os.path.abspath("grid2op/data")
-        if not os.path.exists(os.path.join(PATH_DATA_TEST, "chronics_with_forecast")):  # I am lost
-            raise RuntimeError("Impossible to find the test data folder")
+    raise RuntimeError("Impossible to find the test data folder")
 PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPower"))
 
 
