@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from .DownloadDataset import main_download, DEFAULT_PATH_DATA, LI_VALID_ENV
+from DownloadDataset import main_download, DEFAULT_PATH_DATA, LI_VALID_ENV
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Download some datasets compatible with grid2op.')
