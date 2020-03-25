@@ -3,7 +3,7 @@ version: 2.1
 executors:
   grid2op-executor:
     docker:
-      - image: tezirg/grid2op:latest
+      - image: tezirg/grid2op:dev
     working_directory: ~/grid2op-ci
 
 jobs:
