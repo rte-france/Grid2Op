@@ -148,3 +148,22 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
             self.hazard_duration[:, line_id] = self.get_maintenance_duration_1d(self.hazards[:, line_id])
 
         self.maintenance_forecast = self.maintenance != 0.
+
+        self.curr_iter = 0
+        if self.maintenance is not None:
+            n_ = self.maintenance.shape[0]
+        elif self.hazards is not None:
+            n_ = self.hazards.shape[0]
+        else:
+            n_ = None
+            for fn in ["prod_p", "load_p", "prod_v", "load_q"]:
+                ext_ = self._get_fileext(fn)
+                if ext_ is not None:
+                    n_ = self._file_len(os.path.join(self.path, "{}{}".format(fn, ext_)), ext_)
+                    break
+            if n_ is None:
+                raise ChronicsError("No files are found in directory \"{}\". If you don't want to load any chronics,"
+                                    " use  \"ChangeNothing\" and not \"{}\" to load chronics."
+                                    "".format(self.path, type(self)))
+        self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
+        self.tmp_max_index = load_p.shape[0]
