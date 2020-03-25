@@ -20,8 +20,9 @@ from grid2op.MakeEnv import make, make2, _get_default_aux
 from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
-from grid2op.Action import Action, TopologyAction, TopoAndRedispAction
+from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
+from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
+from grid2op.Action import Action, TopologyAction, TopoAndRedispAction, VoltageOnlyAction
 from grid2op.Observation import CompleteObservation, Observation
 from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
 from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
@@ -310,7 +311,6 @@ class TestMake2Config(unittest.TestCase):
     def test_case5_config(self):
         dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
         with make2(dataset_path) as env:
-            env.reset()
             # Check config is loaded from config.py
             assert env.rewardClass == L2RPNReward
             assert env.actionClass == TopologyAction
@@ -331,7 +331,6 @@ class TestMake2Config(unittest.TestCase):
     def test_case14_test_config(self):
         dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
         with make2(dataset_path) as env:
-            env.reset()
             # Check config is loaded from config.py
             assert env.rewardClass == RedispReward
             assert env.actionClass == TopoAndRedispAction
@@ -353,7 +352,6 @@ class TestMake2Config(unittest.TestCase):
     def test_case14_redisp_config(self):
         dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_redisp")
         with make2(dataset_path) as env:
-            env.reset()
             # Check config is loaded from config.py
             assert env.rewardClass == RedispReward
             assert env.actionClass == TopoAndRedispAction
@@ -370,12 +368,11 @@ class TestMake2Config(unittest.TestCase):
             obs = env.reset()
             sim_obs, reward, done, info = obs.simulate(env.action_space())
             assert sim_obs != obs
-            assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
+            assert np.all(env._thermal_limit_a == case14_redisp_TH_LIM)
 
     def test_l2rpn19_test_config(self):
         dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
         with make2(dataset_path) as env:
-            env.reset()
             # Check config is loaded from config.py
             assert env.rewardClass == L2RPNReward
             assert env.actionClass == TopologyAction
@@ -384,6 +381,87 @@ class TestMake2Config(unittest.TestCase):
             assert env.legalActClass == DefaultRules
             assert isinstance(env.voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
+
+class TestMake2ConfigOverride(unittest.TestCase):
+    def test_case5_override_reward(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path, reward_class=FlatReward) as env:
+            assert env.rewardClass == FlatReward
+
+    def test_case14_test_override_reward(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path, reward_class=FlatReward) as env:
+            assert env.rewardClass == FlatReward
+
+    def test_l2rpn19_override_reward(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path, reward_class=FlatReward) as env:
+            assert env.rewardClass == FlatReward
+
+    def test_case5_override_action(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path, action_class=VoltageOnlyAction) as env:
+            assert env.actionClass == VoltageOnlyAction
+
+    def test_case14_test_override_action(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path, action_class=VoltageOnlyAction) as env:
+            assert env.actionClass == VoltageOnlyAction
+
+    def test_l2rpn19_override_action(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path, action_class=VoltageOnlyAction) as env:
+            assert env.actionClass == VoltageOnlyAction
+
+    def test_case5_override_chronics(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path, chronics_class=ChangeNothing) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_case14_test_override_chronics(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path, chronics_class=ChangeNothing) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_l2rpn19_override_chronics(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path, chronics_class=ChangeNothing) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_case5_override_feed_kwargs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        chronics_path = os.path.join(dataset_path, "chronics", "0")
+        dfk = {
+            "chronicsClass": ChangeNothing,
+            "path": chronics_path,
+            "gridvalueClass": GridStateFromFile
+        }
+        with make2(dataset_path, data_feeding_kwargs=dfk) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_case14_test_override_feed_kwargs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        chronics_path = os.path.join(dataset_path, "chronics", "0")
+        dfk = {
+            "chronicsClass": ChangeNothing,
+            "path": chronics_path,
+            "gridvalueClass": GridStateFromFile
+        }
+        with make2(dataset_path, data_feeding_kwargs=dfk) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_l2rpn19_override_feed_kwargs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        chronics_path = os.path.join(dataset_path, "chronics", "0000")
+        dfk = {
+            "chronicsClass": ChangeNothing,
+            "path": chronics_path,
+            "gridvalueClass": GridStateFromFile
+        }
+        with make2(dataset_path, data_feeding_kwargs=dfk) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    
 
 if __name__ == "__main__":
     unittest.main()
