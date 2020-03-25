@@ -14,7 +14,7 @@ jobs:
       - checkout
       - run:
           command: |
-            cd ./grid2op/tests/
+            cd ~/grid2op-ci/Grid2Op/grid2op/tests/
             circleci tests glob "test_*.py" | circleci tests split > /tmp/torun
             python -m unittest $(cat /tmp/torun)
 

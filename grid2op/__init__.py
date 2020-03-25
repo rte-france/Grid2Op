@@ -10,7 +10,6 @@ __version__ = '0.5.8'
 
 __all__ = [
     "Action",
-    "BackendPandaPower",
     "Agent",
     "Backend",
     "Chronics",
@@ -18,15 +17,14 @@ __all__ = [
     "Exceptions",
     "Observation",
     "Parameters",
-    "GameRules",
+    "Rules",
     "Reward",
     "Runner",
     "main",
     "Utils",
-    "PlotPlotly",
+    "Plot",
     "EpisodeData",
-    "DownloadDataset",
-    "PlotMatplotlib",
+    "Download",
     "VoltageControler"
 ]
 
