@@ -306,5 +306,84 @@ class TestkwargsName(unittest.TestCase):
                 pass
 
 
+class TestMake2Config(unittest.TestCase):
+    def test_case5_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path) as env:
+            env.reset()
+            # Check config is loaded from config.py
+            assert env.rewardClass == L2RPNReward
+            assert env.actionClass == TopologyAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+            
+    def test_case5_runs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path) as env:
+            assert env.redispatching_unit_commitment_availble == True
+            obs = env.reset()
+            sim_obs, reward, done, info = obs.simulate(env.action_space())
+            assert sim_obs != obs
+
+    def test_case14_test_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path) as env:
+            env.reset()
+            # Check config is loaded from config.py
+            assert env.rewardClass == RedispReward
+            assert env.actionClass == TopoAndRedispAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+            
+    def test_case14_test_runs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path) as env:
+            assert env.redispatching_unit_commitment_availble == True
+            obs = env.reset()
+            sim_obs, reward, done, info = obs.simulate(env.action_space())
+            assert sim_obs != obs
+            assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
+
+    def test_case14_redisp_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_redisp")
+        with make2(dataset_path) as env:
+            env.reset()
+            # Check config is loaded from config.py
+            assert env.rewardClass == RedispReward
+            assert env.actionClass == TopoAndRedispAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+            
+    def test_case14_redisp_runs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_redisp")
+        with make2(dataset_path) as env:
+            assert env.redispatching_unit_commitment_availble == True
+            obs = env.reset()
+            sim_obs, reward, done, info = obs.simulate(env.action_space())
+            assert sim_obs != obs
+            assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
+
+    def test_l2rpn19_test_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path) as env:
+            env.reset()
+            # Check config is loaded from config.py
+            assert env.rewardClass == L2RPNReward
+            assert env.actionClass == TopologyAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+
 if __name__ == "__main__":
     unittest.main()
