@@ -4,7 +4,7 @@ executors:
   grid2op-executor:
     docker:
       - image: tezirg/grid2op:dev
-    working_directory: ~/grid2op-ci
+    working_directory: /Grid2Op
 
 jobs:
   test:
@@ -14,7 +14,6 @@ jobs:
       - checkout
       - run:
           command: |
-            python3 ./setup.py install
             cd grid2op/tests/
             circleci tests glob "test_*.py" | circleci tests split > /tmp/torun
             python -m unittest $(cat /tmp/torun)
