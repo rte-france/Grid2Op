@@ -89,7 +89,7 @@ NAMES_CHRONICS_TO_BACKEND = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'lo
 
 ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class", "chronics_path", "reward_class",
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
-                       "chronics_class"}
+                       "chronics_class", "volagecontroler_class"}
 
 
 def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,

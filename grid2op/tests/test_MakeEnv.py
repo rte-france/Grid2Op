@@ -3,7 +3,7 @@ import os
 import sys
 import unittest
 import warnings
-
+import time
 import numpy as np
 import pdb
 
@@ -13,10 +13,36 @@ from Settings_case14_test import case14_test_TH_LIM
 from Settings_case14_realistic import case14_real_TH_LIM
 
 from Exceptions import *
+from Environment import Environment
+from Backend import Backend
+from BackendPandaPower import PandaPowerBackend
+from Parameters import Parameters
+from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
+from Action import Action, TopologyAction, TopoAndRedispAction
+from Exceptions import *
+from Observation import CompleteObservation, Observation
+from Reward import FlatReward, Reward, L2RPNReward, RedispReward
+from GameRules import LegalAction, AllwaysLegal, DefaultRules
+from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
+from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+from VoltageControler import ControlVoltageFromFile
 from MakeEnv import make, _get_default_aux
 
-import time
 
+# TODO make a test that the defaults are correct for all environment below (eg that the env.chronics_handler has
+# by default the type given in the "make" function, that the backend if of the proper type, that the thermal
+# limit are properly set up etc.
+# basically, test, for all env, all that is defined there:
+# if name_env.lower() == "case14_fromfile":
+#    default_grid_path = CASE_14_FILE
+#    if chronics_path == '':
+#        chronics_path = CHRONICS_MLUTIEPISODE
+#
+#    defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
+#                                       "gridvalueClass": GridStateFromFileWithForecasts}
+#    default_name_converter = NAMES_CHRONICS_TO_BACKEND
+#    default_action_class = TopologyAction
+#    default_reward_class = L2RPNReward
 class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_case14_fromfile(self):
         env = make("case14_fromfile")
@@ -204,6 +230,83 @@ class TestGetDefault(unittest.TestCase):
                              defaultClass=str,
                              defaultinstance="strinstance",
                              isclass=True)
+
+
+class TestkwargsName(unittest.TestCase):
+    def test_param(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", param=Parameters()) as env:
+                pass
+
+    def test_backend(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", backend=PandaPowerBackend()) as env:
+                pass
+
+    def test_obsclass(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", observation_class=CompleteObservation) as env:
+                pass
+
+    def test_gamerules(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", gamerules_class=AllwaysLegal) as env:
+                pass
+
+    def test_chronics_path(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", chronics_path=EXAMPLE_CHRONICSPATH) as env:
+                pass
+
+    def test_reward_class(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", reward_class=FlatReward) as env:
+                pass
+
+    def test_action_class(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", action_class=Action) as env:
+                pass
+
+    def test_grid_path(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", grid_path=EXAMPLE_CASEFILE) as env:
+                pass
+
+    def test_names_chronics_to_backend(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", names_chronics_to_backend={}) as env:
+                pass
+
+    def test_data_feeding_kwargs(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            dict_ = {"chronicsClass": Multifolder, "path": EXAMPLE_CHRONICSPATH,
+                    "gridvalueClass": GridStateFromFileWithForecasts}
+            with make("case5_example", data_feeding_kwargs=dict_) as env:
+                pass
+
+    def test_chronics_class(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", chronics_class=Multifolder) as env:
+                pass
+
+    def test_volagecontroler_class(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", volagecontroler_class=ControlVoltageFromFile) as env:
+                pass
+
 
 if __name__ == "__main__":
     unittest.main()
