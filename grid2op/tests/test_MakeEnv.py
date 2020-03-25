@@ -8,12 +8,12 @@ import numpy as np
 import pdb
 
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
-from Settings_case14_redisp import case14_redisp_TH_LIM
-from Settings_case14_test import case14_test_TH_LIM
-from Settings_case14_realistic import case14_real_TH_LIM
+from grid2op.Chronics.Settings_case14_redisp import case14_redisp_TH_LIM
+from grid2op.Chronics.Settings_case14_test import case14_test_TH_LIM
+from grid2op.Chronics.Settings_case14_realistic import case14_real_TH_LIM
 
-from Exceptions import *
-from MakeEnv import make, _get_default_aux
+from grid2op.Exceptions import *
+from grid2op.MakeEnv import make, make2, _get_default_aux
 
 import time
 
@@ -128,7 +128,6 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             with make("case14_test") as env:
                 obs = env.reset()
                 assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
-
             
 class TestGetDefault(unittest.TestCase):
     def test_give_instance_default(self):

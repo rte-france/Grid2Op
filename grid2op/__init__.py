@@ -8,16 +8,34 @@ import pkg_resources
 
 __version__ = '0.5.8'
 
-__all__ = ['Action', "BackendPandaPower", "Agent", "Backend", "ChronicsHandler", "Environment", "Exceptions",
-           "Observation", "Parameters", "GameRules", "Reward", "Runner", "main", "Utils", "PlotPlotly", "EpisodeData",
-           "DownloadDataset", "PlotMatplotlib", "VoltageControler"]
+__all__ = [
+    "Action",
+    "BackendPandaPower",
+    "Agent",
+    "Backend",
+    "Chronics",
+    "Environment",
+    "Exceptions",
+    "Observation",
+    "Parameters",
+    "GameRules",
+    "Reward",
+    "Runner",
+    "main",
+    "Utils",
+    "PlotPlotly",
+    "EpisodeData",
+    "DownloadDataset",
+    "PlotMatplotlib",
+    "VoltageControler"
+]
 
-from .MakeEnv import make
+from grid2op.MakeEnv import make
 
 # reference case 14
-from .MakeEnv import CASE_14_FILE, CHRONICS_FODLER, CHRONICS_MLUTIEPISODE, NAMES_CHRONICS_TO_BACKEND
+from grid2op.MakeEnv import CASE_14_FILE, CHRONICS_FODLER, CHRONICS_MLUTIEPISODE, NAMES_CHRONICS_TO_BACKEND
 # small example
-from .MakeEnv import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+from grid2op.MakeEnv import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
 # case 14 as in L2RPN 2019 edition
 from .MakeEnv import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData
 

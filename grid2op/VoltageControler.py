@@ -13,13 +13,8 @@ varying from:
 We wanted, in this package, to treat the voltages setpoint of the generators differently from the other
 part of the game. This module exposes the main class to do this.
 """
-try:
-    from .Action import VoltageOnlyAction, HelperAction
-    from .GameRules import AllwaysLegal
-except (ModuleNotFoundError, ImportError):
-    from Action import VoltageOnlyAction, HelperAction
-    from GameRules import AllwaysLegal
-
+from grid2op.Action import VoltageOnlyAction, HelperAction
+from grid2op.Rules import AlwaysLegal
 
 class ControlVoltageFromFile:
     """
@@ -40,7 +35,7 @@ class ControlVoltageFromFile:
             An instanciated backend to perform some computation on a powergrid, before taking some actions.
 
         """
-        legal_act = AllwaysLegal()
+        legal_act = AlwaysLegal()
         self.action_space = HelperAction(gridobj=gridobj,
                                          actionClass=VoltageOnlyAction,
                                          legal_action=legal_act)

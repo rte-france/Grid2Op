@@ -6,15 +6,13 @@ import os
 import pkg_resources
 import argparse
 
-from .Observation import ObservationHelper, CompleteObservation, ObsEnv
-
-from .ChronicsHandler import Multifolder
-
-from .Reward import FlatReward
-from .Agent import DoNothingAgent
-from .BackendPandaPower import PandaPowerBackend
-from .GameRules import AllwaysLegal
-from .Runner import Runner
+from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv
+from grid2op.Chronics import Multifolder
+from grid2op.Reward import FlatReward
+from grid2op.Agent import DoNothingAgent
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Rules import AlwaysLegal
+from grid2op.Runner import Runner
 
 DEFAULT_TEST_CASE = os.path.join(pkg_resources.resource_filename(__name__, 'data'),
                                  "test_PandaPower", "test_case14.json")
@@ -31,7 +29,7 @@ def main(path_casefile=None,
          agent_class=DoNothingAgent,
          reward_class=FlatReward,
          observation_class=CompleteObservation,
-         legalAct_class=AllwaysLegal,
+         legalAct_class=AlwaysLegal,
          nb_episode=3,
          nb_process=1,
          path_save=None,

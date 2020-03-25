@@ -18,38 +18,19 @@ import json
 
 import pdb
 
-try:
-    from .Action import HelperAction, Action, TopologyAction
-    from .Exceptions import *
-    from .Observation import CompleteObservation, ObservationHelper, Observation
-    from .Reward import FlatReward, RewardHelper, Reward
-    from .GameRules import GameRules, AllwaysLegal, LegalAction
-    from .Environment import Environment
-    from .ChronicsHandler import ChronicsHandler, GridStateFromFile, GridValue
-    from .Backend import Backend
-    from .BackendPandaPower import PandaPowerBackend
-    from .Parameters import Parameters
-    from .Agent import DoNothingAgent, Agent
-    from .EpisodeData import EpisodeData
-    from ._utils import _FakePbar
-    from .VoltageControler import ControlVoltageFromFile
-
-except (ModuleNotFoundError, ImportError):
-    from Action import HelperAction, Action, TopologyAction
-    from Exceptions import *
-    from Observation import CompleteObservation, ObservationHelper, Observation
-    from Reward import FlatReward, RewardHelper, Reward
-    from GameRules import GameRules, AllwaysLegal, LegalAction
-    from Environment import Environment
-    from ChronicsHandler import ChronicsHandler, GridStateFromFile, GridValue
-    from Backend import Backend
-    from BackendPandaPower import PandaPowerBackend
-    from Parameters import Parameters
-    from Agent import DoNothingAgent, Agent
-    from EpisodeData import EpisodeData
-    from _utils import _FakePbar
-    from VoltageControler import ControlVoltageFromFile
-
+from grid2op.Action import HelperAction, Action, TopologyAction
+from grid2op.Exceptions import *
+from grid2op.Observation import CompleteObservation, ObservationHelper, Observation
+from grid2op.Reward import FlatReward, RewardHelper, Reward
+from grid2op.Rules import GameRules, AlwaysLegal, LegalAction
+from grid2op.Environment import Environment
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
+from grid2op.Backend import Backend, PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Agent import DoNothingAgent, Agent
+from grid2op.EpisodeData import EpisodeData
+from grid2op._utils import _FakePbar
+from grid2op.VoltageControler import ControlVoltageFromFile
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -160,7 +141,7 @@ class Runner(object):
     legalActClass: ``type``
         This types control the mechanisms to assess if an :class:`grid2op.Action` is legal.
         Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
-        Its default is :class:`grid2op.AllwaysLegal` and it must be a subclass of :class:`grid2op.LegalAction`.
+        Its default is :class:`grid2op.AlwaysLegal` and it must be a subclass of :class:`grid2op.LegalAction`.
 
     backendClass: ``type``
         This types control the backend, *eg.* the software that computes the powerflows.
@@ -228,7 +209,7 @@ class Runner(object):
                  actionClass=TopologyAction,
                  observationClass=CompleteObservation,
                  rewardClass=FlatReward,
-                 legalActClass=AllwaysLegal,
+                 legalActClass=AlwaysLegal,
                  envClass=Environment,
                  gridStateclass=GridStateFromFile,
                  # type of chronics to use. For example GridStateFromFile if forecasts are not used, or GridStateFromFileWithForecasts otherwise

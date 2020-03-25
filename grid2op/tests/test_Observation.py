@@ -16,20 +16,16 @@ import pdb
 # RL4Grid/tests subdirectory
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
 
-from Exceptions import *
-from Observation import ObservationHelper, CompleteObservation, ObsEnv, Observation
-
-from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
-
-from Exceptions import *
-from Action import HelperAction
-from GameRules import GameRules
-from Reward import L2RPNReward
-from Parameters import Parameters
-
-from BackendPandaPower import PandaPowerBackend
-from Environment import Environment
-from MakeEnv import make
+from grid2op.Exceptions import *
+from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv, Observation
+from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
+from grid2op.Action import HelperAction
+from grid2op.Rules import GameRules
+from grid2op.Reward import L2RPNReward
+from grid2op.Parameters import Parameters
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Environment import Environment
+from grid2op.MakeEnv import make
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -134,7 +130,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'gen_cost_per_MW': [0.0, 0.0, 0.0, 0.0, 10.0],
                       'gen_startup_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'gen_shutdown_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
-                      'subtype': 'Observation.CompleteObservation'}
+                      'subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
         self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),

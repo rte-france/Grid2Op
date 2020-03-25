@@ -22,45 +22,25 @@ with a Grid2Op environment. An example of such modifications is exposed in the g
 import os
 import pkg_resources
 import warnings
-
-try:
-    from .Environment import Environment
-    from .Backend import Backend
-    from .BackendPandaPower import PandaPowerBackend
-    from .Parameters import Parameters
-    from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
-    from .Action import Action, TopologyAction, TopoAndRedispAction
-    from .Exceptions import *
-    from .Observation import CompleteObservation, Observation
-    from .Reward import FlatReward, Reward, L2RPNReward, RedispReward
-    from .GameRules import LegalAction, AllwaysLegal, DefaultRules
-    from .VoltageControler import ControlVoltageFromFile
-
-    from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
-    from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
-    from .Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
-    from .Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
-    from .Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
-
-except (ModuleNotFoundError, ImportError):
-    from Environment import Environment
-    from Backend import Backend
-    from BackendPandaPower import PandaPowerBackend
-    from Parameters import Parameters
-    from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
-    from Action import Action, TopologyAction, TopoAndRedispAction
-    from Exceptions import *
-    from Observation import CompleteObservation, Observation
-    from Reward import FlatReward, Reward, L2RPNReward, RedispReward
-    from GameRules import LegalAction, AllwaysLegal, DefaultRules
-    from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
-    from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
-    from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
-    from Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
-    from Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
-    from VoltageControler import ControlVoltageFromFile
-
 import pdb
+import json
+
+from grid2op.Environment import Environment
+from grid2op.Backend import Backend, PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Chronics import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
+from grid2op.Action import Action, TopologyAction, TopoAndRedispAction
+from grid2op.Exceptions import *
+from grid2op.Observation import CompleteObservation, Observation
+from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
+from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
+from grid2op.VoltageControler import ControlVoltageFromFile
+
+from grid2op.Chronics.Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
+from grid2op.Chronics.Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+from grid2op.Chronics.Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
+from grid2op.Chronics.Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
+from grid2op.Chronics.Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
 
 CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "test_case14.json"))
@@ -91,6 +71,9 @@ ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
                        "chronics_class"}
 
+NAME_CHRONICS_FOLDER = "chronics"
+NAME_GRID_FILE = "grid.json"
+NAME_CONFIG_FILE = "config.json"
 
 def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                      msg_error="Error when building the default parameter",
@@ -201,6 +184,222 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
     return res
 
 
+def _check_kwargs(kwargs):
+    ALLOWED_KWARGS = { "param",
+                       "backend",
+                       "observation_class",
+                       "gamerules_class",
+                       "reward_class",
+                       "action_class",
+                       "data_feeding_kwargs",
+                       "chronics_class" }
+    for el in kwargs:
+        if not el in ALLOWED_KWARGS:
+            raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
+                           "No Environment will be created. "
+                           "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS)))
+    
+def _check_path(path, info):
+    if path is None or os.path.exists(path) is False:
+        raise EnvError("Cannot find {}. {}".format(path, info))
+
+def make2(dataset_path="/", **kwargs):
+    """
+    This function is a shortcut to rapidly create environments within the grid2op Framework.
+
+    It mimic the ``gym.make`` function.
+
+    Parameters
+    ----------
+    dataset_path: ``str``
+        Path to the dataset folder
+
+    param: ``grid2op.Parameters.Parameters``, optional
+        Type of parameters used for the Environment. Parameters defines how the powergrid problem is cast into an
+        markov decision process, and some internal
+
+    backend: ``grid2op.Backend.Backend``, optional
+        The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
+
+    action_class: ``type``, optional
+        Type of Action the Agent will be able to perform.
+        If provided, it must be a subclass of :class:`grid2op.Action.Action`
+
+    observation_class: ``type``, optional
+        Type of Observation the Agent will receive.
+        If provided, It must be a subclass of :class:`grid2op.Action.Observation`
+
+    reward_class: ``type``, optional
+        Type of reward signal the Agent will receive.
+        If provided, It must be a subclass of :class:`grid2op.Reward.Reward`
+
+    gamerules_class: ``type``, optional
+        Type of "Rules" the Agent need to comply with. Rules are here to model some operational constraints.
+        If provided, It must be a subclass of :class:`grid2op.GameRules.LegalAction`
+
+    data_feeding_kwargs: ``dict``, optional
+        Dictionnary that is used to build the `data_feeding` (chronics) objects.
+
+    chronics_class: ``type``, optional
+        The type of chronics that represents the dynamics of the Environment created. Usually they come from different
+        folders.
+
+    data_feeding: ``type``, optional
+        The type of chronics handler you want to use.
+
+    volagecontroler_class: ``type``, optional
+        The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
+
+    Returns
+    -------
+    env: :class:`grid2op.Environment.Environment`
+        The created environment.
+    """
+    # Compute and find root folder
+    _check_path(dataset_path, "Dataset root directory")
+    dataset_path_abs = os.path.abspath(dataset_path)
+    # Compute env name from directory name
+    name_env = os.path.split(dataset_path_abs)[1]
+    
+    # Compute and find chronics folder
+    chronics_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CHRONICS_FOLDER))
+    _check_path(chronics_path_abs, "Dataset chronics folder")
+
+    # Compute and find backend/grid file
+    grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
+    _check_path(grid_path_abs, "Dataset power flow solver configuration")
+
+    # Compute and find config file
+    config_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CONFIG_FILE))
+    _check_path(grid_path_abs, "Dataset environement configuration")
+    # Read and validate config file
+    config_data = {}
+    try:
+        with open(config_path_abs) as config_file:
+            config_data = json.load(config_file)
+    except:
+        raise EnvError("Invalid dataset config file: {}".format(config_path_abs)) from None
+    if "graph_layout" not in config_data:
+        raise EnvError("Dataset configuration {} is missing [graph_layout]".format(config_path_abs))
+    thermal_limits = None
+    if "thermal_limits" in config_data:
+        thermal_limits = config_data["thermal_limits"]
+    name_converter = {}
+    if "chronics_to_grid" in config_data:
+        name_converter = config_data["chronics_to_grid"]
+
+    # Check provided overrides are valid
+    _check_kwargs(kwargs)
+
+    ## Create the parameters of the game, thermal limits threshold, simulate cascading failure, powerflow mode etc. (the gamification of the game)
+    msg_error = "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters"
+    param = _get_default_aux('param', kwargs, defaultClass=Parameters, defaultClassApp=Parameters,
+                             msg_error=msg_error)
+
+    ## Create the backend, to compute the powerflow
+    msg_error = "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend"
+    backend = _get_default_aux("backend", kwargs, defaultClass=PandaPowerBackend,
+                               defaultClassApp=Backend,
+                               msg_error=msg_error)
+
+    ## Setup the type of observation the agent will receive
+    msg_error = "The type of observation of the environment (keyword \"observation_class\")"
+    msg_error += " must be a subclass of grid2op.Observation"
+    observation_class = _get_default_aux("observation_class", kwargs, defaultClass=CompleteObservation,
+                                         defaultClassApp=Observation,
+                                         msg_error=msg_error,
+                                         isclass=True)
+
+    ## Create the rules of the game (mimic the operationnal constraints)
+    msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
+    msg_error += " must be a subclass of grid2op.LegalAction"
+    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=DefaultRules,
+                                    defaultClassApp=LegalAction,
+                                    msg_error=msg_error,
+                                    isclass=True)
+
+    ## Setup the reward the agent will receive
+    msg_error = "The type of observation of the environment (keyword \"reward_class\")"
+    msg_error += " must be a subclass of grid2op.Reward"
+    reward_class = _get_default_aux("reward_class", kwargs, defaultClass=L2RPNReward,
+                                    defaultClassApp=Reward,
+                                    msg_error=msg_error,
+                                    isclass=True)
+
+    ## Setup the type of action the Agent can perform
+    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action"
+    action_class = _get_default_aux("action_class", kwargs, defaultClass=Action,
+                                    defaultClassApp=Action,
+                                    msg_error=msg_error,
+                                    isclass=True)    
+    
+    defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path_abs,
+                                       "gridvalueClass": GridStateFromFileWithForecasts}
+    msg_error = "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary."
+    names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
+                                 defaultClassApp=dict, defaultinstance=name_converter,
+                                 msg_error=msg_error)
+    ## the chronics to use
+    ### the arguments used to build the data, note that the arguments must be compatible with the chronics class
+    msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding_kwargs\")"
+    msg_error += " should be a dictionnary."
+    data_feeding_kwargs = _get_default_aux("data_feeding_kwargs", kwargs,
+                                           defaultClassApp=dict,
+                                           defaultinstance=defaultinstance_chronics_kwargs,
+                                           msg_error=msg_error)
+    for el in defaultinstance_chronics_kwargs:
+        if not el in data_feeding_kwargs:
+            data_feeding_kwargs[el] = defaultinstance_chronics_kwargs[el]
+
+    ### the chronics generator
+    msg_error = "The argument to build the data generation process [chronics] (keyword \"chronics_class\")"
+    msg_error += " should be a class that inherit grid2op.Chronics.GridValue."
+    chronics_class_used = _get_default_aux("chronics_class", kwargs,
+                                           defaultClassApp=GridValue,
+                                           defaultClass=data_feeding_kwargs["chronicsClass"],
+                                           msg_error=msg_error,
+                                           isclass=True)
+    data_feeding_kwargs["chronicsClass"] = chronics_class_used
+
+    ### the chronics generator
+    msg_error = "The argument to build the data generation process [chronics] (keyword \"data_feeding\")"
+    msg_error += " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler."
+    data_feeding = _get_default_aux("data_feeding", kwargs,
+                                    defaultClassApp=ChronicsHandler,
+                                    defaultClass=ChronicsHandler,
+                                    build_kwargs=data_feeding_kwargs,
+                                    msg_error=msg_error)
+
+    ### controler for voltages
+    msg_error = "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")"
+    msg_error += " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile."
+    volagecontroler_class = _get_default_aux("volagecontroler_class", kwargs,
+                                             defaultClassApp=ControlVoltageFromFile,
+                                             defaultClass=ControlVoltageFromFile,
+                                             msg_error=msg_error,
+                                             isclass=True)
+
+    env = Environment(init_grid_path=grid_path_abs,
+                      chronics_handler=data_feeding,
+                      backend=backend,
+                      parameters=param,
+                      names_chronics_to_backend=names_chronics_to_backend,
+                      actionClass=action_class,
+                      observationClass=observation_class,
+                      rewardClass=reward_class,
+                      legalActClass=gamerules_class,
+                      voltagecontrolerClass=volagecontroler_class)
+
+    # Update the thermal limit if any
+    if thermal_limits is not None:
+        env.set_thermal_limit(thermal_limits)
+
+    # Set graph layout
+    env.graph_layout = config_data["graph_layout"]
+
+    return env
+    
+    
 def make(name_env="case14_realistic", **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
@@ -301,7 +500,7 @@ def make(name_env="case14_realistic", **kwargs):
 
     # bulid the default parameters for each case file
     data_feeding_default_class = ChronicsHandler
-    gamerules_class = AllwaysLegal
+    gamerules_class = AlwaysLegal
     defaultinstance_chronics_kwargs = {}
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
@@ -387,7 +586,7 @@ def make(name_env="case14_realistic", **kwargs):
         default_grid_path = ""
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
-        gamerules_class = AllwaysLegal
+        gamerules_class = AlwaysLegal
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
                          "(default), \"case5_example\", \"case14_redisp\", \"case14_realistic\" "

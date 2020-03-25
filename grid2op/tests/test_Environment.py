@@ -8,14 +8,14 @@ import pdb
 
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
 
-from Exceptions import *
-from Environment import Environment
-from BackendPandaPower import PandaPowerBackend
-from Parameters import Parameters
-from ChronicsHandler import ChronicsHandler, GridStateFromFile
-from Reward import L2RPNReward
-from MakeEnv import make
-from GameRules import GameRules, DefaultRules
+from grid2op.Exceptions import *
+from grid2op.Environment import Environment
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile
+from grid2op.Reward import L2RPNReward
+from grid2op.MakeEnv import make
+from grid2op.Rules import GameRules, DefaultRules
 import time
 
 

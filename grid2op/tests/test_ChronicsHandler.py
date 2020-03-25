@@ -13,12 +13,10 @@ import warnings
 # RL4Grid/tests subdirectory
 from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
 
-from MakeEnv import make
-from Exceptions import *
-from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder
-from ChronicsHandler import GridValue
-from BackendPandaPower import PandaPowerBackend
-
+from grid2op.MakeEnv import make
+from grid2op.Exceptions import *
+from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
+from grid2op.Backend import PandaPowerBackend
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
     def setUp(self):
