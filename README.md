@@ -31,10 +31,10 @@ Official documentation: the official documentation is available at
 
 *   [1 Installation](#installation)
     *   [1.1 Requirements](#requirements)
-    *   [1.2 Install with Virtualenv](#install-with-virtualenv)
-        *   [1.2.1 Install from PyPI](#install-from-pypi)
-        *   [1.2.2 Install from source](#install-from-src)
-        *   [1.2.3 Install for contributors](#install-for-contributors)
+    *   [1.2 Install with Virtualenv](#install-venv)
+        *   [1.2.1 Install from PyPI](#install-venv-pypi)
+        *   [1.2.2 Install from source](#install-venv-src)
+        *   [1.2.3 Install for contributors](#install-venv-contrib)
     *   [1.4 Install with Docker](#install-with-docker)
 *   [2 Basic usage](#basic-usage)
     *   [2.1 Without using Docker](#without-using-docker)
@@ -50,21 +50,21 @@ Official documentation: the official documentation is available at
 ## Requirements:
 *   Python >= 3.6
 
-## Install with Virtualenv
-### Step 1: Create a virtual environment
+## Install with Virtualenv {#install-venv}
+### Step 1: Create a virtual environment 
 ```commandline
 cd my-project-folder
 pip3 install -U virtualenv
 python3 -m virtualenv venv_grid2op
 ```
 
-#### Step2: Install from PyPI
+### Step2: Install from PyPI {#install-venv-pypi}
 ```commandline
 source venv_grid2op/bin/activate
 pip3 install grid2op
 ```
 
-#### Step2: Install from source
+### Step2: Install from source {#install-venv-src}
 ```commandline
 source venv_grid2op/bin/activate
 git clone https://github.com/rte-france/Grid2Op.git
@@ -73,7 +73,7 @@ pip3 install -U .
 cd ..
 ```
 
-#### Step2: Install for contributors
+### Step2: Install for contributors {#install-venv-contrib}
 ```commandline
 source venv_grid2op/bin/activate
 git clone https://github.com/rte-france/Grid2Op.git
