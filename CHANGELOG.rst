@@ -21,6 +21,8 @@ TODO for next versions
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] fix notebook 5 texts
+
 
 [0.5.9] - 2020-03-??
 ---------------------
