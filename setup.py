@@ -2,7 +2,6 @@ import subprocess
 import sys
 from setuptools import setup
 
-
 pkgs = {
     "required": [
         "numpy>=1.18.2",
@@ -15,7 +14,8 @@ pkgs = {
         "test": [
             "nbformat>=5.0.4",
             "jupyter-client>=6.1.0",
-            "jyquickhelper>=0.3.128"
+            "jyquickhelper>=0.3.128",
+            "pathlib>=1.0.1"
         ],
         "optional": [
             "numba==0.48.0",

@@ -1,46 +1,29 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
 import datetime
 import tempfile
-
 import time
-
 import numpy as np
 import pdb
 
-# making sure test can be ran from:
-# root package directory
-# RL4Grid subdirectory
-# RL4Grid/tests subdirectory
-sys.path.insert(0, os.path.abspath('./'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('Grid2Op/'))
+from grid2op.tests.helper_path_test import *
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
-PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
-
-from Exceptions import *
-from Observation import ObservationHelper, CompleteObservation, ObsEnv
-
-from ChronicsHandler import Multifolder
-
-from Exceptions import *
-from Action import HelperAction
-from GameRules import GameRules
-from Reward import L2RPNReward
-from Parameters import Parameters
-
-from BackendPandaPower import PandaPowerBackend
-from Environment import Environment
-
-from Runner import Runner
-
-from EpisodeData import EpisodeData
+from grid2op.Exceptions import *
+from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv
+from grid2op.Chronics import Multifolder
+from grid2op.Exceptions import *
+from grid2op.Action import HelperAction
+from grid2op.Rules import GameRules
+from grid2op.Reward import L2RPNReward
+from grid2op.Parameters import Parameters
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Environment import Environment
+from grid2op.Runner import Runner
+from grid2op.EpisodeData import EpisodeData
 
 DEBUG = True
-
+PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
 
 class TestEpisodeData(unittest.TestCase):
     def setUp(self):

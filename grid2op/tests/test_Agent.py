@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
@@ -8,13 +7,12 @@ import warnings
 import numpy as np
 import pandapower as pp
 
+from grid2op.tests.helper_path_test import *
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
-
-from Exceptions import *
-from MakeEnv import make
-from Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
-from Parameters import Parameters
+from grid2op.Exceptions import *
+from grid2op.MakeEnv import make
+from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
+from grid2op.Parameters import Parameters
 
 import pdb
 
