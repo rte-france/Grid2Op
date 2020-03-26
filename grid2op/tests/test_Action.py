@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import copy
@@ -8,7 +7,7 @@ import numpy as np
 import pdb
 from abc import ABC, abstractmethod
 
-from helper_path_test import *  # usefull to set poperly the sys.path
+from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet

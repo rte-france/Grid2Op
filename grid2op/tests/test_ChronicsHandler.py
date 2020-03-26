@@ -1,17 +1,11 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
-
 import numpy as np
 import pdb
 import warnings
 
-# making sure test can be ran from:
-# root package directory
-# RL4Grid subdirectory
-# RL4Grid/tests subdirectory
-from helper_path_test import *
+from grid2op.tests.helper_path_test import *
 
 from grid2op.MakeEnv import make
 from grid2op.Exceptions import *

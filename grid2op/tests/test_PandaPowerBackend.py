@@ -1,14 +1,12 @@
-# making some test that the backned is working as expected
-import os  # load the python os default module
+import os
 import sys
 import unittest
-
 import numpy as np
 import copy
 import pdb
 import warnings
 
-from helper_path_test import *
+from grid2op.tests.helper_path_test import *
 
 from grid2op.Action import HelperAction
 from grid2op.Backend import PandaPowerBackend

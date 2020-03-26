@@ -3,9 +3,6 @@ Grid2Op
 Document will be made later on.
 
 """
-import os
-import pkg_resources
-
 __version__ = '0.5.8'
 
 __all__ = [
@@ -25,7 +22,8 @@ __all__ = [
     "Plot",
     "EpisodeData",
     "Download",
-    "VoltageControler"
+    "VoltageControler",
+    "tests"
 ]
 
 from grid2op.MakeEnv import make

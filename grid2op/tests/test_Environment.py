@@ -1,12 +1,12 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
 import copy
 import numpy as np
 import pdb
+import time
 
-from helper_path_test import *
+from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.Environment import Environment
@@ -16,8 +16,6 @@ from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import GameRules, DefaultRules
-import time
-
 
 DEBUG = False
 PROFILE_CODE = False

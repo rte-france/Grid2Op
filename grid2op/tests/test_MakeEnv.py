@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
@@ -7,7 +6,7 @@ import time
 import numpy as np
 import pdb
 
-from helper_path_test import *
+from grid2op.tests.helper_path_test import *
 
 from grid2op.Chronics.Settings_case14_redisp import case14_redisp_TH_LIM
 from grid2op.Chronics.Settings_case14_test import case14_test_TH_LIM

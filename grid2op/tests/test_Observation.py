@@ -9,7 +9,7 @@ import numpy as np
 from numpy import dtype
 import pdb
 
-from helper_path_test import *
+from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv, Observation

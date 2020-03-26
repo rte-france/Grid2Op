@@ -1,21 +1,13 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
 import datetime
 import tempfile
-
 import time
-
 import numpy as np
 import pdb
 
-# making sure test can be ran from:
-# root package directory
-# RL4Grid subdirectory
-# RL4Grid/tests subdirectory
-from helper_path_test import *
-PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
+from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv
@@ -31,7 +23,7 @@ from grid2op.Runner import Runner
 from grid2op.EpisodeData import EpisodeData
 
 DEBUG = True
-
+PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
 
 class TestEpisodeData(unittest.TestCase):
     def setUp(self):
