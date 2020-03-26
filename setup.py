@@ -8,14 +8,14 @@ pkgs = {
         "scipy>=1.4.1",
         "pandas>=1.0.3",
         "pandapower>=2.2.2",
-        "tqdm>=4.43.0"
+        "tqdm>=4.43.0",
+        "pathlib>=1.0.1"
     ],
     "extras": {
         "test": [
             "nbformat>=5.0.4",
             "jupyter-client>=6.1.0",
-            "jyquickhelper>=0.3.128",
-            "pathlib>=1.0.1"
+            "jyquickhelper>=0.3.128"
         ],
         "optional": [
             "numba==0.48.0",

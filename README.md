@@ -30,10 +30,14 @@ Official documentation: the official documentation is available at
 [https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
 *   [1 Installation](#installation)
-    *   [1.1 Install without Docker](#install-without-docker)
-        *   [1.2.1 Requirements](#requirements)
-        *   [1.2.2 Instructions](#instructions)
-    *   [1.2 Install with Docker](#install-with-docker)
+    *   [1.1] Requirements](#requirements)
+    *   [1.2 Install with Virtualenv](#install-venv)
+    	* [1.2.1 Install from PyPI](#install-venv-pypi)
+	* [1.2.2 Install from source](#install-venv-src)
+	* [1.2.3 Install for contributors](#install-venv-contrib)
+    *   [1.3 Install with Virtualenv from source](#install-venv-src)
+    *   [1.4 Install with Docker](#install-docker)
+    *   [1.3 Install with Virtualenv for developers](#install-venv-dev)
 *   [2 Basic usage](#basic-usage)
     *   [2.1 Without using Docker](#without-using-docker)
     *   [2.2 Using Docker](#using-docker)
@@ -45,51 +49,40 @@ Official documentation: the official documentation is available at
 *   [5 License information](#license-information)
 
 # Installation
-
-## Install without Docker
-### Requirements:
+## Requirements:
 *   Python >= 3.6
 
-### Instructions
-
-This instructions will install grid2op with its default PandaPower Backend implementation.
-
-#### Step 1: Install Python3
-On Debian-like systems (Ubuntu):
+## Install with Virtualenv
+### Step 1: Create a virtual environment
 ```commandline
-sudo apt-get install python3
-```
-
-On Fedora-like systems:
-```commandline
-sudo dnf install python3
-```
-
-If you have any trouble with this step, please refer to
-[the official webpage of Python](https://www.python.org/downloads/release/python-366/).
-
-#### (Optional, recommended) Step 1bis: Create a virtual environment
-```commandline
+cd my-project-folder
 pip3 install -U virtualenv
-cd Grid2Op
 python3 -m virtualenv venv_grid2op
 ```
 
-#### Step 2: Clone Grid2Op
+#### Step2: Install from PyPI
 ```commandline
-git clone https://github.com/rte-france/Grid2Op.git
-```
-
-This should create a folder Grid2Op with the current sources.
-
-#### Step 3: Run the installation script of Grid2Op
-Finally, run the following Python command to install the current simulator (including the Python libraries dependencies):
-```commandline
-cd Grid2Op/
 source venv_grid2op/bin/activate
-pip install -U .
+pip3 install grid2op
 ```
-After this, this simulator is available under the name grid2op (e.g. ```import grid2op```).
+
+#### Step2: Install from source
+```commandline
+source venv_grid2op/bin/activate
+git clone https://github.com/rte-france/Grid2Op.git
+cd Grid2Op
+pip3 install -U .
+cd ..
+```
+
+#### Step2: Install for contributors
+```commandline
+source venv_grid2op/bin/activate
+git clone https://github.com/rte-france/Grid2Op.git
+cd Grid2Op
+pip3 install -e .
+python3 -m unittest discover
+```
 
 ## Install with Docker
 A grid2op docker is available on [dockerhub](https://hub.docker.com/). It can be simply installed with
