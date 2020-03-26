@@ -26,6 +26,8 @@ TODO for next versions
 
 [0.5.9] - 2020-03-??
 ---------------------
+- [ADDED] Alternative method to load datasets based on new dataset format: MakeEnv.make2
+- [FIXED] Loading L2RPN_2019 dataset
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
 - [FIXED] `time_before_cooldown_line` vector where output twice in observation space
   (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 1)
@@ -55,6 +57,7 @@ TODO for next versions
 - [UPDATED] better display of the error message if all dispatchable generators are set
   `issue 39 <https://github.com/rte-france/Grid2Op/issues/39>`_
 - [UPDATED] change the link to the doc in the notebook to point to readthedoc and not to local documentation.
+- [UPDATED] Simulate action behavior result is the same as stepping given perfect forecasts at t+1 
 
 [0.5.7] - 2020-03-03
 --------------------

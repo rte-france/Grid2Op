@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import copy
@@ -8,12 +7,12 @@ import numpy as np
 import pdb
 from abc import ABC, abstractmethod
 
-import helper_path_test  # usefull to set poperly the sys.path
+from grid2op.tests.helper_path_test import *
 
-from Exceptions import *
-from Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
-from GameRules import GameRules, DefaultRules
-from Space import GridObjects
+from grid2op.Exceptions import *
+from grid2op.Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
+from grid2op.Rules import GameRules, DefaultRules
+from grid2op.Space import GridObjects
 
 class TestActionBase(ABC):
 
@@ -79,7 +78,7 @@ class TestActionBase(ABC):
                     'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
                     'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
                     'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
-                    'subtype': 'Action.Action'}
+                    'subtype': 'grid2op.Action.Action.Action'}
 
         self.size_act = 229
 

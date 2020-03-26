@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
@@ -7,30 +6,31 @@ import time
 import numpy as np
 import pdb
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
-from Settings_case14_redisp import case14_redisp_TH_LIM
-from Settings_case14_test import case14_test_TH_LIM
-from Settings_case14_realistic import case14_real_TH_LIM
+from grid2op.tests.helper_path_test import PATH_CHRONICS, PATH_DATA_TEST_PP
+from grid2op.tests.helper_path_test import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+from grid2op.tests.helper_data_test import case14_redisp_TH_LIM, case14_test_TH_LIM, case14_real_TH_LIM
+from grid2op.tests.helper_data_test import case14_redisp_layout, case14_test_layout, case14_real_layout
+from grid2op.tests.helper_data_test import L2RPN_2019_dict, L2RPN_2019_layout
 
-from Exceptions import *
-from Environment import Environment
-from Backend import Backend
-from BackendPandaPower import PandaPowerBackend
-from Parameters import Parameters
-from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
-from Action import Action, TopologyAction, TopoAndRedispAction
-from Exceptions import *
-from Observation import CompleteObservation, Observation
-from Reward import FlatReward, Reward, L2RPNReward, RedispReward
-from GameRules import LegalAction, AllwaysLegal, DefaultRules
-from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
-from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
-from VoltageControler import ControlVoltageFromFile
-from MakeEnv import make, _get_default_aux
+from grid2op.Chronics.Settings_L2RPN2019 import ReadPypowNetData
 
+from grid2op.Exceptions import *
+from grid2op.MakeEnv import make, make2, _get_default_aux
+from grid2op.Environment import Environment
+from grid2op.Backend import Backend, PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
+from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
+from grid2op.Action import Action, TopologyAction, TopoAndRedispAction, VoltageOnlyAction
+from grid2op.Observation import CompleteObservation, Observation
+from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
+from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
+from grid2op.VoltageControler import ControlVoltageFromFile
 
-# TODO make a test that the defaults are correct for all environment below (eg that the env.chronics_handler has
-# by default the type given in the "make" function, that the backend if of the proper type, that the thermal
+# TODO make a test that the defaults are correct for all environment below
+# (eg that the env.chronics_handler has
+# by default the type given in the "make" function,
+# that the backend if of the proper type, that the thermal
 # limit are properly set up etc.
 # basically, test, for all env, all that is defined there:
 # if name_env.lower() == "case14_fromfile":
@@ -154,7 +154,6 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             with make("case14_test") as env:
                 obs = env.reset()
                 assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
-
             
 class TestGetDefault(unittest.TestCase):
     def test_give_instance_default(self):
@@ -254,7 +253,7 @@ class TestkwargsName(unittest.TestCase):
     def test_gamerules(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("case5_example", gamerules_class=AllwaysLegal) as env:
+            with make("case5_example", gamerules_class=AlwaysLegal) as env:
                 pass
 
     def test_chronics_path(self):
@@ -307,6 +306,162 @@ class TestkwargsName(unittest.TestCase):
             with make("case5_example", volagecontroler_class=ControlVoltageFromFile) as env:
                 pass
 
+
+class TestMake2Config(unittest.TestCase):
+    def test_case5_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path) as env:
+            # Check config is loaded from config.py
+            assert env.rewardClass == L2RPNReward
+            assert env.actionClass == TopologyAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+            
+    def test_case5_runs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path) as env:
+            assert env.redispatching_unit_commitment_availble == True
+            obs = env.reset()
+            sim_obs, reward, done, info = obs.simulate(env.action_space())
+            assert sim_obs != obs
+
+    def test_case14_test_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path) as env:
+            # Check config is loaded from config.py
+            assert env.rewardClass == RedispReward
+            assert env.actionClass == TopoAndRedispAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+            
+    def test_case14_test_runs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path) as env:
+            assert env.redispatching_unit_commitment_availble == True
+            obs = env.reset()
+            sim_obs, reward, done, info = obs.simulate(env.action_space())
+            assert sim_obs != obs
+            assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
+
+    def test_case14_redisp_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_redisp")
+        with make2(dataset_path) as env:
+            # Check config is loaded from config.py
+            assert env.rewardClass == RedispReward
+            assert env.actionClass == TopoAndRedispAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+            
+    def test_case14_redisp_runs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_redisp")
+        with make2(dataset_path) as env:
+            assert env.redispatching_unit_commitment_availble == True
+            obs = env.reset()
+            sim_obs, reward, done, info = obs.simulate(env.action_space())
+            assert sim_obs != obs
+            assert np.all(env._thermal_limit_a == case14_redisp_TH_LIM)
+
+    def test_l2rpn19_test_config(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path) as env:
+            # Check config is loaded from config.py
+            assert env.rewardClass == L2RPNReward
+            assert env.actionClass == TopologyAction
+            assert env.observationClass == CompleteObservation
+            assert isinstance(env.backend, PandaPowerBackend)
+            assert env.legalActClass == DefaultRules
+            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert isinstance(env.chronics_handler.real_data, Multifolder)
+
+class TestMake2ConfigOverride(unittest.TestCase):
+    def test_case5_override_reward(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path, reward_class=FlatReward) as env:
+            assert env.rewardClass == FlatReward
+
+    def test_case14_test_override_reward(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path, reward_class=FlatReward) as env:
+            assert env.rewardClass == FlatReward
+
+    def test_l2rpn19_override_reward(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path, reward_class=FlatReward) as env:
+            assert env.rewardClass == FlatReward
+
+    def test_case5_override_action(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path, action_class=VoltageOnlyAction) as env:
+            assert env.actionClass == VoltageOnlyAction
+
+    def test_case14_test_override_action(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path, action_class=VoltageOnlyAction) as env:
+            assert env.actionClass == VoltageOnlyAction
+
+    def test_l2rpn19_override_action(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path, action_class=VoltageOnlyAction) as env:
+            assert env.actionClass == VoltageOnlyAction
+
+    def test_case5_override_chronics(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        with make2(dataset_path, chronics_class=ChangeNothing) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_case14_test_override_chronics(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        with make2(dataset_path, chronics_class=ChangeNothing) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_l2rpn19_override_chronics(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        with make2(dataset_path, chronics_class=ChangeNothing) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_case5_override_feed_kwargs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
+        chronics_path = os.path.join(dataset_path, "chronics", "0")
+        dfk = {
+            "chronicsClass": ChangeNothing,
+            "path": chronics_path,
+            "gridvalueClass": GridStateFromFile
+        }
+        with make2(dataset_path, data_feeding_kwargs=dfk) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_case14_test_override_feed_kwargs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
+        chronics_path = os.path.join(dataset_path, "chronics", "0")
+        dfk = {
+            "chronicsClass": ChangeNothing,
+            "path": chronics_path,
+            "gridvalueClass": GridStateFromFile
+        }
+        with make2(dataset_path, data_feeding_kwargs=dfk) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    def test_l2rpn19_override_feed_kwargs(self):
+        dataset_path = os.path.join(PATH_CHRONICS, "rte_L2RPN_2019")
+        chronics_path = os.path.join(dataset_path, "chronics", "0000")
+        dfk = {
+            "chronicsClass": ChangeNothing,
+            "path": chronics_path,
+            "gridvalueClass": GridStateFromFile
+        }
+        with make2(dataset_path, data_feeding_kwargs=dfk) as env:
+            assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+    
 
 if __name__ == "__main__":
     unittest.main()

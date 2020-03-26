@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
@@ -7,18 +6,18 @@ import numpy as np
 import pdb
 import warnings
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
+from grid2op.tests.helper_path_test import *
 
-from Exceptions import *
-from Environment import Environment
-from BackendPandaPower import PandaPowerBackend
-from Parameters import Parameters
-from ChronicsHandler import ChronicsHandler, GridStateFromFile, ChangeNothing
-from Reward import L2RPNReward
-from MakeEnv import make
-from GameRules import GameRules, DefaultRules
-from Action import Action
-from Agent import Agent
+from grid2op.Exceptions import *
+from grid2op.Environment import Environment
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
+from grid2op.Reward import L2RPNReward
+from grid2op.MakeEnv import make
+from grid2op.Rules import GameRules, DefaultRules
+from grid2op.Action import Action
+from grid2op.Agent import Agent
 import time
 
 
