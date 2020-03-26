@@ -81,7 +81,8 @@ source venv_grid2op/bin/activate
 git clone https://github.com/rte-france/Grid2Op.git
 cd Grid2Op
 pip3 install -e .
-python3 -m unittest discover
+pip3 install -e .[test]
+pip3 install -e .[doc]
 ```
 
 ## Install with Docker
