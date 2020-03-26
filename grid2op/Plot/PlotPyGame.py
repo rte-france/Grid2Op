@@ -17,6 +17,7 @@ from grid2op.Plot.PlotGraph import BasePlot
 from grid2op.Exceptions import PlotError
 
 try:
+    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
     import pygame
     can_plot = True
 except:
