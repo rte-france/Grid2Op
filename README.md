@@ -30,11 +30,11 @@ Official documentation: the official documentation is available at
 [https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
 *   [1 Installation](#installation)
-    *   [1.1] Requirements](#requirements)
+    *   [1.1 Requirements](#requirements)
     *   [1.2 Install with Virtualenv](#install-venv)
-    	* [1.2.1 Install from PyPI](#install-venv-pypi)
-	* [1.2.2 Install from source](#install-venv-src)
-	* [1.2.3 Install for contributors](#install-venv-contrib)
+    	*   [1.2.1 Install from PyPI](#install-venv-pypi)
+	*   [1.2.2 Install from source](#install-venv-src)
+	*   [1.2.3 Install for contributors](#install-venv-contrib)
     *   [1.3 Install with Virtualenv from source](#install-venv-src)
     *   [1.4 Install with Docker](#install-docker)
     *   [1.3 Install with Virtualenv for developers](#install-venv-dev)
