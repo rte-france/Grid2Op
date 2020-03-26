@@ -1,7 +1,7 @@
 Interactive plot with plotly
 ===================================
 
-.. automodule:: grid2op.PlotPlotly
+.. automodule:: grid2op.Plot
     :members:
     :special-members:
 

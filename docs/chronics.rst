@@ -1,6 +1,6 @@
 ChronicsHandler
 ===================================
-.. automodule:: grid2op.ChronicsHandler
+.. automodule:: grid2op.Chronics
    :members:
 
 .. include:: final.rst

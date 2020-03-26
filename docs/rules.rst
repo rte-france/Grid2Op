@@ -1,6 +1,6 @@
 Rules of the Game
 ===================================
-.. automodule:: grid2op.GameRules
+.. automodule:: grid2op.Rules
     :members:
     :private-members:
     :special-members:

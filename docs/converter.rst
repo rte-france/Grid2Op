@@ -1,6 +1,6 @@
 Converters
 ===================================
-.. automodule:: grid2op.Converters
+.. automodule:: grid2op.Converter
     :members:
     :private-members:
 

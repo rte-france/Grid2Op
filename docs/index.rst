@@ -39,28 +39,23 @@ Plotting capabilities
 ----------------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   pltgraph
-   pltplotly
-   pltpygame
-   pltmatplotlib
+   plot
 
 Technical Documentation
 ----------------------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    action
    agent
    backend
-   backendpp
-   chronicshandler
-   converters
+   chronics
+   converter
    environment
-   gamerules
-   multienv
+   rules
    observation
    parameters
    reward
