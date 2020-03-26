@@ -25,6 +25,8 @@ TODO for next versions
 [0.5.9] - 2020-03-??
 ---------------------
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
+- [FIXED] `time_before_cooldown_line` vector where output twice in observation space
+  (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 1)
 
 [0.5.8] - 2020-03-20
 --------------------

@@ -1110,7 +1110,7 @@ class CompleteObservation(Observation):
                                "p_ex", "q_ex", "v_ex", "a_ex",
                                "rho",
                                "line_status", "timestep_overflow",
-                               "topo_vect", "time_before_cooldown_line",
+                               "topo_vect",
                                "time_before_cooldown_line", "time_before_cooldown_sub",
                                "time_before_line_reconnectable",
                                "time_next_maintenance", "duration_next_maintenance",
