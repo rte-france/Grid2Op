@@ -79,7 +79,7 @@ class Parameters:
         Parameters
         ----------
         parameters_path: ``str``, optional
-            Path where to look for _parameters.
+            Path where to look for parameters.
         """
         # if True, then it will not disconnect lines above their thermal limits
         self.NO_OVERFLOW_DISCONNECTION = False

@@ -14,6 +14,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules import *
+from grid2op.MakeEnv import make
 
 
 class TestLoadingBackendFunc(unittest.TestCase):
@@ -427,6 +428,16 @@ class TestLoadingBackendFunc(unittest.TestCase):
             raise RuntimeError("This should have thrown an IllegalException")
         except IllegalAction:
             pass
+
+
+class TestCooldown(unittest.TestCase):
+    def setUp(self):
+        self.env = make("case5_example", gamerules_class=DefaultRules)
+
+    def test_cooldown_sub(self):
+        act = self.env.action_space({"set_bus": {"substations_id": [(2, [1,1,2,2])]} })
+        obs, *_ = self.env.step(act)
+        # TODO do these kind of test with modified parameters !!!
 
 
 if __name__ == "__main__":

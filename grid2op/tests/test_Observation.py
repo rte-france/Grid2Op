@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
@@ -10,10 +9,6 @@ import numpy as np
 from numpy import dtype
 import pdb
 
-# making sure test can be ran from:
-# root package directory
-# RL4Grid subdirectory
-# RL4Grid/tests subdirectory
 from helper_path_test import *
 
 from grid2op.Exceptions import *
@@ -139,13 +134,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                            dtype('float64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('bool'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
+                                           dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64')],
                                dtype=object)
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20,
+                                            20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20, 20,
                                  5, 5])
-        self.size_obs = 454
+        self.size_obs = 434
 
     def test_sum_shape_equal_size(self):
         obs = self.env.helper_observation(self.env)

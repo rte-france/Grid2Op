@@ -79,19 +79,21 @@ class CompleteObservation(Observation):
                              action_helper=action_helper,
                              seed=seed)
         self.dictionnarized = None
-        self.attr_list_vect = ["year", "month", "day", "hour_of_day", "minute_of_hour", "day_of_week",
-                               "prod_p", "prod_q", "prod_v",
-                               "load_p", "load_q", "load_v",
-                               "p_or", "q_or", "v_or", "a_or",
-                               "p_ex", "q_ex", "v_ex", "a_ex",
-                               "rho",
-                               "line_status", "timestep_overflow",
-                               "topo_vect", "time_before_cooldown_line",
-                               "time_before_cooldown_line", "time_before_cooldown_sub",
-                               "time_before_line_reconnectable",
-                               "time_next_maintenance", "duration_next_maintenance",
-                               "target_dispatch", "actual_dispatch"
-                               ]
+        self.attr_list_vect = [
+            "year", "month", "day", "hour_of_day",
+            "minute_of_hour", "day_of_week",
+            "prod_p", "prod_q", "prod_v",
+            "load_p", "load_q", "load_v",
+            "p_or", "q_or", "v_or", "a_or",
+            "p_ex", "q_ex", "v_ex", "a_ex",
+            "rho",
+            "line_status", "timestep_overflow",
+            "topo_vect",
+            "time_before_cooldown_line", "time_before_cooldown_sub",
+            "time_before_line_reconnectable",
+            "time_next_maintenance", "duration_next_maintenance",
+            "target_dispatch", "actual_dispatch"
+        ]
 
     def _reset_matrices(self):
         self.connectivity_matrix_ = None
