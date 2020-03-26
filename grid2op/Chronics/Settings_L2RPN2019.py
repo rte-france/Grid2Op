@@ -8,7 +8,7 @@ import os
 import pkg_resources
 import copy
 import warnings
-
+from pathlib import Path
 from datetime import timedelta, datetime
 import numpy as np
 import pandas as pd
@@ -17,13 +17,16 @@ from grid2op.Action import Action
 from grid2op.Exceptions import *
 from grid2op.Chronics.ReadPypowNetData import ReadPypowNetData
 
-# the reference powergrid was different than the default case14 of the litterature.
-L2RPN2019_CASEFILE = os.path.abspath(
-    os.path.join("..",
-                 "data",
-                 "test_PandaPower",
-                 "L2RPN_2019_grid.json")
-)
+
+file_dir = Path(__file__).parent.absolute()
+grid2op_root = file_dir.parent.absolute()
+dat_dir = os.path.abspath(os.path.join(grid2op_root, "data"))
+case_dir = "test_PandaPower"
+grid_file = "L2RPN_2019_grid.json"
+
+L2RPN2019_CASEFILE = os.path.join(dat_dir, case_dir, grid_file)
+L2RPN2019_CHRONICSPATH = os.path.join(dat_dir, case_dir, "chronics")
+
 
 CASE_14_L2RPN2019_LAYOUT = graph_layout = [(-280, -81), (-100, -270), (366, -270), (366, -54), (-64, -54), (-64, 54),
                                            (450, 0), (550, 0), (326, 54), (222, 108), (79, 162), (-170, 270),

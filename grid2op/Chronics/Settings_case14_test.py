@@ -5,17 +5,16 @@ environment with a powergrid of only 5 buses, 3 laods, 2 generators and 8 powerl
 import os
 import pkg_resources
 import numpy as np
+from pathlib import Path
 
-# the reference powergrid was different than the default case14 of the litterature.
-case14_test_CASEFILE = os.path.abspath(os.path.join("..",
-                                                    "data",
-                                                    "case14_test",
-                                                    "case14_test.json")
-)
+file_dir = Path(__file__).parent.absolute()
+grid2op_root = file_dir.parent.absolute()
+dat_dir = os.path.abspath(os.path.join(grid2op_root, "data"))
+case_dir = "case14_test"
+grid_file = "case14_test.json"
 
-case14_test_CHRONICSPATH = os.path.join("..", "data",
-                                        "case14_test",
-                                        "chronics")
+case14_test_CASEFILE = os.path.join(dat_dir, case_dir, grid_file)
+case14_test_CHRONICSPATH = os.path.join(dat_dir, case_dir, "chronics")
 
 case14_test_TH_LIM = np.array([   352.8251645 ,    352.8251645 , 183197.68156979, 183197.68156979,
                                    183197.68156979,  12213.17877132, 183197.68156979,    352.8251645,

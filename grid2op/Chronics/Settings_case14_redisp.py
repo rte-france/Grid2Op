@@ -3,20 +3,18 @@ This file contains the settings (path to the case file, chronics converter etc.)
 environment with a powergrid of only 5 buses, 3 laods, 2 generators and 8 powerlines.
 """
 import os
+import pkg_resources
 import numpy as np
+from pathlib import Path
 
-# the reference powergrid was different than the default case14 of the litterature.
-case14_redisp_CASEFILE = os.path.abspath(
-    os.path.join("..",
-                 "data",
-                 "case14_redisp",
-                 "case14_redisp.json")
-)
+file_dir = Path(__file__).parent.absolute()
+grid2op_root = file_dir.parent.absolute()
+dat_dir = os.path.abspath(os.path.join(grid2op_root, "data"))
+case_dir = "case14_redisp"
+grid_file = "case14_redisp.json"
 
-case14_redisp_CHRONICSPATH = os.path.join("..",
-                                          "data",
-                                          "case14_redisp",
-                                          "chronics")
+case14_redisp_CASEFILE = os.path.join(dat_dir, case_dir, grid_file)
+case14_redisp_CHRONICSPATH = os.path.join(dat_dir, case_dir, "chronics")
 
 case14_redisp_TH_LIM = np.array([3.84900179e+02, 3.84900179e+02, 2.28997102e+05, 2.28997102e+05,
                                    2.28997102e+05, 1.52664735e+04, 2.28997102e+05, 3.84900179e+02,
