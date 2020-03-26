@@ -6,13 +6,13 @@ import time
 import numpy as np
 import pdb
 
-from grid2op.tests.helper_path_test import *
+from grid2op.tests.helper_path_test import PATH_CHRONICS, PATH_DATA_TEST_PP
+from grid2op.tests.helper_path_test import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
+from grid2op.tests.helper_data_test import case14_redisp_TH_LIM, case14_test_TH_LIM, case14_real_TH_LIM
+from grid2op.tests.helper_data_test import case14_redisp_layout, case14_test_layout, case14_real_layout
+from grid2op.tests.helper_data_test import L2RPN_2019_dict, L2RPN_2019_layout
 
-from grid2op.Chronics.Settings_case14_redisp import case14_redisp_TH_LIM
-from grid2op.Chronics.Settings_case14_test import case14_test_TH_LIM
-from grid2op.Chronics.Settings_case14_realistic import case14_real_TH_LIM
-from grid2op.Chronics.Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
-from grid2op.Chronics.Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+from grid2op.Chronics.Settings_L2RPN2019 import ReadPypowNetData
 
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make, make2, _get_default_aux
@@ -27,9 +27,10 @@ from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
 from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 
-
-# TODO make a test that the defaults are correct for all environment below (eg that the env.chronics_handler has
-# by default the type given in the "make" function, that the backend if of the proper type, that the thermal
+# TODO make a test that the defaults are correct for all environment below
+# (eg that the env.chronics_handler has
+# by default the type given in the "make" function,
+# that the backend if of the proper type, that the thermal
 # limit are properly set up etc.
 # basically, test, for all env, all that is defined there:
 # if name_env.lower() == "case14_fromfile":

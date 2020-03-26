@@ -8,18 +8,17 @@ import unittest
 import numpy as np
 from pathlib import Path
 
-test_dir = os.fspath(Path(__file__).parent.absolute())
-grid2op_dir = os.fspath(Path(__file__).parent.parent.absolute())
+test_dir = Path(__file__).parent.absolute()
+grid2op_dir = os.fspath(test_dir.parent.absolute())
 data_dir = os.path.abspath(os.path.join(grid2op_dir, "data"))
 
 sys.path.insert(0, grid2op_dir)
 
 PATH_DATA_TEST = data_dir
 PATH_CHRONICS = data_dir
-if not os.path.exists(os.path.join(PATH_DATA_TEST, "chronics_with_forecast")):
-    raise RuntimeError("Impossible to find the test data folder")
 PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPower"))
-
+EXAMPLE_CHRONICSPATH = os.path.abspath(os.path.join(data_dir, "5bus_example", "chronics"))
+EXAMPLE_CASEFILE = os.path.abspath(os.path.join(data_dir, "5bus_example", "5bus_example.json"))
 
 class HelperTests(unittest.TestCase):
     def __init__(self, methodName='runTest'):
