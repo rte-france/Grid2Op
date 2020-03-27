@@ -27,3 +27,13 @@ __all__ = [
 ]
 
 from grid2op.MakeEnv import make
+
+# TODO remove -- Export hardcoded datasets settings at top-level
+from grid2op.MakeEnv import CASE_14_FILE
+from grid2op.MakeEnv import CHRONICS_FODLER
+from grid2op.MakeEnv import CHRONICS_MLUTIEPISODE
+from grid2op.MakeEnv import NAMES_CHRONICS_TO_BACKEND
+from grid2op.MakeEnv import EXAMPLE_CHRONICSPATH
+from grid2op.MakeEnv import EXAMPLE_CASEFILE
+from grid2op.MakeEnv import L2RPN2019_CASEFILE
+from grid2op.MakeEnv import L2RPN2019_DICT_NAMES
