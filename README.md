@@ -101,7 +101,7 @@ Its main features are:
 ## Powerflow solver
 Grid2Op relies on an open source powerflow solver ([PandaPower](https://www.pandapower.org/)),
 but is also compatible with other *Backend*. If you have at your disposal another powerflow solver, 
-the documentation of [grid2op/Backend.py](grid2op/Backend.py) can help you integrate it into a proper "Backend"
+the documentation of [grid2op/Backend](grid2op/Backend/Backend.py) can help you integrate it into a proper "Backend"
 and have Grid2Op using this powerflow instead of PandaPower.
 
 # Getting Started
