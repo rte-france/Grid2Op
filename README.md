@@ -20,9 +20,9 @@ Official documentation: the official documentation is available at
 
 *   [1 Installation](#installation)
     *   [1.1 Setup a Virtualenv (optional)](#setup-a-virtualenv-optional)
-    *   [1.2 Install from source](#step-2-install-from-source)
-    *   [1.3 Install from PyPI](#step-2-install-from-pypi)
-    *   [1.4 Install for contributors](#step-2-install-for-contributors)
+    *   [1.2 Install from source](#install-from-source)
+    *   [1.3 Install from PyPI](#install-from-pypi)
+    *   [1.4 Install for contributors](#install-for-contributors)
     *   [1.5 Docker](#docker)
 *   [2 Main features of Grid2Op](#main-features-of-grid2op)
 *   [3 Getting Started](#getting-started)
