@@ -23,7 +23,6 @@ TODO for next versions
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-
 [0.5.9] - 2020-03-??
 ---------------------
 - [ADDED] Alternative method to load datasets based on new dataset format: MakeEnv.make2
@@ -31,6 +30,7 @@ TODO for next versions
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
 - [FIXED] `time_before_cooldown_line` vector where output twice in observation space
   (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 1)
+- [UPDATED] import documentation of `Space` especially in case someone wants to build other type of Backend
 
 [0.5.8] - 2020-03-20
 --------------------

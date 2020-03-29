@@ -106,6 +106,10 @@ class GridObjects:
     the first call to :func:`grid2op.Backend.Backend.load_grid` is performed. In particular the following attributes
     must necessarily be defined (see above for a detailed description of some of the attributes):
 
+    - :attr:`GridObjects.name_load`
+    - :attr:`GridObjects.name_gen`
+    - :attr:`GridObjects.name_line`
+    - :attr:`GridObjects.name_sub`
     - :attr:`GridObjects.n_line`
     - :attr:`GridObjects.n_gen`
     - :attr:`GridObjects.n_load`
