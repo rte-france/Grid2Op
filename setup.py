@@ -50,7 +50,7 @@ except (ImportError, ModuleNotFoundError):
         print("Numba is not available for your platform. You could gain massive speed up if you could install it.")
 
 setup(name='Grid2Op',
-      version='0.5.8',
+      version='0.5.9',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations '
                        'independently of the software used to compute powerflow or method to generate grid '
@@ -70,7 +70,7 @@ setup(name='Grid2Op',
       author_email='benjamin.donnot@rte-france.com',
       url="https://github.com/rte-france/Grid2Op",
       license='MPL',
-      packages=['grid2op'],
+      packages=setuptools.find_packages(),
       include_package_data=True,
       install_requires=pkgs["required"],
       extras_require=pkgs["extras"],
@@ -80,5 +80,5 @@ setup(name='Grid2Op',
               'grid2op.main=grid2op.command_line:main',
               'grid2op.download=grid2op.command_line:download'
           ]
-      }
+     }
 )
