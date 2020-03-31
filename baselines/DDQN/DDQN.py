@@ -14,7 +14,7 @@ class DDQN(object):
                  action_size, num_action,
                  observation_size,                 
                  num_frames = 1,
-                 learning_rate = 1e-4):
+                 learning_rate = 1e-5):
         self.action_size = action_size
         self.num_action = num_action
         self.observation_size = observation_size
