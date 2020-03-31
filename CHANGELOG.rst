@@ -21,6 +21,7 @@ TODO for next versions
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] fix notebook 5 texts
 
 [0.5.9] - 2020-03-??
 ---------------------
@@ -35,6 +36,15 @@ TODO for next versions
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
 - [FIXED] `time_before_cooldown_line` vector where output twice in observation space
   (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 1)
+- [FIXED] the number of active bus on a substation was not computed properly, which lead to some unexpected
+  behavior regarding the powerlines switches (depending on current stats of powerline, changing the buses of some
+  powerline has different effect)
+  (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 2)
+- [FIXED] wrong voltages were reported for PandapowerBackend that causes some isolated load to be not detected
+  (see `issue 51 <https://github.com/rte-france/Grid2Op/issues/51>`_ )
+- [FIXED] improve the install script to not crash when numba can be installed, but cannot be loaded.
+  (see `issue 50 <https://github.com/rte-france/Grid2Op/issues/50>`_ )
+- [UPDATED] import documentation of `Space` especially in case someone wants to build other type of Backend
 
 [0.5.8] - 2020-03-20
 --------------------

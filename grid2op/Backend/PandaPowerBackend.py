@@ -407,8 +407,8 @@ class PandaPowerBackend(Backend):
                     # implement in on the _grid
                     # change the topology in case it doesn't match the original one
                     if np.any(actual_topo != origin_topo):
-                        nb_bus_before = len(np.unique(origin_topo))
-                        nb_bus_now = len(np.unique(actual_topo))
+                        nb_bus_before = len(np.unique(origin_topo[origin_topo > 0.]))  # only count activated bus
+                        nb_bus_now = len(np.unique(actual_topo[actual_topo > 0.]))  # only count activated bus
                         if nb_bus_before > nb_bus_now:
                             # i must deactivate the unused bus
                             self._grid.bus["in_service"][sub_id + self.n_sub] = False
@@ -474,7 +474,6 @@ class PandaPowerBackend(Backend):
                 # remove the warning if _grid non connex. And it that case load flow as not converged
                 warnings.filterwarnings("ignore", category=scipy.sparse.linalg.MatrixRankWarning)
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
-                # warnings.filterwarnings("ignore", category=RuntimeWarning)
                 if nb_bus == self._nb_bus_before:
                     self._pf_init = "results"
                     init_vm_pu = "results"
@@ -646,7 +645,7 @@ class PandaPowerBackend(Backend):
     def _loads_info(self):
         load_p = 1. * self._grid.res_load["p_mw"].values
         load_q = 1. * self._grid.res_load["q_mvar"].values
-        load_v = self._grid.res_bus["vm_pu"][self.load_to_subid].values * self.load_pu_to_kv
+        load_v = self._grid.res_bus.loc[self._grid.load["bus"].values]["vm_pu"].values * self.load_pu_to_kv
         return load_p, load_q, load_v
 
     def loads_info(self):
@@ -661,7 +660,8 @@ class PandaPowerBackend(Backend):
     def shunt_info(self):
         shunt_p = 1.0 * self._grid.res_shunt["p_mw"].values
         shunt_q = 1.0 * self._grid.res_shunt["q_mvar"].values
-        shunt_v = self._grid.res_bus["vm_pu"][self._grid.shunt["bus"]] * self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
+        shunt_v = self._grid.res_bus["vm_pu"].values[self._grid.shunt["bus"].values]
+        shunt_v *= self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
         shunt_bus = self._grid.shunt["bus"].values
         return shunt_p, shunt_q, shunt_v, shunt_bus
 

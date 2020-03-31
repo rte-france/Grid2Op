@@ -445,7 +445,7 @@ class Action(GridObjects):
         # objects are the same
         return True
 
-    def get_topological_impact(self):
+    def get_topological_impact(self, powerline_status=None):
         """
         Gives information about the element being impacted by this action.
 
@@ -483,15 +483,18 @@ class Action(GridObjects):
             :attr:`Action._subs_impacted` for more information.
 
         """
+        if powerline_status is None:
+            powerline_status = np.full(self.n_line, fill_value=False, dtype=np.bool)
+
         if self._lines_impacted is None:
-            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
+            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & (~powerline_status))
 
         if self._subs_impacted is None:
             # supposes tha self._lines_impacted
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
             beg_ = 0
             end_ = 0
-            powerlines_reco = np.where(self._set_line_status == 1)[0]  # all the id of the powerlines reconnected
+            powerlines_reco = np.where(self._set_line_status == 1 & (~powerline_status))[0]  # all the id of the powerlines reconnected
             sub_or_id = self.line_or_to_subid[powerlines_reco]
             sub_ex_id = self.line_ex_to_subid[powerlines_reco]
             sub_id = np.concatenate((sub_or_id, sub_ex_id))

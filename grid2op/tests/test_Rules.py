@@ -3,7 +3,7 @@ import sys
 import unittest
 import numpy as np
 import pdb
-
+import warnings
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
@@ -432,10 +432,31 @@ class TestCooldown(unittest.TestCase):
     def setUp(self):
         self.env = make("case5_example", gamerules_class=DefaultRules)
 
+    def tearDown(self):
+        self.env.close()
+
     def test_cooldown_sub(self):
         act = self.env.action_space({"set_bus": {"substations_id": [(2, [1,1,2,2])]} })
         obs, *_ = self.env.step(act)
         # TODO do these kind of test with modified parameters !!!
+
+
+class TestNoFakeRecoHack(unittest.TestCase):
+    def test(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_case2 = make("case5_example")
+        obs = env_case2.reset()  # reset is good
+        obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
+        # powerline 5 is connected
+        # i fake a reconnection of it
+        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5,
+                                                               bus_or=2,
+                                                               bus_ex=2)
+        obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
+        # this was illegal before, but test it is still illegal
+        assert info_case2["is_illegal"], "action should be illegal as it consists of change both ends of a " \
+                                         "powerline, while authorizing only 1 substations change"
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ from grid2op.Space import GridObjects
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
 
+
 class _BasicEnv(GridObjects, ABC):
     """
     Internal class, do not use
