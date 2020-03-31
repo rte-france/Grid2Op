@@ -14,7 +14,7 @@ class DDQN(object):
                  action_size, num_action,
                  observation_size,                 
                  num_frames = 1,
-                 learning_rate = 1e-5):
+                 learning_rate = 1e-6):
         self.action_size = action_size
         self.num_action = num_action
         self.observation_size = observation_size
@@ -74,11 +74,11 @@ class DDQN(object):
         # Saves model at specified path as h5 file
         # nothing has changed
         self.model.save(path)
-        print("Successfully saved network.")
+        print("Successfully saved model at: {}".format(path))
 
     def load_network(self, path):
         # nothing has changed
         self.model.load_weights(path)
         self.target_model.load_weights(path)
-        print("Succesfully loaded network.")
+        print("Succesfully loaded network from: {}".format(path))
 

@@ -123,10 +123,11 @@ class TrainAgent(object):
                 with self.tf_writer.as_default():
                     tf.summary.scalar("reward", total_reward, step)
                     tf.summary.scalar("alive", alive_steps, step)
+                    tf.summary.scalar("random", epsilon, step)
                 print("Lived [{}] steps".format(alive_steps))
                 print("Total reward [{}]".format(total_reward))
                 alive_steps = 0
-                total_reward = 0                    
+                total_reward = 0             
             else:
                 total_reward += reward
                 alive_steps += 1
@@ -170,5 +171,5 @@ class TrainAgent(object):
         # Log the loss every 5 updates
         if step % (5 * UPDATE_FREQ) == 0:
             with self.tf_writer.as_default():
-                tf.summary.scalar("loss", loss, step)        
+                tf.summary.scalar("loss", loss, step)
             print("loss =", loss)

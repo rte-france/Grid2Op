@@ -54,7 +54,8 @@ class IdToAct(Converter):
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
         self.all_actions = []
-        self.all_actions.append(super().__call__())  # add the do nothing topology
+        # add the do nothing topology
+        self.all_actions.append(super().__call__())
         self.n = 1
 
     def init_converter(self, all_actions=None, **kwargs):
@@ -77,6 +78,9 @@ class IdToAct(Converter):
         """
         if all_actions is None:
             self.all_actions = []
+            # add the do nothing topology
+            self.all_actions.append(super().__call__())
+
             if "_set_line_status" in self._template_act.attr_list_vect:
                 # powerline switch: disconnection
                 for i in range(self.n_line):
@@ -95,7 +99,6 @@ class IdToAct(Converter):
             elif "_change_bus_vect" in self._template_act.attr_list_vect:
                 # topologies 'change'
                 self.all_actions += self.get_all_unitary_topologies_change(self)
-
         else:
             self.all_actions = all_actions
         self.n = len(self.all_actions)
