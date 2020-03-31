@@ -211,7 +211,7 @@ def _check_kwargs(kwargs):
         if not el in ALLOWED_KWARGS_MAKE2:
             raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
                            "No Environment will be created. "
-                           "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS)))
+                           "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS_MAKE2)))
     
 def _check_path(path, info):
     if path is None or os.path.exists(path) is False:
