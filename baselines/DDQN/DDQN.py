@@ -30,18 +30,18 @@ class DDQN(object):
         
         input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,))
         lay1 = tfkl.Dense(self.observation_size*self.num_frames)(input_layer)
-        lay1 = tfkl.Activation('relu')(lay1)
         
         lay2 = tfkl.Dense(self.observation_size)(lay1)
-        lay2 = tfkl.Activation('relu')(lay2)
+        lay2 = tfka.relu(lay2, alpha=0.05) #leaky_relu
         
         lay3 = tfkl.Dense(2*self.num_action)(lay2)
-        lay3 = tfkl.Activation('relu')(lay3)
+        lay3 = tfka.relu(lay3, alpha=0.05) #leaky_relu
         
-        fc1 = tfkl.Dense(self.num_action)(lay3)
-        advantage = tfkl.Dense(self.num_action)(fc1)
-        fc2 = tfkl.Dense(self.num_action)(lay3)
-        value = tfkl.Dense(self.num_action)(fc2)
+        lay4 = tfkl.Dense(2*self.num_action)(lay3)
+
+        adv, val = tf.split(lay4, 2, 1)
+        advantage = tfkl.Dense(self.num_action)(adv)
+        value = tfkl.Dense(self.num_action)(val)
         
         advantage_mean = tfk.backend.mean(advantage, axis=1, keepdims=True)
         advantage = tfkl.subtract([advantage, advantage_mean])

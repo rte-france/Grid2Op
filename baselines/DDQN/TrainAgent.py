@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from grid2op.Reward import RedispReward
 from ReplayBuffer import ReplayBuffer
         
 EPSILON_DECAY = 10000
@@ -14,21 +13,20 @@ UPDATE_FREQ = 16
 class TrainAgent(object):
     def __init__(self, agent, env,
                  name="agent", 
-                 reward_fun=RedispReward,
                  num_frames=1,
                  batch_size=32):
         self.agent = agent
         self.env = env
-        self.observation_size = 0
+        self.obs = self.env.reset()
+        self.state = self.agent.convert_obs(self.obs)
+        self.observation_size = self.state.shape[0]
+        self.agent.init_deep_q(self.state)
         self.name = name
-        self.reward_fun = reward_fun
         self.num_frames = num_frames
         self.batch_size = batch_size
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE * batch_size)
 
         # Loop vars
-        self.obs = None
-        self.state = None
         self.done = False
         self.frames = []
         self.frames2 = []
@@ -40,14 +38,12 @@ class TrainAgent(object):
         self.obs = self.env.reset()
         self.state = self.agent.convert_obs(self.obs)
         self.observation_size = self.state.shape[0]
-        # Init model from state
-        self.agent.init_deep_q(self.state)
         self.done = False
 
     def _reset_frame_buffer(self):
         # Reset frame buffers
-        self.frames = []
-        self.frames2 = []
+        self.frames = [self.state for i in range(self.num_frames)]
+        self.frames2 = [self.state for i in range(self.num_frames)]
         
     def _save_frames(self, state, next_state):
         self.frames.append(state)

@@ -3,7 +3,6 @@
 import argparse
 
 from grid2op.MakeEnv import make2
-from grid2op.Reward import RedispReward
 
 from DDQNAgent import DDQNAgent 
 from TrainAgent import TrainAgent
@@ -15,25 +14,32 @@ def cli():
     parser.add_argument("--name", required=True,
                         help="The name of the model")
     parser.add_argument("--batch_size", required=False,
-                        default=1, type=int,
+                        default=32, type=int,
                         help="Mini batch size (defaults to 1)")
     parser.add_argument("--num_pre_steps", required=False,
-                        default=100, type=int,
+                        default=256, type=int,
                         help="Number of random steps before training")
     parser.add_argument("--num_train_steps", required=False,
-                        default=16, type=int,
+                        default=1024, type=int,
                         help="Number of training iterations")
     parser.add_argument("--num_frames", required=False,
-                        default=1, type=int,
+                        default=4, type=int,
                         help="Number of observation frames to use during training")
+    parser.add_argument("--resume", required=False,
+                        help="Path to model.h5 to resume training with")
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = cli()
     env = make2(args.path_data)
-    dqnn_agent = DDQNAgent(env.action_space, num_frames=args.num_frames)
+    dqnn_agent = DDQNAgent(env.action_space,
+                           num_frames=args.num_frames)
+
     trainer = TrainAgent(dqnn_agent, env,
                          name=args.name, 
-                         reward_fun=RedispReward,
+                         batch_size=args.batch_size,
                          num_frames=args.num_frames)
+    if args.resume is not None:
+        dqnn_agent.deep_q.load_network(args.resume)
+
     trainer.train(args.num_pre_steps, args.num_train_steps)
