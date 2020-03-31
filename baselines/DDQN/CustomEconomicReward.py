@@ -1,0 +1,42 @@
+import numpy as np
+from abc import ABC, abstractmethod
+
+from grid2op.Exceptions import Grid2OpException
+from grid2op.Reward.Reward import Reward
+
+class CustomEconomicReward(Reward):
+    """
+    This reward computes the marginal cost of the powergrid. As RL is about maximising a reward, while we want to
+    minimize the cost, this class also ensures that:
+
+    - the reward is positive if there is no game over, no error etc.
+    - the reward is inversely proportional to the cost of the grid (the higher the reward, the lower the economic cost).
+
+    """
+    def __init__(self):
+        Reward.__init__(self)
+        self.reward_min = None
+        self.reward_max = None
+        self.worst_cost = None
+
+    def initialize(self, env):
+        if not env.redispatching_unit_commitment_availble:
+            raise Grid2OpException("Impossible to use the EconomicReward reward with an environment without generators"
+                                   "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
+        self.worst_cost = np.sum(env.gen_cost_per_MW *env.gen_pmax)
+        self.reward_min = -10.0
+        self.reward_max = self.worst_cost
+
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        if has_error or is_illegal or is_ambiguous:
+            res = self.reward_min
+        elif is_done:
+            res = self.reward_max * 1.1
+        else:
+            # compute the cost of the grid
+            res = np.sum(env.current_obs.prod_p * env.gen_cost_per_MW)
+            # we want to minimize the cost by maximizing the reward so let's take the opposite
+            res *= -1
+            # to be sure it's positive, add the highest possible cost
+            res += self.worst_cost
+        return res

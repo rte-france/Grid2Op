@@ -6,6 +6,7 @@ from grid2op.MakeEnv import make2
 
 from DDQNAgent import DDQNAgent 
 from TrainAgent import TrainAgent
+from CustomEconomicReward import CustomEconomicReward
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -34,7 +35,7 @@ def cli():
 
 if __name__ == "__main__":
     args = cli()
-    env = make2(args.path_data)
+    env = make2(args.path_data, reward_class=CustomEconomicReward)
     dqnn_agent = DDQNAgent(env.action_space,
                            num_frames=args.num_frames,
                            lr=args.learning_rate)
