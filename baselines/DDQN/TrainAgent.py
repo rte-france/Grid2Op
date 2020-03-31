@@ -148,7 +148,7 @@ class TrainAgent(object):
 
     def batch_train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, step):
         """Trains network to fit given parameters"""
-        targets = np.zeros((self.batch_size, self.agent.num_action))
+        Q = np.zeros((self.batch_size, self.agent.num_action))
 
         # Reshape frames to 1D
         input_size = self.observation_size * self.num_frames
@@ -156,17 +156,18 @@ class TrainAgent(object):
         t_input = np.reshape(s2_batch, (self.batch_size, input_size))
 
         # Batch predict
-        targets = self.agent.deep_q.model.predict(m_input, batch_size = self.batch_size)
-        fut_action = self.agent.deep_q.target_model.predict(t_input, batch_size = self.batch_size)
+        Q = self.agent.deep_q.model.predict(m_input, batch_size = self.batch_size)
+        Q2 = self.agent.deep_q.target_model.predict(t_input, batch_size = self.batch_size)
 
-        # Compute Q target
+        # Compute batch Q update from Qtarget
         for i in range(self.batch_size):
-            targets[i, a_batch[i]] = r_batch[i]
+            Q[i, a_batch[i]] = r_batch[i]
             if d_batch[i] == False:
-                targets[i, a_batch[i]] += DISCOUNT_FACTOR * np.max(fut_action[i])
+                doubleQ = Q2[i, np.argmax(Q[i])]
+                Q[i, a_batch[i]] += DISCOUNT_FACTOR * doubleQ
 
         # Batch train
-        loss = self.agent.deep_q.model.train_on_batch(m_input, targets)
+        loss = self.agent.deep_q.model.train_on_batch(m_input, Q)
 
         # Log the loss every 5 updates
         if step % (5 * UPDATE_FREQ) == 0:
