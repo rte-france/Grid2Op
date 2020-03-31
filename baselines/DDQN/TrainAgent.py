@@ -5,18 +5,18 @@ from grid2op.Reward import RedispReward
 from ReplayBuffer import ReplayBuffer
         
 EPSILON_DECAY = 10000
-FINAL_EPSILON = 1/300
-INITIAL_EPSILON = 0.1
-DECAY_RATE = 0.9
-REPLAY_BUFFER_SIZE = 64
-UPDATE_FREQ = 4
+FINAL_EPSILON = 0.001
+INITIAL_EPSILON = 0.33
+DISCOUNT_FACTOR = 0.99
+REPLAY_BUFFER_SIZE = 128
+UPDATE_FREQ = 16
 
 class TrainAgent(object):
     def __init__(self, agent, env,
                  name="agent", 
                  reward_fun=RedispReward,
                  num_frames=1,
-                 batch_size=8):
+                 batch_size=32):
         self.agent = agent
         self.env = env
         self.observation_size = 0
@@ -25,54 +25,93 @@ class TrainAgent(object):
         self.num_frames = num_frames
         self.batch_size = batch_size
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE * batch_size)
+
+        # Loop vars
+        self.obs = None
+        self.state = None
+        self.done = False
+        self.frames = []
+        self.frames2 = []
+
+    def _reset_state(self):
+        # Initial state
+        self.obs = self.env.reset()
+        self.state = self.agent.convert_obs(self.obs)
+        self.observation_size = self.state.shape[0]
+        # Init model from state
+        self.agent.init_deep_q(self.state)
+        self.done = False
+
+    def _reset_frame_buffer(self):
+        # Reset frame buffers
+        self.frames = []
+        self.frames2 = []
+        
+    def _save_frames(self, state, next_state):
+        self.frames.append(state)
+        if len(self.frames) > self.num_frames:
+            self.frames.pop(0)
+        self.frames2.append(next_state)
+        if len(self.frames2) > self.num_frames:
+            self.frames2.pop(0)
     
     def train(self, num_pre_training_steps, num_training_steps, env=None):
+        # Make sure we can fill the experience buffer
+        if num_pre_training_steps < self.batch_size * self.num_frames:
+            num_pre_training_steps = self.batch_size * self.num_frames
+
+        # Loop vars
         num_steps = num_pre_training_steps + num_training_steps
         step = 0
         epsilon = INITIAL_EPSILON
         alive_steps = 0
         total_reward = 0
-        done = True
+        self.done = True
 
         self.tf_writer = tf.summary.create_file_writer("./logs/{}".format(self.name), name=self.name)
         
         # Training loop
         while step < num_steps:
             # Init first time or new episode
-            if done:
-                # Create initial state
-                obs = self.env.reset()
-                state = self.agent.convert_obs(obs)
-                self.observation_size = state.shape[0]
-                # Init model from state
-                self.agent.init_deep_q(state)
-                done = False
-
+            if self.done:
+                self._reset_state()
+                self._reset_frame_buffer()
             if step % 1000 == 0:
-                print("Executing step {}".format(step))
+                print("Step [{}] -- Random [{}]".format(step, epsilon))
 
             # Choose an action
-            if step < num_pre_training_steps or np.random.rand(1) < epsilon:
+            if step <= num_pre_training_steps:
+                a = self.agent.deep_q.random_move()
+            elif len(self.frames) < self.num_frames:
+                a = self.agent.deep_q.random_move()
+            elif np.random.rand(1) < epsilon:
                 a = self.agent.deep_q.random_move()
             else:
-                a, _ = self.agent.deep_q.predict_move(state)
+                a, _ = self.agent.deep_q.predict_move(np.array(self.frames))
+
             # Convert it to a valid action
             act = self.agent.convert_act(a)
             # Execute action
-            new_obs, reward, done, info = self.env.step(act)
+            new_obs, reward, self.done, info = self.env.step(act)
             new_state = self.agent.convert_obs(new_obs)
-            self.reward = reward
+            
+            # Save to frame buffer
+            self._save_frames(self.state.copy(), new_state.copy())
+
             # Save to experience buffer
-            self.replay_buffer.add(state, a, reward, done, new_state)
+            if len(self.frames) == self.num_frames:
+                self.replay_buffer.add(np.array(self.frames),
+                                       a, reward, self.done,
+                                       np.array(self.frames2))
 
             # Perform training when we have enough experience in buffer
-            if step > num_pre_training_steps and step > self.batch_size:
+            if step > num_pre_training_steps:
                 # Slowly decay chance of random action
                 if epsilon > FINAL_EPSILON:
                     epsilon -= (INITIAL_EPSILON-FINAL_EPSILON)/EPSILON_DECAY
 
                 # Perform training at given frequency
-                if step % UPDATE_FREQ == 0:
+                if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:
                     # Sample from experience buffer
                     s_batch, a_batch, r_batch, d_batch, s1_batch = self.replay_buffer.sample(self.batch_size)
                     # Perform training
@@ -80,12 +119,12 @@ class TrainAgent(object):
                     # Update target network towards primary network
                     self.agent.deep_q.update_target()
 
-            if done:
+            if self.done:
                 with self.tf_writer.as_default():
                     tf.summary.scalar("reward", total_reward, step)
                     tf.summary.scalar("alive", alive_steps, step)
-                print("Lived with maximum time ", alive_steps)
-                print("Earned a total of reward equal to ", total_reward)
+                print("Lived [{}] steps".format(alive_steps))
+                print("Total reward [{}]".format(total_reward))
                 alive_steps = 0
                 total_reward = 0                    
             else:
@@ -100,31 +139,36 @@ class TrainAgent(object):
             # Iterate to next loop
             alive_steps += 1
             step += 1
-            obs = new_obs
-            state = new_state
+            self.obs = new_obs
+            self.state = new_state
 
         # Save model after all steps
         self.agent.deep_q.save_network(self.name + ".h5")
 
     def batch_train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, step):
         """Trains network to fit given parameters"""
-        # nothing has changed except adapting the input shapes
         targets = np.zeros((self.batch_size, self.agent.num_action))
-        
-        for i in range(self.batch_size):
-            model_input = s_batch[i].reshape(1, self.observation_size * self.num_frames)
-            target_input = s2_batch[i].reshape(1, self.observation_size * self.num_frames)
-            targets[i] = self.agent.deep_q.model.predict(model_input, batch_size = 1)
-            fut_action = self.agent.deep_q.target_model.predict(target_input, batch_size = 1)
 
+        # Reshape frames to 1D
+        input_size = self.observation_size * self.num_frames
+        m_input = np.reshape(s_batch, (self.batch_size, input_size))
+        t_input = np.reshape(s2_batch, (self.batch_size, input_size))
+
+        # Batch predict
+        targets = self.agent.deep_q.model.predict(m_input, batch_size = self.batch_size)
+        fut_action = self.agent.deep_q.target_model.predict(t_input, batch_size = self.batch_size)
+
+        # Compute Q target
+        for i in range(self.batch_size):
             targets[i, a_batch[i]] = r_batch[i]
             if d_batch[i] == False:
-                targets[i, a_batch[i]] += 0.9 * np.max(fut_action)
+                targets[i, a_batch[i]] += DISCOUNT_FACTOR * np.max(fut_action[i])
 
-        loss = self.agent.deep_q.model.train_on_batch(s_batch, targets)
+        # Batch train
+        loss = self.agent.deep_q.model.train_on_batch(m_input, targets)
 
-        # Log the loss every 100 iterations
-        if step % 100 == 0:
+        # Log the loss every 5 updates
+        if step % (5 * UPDATE_FREQ) == 0:
             with self.tf_writer.as_default():
                 tf.summary.scalar("loss", loss, step)        
-            print("We had a loss equal to ", loss)
+            print("loss =", loss)
