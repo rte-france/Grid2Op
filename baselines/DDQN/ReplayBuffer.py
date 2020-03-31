@@ -1,7 +1,6 @@
 # Credit Abhinav Sagar: 
 # https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial
-# Code under MIT license, available at:
-# https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial/blob/master/LICENSE
+
 from collections import deque
 import random
 import numpy as np

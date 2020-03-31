@@ -5,7 +5,7 @@ from grid2op.Reward import RedispReward
 from ReplayBuffer import ReplayBuffer
         
 EPSILON_DECAY = 10000
-FINAL_EPSILON = 0.001
+FINAL_EPSILON = 0.002
 INITIAL_EPSILON = 0.33
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 128
@@ -32,6 +32,8 @@ class TrainAgent(object):
         self.done = False
         self.frames = []
         self.frames2 = []
+        self.epoch_rewards = []
+        self.epoch_alive = []
 
     def _reset_state(self):
         # Initial state
@@ -119,17 +121,19 @@ class TrainAgent(object):
                     # Update target network towards primary network
                     self.agent.deep_q.update_target()
 
+            total_reward += reward
             if self.done:
+                self.epoch_rewards.append(total_reward)
+                self.epoch_alive.append(alive_steps)
                 with self.tf_writer.as_default():
-                    tf.summary.scalar("reward", total_reward, step)
-                    tf.summary.scalar("alive", alive_steps, step)
+                    tf.summary.scalar("mean_reward", np.mean(self.epoch_rewards), len(self.epoch_rewards))
+                    tf.summary.scalar("mean_alive", np.mean(self.epoch_alive), len(self.epoch_alive))
                     tf.summary.scalar("random", epsilon, step)
                 print("Lived [{}] steps".format(alive_steps))
                 print("Total reward [{}]".format(total_reward))
                 alive_steps = 0
-                total_reward = 0             
+                total_reward = 0
             else:
-                total_reward += reward
                 alive_steps += 1
             
             # Save the network every 1000 iterations
@@ -138,7 +142,6 @@ class TrainAgent(object):
                 self.agent.deep_q.save_network(self.name + ".h5")
 
             # Iterate to next loop
-            alive_steps += 1
             step += 1
             self.obs = new_obs
             self.state = new_state
