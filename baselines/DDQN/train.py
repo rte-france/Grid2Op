@@ -44,6 +44,7 @@ if __name__ == "__main__":
                          name=args.name, 
                          batch_size=args.batch_size,
                          num_frames=args.num_frames)
+
     if args.resume is not None:
         dqnn_agent.deep_q.load_network(args.resume)
 
