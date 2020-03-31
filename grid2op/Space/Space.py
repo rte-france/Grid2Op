@@ -125,6 +125,15 @@ class GridObjects:
     - :attr:`GridObjects.line_or_to_sub_pos`
     - :attr:`GridObjects.line_ex_to_sub_pos`
 
+    A call to the function :func:`GridObjects._compute_pos_big_topo` allow to compute the \*_pos_topo_vect attributes
+    (for example :attr:`GridObjects.line_ex_pos_topo_vect`) can be computed from the above data:
+
+    - :attr:`GridObjects.load_pos_topo_vect`
+    - :attr:`GridObjects.gen_pos_topo_vect`
+    - :attr:`GridObjects.line_or_pos_topo_vect`
+    - :attr:`GridObjectsline_ex_pos_topo_vect`
+
+
     Note that if you want to model an environment with unit commitment or redispatching capabilities, you also need
     to provide the following attributes:
 
@@ -142,8 +151,7 @@ class GridObjects:
 
     These information are loaded using the :func:`grid2op.Backend.Backend.load_redispacthing_data` method.
 
-    A call to the function :func:`GridObjects._compute_pos_big_topo` allow to compute the \*_pos_topo_vect attributes
-    (for example :attr:`GridObjects.line_ex_pos_topo_vect`) can be computed from this data.
+
 
     **NB** it does not store any information about the current state of the powergrid. It stores information that
     cannot be modified by the Agent, the Environment or any other entity.

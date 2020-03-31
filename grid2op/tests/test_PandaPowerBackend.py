@@ -902,6 +902,14 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 14
 
+    def test_isolate_load(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make()
+        act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
+        obs, reward, done, info = env.step(act)
+        assert done, "an isolated laod has not lead to a game over"
+
 
 if __name__ == "__main__":
     unittest.main()

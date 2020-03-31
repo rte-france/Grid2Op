@@ -646,7 +646,7 @@ class PandaPowerBackend(Backend):
     def _loads_info(self):
         load_p = 1. * self._grid.res_load["p_mw"].values
         load_q = 1. * self._grid.res_load["q_mvar"].values
-        load_v = self._grid.res_bus["vm_pu"][self.load_to_subid].values * self.load_pu_to_kv
+        load_v = self._grid.res_bus["vm_pu"][self._grid.load["bus"].values].values * self.load_pu_to_kv
         return load_p, load_q, load_v
 
     def loads_info(self):
@@ -661,7 +661,7 @@ class PandaPowerBackend(Backend):
     def shunt_info(self):
         shunt_p = 1.0 * self._grid.res_shunt["p_mw"].values
         shunt_q = 1.0 * self._grid.res_shunt["q_mvar"].values
-        shunt_v = self._grid.res_bus["vm_pu"][self._grid.shunt["bus"]] * self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
+        shunt_v = self._grid.res_bus["vm_pu"][self._grid.shunt["bus"].values] * self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
         shunt_bus = self._grid.shunt["bus"].values
         return shunt_p, shunt_q, shunt_v, shunt_bus
 

@@ -36,6 +36,8 @@ TODO for next versions
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
 - [FIXED] `time_before_cooldown_line` vector where output twice in observation space
   (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 1)
+- [FIXED] wrong voltages were reported for PandapowerBackend that causes some isolated load to be not detected
+  (see `issue 51 <https://github.com/rte-france/Grid2Op/issues/51>`_ )
 - [UPDATED] import documentation of `Space` especially in case someone wants to build other type of Backend
 
 [0.5.8] - 2020-03-20
