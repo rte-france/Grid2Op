@@ -25,6 +25,9 @@ def cli():
     parser.add_argument("--num_frames", required=False,
                         default=4, type=int,
                         help="Number of observation frames to use during training")
+    parser.add_argument("--learning_rate", required=False,
+                        default=1e-5, type=float,
+                        help="Learning rate for the Adam optimizer")
     parser.add_argument("--resume", required=False,
                         help="Path to model.h5 to resume training with")
     return parser.parse_args()
@@ -33,7 +36,8 @@ if __name__ == "__main__":
     args = cli()
     env = make2(args.path_data)
     dqnn_agent = DDQNAgent(env.action_space,
-                           num_frames=args.num_frames)
+                           num_frames=args.num_frames,
+                           lr=args.learning_rate)
 
     trainer = TrainAgent(dqnn_agent, env,
                          name=args.name, 
