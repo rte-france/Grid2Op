@@ -8,138 +8,80 @@
 
 Grid2Op is a plateform, built with modularity in mind, that allows to perform powergrid operation.
 And that's what it stands for: Grid To Operate.
+Grid2Op acts as a replacement of [pypownet](https://github.com/MarvinLer/pypownet) 
+as a library used for the Learning To Run Power Network [L2RPN](https://l2rpn.chalearn.org/). 
 
 This framework allows to perform most kind of powergrid operations, from modifying the setpoint of generators,
 to load shedding, performing maintenance operations or modifying the *topology* of a powergrid
 to solve security issues.
 
-This version of Grid2Op relies on an open source powerflow solver ([PandaPower](https://www.pandapower.org/)),
-but is also compatible with other *Backend*. If you have at your disposal another powerflow solver, 
-the documentation of [grid2op/Backend.py](grid2op/Backend.py) can help you integrate it into a proper "Backend"
-and have Grid2Op using this powerflow instead of PandaPower.
-
-Using the *Backend* based on PandaPower, this tools is able to perform 1000 timesteps 
-[on a laptop, python3.6, Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz, SSD hardrive] :
-
-- in 30s for the IEEE 14 buses test case (included in this distribution as 
-[test_case14.json](grid2op/data/test_PandaPower/test_case14.json) )
-- in 90s for the IEEE 118 buses test case (not included)
-
-
 Official documentation: the official documentation is available at 
 [https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
 *   [1 Installation](#installation)
-    *   [1.1 Install without Docker](#install-without-docker)
-        *   [1.2.1 Requirements](#requirements)
-        *   [1.2.2 Instructions](#instructions)
-    *   [1.2 Install with Docker](#install-with-docker)
-*   [2 Basic usage](#basic-usage)
-    *   [2.1 Without using Docker](#without-using-docker)
-    *   [2.2 Using Docker](#using-docker)
-*   [3 Main features of Grid2Op](#main-features-of-grid2op)
-    * [3.1 Core functionalities](#core-functionalities)
-    * [3.2 Generate the documentation](#generate-the-documentation)
-    * [3.3 Getting Started / Examples](#getting-started--examples)
-*   [4 Make tests](#make-the-tests)
-*   [5 License information](#license-information)
+    *   [1.1 Setup a Virtualenv (optional)](#setup-a-virtualenv-optional)
+    *   [1.2 Install from source](#install-from-source)
+    *   [1.3 Install from PyPI](#install-from-pypi)
+    *   [1.4 Install for contributors](#install-for-contributors)
+    *   [1.5 Docker](#docker)
+*   [2 Main features of Grid2Op](#main-features-of-grid2op)
+*   [3 Getting Started](#getting-started)
+    *   [0 Basic features](getting_started/0_basic_functionalities.ipynb)
+    *   [1 Observation Agents](getting_started/1_Observation_Agents.ipynb)
+    *   [2 Action Grid Manipulation](getting_started/2_Action_GridManipulation.ipynb)
+    *   [3 Training An Agent](getting_started/3_TrainingAnAgent.ipynb)
+    *   [4 Study Your Agent](getting_started/4_StudyYourAgent.ipynb)
+*   [4 Documentation](#documentation)
+*   [5 Run the tests](#run-the-tests)
+*   [6 License information](#license-information)
 
 # Installation
-
-## Install without Docker
-### Requirements:
+## Requirements:
 *   Python >= 3.6
 
-### Instructions
-
-This instructions will install grid2op with its default PandaPower Backend implementation.
-
-#### Step 1: Install Python3
-On Debian-like systems (Ubuntu):
+## Setup a Virtualenv (optional)
+### Create a virtual environment 
 ```commandline
-sudo apt-get install python3
-```
-
-On Fedora-like systems:
-```commandline
-sudo dnf install python3
-```
-
-If you have any trouble with this step, please refer to
-[the official webpage of Python](https://www.python.org/downloads/release/python-366/).
-
-#### (Optional, recommended) Step 1bis: Create a virtual environment
-```commandline
+cd my-project-folder
 pip3 install -U virtualenv
-cd Grid2Op
 python3 -m virtualenv venv_grid2op
 ```
+### Enter virtual environment
+```commandline
+source venv_grid2op/bin/activate
+```
 
-#### Step 2: Clone Grid2Op
+## Install from source
 ```commandline
 git clone https://github.com/rte-france/Grid2Op.git
+cd Grid2Op
+pip3 install -U .
+cd ..
 ```
 
-This should create a folder Grid2Op with the current sources.
-
-#### Step 3: Run the installation script of Grid2Op
-Finally, run the following Python command to install the current simulator (including the Python libraries dependencies):
+## Install from PyPI
 ```commandline
-cd Grid2Op/
-source venv_grid2op/bin/activate
-pip install -U .
+pip3 install grid2op
 ```
-After this, this simulator is available under the name grid2op (e.g. ```import grid2op```).
 
-## Install with Docker
-A grid2op docker is available on [dockerhub](https://hub.docker.com/). It can be simply installed with
+## Install for contributors
+```commandline
+git clone https://github.com/rte-france/Grid2Op.git
+cd Grid2Op
+pip3 install -e .
+pip3 install -e .[test]
+pip3 install -e .[docs]
+```
+
+## Docker
+Grid2Op docker containers are available on [dockerhub](https://hub.docker.com/r/bdonnot/grid2op/tags).
+
+To install the latest Grid2Op container locally, use the following:
 ```commandline
 docker pull bdonnot/grid2op:latest
 ```
 
-This will pull and install the latest version of grid2op as a docker image. If you want a specific
-version of grid2op (*eg* 0.3.3), and this version has been pushed to docker\* you can instead install:
-
-```commandline
-docker pull bdonnot/grid2op:0.3.3
-```
-
-# Basic usage
-## Without using Docker
-Experiments can be conducted using the CLI (command line interface).
-
-### Using CLI arguments
-CLI can be used to run simulations:
-```commandline
-python -m grid2op.main
-```
-
-This will evaluate a *DoNothing* policy (eg. simulating and *Agent* that does not perform
-any action on the powergrid, on the IEEE case 14 for 3 epochs each of 287 time steps.)
-
-For more information:
-```commandline
-python -m grid2op.main --help
-```
-
-## Using Docker
-Then it's possible to start a container from the downloaded image (see [install-with-docker](#install-with-docker)):
-```commandline
-docker run -it bdonnot/grid2op:latest
-```
-
-This command will start a container form the image, execute the main script of grid2op 
-(see [using-cli-arguments](#using-cli-arguments)) and exit this container.
-
-If instead you want to start an interactive session, you can do:
-```commandline
-docker run -it bdonnot/grid2op:latest bash
-```
-This will start the "bash" script from the container, and you interact with it.
-
-
 # Main features of Grid2Op
-
 ## Core functionalities
 Built with modulartiy in mind, Grid2Op acts as a replacement of [pypownet](https://github.com/MarvinLer/pypownet) 
 as a library used for the Learning To Run Power Network [L2RPN](https://l2rpn.chalearn.org/). 
@@ -156,25 +98,14 @@ Its main features are:
 * parameters, game rules or type of actions are perfectly parametrizable
 * can adapt to any kind of input data, in various format (might require the rewriting of a class)
 
-## Generate the documentation
-A copy of the documentation can be built: you will need Sphinx, a Documentation building tool, and a nice-looking custom
- [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
-```commandline
-pip3 install -U grid2op[docs]
-```
-This installs both the Sphinx package and the custom template. Then, the documentation can be built with the command:
-```
-make html
-```
-This will create a "documentation" subdirectory and the main entry point of the document will be located at 
-[index.html](documentation/html/index.html).
+## Powerflow solver
+Grid2Op relies on an open source powerflow solver ([PandaPower](https://www.pandapower.org/)),
+but is also compatible with other *Backend*. If you have at your disposal another powerflow solver, 
+the documentation of [grid2op/Backend](grid2op/Backend/Backend.py) can help you integrate it into a proper "Backend"
+and have Grid2Op using this powerflow instead of PandaPower.
 
-It is recommended to build this documentation locally, for convenience.
-For example, the  "getting started" notebooks referenced some pages of the help.
-
-
-## Getting Started / Examples
-Some Jupyter notebook are provided as example of the use of the Grid2Op package. They are located in the 
+# Getting Started
+Some Jupyter notebook are provided as tutorials for the Grid2Op package. They are located in the 
 [getting_started](getting_started) directories. 
 
 These notebooks will help you in understanding how this framework is used and cover the most
@@ -204,26 +135,42 @@ Try them out in your own browser without installing
 anything with the help of mybinder: 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
 
+# Documentation
 
-# Make the tests
-Some tests (unit test, non regression test etc.) are provided with this package. They are located at grid2op/tests.
+Official documentation: the official documentation is available at 
+[https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
-Additional packages are required to run the tests:
-```
-pip install -e .[test]
-```
-
-The tests can be performed with the command:
+## Build the documentation
+A copy of the documentation can be built if the project is installed *from source*:
+you will need Sphinx, a Documentation building tool, and a nice-looking custom
+ [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
 ```commandline
-cd grid2op/tests
+pip3 install -U grid2op[docs]
+```
+This installs both the Sphinx package and the custom template. Then, the documentation can be built with the command:
+```
+make html
+```
+This will create a "documentation" subdirectory and the main entry point of the document will be located at 
+[index.html](documentation/html/index.html).
+
+It is recommended to build this documentation locally, for convenience.
+For example, the  "getting started" notebooks referenced some pages of the help.
+
+# Run the tests
+Provided that Grid2Op is installed *from source*:
+
+## Install additional dependencies
+```commandline
+pip3 install -U grid2op[test]
+```
+## Launch tests
+```commandline
+cd Grid2Op
 python3 -m unittest discover
 ```
 
-All tests should pass. Performing all the tests take roughly 5 minutes
-(on a laptop, python3.6, Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz, SSD hardrive).
-
 # License information
-
 Copyright 2019-2020 RTE France
 
     RTE: http://www.rte-france.com

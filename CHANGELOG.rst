@@ -25,6 +25,12 @@ TODO for next versions
 
 [0.5.9] - 2020-03-??
 ---------------------
+- [BREAKING] grid2op.GameRules module renamed to grid2op.Rules 
+- [BREAKING] grid2op.Converters module renamed grid2op.Converter
+- [BREAKING] grid2op.ChronicsHandler renamed to grid2op.Chronics
+- [BREAKING] grid2op.PandaPowerBackend is moved to grid2op.Backend.PandaPowerBackend
+- [BREAKING] GameRules.AllwaysIllegal is now Rules.AlwaysIllegal
+- [BREAKING] Plotting utils are now located in their own module grid2op.Plot
 - [ADDED] Alternative method to load datasets based on new dataset format: MakeEnv.make2
 - [FIXED] Loading L2RPN_2019 dataset
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
