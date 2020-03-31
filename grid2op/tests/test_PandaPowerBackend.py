@@ -16,6 +16,7 @@ from grid2op.Environment import Environment
 from grid2op.Exceptions import *
 from grid2op.Rules import GameRules
 from grid2op.MakeEnv import make
+from grid2op.Rules import AlwaysLegal
 
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 import pandapower as pppp
@@ -909,6 +910,64 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
         assert done, "an isolated laod has not lead to a game over"
+
+    def test_reco_disco_bus(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_case1 = make("case5_example", gamerules_class=AlwaysLegal)
+        obs = env_case1.reset()  # reset is good
+        act = env_case1.action_space.disconnect_powerline(line_id=5)  # I disconnect a powerline
+        obs, reward, done, info = env_case1.step(act)  # do the action, it's valid
+        act_case1 = env_case1.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=2)  # reconnect powerline on bus 2 both ends
+        # this should lead to a game over a the powerline is out of the grid, 2 buses are, but without anything
+        # this is a non connex grid
+        obs_case1, reward_case1, done_case1, info_case1 = env_case1.step(act_case1)
+        assert done_case1
+
+    def test_reco_disco_bus2(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_case2 = make("case5_example", gamerules_class=AlwaysLegal)
+        obs = env_case2.reset()  # reset is good
+        obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
+        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=2)  # reconnect powerline on bus 2 both ends
+        # this should lead to a game over a the powerline is out of the grid, 2 buses are, but without anything
+        # this is a non connex grid
+        obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
+        # this was illegal before, but test it is still illegal
+        assert done_case2
+
+    def test_reco_disco_bus3(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_case2 = make("case5_example", gamerules_class=AlwaysLegal)
+        obs = env_case2.reset()  # reset is good
+        obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
+        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=1, bus_ex=2)  # reconnect powerline on bus 2 both ends
+        # this should not lead to a game over this time, the grid is connex!
+        obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
+        assert done_case2 is False
+
+    def test_reco_disco_bus4(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_case2 = make("case5_example", gamerules_class=AlwaysLegal)
+        obs = env_case2.reset()  # reset is good
+        obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
+        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=1)  # reconnect powerline on bus 2 both ends
+        # this should not lead to a game over this time, the grid is connex!
+        obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
+        assert done_case2 is False
+
+    def test_reco_disco_bus5(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_case2 = make("case5_example", gamerules_class=AlwaysLegal)
+        obs = env_case2.reset()  # reset is good
+        act_case2 = env_case2.action_space({"set_bus": {"lines_or_id": [(5,2)], "lines_ex_id": [(5,2)]}})  # reconnect powerline on bus 2 both ends
+        # this should not lead to a game over this time, the grid is connex!
+        obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
+        assert done_case2
 
 
 if __name__ == "__main__":

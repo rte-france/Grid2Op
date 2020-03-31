@@ -21,7 +21,13 @@ class LookParam(LegalAction):
         """
         See :func:`LegalAction.__call__` for a definition of the parameters of this function.
         """
-        aff_lines, aff_subs = action.get_topological_impact()
+        # at first iteration, env.current_obs is None...
+        if env.current_obs is not None:
+            powerline_status = env.current_obs.line_status
+        else:
+            powerline_status = None
+
+        aff_lines, aff_subs = action.get_topological_impact(powerline_status)
         if np.sum(aff_lines) > env.parameters.MAX_LINE_STATUS_CHANGED:
             return False
         if np.sum(aff_subs) > env.parameters.MAX_SUB_CHANGED:

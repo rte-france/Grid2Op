@@ -131,7 +131,7 @@ class GridObjects:
     - :attr:`GridObjects.load_pos_topo_vect`
     - :attr:`GridObjects.gen_pos_topo_vect`
     - :attr:`GridObjects.line_or_pos_topo_vect`
-    - :attr:`GridObjectsline_ex_pos_topo_vect`
+    - :attr:`GridObjects.line_ex_pos_topo_vect`
 
 
     Note that if you want to model an environment with unit commitment or redispatching capabilities, you also need
