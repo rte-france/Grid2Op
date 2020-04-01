@@ -1,11 +1,12 @@
 import numpy as np
 import itertools
 
-from grid2op.Action import HelperAction
+from grid2op.Action import ActionSpace
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Converter.Converters import Converter
 
 import pdb
+
 
 class IdToAct(Converter):
     """
@@ -42,7 +43,7 @@ class IdToAct(Converter):
     - reconnect it and connect it to bus 2 on "origin" end ann bus 2 on "extremity" end
 
     Actions corresponding to all topologies are also used by default. See
-    :func:`grid2op.Action.HelperAction.get_all_unitary_topologies_set` for more information.
+    :func:`grid2op.Action.ActionSpace.get_all_unitary_topologies_set` for more information.
 
 
     In this converter:

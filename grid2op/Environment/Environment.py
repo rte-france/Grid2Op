@@ -49,9 +49,9 @@ import pdb
 from abc import ABC, abstractmethod
 
 from grid2op.Space import GridObjects
-from grid2op.Action import HelperAction, Action, TopologyAction
+from grid2op.Action import ActionSpace, Action, TopologyAction
 from grid2op.Exceptions import *
-from grid2op.Observation import CompleteObservation, ObservationHelper, Observation
+from grid2op.Observation import CompleteObservation, ObservationSpace, Observation
 from grid2op.Reward import FlatReward, RewardHelper, Reward
 from grid2op.Rules import GameRules, AlwaysLegal, LegalAction
 from grid2op.Parameters import Parameters
@@ -63,7 +63,6 @@ from grid2op.Environment.BasicEnv import _BasicEnv
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
-# TODO have a viewer / renderer now
 
 class Environment(_BasicEnv):
     """
@@ -94,13 +93,13 @@ class Environment(_BasicEnv):
     game_rules: :class:`grid2op.GameRules.GameRules`
         The rules of the game (define which actions are legal and which are not)
 
-    helper_action_player: :class:`grid2op.Action.HelperAction`
+    helper_action_player: :class:`grid2op.Action.ActionSpace`
         Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent` (player)
 
-    helper_action_env: :class:`grid2op.Action.HelperAction`
+    helper_action_env: :class:`grid2op.Action.ActionSpace`
         Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
 
-    helper_observation: :class:`grid2op.Observation.ObservationHelper`
+    helper_observation: :class:`grid2op.Observation.ObservationSpace`
         Helper used to generate the observation that will be given to the :class:`grid2op.Agent`
 
     current_obs: :class:`grid2op.Observation.Observation`
@@ -141,10 +140,10 @@ class Environment(_BasicEnv):
     reward_helper: :class:`grid2p.Reward.RewardHelper`
         Helper that is called to compute the reward at each time step.
 
-    action_space: :class:`grid2op.Action.HelperAction`
+    action_space: :class:`grid2op.Action.ActionSpace`
         Another name for :attr:`Environment.helper_action_player` for gym compatibility.
 
-    observation_space:  :class:`grid2op.Observation.ObservationHelper`
+    observation_space:  :class:`grid2op.Observation.ObservationSpace`
         Another name for :attr:`Environment.helper_observation` for gym compatibility.
 
     reward_range: ``(float, float)``
@@ -323,16 +322,16 @@ class Environment(_BasicEnv):
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent
-        self.helper_action_player = HelperAction(gridobj=self.backend,
+        self.helper_action_player = ActionSpace(gridobj=self.backend,
                                                  actionClass=actionClass,
                                                  legal_action=self.game_rules.legal_action)
 
         # action that affect the grid made by the environment.
-        self.helper_action_env = HelperAction(gridobj=self.backend,
+        self.helper_action_env = ActionSpace(gridobj=self.backend,
                                               actionClass=Action,
                                               legal_action=self.game_rules.legal_action)
 
-        self.helper_observation = ObservationHelper(gridobj=self.backend,
+        self.helper_observation = ObservationSpace(gridobj=self.backend,
                                                     observationClass=observationClass,
                                                     rewardClass=rewardClass,
                                                     env=self)

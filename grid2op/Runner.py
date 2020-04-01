@@ -18,11 +18,12 @@ import json
 
 import pdb
 
-from grid2op.Action import HelperAction, Action, TopologyAction
+# from grid2op.Action import HelperAction, Action, TopologyAction
+from grid2op.Action import Action, TopologyAction
 from grid2op.Exceptions import *
-from grid2op.Observation import CompleteObservation, ObservationHelper, Observation
-from grid2op.Reward import FlatReward, RewardHelper, Reward
-from grid2op.Rules import GameRules, AlwaysLegal, LegalAction
+from grid2op.Observation import CompleteObservation, Observation
+from grid2op.Reward import FlatReward, Reward
+from grid2op.Rules import AlwaysLegal, LegalAction
 from grid2op.Environment import Environment
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
 from grid2op.Backend import Backend, PandaPowerBackend

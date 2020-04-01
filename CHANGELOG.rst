@@ -23,7 +23,7 @@ TODO for next versions
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-[0.5.9] - 2020-03-??
+[0.6.0] - 2020-04-??
 ---------------------
 - [BREAKING] `grid2op.GameRules module` renamed to `grid2op.Rules`
 - [BREAKING] `grid2op.Converters module` renamed `grid2op.Converter`
@@ -34,6 +34,10 @@ TODO for next versions
 - [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
   that are given to the agent through the "information" return argument of `env.step`. See the documentation of
   Environment.other_rewards.
+- [DEPRECATION] `HelperAction` is now called `ActionSpace` to better suit open ai gym name. Use of `HelperAction`
+  will be deprecated in future versions.
+- [DEPRECATION] `ObservationHelper` is now called `ObservationSpace` to better suit open ai gym name.
+  Use of `ObservationHelper` will be deprecated in future versions.
 - [ADDED] Alternative method to load datasets based on new dataset format: MakeEnv.make2
 - [FIXED] Loading L2RPN_2019 dataset
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.

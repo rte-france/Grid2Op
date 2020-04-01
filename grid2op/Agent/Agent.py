@@ -23,6 +23,7 @@ import pdb
 from grid2op.Converter import Converter, IdToAct, ToVect
 from grid2op.Exceptions import Grid2OpException
 
+
 class Agent(ABC):
     """
     This class represents the base class of an Agent. All bot / controller / agent used in the Grid2Op simulator
@@ -33,7 +34,7 @@ class Agent(ABC):
 
     Attributes
     -----------
-    action_space: :class:`grid2op.Action.HelperAction`
+    action_space: :class:`grid2op.Action.ActionSpace`
         It represent the action space ie a tool that can serve to create valid action. Note that a valid action can
         be illegal or ambiguous, and so lead to a "game over" or to a error. But at least it will have a proper size.
 

@@ -75,7 +75,7 @@ class SerializableActionSpace(SerializableSpace):
         Returns
         -------
         res: :class:`Action`
-            A random action sampled from the :attr:`HelperAction.actionClass`
+            A random action sampled from the :attr:`ActionSpace.actionClass`
 
         """
         res = self.actionClass(gridobj=self)  # only the GridObjects part of "self" is actually used
@@ -101,7 +101,7 @@ class SerializableActionSpace(SerializableSpace):
             res = self.actionClass(gridobj=self)
         else:
             if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
+                raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "
                                       "which is not the type of action handled by this helper "
                                       "(\"{}\")".format(type(previous_action), self.actionClass))
             res = previous_action
@@ -138,7 +138,7 @@ class SerializableActionSpace(SerializableSpace):
             res = self.actionClass(gridobj=self)
         else:
             if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
+                raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "
                                       "which is not the type of action handled by this helper "
                                       "(\"{}\")".format(type(previous_action), self.actionClass))
             res = previous_action
@@ -154,7 +154,7 @@ class SerializableActionSpace(SerializableSpace):
         """
         Utilities to change the bus of a single element if you give its name. **NB** Changing a bus has the effect to
         assign the object to bus 1 if it was before that connected to bus 2, and to assign it to bus 2 if it was
-        connected to bus 1. It should not be mixed up with :func:`HelperAction.set_bus`.
+        connected to bus 1. It should not be mixed up with :func:`ActionSpace.set_bus`.
 
         If the parameter "*previous_action*" is not ``None``, then the action given to it is updated (in place) and
         returned.
@@ -170,7 +170,7 @@ class SerializableActionSpace(SerializableSpace):
         type_element: ``int``, optional
             Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
         previous_action: :class:`Action`, optional
-            The (optional) action to update. It should be of the same type as :attr:`HelperAction.actionClass`
+            The (optional) action to update. It should be of the same type as :attr:`ActionSpace.actionClass`
 
         Returns
         -------
@@ -180,14 +180,14 @@ class SerializableActionSpace(SerializableSpace):
         Raises
         ------
         :class:`grid2op.Exception.AmbiguousAction`
-            If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
+            If *previous_action* has not the same type as :attr:`ActionSpace.actionClass`.
 
         """
         if previous_action is None:
             res = self.actionClass(gridobj=self)
         else:
             if not isinstance(previous_action, self.actionClass):
-                raise AmbiguousAction("The action to update using `HelperAction` is of type \"{}\" "
+                raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "
                                       "which is not the type of action handled by this helper "
                                       "(\"{}\")".format(type(previous_action), self.actionClass))
             res = previous_action
@@ -267,7 +267,7 @@ class SerializableActionSpace(SerializableSpace):
         Utilities to set the bus of a single element if you give its name. **NB** Setting a bus has the effect to
         assign the object to this bus. If it was before that connected to bus 1, and you assign it to bus 1 (*new_bus*
         = 1) it will stay on bus 1. If it was on bus 2 (and you still assign it to bus 1) it will be moved to bus 2.
-        1. It should not be mixed up with :func:`HelperAction.change_bus`.
+        1. It should not be mixed up with :func:`ActionSpace.change_bus`.
 
         If the parameter "*previous_action*" is not ``None``, then the action given to it is updated (in place) and
         returned.
@@ -290,7 +290,7 @@ class SerializableActionSpace(SerializableSpace):
             Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
 
         previous_action: :class:`Action`, optional
-            The (optional) action to update. It should be of the same type as :attr:`HelperAction.actionClass`
+            The (optional) action to update. It should be of the same type as :attr:`ActionSpace.actionClass`
 
         Returns
         -------
@@ -300,7 +300,7 @@ class SerializableActionSpace(SerializableSpace):
         Raises
         ------
         AmbiguousAction
-            If *previous_action* has not the same type as :attr:`HelperAction.actionClass`.
+            If *previous_action* has not the same type as :attr:`ActionSpace.actionClass`.
 
         """
         if previous_action is None:

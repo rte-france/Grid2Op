@@ -24,8 +24,8 @@ class GridObjects:
 
     It stores information about numbers of objects, and which objects are where, their names, etc.
 
-    The classes :class:`grid2op.Action.Action`, :class:`grid2op.Action.HelperAction`,
-    :class:`grid2op.Observation.Observation`, :class:`grid2op.Observation.ObservationHelper` and
+    The classes :class:`grid2op.Action.Action`, :class:`grid2op.Action.ActionSpace`,
+    :class:`grid2op.Observation.Observation`, :class:`grid2op.Observation.ObservationSpace` and
     :class:`grid2op.Backend.Backend` all inherit from this class. This means that each of the above has its own
     representation of the powergrid.
 

@@ -60,7 +60,7 @@ class Observation(GridObjects):
 
     Attributes
     ----------
-    action_helper: :class:`grid2op.Action.HelperAction`
+    action_helper: :class:`grid2op.Action.ActionSpace`
         A reprensentation of the possible action space.
 
     year: ``int``
@@ -285,7 +285,7 @@ class Observation(GridObjects):
         Only one of load, gen, line or substation should be filled.
 
         The querry of these objects can only be done by id here (ie by giving the integer of the object in the backed).
-        The :class:`HelperAction` has some utilities to access them by name too.
+        The :class:`ActionSpace` has some utilities to access them by name too.
 
         Parameters
         ----------

@@ -9,15 +9,16 @@ from grid2op.Space import SerializableSpace, GridObjects
 from grid2op.Action.Action import Action
 from grid2op.Action.SerializableActionSpace import SerializableActionSpace
 
-class HelperAction(SerializableActionSpace):
+
+class ActionSpace(SerializableActionSpace):
     """
-    :class:`HelperAction` should be created by an :class:`grid2op.Environment.Environment`
+    :class:`ActionSpace` should be created by an :class:`grid2op.Environment.Environment`
     with its parameters coming from a properly
     set up :class:`grid2op.Backend.Backend` (ie a Backend instance with a loaded powergrid.
     See :func:`grid2op.Backend.Backend.load_grid` for
     more information).
 
-    It will allow, thanks to its :func:`HelperAction.__call__` method to create valid :class:`Action`. It is the
+    It will allow, thanks to its :func:`ActionSpace.__call__` method to create valid :class:`Action`. It is the
     the preferred way to create an object of class :class:`Action` in this package.
 
     On the contrary to the :class:`Action`, it is NOT recommended to overload this helper. If more flexibility is
@@ -36,7 +37,7 @@ class HelperAction(SerializableActionSpace):
     def __init__(self, gridobj, legal_action, actionClass=Action):
         """
         All parameters (name_gen, name_load, name_line, sub_info, etc.) are used to fill the attributes having the
-        same name. See :class:`HelperAction` for more information.
+        same name. See :class:`ActionSpace` for more information.
 
         Parameters
         ----------

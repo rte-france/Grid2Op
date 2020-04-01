@@ -8,7 +8,7 @@ import warnings
 
 from grid2op.tests.helper_path_test import *
 
-from grid2op.Action import HelperAction
+from grid2op.Action import ActionSpace
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, ChangeNothing
@@ -92,7 +92,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(gridobj=self.backend, legal_action=self.game_rules.legal_action)
+        self.action_env = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -427,7 +427,7 @@ class TestTopoAction(unittest.TestCase):
         self.tol_one = 1e-5
 
         self.game_rules = GameRules()
-        self.helper_action = HelperAction(gridobj=self.backend, legal_action=self.game_rules.legal_action)
+        self.helper_action = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
     # Cette méthode sera appelée après chaque test.
     def tearDown(self):
@@ -686,7 +686,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = GameRules()
-        self.action_env = HelperAction(gridobj=self.backend, legal_action=self.game_rules.legal_action)
+        self.action_env = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
         self.lines_flows_init = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,
                                            10869.23856329,  4686.71726729, 15612.65903298,   300.07915572,

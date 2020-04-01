@@ -65,7 +65,7 @@ class Action(GridObjects):
     As stated above, an action represents conveniently the modifications that will affect a powergrid.
 
     It is not recommended to instantiate an action from scratch. The recommended way to get an action is either by
-    modifying an existing one using the method :func:`Action.update` or to call and :class:`HelperAction` object that
+    modifying an existing one using the method :func:`Action.update` or to call and :class:`ActionSpace` object that
     has been properly set up by an :class:`grid2op.Environment`.
 
     Action can be fully converted to and back from a numpy array with a **fixed** size.
@@ -225,10 +225,10 @@ class Action(GridObjects):
     def __init__(self, gridobj):
         """
         This is used to create an Action instance. Preferably, :class:`Action` should be created with
-        :class:`HelperAction`.
+        :class:`ActionSpace`.
 
-        **It is NOT recommended** to create an action with this method. Please use :func:`HelperAction.__call__` or
-        :func:`HelperAction.sample` to create a valid action.
+        **It is NOT recommended** to create an action with this method. Please use :func:`ActionSpace.__call__` or
+        :func:`ActionSpace.sample` to create a valid action.
 
         Parameters
         ----------
@@ -1710,7 +1710,7 @@ class Action(GridObjects):
         Only one of load, gen, line or substation should be filled.
 
         The query of these objects can only be done by id here (ie by giving the integer of the object in the backed).
-        The :class:`HelperAction` has some utilities to access them by name too.
+        The :class:`ActionSpace` has some utilities to access them by name too.
 
         Parameters
         ----------

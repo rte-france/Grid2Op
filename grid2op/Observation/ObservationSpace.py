@@ -7,7 +7,7 @@ from grid2op.Observation.CompleteObservation import CompleteObservation
 from grid2op.Observation.ObsEnv import ObsEnv
 
 
-class ObservationHelper(SerializableObservationSpace):
+class ObservationSpace(SerializableObservationSpace):
     """
     Helper that provides usefull functions to manipulate :class:`Observation`.
 
@@ -33,7 +33,7 @@ class ObservationHelper(SerializableObservationSpace):
         :class:`grid2op.Agent.Agent`. You can change this class to differentiate between the reward of output of
         :func:`Observation.simulate`  and the reward used to train the Agent.
 
-    action_helper_env: :class:`grid2op.Action.HelperAction`
+    action_helper_env: :class:`grid2op.Action.ActionSpace`
         Action space used to create action during the :func:`Observation.simulate`
 
     reward_helper: :class:`grid2op.Reward.HelperReward`
@@ -59,7 +59,7 @@ class ObservationHelper(SerializableObservationSpace):
 
         # TODO DOCUMENTATION !!!
 
-        # print("ObservationHelper init with rewardClass: {}".format(rewardClass))
+        # print("ObservationSpace init with rewardClass: {}".format(rewardClass))
         self.parameters = copy.deepcopy(env.parameters)
         # for the observation, I switch between the _parameters for the environment and for the simulation
         self.parameters.ENV_DC = self.parameters.FORECAST_DC

@@ -93,10 +93,10 @@ class AgentWithConverter(Agent):
     action_space_converter: :class:`grid2op.Converters.Converter`
         The converter that is used to represents the Agent action space. Might be set to ``None`` if not initialized
 
-    init_action_space: :class:`grid2op.Action.HelperAction`
+    init_action_space: :class:`grid2op.Action.ActionSpace`
         The initial action space. This corresponds to the action space of the :class:`grid2op.Environment.Environment`.
 
-    action_space: :class:`grid2op.Converters.HelperAction`
+    action_space: :class:`grid2op.Converters.ActionSpace`
         If a converter is used, then this action space represents is this converter. The agent will behave as if
         the action space is directly encoded the way it wants.
 

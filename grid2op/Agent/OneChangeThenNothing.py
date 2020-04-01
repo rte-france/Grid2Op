@@ -37,6 +37,6 @@ class OneChangeThenNothing(Agent):
         -------
         res: ``dict``
             A dictionnary that can be converted into a valid :class:`grid2op.Action.Action`. See the help of
-            :func:`grid2op.Action.HelperAction.__call__` for more information.
+            :func:`grid2op.Action.ActionSpace.__call__` for more information.
         """
         pass

@@ -10,10 +10,10 @@ import pdb
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv
+from grid2op.Observation import ObservationSpace, CompleteObservation, ObsEnv
 from grid2op.Chronics import Multifolder
 from grid2op.Exceptions import *
-from grid2op.Action import HelperAction
+from grid2op.Action import ActionSpace
 from grid2op.Rules import GameRules
 from grid2op.Reward import L2RPNReward
 from grid2op.Parameters import Parameters

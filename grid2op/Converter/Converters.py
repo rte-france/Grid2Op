@@ -1,7 +1,7 @@
 """
 In this module of grid2op, the "converters" are defined.
 
-A converter is a specific class of :class:`grid2op.Action.HelperAction` (ie of Action Space) that allows the agent to
+A converter is a specific class of :class:`grid2op.Action.ActionSpace` (ie of Action Space) that allows the agent to
 manipulate this action to have a different representation of it.
 
 For example, suppose we are dealing with TopologyAction (only manipulating the graph of the powergrid). This is a
@@ -38,19 +38,20 @@ Some examples of converters are given in :class:`IdToAct` and :class:`ToVect`.
 import numpy as np
 import itertools
 
-from grid2op.Action import HelperAction
+from grid2op.Action import ActionSpace
 from grid2op.Exceptions import Grid2OpException
 
 import pdb
 
 # TODO more exhaustive documentation and tests.
 
-class Converter(HelperAction):
+
+class Converter(ActionSpace):
     """
     This Base class should be use to implement any converter. If for some reasons
     """
     def __init__(self, action_space):
-        HelperAction.__init__(self, action_space, action_space.legal_action, action_space.subtype)
+        ActionSpace.__init__(self, action_space, action_space.legal_action, action_space.subtype)
         self.space_prng = action_space.space_prng
         self.seed_used = action_space.seed_used
 

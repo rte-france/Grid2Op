@@ -1,7 +1,7 @@
 __all__ = [
     "CompleteObservation",
     "ObsEnv",
-    "ObservationHelper",
+    "ObservationSpace",
     "Observation",
     "SerializableObservationSpace"
 ]
@@ -9,6 +9,16 @@ __all__ = [
 
 from grid2op.Observation.CompleteObservation import CompleteObservation
 from grid2op.Observation.ObsEnv import ObsEnv
-from grid2op.Observation.ObservationHelper import ObservationHelper
+from grid2op.Observation.ObservationSpace import ObservationSpace
 from grid2op.Observation.Observation import Observation
 from grid2op.Observation.SerializableObservationSpace import SerializableObservationSpace
+import warnings
+
+
+class ObservationHelper(ObservationSpace):
+    def __init__(self, *args, **kwargs):
+        ObservationSpace.__init__(*args, **kwargs)
+        warnings.warn("ObservationHelper class has been renamed \"ObservationSpace\" to be better integrated with "
+                      "openai gym framework. The old name will be removed in future "
+                      "versions.",
+                      category=PendingDeprecationWarning)

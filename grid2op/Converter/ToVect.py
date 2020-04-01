@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 
-from grid2op.Action import HelperAction
+from grid2op.Action import ActionSpace
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Converter.Converters import Converter
 

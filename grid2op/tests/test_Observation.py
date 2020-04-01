@@ -12,9 +12,9 @@ import pdb
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv, Observation
+from grid2op.Observation import ObservationSpace, CompleteObservation, ObsEnv, Observation
 from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
-from grid2op.Action import HelperAction
+from grid2op.Action import ActionSpace
 from grid2op.Rules import GameRules
 from grid2op.Reward import L2RPNReward
 from grid2op.Parameters import Parameters
@@ -397,7 +397,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert dict_ == self.dict_
 
     def test_from_dict(self):
-        res = ObservationHelper.from_dict(self.dict_)
+        res = ObservationSpace.from_dict(self.dict_)
         assert res.n_gen == self.env.helper_observation.n_gen
         assert res.n_load == self.env.helper_observation.n_load
         assert res.n_line == self.env.helper_observation.n_line
@@ -423,7 +423,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_json_loadable(self):
         dict_ = self.env.helper_observation.to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
-        res = ObservationHelper.from_dict(json.loads(tmp))
+        res = ObservationSpace.from_dict(json.loads(tmp))
 
         assert res.n_gen == self.env.helper_observation.n_gen
         assert res.n_load == self.env.helper_observation.n_load

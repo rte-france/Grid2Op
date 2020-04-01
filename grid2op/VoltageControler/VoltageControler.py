@@ -13,8 +13,9 @@ varying from:
 We wanted, in this package, to treat the voltages setpoint of the generators differently from the other
 part of the game. This module exposes the main class to do this.
 """
-from grid2op.Action import VoltageOnlyAction, HelperAction
+from grid2op.Action import VoltageOnlyAction, ActionSpace
 from grid2op.Rules import AlwaysLegal
+
 
 class ControlVoltageFromFile:
     """
@@ -36,7 +37,7 @@ class ControlVoltageFromFile:
 
         """
         legal_act = AlwaysLegal()
-        self.action_space = HelperAction(gridobj=gridobj,
+        self.action_space = ActionSpace(gridobj=gridobj,
                                          actionClass=VoltageOnlyAction,
                                          legal_action=legal_act)
         self.backend = controler_backend.copy()

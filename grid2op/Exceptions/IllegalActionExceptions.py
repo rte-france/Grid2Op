@@ -9,7 +9,7 @@ class IllegalAction(Grid2OpException):
     This is handled in :func:`grid2op.Environment.Environment.step`
 
     An :class:`grid2op.Action` is said to be **illegal** depending on some rules implemented in
-    :func:`grid2op.Action.HelperAction.is_legal` method.
+    :func:`grid2op.Action.ActionSpace.is_legal` method.
     An action can be legal in some context, but illegal in others.
 
     """

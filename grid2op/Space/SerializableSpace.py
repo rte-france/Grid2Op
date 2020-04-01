@@ -83,7 +83,7 @@ class SerializableSpace(GridObjects, RandomObject):
         ----------
         dict_: ``dict``
             Representation of an Observation Space (aka :class:`grid2op.Observation.ObservartionHelper`)
-            or the Action Space (aka :class:`grid2op.Action.HelperAction`)
+            or the Action Space (aka :class:`grid2op.Action.ActionSpace`)
             as a dictionnary.
 
         Returns

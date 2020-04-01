@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
+from grid2op.Action import ActionSpace, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
 from grid2op.Rules import GameRules, DefaultRules
 from grid2op.Space import GridObjects
 
@@ -82,7 +82,7 @@ class TestActionBase(ABC):
 
         self.size_act = 229
 
-        self.helper_action = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
         self.helper_action_env = self._action_env_setup()
         self.authorized_keys = self.helper_action_env().authorized_keys
 
@@ -614,7 +614,7 @@ class TestActionBase(ABC):
         assert dict_ == self.res
 
     def test_from_dict(self):
-        res = HelperAction.from_dict(self.res )
+        res = ActionSpace.from_dict(self.res )
         assert np.all(res.name_gen == self.helper_action.name_gen)
         assert np.all(res.name_load == self.helper_action.name_load)
         assert np.all(res.name_line == self.helper_action.name_line)
@@ -641,7 +641,7 @@ class TestActionBase(ABC):
     def test_json_loadable(self):
         dict_ = self.helper_action.to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
-        res = HelperAction.from_dict(json.loads(tmp))
+        res = ActionSpace.from_dict(json.loads(tmp))
 
         assert np.all(res.name_gen == self.helper_action.name_gen)
         assert np.all(res.name_load == self.helper_action.name_load)
@@ -726,7 +726,7 @@ class TestAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=Action)
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=Action)
 
 
 class TestTopologyAction(TestActionBase, unittest.TestCase):
@@ -735,7 +735,7 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
 
 
 class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
@@ -744,7 +744,7 @@ class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
 
 
 class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
@@ -753,7 +753,8 @@ class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
+
 
 if __name__ == "__main__":
     unittest.main()

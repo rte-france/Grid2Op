@@ -218,7 +218,7 @@ class PlotPlotly(BasePlot):
         substation_layout: ``list``
             List of tupe given the position of each of the substation of the powergrid.
 
-        observation_space: :class:`grid2op.Observation.ObservationHelper`
+        observation_space: :class:`grid2op.Observation.ObservationSpace`
             Observation space
 
         """
