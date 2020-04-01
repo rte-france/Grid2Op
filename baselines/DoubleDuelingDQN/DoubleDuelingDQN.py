@@ -24,10 +24,6 @@ class DoubleDuelingDQN(object):
         self.construct_q_network()
 
     def construct_q_network(self):
-        # Uses the network architecture found in DeepMind paper
-        # The inputs and outputs size have changed
-        # as well as replacing the convolution by dense layers.
-
         input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,))
         lay1 = tfkl.Dense(self.observation_size * self.num_frames)(input_layer)
                 
@@ -38,13 +34,19 @@ class DoubleDuelingDQN(object):
         lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
         lay4 = tfkl.Dense(2*self.num_action)(lay3)
+        lay4 = tfka.relu(lay4, alpha=0.01) #leaky_relu
 
-        advantage = tfkl.Dense(self.num_action)(lay4)
-        value = tfkl.Dense(self.num_action)(lay4)
-        
-        advantage_mean = tfk.backend.mean(advantage, axis=1, keepdims=True)
+        advantage = tfkl.Dense(2*self.num_action)(lay4)
+        advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
+        advantage = tfkl.Dense(self.num_action)(advantage)
+
+        value = tfkl.Dense(2*self.num_action)(lay4)
+        value = tfka.relu(value, alpha=0.01) #leaky_relu
+        value = tfkl.Dense(1)(value)
+
+        advantage_mean = tf.math.reduce_mean(advantage, axis=1, keepdims=True)
         advantage = tfkl.subtract([advantage, advantage_mean])
-        Q = tfkl.add([advantage, value])
+        Q = tf.math.add(value, advantage)
 
         self.model = tfk.Model(inputs=[input_layer], outputs=[Q])
         self.model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))

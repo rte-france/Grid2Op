@@ -5,9 +5,9 @@ import tensorflow as tf
 
 from grid2op.MakeEnv import make2
 from grid2op.Runner import Runner
+from grid2op.Reward import RedispReward
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
-from CustomEconomicReward import CustomEconomicReward
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     # Create dataset env
-    env = make2(args.path_data, reward_class=CustomEconomicReward)
+    env = make2(args.path_data, reward_class=RedispReward)
 
     # Create agent
     agent = DDDQNAgent(env, env.action_space, is_training=False, num_frames=4)
