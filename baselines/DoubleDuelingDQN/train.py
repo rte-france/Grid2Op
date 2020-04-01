@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
+import tensorflow as tf
 
 from grid2op.MakeEnv import make2
 
-from DDQNAgent import DDQNAgent 
+from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
 from TrainAgent import TrainAgent
 from CustomEconomicReward import CustomEconomicReward
 
@@ -36,11 +37,16 @@ def cli():
 if __name__ == "__main__":
     args = cli()
     env = make2(args.path_data, reward_class=CustomEconomicReward)
-    dqnn_agent = DDQNAgent(env.action_space,
-                           num_frames=args.num_frames,
-                           lr=args.learning_rate)
 
-    trainer = TrainAgent(dqnn_agent, env,
+    # Limit gpu usage
+    physical_devices = tf.config.list_physical_devices('GPU')
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
+    agent = DDDQNAgent(env.action_space,
+                       num_frames=args.num_frames,
+                       lr=args.learning_rate)
+
+    trainer = TrainAgent(agent, env,
                          name=args.name, 
                          batch_size=args.batch_size,
                          num_frames=args.num_frames)

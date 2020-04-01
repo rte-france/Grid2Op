@@ -4,9 +4,9 @@ from grid2op.Parameters import Parameters
 from grid2op.Agent import AgentWithConverter
 from grid2op.Converter import IdToAct
 
-from DDQN import DDQN
+from DoubleDuelingDQN import DoubleDuelingDQN
 
-class DDQNAgent(AgentWithConverter):
+class DoubleDuelingDQNAgent(AgentWithConverter):
     # first change: An Agent must derived from grid2op.Agent
     # (in this case MLAgent, because we manipulate vector instead of classes)
     
@@ -23,10 +23,10 @@ class DDQNAgent(AgentWithConverter):
     def init_deep_q(self, transformed_observation):
         if self.deep_q is None:
             self.num_action = self.action_space.n
-            self.deep_q = DDQN(self.action_space.size(), self.num_action,
-                               transformed_observation.shape[0],
-                               num_frames=self.num_frames,
-                               learning_rate = self.lr)
+            self.deep_q = DoubleDuelingDQN(self.action_space.size(), self.num_action,
+                                           transformed_observation.shape[0],
+                                           num_frames=self.num_frames,
+                                           learning_rate = self.lr)
             
     def __init__(self, action_space, num_frames=1, lr=1e-5):
         # Call super constructor

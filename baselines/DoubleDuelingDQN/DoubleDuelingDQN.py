@@ -8,7 +8,7 @@ import tensorflow.keras.optimizers as tfko
 import tensorflow.keras.layers as tfkl
 import tensorflow.keras.activations as tfka
 
-class DDQN(object):
+class DoubleDuelingDQN(object):
     """Constructs the desired deep q learning network"""
     def __init__(self,
                  action_size, num_action,
@@ -30,18 +30,17 @@ class DDQN(object):
         
         input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,))
         lay1 = tfkl.Dense(self.observation_size*self.num_frames)(input_layer)
-        
+                
         lay2 = tfkl.Dense(self.observation_size)(lay1)
-        lay2 = tfka.relu(lay2, alpha=0.05) #leaky_relu
+        lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
         
-        lay3 = tfkl.Dense(2*self.num_action)(lay2)
-        lay3 = tfka.relu(lay3, alpha=0.05) #leaky_relu
+        lay3 = tfkl.Dense(4*self.num_action)(lay2)
+        lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
         lay4 = tfkl.Dense(2*self.num_action)(lay3)
 
-        adv, val = tf.split(lay4, 2, 1)
-        advantage = tfkl.Dense(self.num_action)(adv)
-        value = tfkl.Dense(self.num_action)(val)
+        advantage = tfkl.Dense(self.num_action)(lay4)
+        value = tfkl.Dense(self.num_action)(lay4)
         
         advantage_mean = tfk.backend.mean(advantage, axis=1, keepdims=True)
         advantage = tfkl.subtract([advantage, advantage_mean])

@@ -3,10 +3,10 @@ import tensorflow as tf
 
 from ReplayBuffer import ReplayBuffer
         
+INITIAL_EPSILON = 0.25
+FINAL_EPSILON = 0.01
 EPSILON_DECAY = 10000
-FINAL_EPSILON = 0.002
-INITIAL_EPSILON = 0.33
-DISCOUNT_FACTOR = 0.99
+DISCOUNT_FACTOR = 0.975
 REPLAY_BUFFER_SIZE = 128
 UPDATE_FREQ = 16
 
@@ -42,18 +42,18 @@ class TrainAgent(object):
 
     def _reset_frame_buffer(self):
         # Reset frame buffers
-        self.frames = [self.state for i in range(self.num_frames)]
-        self.frames2 = [self.state for i in range(self.num_frames)]
+        self.frames = [self.state.copy() for i in range(self.num_frames)]
+        self.frames2 = [self.state.copy() for i in range(self.num_frames)]
         
     def _save_frames(self, state, next_state):
-        self.frames.append(state)
+        self.frames.append(state.copy())
         if len(self.frames) > self.num_frames:
             self.frames.pop(0)
-        self.frames2.append(next_state)
+        self.frames2.append(next_state.copy())
         if len(self.frames2) > self.num_frames:
             self.frames2.pop(0)
     
-    def train(self, num_pre_training_steps, num_training_steps, env=None):
+    def train(self, num_pre_training_steps, num_training_steps, env=None):        
         # Make sure we can fill the experience buffer
         if num_pre_training_steps < self.batch_size * self.num_frames:
             num_pre_training_steps = self.batch_size * self.num_frames
@@ -110,22 +110,18 @@ class TrainAgent(object):
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:
+                    # Update target network towards primary network
+                    self.agent.deep_q.update_target()
                     # Sample from experience buffer
                     s_batch, a_batch, r_batch, d_batch, s1_batch = self.replay_buffer.sample(self.batch_size)
                     # Perform training
                     self.batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, step)
-                    # Update target network towards primary network
-                    self.agent.deep_q.update_target()
 
             total_reward += reward
             if self.done:
                 self.epoch_rewards.append(total_reward)
                 self.epoch_alive.append(alive_steps)
-                with self.tf_writer.as_default():
-                    tf.summary.scalar("mean_reward", np.mean(self.epoch_rewards), len(self.epoch_rewards))
-                    tf.summary.scalar("mean_alive", np.mean(self.epoch_alive), len(self.epoch_alive))
-                    tf.summary.scalar("random", epsilon, step)
-                print("Lived [{}] steps".format(alive_steps))
+                print("Survived [{}] steps".format(alive_steps))
                 print("Total reward [{}]".format(total_reward))
                 alive_steps = 0
                 total_reward = 0
@@ -134,7 +130,6 @@ class TrainAgent(object):
             
             # Save the network every 1000 iterations
             if step > 0 and step % 1000 == 0:
-                print("Saving Network")
                 self.agent.deep_q.save_network(self.name + ".h5")
 
             # Iterate to next loop
@@ -158,18 +153,22 @@ class TrainAgent(object):
         Q = self.agent.deep_q.model.predict(m_input, batch_size = self.batch_size)
         Q2 = self.agent.deep_q.target_model.predict(t_input, batch_size = self.batch_size)
 
-        # Compute batch Q update from Qtarget
+        # Compute batch Double Q update to Qtarget
         for i in range(self.batch_size):
+            doubleQ = Q2[i, np.argmax(Q[i])]
             Q[i, a_batch[i]] = r_batch[i]
             if d_batch[i] == False:
-                doubleQ = Q2[i, np.argmax(Q[i])]
                 Q[i, a_batch[i]] += DISCOUNT_FACTOR * doubleQ
 
         # Batch train
         loss = self.agent.deep_q.model.train_on_batch(m_input, Q)
 
-        # Log the loss every 5 updates
+        # Log some useful metrics every 5 updates
         if step % (5 * UPDATE_FREQ) == 0:
             with self.tf_writer.as_default():
+                mean_reward = np.mean(self.epoch_rewards)
+                mean_alive = np.mean(self.epoch_alive)
+                tf.summary.scalar("mean_reward", mean_reward, step)
+                tf.summary.scalar("mean_alive", mean_alive, step)
                 tf.summary.scalar("loss", loss, step)
             print("loss =", loss)
