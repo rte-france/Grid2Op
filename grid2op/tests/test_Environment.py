@@ -16,6 +16,7 @@ from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import GameRules, DefaultRules
+from grid2op.Reward import EconomicReward
 
 DEBUG = False
 PROFILE_CODE = False
@@ -184,6 +185,9 @@ class TestIllegalAmbiguous(unittest.TestCase):
         self.tol_one = 1e-4
         self.env = make("case5_example")
 
+    def tearDown(self):
+        self.env.close()
+
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
@@ -210,6 +214,36 @@ class TestIllegalAmbiguous(unittest.TestCase):
         assert not info['is_ambiguous']
         assert info["is_illegal"]
         assert np.sum(obs.line_status) == 8
+
+
+class TestOtherReward(unittest.TestCase):
+    """
+    This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
+    or illegal
+
+    """
+    def setUp(self):
+        # powergrid
+        self.tolvect = 1e-2
+        self.tol_one = 1e-4
+        self.env = make("case5_example", reward_class=L2RPNReward, other_rewards={"test": L2RPNReward})
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_make(self):
+        _ = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert "rewards" in info
+        assert "test" in info["rewards"]
+        assert np.abs(info["rewards"]["test"] - reward) <= self.tol_one
+
+    def test_simulate(self):
+        obs = self.env.reset()
+        obs_simu, reward_simu, done_simu, info_simu = obs.simulate(self.env.action_space())
+        assert "rewards" in info_simu
+        assert "test" in info_simu["rewards"]
+        assert np.abs(info_simu["rewards"]["test"] - reward_simu) <= self.tol_one
 
 
 if __name__ == "__main__":

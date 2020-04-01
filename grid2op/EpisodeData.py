@@ -61,6 +61,7 @@ class EpisodeData:
     PARAMS = "_parameters.json"
     META = "episode_meta.json"
     TIMES = "episode_times.json"
+    OTHER_REWARDS = "other_rewards.json"
 
     AG_EXEC_TIMES = "agent_exec_times.npy"
     ACTIONS = "actions.npy"
@@ -74,7 +75,7 @@ class EpisodeData:
                  params=None, meta=None, episode_times=None,
                  observation_space=None, action_space=None,
                  helper_action_env=None, path_save=None, disc_lines_templ=None,
-                 logger=None, name=str(1), get_dataframes=None):
+                 logger=None, name=str(1), get_dataframes=None, other_rewards=[]):
 
         self.actions = CollectionWrapper(actions, action_space, "actions")
         self.observations = CollectionWrapper(observations, observation_space,
@@ -82,6 +83,7 @@ class EpisodeData:
 
         self.env_actions = CollectionWrapper(env_actions, helper_action_env,
                                              "env_actions")
+        self.other_rewards = other_rewards
         self.observation_space = observation_space
         self.helper_action_env = helper_action_env
         self.rewards = rewards
@@ -158,6 +160,8 @@ class EpisodeData:
                 episode_meta = json.load(fp=f)
             with open(os.path.join(episode_path, EpisodeData.TIMES)) as f:
                 episode_times = json.load(fp=f)
+            with open(os.path.join(episode_path, EpisodeData.OTHER_REWARDS)) as f:
+                other_rewards = json.load(fp=f)
 
             times = np.load(os.path.join(
                 episode_path, EpisodeData.AG_EXEC_TIMES))
@@ -169,6 +173,7 @@ class EpisodeData:
             disc_lines = np.load(os.path.join(
                 episode_path, EpisodeData.LINES_FAILURES))
             rewards = np.load(os.path.join(episode_path, EpisodeData.REWARDS))
+
         except FileNotFoundError as ex:
             raise Grid2OpException(f"EpisodeData file not found \n {str(ex)}")
 
@@ -182,10 +187,10 @@ class EpisodeData:
         return cls(actions, env_actions, observations, rewards, disc_lines,
                    times, _parameters, episode_meta, episode_times,
                    observation_space, action_space, helper_action_env,
-                   agent_path, name=name, get_dataframes=True)
+                   agent_path, name=name, get_dataframes=True,
+                   other_rewards=other_rewards)
 
     def set_parameters(self, env):
-
         if self.serialize:
             self.parameters = env.parameters.to_dict()
 
@@ -237,6 +242,16 @@ class EpisodeData:
                         self.disc_lines = np.concatenate(
                             (self.disc_lines, self.disc_lines_templ))
 
+            if "rewards" in info:
+                self.other_rewards.append({k: self._convert_to_float(v) for k, v in info["rewards"].items()})
+
+    def _convert_to_float(self, el):
+        try:
+            res = float(el)
+        except Exception as e:
+            res = -float('inf')
+        return res
+
     def set_episode_times(self, env, time_act, beg_, end_):
         if self.serialize:
             self.episode_times = {}
@@ -267,6 +282,12 @@ class EpisodeData:
                 self.episode_path, EpisodeData.TIMES)
             with open(episode_times_path, "w") as f:
                 json.dump(obj=self.episode_times, fp=f,
+                          indent=4, sort_keys=True)
+
+            episode_other_rewards_path = os.path.join(
+                self.episode_path, EpisodeData.OTHER_REWARDS)
+            with open(episode_other_rewards_path, "w") as f:
+                json.dump(obj=self.other_rewards, fp=f,
                           indent=4, sort_keys=True)
 
             np.save(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES),

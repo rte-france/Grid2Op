@@ -71,9 +71,10 @@ NAMES_CHRONICS_TO_BACKEND = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'lo
 
 ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class", "chronics_path", "reward_class",
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
-                       "chronics_class", "volagecontroler_class"}
+                       "chronics_class", "volagecontroler_class", "other_rewards"}
 ALLOWED_KWARGS_MAKE2 = {"param", "backend", "observation_class", "gamerules_class", "reward_class",
-                       "action_class", "data_feeding_kwargs", "chronics_class", "volagecontroler_class"}
+                        "action_class", "data_feeding_kwargs", "chronics_class", "volagecontroler_class",
+                        "other_rewards"}
 ERR_MSG_KWARGS = {
     "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
     "observation": "The type of observation of the environment (keyword \"observation_class\")" \
@@ -91,11 +92,14 @@ ERR_MSG_KWARGS = {
     " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
     "voltage": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
     " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
-    "chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary."
+    "chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
+    "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
+                     "should be dictionnary."
 }
 NAME_CHRONICS_FOLDER = "chronics"
 NAME_GRID_FILE = "grid.json"
 NAME_CONFIG_FILE = "config.py"
+
 
 def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                      msg_error="Error when building the default parameter",
@@ -212,10 +216,12 @@ def _check_kwargs(kwargs):
             raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
                            "No Environment will be created. "
                            "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS)))
-    
+
+
 def _check_path(path, info):
     if path is None or os.path.exists(path) is False:
         raise EnvError("Cannot find {}. {}".format(path, info))
+
 
 def make2(dataset_path="/", **kwargs):
     """
@@ -413,6 +419,13 @@ def make2(dataset_path="/", **kwargs):
                                     build_kwargs=data_feeding_kwargs,
                                     msg_error=ERR_MSG_KWARGS["chronics_handler"])
 
+    ### other rewards
+    other_rewards = _get_default_aux("other_rewards", kwargs,
+                                     defaultClassApp=dict,
+                                     defaultinstance={},
+                                     msg_error=ERR_MSG_KWARGS["other_rewards"],
+                                     isclass=False)
+
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
@@ -423,7 +436,8 @@ def make2(dataset_path="/", **kwargs):
                       observationClass=observation_class,
                       rewardClass=reward_class,
                       legalActClass=gamerules_class,
-                      voltagecontrolerClass=volagecontroler_class)
+                      voltagecontrolerClass=volagecontroler_class,
+                      other_rewards=other_rewards)
 
     # Update the thermal limit if any
     if thermal_limits is not None:
@@ -493,6 +507,10 @@ def make(name_env="case14_realistic", **kwargs):
 
     volagecontroler_class: ``type``, optional
         The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
+
+    other_rewards: ``dict``, optional
+        Dictionnary with other rewards we might want to look at at during training. It is given as a dictionnary with
+        keys the name of the reward, and the values a class representing the new variables.
 
     Returns
     -------
@@ -706,6 +724,15 @@ def make(name_env="case14_realistic", **kwargs):
                                              msg_error=msg_error,
                                              isclass=True)
 
+    ### other rewards
+    msg_error = "The argument to build the online controler for chronics (keyword \"other_rewards\")"
+    msg_error += " should be dictionnary."
+    other_rewards = _get_default_aux("other_rewards", kwargs,
+                                     defaultClassApp=dict,
+                                     defaultinstance={},
+                                     msg_error=msg_error,
+                                     isclass=False)
+
     if not os.path.exists(grid_path):
         raise EnvError("There is noting at \"{}\" where the powergrid should be located".format(
             os.path.abspath(grid_path)))
@@ -719,7 +746,8 @@ def make(name_env="case14_realistic", **kwargs):
                       observationClass=observation_class,
                       rewardClass=reward_class,
                       legalActClass=gamerules_class,
-                      voltagecontrolerClass=volagecontroler_class
+                      voltagecontrolerClass=volagecontroler_class,
+                      other_rewards=other_rewards
                       )
 
     # update the thermal limit if any
