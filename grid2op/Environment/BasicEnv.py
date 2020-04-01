@@ -8,6 +8,10 @@ from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
 from grid2op.Reward import Reward
 from grid2op.Reward import RewardHelper
+from grid2op.Opponent import OpponentSpace, UnlimitedBudget
+from grid2op.Action import ActionSpace, DontAct, Action
+from grid2op.Rules import AlwaysLegal
+from grid2op.Opponent import BaseOpponent
 
 
 class _BasicEnv(GridObjects, ABC):
@@ -33,6 +37,7 @@ class _BasicEnv(GridObjects, ABC):
         self._time_apply_act = 0
         self._time_powerflow = 0
         self._time_extract_obs = 0
+        self._time_opponent = 0
 
         # data relative to interpolation
         self._epsilon_poly = epsilon_poly
@@ -110,18 +115,60 @@ class _BasicEnv(GridObjects, ABC):
         self.reward_helper = None
         self.reward_range = None, None
 
-        # backend
-        self.init_grid_path = None
-
-        # specific to Basic Env, do not change
-        self.backend = None
-        self.__is_init = False
+        # other rewards
         self.other_rewards = {}
         for k, v in other_rewards.items():
             if not issubclass(v, Reward):
                 raise Grid2OpException("All keys of \"rewards\" key word argument should be classes that inherit from "
                                        "\"grid2op.Reward\"")
             self.other_rewards[k] = RewardHelper(v)
+
+        # opponent
+        self.opponent_action_class = DontAct  # class of the action of the opponent
+        self.opponent_class = BaseOpponent  # class of the opponent
+        self.opponent_init_budget = 0
+
+        ## below initialized by _create_env, above: need to be called
+        self.opponent_action_space = None  # ActionSpace(gridobj=)
+        self.compute_opp_budg = None  # UnlimitedBudget(self.opponent_act_space)
+        self.opponent = None  # OpponentSpace()
+        self.oppSpace = None
+
+        # backend
+        self.init_grid_path = None
+
+        # specific to Basic Env, do not change
+        self.backend = None
+        self.__is_init = False
+
+    def _create_opponent(self):
+        if not self.__is_init:
+            raise EnvError("Impossible to create an opponent with a non initialized environment!")
+
+        if not issubclass(self.opponent_action_class, Action):
+            raise EnvError("Impossible to make an environment with an opponent action class not derived from Action")
+        try:
+            self.opponent_init_budget = float(self.opponent_init_budget)
+        except Exception as e:
+            raise EnvError("Impossible to convert \"opponent_init_budget\" to a float with error {}".format(e))
+        if self.opponent_init_budget < 0.:
+            raise EnvError("If you want to deactive the opponent, please don't set its budget to a negative number."
+                           "Prefer the use of the DontAct action type (\"opponent_action_class=DontAct\" "
+                           "and / or set its budget to 0.")
+        if not issubclass(self.opponent_class, BaseOpponent):
+            raise EnvError("Impossible to make an opponent with a type that does not inherit from BaseOpponent.")
+
+        self.opponent_action_space = ActionSpace(gridobj=self.backend,
+                                                 legal_action=AlwaysLegal,
+                                                 actionClass=self.opponent_action_class)
+        self.compute_opp_budg = UnlimitedBudget(self.opponent_action_space)
+        self.opponent = self.opponent_class(self.opponent_action_space)
+        self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budg,
+                                      init_budget=self.opponent_init_budget,
+                                      opponent=self.opponent
+                                      )
+        self.oppSpace.init()
+        self.oppSpace.reset()
 
     def _has_been_initialized(self):
         # type of power flow to play
@@ -727,7 +774,17 @@ class _BasicEnv(GridObjects, ABC):
             self._voltage_control(action, prod_v_chronics)
 
             # have the opponent here
-            # TODO code the opponent part here
+            # TODO code the opponent part here and split more the timings! here "opponent time" is
+            # included in time_apply_act
+            tick = time.time()
+            attack = self.oppSpace.attack(observation=self.current_obs,
+                                          agent_action=action,
+                                          env_action=self.env_modification)
+            try:
+                self.backend.apply_action(attack)
+            except Exception as e:
+                self.oppSpace.has_failed()
+            self._time_opponent += time.time() - tick
 
             self.backend.apply_action(self.env_modification)
             self._time_apply_act += time.time() - beg_
@@ -869,6 +926,7 @@ class _BasicEnv(GridObjects, ABC):
         self._time_apply_act = 0
         self._time_powerflow = 0
         self._time_extract_obs = 0
+        self._time_opponent = 0
 
         # reward and others
         self.current_reward = self.reward_range[0]

@@ -23,6 +23,7 @@ import os
 import importlib.util
 import pkg_resources
 import warnings
+import numbers
 import pdb
 import json
 
@@ -31,12 +32,13 @@ from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
 from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
-from grid2op.Action import Action, TopologyAction, TopoAndRedispAction
+from grid2op.Action import Action, TopologyAction, TopoAndRedispAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, Observation
 from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
 from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
+from grid2op.Opponent import BaseOpponent
 
 from grid2op.Chronics.Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
 from grid2op.Chronics.Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
@@ -71,10 +73,12 @@ NAMES_CHRONICS_TO_BACKEND = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'lo
 
 ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class", "chronics_path", "reward_class",
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
-                       "chronics_class", "volagecontroler_class", "other_rewards"}
+                       "chronics_class", "volagecontroler_class", "other_rewards",
+                       'opponent_action_class', "opponent_class", "opponent_init_budget"}
 ALLOWED_KWARGS_MAKE2 = {"param", "backend", "observation_class", "gamerules_class", "reward_class",
                         "action_class", "data_feeding_kwargs", "chronics_class", "volagecontroler_class",
-                        "other_rewards"}
+                        "other_rewards",
+                       'opponent_action_class', "opponent_class", "opponent_init_budget"}
 ERR_MSG_KWARGS = {
     "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
     "observation": "The type of observation of the environment (keyword \"observation_class\")" \
@@ -94,11 +98,17 @@ ERR_MSG_KWARGS = {
     " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
     "chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
-                     "should be dictionnary."
+                     "should be dictionnary.",
+    "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
+                             "inherit from \"Action\"",
+    "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
+                             "inherit from \"BaseOpponent\"",
+    "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float"
 }
 NAME_CHRONICS_FOLDER = "chronics"
 NAME_GRID_FILE = "grid.json"
 NAME_CONFIG_FILE = "config.py"
+# TODO read the "ALLOWED_KWARGS" from the key of ERR_MSG
 
 
 def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
@@ -166,7 +176,17 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
         if isclass is False:
             # i must create an instance of a class. I check whether it's a instance.
             if not isinstance(res, defaultClassApp):
-                raise EnvError(msg_error)
+                if issubclass(defaultClassApp, numbers.Number):
+                    try:
+                        # if this is base numeric type, like float or anything, i try to convert to it (i want to
+                        # accept that "int" are float for example.
+                        res = defaultClassApp(res)
+                    except:
+                        # if there is any error, i raise the error message
+                        raise EnvError(msg_error)
+                else:
+                    # if there is any error, i raise the error message
+                    raise EnvError(msg_error)
         else:
             if not isinstance(res, type):
                 raise EnvError("Parameter \"{}\" should be a type and not an instance. It means that you provided an "
@@ -425,6 +445,26 @@ def make2(dataset_path="/", **kwargs):
                                      msg_error=ERR_MSG_KWARGS["other_rewards"],
                                      isclass=False)
 
+    # Opponent
+    # TODO make that in config file of the default environment !!!
+    opponent_action_class = _get_default_aux("opponent_action_class",
+                                             kwargs,
+                                             defaultClassApp=Action,
+                                             defaultClass=DontAct,
+                                             msg_error=ERR_MSG_KWARGS["opponent_action_class"],
+                                             isclass=True)
+    opponent_class = _get_default_aux("opponent_class",
+                                      kwargs,
+                                      defaultClassApp=BaseOpponent,
+                                      defaultClass=BaseOpponent,
+                                      msg_error=ERR_MSG_KWARGS["opponent_class"],
+                                      isclass=True)
+    opponent_init_budget = _get_default_aux("opponent_init_budget", kwargs,
+                                            defaultClassApp=float,
+                                            defaultinstance=0.,
+                                            msg_error=ERR_MSG_KWARGS["opponent_init_budget"],
+                                            isclass=False)
+
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
                       chronics_handler=data_feeding,
@@ -436,7 +476,10 @@ def make2(dataset_path="/", **kwargs):
                       rewardClass=reward_class,
                       legalActClass=gamerules_class,
                       voltagecontrolerClass=volagecontroler_class,
-                      other_rewards=other_rewards)
+                      other_rewards=other_rewards,
+                      opponent_action_class=opponent_action_class,
+                      opponent_class=opponent_class,
+                      opponent_init_budget=opponent_init_budget)
 
     # Update the thermal limit if any
     if thermal_limits is not None:
@@ -732,6 +775,25 @@ def make(name_env="case14_realistic", **kwargs):
                                      msg_error=msg_error,
                                      isclass=False)
 
+    # Opponent
+    # TODO make that in config file of the default environment !!!
+    opponent_action_class = _get_default_aux("opponent_action_class",
+                                             kwargs,
+                                             defaultClassApp=Action,
+                                             defaultClass=DontAct,
+                                             msg_error=ERR_MSG_KWARGS["opponent_action_class"],
+                                             isclass=True)
+    opponent_class = _get_default_aux("opponent_class",
+                                      kwargs,
+                                      defaultClassApp=BaseOpponent,
+                                      defaultClass=BaseOpponent,
+                                      msg_error=ERR_MSG_KWARGS["opponent_class"],
+                                      isclass=True)
+    opponent_init_budget = _get_default_aux("opponent_init_budget", kwargs,
+                                            defaultClassApp=float,
+                                            defaultinstance=0.,
+                                            msg_error=ERR_MSG_KWARGS["opponent_init_budget"],
+                                            isclass=False)
     if not os.path.exists(grid_path):
         raise EnvError("There is noting at \"{}\" where the powergrid should be located".format(
             os.path.abspath(grid_path)))
@@ -746,7 +808,10 @@ def make(name_env="case14_realistic", **kwargs):
                       rewardClass=reward_class,
                       legalActClass=gamerules_class,
                       voltagecontrolerClass=volagecontroler_class,
-                      other_rewards=other_rewards
+                      other_rewards=other_rewards,
+                      opponent_action_class=opponent_action_class,
+                      opponent_class=opponent_class,
+                      opponent_init_budget=opponent_init_budget
                       )
 
     # update the thermal limit if any

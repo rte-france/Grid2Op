@@ -5,7 +5,7 @@ Change Log
 --------------------
 TODO for next versions
 
-- [???] add the "anti-agent"
+- [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] rationalize the names of plotting utilities
@@ -25,19 +25,21 @@ TODO for next versions
 
 [0.6.0] - 2020-04-??
 ---------------------
-- [BREAKING] `grid2op.GameRules module` renamed to `grid2op.Rules`
-- [BREAKING] `grid2op.Converters module` renamed `grid2op.Converter`
+- [BREAKING] `grid2op.GameRules` module renamed to `grid2op.Rules`
+- [BREAKING] `grid2op.Converters` module renamed `grid2op.Converter`
 - [BREAKING] `grid2op.ChronicsHandler` renamed to `grid2op.Chronics`
 - [BREAKING] `grid2op.PandaPowerBackend` is moved to `grid2op.Backend.PandaPowerBackend`
-- [BREAKING] `GameRules.AllwaysIllegal` is now `Rules.AlwaysIllegal`
-- [BREAKING] Plotting utils are now located in their own module grid2op.Plot
-- [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
-  that are given to the agent through the "information" return argument of `env.step`. See the documentation of
-  Environment.other_rewards.
+- [BREAKING] `GameRules.Allwayslegal` is now `Rules.Alwayslegal`
+- [BREAKING] Plotting utils are now located in their own module `grid2op.Plot`
 - [DEPRECATION] `HelperAction` is now called `ActionSpace` to better suit open ai gym name. Use of `HelperAction`
   will be deprecated in future versions.
 - [DEPRECATION] `ObservationHelper` is now called `ObservationSpace` to better suit open ai gym name.
   Use of `ObservationHelper` will be deprecated in future versions.
+- [ADDED] different kind of "Opponent" can now be implemented if needed (missing deep testing, different type of
+  class, and good documentation)
+- [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
+  that are given to the agent through the "information" return argument of `env.step`. See the documentation of
+  Environment.other_rewards.
 - [ADDED] Alternative method to load datasets based on new dataset format: MakeEnv.make2
 - [FIXED] Loading L2RPN_2019 dataset
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.

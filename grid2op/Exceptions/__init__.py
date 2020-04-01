@@ -38,7 +38,8 @@ __all__ = [
     "ChronicsNotFoundError",
     "InsufficientData",
     "BackendError",
-    "PlotError"
+    "PlotError",
+    "OpponentError"
 ]
 
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
@@ -89,3 +90,5 @@ from grid2op.Exceptions.ChronicsExceptions import InsufficientData
 from grid2op.Exceptions.BackendExceptions import BackendError
 
 from grid2op.Exceptions.PlotExceptions import PlotError
+
+from grid2op.Exceptions.OpponentError import OpponentError

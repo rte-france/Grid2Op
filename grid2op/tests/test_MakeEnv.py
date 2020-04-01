@@ -26,6 +26,7 @@ from grid2op.Observation import CompleteObservation, Observation
 from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
 from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
+from grid2op.Opponent import BaseOpponent
 
 # TODO make a test that the defaults are correct for all environment below
 # (eg that the env.chronics_handler has
@@ -306,6 +307,24 @@ class TestkwargsName(unittest.TestCase):
             with make("case5_example", volagecontroler_class=ControlVoltageFromFile) as env:
                 pass
 
+    def test_opponent_action_class(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", opponent_action_class=Action) as env:
+                pass
+
+    def test_opponent_class(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", opponent_class=BaseOpponent) as env:
+                pass
+
+    def test_opponent_init_budget(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", opponent_init_budget=10) as env:
+                pass
+
 
 class TestMake2Config(unittest.TestCase):
     def test_case5_config(self):
@@ -381,6 +400,7 @@ class TestMake2Config(unittest.TestCase):
             assert env.legalActClass == DefaultRules
             assert isinstance(env.voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
+
 
 class TestMake2ConfigOverride(unittest.TestCase):
     def test_case5_override_reward(self):

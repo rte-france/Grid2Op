@@ -84,6 +84,7 @@ class ControlVoltageFromFile:
             The new setpoint, in this case depending only on the prod_v_chronics.
 
         """
+        # TODO add a "reward" and "done" for RL voltage controler
         if prod_v_chronics is not None:
             res = self.action_space({"injection": {"prod_v": prod_v_chronics}})
         else:

@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Action import ActionSpace, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
+from grid2op.Action import ActionSpace, Action, TopologyAction, TopoAndRedispAction, PowerLineSet, DontAct
 from grid2op.Rules import GameRules, DefaultRules
 from grid2op.Space import GridObjects
 
@@ -755,6 +755,13 @@ class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
     def _action_env_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
 
+class TestPowerDontAct(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerLineSet class
+    """
+
+    def _action_env_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
 
 if __name__ == "__main__":
     unittest.main()

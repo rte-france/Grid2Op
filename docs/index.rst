@@ -57,6 +57,7 @@ Technical Documentation
    environment
    rules
    observation
+   opponent
    parameters
    reward
    runner

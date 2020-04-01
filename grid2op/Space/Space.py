@@ -433,8 +433,11 @@ class GridObjects:
 
         if self._vectorized is None:
             self._raise_error_attr_list_none()
-            self._vectorized = np.concatenate([self._get_array_from_attr_name(el).astype(np.float)
-                                              for el in self.attr_list_vect])
+            li_vect = [self._get_array_from_attr_name(el).astype(np.float) for el in self.attr_list_vect]
+            if li_vect:
+                self._vectorized = np.concatenate(li_vect)
+            else:
+                self._vectorized = np.array([], dtype=np.float)
         return self._vectorized
 
     def shape(self):
