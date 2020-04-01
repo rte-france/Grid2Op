@@ -6,7 +6,6 @@ import tensorflow as tf
 from grid2op.MakeEnv import make2
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
-from TrainAgent import TrainAgent
 from CustomEconomicReward import CustomEconomicReward
 
 def cli():
@@ -42,16 +41,14 @@ if __name__ == "__main__":
     physical_devices = tf.config.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-    agent = DDDQNAgent(env.action_space,
+    agent = DDDQNAgent(env, env.action_space,
+                       name=args.name, 
+                       is_training=True,
+                       batch_size=args.batch_size,
                        num_frames=args.num_frames,
                        lr=args.learning_rate)
 
-    trainer = TrainAgent(agent, env,
-                         name=args.name, 
-                         batch_size=args.batch_size,
-                         num_frames=args.num_frames)
-
     if args.resume is not None:
-        dqnn_agent.deep_q.load_network(args.resume)
+        agent.load_network(args.resume)
 
-    trainer.train(args.num_pre_steps, args.num_train_steps)
+    agent.train(args.num_pre_steps, args.num_train_steps)

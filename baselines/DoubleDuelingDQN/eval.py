@@ -33,15 +33,10 @@ if __name__ == "__main__":
     # Create dataset env
     env = make2(args.path_data, reward_class=CustomEconomicReward)
 
-    # Instanciate agent
-    agent = DDDQNAgent(env.action_space, num_frames=4)
-    # Get shapes from env
-    obs = env.reset()
-    state = agent.convert_obs(obs)
-    # Build Model
-    agent.init_deep_q(state)
+    # Create agent
+    agent = DDDQNAgent(env, env.action_space, is_training=False, num_frames=4)
     # Load weights from file
-    agent.deep_q.load_network(args.path_model)
+    agent.load_network(args.path_model)
 
     # Build runner
     runner_params = env.get_params_for_runner()
