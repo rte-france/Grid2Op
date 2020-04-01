@@ -27,9 +27,9 @@ class DoubleDuelingDQN(object):
         # Uses the network architecture found in DeepMind paper
         # The inputs and outputs size have changed
         # as well as replacing the convolution by dense layers.
-        
+
         input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,))
-        lay1 = tfkl.Dense(self.observation_size*self.num_frames)(input_layer)
+        lay1 = tfkl.Dense(self.observation_size * self.num_frames)(input_layer)
                 
         lay2 = tfkl.Dense(self.observation_size)(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
