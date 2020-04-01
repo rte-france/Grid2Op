@@ -6,6 +6,7 @@ from grid2op.Observation.SerializableObservationSpace import SerializableObserva
 from grid2op.Observation.CompleteObservation import CompleteObservation
 from grid2op.Observation.ObsEnv import ObsEnv
 
+
 class ObservationHelper(SerializableObservationSpace):
     """
     Helper that provides usefull functions to manipulate :class:`Observation`.
@@ -45,7 +46,8 @@ class ObservationHelper(SerializableObservationSpace):
         An instance of the observation that is updated and will be sent to he Agent.
 
     """
-    def __init__(self, gridobj,
+    def __init__(self,
+                 gridobj,
                  env,
                  rewardClass=None,
                  observationClass=CompleteObservation):
@@ -72,6 +74,8 @@ class ObservationHelper(SerializableObservationSpace):
         self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
         self.reward_helper.initialize(env)
 
+        other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
+
         # TODO here: have another backend maybe
         self.backend_obs = env.backend.copy()
 
@@ -81,7 +85,11 @@ class ObservationHelper(SerializableObservationSpace):
                               action_helper=self.action_helper_env,
                               thermal_limit_a=env._thermal_limit_a,
                               legalActClass=env.legalActClass,
-                              donothing_act=env.helper_action_player())
+                              donothing_act=env.helper_action_player(),
+                              other_rewards=other_rewards)
+
+        for k, v in self.obs_env.other_rewards.items():
+            v.initialize(env)
 
         self._empty_obs = self.observationClass(gridobj=self,
                                                 obs_env=self.obs_env,

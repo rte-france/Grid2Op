@@ -10,12 +10,14 @@ from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import GameRules, LegalAction
 from grid2op.Action import Action
 
+
 class ObsCH(ChangeNothing):
     """
     This class is reserved to internal use. Do not attempt to do anything with it.
     """
     def forecasts(self):
         return []
+
 
 class ObsEnv(_BasicEnv):
     """
@@ -27,8 +29,9 @@ class ObsEnv(_BasicEnv):
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self, backend_instanciated, parameters, reward_helper, obsClass,
-                 action_helper, thermal_limit_a, legalActClass, donothing_act):
-        _BasicEnv.__init__(self, parameters, thermal_limit_a)
+                 action_helper, thermal_limit_a, legalActClass, donothing_act,
+                 other_rewards={}):
+        _BasicEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
         self.donothing_act = donothing_act
         self.reward_helper = reward_helper
         self.obsClass = None
@@ -206,12 +209,12 @@ class ObsEnv(_BasicEnv):
         return self.step(action)
         # return self.current_obs, reward, has_error, {}
 
-    def _get_reward(self, action, has_error, is_done,is_illegal, is_ambiguous):
-        if has_error:
-            res = self.reward_helper.range()[0]
-        else:
-            res = self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
-        return res
+    # def _get_reward(self, action, has_error, is_done,is_illegal, is_ambiguous):
+    #    if has_error:
+    #        res = self.reward_helper.range()[0]
+    #    else:
+    #        res = self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
+    #    return res
 
     def get_obs(self):
         """

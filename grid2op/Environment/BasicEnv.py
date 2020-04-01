@@ -1,10 +1,13 @@
 import time
 import numpy as np
+import copy
 from abc import ABC, abstractmethod
 
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
+from grid2op.Reward import Reward
+from grid2op.Reward import RewardHelper
 
 
 class _BasicEnv(GridObjects, ABC):
@@ -16,6 +19,7 @@ class _BasicEnv(GridObjects, ABC):
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
+                 other_rewards={}
                  ):
         GridObjects.__init__(self)
 
@@ -112,6 +116,12 @@ class _BasicEnv(GridObjects, ABC):
         # specific to Basic Env, do not change
         self.backend = None
         self.__is_init = False
+        self.other_rewards = {}
+        for k, v in other_rewards.items():
+            if not issubclass(v, Reward):
+                raise Grid2OpException("All keys of \"rewards\" key word argument should be classes that inherit from "
+                                       "\"grid2op.Reward\"")
+            self.other_rewards[k] = RewardHelper(v)
 
     def _has_been_initialized(self):
         # type of power flow to play
@@ -631,6 +641,7 @@ class _BasicEnv(GridObjects, ABC):
         is_illegal_reco = False
         except_ = []
         init_disp = 1.0 * action._redispatch
+
         previous_disp = 1.0 * self.actual_dispatch
         previous_target_disp = 1.0 * self.target_dispatch
         try:
@@ -780,17 +791,21 @@ class _BasicEnv(GridObjects, ABC):
                  "is_illegal_reco": is_illegal_reco,
                  "exception": except_}
         self.done = self._is_done(has_error, is_done)
-        self.current_reward = self._get_reward(action,
-                                               has_error,
-                                               is_done,
-                                               is_illegal or is_illegal_redisp or is_illegal_reco,
-                                               is_ambiguous)
-
+        self.current_reward, other_reward = self._get_reward(action,
+                                                             has_error,
+                                                             is_done,
+                                                             is_illegal or is_illegal_redisp or is_illegal_reco,
+                                                             is_ambiguous)
+        infos["rewards"] = other_reward
         # TODO documentation on all the possible way to be illegal now
         return self.current_obs, self.current_reward, self.done, infos
 
     def _get_reward(self, action, has_error, is_done, is_illegal, is_ambiguous):
-        return self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
+        res = self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
+        other_rewards = {k: v(action, self, has_error, is_done, is_illegal, is_ambiguous)
+                         for k, v in self.other_rewards.items()
+                         }
+        return res, other_rewards
 
     def _is_done(self, has_error, is_done):
         no_more_data = self.chronics_handler.done()

@@ -220,7 +220,8 @@ class Runner(object):
                  gridStateclass_kwargs={},
                  voltageControlerClass=ControlVoltageFromFile,
                  thermal_limit_a=None,
-                 max_iter=-1
+                 max_iter=-1,
+                 other_rewards={}
                  ):
         """
         Initialize the Runner.
@@ -404,7 +405,7 @@ class Runner(object):
         self.gridStateclass_kwargs = gridStateclass_kwargs
         self.max_iter = max_iter
         if max_iter > 0:
-            self.gridStateclass["max_iter"] = max_iter
+            self.gridStateclass_kwargs["max_iter"] = max_iter
         self.chronics_handler = ChronicsHandler(chronicsClass=self.gridStateclass,
                                                 path=self.path_chron,
                                                 **self.gridStateclass_kwargs)
@@ -423,6 +424,7 @@ class Runner(object):
         if not issubclass(voltageControlerClass, ControlVoltageFromFile):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
         self.voltageControlerClass = voltageControlerClass
+        self._other_rewards = other_rewards
 
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
@@ -434,7 +436,8 @@ class Runner(object):
                             observationClass=self.observationClass,
                             rewardClass=self.rewardClass,
                             legalActClass=self.legalActClass,
-                            voltagecontrolerClass=self.voltageControlerClass)
+                            voltagecontrolerClass=self.voltageControlerClass,
+                            other_rewards=self._other_rewards)
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
@@ -548,7 +551,8 @@ class Runner(object):
                               action_space=env.action_space,
                               helper_action_env=env.helper_action_env,
                               path_save=path_save, disc_lines_templ=disc_lines_templ,
-                              logger=logger, name=env.chronics_handler.get_name())
+                              logger=logger, name=env.chronics_handler.get_name(),
+                              other_rewards=[])
 
         episode.set_parameters(env)
 

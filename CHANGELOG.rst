@@ -1,10 +1,10 @@
 Change Log
-=============
+===========
+
 [0.6.0] - 2020-xx-yy
 --------------------
 TODO for next versions
 
-- [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
 - [???] add the "anti-agent"
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
@@ -25,12 +25,15 @@ TODO for next versions
 
 [0.5.9] - 2020-03-??
 ---------------------
-- [BREAKING] grid2op.GameRules module renamed to grid2op.Rules 
-- [BREAKING] grid2op.Converters module renamed grid2op.Converter
-- [BREAKING] grid2op.ChronicsHandler renamed to grid2op.Chronics
-- [BREAKING] grid2op.PandaPowerBackend is moved to grid2op.Backend.PandaPowerBackend
-- [BREAKING] GameRules.AllwaysIllegal is now Rules.AlwaysIllegal
+- [BREAKING] `grid2op.GameRules module` renamed to `grid2op.Rules`
+- [BREAKING] `grid2op.Converters module` renamed `grid2op.Converter`
+- [BREAKING] `grid2op.ChronicsHandler` renamed to `grid2op.Chronics`
+- [BREAKING] `grid2op.PandaPowerBackend` is moved to `grid2op.Backend.PandaPowerBackend`
+- [BREAKING] `GameRules.AllwaysIllegal` is now `Rules.AlwaysIllegal`
 - [BREAKING] Plotting utils are now located in their own module grid2op.Plot
+- [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
+  that are given to the agent through the "information" return argument of `env.step`. See the documentation of
+  Environment.other_rewards.
 - [ADDED] Alternative method to load datasets based on new dataset format: MakeEnv.make2
 - [FIXED] Loading L2RPN_2019 dataset
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.

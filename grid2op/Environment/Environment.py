@@ -183,6 +183,10 @@ class Environment(_BasicEnv):
     gen_activeprod_t:
         Should be initialized at 0. for "step" to properly recognize it's the first time step of the game
 
+    other_rewards: ``dict``
+        Dictionnary with key being the name (identifier) and value being some RewardHelper. At each time step, all the
+        values will be computed by the :class:`Environment` and the information about it will be returned in the
+        "reward" key of the "info" dictionnary of the :func:`Environment.step`.
     """
     def __init__(self,
                  init_grid_path: str,
@@ -195,6 +199,7 @@ class Environment(_BasicEnv):
                  rewardClass=FlatReward,
                  legalActClass=AlwaysLegal,
                  voltagecontrolerClass=ControlVoltageFromFile,
+                 other_rewards={},
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6
@@ -219,10 +224,12 @@ class Environment(_BasicEnv):
         # TODO documentation!!
 
         _BasicEnv.__init__(self,
-                          parameters=parameters,
-                          thermal_limit_a=thermal_limit_a,
-                          epsilon_poly=epsilon_poly,
-                          tol_poly=tol_poly)
+                           parameters=parameters,
+                           thermal_limit_a=thermal_limit_a,
+                           epsilon_poly=epsilon_poly,
+                           tol_poly=tol_poly,
+                           other_rewards=other_rewards)
+
         # the voltage controler
         self.voltagecontrolerClass = voltagecontrolerClass
         self.voltage_controler = None
@@ -346,8 +353,10 @@ class Environment(_BasicEnv):
         self.chronics_handler.check_validity(self.backend)
 
         # reward function
-        self.reward_helper = RewardHelper(rewardClass=rewardClass)
+        self.reward_helper = RewardHelper(self.rewardClass)
         self.reward_helper.initialize(self)
+        for k, v in self.other_rewards.items():
+            v.initialize(self)
 
         # controler for voltage
         if not issubclass(self.voltagecontrolerClass, ControlVoltageFromFile):
@@ -662,6 +671,7 @@ class Environment(_BasicEnv):
         res["tol_poly"] = self._tol_poly
         res["thermal_limit_a"] = self._thermal_limit_a
         res["voltagecontrolerClass"] = self.voltagecontrolerClass
+        res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         return res
 
     def get_params_for_runner(self):
@@ -706,6 +716,7 @@ class Environment(_BasicEnv):
         res["gridStateclass_kwargs"] = dict_
         res["thermal_limit_a"] = self._thermal_limit_a
         res["voltageControlerClass"] = self.voltagecontrolerClass
+        res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
 
         # TODO make a test for that
         return res

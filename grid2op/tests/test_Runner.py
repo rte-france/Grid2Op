@@ -34,6 +34,8 @@ class TestRunner(HelperTests):
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
+        self.max_iter = 10
+        self.real_reward = 199.99800
         self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
                                                     "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
                                                     "5_C201.84": 'load_4_4',
@@ -61,32 +63,42 @@ class TestRunner(HelperTests):
                              names_chronics_to_backend=self.names_chronics_to_backend,
                              gridStateclass=self.gridStateclass,
                              backendClass=self.backendClass,
-                             rewardClass=L2RPNReward)
+                             rewardClass=L2RPNReward,
+                             max_iter=self.max_iter)
 
     def test_one_episode(self):
         _, cum_reward, timestep = self.runner.run_one_episode()
-        assert int(timestep) == 287
-        assert np.abs(cum_reward - 5739.951023) <= self.tol_one
+        assert int(timestep) == self.max_iter
+        assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_3_episode(self):
         res = self.runner.run_sequential(nb_episode=2)
         assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == 287
-            assert np.abs(cum_reward - 5739.95102) <= self.tol_one
+            assert int(timestep) == self.max_iter
+            assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_3_episode_3process(self):
         res = self.runner.run_parrallel(nb_episode=2, nb_process=2)
         assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == 287
-            assert np.abs(cum_reward - 5739.95102) <= self.tol_one
+            assert int(timestep) == self.max_iter
+            assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_init_from_env(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case14_test") as env:
                 runner = Runner(**env.get_params_for_runner())
+        runner.run(nb_episode=1, max_iter=self.max_iter )
+
+    def test_init_from_env_with_other_reward(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case14_test", other_rewards={"test": L2RPNReward}) as env:
+                runner = Runner(**env.get_params_for_runner())
+        runner.run(nb_episode=1, max_iter=self.max_iter)
+
 
 
 
