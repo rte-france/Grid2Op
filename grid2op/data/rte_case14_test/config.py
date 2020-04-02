@@ -52,5 +52,5 @@ config = {
 	2721.79412618,
 	2721.79412618
     ],
-    "chronics_to_grid": None
+    "names_chronics_to_grid": None
 }

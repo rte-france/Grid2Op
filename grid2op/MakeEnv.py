@@ -96,7 +96,7 @@ ERR_MSG_KWARGS = {
     " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
     "voltage": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
     " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
-    "chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
+    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
                      "should be dictionnary.",
     "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
@@ -335,13 +335,13 @@ def make2(dataset_path="/", **kwargs):
 
     # Get chronics_to_backend
     name_converter = None
-    if "chronics_to_grid" in config_data:
-        name_converter = config_data["chronics_to_grid"]
+    if "names_chronics_to_grid" in config_data:
+        name_converter = config_data["names_chronics_to_grid"]
     if name_converter is None:
         name_converter = {}
     names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
                                                  defaultClassApp=dict, defaultinstance=name_converter,
-                                                 msg_error=ERR_MSG_KWARGS["chronics_to_grid"])
+                                                 msg_error=ERR_MSG_KWARGS["names_chronics_to_grid"])
     # Get default backend class
     backend_class_cfg = PandaPowerBackend
     if "backend_class" in config_data and config_data["backend_class"] is not None:

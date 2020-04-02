@@ -22,5 +22,5 @@ config = {
 	[400, 0]
     ],
     "thermal_limits": None,
-    "chronics_to_grid": None
+    "names_chronics_to_grid": None
 }

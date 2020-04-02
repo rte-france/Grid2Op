@@ -52,5 +52,5 @@ config = {
         3.40224266e+03,
         3.40224266e+03
     ],
-    "chronics_to_grid": None
+    "names_chronics_to_grid": None
 }
