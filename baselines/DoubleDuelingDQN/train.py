@@ -7,6 +7,7 @@ from grid2op.MakeEnv import make2
 from grid2op.Reward import RedispReward
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
+from CustomAction import CustomAction
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -35,7 +36,7 @@ def cli():
 
 if __name__ == "__main__":
     args = cli()
-    env = make2(args.path_data, reward_class=RedispReward)
+    env = make2(args.path_data, reward_class=RedispReward, action_class=CustomAction)
 
     # Limit gpu usage
     physical_devices = tf.config.list_physical_devices('GPU')
