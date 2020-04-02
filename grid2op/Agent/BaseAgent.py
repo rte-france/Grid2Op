@@ -1,8 +1,8 @@
 """
-In this RL framework, an :class:`Agent` is an entity that acts on the :class:`Environment`. Agent can alternatively
+In this RL framework, an :class:`BaseAgent` is an entity that acts on the :class:`Environment`. BaseAgent can alternatively
 be named "bot" or "controller" in other literature.
 
-This module presents a few possible :class:`Agent` that can serve either as baseline, or as example on how to
+This module presents a few possible :class:`BaseAgent` that can serve either as baseline, or as example on how to
 implement such agents.
 
 To perform their actions, agent receive two main signals from the :class:`grid2op.Environment`:
@@ -11,20 +11,20 @@ To perform their actions, agent receive two main signals from the :class:`grid2o
   - the :class:`grid2op.BaseObservation` that is a (partial) view on the state of the Environment.
 
 Both these signals can be use to determine what is the best action to perform on the grid. This is actually the main
-objective of an :class:`Agent`, and this is done in the :func:`Agent.act` method.
+objective of an :class:`BaseAgent`, and this is done in the :func:`BaseAgent.act` method.
 
 """
 
 from abc import ABC, abstractmethod
 
 
-class Agent(ABC):
+class BaseAgent(ABC):
     """
-    This class represents the base class of an Agent. All bot / controller / agent used in the Grid2Op simulator
+    This class represents the base class of an BaseAgent. All bot / controller / agent used in the Grid2Op simulator
     should derived from this class.
 
-    To work properly, it is advise to create Agent after the :class:`grid2op.Environment` has been created and reuse
-    the :attr:`grid2op.Environment.Environment.action_space` to build the Agent.
+    To work properly, it is advise to create BaseAgent after the :class:`grid2op.Environment` has been created and reuse
+    the :attr:`grid2op.Environment.Environment.action_space` to build the BaseAgent.
 
     Attributes
     -----------
@@ -39,7 +39,7 @@ class Agent(ABC):
     @abstractmethod
     def act(self, observation, reward, done=False):
         """
-        This is the main method of an Agent. Given the current observation and the current reward (ie the reward that
+        This is the main method of an BaseAgent. Given the current observation and the current reward (ie the reward that
         the environment send to the agent after the previous action has been implemented).
 
         Parameters

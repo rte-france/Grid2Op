@@ -57,7 +57,7 @@ class RewardHelper:
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
-            The action performed by the Agent.
+            The action performed by the BaseAgent.
 
         env: :class:`grid2op.Environment.Environment`
             The current environment.

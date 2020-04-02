@@ -8,7 +8,7 @@ class ConstantReward(Reward):
     """
     Most basic implementation of reward: everything has the same values.
 
-    Note that this :class:`Reward` subtype is not usefull at all, whether to train an :attr:`Agent` nor to assess its
+    Note that this :class:`Reward` subtype is not usefull at all, whether to train an :attr:`BaseAgent` nor to assess its
     performance of course.
 
     """

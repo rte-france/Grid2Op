@@ -25,7 +25,7 @@ class ObservationHelper(ObservationSpace):
                       category=PendingDeprecationWarning)
 
 
-class TODOLATERObservation(BaseObservation):
+class Observation(BaseObservation):
     def __init__(self, *args, **kwargs):
         BaseObservation.__init__(*args, **kwargs)
         warnings.warn("Observation class has been renamed \"BaseObservation\". The Observation class will be removed"

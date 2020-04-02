@@ -7,7 +7,7 @@ from grid2op.Converter import IdToAct
 from DoubleDuelingDQN import DoubleDuelingDQN
 
 class DoubleDuelingDQNAgent(AgentWithConverter):
-    # first change: An Agent must derived from grid2op.Agent
+    # first change: An BaseAgent must derived from grid2op.BaseAgent
     # (in this case MLAgent, because we manipulate vector instead of classes)
     
     def convert_obs(self, observation):

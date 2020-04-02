@@ -555,7 +555,7 @@ class GridValue(ABC):
 
     def forecasts(self):
         """
-        This method is used to generate the forecasts that are made available to the :class:`grid2op.Agent`.
+        This method is used to generate the forecasts that are made available to the :class:`grid2op.BaseAgent`.
         This forecasts are behaving the same way than a list of tuple as the one returned by
         :func:`GridValue.load_next` method.
 
@@ -622,7 +622,7 @@ class GridValue(ABC):
     def max_timestep(self):
         """
         This method returned the maximum timestep that the current episode can last.
-        Note that if the :class:`grid2op.Agent` performs a bad action that leads to a game over, then the episode
+        Note that if the :class:`grid2op.BaseAgent` performs a bad action that leads to a game over, then the episode
         can lasts less.
 
         Returns

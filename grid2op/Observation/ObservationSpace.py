@@ -29,8 +29,8 @@ class ObservationSpace(SerializableObservationSpace):
 
     rewardClass: ``type``
         Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
-        :class:`grid2op.Agent.Agent`. You can change this class to differentiate between the reward of output of
-        :func:`BaseObservation.simulate`  and the reward used to train the Agent.
+        :class:`grid2op.BaseAgent.BaseAgent`. You can change this class to differentiate between the reward of output of
+        :func:`BaseObservation.simulate`  and the reward used to train the BaseAgent.
 
     action_helper_env: :class:`grid2op.Action.ActionSpace`
         BaseAction space used to create action during the :func:`BaseObservation.simulate`
@@ -42,7 +42,7 @@ class ObservationSpace(SerializableObservationSpace):
         Instance of the environenment used by the BaseObservation Helper to provide forcecast of the grid state.
 
     _empty_obs: :class:`BaseObservation`
-        An instance of the observation that is updated and will be sent to he Agent.
+        An instance of the observation that is updated and will be sent to he BaseAgent.
 
     """
     def __init__(self,

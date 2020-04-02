@@ -6,7 +6,7 @@ cores (cpu / thread). We do not recommend to use this method on a cluster of dif
 
 This class uses the following representation:
 
-- an :grid2op.Agent.Agent: lives in a main process
+- an :grid2op.BaseAgent.BaseAgent: lives in a main process
 - different environment lives into different processes
 - a call to :func:`MultiEnv.step` will perform one step per environment, in parallel using a ``Pipe`` to transfer data
   to and from the main process from each individual environment process. It is a synchronous function. It means
@@ -27,7 +27,7 @@ An example on how you can best leverage this class is given in the getting_start
 
 .. code-block:: python
 
-    from grid2op.Agent import DoNothingAgent
+    from grid2op.BaseAgent import DoNothingAgent
     from grid2op.MakeEnv import make
 
     # create a simple environment
@@ -84,7 +84,7 @@ class RemoteEnv(Process):
     This class represent the environment that is executed on a remote process.
 
     Note that the environment is only created in the subprocess, and is not available in the main process. Once created
-    it is not possible to access anything directly from it in the main process, where the Agent lives. Only the
+    it is not possible to access anything directly from it in the main process, where the BaseAgent lives. Only the
     :class:`grid2op.BaseObservation.BaseObservation` are forwarded to the agent.
 
     """

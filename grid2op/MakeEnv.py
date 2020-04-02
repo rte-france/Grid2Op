@@ -15,7 +15,7 @@ an issue in the official grid2op repository: `Grid2Op <https://github.com/rte-fr
 
 The environment created with this method should be fully compatible with the gym framework: if you are developing
 a new algorithm of "Reinforcement Learning" and you used the openai gym framework to do so, you can port your code
-in a few minutes (basically this consists in adapting the input and output dimension of your Agent) and make it work
+in a few minutes (basically this consists in adapting the input and output dimension of your BaseAgent) and make it work
 with a Grid2Op environment. An example of such modifications is exposed in the getting_started/ notebooks.
 
 """
@@ -261,19 +261,19 @@ def make2(dataset_path="/", **kwargs):
         The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
 
     action_class: ``type``, optional
-        Type of BaseAction the Agent will be able to perform.
+        Type of BaseAction the BaseAgent will be able to perform.
         If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
 
     observation_class: ``type``, optional
-        Type of BaseObservation the Agent will receive.
+        Type of BaseObservation the BaseAgent will receive.
         If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
 
     reward_class: ``type``, optional
-        Type of reward signal the Agent will receive.
+        Type of reward signal the BaseAgent will receive.
         If provided, It must be a subclass of :class:`grid2op.Reward.Reward`
 
     gamerules_class: ``type``, optional
-        Type of "Rules" the Agent need to comply with. Rules are here to model some operational constraints.
+        Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
         If provided, It must be a subclass of :class:`grid2op.GameRules.LegalAction`
 
     data_feeding_kwargs: ``dict``, optional
@@ -385,7 +385,7 @@ def make2(dataset_path="/", **kwargs):
     action_class_cfg = BaseAction
     if "action_class" in config_data and config_data["action_class"] is not None:
         action_class_cfg = config_data["action_class"]
-    ## Setup the type of action the Agent can perform
+    ## Setup the type of action the BaseAgent can perform
     action_class = _get_default_aux("action_class", kwargs, defaultClass=action_class_cfg,
                                     defaultClassApp=BaseAction, msg_error=ERR_MSG_KWARGS["action"],
                                     isclass=True)    
@@ -515,19 +515,19 @@ def make(name_env="case14_realistic", **kwargs):
         The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
 
     action_class: ``type``, optional
-        Type of BaseAction the Agent will be able to perform.
+        Type of BaseAction the BaseAgent will be able to perform.
         If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
 
     observation_class: ``type``, optional
-        Type of BaseObservation the Agent will receive.
+        Type of BaseObservation the BaseAgent will receive.
         If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
 
     reward_class: ``type``, optional
-        Type of reward signal the Agent will receive.
+        Type of reward signal the BaseAgent will receive.
         If provided, It must be a subclass of :class:`grid2op.Reward.Reward`
 
     gamerules_class: ``type``, optional
-        Type of "Rules" the Agent need to comply with. Rules are here to model some operational constraints.
+        Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
         If provided, It must be a subclass of :class:`grid2op.GameRules.LegalAction`
 
     grid_path: ``str``, optional
@@ -707,7 +707,7 @@ def make(name_env="case14_realistic", **kwargs):
                                     msg_error=msg_error,
                                     isclass=True)
 
-    ## type of action the Agent can perform
+    ## type of action the BaseAgent can perform
     msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction"
     action_class = _get_default_aux("action_class", kwargs, defaultClass=default_action_class,
                                     defaultClassApp=BaseAction,

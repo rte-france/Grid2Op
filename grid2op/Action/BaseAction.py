@@ -454,7 +454,7 @@ class BaseAction(GridObjects):
         **NB** The impacted are the elements that can potentially be impacted by the action. This does not mean they
         will be impacted. For examples:
 
-            - If an action from an :class:`grid2op.Agent` reconnect a powerline, but this powerline is being
+            - If an action from an :class:`grid2op.BaseAgent` reconnect a powerline, but this powerline is being
               disconnected by a hazard at the same time step, then this action will not be implemented on the grid.
               However, it this powerline couldn't be reconnected for some reason (for example it was already out of
               order) the action will still be declared illegal, even if it has NOT impacted the powergrid.

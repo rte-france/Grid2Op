@@ -1,6 +1,6 @@
 """
 This Module defines the template of a backend class.
-Backend instances are responsible to translate action (performed either by an Agent or by the Environment) into
+Backend instances are responsible to translate action (performed either by an BaseAgent or by the Environment) into
 comprehensive powergrid modifications.
 They are responsible to perform the powerflow (AC or DC) computation.
 

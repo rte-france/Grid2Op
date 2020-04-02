@@ -40,6 +40,8 @@ TODO for next versions
   modification implemented in grid2op.
 - [DEPRECATION] `Observation` class has renamed `BaseObservation` that serve as an abstract base class for all
   observation classes. Name Observation will be deprecated in future versions.
+- [DEPRECATION] `Agent` class has renamed `BaseAgent` that serve as an abstract base class for all
+  agent classes. Name Agent will be deprecated in future versions.
 - [ADDED] different kind of "Opponent" can now be implemented if needed (missing deep testing, different type of
   class, and good documentation)
 - [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
@@ -187,7 +189,7 @@ TODO for next versions
   stored as json for example, will not be usable: action size and observation size
   have been modified.
 - [ADDED] A converter class that allows to pre-process observation, and post-process action
-  when given to an `Agent`. This allows for more flexibility in the `action_space` and
+  when given to an `BaseAgent`. This allows for more flexibility in the `action_space` and
   `observation_space`.
 - [ADDED] Adding another example notebook `getting_started/Example_5bus.ipynb`
 - [ADDED] Adding another renderer for the live environment.

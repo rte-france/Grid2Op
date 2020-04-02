@@ -1,6 +1,6 @@
 """
 The challenge "learning to run a power network" offers different _parameters to be customized, or to learn an
-:class:`grid2op.Agent` that will perform better for example.
+:class:`grid2op.BaseAgent` that will perform better for example.
 
 This class is an attempt to group them all inside one single structure.
 
@@ -38,14 +38,14 @@ class Parameters:
 
     NB_TIMESTEP_LINE_STATUS_REMODIF: ``int``
         When someone acts on a powerline by changing its status (connected / disconnected) this number indicates
-        how many timesteps the :class:`grid2op.Agent.Agent` has to wait before being able to modify this status again.
-        For examle, if this is 1, this means that an Agent can act on status of a powerline 1 out of 2 time step (1
+        how many timesteps the :class:`grid2op.BaseAgent.BaseAgent` has to wait before being able to modify this status again.
+        For examle, if this is 1, this means that an BaseAgent can act on status of a powerline 1 out of 2 time step (1
         time step it acts, another one it cools down, and the next one it can act again). Having it at 0 it equivalent
         to deactivate this feature (default).
 
     NB_TIMESTEP_TOPOLOGY_REMODIF: ``int``
         When someone changes the topology of a substations, this number indicates how many timesteps the
-        :class:`grid2op.Agent.Agent` has to wait before being able to modify the topology on this same substation. It
+        :class:`grid2op.BaseAgent.BaseAgent` has to wait before being able to modify the topology on this same substation. It
         has the same behaviour as :attr:`Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF`. To deactivate this feature,
         put it at 0 (default).
 
@@ -65,12 +65,12 @@ class Parameters:
 
     MAX_SUB_CHANGED: ``int``
         Maximum number of substations that can be reconfigured between two consecutive timesteps by an
-        :class:`grid2op.Agent`. Default value is 1.
+        :class:`grid2op.BaseAgent`. Default value is 1.
 
 
     MAX_LINE_STATUS_CHANGED: ``int``
         Maximum number of powerlines statuses that can be changed between two consecutive timestetps by an
-        :class:`grid2op.Agent`. Default value is 1.
+        :class:`grid2op.BaseAgent`. Default value is 1.
 
     """
     def __init__(self, parameters_path=None):

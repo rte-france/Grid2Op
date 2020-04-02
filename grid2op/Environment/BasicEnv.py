@@ -624,12 +624,12 @@ class _BasicEnv(GridObjects, ABC):
 
     def get_obs(self):
         """
-        Return the observations of the current environment made by the :class:`grid2op.Agent.Agent`.
+        Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
 
         Returns
         -------
         res: :class:`grid2op.Observation.Observation`
-            The current BaseObservation given to the :class:`grid2op.Agent.Agent` / bot / controler.
+            The current BaseObservation given to the :class:`grid2op.BaseAgent.BaseAgent` / bot / controler.
         """
         res = self.helper_observation(env=self)
         return res
@@ -947,9 +947,9 @@ class _BasicEnv(GridObjects, ABC):
         .. code-block:: python
 
             import grid2op
-            import grid2op.Agent
+            import grid2op.BaseAgent
             with grid2op.make() as env:
-                agent = grid2op.Agent.DoNothingAgent(env.action_space)
+                agent = grid2op.BaseAgent.DoNothingAgent(env.action_space)
                 act = env.action_space()
                 obs, r, done, info = env.step(act)
                 act = agent.act(obs, r, info)

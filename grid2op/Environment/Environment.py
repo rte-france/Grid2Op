@@ -1,11 +1,11 @@
 """
 This module defines the :class:`Environment` the higher level representation of the world with which an
-:class:`grid2op.Agent` will interact.
+:class:`grid2op.BaseAgent` will interact.
 
-The environment receive an :class:`grid2op.BaseAction.BaseAction` from the :class:`grid2op.Agent.Agent` in the
+The environment receive an :class:`grid2op.BaseAction.BaseAction` from the :class:`grid2op.BaseAgent.BaseAgent` in the
 :func:`Environment.step`
 and returns an
-:class:`grid2op.BaseObservation.BaseObservation` that the :class:`grid2op.Agent.Agent` will use to perform the next action.
+:class:`grid2op.BaseObservation.BaseObservation` that the :class:`grid2op.BaseAgent.BaseAgent` will use to perform the next action.
 
 An environment is better used inside a :class:`grid2op.Runner.Runner`, mainly because runners abstract the interaction
 between environment and agent, and ensure the environment are properly reset after each episode.
@@ -18,7 +18,7 @@ Example (adapted from gym documentation available at
 .. code-block:: python
 
     import grid2op
-    from grid2op.Agent import DoNothingAgent
+    from grid2op.BaseAgent import DoNothingAgent
     env = grid2op.make()
     agent = DoNothingAgent(env.action_space)
     env.seed(0)
@@ -94,13 +94,13 @@ class Environment(_BasicEnv):
         The rules of the game (define which actions are legal and which are not)
 
     helper_action_player: :class:`grid2op.Action.ActionSpace`
-        Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent` (player)
+        Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.BaseAgent` (player)
 
     helper_action_env: :class:`grid2op.Action.ActionSpace`
         Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
 
     helper_observation: :class:`grid2op.Observation.ObservationSpace`
-        Helper used to generate the observation that will be given to the :class:`grid2op.Agent`
+        Helper used to generate the observation that will be given to the :class:`grid2op.BaseAgent`
 
     current_obs: :class:`grid2op.Observation.Observation`
         The current observation (or None if it's not intialized)
@@ -118,7 +118,7 @@ class Environment(_BasicEnv):
         :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_POWERFLOW_ALLOWED`.
 
     hard_overflow_threshold: ``float``
-        Number of timestep before an :class:`grid2op.Agent.Agent` can reconnet a powerline that has been disconnected
+        Number of timestep before an :class:`grid2op.BaseAgent.BaseAgent` can reconnet a powerline that has been disconnected
         by the environment due to an overflow.
 
     env_dc: ``bool``
@@ -487,10 +487,10 @@ class Environment(_BasicEnv):
 
             import grid2op
             from grid2op import make
-            from grid2op.Agent import DoNothingAgent
+            from grid2op.BaseAgent import DoNothingAgent
 
             env = make("case14_redisp")  # create an environment
-            agent = DoNothingAgent(env.action_space)  # create an Agent
+            agent = DoNothingAgent(env.action_space)  # create an BaseAgent
 
             for i in range(10):
                 env.set_id(0)  # tell the environment you simply want to use the chronics with ID 0

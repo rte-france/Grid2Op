@@ -22,7 +22,7 @@ class Multifolder(GridValue):
     :class:`GridStateFromFile` or one of its derivate (eg. :class:`GridStateFromFileWithForecasts`).
 
     Chronics are always read in the alpha-numeric order for this class. This means that if the folder is not modified,
-    the data are always loaded in the same order, regardless of the :class:`grid2op.Backend`, :class:`grid2op.Agent` or
+    the data are always loaded in the same order, regardless of the :class:`grid2op.Backend`, :class:`grid2op.BaseAgent` or
     :class:`grid2op.Environment`.
 
     Attributes

@@ -154,7 +154,7 @@ class GridObjects:
 
 
     **NB** it does not store any information about the current state of the powergrid. It stores information that
-    cannot be modified by the Agent, the Environment or any other entity.
+    cannot be modified by the BaseAgent, the Environment or any other entity.
 
     Attributes
     ----------

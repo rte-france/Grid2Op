@@ -1,12 +1,12 @@
 from abc import abstractmethod
 import pdb
 
-from grid2op.Agent.Agent import Agent
+from grid2op.Agent.BaseAgent import BaseAgent
 
 
-class OneChangeThenNothing(Agent):
+class OneChangeThenNothing(BaseAgent):
     """
-    This is a specific kind of Agent. It does an BaseAction (possibly non empty) at the first time step and then does
+    This is a specific kind of BaseAgent. It does an BaseAction (possibly non empty) at the first time step and then does
     nothing.
 
     This class is an abstract class and cannot be instanciated (ie no object of this class can be created). It must
@@ -15,7 +15,7 @@ class OneChangeThenNothing(Agent):
 
     """
     def __init__(self, action_space, action_space_converter=None):
-        Agent.__init__(self, action_space)
+        BaseAgent.__init__(self, action_space)
         self.has_changed = False
 
     def act(self, observation, reward, done=False):

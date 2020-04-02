@@ -18,18 +18,18 @@ class Reward(ABC):
     Base class from which all rewards used in the Grid2Op framework should derived.
 
     In reinforcement learning, a reward is a signal send by the :class:`grid2op.Environment` to the
-    :class:`grid2op.Agent` indicating how well this agent performs.
+    :class:`grid2op.BaseAgent` indicating how well this agent performs.
 
     One of the goal of Reinforcement Learning is to maximize the (discounted) sum of (expected) rewards over time.
 
     Attributes
     ----------
     reward_min: ``float``
-        The minimum reward an :class:`grid2op.Agent` can get performing the worst possible :class:`grid2op.BaseAction` in
+        The minimum reward an :class:`grid2op.BaseAgent` can get performing the worst possible :class:`grid2op.BaseAction` in
         the worst possible scenario.
 
     reward_max: ``float``
-        The maximum reward an :class:`grid2op.Agent` can get performing the best possible :class:`grid2op.BaseAction` in
+        The maximum reward an :class:`grid2op.BaseAgent` can get performing the best possible :class:`grid2op.BaseAction` in
         the best possible scenario.
 
     """
@@ -67,7 +67,7 @@ class Reward(ABC):
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
-            BaseAction that has been submitted by the :class:`grid2op.Agent`
+            BaseAction that has been submitted by the :class:`grid2op.BaseAgent`
 
         env: :class:`grid2op.Environment.Environment`
             An environment instance properly initialized.
@@ -80,12 +80,12 @@ class Reward(ABC):
             Is the episode over (either because the agent has reached the end, or because there has been a game over)
 
         is_illegal: ``bool``
-            Has the action submitted by the Agent raised an :class:`grid2op.Exceptions.IllegalAction` exception.
+            Has the action submitted by the BaseAgent raised an :class:`grid2op.Exceptions.IllegalAction` exception.
             In this case it has been
             overidden by "do nohting" by the environment.
 
         is_ambiguous: ``bool``
-            Has the action submitted by the Agent raised an :class:`grid2op.Exceptions.AmbiguousAction` exception.
+            Has the action submitted by the BaseAgent raised an :class:`grid2op.Exceptions.AmbiguousAction` exception.
             In this case it has been
             overidden by "do nothing" by the environment.
 

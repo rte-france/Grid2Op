@@ -17,7 +17,7 @@ from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import GameRules, DefaultRules
 from grid2op.Action import BaseAction
-from grid2op.Agent import Agent
+from grid2op.Agent import BaseAgent
 import time
 
 
