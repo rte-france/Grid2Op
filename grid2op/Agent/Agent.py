@@ -42,7 +42,6 @@ class Agent(ABC):
     def __init__(self, action_space):
         self.action_space = action_space
 
-    @abstractmethod
     def reset(self):
         """
         This method is called at the beginning of a new episode.
