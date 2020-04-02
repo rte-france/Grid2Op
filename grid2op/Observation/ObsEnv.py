@@ -96,7 +96,7 @@ class ObsEnv(_BasicEnv):
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self._create_opponent()
 
-    def _do_nothing(self):
+    def _do_nothing(self, x):
         return self.donothing_act
 
     def _update_actions(self):
