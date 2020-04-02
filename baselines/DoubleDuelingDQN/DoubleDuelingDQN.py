@@ -51,9 +51,6 @@ class DoubleDuelingDQN(object):
         self.model = tfk.Model(inputs=[input_layer], outputs=[Q])
         self.model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))
 
-        self.target_model = tfk.Model(inputs=[input_layer], outputs=[Q])
-        self.target_model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))
-
     def random_move(self):
         opt_policy = np.random.randint(0, self.num_action)
 
@@ -66,10 +63,10 @@ class DoubleDuelingDQN(object):
 
         return opt_policy, q_actions[0]
 
-    def update_target(self):
-        # Set target network to main network
-        model_weights = self.model.get_weights()
-        self.target_model.set_weights(model_weights)
+    def update_weights(self, other_model):
+        # Set network weights to other network
+        model_weights = other_model.get_weights()
+        self.model.set_weights(model_weights)
 
     def save_network(self, path):
         # Saves model at specified path as h5 file
@@ -80,6 +77,5 @@ class DoubleDuelingDQN(object):
     def load_network(self, path):
         # nothing has changed
         self.model.load_weights(path)
-        self.target_model.load_weights(path)
         print("Succesfully loaded network from: {}".format(path))
 

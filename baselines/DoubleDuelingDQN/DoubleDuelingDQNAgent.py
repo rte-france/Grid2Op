@@ -8,10 +8,10 @@ from grid2op.Converter import IdToAct
 from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
-INITIAL_EPSILON = 0.25
-FINAL_EPSILON = 0.01
-EPSILON_DECAY = 10000
-DISCOUNT_FACTOR = 0.975
+INITIAL_EPSILON = 0.5
+FINAL_EPSILON = 0.001
+EPSILON_DECAY = 1024*16
+DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 128
 UPDATE_FREQ = 16
 
@@ -37,6 +37,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self.lr = lr
         
         # Declare required vars
+        self.Qmain = None
         self.obs = None
         self.state = []
         self.frames = []
@@ -47,6 +48,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self.frames2 = None
         self.epoch_rewards = None
         self.epoch_alive = None
+        self.Qtarget = None
 
         # Setup training vars if needed
         if self.is_training:
@@ -61,11 +63,17 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self.num_action = action_space.n
 
         # Load network graph
-        self.dqn = DoubleDuelingDQN(self.action_size,
-                                    self.num_action,
-                                    self.observation_size,
-                                    num_frames = self.num_frames,
-                                    learning_rate = self.lr)
+        self.Qmain = DoubleDuelingDQN(self.action_size,
+                                      self.num_action,
+                                      self.observation_size,
+                                      num_frames = self.num_frames,
+                                      learning_rate = self.lr)
+        if self.is_training:
+            self.Qtarget = DoubleDuelingDQN(self.action_size,
+                                            self.num_action,
+                                            self.observation_size,
+                                            num_frames = self.num_frames,
+                                            learning_rate = self.lr)
     def _init_training(self):
         self.frames2 = []
         self.epoch_rewards = []
@@ -104,14 +112,16 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
     def my_act(self, state, reward, done=False):
 
         self._save_current_frame(state)
-        a, _ = self.dqn.predict_move(np.array(self.frames))
+        a, _ = self.Qmain.predict_move(np.array(self.frames))
         return a
     
     def load_network(self, path):
-        self.dqn.load_network(path)
+        self.Qmain.load_network(path)
+        if self.is_training:
+            self.Qtarget.update_weights(self.Qmain.model)
 
     def save_network(self, path):
-        self.dqn.save_network(path)
+        self.Qmain.save_network(path)
 
     ## Training Procedure
     def train(self, num_pre_training_steps, num_training_steps):
@@ -140,13 +150,13 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
             # Choose an action
             if step <= num_pre_training_steps:
-                a = self.dqn.random_move()
+                a = self.Qmain.random_move()
             elif len(self.frames) < self.num_frames:
-                a = self.dqn.random_move()
+                a = self.Qmain.random_move()
             elif np.random.rand(1) < epsilon:
-                a = self.dqn.random_move()
+                a = self.Qmain.random_move()
             else:
-                a, _ = self.dqn.predict_move(np.array(self.frames))
+                a, _ = self.Qmain.predict_move(np.array(self.frames))
 
             # Convert it to a valid action
             act = self.convert_act(a)
@@ -173,7 +183,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:
                     # Update target network towards primary network
-                    self.dqn.update_target()
+                    self.Qtarget.update_weights(self.Qmain.model)
                     # Sample from experience buffer
                     s_batch, a_batch, r_batch, d_batch, s1_batch = self.replay_buffer.sample(self.batch_size)
                     # Perform training
@@ -192,7 +202,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             
             # Save the network every 1000 iterations
             if step > 0 and step % 1000 == 0:
-                self.dqn.save_network(self.name + ".h5")
+                self.Qmain.save_network(self.name + ".h5")
 
             # Iterate to next loop
             step += 1
@@ -200,7 +210,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             self.state = new_state
 
         # Save model after all steps
-        self.dqn.save_network(self.name + ".h5")
+        self.Qmain.save_network(self.name + ".h5")
 
     def _batch_train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, step):
         """Trains network to fit given parameters"""
@@ -212,8 +222,8 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         t_input = np.reshape(s2_batch, (self.batch_size, input_size))
 
         # Batch predict
-        Q = self.dqn.model.predict(m_input, batch_size = self.batch_size)
-        Q2 = self.dqn.target_model.predict(t_input, batch_size = self.batch_size)
+        Q = self.Qmain.model.predict(m_input, batch_size = self.batch_size)
+        Q2 = self.Qtarget.model.predict(t_input, batch_size = self.batch_size)
 
         # Compute batch Double Q update to Qtarget
         for i in range(self.batch_size):
@@ -223,7 +233,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                 Q[i, a_batch[i]] += DISCOUNT_FACTOR * doubleQ
 
         # Batch train
-        loss = self.dqn.model.train_on_batch(m_input, Q)
+        loss = self.Qmain.model.train_on_batch(m_input, Q)
 
         # Log some useful metrics every 5 updates
         if step % (5 * UPDATE_FREQ) == 0:
