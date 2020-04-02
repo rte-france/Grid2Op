@@ -56,6 +56,8 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BasicEnv import _BasicEnv
 from grid2op.Opponent import BaseOpponent
+from grid2op.Plot import PlotPyGame
+
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
 
@@ -506,7 +508,7 @@ class Environment(_BasicEnv):
             return
         graph_layout = self.graph_layout if graph_layout is None else graph_layout
         if graph_layout is not None:
-            self.viewer = Renderer(graph_layout, observation_space=self.helper_observation)
+            self.viewer = PlotPyGame(graph_layout, observation_space=self.helper_observation)
             self.viewer.reset(self)
         else:
             raise PlotError("No layout are available for the powergrid. Renderer is not possible.")
