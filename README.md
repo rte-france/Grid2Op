@@ -28,7 +28,7 @@ Official documentation: the official documentation is available at
 *   [3 Getting Started](#getting-started)
     *   [0 Basic features](getting_started/0_basic_functionalities.ipynb)
     *   [1 Observation Agents](getting_started/1_Observation_Agents.ipynb)
-    *   [2 Action Grid Manipulation](getting_started/2_Action_GridManipulation.ipynb)
+    *   [2 BaseAction Grid Manipulation](getting_started/2_Action_GridManipulation.ipynb)
     *   [3 Training An Agent](getting_started/3_TrainingAnAgent.ipynb)
     *   [4 Study Your Agent](getting_started/4_StudyYourAgent.ipynb)
 *   [4 Documentation](#documentation)
@@ -119,7 +119,7 @@ interesting part of this framework:
   an "expert agent" that will take pre defined actions based on the observation it gets from 
   the environment. This Notebook also covers the functioning of the Observation class.
 * [2_Action_GridManipulation](getting_started/2_Action_GridManipulation.ipynb) demonstrates 
-  how to use the Action class and how to manipulate the powergrid.
+  how to use the BaseAction class and how to manipulate the powergrid.
 * [3_TrainingAnAgent](getting_started/3_TrainingAnAgent.ipynb) shows how to get started with 
   reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
   available on [his blog](https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368) 

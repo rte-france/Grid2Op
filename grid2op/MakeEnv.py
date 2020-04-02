@@ -32,7 +32,7 @@ from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
 from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
-from grid2op.Action import Action, TopologyAction, TopoAndRedispAction, DontAct
+from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, Observation
 from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
@@ -87,7 +87,7 @@ ERR_MSG_KWARGS = {
     "rules": "The type of rules of the environment (keyword \"gamerules_class\")" \
     " must be a subclass of grid2op.LegalAction",
     "reward": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.Reward",
-    "action": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action",
+    "action": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction",
     "data_feeding_kwargs": "The argument to build the data generation process [chronics]" \
     "  (keyword \"data_feeding_kwargs\") should be a dictionnary.",
     "chronics": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")" \
@@ -100,7 +100,7 @@ ERR_MSG_KWARGS = {
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
                      "should be dictionnary.",
     "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
-                             "inherit from \"Action\"",
+                             "inherit from \"BaseAction\"",
     "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
                              "inherit from \"BaseOpponent\"",
     "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float"
@@ -261,12 +261,12 @@ def make2(dataset_path="/", **kwargs):
         The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
 
     action_class: ``type``, optional
-        Type of Action the Agent will be able to perform.
-        If provided, it must be a subclass of :class:`grid2op.Action.Action`
+        Type of BaseAction the Agent will be able to perform.
+        If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
 
     observation_class: ``type``, optional
         Type of Observation the Agent will receive.
-        If provided, It must be a subclass of :class:`grid2op.Action.Observation`
+        If provided, It must be a subclass of :class:`grid2op.BaseAction.Observation`
 
     reward_class: ``type``, optional
         Type of reward signal the Agent will receive.
@@ -381,13 +381,13 @@ def make2(dataset_path="/", **kwargs):
                                     defaultClassApp=Reward, msg_error=ERR_MSG_KWARGS["reward"],
                                     isclass=True)
 
-    # Get default Action class
-    action_class_cfg = Action
+    # Get default BaseAction class
+    action_class_cfg = BaseAction
     if "action_class" in config_data and config_data["action_class"] is not None:
         action_class_cfg = config_data["action_class"]
     ## Setup the type of action the Agent can perform
     action_class = _get_default_aux("action_class", kwargs, defaultClass=action_class_cfg,
-                                    defaultClassApp=Action, msg_error=ERR_MSG_KWARGS["action"],
+                                    defaultClassApp=BaseAction, msg_error=ERR_MSG_KWARGS["action"],
                                     isclass=True)    
     
     # Get default Voltage class
@@ -449,7 +449,7 @@ def make2(dataset_path="/", **kwargs):
     # TODO make that in config file of the default environment !!!
     opponent_action_class = _get_default_aux("opponent_action_class",
                                              kwargs,
-                                             defaultClassApp=Action,
+                                             defaultClassApp=BaseAction,
                                              defaultClass=DontAct,
                                              msg_error=ERR_MSG_KWARGS["opponent_action_class"],
                                              isclass=True)
@@ -515,12 +515,12 @@ def make(name_env="case14_realistic", **kwargs):
         The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
 
     action_class: ``type``, optional
-        Type of Action the Agent will be able to perform.
-        If provided, it must be a subclass of :class:`grid2op.Action.Action`
+        Type of BaseAction the Agent will be able to perform.
+        If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
 
     observation_class: ``type``, optional
         Type of Observation the Agent will receive.
-        If provided, It must be a subclass of :class:`grid2op.Action.Observation`
+        If provided, It must be a subclass of :class:`grid2op.BaseAction.Observation`
 
     reward_class: ``type``, optional
         Type of reward signal the Agent will receive.
@@ -708,9 +708,9 @@ def make(name_env="case14_realistic", **kwargs):
                                     isclass=True)
 
     ## type of action the Agent can perform
-    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action"
+    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction"
     action_class = _get_default_aux("action_class", kwargs, defaultClass=default_action_class,
-                                    defaultClassApp=Action,
+                                    defaultClassApp=BaseAction,
                                     msg_error=msg_error,
                                     isclass=True)
 
@@ -779,7 +779,7 @@ def make(name_env="case14_realistic", **kwargs):
     # TODO make that in config file of the default environment !!!
     opponent_action_class = _get_default_aux("opponent_action_class",
                                              kwargs,
-                                             defaultClassApp=Action,
+                                             defaultClassApp=BaseAction,
                                              defaultClass=DontAct,
                                              msg_error=ERR_MSG_KWARGS["opponent_action_class"],
                                              isclass=True)

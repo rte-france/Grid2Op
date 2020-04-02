@@ -1,12 +1,7 @@
-import numpy as np
 import warnings
-import itertools
-
-import pdb
 
 from grid2op.Exceptions import *
-from grid2op.Space import SerializableSpace, GridObjects
-from grid2op.Action.Action import Action
+from grid2op.Action.BaseAction import BaseAction
 from grid2op.Action.SerializableActionSpace import SerializableActionSpace
 
 
@@ -18,13 +13,13 @@ class ActionSpace(SerializableActionSpace):
     See :func:`grid2op.Backend.Backend.load_grid` for
     more information).
 
-    It will allow, thanks to its :func:`ActionSpace.__call__` method to create valid :class:`Action`. It is the
-    the preferred way to create an object of class :class:`Action` in this package.
+    It will allow, thanks to its :func:`ActionSpace.__call__` method to create valid :class:`BaseAction`. It is the
+    the preferred way to create an object of class :class:`BaseAction` in this package.
 
-    On the contrary to the :class:`Action`, it is NOT recommended to overload this helper. If more flexibility is
-    needed on the type of :class:`Action` created, it is recommended to pass a different "*actionClass*" argument
+    On the contrary to the :class:`BaseAction`, it is NOT recommended to overload this helper. If more flexibility is
+    needed on the type of :class:`BaseAction` created, it is recommended to pass a different "*actionClass*" argument
     when it's built. Note that it's mandatory that the class used in the "*actionClass*" argument derived from the
-    :class:`Action`.
+    :class:`BaseAction`.
 
     Attributes
     ----------
@@ -34,7 +29,7 @@ class ActionSpace(SerializableActionSpace):
 
     """
     
-    def __init__(self, gridobj, legal_action, actionClass=Action):
+    def __init__(self, gridobj, legal_action, actionClass=BaseAction):
         """
         All parameters (name_gen, name_load, name_line, sub_info, etc.) are used to fill the attributes having the
         same name. See :class:`ActionSpace` for more information.
@@ -94,7 +89,7 @@ class ActionSpace(SerializableActionSpace):
 
         Returns
         -------
-        res: :class:`Action`
+        res: :class:`BaseAction`
             An action that is valid and corresponds to what the agent want to do with the formalism defined in
             see :func:`Action.udpate`.
 

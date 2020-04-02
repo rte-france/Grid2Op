@@ -7,6 +7,7 @@ from grid2op.Converter import Converter, IdToAct, ToVect
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.AgentWithConverter import AgentWithConverter
 
+
 class RandomAgent(AgentWithConverter):
     """
     This agent acts randomnly on the powergrid. It uses the :class:`grid2op.Converters.IdToAct` to compute all the

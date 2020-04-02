@@ -21,7 +21,7 @@ from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
 from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
-from grid2op.Action import Action, TopologyAction, TopoAndRedispAction, VoltageOnlyAction
+from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, VoltageOnlyAction
 from grid2op.Observation import CompleteObservation, Observation
 from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
 from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
@@ -237,55 +237,55 @@ class TestkwargsName(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", param=Parameters()) as env:
-                pass
+                obs = env.reset()
 
     def test_backend(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", backend=PandaPowerBackend()) as env:
-                pass
+                obs = env.reset()
 
     def test_obsclass(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", observation_class=CompleteObservation) as env:
-                pass
+                obs = env.reset()
 
     def test_gamerules(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", gamerules_class=AlwaysLegal) as env:
-                pass
+                obs = env.reset()
 
     def test_chronics_path(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", chronics_path=EXAMPLE_CHRONICSPATH) as env:
-                pass
+                obs = env.reset()
 
     def test_reward_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", reward_class=FlatReward) as env:
-                pass
+                obs = env.reset()
 
     def test_action_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("case5_example", action_class=Action) as env:
-                pass
+            with make("case5_example", action_class=BaseAction) as env:
+                obs = env.reset()
 
     def test_grid_path(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", grid_path=EXAMPLE_CASEFILE) as env:
-                pass
+                obs = env.reset()
 
     def test_names_chronics_to_backend(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", names_chronics_to_backend={}) as env:
-                pass
+                obs = env.reset()
 
     def test_data_feeding_kwargs(self):
         with warnings.catch_warnings():
@@ -293,7 +293,7 @@ class TestkwargsName(unittest.TestCase):
             dict_ = {"chronicsClass": Multifolder, "path": EXAMPLE_CHRONICSPATH,
                     "gridvalueClass": GridStateFromFileWithForecasts}
             with make("case5_example", data_feeding_kwargs=dict_) as env:
-                pass
+                obs = env.reset()
 
     def test_chronics_class(self):
         with warnings.catch_warnings():
@@ -305,25 +305,31 @@ class TestkwargsName(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", volagecontroler_class=ControlVoltageFromFile) as env:
-                pass
+                obs = env.reset()
+
+    def test_other_rewards(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", other_rewards={"test": L2RPNReward}) as env:
+                obs = env.reset()
 
     def test_opponent_action_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("case5_example", opponent_action_class=Action) as env:
-                pass
+            with make("case5_example", opponent_action_class=BaseAction) as env:
+                obs = env.reset()
 
     def test_opponent_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", opponent_class=BaseOpponent) as env:
-                pass
+                obs = env.reset()
 
     def test_opponent_init_budget(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("case5_example", opponent_init_budget=10) as env:
-                pass
+                obs = env.reset()
 
 
 class TestMake2Config(unittest.TestCase):
@@ -481,7 +487,6 @@ class TestMake2ConfigOverride(unittest.TestCase):
         with make2(dataset_path, data_feeding_kwargs=dfk) as env:
             assert isinstance(env.chronics_handler.real_data, ChangeNothing)
 
-    
 
 if __name__ == "__main__":
     unittest.main()

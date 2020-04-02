@@ -6,6 +6,7 @@ import pdb
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.GreedyAgent import GreedyAgent
 
+
 class PowerLineSwitch(GreedyAgent):
     """
     This is a :class:`GreedyAgent` example, which will attempt to disconnect powerlines.

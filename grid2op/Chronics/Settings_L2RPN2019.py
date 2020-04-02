@@ -13,7 +13,7 @@ from datetime import timedelta, datetime
 import numpy as np
 import pandas as pd
 
-from grid2op.Action import Action
+from grid2op.Action import BaseAction
 from grid2op.Exceptions import *
 from grid2op.Chronics.ReadPypowNetData import ReadPypowNetData
 
@@ -74,24 +74,24 @@ L2RPN2019_DICT_NAMES = {'loads': {'2_C-10.61': 'load_1_0',
 # class of the action didn't implement the "set" part. Only change was present.
 # Beside when reconnected, objects were always reconnected on bus 1.
 # This is not used at the moment.
-class L2RPN2019_Action(Action):
+class L2RPN2019_Action(BaseAction):
     """
     This class is here to model only a subpart of Topological actions, the one consisting in topological switching.
     It will throw an "AmbiguousAction" error it someone attempt to change injections in any ways.
 
-    It has the same attributes as its base class :class:`Action`.
+    It has the same attributes as its base class :class:`BaseAction`.
 
-    It is also here to show an example on how to implement a valid class deriving from :class:`Action`.
+    It is also here to show an example on how to implement a valid class deriving from :class:`BaseAction`.
 
     **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
     reconnecting a powerline cannot be considered "ambiguous". We have to
     """
     def __init__(self, gridobj):
         """
-        See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
+        See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing more is done
         in this constructor.
         """
-        Action.__init__(self, gridobj)
+        BaseAction.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
@@ -100,7 +100,7 @@ class L2RPN2019_Action(Action):
 
     def __call__(self):
         """
-        Compare to the ancestor :func:`Action.__call__` this type of Action doesn't allow to change the injections.
+        Compare to the ancestor :func:`BaseAction.__call__` this type of BaseAction doesn't allow to change the injections.
         The only difference is in the returned value *dict_injection* that is always an empty dictionnary.
 
         Returns
@@ -109,16 +109,16 @@ class L2RPN2019_Action(Action):
             This dictionnary is always empty
 
         set_line_status: :class:`numpy.array`, dtype:int
-            This array is :attr:`Action._set_line_status`
+            This array is :attr:`BaseAction._set_line_status`
 
         switch_line_status: :class:`numpy.array`, dtype:bool
-            This array is :attr:`Action._switch_line_status`, it is never modified
+            This array is :attr:`BaseAction._switch_line_status`, it is never modified
 
         set_topo_vect: :class:`numpy.array`, dtype:int
-            This array is :attr:`Action._set_topo_vect`, it is never modified
+            This array is :attr:`BaseAction._set_topo_vect`, it is never modified
 
         change_bus_vect: :class:`numpy.array`, dtype:bool
-            This array is :attr:`Action._change_bus_vect`, it is never modified
+            This array is :attr:`BaseAction._change_bus_vect`, it is never modified
         """
         if self._dict_inj:
             raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
@@ -128,15 +128,15 @@ class L2RPN2019_Action(Action):
     def update(self, dict_):
         """
         As its original implementation, this method allows to modify the way a dictionnary can be mapped to a valid
-        :class:`Action`.
+        :class:`BaseAction`.
 
-        It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
-        doesn't update the :attr:`Action._dict_inj`. It raises a warning if attempting to change them.
+        It has only minor modifications compared to the original :func:`BaseAction.update` implementation, most notably, it
+        doesn't update the :attr:`BaseAction._dict_inj`. It raises a warning if attempting to change them.
 
         Parameters
         ----------
         dict_: :class:`dict`
-            See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
+            See the help of :func:`BaseAction.update` for a detailed explanation. **NB** all the explanations concerning the
             "injection", "change bus", "set bus", or "change line status" are irrelevant for this subclass.
 
         Returns
@@ -174,7 +174,7 @@ class L2RPN2019_Action(Action):
 
     def to_vect(self):
         """
-        See :func:`Action.to_vect` for a detailed description of this method.
+        See :func:`BaseAction.to_vect` for a detailed description of this method.
 
         This method has the same behaviour as its base class, except it doesn't require any information about the
         injections to be sent, thus being more efficient from a memory footprint perspective.
@@ -197,7 +197,7 @@ class L2RPN2019_Action(Action):
 
     def from_vect(self, vect):
         """
-        See :func:`Action.from_vect` for a detailed description of this method.
+        See :func:`BaseAction.from_vect` for a detailed description of this method.
 
         Nothing more is made except the initial vector is (much) smaller.
 
@@ -242,7 +242,7 @@ class L2RPN2019_Action(Action):
 
     def sample(self, space_prng):
         """
-        Sample a PowerlineSwitch Action.
+        Sample a PowerlineSwitch BaseAction.
 
         By default, this sampling will act on one random powerline, and it will either
         disconnect it or reconnect it each with equal probability.

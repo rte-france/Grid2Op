@@ -6,9 +6,10 @@ import pdb
 
 from grid2op.Exceptions import *
 from grid2op.Space import SerializableSpace, GridObjects
-from grid2op.Action.Action import Action
+from grid2op.Action.BaseAction import BaseAction
 
-class VoltageOnlyAction(Action):
+
+class VoltageOnlyAction(BaseAction):
     """
     This class is here to serve as a base class for the controler of the voltages (if any). It allows to perform
     only modification of the generator voltage set point.
@@ -18,11 +19,11 @@ class VoltageOnlyAction(Action):
 
     def __init__(self, gridobj):
         """
-        See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
+        See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing more is done
         in this constructor.
 
         """
-        Action.__init__(self, gridobj)
+        BaseAction.__init__(self, gridobj)
         self.authorized_keys = {"injection"}
         self.attr_list_vect = ["prod_v"]
 
@@ -43,15 +44,15 @@ class VoltageOnlyAction(Action):
     def update(self, dict_):
         """
         As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
-        :class:`Action`.
+        :class:`BaseAction`.
 
-        It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
-        doesn't update the :attr:`Action._dict_inj`. It raises a warning if attempting to change them.
+        It has only minor modifications compared to the original :func:`BaseAction.update` implementation, most notably, it
+        doesn't update the :attr:`BaseAction._dict_inj`. It raises a warning if attempting to change them.
 
         Parameters
         ----------
         dict_: :class:`dict`
-            See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
+            See the help of :func:`BaseAction.update` for a detailed explanation. **NB** all the explanations concerning the
             "injection", "change bus", "set bus", or "change line status" are irrelevant for this subclass.
 
         Returns

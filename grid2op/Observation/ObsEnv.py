@@ -8,7 +8,7 @@ import pdb
 from grid2op.Environment.BasicEnv import _BasicEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import GameRules, LegalAction
-from grid2op.Action import Action
+from grid2op.Action import BaseAction
 from grid2op.Exceptions import Grid2OpException
 
 
@@ -158,7 +158,7 @@ class ObsEnv(_BasicEnv):
             return
 
         # update the action that set the grid to the real value
-        self._action = Action(gridobj=self)
+        self._action = BaseAction(gridobj=self)
         self._action.update({"set_line_status": np.array(self._line_status),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,

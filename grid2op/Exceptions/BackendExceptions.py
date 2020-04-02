@@ -1,5 +1,6 @@
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+
 # Backend
 class BackendError(Grid2OpException):
     """

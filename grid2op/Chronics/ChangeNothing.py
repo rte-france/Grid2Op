@@ -11,6 +11,7 @@ from grid2op.Exceptions import *
 from grid2op.Space import RandomObject
 from grid2op.Chronics.GridValue import GridValue
 
+
 class ChangeNothing(GridValue):
     """
     This class is the most basic class to modify a powergrid values.

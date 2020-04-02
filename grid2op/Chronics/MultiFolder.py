@@ -12,6 +12,7 @@ from grid2op.Space import RandomObject
 from grid2op.Chronics.GridValue import GridValue
 from grid2op.Chronics.GridStateFromFile import GridStateFromFile
 
+
 class Multifolder(GridValue):
     """
     The classes :class:`GridStateFromFile` and :class:`GridStateFromFileWithForecasts` implemented the reading of a

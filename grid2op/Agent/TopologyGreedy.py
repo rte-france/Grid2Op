@@ -6,6 +6,7 @@ import pdb
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.GreedyAgent import GreedyAgent
 
+
 class TopologyGreedy(GreedyAgent):
     """
     This is a :class:`GreedyAgent` example, which will attempt to reconfigure the substations connectivity.

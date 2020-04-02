@@ -35,7 +35,7 @@ class OpponentSpace(object):
     def __init__(self, compute_budget, init_budget, opponent, budget_per_timestep=0., action_space=None):
         if action_space is not None:
             if not isinstance(action_space, compute_budget.action_space):
-                raise OpponentError("Action space provided to build the agent is not a subclass from the"
+                raise OpponentError("BaseAction space provided to build the agent is not a subclass from the"
                                     "action space to compute the cost of each action.")
             self.action_space = action_space
         else:

@@ -19,7 +19,7 @@ class BaseActionBudget:
 
         Parameters
         ----------
-        attack: :class:`ŋrid2op.Action.Action`
+        attack: :class:`ŋrid2op.BaseAction.BaseAction`
             The attack performed by the opponent
 
         Returns

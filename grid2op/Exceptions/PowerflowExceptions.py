@@ -1,5 +1,6 @@
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+
 # powerflow exception
 class DivergingPowerFlow(Grid2OpException):
     """

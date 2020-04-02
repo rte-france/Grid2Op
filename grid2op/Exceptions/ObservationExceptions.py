@@ -1,5 +1,6 @@
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+
 # Observation
 # Functionality not implemented by the observation
 class NoForecastAvailable(Grid2OpException):

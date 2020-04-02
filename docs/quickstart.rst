@@ -66,7 +66,7 @@ interesting part of this framework:
   an "expert agent" that will take pre defined actions based on the observation it gets from
   the environment. This Notebook also covers the functioning of the Observation class.
 * 2_Action_GridManipulation demonstrates
-  how to use the Action class and how to manipulate the powergrid.
+  how to use the BaseAction class and how to manipulate the powergrid.
 * 3_TrainingAnAgent shows how to get started with
   reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
   available on `his blog <https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368>`_

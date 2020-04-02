@@ -1,5 +1,6 @@
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+
 # Chronics
 class ChronicsError(Grid2OpException):
     """

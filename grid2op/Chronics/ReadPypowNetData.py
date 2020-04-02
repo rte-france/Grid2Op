@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 
 from grid2op.Chronics import GridStateFromFileWithForecasts
-from grid2op.Action import Action
+from grid2op.Action import BaseAction
 from grid2op.Exceptions import *
+
 
 # Names of the csv were not the same
 class ReadPypowNetData(GridStateFromFileWithForecasts):

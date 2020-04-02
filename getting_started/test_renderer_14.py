@@ -6,6 +6,7 @@ import pdb
 
 env = grid2op.make("case14_realistic")
 
+
 class MyExpertAgent(GreedyAgent):
     def __init__(self, action_space):
         GreedyAgent.__init__(self, action_space)
@@ -32,7 +33,7 @@ class MyExpertAgent(GreedyAgent):
 
         Returns
         -------
-        res: :class:`grid2op.Action.Action`
+        res: :class:`grid2op.BaseAction.BaseAction`
             The action chosen by the bot / controller / agent.
 
         """
@@ -49,7 +50,7 @@ class MyExpertAgent(GreedyAgent):
             reward_idx = np.argmax(all_rewards)  # rewards.index(max(rewards))
             expected_reward = np.max(all_rewards)
             best_action = self.tested_action[reward_idx]
-#             print("Action taken:\n{}".format(best_action))
+#             print("BaseAction taken:\n{}".format(best_action))
         else:
             all_rewards = [None]
             expected_reward = None
@@ -99,7 +100,8 @@ class MyExpertAgent(GreedyAgent):
                                     {"substations_id": [(1, np.array([False, False, True, True, False, False]))]}})
         res.append(action)
         return res
-    
+
+
 my_agent = MyExpertAgent(env.action_space)
 # my_agent = RandomAgent(env.action_space)
 print("Total unitary action possible: {}".format(my_agent.action_space.n))

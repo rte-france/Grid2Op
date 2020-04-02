@@ -6,9 +6,10 @@ import pdb
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.Agent import Agent
 
+
 class OneChangeThenNothing(Agent):
     """
-    This is a specific kind of Agent. It does an Action (possibly non empty) at the first time step and then does
+    This is a specific kind of Agent. It does an BaseAction (possibly non empty) at the first time step and then does
     nothing.
 
     This class is an abstract class and cannot be instanciated (ie no object of this class can be created). It must
@@ -36,7 +37,7 @@ class OneChangeThenNothing(Agent):
         Returns
         -------
         res: ``dict``
-            A dictionnary that can be converted into a valid :class:`grid2op.Action.Action`. See the help of
-            :func:`grid2op.Action.ActionSpace.__call__` for more information.
+            A dictionnary that can be converted into a valid :class:`grid2op.BaseAction.BaseAction`. See the help of
+            :func:`grid2op.BaseAction.ActionSpace.__call__` for more information.
         """
         pass

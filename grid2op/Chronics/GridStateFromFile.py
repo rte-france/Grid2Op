@@ -11,6 +11,7 @@ from grid2op.Exceptions import *
 from grid2op.Space import RandomObject
 from grid2op.Chronics.GridValue import GridValue
 
+
 class GridStateFromFile(GridValue):
     """
     Read the injections values from a file stored on hard drive. More detailed about the files is provided in the

@@ -6,6 +6,7 @@ import pdb
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.Agent import Agent
 
+
 class DoNothingAgent(Agent):
     """
     This is the most basic Agent. It is purely passive, and does absolutely nothing.
@@ -15,10 +16,10 @@ class DoNothingAgent(Agent):
 
     def act(self, observation, reward, done=False):
         """
-        As better explained in the document of :func:`grid2op.Action.update` or
-        :func:`grid2op.Action.ActionSpace.__call__`.
+        As better explained in the document of :func:`grid2op.BaseAction.update` or
+        :func:`grid2op.BaseAction.ActionSpace.__call__`.
 
-        The preferred way to make an object of type action is to call :func:`grid2op.Action.ActionSpace.__call__` with
+        The preferred way to make an object of type action is to call :func:`grid2op.BaseAction.ActionSpace.__call__` with
         the
         dictionnary representing the action. In this case, the action is "do nothing" and it is represented by the
         empty dictionnary.

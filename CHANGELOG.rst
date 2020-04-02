@@ -43,7 +43,7 @@ TODO for next versions
 - [ADDED] Alternative method to load datasets based on new dataset format: MakeEnv.make2
 - [FIXED] Loading L2RPN_2019 dataset
 - [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
-- [FIXED] `time_before_cooldown_line` vector where output twice in observation space
+- [FIXED] `time_before_cooldown_line` vector were output twice in observation space
   (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 1)
 - [FIXED] the number of active bus on a substation was not computed properly, which lead to some unexpected
   behavior regarding the powerlines switches (depending on current stats of powerline, changing the buses of some
@@ -65,7 +65,7 @@ TODO for next versions
   nothing changes. If no files at all are provided, it raises an error.
 - [ADDED] possibility to change the controler for the generator voltage setpoints
   (See `VoltageControler` for more information). It can be customized as of now.
-- [ADDED] lots of new tests for majority of classes (ChronicsHandler, Action, Observations etc.)
+- [ADDED] lots of new tests for majority of classes (ChronicsHandler, BaseAction, Observations etc.)
 - [FIXED] voltages are now set to 0 when the powerline are disconnected, instead of being set to Nan in
   pandapower backend.
 - [FIXED] `ReadPypowNetData` does not crash when argument "chunk_size" is provided now.
@@ -176,7 +176,7 @@ TODO for next versions
 
 [0.5.0] - 2020-01-23
 --------------------
-- [BREAKING] Action/Backend has been modified with the implementation of redispatching. If
+- [BREAKING] BaseAction/Backend has been modified with the implementation of redispatching. If
   you used a custom backend, you'll have to implement the "redispatching" part.
 - [BREAKING] with the introduction of redispatching, old action space and observation space,
   stored as json for example, will not be usable: action size and observation size
@@ -190,7 +190,7 @@ TODO for next versions
 - [ADDED] More complete documentation of the representation of the powergrid
   (see documentation of `Space`)
 - [FIXED] A bug in the conversion from pair unit to kv in pandapower backend. Adding some tests for that too.
-- [UPDATED] More complete documentation of the Action class (with some examples)
+- [UPDATED] More complete documentation of the BaseAction class (with some examples)
 - [UPDATED] More unit test for observations
 - [UPDATED] Remove the TODO's already coded
 - [UPDATED] GridStateFromFile can now read the starting date and the time interval of the chronics.
@@ -204,7 +204,7 @@ TODO for next versions
 
 [0.4.2] - 2020-01-08
 --------------------
-- [BREAKING] previous saved Action Spaces and Observation Spaces (as dictionnary) are no more compatible
+- [BREAKING] previous saved BaseAction Spaces and Observation Spaces (as dictionnary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 ====================  =======================  =======================
@@ -225,12 +225,12 @@ Backend               lines_or_to_sub_pos      line_or_to_sub_pos
 Backend               lines_ex_to_sub_pos      line_ex_to_sub_pos
 Backend               lines_or_pos_topo_vect   line_or_pos_topo_vect
 Backend               lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
-Action / Observation  _lines_or_to_subid       line_or_to_subid
-Action / Observation  _lines_ex_to_subid       line_ex_to_subid
-Action / Observation  _lines_or_to_sub_pos     line_or_to_sub_pos
-Action / Observation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
-Action / Observation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
-Action / Observation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+BaseAction / Observation  _lines_or_to_subid       line_or_to_subid
+BaseAction / Observation  _lines_ex_to_subid       line_ex_to_subid
+BaseAction / Observation  _lines_or_to_sub_pos     line_or_to_sub_pos
+BaseAction / Observation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
+BaseAction / Observation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
+BaseAction / Observation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
 GridValue             n_lines                  n_line
 ====================  =======================  =======================
 
@@ -242,7 +242,7 @@ GridValue             n_lines                  n_line
 - [FIXED] checking key-word arguments in "make" function: if an invalid argument is provided,
   it now raises an error.
 - [UPDATED] multiple random generator streams for observations
-- [UPDATED] Refactoring of the Action and Observation Space. They now both inherit from "Space"
+- [UPDATED] Refactoring of the BaseAction and Observation Space. They now both inherit from "Space"
 - [UPDATED] the getting_started notebooks to reflect these changes
 
 [0.4.1] - 2019-12-17

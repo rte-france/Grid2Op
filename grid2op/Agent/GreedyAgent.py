@@ -6,6 +6,7 @@ import pdb
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.Agent import Agent
 
+
 class GreedyAgent(Agent):
     """
     This is a class of "Greedy Agent". Greedy agents are all executing the same kind of algorithm to take action:
@@ -75,6 +76,6 @@ class GreedyAgent(Agent):
         Returns
         -------
         res: ``list``
-            A list of all candidate :class:`grid2op.Action.Action`
+            A list of all candidate :class:`grid2op.BaseAction.BaseAction`
         """
         pass

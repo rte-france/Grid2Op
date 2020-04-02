@@ -1,14 +1,15 @@
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+
 # ambiguous action
 class AmbiguousAction(Grid2OpException):
     """
-    This exception indicate that the :class:`grid2op.Action` is ambiguous. It could be understood differently according
+    This exception indicate that the :class:`grid2op.BaseAction` is ambiguous. It could be understood differently according
     to the backend used.
 
     Such a kind of action are forbidden in this package. These kind of exception are mainly thrown by the
-    :class:`grid2op.Action.Action` in
-    the :func:`grid2op.Action.update` and :func:`grid2op.Action.__call__` methods.
+    :class:`grid2op.BaseAction.BaseAction` in
+    the :func:`grid2op.BaseAction.update` and :func:`grid2op.BaseAction.__call__` methods.
 
     As opposed to a :class:`IllegalAction` an :class:`AmbiguousAction` is forbidden for all the backend,
     in all the scenarios.
@@ -20,7 +21,7 @@ class AmbiguousAction(Grid2OpException):
 
 class InvalidLineStatus(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action` is
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction` is
     ambiguous due to powerlines manipulation.
     """
     pass
@@ -28,7 +29,7 @@ class InvalidLineStatus(AmbiguousAction):
 
 class UnrecognizedAction(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action` is
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction` is
     ambiguous due to the bad formatting of the action.
     """
     pass
@@ -36,7 +37,7 @@ class UnrecognizedAction(AmbiguousAction):
 
 class InvalidNumberOfLoads(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction`
     is ambiguous because an incorrect number of loads tries to be modified.
     """
     pass
@@ -44,7 +45,7 @@ class InvalidNumberOfLoads(AmbiguousAction):
 
 class InvalidNumberOfGenerators(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction`
     is ambiguous because an incorrect number of generator tries to be modified.
     """
     pass
@@ -52,7 +53,7 @@ class InvalidNumberOfGenerators(AmbiguousAction):
 
 class InvalidNumberOfLines(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction`
     is ambiguous because an incorrect number of lines tries to be modified.
     """
     pass
@@ -60,7 +61,7 @@ class InvalidNumberOfLines(AmbiguousAction):
 
 class InvalidNumberOfObjectEnds(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction`
     is ambiguous because an incorrect number of object at a substation try to be modified.
     """
     pass
@@ -68,7 +69,7 @@ class InvalidNumberOfObjectEnds(AmbiguousAction):
 
 class InvalidBusStatus(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction`
     try to both "set" and "switch" some bus to which an object is connected.
     """
     pass
@@ -76,7 +77,7 @@ class InvalidBusStatus(AmbiguousAction):
 
 class InvalidRedispatching(AmbiguousAction):
     """
-    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.Action.Action`
+    This is a more precise exception than :class:`AmbiguousAction` indicating that the :class:`grid2op.BaseAction.BaseAction`
     try to apply an invalid redispatching strategy.
     """
     pass

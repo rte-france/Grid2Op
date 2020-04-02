@@ -1,9 +1,9 @@
 """
-This module implements some utilities to get rewards given an :class:`grid2op.Action` an :class:`grid2op.Environment`
+This module implements some utilities to get rewards given an :class:`grid2op.BaseAction` an :class:`grid2op.Environment`
 and some associated context (like has there been an error etc.)
 
 It is possible to modify the reward to use to better suit a training scheme, or to better take into account
-some phenomenon  by simulating the effect of some :class:`grid2op.Action` using :func:`grid2op.Observation.simulate`.
+some phenomenon  by simulating the effect of some :class:`grid2op.BaseAction` using :func:`grid2op.Observation.simulate`.
 Doing so only requires to derive the :class:`Reward`, and most notably the three abstract methods
 :func:`Reward.__init__`, :func:`Reward.initialize` and :func:`Reward.__call__`
 
@@ -25,11 +25,11 @@ class Reward(ABC):
     Attributes
     ----------
     reward_min: ``float``
-        The minimum reward an :class:`grid2op.Agent` can get performing the worst possible :class:`grid2op.Action` in
+        The minimum reward an :class:`grid2op.Agent` can get performing the worst possible :class:`grid2op.BaseAction` in
         the worst possible scenario.
 
     reward_max: ``float``
-        The maximum reward an :class:`grid2op.Agent` can get performing the best possible :class:`grid2op.Action` in
+        The maximum reward an :class:`grid2op.Agent` can get performing the best possible :class:`grid2op.BaseAction` in
         the best possible scenario.
 
     """
@@ -67,7 +67,7 @@ class Reward(ABC):
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
-            Action that has been submitted by the :class:`grid2op.Agent`
+            BaseAction that has been submitted by the :class:`grid2op.Agent`
 
         env: :class:`grid2op.Environment.Environment`
             An environment instance properly initialized.
