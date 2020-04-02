@@ -8,6 +8,7 @@ from grid2op.Runner import Runner
 from grid2op.Reward import RedispReward
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
+from CustomAction import CustomAction
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -24,6 +25,9 @@ def cli():
     parser.add_argument("--nb_process", required=False,
                         default=1, type=int,
                         help="Number of cores to use")
+    parser.add_argument("--max_steps", required=False,
+                        default=1000, type=int,
+                        help="Maximum number of steps per scenario")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -51,7 +55,9 @@ if __name__ == "__main__":
     res = runner.run(path_save=args.path_logs,
                      nb_episode=args.nb_episode,
                      nb_process=args.nb_process,
-                     max_iter=1000, pbar=True)
+                     max_iter=args.max_steps,
+                     pbar=True)
+
     # Print summary
     print("Evaluation summary:")
     for _, chron_name, cum_reward, nb_time_step, max_ts in res:
