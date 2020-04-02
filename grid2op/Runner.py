@@ -446,7 +446,7 @@ class Runner(object):
         if self._useclass:
             agent = self.agentClass(res.helper_action_player)
         else:
-            agent = self.agent
+            agent = copy.copy(self.agent)
         return res, agent
 
     def init_env(self):
@@ -515,6 +515,8 @@ class Runner(object):
         env.chronics_handler.tell_id(indx-1)
         # the "-1" above is because the environment will be reset. So it will increase id of 1.
         obs = env.reset()
+        # reset the agent
+        agent.reset()
 
         # compute the size and everything if it needs to be stored
         nb_timestep_max = env.chronics_handler.max_timestep()

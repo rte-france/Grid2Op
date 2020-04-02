@@ -43,6 +43,14 @@ class Agent(ABC):
         self.action_space = action_space
 
     @abstractmethod
+    def reset(self):
+        """
+        This method is called at the beginning of a new episode.
+        It is implemented by agents to reset their internal state if needed.
+        """
+        pass
+
+    @abstractmethod
     def act(self, observation, reward, done=False):
         """
         This is the main method of an Agent. Given the current observation and the current reward (ie the reward that
