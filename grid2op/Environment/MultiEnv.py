@@ -63,13 +63,10 @@ An example on how you can best leverage this class is given in the getting_start
 
 """
 
-import copy
-import os
-import time
 from multiprocessing import Process, Pipe
 import numpy as np
 
-from grid2op.Exceptions import *
+from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
@@ -265,7 +262,7 @@ class MultiEnvironment(GridObjects):
                                     "MultiEnvironment counts {} different environment."
                                     "".format(len(actions), self.nb_env))
         for act in actions:
-            if not isinstance(act, Action):
+            if not isinstance(act, BaseAction):
                 raise MultiEnvException("All actions send to MultiEnvironment.step should be of type \"grid2op.BaseAction\""
                                         "and not {}".format(type(act)))
 
@@ -325,7 +322,8 @@ class MultiEnvironment(GridObjects):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-
+    from grid2op import make
+    from grid2op.Agent import DoNothingAgent
     env = make()
 
     nb_env = 8  # change that to adapt to your system

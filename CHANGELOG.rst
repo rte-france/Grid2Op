@@ -25,11 +25,11 @@ TODO for next versions
 
 [0.6.0] - 2020-04-??
 ---------------------
-- [BREAKING] `grid2op.GameRules` module renamed to `grid2op.Rules`
+- [BREAKING] `grid2op.GameRules` module renamed to `grid2op.RulesChecker`
 - [BREAKING] `grid2op.Converters` module renamed `grid2op.Converter`
 - [BREAKING] `grid2op.ChronicsHandler` renamed to `grid2op.Chronics`
 - [BREAKING] `grid2op.PandaPowerBackend` is moved to `grid2op.Backend.PandaPowerBackend`
-- [BREAKING] `GameRules.Allwayslegal` is now `Rules.Alwayslegal`
+- [BREAKING] `RulesChecker.Allwayslegal` is now `Rules.Alwayslegal`
 - [BREAKING] Plotting utils are now located in their own module `grid2op.Plot`
 - [DEPRECATION] `HelperAction` is now called `ActionSpace` to better suit open ai gym name. Use of `HelperAction`
   will be deprecated in future versions.
@@ -42,6 +42,11 @@ TODO for next versions
   observation classes. Name Observation will be deprecated in future versions.
 - [DEPRECATION] `Agent` class has renamed `BaseAgent` that serve as an abstract base class for all
   agent classes. Name Agent will be deprecated in future versions.
+- [DEPRECATION] `Reward` class has renamed `BaseReward` that serve as an abstract base class for all
+  reward classes. Name Reward will be deprecated in future versions.
+- [DEPRECATION] `LegalAction` class has renamed `BaseRules` that serve as an abstract base class for all
+  type of rules classes. Name `LegalAction` will be deprecated in future versions.
+- [DEPRECATION] typo fixed in `PreventReconection` class (now properly named `PreventReconnection`)
 - [ADDED] different kind of "Opponent" can now be implemented if needed (missing deep testing, different type of
   class, and good documentation)
 - [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
@@ -270,7 +275,7 @@ GridValue             n_lines                  n_line
 [0.3.6] - 2019-12-01
 --------------------
 - [ADDED] functionality to restrict action based on previous actions
-  (impacts `Environment`, `GameRules` and `Parameters`)
+  (impacts `Environment`, `RulesChecker` and `Parameters`)
 - [ADDED] tests for the notebooks in `getting_started`
 - [UPDATED] readme to properly show the docker capability
 - [UPDATED] Readme with docker

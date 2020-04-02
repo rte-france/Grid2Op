@@ -13,11 +13,12 @@ varying from:
 We wanted, in this package, to treat the voltages setpoint of the generators differently from the other
 part of the game. This module exposes the main class to do this.
 """
+from abc import ABC, abstractmethod
 from grid2op.Action import VoltageOnlyAction, ActionSpace
 from grid2op.Rules import AlwaysLegal
 
 
-class ControlVoltageFromFile:
+class BaseVoltageController(ABC):
     """
     This class is the most basic controler for the voltages. Basically, what it does is read the voltages from the
     chronics.
@@ -29,7 +30,7 @@ class ControlVoltageFromFile:
 
         Parameters
         ----------
-        gridobj: :class:`grid2op.Space.Space`
+        gridobj: :class:`grid2op.Space.Gridobject`
             Structure of the powergrid
 
         envbackend: :class:`grid2op.Backend.Backend`
@@ -38,10 +39,11 @@ class ControlVoltageFromFile:
         """
         legal_act = AlwaysLegal()
         self.action_space = ActionSpace(gridobj=gridobj,
-                                         actionClass=VoltageOnlyAction,
-                                         legal_action=legal_act)
+                                        actionClass=VoltageOnlyAction,
+                                        legal_action=legal_act)
         self.backend = controler_backend.copy()
 
+    @abstractmethod
     def fix_voltage(self, observation, agent_action, env_action, prod_v_chronics):
         """
         This method must be overloaded to change the behaviour of the generator setpoint for time t+1.
@@ -84,9 +86,4 @@ class ControlVoltageFromFile:
             The new setpoint, in this case depending only on the prod_v_chronics.
 
         """
-        # TODO add a "reward" and "done" for RL voltage controler
-        if prod_v_chronics is not None:
-            res = self.action_space({"injection": {"prod_v": prod_v_chronics}})
-        else:
-            res = self.action_space()
-        return res
+        pass

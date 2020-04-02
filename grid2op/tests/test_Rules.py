@@ -96,7 +96,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                      "set_line_status": set_status_orig})
 
         # game rules
-        gr = GameRules()
+        gr = RulesChecker()
         assert gr.legal_action(action, self.env)
 
     def test_LookParam(self):
@@ -112,7 +112,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = 2
 
-        self.helper_action.legal_action = GameRules(legalActClass=LookParam).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=LookParam).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
@@ -173,7 +173,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = 2
 
-        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
@@ -230,7 +230,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_line_status_deactivated = 1
-        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
@@ -264,7 +264,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_line_status_deactivated = 1
-        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
@@ -297,7 +297,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_line_status_deactivated = 2
-        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
@@ -336,7 +336,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_topology_deactivated = 1
-        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
@@ -370,7 +370,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_topology_deactivated = 1
-        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
@@ -403,7 +403,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_topology_deactivated = 2
-        self.helper_action.legal_action = GameRules(legalActClass=PreventReconection).legal_action
+        self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)

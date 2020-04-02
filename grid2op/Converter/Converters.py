@@ -34,12 +34,7 @@ More details and a concrete example is given in the documentation of the class
 
 Some examples of converters are given in :class:`IdToAct` and :class:`ToVect`.
 """
-
-import numpy as np
-import itertools
-
 from grid2op.Action import ActionSpace
-from grid2op.Exceptions import Grid2OpException
 
 import pdb
 

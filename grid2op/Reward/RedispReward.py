@@ -2,15 +2,16 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Reward.Reward import Reward
+from grid2op.Reward.BaseReward import BaseReward
 
-class RedispReward(Reward):
+
+class RedispReward(BaseReward):
     """
     This reward can be used for environments where redispatching is availble. It assigns a cost to redispatching action
     and penalizes with the losses.
     """
     def __init__(self, alpha_redisph=5.0):
-        Reward.__init__(self)
+        BaseReward.__init__(self)
         self.reward_min = None
         self.reward_max = None
         self.max_regret = 0.

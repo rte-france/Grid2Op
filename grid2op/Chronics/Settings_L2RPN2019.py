@@ -5,18 +5,13 @@ the competition "L2RPN 2019" that took place on the pypownet plateform.
 It is present to reproduce this competition.
 """
 import os
-import pkg_resources
-import copy
 import warnings
 from pathlib import Path
-from datetime import timedelta, datetime
 import numpy as np
-import pandas as pd
 
 from grid2op.Action import BaseAction
-from grid2op.Exceptions import *
-from grid2op.Chronics.ReadPypowNetData import ReadPypowNetData
-
+from grid2op.Exceptions import AmbiguousAction, IncorrectNumberOfElements
+from grid2op.Chronics.ReadPypowNetData import ReadPypowNetData  # imported by another module
 
 file_dir = Path(__file__).parent.absolute()
 grid2op_root = file_dir.parent.absolute()

@@ -38,11 +38,8 @@ To use this plotting utilities, for example in a jupyter notebook please refer t
 """
 
 import numpy as np
-import cmath
-import pdb
 
 from grid2op.Plot.PlotGraph import BasePlot
-from grid2op.Exceptions import PlotError
 
 try:
     import plotly.graph_objects as go

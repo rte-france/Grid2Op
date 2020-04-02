@@ -45,20 +45,15 @@ Example (adapted from gym documentation available at
 import numpy as np
 import os
 import copy
-import pdb
-from abc import ABC, abstractmethod
 
-from grid2op.Space import GridObjects
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
-from grid2op.Reward import FlatReward, RewardHelper, Reward
-from grid2op.Rules import GameRules, AlwaysLegal, LegalAction
-from grid2op.Parameters import Parameters
+from grid2op.Reward import FlatReward, RewardHelper, BaseReward
+from grid2op.Rules import RulesChecker, AlwaysLegal, BaseRules
 from grid2op.Backend import Backend
 from grid2op.Chronics import ChronicsHandler
-from grid2op.Plot import PlotPyGame
-from grid2op.VoltageControler import ControlVoltageFromFile
+from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BasicEnv import _BasicEnv
 from grid2op.Opponent import BaseOpponent
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
@@ -82,7 +77,7 @@ class Environment(_BasicEnv):
         Parameters used for the game
 
     rewardClass: ``type``
-        Type of reward used. Should be a subclass of :class:`grid2op.Reward.Reward`
+        Type of reward used. Should be a subclass of :class:`grid2op.BaseReward.BaseReward`
 
     init_grid_path: ``str``
         The path where the description of the powergrid is located.
@@ -90,7 +85,7 @@ class Environment(_BasicEnv):
     backend: :class:`grid2op.Backend.Backend`
         The backend used to compute powerflows and cascading failures.
 
-    game_rules: :class:`grid2op.GameRules.GameRules`
+    game_rules: :class:`grid2op.GameRules.RulesChecker`
         The rules of the game (define which actions are legal and which are not)
 
     helper_action_player: :class:`grid2op.Action.ActionSpace`
@@ -137,7 +132,7 @@ class Environment(_BasicEnv):
         the "object" when providing data. A more detailed description is available at
         :func:`grid2op.ChronicsHandler.GridValue.initialize`.
 
-    reward_helper: :class:`grid2p.Reward.RewardHelper`
+    reward_helper: :class:`grid2p.BaseReward.RewardHelper`
         Helper that is called to compute the reward at each time step.
 
     action_space: :class:`grid2op.Action.ActionSpace`
@@ -264,9 +259,9 @@ class Environment(_BasicEnv):
             raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
                                    "and not an object (an instance of a class). "
                                    "It is currently \"{}\"".format(type(rewardClass)))
-        if not issubclass(rewardClass, Reward):
+        if not issubclass(rewardClass, BaseReward):
             raise Grid2OpException(
-                "Parameter \"rewardClass\" used to build the Environment should derived form the grid2op.Reward class, "
+                "Parameter \"rewardClass\" used to build the Environment should derived form the grid2op.BaseReward class, "
                 "type provided is \"{}\"".format(
                     type(rewardClass)))
         self.rewardClass = rewardClass
@@ -300,12 +295,12 @@ class Environment(_BasicEnv):
             raise Grid2OpException("Parameter \"legalActClass\" used to build the Environment should be a type "
                                    "(a class) and not an object (an instance of a class). "
                                    "It is currently \"{}\"".format(type(legalActClass)))
-        if not issubclass(legalActClass, LegalAction):
+        if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
                 "Parameter \"legalActClass\" used to build the Environment should derived form the "
-                "grid2op.LegalAction class, type provided is \"{}\"".format(
+                "grid2op.BaseRules class, type provided is \"{}\"".format(
                     type(legalActClass)))
-        self.game_rules = GameRules(legalActClass=legalActClass)
+        self.game_rules = RulesChecker(legalActClass=legalActClass)
         self.legalActClass = legalActClass
 
         # action helper
@@ -366,7 +361,7 @@ class Environment(_BasicEnv):
             v.initialize(self)
 
         # controler for voltage
-        if not issubclass(self.voltagecontrolerClass, ControlVoltageFromFile):
+        if not issubclass(self.voltagecontrolerClass, BaseVoltageController):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
         self.voltage_controler = self.voltagecontrolerClass(gridobj=self.backend,

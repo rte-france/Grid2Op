@@ -35,8 +35,8 @@ from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, 
 from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, BaseObservation
-from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
-from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
+from grid2op.Reward import FlatReward, BaseReward, L2RPNReward, RedispReward
+from grid2op.Rules import BaseRules, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
 
@@ -85,8 +85,8 @@ ERR_MSG_KWARGS = {
     " must be a subclass of grid2op.BaseObservation",
     "param": "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters",
     "rules": "The type of rules of the environment (keyword \"gamerules_class\")" \
-    " must be a subclass of grid2op.LegalAction",
-    "reward": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.Reward",
+    " must be a subclass of grid2op.BaseRules",
+    "reward": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.BaseReward",
     "action": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction",
     "data_feeding_kwargs": "The argument to build the data generation process [chronics]" \
     "  (keyword \"data_feeding_kwargs\") should be a dictionnary.",
@@ -270,11 +270,11 @@ def make2(dataset_path="/", **kwargs):
 
     reward_class: ``type``, optional
         Type of reward signal the BaseAgent will receive.
-        If provided, It must be a subclass of :class:`grid2op.Reward.Reward`
+        If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
 
     gamerules_class: ``type``, optional
         Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
-        If provided, It must be a subclass of :class:`grid2op.GameRules.LegalAction`
+        If provided, It must be a subclass of :class:`grid2op.RulesChecker.BaseRules`
 
     data_feeding_kwargs: ``dict``, optional
         Dictionnary that is used to build the `data_feeding` (chronics) objects.
@@ -369,8 +369,8 @@ def make2(dataset_path="/", **kwargs):
         rules_class_cfg = config_data["rules_class"]
     ## Create the rules of the game (mimic the operationnal constraints)
     gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=rules_class_cfg,
-                                    defaultClassApp=LegalAction, msg_error=ERR_MSG_KWARGS["rules"],
-                                    isclass=True)
+                                       defaultClassApp=BaseRules, msg_error=ERR_MSG_KWARGS["rules"],
+                                       isclass=True)
 
     # Get default reward class
     reward_class_cfg = L2RPNReward
@@ -378,7 +378,7 @@ def make2(dataset_path="/", **kwargs):
         reward_class_cfg = config_data["reward_class"]
     ## Setup the reward the agent will receive
     reward_class = _get_default_aux("reward_class", kwargs, defaultClass=reward_class_cfg,
-                                    defaultClassApp=Reward, msg_error=ERR_MSG_KWARGS["reward"],
+                                    defaultClassApp=BaseReward, msg_error=ERR_MSG_KWARGS["reward"],
                                     isclass=True)
 
     # Get default BaseAction class
@@ -524,11 +524,11 @@ def make(name_env="case14_realistic", **kwargs):
 
     reward_class: ``type``, optional
         Type of reward signal the BaseAgent will receive.
-        If provided, It must be a subclass of :class:`grid2op.Reward.Reward`
+        If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
 
     gamerules_class: ``type``, optional
         Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
-        If provided, It must be a subclass of :class:`grid2op.GameRules.LegalAction`
+        If provided, It must be a subclass of :class:`grid2op.RulesChecker.BaseRules`
 
     grid_path: ``str``, optional
         The path where the powergrid is located.
@@ -693,17 +693,17 @@ def make(name_env="case14_realistic", **kwargs):
     # extract powergrid dependant parameters
     ## type of rules of the game (mimic the operationnal constraints)
     msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
-    msg_error += " must be a subclass of grid2op.LegalAction"
+    msg_error += " must be a subclass of grid2op.BaseRules"
     gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=gamerules_class,
-                                    defaultClassApp=LegalAction,
-                                    msg_error=msg_error,
-                                    isclass=True)
+                                       defaultClassApp=BaseRules,
+                                       msg_error=msg_error,
+                                       isclass=True)
 
     ## type of reward the agent will receive
     msg_error = "The type of observation of the environment (keyword \"reward_class\")"
-    msg_error += " must be a subclass of grid2op.Reward"
+    msg_error += " must be a subclass of grid2op.BaseReward"
     reward_class = _get_default_aux("reward_class", kwargs, defaultClass=default_reward_class,
-                                    defaultClassApp=Reward,
+                                    defaultClassApp=BaseReward,
                                     msg_error=msg_error,
                                     isclass=True)
 

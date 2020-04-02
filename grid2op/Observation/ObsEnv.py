@@ -4,7 +4,7 @@ import pdb
 
 from grid2op.Environment.BasicEnv import _BasicEnv
 from grid2op.Chronics import ChangeNothing
-from grid2op.Rules import GameRules, LegalAction
+from grid2op.Rules import RulesChecker, BaseRules
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import Grid2OpException
 
@@ -82,12 +82,12 @@ class ObsEnv(_BasicEnv):
         self._has_been_initialized()
         self.obsClass = observationClass
 
-        if not issubclass(legalActClass, LegalAction):
+        if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
                 "Parameter \"legalActClass\" used to build the Environment should derived form the "
-                "grid2op.LegalAction class, type provided is \"{}\"".format(
+                "grid2op.BaseRules class, type provided is \"{}\"".format(
                     type(legalActClass)))
-        self.game_rules = GameRules(legalActClass=legalActClass)
+        self.game_rules = RulesChecker(legalActClass=legalActClass)
         self.legalActClass = legalActClass
         self.helper_action_player = lambda x: self.donothing_act
         self.backend.set_thermal_limit(self._thermal_limit_a)

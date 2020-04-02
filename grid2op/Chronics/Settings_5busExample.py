@@ -3,8 +3,6 @@ This file contains the settings (path to the case file, chronics converter etc.)
 environment with a powergrid of only 5 buses, 3 laods, 2 generators and 8 powerlines.
 """
 import os
-import pkg_resources
-import numpy as np
 from pathlib import Path
 
 file_dir = Path(__file__).parent.absolute()

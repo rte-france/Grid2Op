@@ -23,8 +23,8 @@ from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
 from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
 from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, VoltageOnlyAction
 from grid2op.Observation import CompleteObservation, BaseObservation
-from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
-from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
+from grid2op.Reward import FlatReward, BaseReward, L2RPNReward, RedispReward
+from grid2op.Rules import BaseRules, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
 

@@ -18,7 +18,7 @@ class Parameters:
     Main classes representing the _parameters of the game. The main paratemeters are describe bellow.
 
     Note that changing the values of these _parameters might not be enough. If these _parameters are not used in the
-    :class:`grid2op.GameRules`, then modifying them will have no impact at all.
+    :class:`grid2op.RulesChecker`, then modifying them will have no impact at all.
 
     Attributes
     ----------

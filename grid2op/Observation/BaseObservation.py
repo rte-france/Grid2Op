@@ -1,6 +1,6 @@
 """
 In a "reinforcement learning" framework, an :class:`grid2op.BaseAgent` receive two information before taking any action on
-the :class:`grid2op.Environment`. One of them is the :class:`grid2op.Reward` that tells it how well the past action
+the :class:`grid2op.Environment`. One of them is the :class:`grid2op.BaseReward` that tells it how well the past action
 performed. The second main input received from the environment is the :class:`BaseObservation`. This is gives the BaseAgent
 partial, noisy, or complete information about the current state of the environment. This module implement a generic
 :class:`BaseObservation`  class and an example of a complete observation in the case of the Learning
@@ -20,7 +20,7 @@ on this unique time step. We wanted in this recoding to change that:
 
   - in an RL setting, an :class:`grid2op.BaseAgent` should not be able to look directly at the :class:`grid2op.Environment`.
     The only information about the Environment the BaseAgent should have is through the :class:`grid2op.BaseObservation` and
-    the :class:`grid2op.Reward`. Having this principle implemented will help enforcing this principle.
+    the :class:`grid2op.BaseReward`. Having this principle implemented will help enforcing this principle.
   - In some wider context, it is relevant to have these forecasts available in multiple way, or modified by the
     :class:`grid2op.BaseAgent` itself (for example having forecast available for the next 2 or 3 hours, with the BaseAgent able
     not only to change the topology of the powergrid with actions, but also the injections if he's able to provide

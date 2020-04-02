@@ -448,7 +448,7 @@ class BaseAction(GridObjects):
         """
         Gives information about the element being impacted by this action.
 
-        **NB** The impacted elements can be used by :class:`grid2op.LegalAction` to determine whether or not an action
+        **NB** The impacted elements can be used by :class:`grid2op.BaseRules` to determine whether or not an action
         is legal or not.
 
         **NB** The impacted are the elements that can potentially be impacted by the action. This does not mean they

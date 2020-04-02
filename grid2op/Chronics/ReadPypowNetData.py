@@ -1,5 +1,4 @@
 import os
-import pkg_resources
 import copy
 import warnings
 
@@ -8,8 +7,7 @@ import numpy as np
 import pandas as pd
 
 from grid2op.Chronics import GridStateFromFileWithForecasts
-from grid2op.Action import BaseAction
-from grid2op.Exceptions import *
+from grid2op.Exceptions import ChronicsError
 
 
 # Names of the csv were not the same

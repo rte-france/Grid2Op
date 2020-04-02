@@ -14,6 +14,7 @@ import pdb
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import PlotError
 
+
 class BasePlot(GridObjects):
     """
     Utility class that allows to compute the position of the objects of the powergrid.

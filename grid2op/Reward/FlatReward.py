@@ -1,16 +1,13 @@
-import numpy as np
-from abc import ABC, abstractmethod
+from grid2op.Reward.BaseReward import BaseReward
 
-from grid2op.Exceptions import Grid2OpException
-from grid2op.Reward.Reward import Reward
 
-class FlatReward(Reward):
+class FlatReward(BaseReward):
     """
     This reward return a fixed number (if there are not error) or 0 if there is an error.
 
     """
     def __init__(self, per_timestep=1):
-        Reward.__init__(self)
+        BaseReward.__init__(self)
         self.per_timestep = per_timestep
         self.total_reward = 0
         self.reward_min = 0

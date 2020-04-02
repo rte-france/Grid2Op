@@ -36,7 +36,7 @@ class ObservationSpace(SerializableObservationSpace):
         BaseAction space used to create action during the :func:`BaseObservation.simulate`
 
     reward_helper: :class:`grid2op.Reward.HelperReward`
-        Reward function used by the the :func:`BaseObservation.simulate` function.
+        BaseReward function used by the the :func:`BaseObservation.simulate` function.
 
     obs_env: :class:`ObsEnv`
         Instance of the environenment used by the BaseObservation Helper to provide forcecast of the grid state.

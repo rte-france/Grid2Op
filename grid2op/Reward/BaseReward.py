@@ -4,16 +4,14 @@ and some associated context (like has there been an error etc.)
 
 It is possible to modify the reward to use to better suit a training scheme, or to better take into account
 some phenomenon  by simulating the effect of some :class:`grid2op.BaseAction` using :func:`grid2op.BaseObservation.simulate`.
-Doing so only requires to derive the :class:`Reward`, and most notably the three abstract methods
-:func:`Reward.__init__`, :func:`Reward.initialize` and :func:`Reward.__call__`
+Doing so only requires to derive the :class:`BaseReward`, and most notably the three abstract methods
+:func:`BaseReward.__init__`, :func:`BaseReward.initialize` and :func:`BaseReward.__call__`
 
 """
-import numpy as np
 from abc import ABC, abstractmethod
 
-from grid2op.Exceptions import Grid2OpException
 
-class Reward(ABC):
+class BaseReward(ABC):
     """
     Base class from which all rewards used in the Grid2Op framework should derived.
 
@@ -36,7 +34,7 @@ class Reward(ABC):
     @abstractmethod
     def __init__(self):
         """
-        Initializes :attr:`Reward.reward_min` and :attr:`Reward.reward_max`
+        Initializes :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`
 
         """
         self.reward_min = 0
@@ -44,7 +42,7 @@ class Reward(ABC):
 
     def initialize(self, env):
         """
-        If :attr:`Reward.reward_min`, :attr:`Reward.reward_max` or other custom attributes require to have a
+        If :attr:`BaseReward.reward_min`, :attr:`BaseReward.reward_max` or other custom attributes require to have a
         valid :class:`grid2op.Environement.Environment` to be initialized, this should be done in this method.
 
         Parameters
@@ -106,10 +104,10 @@ class Reward(ABC):
         Returns
         -------
         reward_min: ``float``
-            The minimum reward, see :attr:`Reward.reward_min`
+            The minimum reward, see :attr:`BaseReward.reward_min`
 
         reward_max: ``float``
-            The maximum reward, see :attr:`Reward.reward_max`
+            The maximum reward, see :attr:`BaseReward.reward_max`
 
         """
         return self.reward_min, self.reward_max

@@ -2,9 +2,10 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Reward.Reward import Reward
+from grid2op.Reward.BaseReward import BaseReward
 
-class IncreasingFlatReward(Reward):
+
+class IncreasingFlatReward(BaseReward):
     """
     This reward just counts the number of timestep the agent has sucessfully manage to perform.
 
@@ -12,7 +13,7 @@ class IncreasingFlatReward(Reward):
 
     """
     def __init__(self, per_timestep=1):
-        Reward.__init__(self)
+        BaseReward.__init__(self)
         self.per_timestep = per_timestep
         self.total_reward = 0
         self.reward_min = 0

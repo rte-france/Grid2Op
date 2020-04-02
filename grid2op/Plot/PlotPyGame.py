@@ -9,18 +9,16 @@ output gifs for example.
 
 import numpy as np
 import cmath
-import math # for regular real sqrt
-import time
-import pdb
+import math
+import os
 
 from grid2op.Plot.PlotGraph import BasePlot
-from grid2op.Exceptions import PlotError
 
 try:
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
     import pygame
     can_plot = True
-except:
+except Exception as e:
     can_plot = False
     pass
 

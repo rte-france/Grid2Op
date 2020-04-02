@@ -7,7 +7,7 @@ implement such agents.
 
 To perform their actions, agent receive two main signals from the :class:`grid2op.Environment`:
 
-  - the :class:`grid2op.Reward` that states how good the previous has been
+  - the :class:`grid2op.BaseReward` that states how good the previous has been
   - the :class:`grid2op.BaseObservation` that is a (partial) view on the state of the Environment.
 
 Both these signals can be use to determine what is the best action to perform on the grid. This is actually the main

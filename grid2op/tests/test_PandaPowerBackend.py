@@ -14,7 +14,7 @@ from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, ChangeNothing
 from grid2op.Environment import Environment
 from grid2op.Exceptions import *
-from grid2op.Rules import GameRules
+from grid2op.Rules import RulesChecker
 from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
 
@@ -91,7 +91,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         self.action_env = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
     # Cette méthode sera appelée après chaque test.
@@ -426,7 +426,7 @@ class TestTopoAction(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
 
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         self.helper_action = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
     # Cette méthode sera appelée après chaque test.
@@ -685,7 +685,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         self.action_env = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
         self.lines_flows_init = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,

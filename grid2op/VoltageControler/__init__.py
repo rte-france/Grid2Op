@@ -1,5 +1,7 @@
 __all__ = [
-    "VoltageControler"
+    "BaseVoltageController",
+    "ControlVoltageFromFile"
 ]
 
-from grid2op.VoltageControler.VoltageControler import ControlVoltageFromFile
+from grid2op.VoltageControler.BaseVoltageController import BaseVoltageController
+from grid2op.VoltageControler.ControlVoltageFromFile import ControlVoltageFromFile

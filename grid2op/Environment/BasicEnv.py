@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
-from grid2op.Reward import Reward
+from grid2op.Reward import BaseReward
 from grid2op.Reward import RewardHelper
 from grid2op.Opponent import OpponentSpace, UnlimitedBudget
 from grid2op.Action import ActionSpace, DontAct, BaseAction
@@ -118,9 +118,9 @@ class _BasicEnv(GridObjects, ABC):
         # other rewards
         self.other_rewards = {}
         for k, v in other_rewards.items():
-            if not issubclass(v, Reward):
+            if not issubclass(v, BaseReward):
                 raise Grid2OpException("All keys of \"rewards\" key word argument should be classes that inherit from "
-                                       "\"grid2op.Reward\"")
+                                       "\"grid2op.BaseReward\"")
             self.other_rewards[k] = RewardHelper(v)
 
         # opponent

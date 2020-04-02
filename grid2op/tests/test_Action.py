@@ -12,7 +12,7 @@ from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, TopoAndRedispAction, PowerLineSet, DontAct
-from grid2op.Rules import GameRules, DefaultRules
+from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Space import GridObjects
 from grid2op._utils import save_to_dict
 
@@ -34,7 +34,7 @@ class TestActionBase(ABC):
         """
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         self.gridobj = GridObjects()
         self.gridobj.init_grid_vect(name_prod=["gen_{}".format(i) for i in range(5)],
                                     name_load=["load_{}".format(i) for i in range(11)],

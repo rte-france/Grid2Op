@@ -22,8 +22,8 @@ import pdb
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, BaseObservation
-from grid2op.Reward import FlatReward, Reward
-from grid2op.Rules import AlwaysLegal, LegalAction
+from grid2op.Reward import FlatReward, BaseReward
+from grid2op.Rules import AlwaysLegal, BaseRules
 from grid2op.Environment import Environment
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
 from grid2op.Backend import Backend, PandaPowerBackend
@@ -132,7 +132,7 @@ class Runner(object):
     rewardClass: ``type``
         Representes the type used to build the rewards that are given to the :class:`BaseAgent`. As
         :attr:`Runner.actionClass`, this should be a type, and **not** and instance (object) of this type.
-        This type should derived from :class:`grid2op.Reward`. The default is :class:`grid2op.ConstantReward` that
+        This type should derived from :class:`grid2op.BaseReward`. The default is :class:`grid2op.ConstantReward` that
         **should not** be used to train or evaluate an agent, but rather as debugging purpose.
 
     gridStateclass: ``type``
@@ -143,7 +143,7 @@ class Runner(object):
     legalActClass: ``type``
         This types control the mechanisms to assess if an :class:`grid2op.BaseAction` is legal.
         Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
-        Its default is :class:`grid2op.AlwaysLegal` and it must be a subclass of :class:`grid2op.LegalAction`.
+        Its default is :class:`grid2op.AlwaysLegal` and it must be a subclass of :class:`grid2op.BaseRules`.
 
     backendClass: ``type``
         This types control the backend, *eg.* the software that computes the powerflows.
@@ -321,9 +321,9 @@ class Runner(object):
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(rewardClass)))
     
-        if not issubclass(rewardClass, Reward):
+        if not issubclass(rewardClass, BaseReward):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.Reward. Please modify \"rewardClass\" parameter.")
+                               "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
         self.rewardClass = rewardClass
 
         if not isinstance(gridStateclass, type):
@@ -341,10 +341,10 @@ class Runner(object):
                 "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object "
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(legalActClass)))
-        if not issubclass(legalActClass, LegalAction):
+        if not issubclass(legalActClass, BaseRules):
 
             raise RuntimeError("Impossible to create a runner without a class defining legal actions derived "
-                               "from grid2op.LegalAction. Please modify \"legalActClass\" parameter.")
+                               "from grid2op.BaseRules. Please modify \"legalActClass\" parameter.")
         self.legalActClass = legalActClass
 
         if not isinstance(backendClass, type):

@@ -23,7 +23,7 @@ from grid2op.Agent.MLAgent import MLAgent
 import warnings
 
 
-class TODOLATERAgent(BaseAgent):
+class Agent(BaseAgent):
     def __init__(self, *args, **kwargs):
         BaseAgent.__init__(*args, **kwargs)
         warnings.warn("Agent class has been renamed \"BaseAgent\". The Agent class will be removed"
