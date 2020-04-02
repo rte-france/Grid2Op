@@ -21,6 +21,9 @@ def cli():
     parser.add_argument("--nb_episode", required=False,
                         default=1, type=int,
                         help="Number of episodes to evaluate")
+    parser.add_argument("--nb_process", required=False,
+                        default=1, type=int,
+                        help="Number of cores to use")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -47,6 +50,7 @@ if __name__ == "__main__":
     # Run
     res = runner.run(path_save=args.path_logs,
                      nb_episode=args.nb_episode,
+                     nb_process=args.nb_process,
                      max_iter=1000, pbar=True)
     # Print summary
     print("Evaluation summary:")

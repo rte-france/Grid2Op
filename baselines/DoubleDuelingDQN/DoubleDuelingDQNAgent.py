@@ -108,9 +108,12 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
     def convert_act(self, action):
         return super().convert_act(action)
-    
-    def my_act(self, state, reward, done=False):
 
+    def reset(self):
+        self._reset_state()
+        self._reset_frame_buffer()
+
+    def my_act(self, state, reward, done=False):
         self._save_current_frame(state)
         a, _ = self.Qmain.predict_move(np.array(self.frames))
         return a
