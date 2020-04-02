@@ -1,14 +1,12 @@
 from abc import ABC, abstractmethod
-import numpy as np
-
-from grid2op.Exceptions import Grid2OpException
 
 import pdb
 
-class LegalAction(ABC):
+
+class BaseRules(ABC):
     """
     This class is a base class that determines whether or not an action is legal in certain environment.
-    See the definition of :func:`LegalAction.__call__` for more information.
+    See the definition of :func:`BaseRules.__call__` for more information.
 
     Basically, this is an empty class with an overload of the __call__ operator that should return ``True`` or ``False``
     depending on the legality of the action.

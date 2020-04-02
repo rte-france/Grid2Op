@@ -1,7 +1,6 @@
 import copy
 
-from grid2op.Exceptions import *
-from grid2op.Reward import ConstantReward, RewardHelper
+from grid2op.Reward import RewardHelper
 from grid2op.Observation.SerializableObservationSpace import SerializableObservationSpace
 from grid2op.Observation.CompleteObservation import CompleteObservation
 from grid2op.Observation.ObsEnv import ObsEnv
@@ -9,12 +8,12 @@ from grid2op.Observation.ObsEnv import ObsEnv
 
 class ObservationSpace(SerializableObservationSpace):
     """
-    Helper that provides usefull functions to manipulate :class:`Observation`.
+    Helper that provides usefull functions to manipulate :class:`BaseObservation`.
 
-    Observation should only be built using this Helper. It is absolutely not recommended to make an observation
+    BaseObservation should only be built using this Helper. It is absolutely not recommended to make an observation
     directly form its constructor.
 
-    This class represents the same concept as the "Observation Space" in the OpenAI gym framework.
+    This class represents the same concept as the "BaseObservation Space" in the OpenAI gym framework.
 
     Attributes
     ----------
@@ -22,7 +21,7 @@ class ObservationSpace(SerializableObservationSpace):
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
 
-    _empty_obs: ``Observation.Observation``
+    _empty_obs: ``BaseObservation.BaseObservation``
         An empty observation with the proper dimensions.
 
     parameters: :class:`grid2op.Parameters.Parameters`
@@ -30,20 +29,20 @@ class ObservationSpace(SerializableObservationSpace):
 
     rewardClass: ``type``
         Class used by the :class:`grid2op.Environment.Environment` to send information about its state to the
-        :class:`grid2op.Agent.Agent`. You can change this class to differentiate between the reward of output of
-        :func:`Observation.simulate`  and the reward used to train the Agent.
+        :class:`grid2op.BaseAgent.BaseAgent`. You can change this class to differentiate between the reward of output of
+        :func:`BaseObservation.simulate`  and the reward used to train the BaseAgent.
 
     action_helper_env: :class:`grid2op.Action.ActionSpace`
-        BaseAction space used to create action during the :func:`Observation.simulate`
+        BaseAction space used to create action during the :func:`BaseObservation.simulate`
 
     reward_helper: :class:`grid2op.Reward.HelperReward`
-        Reward function used by the the :func:`Observation.simulate` function.
+        BaseReward function used by the the :func:`BaseObservation.simulate` function.
 
     obs_env: :class:`ObsEnv`
-        Instance of the environenment used by the Observation Helper to provide forcecast of the grid state.
+        Instance of the environenment used by the BaseObservation Helper to provide forcecast of the grid state.
 
-    _empty_obs: :class:`Observation`
-        An instance of the observation that is updated and will be sent to he Agent.
+    _empty_obs: :class:`BaseObservation`
+        An instance of the observation that is updated and will be sent to he BaseAgent.
 
     """
     def __init__(self,

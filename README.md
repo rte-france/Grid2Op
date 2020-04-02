@@ -27,10 +27,10 @@ Official documentation: the official documentation is available at
 *   [2 Main features of Grid2Op](#main-features-of-grid2op)
 *   [3 Getting Started](#getting-started)
     *   [0 Basic features](getting_started/0_basic_functionalities.ipynb)
-    *   [1 Observation Agents](getting_started/1_Observation_Agents.ipynb)
+    *   [1 BaseObservation Agents](getting_started/1_Observation_Agents.ipynb)
     *   [2 BaseAction Grid Manipulation](getting_started/2_Action_GridManipulation.ipynb)
-    *   [3 Training An Agent](getting_started/3_TrainingAnAgent.ipynb)
-    *   [4 Study Your Agent](getting_started/4_StudyYourAgent.ipynb)
+    *   [3 Training An BaseAgent](getting_started/3_TrainingAnAgent.ipynb)
+    *   [4 Study Your BaseAgent](getting_started/4_StudyYourAgent.ipynb)
 *   [4 Documentation](#documentation)
 *   [5 Run the tests](#run-the-tests)
 *   [6 License information](#license-information)
@@ -117,7 +117,7 @@ interesting part of this framework:
   `grid2op.main` function to assess how well an agent is performing.
 * [1_Observation_Agents](getting_started/1_Observation_Agents.ipynb) details how to create 
   an "expert agent" that will take pre defined actions based on the observation it gets from 
-  the environment. This Notebook also covers the functioning of the Observation class.
+  the environment. This Notebook also covers the functioning of the BaseObservation class.
 * [2_Action_GridManipulation](getting_started/2_Action_GridManipulation.ipynb) demonstrates 
   how to use the BaseAction class and how to manipulate the powergrid.
 * [3_TrainingAnAgent](getting_started/3_TrainingAnAgent.ipynb) shows how to get started with 
@@ -126,7 +126,7 @@ interesting part of this framework:
   or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
   be adapted (only minor changes, most of them to fit the shape of the data) 
   and a (D)DQN will be trained on this problem.
-* [4_StudyYourAgent](getting_started/4_StudyYourAgent.ipynb) shows how to study an Agent, for example
+* [4_StudyYourAgent](getting_started/4_StudyYourAgent.ipynb) shows how to study an BaseAgent, for example
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.

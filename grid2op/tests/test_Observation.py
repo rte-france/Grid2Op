@@ -12,10 +12,10 @@ import pdb
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Observation import ObservationSpace, CompleteObservation, ObsEnv, Observation
+from grid2op.Observation import ObservationSpace, CompleteObservation, ObsEnv, BaseObservation
 from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
 from grid2op.Action import ActionSpace
-from grid2op.Rules import GameRules
+from grid2op.Rules import RulesChecker
 from grid2op.Reward import L2RPNReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
@@ -39,7 +39,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         """
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         # pdb.set_trace()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()
@@ -457,7 +457,7 @@ class TestObservationHazard(unittest.TestCase):
         # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         # pdb.set_trace()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()
@@ -536,7 +536,7 @@ class TestObservationMaintenance(unittest.TestCase):
         # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         # pdb.set_trace()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()

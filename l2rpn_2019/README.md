@@ -13,7 +13,7 @@ This folder contains:
 - `main_l2rpn2019.py` that is a python script that emulates the behaviour the pypownet "main" function.
   It helps in setting up the grid2op platform with the default parmeters that mimick the
   L2RPN 2019 edition. You can find more information with: `python main_l2rpn2019 --help`
-- `submission.py` is a script that should be used to define an Agent. This agent will be 
+- `submission.py` is a script that should be used to define an BaseAgent. This agent will be 
   evaluated with the script `main_l2rpn2019.py`. You can modify it and see how well your agent performs.
 - `l2rpn2019_utils` is a utility directory with some scripts that will help you download the training data, or
   used internally by some of the function define in this folder. Scripts located there should not
@@ -43,7 +43,7 @@ dataset will be available at `data/data_l2rpn_2019`.
 The whole training set is approximately 250 MB. It is made of 1004 independant chronics,
 each representing the month of january for a fictive powergrid.
 
-### How do i start training an Agent?
+### How do i start training an BaseAgent?
 Grid2op, and before it PypowNet, is a plateform fully compatible with an OpenAI gym
 environment.
 

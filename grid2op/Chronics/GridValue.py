@@ -22,7 +22,7 @@ are not limited to:
 All powergrid modification that can be performed using an :class:`grid2op.BaseAction` can be implemented as form of a
 :class:`GridValue`.
 
-The same mechanism than for :class:`grid2op.BaseAction` or :class:`grid2op.Observation` is pursued here. All states
+The same mechanism than for :class:`grid2op.BaseAction` or :class:`grid2op.BaseObservation` is pursued here. All states
 modifications made by the :class:`grid2op.Environment` must derived from the :class:`GridValue`. It is not
 recommended to instanciate them directly, but rather to use the :class:`ChronicsHandler` for such a purpose.
 
@@ -34,22 +34,18 @@ This implies that changing the backend will change the output of :class:`GridVal
 is given in the description of the :func:`GridValue.initialize` method.
 
 Finally, compared to other Reinforcement Learning problems, is the possibility to use "forecast". This optional feature
-can be accessed via the :class:`grid2op.Observation` and mainly the :func:`grid2op.Observation.simulate` method. The
+can be accessed via the :class:`grid2op.BaseObservation` and mainly the :func:`grid2op.BaseObservation.simulate` method. The
 data that are used to generate this forecasts come from the :class:`grid2op.GridValue` and are detailed in the
 :func:`GridValue.forecasts` method.
 
 """
-import os
-import copy
 import numpy as np
-import pandas as pd
 import warnings
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 import pdb
 
-from grid2op.Exceptions import *
-from grid2op.Space import RandomObject
+from grid2op.Exceptions import EnvError
 
 # TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number
 # TODO of time steps there, for example "Space.gen_min_time_on" or "params.NB_TIMESTEP_POWERFLOW_ALLOWED" for
@@ -555,7 +551,7 @@ class GridValue(ABC):
 
     def forecasts(self):
         """
-        This method is used to generate the forecasts that are made available to the :class:`grid2op.Agent`.
+        This method is used to generate the forecasts that are made available to the :class:`grid2op.BaseAgent`.
         This forecasts are behaving the same way than a list of tuple as the one returned by
         :func:`GridValue.load_next` method.
 
@@ -622,7 +618,7 @@ class GridValue(ABC):
     def max_timestep(self):
         """
         This method returned the maximum timestep that the current episode can last.
-        Note that if the :class:`grid2op.Agent` performs a bad action that leads to a game over, then the episode
+        Note that if the :class:`grid2op.BaseAgent` performs a bad action that leads to a game over, then the episode
         can lasts less.
 
         Returns

@@ -1,5 +1,5 @@
 """
-This module defines the :class:`Renderer` that is able to display the state (:class:`grid2op.Observation.Observation`)
+This module defines the :class:`Renderer` that is able to display the state (:class:`grid2op.BaseObservation.BaseObservation`)
 of the powergrid on a dedicated window.
 
 It is also able to output a 3d representation of this representation to be further used by other libraries to
@@ -9,18 +9,16 @@ output gifs for example.
 
 import numpy as np
 import cmath
-import math # for regular real sqrt
-import time
-import pdb
+import math
+import os
 
 from grid2op.Plot.PlotGraph import BasePlot
-from grid2op.Exceptions import PlotError
 
 try:
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
     import pygame
     can_plot = True
-except:
+except Exception as e:
     can_plot = False
     pass
 
@@ -136,7 +134,7 @@ class PlotPyGame(BasePlot):
             List of tupe given the position of each of the substation of the powergrid.
 
         observation_space: :class:`grid2op.Observation.ObservationSpace`
-            Observation space used for the display
+            BaseObservation space used for the display
 
         radius_sub: ``int``
             radius (in pixel) of the substations representation.

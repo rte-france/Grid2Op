@@ -1,4 +1,3 @@
-from grid2op.Exceptions import *
 from grid2op.Space import SerializableSpace
 from grid2op.Observation.CompleteObservation import CompleteObservation
 
@@ -8,7 +7,7 @@ class SerializableObservationSpace(SerializableSpace):
     This class allows to serialize / de serialize the action space.
 
     It should not be used inside an Environment, as some functions of the action might not be compatible with
-    the serialization, especially the checking of whether or not an Observation is legal or not.
+    the serialization, especially the checking of whether or not an BaseObservation is legal or not.
 
     Attributes
     ----------
@@ -16,7 +15,7 @@ class SerializableObservationSpace(SerializableSpace):
     observationClass: ``type``
         Type used to build the :attr:`SerializableActionSpace._template_act`
 
-    _empty_obs: :class:`Observation`
+    _empty_obs: :class:`BaseObservation`
         An instance of the "*observationClass*" provided used to provide higher level utilities
 
     """
@@ -45,7 +44,7 @@ class SerializableObservationSpace(SerializableSpace):
         Parameters
         ----------
         dict_: ``dict``
-            Representation of an Observation Space (aka SerializableObservationSpace) as a dictionnary.
+            Representation of an BaseObservation Space (aka SerializableObservationSpace) as a dictionnary.
 
         Returns
         -------

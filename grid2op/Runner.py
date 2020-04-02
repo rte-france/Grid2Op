@@ -1,6 +1,6 @@
 """
 This module is here to facilitate the evaluation of agent.
-It can handles all types of :class:`grid2op.Agent`.
+It can handles all types of :class:`grid2op.BaseAgent`.
 
 """
 import time
@@ -21,14 +21,14 @@ import pdb
 # from grid2op.BaseAction import HelperAction, BaseAction, TopologyAction
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import *
-from grid2op.Observation import CompleteObservation, Observation
-from grid2op.Reward import FlatReward, Reward
-from grid2op.Rules import AlwaysLegal, LegalAction
+from grid2op.Observation import CompleteObservation, BaseObservation
+from grid2op.Reward import FlatReward, BaseReward
+from grid2op.Rules import AlwaysLegal, BaseRules
 from grid2op.Environment import Environment
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Agent import DoNothingAgent, Agent
+from grid2op.Agent import DoNothingAgent, BaseAgent
 from grid2op.EpisodeData import EpisodeData
 from grid2op._utils import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
@@ -108,7 +108,7 @@ class ConsoleLog(DoNothingLog):
 class Runner(object):
     """
     A runner is a utilitary tool that allows to create environment, and run simulations more easily.
-    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.Agent`, rather
+    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.BaseAgent`, rather
     than to train it. Of course, it is possible to adapt it for a specific training mechanisms. Examples of such
     will be made available in the future.
 
@@ -124,15 +124,15 @@ class Runner(object):
         should derived from :class:`grid2op.BaseAction`. The default is :class:`grid2op.TopologyAction`.
 
     observationClass: ``type``
-        This type represents the class that will be used to build the :class:`grid2op.Observation` visible by the
-        :class:`grid2op.Agent`. As :attr:`Runner.actionClass`, this should be a type, and **not** and instance (object)
-        of this type. This type should derived from :class:`grid2op.Observation`. The default is
+        This type represents the class that will be used to build the :class:`grid2op.BaseObservation` visible by the
+        :class:`grid2op.BaseAgent`. As :attr:`Runner.actionClass`, this should be a type, and **not** and instance (object)
+        of this type. This type should derived from :class:`grid2op.BaseObservation`. The default is
         :class:`grid2op.CompleteObservation`.
 
     rewardClass: ``type``
-        Representes the type used to build the rewards that are given to the :class:`Agent`. As
+        Representes the type used to build the rewards that are given to the :class:`BaseAgent`. As
         :attr:`Runner.actionClass`, this should be a type, and **not** and instance (object) of this type.
-        This type should derived from :class:`grid2op.Reward`. The default is :class:`grid2op.ConstantReward` that
+        This type should derived from :class:`grid2op.BaseReward`. The default is :class:`grid2op.ConstantReward` that
         **should not** be used to train or evaluate an agent, but rather as debugging purpose.
 
     gridStateclass: ``type``
@@ -143,7 +143,7 @@ class Runner(object):
     legalActClass: ``type``
         This types control the mechanisms to assess if an :class:`grid2op.BaseAction` is legal.
         Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
-        Its default is :class:`grid2op.AlwaysLegal` and it must be a subclass of :class:`grid2op.LegalAction`.
+        Its default is :class:`grid2op.AlwaysLegal` and it must be a subclass of :class:`grid2op.BaseRules`.
 
     backendClass: ``type``
         This types control the backend, *eg.* the software that computes the powerflows.
@@ -151,10 +151,10 @@ class Runner(object):
         Its default is :class:`grid2op.PandaPowerBackend` and it must be a subclass of :class:`grid2op.Backend`.
 
     agentClass: ``type``
-        This types control the type of Agent, *eg.* the bot / controler that will take :class:`grid2op.BaseAction` and
+        This types control the type of BaseAgent, *eg.* the bot / controler that will take :class:`grid2op.BaseAction` and
         avoid cascading failures.
         Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
-        Its default is :class:`grid2op.DoNothingAgent` and it must be a subclass of :class:`grid2op.Agent`.
+        Its default is :class:`grid2op.DoNothingAgent` and it must be a subclass of :class:`grid2op.BaseAgent`.
 
     logger:
         A object than can be used to log information, either in a text file, or by printing them to the command prompt.
@@ -310,9 +310,9 @@ class Runner(object):
                 "Parameter \"observationClass\" used to build the Runner should be a type (a class) and not an object "
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(observationClass)))
-        if not issubclass(observationClass, Observation):
+        if not issubclass(observationClass, BaseObservation):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.Observation. Please modify \"observationClass\" parameter.")
+                               "grid2op.BaseObservation. Please modify \"observationClass\" parameter.")
         self.observationClass = observationClass
 
         if not isinstance(rewardClass, type):
@@ -321,9 +321,9 @@ class Runner(object):
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(rewardClass)))
     
-        if not issubclass(rewardClass, Reward):
+        if not issubclass(rewardClass, BaseReward):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.Reward. Please modify \"rewardClass\" parameter.")
+                               "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
         self.rewardClass = rewardClass
 
         if not isinstance(gridStateclass, type):
@@ -341,10 +341,10 @@ class Runner(object):
                 "Parameter \"legalActClass\" used to build the Runner should be a type (a class) and not an object "
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(legalActClass)))
-        if not issubclass(legalActClass, LegalAction):
+        if not issubclass(legalActClass, BaseRules):
 
             raise RuntimeError("Impossible to create a runner without a class defining legal actions derived "
-                               "from grid2op.LegalAction. Please modify \"legalActClass\" parameter.")
+                               "from grid2op.BaseRules. Please modify \"legalActClass\" parameter.")
         self.legalActClass = legalActClass
 
         if not isinstance(backendClass, type):
@@ -366,15 +366,15 @@ class Runner(object):
                     "Parameter \"agentClass\" used to build the Runner should be a type (a class) and not an object "
                     "(an instance of a class). It is currently \"{}\"".format(
                         type(agentClass)))
-            if not issubclass(agentClass, Agent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. "
+            if not issubclass(agentClass, BaseAgent):
+                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.BaseAgent. "
                                    "Please modify \"agentClass\" parameter.")
             self.agentClass = agentClass
             self._useclass = True
             self.agent = None
         elif agentInstance is not None:
-            if not isinstance(agentInstance, Agent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.Agent. "
+            if not isinstance(agentInstance, BaseAgent):
+                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.BaseAgent. "
                                    "Please modify \"agentInstance\" parameter.")
             self.agentClass = None
             self._useclass = False
@@ -607,7 +607,7 @@ class Runner(object):
         episode.set_meta(env, time_step, cum_reward)
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
-                   "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
+                   "\t - env update + observation: {:.2f}s", "BaseAgent: {:.2f}s", "Total time: {:.2f}s",
                    "Cumulative reward: {:1f}"]
         msg_ = "\n".join(li_text)
         logger.info(msg_.format(
@@ -690,7 +690,7 @@ class Runner(object):
 
               - "id_chron" unique identifier of the episode
               - "name_chron" name of chronics
-              - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
+              - "cum_reward" the cumulative reward obtained by the :attr:`Runner.BaseAgent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
               - "max_ts" : the maximum number of time steps of the chronics
 
@@ -759,7 +759,7 @@ class Runner(object):
 
               - "i" unique identifier of the episode (compared to :func:`Runner.run_sequential`, the elements of the
                 returned list are not necessarily sorted by this value)
-              - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
+              - "cum_reward" the cumulative reward obtained by the :attr:`Runner.BaseAgent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
               - "max_ts" : the maximum number of time steps of the chronics
 
@@ -814,7 +814,7 @@ class Runner(object):
 
               - "i" unique identifier of the episode (compared to :func:`Runner.run_sequential`, the elements of the
                 returned list are not necessarily sorted by this value)
-              - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
+              - "cum_reward" the cumulative reward obtained by the :attr:`Runner.BaseAgent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
 
         """

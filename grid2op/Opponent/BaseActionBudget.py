@@ -1,5 +1,5 @@
 """
-The opponent cannot act indefinitely, this would make the "game" impossible to play for the Agent.
+The opponent cannot act indefinitely, this would make the "game" impossible to play for the BaseAgent.
 
 Thus, Opponent have some budget. Budget are computed using this class
 

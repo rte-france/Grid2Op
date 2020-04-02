@@ -15,9 +15,9 @@ from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
-from grid2op.Rules import GameRules, DefaultRules
+from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Action import BaseAction
-from grid2op.Agent import Agent
+from grid2op.Agent import BaseAgent
 import time
 
 
@@ -390,7 +390,6 @@ class TestRedispTooLowHigh(HelperTests):
         obs, reward, done, info = self.env.step(act)
         assert info["is_dispatching_illegal"]
         assert info["exception"][0].__str__()[:140] == self.msg_
-
 
 
 class TestLoadingBackendPandaPower(HelperTests):

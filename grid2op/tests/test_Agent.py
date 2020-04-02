@@ -63,7 +63,7 @@ class TestAgent(HelperTests):
                        "\t - env update + observation: {:.2f}s",
                        "\t - time get topo vect: {:.2f}s",
                        "\t - time env obs space: {:.2f}s",
-                       "Agent: {:.2f}s", "Total time: {:.2f}s",
+                       "BaseAgent: {:.2f}s", "Total time: {:.2f}s",
                        "Cumulative reward: {:1f}"]
             msg_ = "\n".join(li_text)
             print(msg_.format(

@@ -1,6 +1,6 @@
-Agent
+BaseAgent
 ===================================
-.. automodule:: grid2op.Agent
+.. automodule:: grid2op.BaseAgent
     :members:
     :private-members:
 

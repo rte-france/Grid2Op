@@ -1,18 +1,14 @@
-from abc import ABC, abstractmethod
-import numpy as np
-import itertools
 import pdb
 
-from grid2op.Exceptions import Grid2OpException
-from grid2op.Agent.Agent import Agent
+from grid2op.Agent.BaseAgent import BaseAgent
 
 
-class DoNothingAgent(Agent):
+class DoNothingAgent(BaseAgent):
     """
-    This is the most basic Agent. It is purely passive, and does absolutely nothing.
+    This is the most basic BaseAgent. It is purely passive, and does absolutely nothing.
     """
     def __init__(self, action_space):
-        Agent.__init__(self, action_space)
+        BaseAgent.__init__(self, action_space)
 
     def act(self, observation, reward, done=False):
         """

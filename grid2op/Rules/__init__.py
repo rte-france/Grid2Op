@@ -1,15 +1,20 @@
 __all__ = [
-    "GameRules",
+    "RulesChecker",
     "DefaultRules",
     "AlwaysLegal",
-    "LegalAction",
+    "BaseRules",
     "LookParam",
-    "PreventReconection"
+    "PreventReconnection",
+
 ]
 
-from grid2op.Rules.GameRules import GameRules
+from grid2op.Rules.RulesChecker import RulesChecker
 from grid2op.Rules.DefaultRules import DefaultRules
 from grid2op.Rules.AlwaysLegal import AlwaysLegal
-from grid2op.Rules.LegalAction import LegalAction
+from grid2op.Rules.BaseRules import BaseRules
 from grid2op.Rules.LookParam import LookParam
-from grid2op.Rules.PreventReconection import PreventReconection
+from grid2op.Rules.PreventReconnection import PreventReconnection
+
+# LegalAction
+# TOTO_GameRules
+# PreventReconection

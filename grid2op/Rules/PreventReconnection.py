@@ -1,12 +1,10 @@
-from abc import ABC, abstractmethod
 import numpy as np
-
-from grid2op.Exceptions import Grid2OpException
-from grid2op.Rules.LegalAction import LegalAction
+from grid2op.Rules.BaseRules import BaseRules
 
 import pdb
 
-class PreventReconection(LegalAction):
+
+class PreventReconnection(BaseRules):
     """
     A subclass is used to check that an action will not attempt to reconnect a powerlines disconnected because of
     an overflow, or to check that 2 actions acting on the same powerline are distant from the right number of timesteps
@@ -20,7 +18,7 @@ class PreventReconection(LegalAction):
         This function check only that the action doesn't attempt to reconnect  a powerline that has been disconnected
         due to an overflow.
 
-        See :func:`LegalAction.__call__` for a definition of the parameters of this function.
+        See :func:`BaseRules.__call__` for a definition of the parameters of this function.
 
         """
         aff_lines, aff_subs = action.get_topological_impact()

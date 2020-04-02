@@ -1,7 +1,8 @@
 import numpy as np
 
-from grid2op.Reward.Reward import Reward
+from grid2op.Reward.BaseReward import BaseReward
 from grid2op.Reward.ConstantReward import ConstantReward
+
 
 class RewardHelper:
     """
@@ -16,7 +17,7 @@ class RewardHelper:
         Type of reward that will be use by this helper. Note that the type (and not an instance / object of that type)
         must be given here. It defaults to :class:`ConstantReward`
 
-    template_reward: :class:`Reward`
+    template_reward: :class:`BaseReward`
         An object of class :attr:`RewardHelper.rewardClass` used to compute the rewards.
 
     """
@@ -57,7 +58,7 @@ class RewardHelper:
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
-            The action performed by the Agent.
+            The action performed by the BaseAgent.
 
         env: :class:`grid2op.Environment.Environment`
             The current environment.

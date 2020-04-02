@@ -6,7 +6,7 @@ In certain modeling of the powergrid, some oponent can take
 TODO
 """
 from grid2op.Exceptions import OpponentError
-from grid2op.Reward import RewardHelper, Reward
+from grid2op.Reward import RewardHelper, BaseReward
 
 
 class OpponentSpace(object):
@@ -56,7 +56,7 @@ class OpponentSpace(object):
                                 "DontAct class as the \"opponent_class\"")
 
         # TODO do i add it back
-        # if not isinstance(opponent_reward_class, Reward):
+        # if not isinstance(opponent_reward_class, BaseReward):
         #    raise OpponentError("Impossible to build an opponent reward with a reward of type {}".format(opponent_reward_class))
         # self.opp_reward_helper = RewardHelper(opponent_reward_class)
 

@@ -22,7 +22,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
     subtype: ``type``
         Type use to build the template object :attr:`SerializableSpace.template_obj`. This type should derive
-        from :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation`.
+        from :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.BaseObservation.BaseObservation`.
 
     _template_obj: :class:`grid2op.GridObjects`
         An instance of the "*subtype*" provided used to provide higher level utilities, such as the size of the
@@ -34,13 +34,13 @@ class SerializableSpace(GridObjects, RandomObject):
 
     shape: ``numpy.ndarray``, dtype:int
         Shape of each of the component of the Object if represented in a flat vector. An instance that derives from a
-        GridObject (for example :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation`) can be
+        GridObject (for example :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.BaseObservation.BaseObservation`) can be
         thought of as being concatenation of independant spaces. This vector gives the dimension of all the basic
         spaces they are made of.
 
     dtype: ``numpy.ndarray``, dtype:int
         Data type of each of the component of the Object if represented in a flat vector. An instance that derives from
-        a GridObject (for example :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation`) can be
+        a GridObject (for example :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.BaseObservation.BaseObservation`) can be
         thought of as being concatenation of independant spaces. This vector gives the type of all the basic
         spaces they are made of.
 
@@ -51,7 +51,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
         subtype: ``type``
             Type of action used to build :attr:`SerializableActionSpace._template_act`. This type should derive
-            from :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation` .
+            from :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.BaseObservation.BaseObservation` .
 
         """
 
@@ -83,7 +83,7 @@ class SerializableSpace(GridObjects, RandomObject):
         Parameters
         ----------
         dict_: ``dict``
-            Representation of an Observation Space (aka :class:`grid2op.Observation.ObservartionHelper`)
+            Representation of an BaseObservation Space (aka :class:`grid2op.BaseObservation.ObservartionHelper`)
             or the BaseAction Space (aka :class:`grid2op.BaseAction.ActionSpace`)
             as a dictionnary.
 
@@ -184,7 +184,7 @@ class SerializableSpace(GridObjects, RandomObject):
         ----------
         obj_as_vect: ``numpy.ndarray``
             A object living in a space represented as a vector (typically an :class:`grid2op.BaseAction.BaseAction` or an
-            :class:`grid2op.Observation.Observation` represented as a numpy vector)
+            :class:`grid2op.BaseObservation.BaseObservation` represented as a numpy vector)
 
         Returns
         -------

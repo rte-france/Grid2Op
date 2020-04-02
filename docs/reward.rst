@@ -1,6 +1,6 @@
-Reward
+BaseReward
 ===================================
-.. automodule:: grid2op.Reward
+.. automodule:: grid2op.BaseReward
     :members:
     :special-members:
 

@@ -9,15 +9,12 @@ This backend currently does not work with 3 winding transformers and other exoti
 import os  # load the python os default module
 import sys  # laod the python sys default module
 import copy
-import re
-import time
 import warnings
 
 import numpy as np
 import pandas as pd
 
 import pandapower as pp
-import pandapower.networks as pn
 import scipy
 
 from grid2op.Backend.Backend import Backend

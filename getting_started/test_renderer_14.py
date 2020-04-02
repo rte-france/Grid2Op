@@ -22,7 +22,7 @@ class MyExpertAgent(GreedyAgent):
 
         Parameters
         ----------
-        observation: :class:`grid2op.Observation.Observation`
+        observation: :class:`grid2op.BaseObservation.BaseObservation`
             The current observation of the :class:`grid2op.Environment`
 
         reward: ``float``

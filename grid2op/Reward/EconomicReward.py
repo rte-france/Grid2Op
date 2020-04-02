@@ -2,9 +2,10 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Reward.Reward import Reward
+from grid2op.Reward.BaseReward import BaseReward
 
-class EconomicReward(Reward):
+
+class EconomicReward(BaseReward):
     """
     This reward computes the marginal cost of the powergrid. As RL is about maximising a reward, while we want to
     minimize the cost, this class also ensures that:
@@ -14,7 +15,7 @@ class EconomicReward(Reward):
 
     """
     def __init__(self):
-        Reward.__init__(self)
+        BaseReward.__init__(self)
         self.reward_min = None
         self.reward_max = None
         self.worst_cost = None

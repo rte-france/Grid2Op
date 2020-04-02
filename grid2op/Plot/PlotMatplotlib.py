@@ -26,7 +26,6 @@ TODO
 """
 
 import numpy as np
-import cmath
 import pdb
 
 from grid2op.Exceptions import PlotError

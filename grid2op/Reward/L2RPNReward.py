@@ -1,18 +1,16 @@
 import numpy as np
-from abc import ABC, abstractmethod
+from grid2op.Reward.BaseReward import BaseReward
 
-from grid2op.Exceptions import Grid2OpException
-from grid2op.Reward.Reward import Reward
 
-class L2RPNReward(Reward):
+class L2RPNReward(BaseReward):
     """
-    This is the historical :class:`Reward` used for the Learning To Run a Power Network competition.
+    This is the historical :class:`BaseReward` used for the Learning To Run a Power Network competition.
 
     See `L2RPN <https://l2rpn.chalearn.org/>`_ for more information.
 
     """
     def __init__(self):
-        Reward.__init__(self)
+        BaseReward.__init__(self)
 
     def initialize(self, env):
         self.reward_min = 0.

@@ -6,7 +6,7 @@ __all__ = [
     "L2RPNReward",
     "RedispReward",
     "RewardHelper",
-    "Reward"
+    "BaseReward"
 ]
 
 from grid2op.Reward.ConstantReward import ConstantReward
@@ -16,4 +16,13 @@ from grid2op.Reward.IncreasingFlatReward import IncreasingFlatReward
 from grid2op.Reward.L2RPNReward import L2RPNReward
 from grid2op.Reward.RedispReward import RedispReward
 from grid2op.Reward.RewardHelper import RewardHelper
-from grid2op.Reward.Reward import Reward
+from grid2op.Reward.BaseReward import BaseReward
+import warnings
+
+
+class TODOReward(BaseReward):
+    def __init__(self, *args, **kwargs):
+        BaseReward.__init__(*args, **kwargs)
+        warnings.warn("Reward class has been renamed \"BaseReward\". "
+                      "This class Action will be removed in future versions.",
+                      category=PendingDeprecationWarning)

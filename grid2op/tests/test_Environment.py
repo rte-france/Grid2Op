@@ -15,7 +15,7 @@ from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
-from grid2op.Rules import GameRules, DefaultRules
+from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Reward import EconomicReward
 
 DEBUG = False
@@ -206,7 +206,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
 
     def test_illegal_detected(self):
         act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
-        self.env.game_rules = GameRules(legalActClass=DefaultRules)
+        self.env.game_rules = RulesChecker(legalActClass=DefaultRules)
         self.env.times_before_line_status_actionable[1] = 1
         obs, reward, done, info = self.env.step(act)
 

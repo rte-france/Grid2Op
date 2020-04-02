@@ -1,9 +1,9 @@
 """
-In a "reinforcement learning" framework, an :class:`grid2op.Agent` receive two information before taking any action on
-the :class:`grid2op.Environment`. One of them is the :class:`grid2op.Reward` that tells it how well the past action
-performed. The second main input received from the environment is the :class:`Observation`. This is gives the Agent
+In a "reinforcement learning" framework, an :class:`grid2op.BaseAgent` receive two information before taking any action on
+the :class:`grid2op.Environment`. One of them is the :class:`grid2op.BaseReward` that tells it how well the past action
+performed. The second main input received from the environment is the :class:`BaseObservation`. This is gives the BaseAgent
 partial, noisy, or complete information about the current state of the environment. This module implement a generic
-:class:`Observation`  class and an example of a complete observation in the case of the Learning
+:class:`BaseObservation`  class and an example of a complete observation in the case of the Learning
 To Run a Power Network (`l2RPN <https://l2rpn.chalearn.org/>`_ ) competition.
 
 Compared to other Reinforcement Learning problems the L2PRN competition allows another flexibility. Today, when
@@ -18,29 +18,25 @@ This forecasted powergrid used:
 This functionality was originally attached to the Environment and could only be used to simulate the effect of an action
 on this unique time step. We wanted in this recoding to change that:
 
-  - in an RL setting, an :class:`grid2op.Agent` should not be able to look directly at the :class:`grid2op.Environment`.
-    The only information about the Environment the Agent should have is through the :class:`grid2op.Observation` and
-    the :class:`grid2op.Reward`. Having this principle implemented will help enforcing this principle.
+  - in an RL setting, an :class:`grid2op.BaseAgent` should not be able to look directly at the :class:`grid2op.Environment`.
+    The only information about the Environment the BaseAgent should have is through the :class:`grid2op.BaseObservation` and
+    the :class:`grid2op.BaseReward`. Having this principle implemented will help enforcing this principle.
   - In some wider context, it is relevant to have these forecasts available in multiple way, or modified by the
-    :class:`grid2op.Agent` itself (for example having forecast available for the next 2 or 3 hours, with the Agent able
+    :class:`grid2op.BaseAgent` itself (for example having forecast available for the next 2 or 3 hours, with the BaseAgent able
     not only to change the topology of the powergrid with actions, but also the injections if he's able to provide
     more accurate predictions for example.
 
-The :class:`Observation` class implement the two above principles and is more flexible to other kind of forecasts,
+The :class:`BaseObservation` class implement the two above principles and is more flexible to other kind of forecasts,
 or other methods to build a power grid based on the forecasts of injections.
 """
 
 import copy
 import numpy as np
-import os
-import time
 from abc import ABC, abstractmethod
 import pdb
 
 from grid2op.Exceptions import *
-from grid2op.Space import SerializableSpace, GridObjects
-from grid2op.Action import BaseAction
-from grid2op.Rules import GameRules, LegalAction
+from grid2op.Space import GridObjects
 
 # TODO be able to change reward here
 
@@ -52,7 +48,7 @@ from grid2op.Rules import GameRules, LegalAction
 
 # TODO fix "bug" when action not initalized, return nan in to_vect
 
-class Observation(GridObjects):
+class BaseObservation(GridObjects):
     """
     Basic class representing an observation.
 
@@ -133,10 +129,10 @@ class Observation(GridObjects):
 
     bus_connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
         The `bus_connectivity_matrix_` matrix (if computed, or None) see definition of
-          :func:`Observation.bus_connectivity_matrix` for more information
+          :func:`BaseObservation.bus_connectivity_matrix` for more information
 
     vectorized: :class:`numpy.ndarray`, dtype:float
-        The vector representation of this Observation (if computed, or None) see definition of
+        The vector representation of this BaseObservation (if computed, or None) see definition of
         :func:`to_vect` for more information.
 
     topo_vect:  :class:`numpy.ndarray`, dtype:int
@@ -157,15 +153,15 @@ class Observation(GridObjects):
         cannot act on this powerline (in the example the agent have to wait 1 time step)
 
     time_before_cooldown_sub: :class:`numpy.ndarray`, dtype:int
-        Same as :attr:`Observation.time_before_cooldown_line` but for substations. For each substation, it gives the
+        Same as :attr:`BaseObservation.time_before_cooldown_line` but for substations. For each substation, it gives the
         number of timesteps to wait before acting on this substation (see
         see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information).
 
     time_before_line_reconnectable: :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the number of timesteps before the powerline can be reconnected. This only
         concerns the maintenance, outage (hazards) and disconnection due to cascading failures (including overflow). The
-        same convention as for :attr:`Observation.time_before_cooldown_line` and
-        :attr:`Observation.time_before_cooldown_sub` is adopted: 0 at position `i` means that the powerline can be
+        same convention as for :attr:`BaseObservation.time_before_cooldown_line` and
+        :attr:`BaseObservation.time_before_cooldown_sub` is adopted: 0 at position `i` means that the powerline can be
         reconnected. It there is 2 (for example) it means that the powerline `i` is unavailable for 2 timesteps (we
         will be able to re connect it not this time, not next time, but the following timestep)
 
@@ -184,7 +180,7 @@ class Observation(GridObjects):
 
             - there is a `0`: the powerline is not disconnected from the grid for maintenance
             - there is a `1`, `2`, ... the powerline will be disconnected for at least `1`, `2`, ... timestep (**NB**
-              in all case, the powerline will stay disconnected until a :class:`grid2op.Agent.Agent` performs the
+              in all case, the powerline will stay disconnected until a :class:`grid2op.BaseAgent.BaseAgent` performs the
               proper :class:`grid2op.BaseAction.BaseAction` to reconnect it).
 
     target_dispatch: :class:`numpy.ndarray`, dtype:float
@@ -195,7 +191,7 @@ class Observation(GridObjects):
 
     actual_dispatch: :class:`numpy.ndarray`, dtype:float
         For **each** generators, it gives the redispatching currently implemented by the environment.
-        Indeed, the environment tries to implement at best the :attr:`Observation.target_dispatch`, but sometimes,
+        Indeed, the environment tries to implement at best the :attr:`BaseObservation.target_dispatch`, but sometimes,
         due to physical limitation (pmin, pmax, ramp min and ramp max) it cannot. In this case, only the best possible
         redispatching is implemented at the current time step, and this is what this vector stores. Note that there is
         information about all generators there, even the one that are not
@@ -450,7 +446,7 @@ class Observation(GridObjects):
 
     def reset(self):
         """
-        Reset the :class:`Observation` to a blank state, where everything is set to either ``None`` or to its default
+        Reset the :class:`BaseObservation` to a blank state, where everything is set to either ``None`` or to its default
         value.
 
         """
@@ -549,7 +545,7 @@ class Observation(GridObjects):
 
         Parameters
         ----------
-        other: :class:`Observation`
+        other: :class:`BaseObservation`
             An instance of class BaseAction to which "self" will be compared.
 
         Returns
@@ -619,7 +615,7 @@ class Observation(GridObjects):
     @abstractmethod
     def update(self, env):
         """
-        Update the actual instance of Observation with the new received value from the environment.
+        Update the actual instance of BaseObservation with the new received value from the environment.
 
         An observation is a description of the powergrid perceived by an agent. The agent takes his decision based on
         the current observation and the past rewards.
@@ -717,7 +713,7 @@ class Observation(GridObjects):
 
         """
         if self.action_helper is None or self._obs_env is None:
-            raise NoForecastAvailable("No forecasts are available for this instance of Observation (no action_space "
+            raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation (no action_space "
                                       "and no simulated environment are set).")
 
         if time_step >= len(self._forecasted_inj):
@@ -740,7 +736,7 @@ class Observation(GridObjects):
 
         Returns
         -------
-        res: :class:`Observation`
+        res: :class:`BaseObservation`
             The deep copy of the observation
 
         """

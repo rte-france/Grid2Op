@@ -1,13 +1,10 @@
 import copy
 import numpy as np
-import os
-import time
-from abc import ABC, abstractmethod
 import pdb
 
 from grid2op.Environment.BasicEnv import _BasicEnv
 from grid2op.Chronics import ChangeNothing
-from grid2op.Rules import GameRules, LegalAction
+from grid2op.Rules import RulesChecker, BaseRules
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import Grid2OpException
 
@@ -23,7 +20,7 @@ class _ObsCH(ChangeNothing):
 class ObsEnv(_BasicEnv):
     """
     This class is an 'Emulator' of a :class:`grid2op.Environment` used to be able to 'simulate' forecasted grid states.
-    It should not be used outside of an :class:`grid2op.Observation` instance, or one of its derivative.
+    It should not be used outside of an :class:`grid2op.BaseObservation` instance, or one of its derivative.
 
     It contains only the most basic element of an Environment. See :class:`grid2op.Environment` for more details.
 
@@ -85,12 +82,12 @@ class ObsEnv(_BasicEnv):
         self._has_been_initialized()
         self.obsClass = observationClass
 
-        if not issubclass(legalActClass, LegalAction):
+        if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(
                 "Parameter \"legalActClass\" used to build the Environment should derived form the "
-                "grid2op.LegalAction class, type provided is \"{}\"".format(
+                "grid2op.BaseRules class, type provided is \"{}\"".format(
                     type(legalActClass)))
-        self.game_rules = GameRules(legalActClass=legalActClass)
+        self.game_rules = RulesChecker(legalActClass=legalActClass)
         self.legalActClass = legalActClass
         self.helper_action_player = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
@@ -139,7 +136,7 @@ class ObsEnv(_BasicEnv):
         ----------
         new_state_action: :class:`grid2op.Action`
             The action that is performed on the powergrid to get the forecast at the current date. This "action" is
-            NOT performed by the user, it's performed internally by the Observation to have a "forecasted" powergrid
+            NOT performed by the user, it's performed internally by the BaseObservation to have a "forecasted" powergrid
             with the forecasted values present in the chronics.
 
         time_stamp: ``datetime.datetime``

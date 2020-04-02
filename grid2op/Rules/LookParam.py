@@ -1,25 +1,22 @@
-from abc import ABC, abstractmethod
 import numpy as np
-
-from grid2op.Exceptions import Grid2OpException
-from grid2op.Rules.LegalAction import LegalAction
+from grid2op.Rules.BaseRules import BaseRules
 
 import pdb
 
 
-class LookParam(LegalAction):
+class LookParam(BaseRules):
     """
     This subclass only check that the number of powerlines reconnected / disconnected by the agent.
 
     This class doesn't require any environment information. The "env" argument is only used to look for the
     game rules implemented in :class:`grid2op.Parameters`.
 
-    See :func:`LegalAction.__call__` for a definition of the parameters of this function.
+    See :func:`BaseRules.__call__` for a definition of the parameters of this function.
 
     """
     def __call__(self, action, env):
         """
-        See :func:`LegalAction.__call__` for a definition of the parameters of this function.
+        See :func:`BaseRules.__call__` for a definition of the parameters of this function.
         """
         # at first iteration, env.current_obs is None...
         if env.current_obs is not None:

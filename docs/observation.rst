@@ -1,9 +1,9 @@
-Observation
+BaseObservation
 ===================================
 
 .. include:: global.rst
 
-.. automodule:: grid2op.Observation
+.. automodule:: grid2op.BaseObservation
     :members:
     :special-members:
 

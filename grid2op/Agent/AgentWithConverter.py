@@ -5,18 +5,18 @@ import pdb
 
 from grid2op.Converter import Converter, IdToAct, ToVect
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Agent.Agent import Agent
+from grid2op.Agent.BaseAgent import BaseAgent
 
 
-class AgentWithConverter(Agent):
+class AgentWithConverter(BaseAgent):
     """
-    Compared to a regular Agent, these types of Agents are able to deal with a different representation of
-    :class:`grid2op.BaseAction.BaseAction` and :class:`grid2op.Observation.Observation`.
+    Compared to a regular BaseAgent, these types of Agents are able to deal with a different representation of
+    :class:`grid2op.BaseAction.BaseAction` and :class:`grid2op.BaseObservation.BaseObservation`.
 
-    As any other Agents, AgentWithConverter will implement the :func:`Agent.act` method. But for them, it's slightly
+    As any other Agents, AgentWithConverter will implement the :func:`BaseAgent.act` method. But for them, it's slightly
     different.
 
-    They receive in this method an observation, as an object (ie an instance of :class:`grid2op.Observation`). This
+    They receive in this method an observation, as an object (ie an instance of :class:`grid2op.BaseObservation`). This
     object can then be converted to any other object with the method :func:`AgentWithConverter.convert_obs`.
 
     Then, this `transformed_observation` is pass to the method :func:`AgentWithConverter.my_act` that is supposed
@@ -31,18 +31,18 @@ class AgentWithConverter(Agent):
     **NB** It is possible to define :func:`AgentWithConverter.convert_obs` and :func:`AgentWithConverter.convert_act`
      or to define a :class:`grid2op.Converters.Converter` and feed it to the `action_space_converter` parameters
      used to initialise the class. The second option is preferred, as the :attr:`AgentWithConverter.action_space`
-     will then directly be this converter. Such an Agent will really behave as if the actions are encoded the way he
+     will then directly be this converter. Such an BaseAgent will really behave as if the actions are encoded the way he
      wants.
 
     Examples
     --------
-    For example, imagine an Agent uses a neural networks to take its decision.
+    For example, imagine an BaseAgent uses a neural networks to take its decision.
 
     Suppose also that, after some
     features engineering, it's best for the neural network to use only the load active values
-    (:attr:`grid2op.Observation.Observation.load_p`) and the sum of the
-    relative flows (:attr:`grid2op.Observation.Observation.rho`) with the active flow
-    (:attr:`grid2op.Observation.Observation.p_or`) [**NB** that agent would not make sense a priori, but who knows]
+    (:attr:`grid2op.BaseObservation.BaseObservation.load_p`) and the sum of the
+    relative flows (:attr:`grid2op.BaseObservation.BaseObservation.rho`) with the active flow
+    (:attr:`grid2op.BaseObservation.BaseObservation.p_or`) [**NB** that agent would not make sense a priori, but who knows]
 
     Suppose that this neural network can be accessed with a class `AwesomeNN` (not available...) that can
     predict some actions. It can be loaded with the "load" method and make predictions with the
@@ -92,7 +92,7 @@ class AgentWithConverter(Agent):
     Attributes
     ----------
     action_space_converter: :class:`grid2op.Converters.Converter`
-        The converter that is used to represents the Agent action space. Might be set to ``None`` if not initialized
+        The converter that is used to represents the BaseAgent action space. Might be set to ``None`` if not initialized
 
     init_action_space: :class:`grid2op.Action.ActionSpace`
         The initial action space. This corresponds to the action space of the :class:`grid2op.Environment.Environment`.
@@ -107,24 +107,24 @@ class AgentWithConverter(Agent):
         self.init_action_space = action_space
 
         if action_space_converter is None:
-            Agent.__init__(self, action_space)
+            BaseAgent.__init__(self, action_space)
         else:
             if isinstance(action_space_converter, type):
                 if issubclass(action_space_converter, Converter):
-                    Agent.__init__(self, action_space_converter(action_space))
+                    BaseAgent.__init__(self, action_space_converter(action_space))
                 else:
-                    raise Grid2OpException("Impossible to make an Agent with a converter of type {}. "
+                    raise Grid2OpException("Impossible to make an BaseAgent with a converter of type {}. "
                                            "Please use a converter deriving from grid2op.ActionSpaceConverter.Converter."
                                            "".format(action_space_converter))
             elif isinstance(action_space_converter, Converter):
                 if isinstance(action_space_converter._template_act, self.init_action_space.template_act):
-                    Agent.__init__(self, action_space_converter)
+                    BaseAgent.__init__(self, action_space_converter)
                 else:
-                    raise Grid2OpException("Impossible to make an Agent with the provided converter of type {}. "
-                                           "It doesn't use the same type of action as the Agent's action space."
+                    raise Grid2OpException("Impossible to make an BaseAgent with the provided converter of type {}. "
+                                           "It doesn't use the same type of action as the BaseAgent's action space."
                                            "".format(action_space_converter))
             else:
-                raise Grid2OpException("You try to initialize and Agent with an invalid converter \"{}\". It must"
+                raise Grid2OpException("You try to initialize and BaseAgent with an invalid converter \"{}\". It must"
                                        "either be a type deriving from \"Converter\", or an instance of a class"
                                        "deriving from it."
                                        "".format(action_space_converter))
@@ -132,10 +132,10 @@ class AgentWithConverter(Agent):
 
     def convert_obs(self, observation):
         """
-        This function convert the observation, that is an object of class :class:`grid2op.Observation.Observation`
-        into a representation understandable by the Agent.
+        This function convert the observation, that is an object of class :class:`grid2op.BaseObservation.BaseObservation`
+        into a representation understandable by the BaseAgent.
 
-        For example, and agent could only want to look at the relative flows :attr:`grid2op.Observation.Observation.rho`
+        For example, and agent could only want to look at the relative flows :attr:`grid2op.BaseObservation.BaseObservation.rho`
         to take his decision. This is possible by  overloading this method.
 
         This method can also be used to scale the observation such that each compononents has mean 0 and variance 1
@@ -144,12 +144,12 @@ class AgentWithConverter(Agent):
         Parameters
         ----------
         observation: :class:`grid2op.Observation.Observation`
-            Initial observation received by the agent in the :func:`Agent.act` method.
+            Initial observation received by the agent in the :func:`BaseAgent.act` method.
 
         Returns
         -------
         res: ``object``
-            Anything that will be used by the Agent to take decisions.
+            Anything that will be used by the BaseAgent to take decisions.
 
         """
         return self.action_space.convert_obs(observation)
@@ -174,7 +174,7 @@ class AgentWithConverter(Agent):
 
     def act(self, observation, reward, done=False):
         """
-        Standard method of an :class:`Agent`. There is no need to overload this function.
+        Standard method of an :class:`BaseAgent`. There is no need to overload this function.
 
         Parameters
         ----------

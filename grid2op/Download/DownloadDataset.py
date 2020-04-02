@@ -6,8 +6,6 @@ Data are stored as a github "release".
 This script works on MacOs, Linux and windows.
 """
 import os
-import argparse
-import io
 import sys
 from tqdm import tqdm
 import re

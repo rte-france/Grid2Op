@@ -5,7 +5,7 @@ class IllegalAction(Grid2OpException):
     """
     This exception indicate that the :class:`grid2op.BaseAction` is illegal.
 
-    It is for example thrown when an :class:`grid2op.Agent` tries to perform an action against the rule.
+    It is for example thrown when an :class:`grid2op.BaseAgent` tries to perform an action against the rule.
     This is handled in :func:`grid2op.Environment.Environment.step`
 
     An :class:`grid2op.BaseAction` is said to be **illegal** depending on some rules implemented in
@@ -66,7 +66,7 @@ class OnLines(IllegalAction):
 
 class InvalidReconnection(OnLines):
     """
-    This is a more precise exception than :class:`OnLines` indicating that the :class:`grid2op.Agent` tried to
+    This is a more precise exception than :class:`OnLines` indicating that the :class:`grid2op.BaseAgent` tried to
     reconnect a powerline illegally.
     """
     pass

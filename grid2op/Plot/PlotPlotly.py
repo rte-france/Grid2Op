@@ -1,5 +1,5 @@
 """
-This module provide a simple class to represent an :class:`grid2op.Observation.Observation` as a plotly graph.
+This module provide a simple class to represent an :class:`grid2op.BaseObservation.BaseObservation` as a plotly graph.
 
 We are aware that the graph can be largely improved. This tool is an example on what can be done with the Grid2Op
 framework.
@@ -38,11 +38,8 @@ To use this plotting utilities, for example in a jupyter notebook please refer t
 """
 
 import numpy as np
-import cmath
-import pdb
 
 from grid2op.Plot.PlotGraph import BasePlot
-from grid2op.Exceptions import PlotError
 
 try:
     import plotly.graph_objects as go
@@ -219,7 +216,7 @@ class PlotPlotly(BasePlot):
             List of tupe given the position of each of the substation of the powergrid.
 
         observation_space: :class:`grid2op.Observation.ObservationSpace`
-            Observation space
+            BaseObservation space
 
         """
         BasePlot.__init__(self,

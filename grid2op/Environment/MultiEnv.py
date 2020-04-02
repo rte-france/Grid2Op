@@ -6,28 +6,28 @@ cores (cpu / thread). We do not recommend to use this method on a cluster of dif
 
 This class uses the following representation:
 
-- an :grid2op.Agent.Agent: lives in a main process
+- an :grid2op.BaseAgent.BaseAgent: lives in a main process
 - different environment lives into different processes
 - a call to :func:`MultiEnv.step` will perform one step per environment, in parallel using a ``Pipe`` to transfer data
   to and from the main process from each individual environment process. It is a synchronous function. It means
   it will wait for every environment to finish the step before returning all the information.
 
 There are some limitations. For example, even if forecast are available, it's not possible to use forecast of the
-observations. This imply that :func:`grid2op.Observation.Observation.simulate` is not available when using
+observations. This imply that :func:`grid2op.BaseObservation.BaseObservation.simulate` is not available when using
 :class:`MultiEnvironment`
 
 Compare to regular Environments, :class:`MultiEnvironment` simply stack everything. You need to send not a single
 :class:`grid2op.BaseAction.BaseAction` but as many actions as there are underlying environments. You receive not one single
-:class:`grid2op.Observation.Observation` but as many observations as the number of underlying environments.
+:class:`grid2op.BaseObservation.BaseObservation` but as many observations as the number of underlying environments.
 
 A broader support of regular grid2op environment capabilities as well as support for
-:func:`grid2op.Observation.Observation.simulate` call will be added in the future.
+:func:`grid2op.BaseObservation.BaseObservation.simulate` call will be added in the future.
 
 An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
 
 .. code-block:: python
 
-    from grid2op.Agent import DoNothingAgent
+    from grid2op.BaseAgent import DoNothingAgent
     from grid2op.MakeEnv import make
 
     # create a simple environment
@@ -63,13 +63,10 @@ An example on how you can best leverage this class is given in the getting_start
 
 """
 
-import copy
-import os
-import time
 from multiprocessing import Process, Pipe
 import numpy as np
 
-from grid2op.Exceptions import *
+from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
@@ -84,8 +81,8 @@ class RemoteEnv(Process):
     This class represent the environment that is executed on a remote process.
 
     Note that the environment is only created in the subprocess, and is not available in the main process. Once created
-    it is not possible to access anything directly from it in the main process, where the Agent lives. Only the
-    :class:`grid2op.Observation.Observation` are forwarded to the agent.
+    it is not possible to access anything directly from it in the main process, where the BaseAgent lives. Only the
+    :class:`grid2op.BaseObservation.BaseObservation` are forwarded to the agent.
 
     """
     def __init__(self, env_params, remote, parent_remote, seed, name=None):
@@ -265,7 +262,7 @@ class MultiEnvironment(GridObjects):
                                     "MultiEnvironment counts {} different environment."
                                     "".format(len(actions), self.nb_env))
         for act in actions:
-            if not isinstance(act, Action):
+            if not isinstance(act, BaseAction):
                 raise MultiEnvException("All actions send to MultiEnvironment.step should be of type \"grid2op.BaseAction\""
                                         "and not {}".format(type(act)))
 
@@ -281,7 +278,7 @@ class MultiEnvironment(GridObjects):
         -------
         res: ``list``
             The list of all observations. This list counts :attr:`MultiEnvironment.nb_env` elements, each one being
-            an :class:`grid2OP.Observation.Observations`.
+            an :class:`grid2OP.BaseObservation.Observations`.
 
         """
         for remote in self._remotes:
@@ -325,7 +322,8 @@ class MultiEnvironment(GridObjects):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-
+    from grid2op import make
+    from grid2op.Agent import DoNothingAgent
     env = make()
 
     nb_env = 8  # change that to adapt to your system

@@ -1,11 +1,7 @@
-import numpy as np
-import itertools
-
-from grid2op.Action import ActionSpace
-from grid2op.Exceptions import Grid2OpException
 from grid2op.Converter.Converters import Converter
 
 import pdb
+
 
 class ToVect(Converter):
     """
@@ -23,7 +19,7 @@ class ToVect(Converter):
 
     def convert_obs(self, obs):
         """
-        This converter will match the observation to a vector, using the :func:`grid2op.Observation.Observation.to_vect`
+        This converter will match the observation to a vector, using the :func:`grid2op.BaseObservation.BaseObservation.to_vect`
         function.
 
         Parameters
