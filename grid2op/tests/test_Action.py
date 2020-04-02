@@ -83,7 +83,8 @@ class TestActionBase(ABC):
                     'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
                     'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
                     'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
-                    'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None
+                    'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
+                    "grid_layout": None
                     }
 
         # self.size_act = 229

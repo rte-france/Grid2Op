@@ -204,7 +204,9 @@ class PlotPlotly(BasePlot):
 
 
     """
-    def __init__(self, substation_layout, observation_space,
+    def __init__(self,
+                 observation_space,
+                 substation_layout=None,
                  radius_sub=25.,
                  load_prod_dist=70.,
                  bus_radius=4.):

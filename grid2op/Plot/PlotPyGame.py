@@ -23,7 +23,6 @@ except Exception as e:
     pass
 
 
-
 class Point:
     # https://codereview.stackexchange.com/questions/70143/drawing-a-dashed-line-with-pygame
     # constructed using a normal tupple
@@ -119,8 +118,8 @@ class PlotPyGame(BasePlot):
 
     """
     def __init__(self,
-                 substation_layout,
                  observation_space,
+                 substation_layout=None,
                  radius_sub=20.,
                  load_prod_dist=70.,
                  bus_radius=5.,

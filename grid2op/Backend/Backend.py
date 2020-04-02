@@ -33,6 +33,7 @@ flow on the powerline with name `lines_names[i]`.
 import copy
 import os
 import warnings
+import json
 
 from abc import ABC, abstractmethod
 import numpy as np
@@ -780,4 +781,28 @@ class Backend(GridObjects, ABC):
             self.gen_startup_cost[i] = float(tmp_gen["start_cost"])
             self.gen_shutdown_cost[i] = float(tmp_gen["shut_down_cost"])
 
+    def load_grid_layout(self, path, name='grid_layout.json'):
+        full_fn = os.path.join(path, name)
+        if not os.path.exists(full_fn):
+            return Exception("File {} does not exist".format(full_fn))
+        try:
+            with open(full_fn, "r") as f:
+                dict_ = json.load(f)
+        except Exception as e:
+            return e
 
+        new_grid_layout = {}
+        for el in self.name_sub:
+            if not el in dict_:
+                return Exception("substation named {} not in layout".format(el))
+            tmp = dict_[el]
+            try:
+                x, y = tmp
+                x = float(x)
+                y = float(y)
+                new_grid_layout[el] = (x, y)
+            except Exception as e_:
+                return Exception("fail to convert coordinates for {} into list of coordinates with error {}"
+                                 "".format(el, e_))
+
+        self.attach_layout(grid_layout=new_grid_layout)

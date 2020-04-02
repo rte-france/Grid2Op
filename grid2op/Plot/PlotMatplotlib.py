@@ -40,6 +40,7 @@ except Exception as e:
 
 # TODO add tests there
 
+
 class PlotMatplotlib(BasePlot):
     """
     This class aims at simplifying the representation of the grid using matplotlib graphical libraries.
@@ -50,8 +51,8 @@ class PlotMatplotlib(BasePlot):
     """
 
     def __init__(self,
-                 substation_layout,
                  observation_space,
+                 substation_layout=None,
                  radius_sub=25.,
                  load_prod_dist=70.,
                  bus_radius=4.,

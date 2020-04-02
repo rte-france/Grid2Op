@@ -125,7 +125,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'gen_cost_per_MW': [0.0, 0.0, 0.0, 0.0, 10.0],
                       'gen_startup_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'gen_shutdown_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
-                      'subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
+                      'subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation',
+                      "grid_layout": None}
 
         self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),

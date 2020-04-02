@@ -246,5 +246,28 @@ class TestOtherReward(unittest.TestCase):
         assert np.abs(info_simu["rewards"]["test"] - reward_simu) <= self.tol_one
 
 
+class TestAttachLayout(unittest.TestCase):
+    def test_attach(self):
+        my_layout = [(0, 0), (0, 400), (200, 400), (400, 400), (400, 0)]
+        with make("case5_example", reward_class=L2RPNReward, other_rewards={"test": L2RPNReward}) as env:
+            env.attach_layout(my_layout)
+            act = env.action_space()
+            dict_act = act.to_dict()
+            assert "grid_layout" in dict_act
+            assert dict_act["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+            dict_ = env.helper_action_player.to_dict()
+            assert "grid_layout" in dict_
+            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+            dict_ = env.helper_action_env.to_dict()
+            assert "grid_layout" in dict_
+            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+            dict_ = env.helper_observation.to_dict()
+            assert "grid_layout" in dict_
+            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+            dict_ = env.opponent_action_space.to_dict()
+            assert "grid_layout" in dict_
+            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+
+
 if __name__ == "__main__":
     unittest.main()

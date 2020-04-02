@@ -3,7 +3,7 @@ BaseObservation
 
 .. include:: global.rst
 
-.. automodule:: grid2op.BaseObservation
+.. automodule:: grid2op.Observation
     :members:
     :special-members:
 

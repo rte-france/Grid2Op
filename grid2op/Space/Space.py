@@ -321,6 +321,10 @@ class GridObjects:
           - :attr:`GridObjects.gen_startup_cost`
           - :attr:`GridObjects.gen_shutdown_cost`
 
+    grid_layout: ``dict`` or ``None``
+        The layout of the powergrid in a form of a dictionnary with keys the substation name, and value a tuple of
+        the coordinate of this substation. If no layout are provided, it defaults to ``None``
+
     """
     def __init__(self):
         # name of the objects
@@ -367,6 +371,7 @@ class GridObjects:
 
         self._type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
 
+        self.redispatching_unit_commitment_availble = False
         self.gen_type = None
         self.gen_pmin = None
         self.gen_pmax = None
@@ -378,7 +383,8 @@ class GridObjects:
         self.gen_cost_per_MW = None  # marginal cost
         self.gen_startup_cost = None  # start cost
         self.gen_shutdown_cost = None  # shutdown cost
-        self.redispatching_unit_commitment_availble = False
+
+        self.grid_layout = None
 
     def _raise_error_attr_list_none(self):
         """
@@ -1050,6 +1056,19 @@ class GridObjects:
             if np.any(self.gen_max_ramp_up[self.gen_redispatchable] > self.gen_pmax[self.gen_redispatchable]):
                 raise InvalidRedispatching("Invalid maximum ramp for some generator (above pmax)")
 
+    def attach_layout(self, grid_layout):
+        """
+        grid layout is a dictionnary with the keys the name of the substations, and the value the tuple of coordinates
+        of each substations. No check are made it to ensure it is correct.
+
+        Parameters
+        ----------
+        grid_layout: ``dict``
+            See definition of :attr:`GridObjects.grid_layout` for more information.
+
+        """
+        self.grid_layout = grid_layout
+
     def init_grid(self, gridobj):
         """
         Initialize this :class:`GridObjects` instance with a provided instance.
@@ -1106,6 +1125,8 @@ class GridObjects:
         self.gen_startup_cost = gridobj.gen_startup_cost
         self.gen_shutdown_cost = gridobj.gen_shutdown_cost
         self.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
+
+        self.grid_layout = gridobj.grid_layout
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
@@ -1305,6 +1326,12 @@ class GridObjects:
         else:
             for nm_attr in self._li_attr_disp:
                 res[nm_attr] = None
+
+        if self.grid_layout is not None:
+            save_to_dict(res, self, "grid_layout", lambda gl: {str(k): [float(x), float(y)] for k, (x,y) in gl.items()})
+        else:
+            res["grid_layout"] = None
+
         return res
 
     @staticmethod
@@ -1361,4 +1388,7 @@ class GridObjects:
                               np.int, np.int, np.float, np.float, np.float]
             for nm_attr, type_attr in zip(res._li_attr_disp, type_attr_disp):
                 res.__dict__[nm_attr] = extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr))
+
+        res.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
+
         return res

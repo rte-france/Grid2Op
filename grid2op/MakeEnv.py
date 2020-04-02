@@ -817,13 +817,13 @@ def make(name_env="case14_realistic", **kwargs):
     # update the thermal limit if any
     if name_env.lower() == "case14_test":
         env.set_thermal_limit(case14_test_TH_LIM)
-        env.graph_layout = CASE_14_L2RPN2019_LAYOUT
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
     elif name_env.lower() == "case14_redisp":
         env.set_thermal_limit(case14_redisp_TH_LIM)
-        env.graph_layout = CASE_14_L2RPN2019_LAYOUT
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
     elif name_env.lower() == "case14_realistic":
         env.set_thermal_limit(case14_real_TH_LIM)
-        env.graph_layout = CASE_14_L2RPN2019_LAYOUT
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
     elif name_env.lower() == "case5_example":
-        env.graph_layout = CASE_5_GRAPH_LAYOUT
+        env.attach_layout(CASE_5_GRAPH_LAYOUT)
     return env

@@ -134,6 +134,9 @@ class _BasicEnv(GridObjects, ABC):
         self.opponent = None  # OpponentSpace()
         self.oppSpace = None
 
+        # voltage
+        self.voltage_controler = None
+
         # backend
         self.init_grid_path = None
 
@@ -972,3 +975,52 @@ class _BasicEnv(GridObjects, ABC):
             self.viewer.close()
             self.viewer = None
         self.backend.close()
+
+    def attach_layout(self, grid_layout):
+        """
+        Compare to the method of the base class, this one performs a check.
+        This method must be called after initialization.
+
+        Parameters
+        ----------
+        grid_layout
+
+        Returns
+        -------
+
+        """
+        if isinstance(grid_layout, dict):
+            pass
+        elif isinstance(grid_layout, list):
+            grid_layout = {k:v for k,v in zip(self.name_sub, grid_layout)}
+        else :
+            raise EnvError("Attempt to set a layout from something different than a dictionnary or a list. "
+                           "This is for now not supported.")
+
+        if self.__is_init:
+            res = {}
+            for el in self.name_sub:
+                if not el in grid_layout:
+                    raise EnvError("The substation \"{}\" is not present in grid_layout while in the powergrid."
+                                   "".format(el))
+                tmp = grid_layout[el]
+                try:
+                    x,y = tmp
+                    x = float(x)
+                    y = float(y)
+                    res[el] = (x, y)
+                except Exception as e_:
+                    raise EnvError("attach_layout: impossible to convert the value of \"{}\" to a pair of float "
+                                   "that will be used the grid layout. The error is: \"{}\""
+                                   "".format(el, e_))
+            super().attach_layout(res)
+            if self.helper_action_player is not None:
+                self.helper_action_player.attach_layout(res)
+            if self.helper_action_env is not None:
+                self.helper_action_env.attach_layout(res)
+            if self.helper_observation is not None:
+                self.helper_observation.attach_layout(res)
+            if self.voltage_controler is not None:
+                self.voltage_controler.attach_layout(res)
+            if self.opponent_action_space is not None:
+                self.opponent_action_space.attach_layout(res)
