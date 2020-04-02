@@ -5,7 +5,7 @@ This module defines the :class:`Environment` the higher level representation of 
 The environment receive an :class:`grid2op.BaseAction.BaseAction` from the :class:`grid2op.Agent.Agent` in the
 :func:`Environment.step`
 and returns an
-:class:`grid2op.Observation.Observation` that the :class:`grid2op.Agent.Agent` will use to perform the next action.
+:class:`grid2op.BaseObservation.BaseObservation` that the :class:`grid2op.Agent.Agent` will use to perform the next action.
 
 An environment is better used inside a :class:`grid2op.Runner.Runner`, mainly because runners abstract the interaction
 between environment and agent, and ensure the environment are properly reset after each episode.
@@ -51,7 +51,7 @@ from abc import ABC, abstractmethod
 from grid2op.Space import GridObjects
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
-from grid2op.Observation import CompleteObservation, ObservationSpace, Observation
+from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
 from grid2op.Reward import FlatReward, RewardHelper, Reward
 from grid2op.Rules import GameRules, AlwaysLegal, LegalAction
 from grid2op.Parameters import Parameters
@@ -323,10 +323,10 @@ class Environment(_BasicEnv):
             raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) "
                                    "and not an object (an instance of a class). "
                                    "It is currently \"{}\"".format(type(legalActClass)))
-        if not issubclass(observationClass, Observation):
+        if not issubclass(observationClass, BaseObservation):
             raise Grid2OpException(
                 "Parameter \"observationClass\" used to build the Environment should derived form the "
-                "grid2op.Observation class, type provided is \"{}\"".format(
+                "grid2op.BaseObservation class, type provided is \"{}\"".format(
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent

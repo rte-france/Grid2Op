@@ -8,7 +8,8 @@ __all__ = [
     "VoltageOnlyAction",
     'DontAct',
     "HelperAction",
-    "CompleteAction"
+    "CompleteAction",
+    "Action"
 ]
 
 from grid2op.Action.BaseAction import BaseAction
@@ -34,3 +35,11 @@ class HelperAction(ActionSpace):
                       "versions.",
                       category=PendingDeprecationWarning)
 
+
+class Action(BaseAction):
+    def __init__(self, *args, **kwargs):
+        BaseAction.__init__(*args, **kwargs)
+        warnings.warn("Action class has been renamed \"BaseAction\" if it was the Base class of each Action class,"
+                      "or \"CompleteAction\" for the action that gives the possibility to do every grid "
+                      "manipulation in grid2op. This class Action will be removed in future versions.",
+                      category=PendingDeprecationWarning)

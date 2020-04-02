@@ -1,5 +1,5 @@
 """
-This module is the base module for all graphical representation of the :class:`grid2op.Observation.Observation`.
+This module is the base module for all graphical representation of the :class:`grid2op.BaseObservation.BaseObservation`.
 
 It allows, from the layout of the graph of the powergrid (*eg* the coordinates of each substation) the position of
 each objects (powerline ends, loads and generators) and the position of the buses in case of "node splitting" (when

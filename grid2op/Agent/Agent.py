@@ -8,7 +8,7 @@ implement such agents.
 To perform their actions, agent receive two main signals from the :class:`grid2op.Environment`:
 
   - the :class:`grid2op.Reward` that states how good the previous has been
-  - the :class:`grid2op.Observation` that is a (partial) view on the state of the Environment.
+  - the :class:`grid2op.BaseObservation` that is a (partial) view on the state of the Environment.
 
 Both these signals can be use to determine what is the best action to perform on the grid. This is actually the main
 objective of an :class:`Agent`, and this is done in the :func:`Agent.act` method.
@@ -16,12 +16,6 @@ objective of an :class:`Agent`, and this is done in the :func:`Agent.act` method
 """
 
 from abc import ABC, abstractmethod
-import numpy as np
-import itertools
-import pdb
-
-from grid2op.Converter import Converter, IdToAct, ToVect
-from grid2op.Exceptions import Grid2OpException
 
 
 class Agent(ABC):

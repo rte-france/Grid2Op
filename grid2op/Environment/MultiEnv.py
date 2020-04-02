@@ -13,15 +13,15 @@ This class uses the following representation:
   it will wait for every environment to finish the step before returning all the information.
 
 There are some limitations. For example, even if forecast are available, it's not possible to use forecast of the
-observations. This imply that :func:`grid2op.Observation.Observation.simulate` is not available when using
+observations. This imply that :func:`grid2op.BaseObservation.BaseObservation.simulate` is not available when using
 :class:`MultiEnvironment`
 
 Compare to regular Environments, :class:`MultiEnvironment` simply stack everything. You need to send not a single
 :class:`grid2op.BaseAction.BaseAction` but as many actions as there are underlying environments. You receive not one single
-:class:`grid2op.Observation.Observation` but as many observations as the number of underlying environments.
+:class:`grid2op.BaseObservation.BaseObservation` but as many observations as the number of underlying environments.
 
 A broader support of regular grid2op environment capabilities as well as support for
-:func:`grid2op.Observation.Observation.simulate` call will be added in the future.
+:func:`grid2op.BaseObservation.BaseObservation.simulate` call will be added in the future.
 
 An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
 
@@ -85,7 +85,7 @@ class RemoteEnv(Process):
 
     Note that the environment is only created in the subprocess, and is not available in the main process. Once created
     it is not possible to access anything directly from it in the main process, where the Agent lives. Only the
-    :class:`grid2op.Observation.Observation` are forwarded to the agent.
+    :class:`grid2op.BaseObservation.BaseObservation` are forwarded to the agent.
 
     """
     def __init__(self, env_params, remote, parent_remote, seed, name=None):
@@ -281,7 +281,7 @@ class MultiEnvironment(GridObjects):
         -------
         res: ``list``
             The list of all observations. This list counts :attr:`MultiEnvironment.nb_env` elements, each one being
-            an :class:`grid2OP.Observation.Observations`.
+            an :class:`grid2OP.BaseObservation.Observations`.
 
         """
         for remote in self._remotes:

@@ -34,7 +34,7 @@ from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
 from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
 from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, DontAct
 from grid2op.Exceptions import *
-from grid2op.Observation import CompleteObservation, Observation
+from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import FlatReward, Reward, L2RPNReward, RedispReward
 from grid2op.Rules import LegalAction, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
@@ -82,7 +82,7 @@ ALLOWED_KWARGS_MAKE2 = {"param", "backend", "observation_class", "gamerules_clas
 ERR_MSG_KWARGS = {
     "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
     "observation": "The type of observation of the environment (keyword \"observation_class\")" \
-    " must be a subclass of grid2op.Observation",
+    " must be a subclass of grid2op.BaseObservation",
     "param": "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters",
     "rules": "The type of rules of the environment (keyword \"gamerules_class\")" \
     " must be a subclass of grid2op.LegalAction",
@@ -265,8 +265,8 @@ def make2(dataset_path="/", **kwargs):
         If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
 
     observation_class: ``type``, optional
-        Type of Observation the Agent will receive.
-        If provided, It must be a subclass of :class:`grid2op.BaseAction.Observation`
+        Type of BaseObservation the Agent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
 
     reward_class: ``type``, optional
         Type of reward signal the Agent will receive.
@@ -356,7 +356,7 @@ def make2(dataset_path="/", **kwargs):
         observation_class_cfg = config_data["observation_class"]
     ## Setup the type of observation the agent will receive
     observation_class = _get_default_aux("observation_class", kwargs, defaultClass=observation_class_cfg, isclass=True,
-                                         defaultClassApp=Observation, msg_error=ERR_MSG_KWARGS["observation"])
+                                         defaultClassApp=BaseObservation, msg_error=ERR_MSG_KWARGS["observation"])
     
     ## Create the parameters of the game, thermal limits threshold,
     # simulate cascading failure, powerflow mode etc. (the gamification of the game)
@@ -519,8 +519,8 @@ def make(name_env="case14_realistic", **kwargs):
         If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
 
     observation_class: ``type``, optional
-        Type of Observation the Agent will receive.
-        If provided, It must be a subclass of :class:`grid2op.BaseAction.Observation`
+        Type of BaseObservation the Agent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
 
     reward_class: ``type``, optional
         Type of reward signal the Agent will receive.
@@ -581,9 +581,9 @@ def make(name_env="case14_realistic", **kwargs):
 
     ## type of observation the agent will receive
     msg_error = "The type of observation of the environment (keyword \"observation_class\")"
-    msg_error += " must be a subclass of grid2op.Observation"
+    msg_error += " must be a subclass of grid2op.BaseObservation"
     observation_class = _get_default_aux("observation_class", kwargs, defaultClass=CompleteObservation,
-                                         defaultClassApp=Observation,
+                                         defaultClassApp=BaseObservation,
                                          msg_error=msg_error,
                                          isclass=True)
 

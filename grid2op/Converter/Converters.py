@@ -12,14 +12,14 @@ This can be done easily with the :class:`IdToAct` class.
 
 More concretely, the diagram of an agent is:
 
-i) receive an observation (in a form of an object of class :class:`grid2op.Observation.Observation`)
-ii) implement the :func:`grid2op.Agent.Agent.act` taking as input an :class:`grid2op.Observation.Observation` and
+i) receive an observation (in a form of an object of class :class:`grid2op.BaseObservation.BaseObservation`)
+ii) implement the :func:`grid2op.Agent.Agent.act` taking as input an :class:`grid2op.BaseObservation.BaseObservation` and
     returning an :class:`grid2op.BaseAction.BaseAction`
 iii) this :class:`grid2op.BaseAction.BaseAction` is then digested by the environment
 
 Introducing some converters lead to the following:
 
-i) receive an observation (:class:`grid2op.Observation.Observation`)
+i) receive an observation (:class:`grid2op.BaseObservation.BaseObservation`)
 ii) the transformer automatically (using :func:`Converter.convert_obs`) to a `transformed observation`
 iii) implement the function :func:`grid2op.Agent.AgentWithConverter.my_act` that takes as input
      a `transformed observation` and returns an `encoded action`

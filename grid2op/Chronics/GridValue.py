@@ -22,7 +22,7 @@ are not limited to:
 All powergrid modification that can be performed using an :class:`grid2op.BaseAction` can be implemented as form of a
 :class:`GridValue`.
 
-The same mechanism than for :class:`grid2op.BaseAction` or :class:`grid2op.Observation` is pursued here. All states
+The same mechanism than for :class:`grid2op.BaseAction` or :class:`grid2op.BaseObservation` is pursued here. All states
 modifications made by the :class:`grid2op.Environment` must derived from the :class:`GridValue`. It is not
 recommended to instanciate them directly, but rather to use the :class:`ChronicsHandler` for such a purpose.
 
@@ -34,7 +34,7 @@ This implies that changing the backend will change the output of :class:`GridVal
 is given in the description of the :func:`GridValue.initialize` method.
 
 Finally, compared to other Reinforcement Learning problems, is the possibility to use "forecast". This optional feature
-can be accessed via the :class:`grid2op.Observation` and mainly the :func:`grid2op.Observation.simulate` method. The
+can be accessed via the :class:`grid2op.BaseObservation` and mainly the :func:`grid2op.BaseObservation.simulate` method. The
 data that are used to generate this forecasts come from the :class:`grid2op.GridValue` and are detailed in the
 :func:`GridValue.forecasts` method.
 

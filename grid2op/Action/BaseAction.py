@@ -40,7 +40,6 @@ powergrid through a call to :func:`BaseAction.__call__`
 
 import numpy as np
 import warnings
-import itertools
 
 import pdb
 

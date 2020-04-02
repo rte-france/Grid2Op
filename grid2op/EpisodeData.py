@@ -28,7 +28,7 @@ with:
   - "disc_lines.npy" gives which lines have been disconnected during the simulation of the cascading failure at each
     time step. The same convention as for "rewards.npy" has been adopted. This means that the powerlines are
     disconnected when the :class:`grid2op.Agent` takes the :class:`grid2op.BaseAction` at time step `i`.
-  - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.Observation.Observation` at the disposal of the
+  - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.BaseObservation.BaseObservation` at the disposal of the
     :class:`grid2op.Agent` when he took his action.
   - "env_modifications.npy" is a 2d numpy array representing the modification of the powergrid from the environment.
     these modification usually concerns the hazards, maintenance, as well as modification of the generators production
@@ -307,7 +307,7 @@ class EpisodeData:
 class CollectionWrapper:
     """
     A wrapping class to add some behaviors (iterability, item access, update, save)
-    to grid2op object collections (BaseAction and Observation classes essentially).
+    to grid2op object collections (BaseAction and BaseObservation classes essentially).
 
     Attributes
     ----------

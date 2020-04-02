@@ -1,8 +1,5 @@
 import copy
 import numpy as np
-import os
-import time
-from abc import ABC, abstractmethod
 import pdb
 
 from grid2op.Environment.BasicEnv import _BasicEnv
@@ -23,7 +20,7 @@ class _ObsCH(ChangeNothing):
 class ObsEnv(_BasicEnv):
     """
     This class is an 'Emulator' of a :class:`grid2op.Environment` used to be able to 'simulate' forecasted grid states.
-    It should not be used outside of an :class:`grid2op.Observation` instance, or one of its derivative.
+    It should not be used outside of an :class:`grid2op.BaseObservation` instance, or one of its derivative.
 
     It contains only the most basic element of an Environment. See :class:`grid2op.Environment` for more details.
 
@@ -137,7 +134,7 @@ class ObsEnv(_BasicEnv):
         ----------
         new_state_action: :class:`grid2op.Action`
             The action that is performed on the powergrid to get the forecast at the current date. This "action" is
-            NOT performed by the user, it's performed internally by the Observation to have a "forecasted" powergrid
+            NOT performed by the user, it's performed internally by the BaseObservation to have a "forecasted" powergrid
             with the forecasted values present in the chronics.
 
         time_stamp: ``datetime.datetime``

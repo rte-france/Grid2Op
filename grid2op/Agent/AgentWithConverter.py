@@ -11,12 +11,12 @@ from grid2op.Agent.Agent import Agent
 class AgentWithConverter(Agent):
     """
     Compared to a regular Agent, these types of Agents are able to deal with a different representation of
-    :class:`grid2op.BaseAction.BaseAction` and :class:`grid2op.Observation.Observation`.
+    :class:`grid2op.BaseAction.BaseAction` and :class:`grid2op.BaseObservation.BaseObservation`.
 
     As any other Agents, AgentWithConverter will implement the :func:`Agent.act` method. But for them, it's slightly
     different.
 
-    They receive in this method an observation, as an object (ie an instance of :class:`grid2op.Observation`). This
+    They receive in this method an observation, as an object (ie an instance of :class:`grid2op.BaseObservation`). This
     object can then be converted to any other object with the method :func:`AgentWithConverter.convert_obs`.
 
     Then, this `transformed_observation` is pass to the method :func:`AgentWithConverter.my_act` that is supposed
@@ -40,9 +40,9 @@ class AgentWithConverter(Agent):
 
     Suppose also that, after some
     features engineering, it's best for the neural network to use only the load active values
-    (:attr:`grid2op.Observation.Observation.load_p`) and the sum of the
-    relative flows (:attr:`grid2op.Observation.Observation.rho`) with the active flow
-    (:attr:`grid2op.Observation.Observation.p_or`) [**NB** that agent would not make sense a priori, but who knows]
+    (:attr:`grid2op.BaseObservation.BaseObservation.load_p`) and the sum of the
+    relative flows (:attr:`grid2op.BaseObservation.BaseObservation.rho`) with the active flow
+    (:attr:`grid2op.BaseObservation.BaseObservation.p_or`) [**NB** that agent would not make sense a priori, but who knows]
 
     Suppose that this neural network can be accessed with a class `AwesomeNN` (not available...) that can
     predict some actions. It can be loaded with the "load" method and make predictions with the
@@ -132,10 +132,10 @@ class AgentWithConverter(Agent):
 
     def convert_obs(self, observation):
         """
-        This function convert the observation, that is an object of class :class:`grid2op.Observation.Observation`
+        This function convert the observation, that is an object of class :class:`grid2op.BaseObservation.BaseObservation`
         into a representation understandable by the Agent.
 
-        For example, and agent could only want to look at the relative flows :attr:`grid2op.Observation.Observation.rho`
+        For example, and agent could only want to look at the relative flows :attr:`grid2op.BaseObservation.BaseObservation.rho`
         to take his decision. This is possible by  overloading this method.
 
         This method can also be used to scale the observation such that each compononents has mean 0 and variance 1

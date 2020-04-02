@@ -3,7 +3,7 @@ This module implements some utilities to get rewards given an :class:`grid2op.Ba
 and some associated context (like has there been an error etc.)
 
 It is possible to modify the reward to use to better suit a training scheme, or to better take into account
-some phenomenon  by simulating the effect of some :class:`grid2op.BaseAction` using :func:`grid2op.Observation.simulate`.
+some phenomenon  by simulating the effect of some :class:`grid2op.BaseAction` using :func:`grid2op.BaseObservation.simulate`.
 Doing so only requires to derive the :class:`Reward`, and most notably the three abstract methods
 :func:`Reward.__init__`, :func:`Reward.initialize` and :func:`Reward.__call__`
 

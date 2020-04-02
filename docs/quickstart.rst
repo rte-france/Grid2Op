@@ -64,7 +64,7 @@ interesting part of this framework:
   `grid2op.main` function to assess how well an agent is performing.
 * 1_Observation_Agents details how to create
   an "expert agent" that will take pre defined actions based on the observation it gets from
-  the environment. This Notebook also covers the functioning of the Observation class.
+  the environment. This Notebook also covers the functioning of the BaseObservation class.
 * 2_Action_GridManipulation demonstrates
   how to use the BaseAction class and how to manipulate the powergrid.
 * 3_TrainingAnAgent shows how to get started with

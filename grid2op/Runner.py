@@ -21,7 +21,7 @@ import pdb
 # from grid2op.BaseAction import HelperAction, BaseAction, TopologyAction
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import *
-from grid2op.Observation import CompleteObservation, Observation
+from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import FlatReward, Reward
 from grid2op.Rules import AlwaysLegal, LegalAction
 from grid2op.Environment import Environment
@@ -124,9 +124,9 @@ class Runner(object):
         should derived from :class:`grid2op.BaseAction`. The default is :class:`grid2op.TopologyAction`.
 
     observationClass: ``type``
-        This type represents the class that will be used to build the :class:`grid2op.Observation` visible by the
+        This type represents the class that will be used to build the :class:`grid2op.BaseObservation` visible by the
         :class:`grid2op.Agent`. As :attr:`Runner.actionClass`, this should be a type, and **not** and instance (object)
-        of this type. This type should derived from :class:`grid2op.Observation`. The default is
+        of this type. This type should derived from :class:`grid2op.BaseObservation`. The default is
         :class:`grid2op.CompleteObservation`.
 
     rewardClass: ``type``
@@ -310,9 +310,9 @@ class Runner(object):
                 "Parameter \"observationClass\" used to build the Runner should be a type (a class) and not an object "
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(observationClass)))
-        if not issubclass(observationClass, Observation):
+        if not issubclass(observationClass, BaseObservation):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
-                               "grid2op.Observation. Please modify \"observationClass\" parameter.")
+                               "grid2op.BaseObservation. Please modify \"observationClass\" parameter.")
         self.observationClass = observationClass
 
         if not isinstance(rewardClass, type):

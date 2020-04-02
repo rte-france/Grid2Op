@@ -60,7 +60,7 @@ class Parameters:
         "alternative current" powerflow. It is also less precise. The default is ``False``
 
     FORECAST_DC: ``bool``
-        Whether to use the direct current approximation in the :func:`grid2op.Observation.forecasts` method. Default
+        Whether to use the direct current approximation in the :func:`grid2op.BaseObservation.forecasts` method. Default
         is ``False``. This can speed up the computation.
 
     MAX_SUB_CHANGED: ``int``

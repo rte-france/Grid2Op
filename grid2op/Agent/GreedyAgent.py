@@ -1,9 +1,5 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import numpy as np
-import itertools
-import pdb
-
-from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.Agent import Agent
 
 
@@ -11,7 +7,7 @@ class GreedyAgent(Agent):
     """
     This is a class of "Greedy Agent". Greedy agents are all executing the same kind of algorithm to take action:
 
-      1. They :func:`grid2op.Observation.simulate` all actions in a given set
+      1. They :func:`grid2op.BaseObservation.simulate` all actions in a given set
       2. They take the action that maximise the simulated reward among all these actions
 
     To make the creation of such Agent, we created this abstract class (object of this class cannot be created). Two

@@ -23,7 +23,7 @@ class ToVect(Converter):
 
     def convert_obs(self, obs):
         """
-        This converter will match the observation to a vector, using the :func:`grid2op.Observation.Observation.to_vect`
+        This converter will match the observation to a vector, using the :func:`grid2op.BaseObservation.BaseObservation.to_vect`
         function.
 
         Parameters

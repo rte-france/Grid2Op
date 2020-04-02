@@ -1,10 +1,7 @@
-import numpy as np
 import warnings
-import itertools
-
 import pdb
 
-from grid2op.Exceptions import *
+from grid2op.Exceptions import AmbiguousAction
 from grid2op.Action.BaseAction import BaseAction
 
 

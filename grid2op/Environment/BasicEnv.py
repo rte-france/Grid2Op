@@ -629,7 +629,7 @@ class _BasicEnv(GridObjects, ABC):
         Returns
         -------
         res: :class:`grid2op.Observation.Observation`
-            The current Observation given to the :class:`grid2op.Agent.Agent` / bot / controler.
+            The current BaseObservation given to the :class:`grid2op.Agent.Agent` / bot / controler.
         """
         res = self.helper_observation(env=self)
         return res

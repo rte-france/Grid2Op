@@ -12,7 +12,7 @@ import pdb
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Observation import ObservationSpace, CompleteObservation, ObsEnv, Observation
+from grid2op.Observation import ObservationSpace, CompleteObservation, ObsEnv, BaseObservation
 from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
 from grid2op.Action import ActionSpace
 from grid2op.Rules import GameRules

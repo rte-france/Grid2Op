@@ -35,6 +35,11 @@ TODO for next versions
   will be deprecated in future versions.
 - [DEPRECATION] `ObservationHelper` is now called `ObservationSpace` to better suit open ai gym name.
   Use of `ObservationHelper` will be deprecated in future versions.
+- [DEPRECATION] `Action` class has been split into `BaseAction` that serve as an abstract base class for all
+  action class, and `CompleteAction` (that inherit from BaseAction) for the class allowing to perform every
+  modification implemented in grid2op.
+- [DEPRECATION] `Observation` class has renamed `BaseObservation` that serve as an abstract base class for all
+  observation classes. Name Observation will be deprecated in future versions.
 - [ADDED] different kind of "Opponent" can now be implemented if needed (missing deep testing, different type of
   class, and good documentation)
 - [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
@@ -170,7 +175,7 @@ TODO for next versions
 [0.5.1] - 2020-01-24
 --------------------
 - [ADDED] extra tag 'all' to install all optional dependencies.
-- [FIXED] issue in the documentation of Observation, voltages are given in kV and not V.
+- [FIXED] issue in the documentation of BaseObservation, voltages are given in kV and not V.
 - [FIXED] a bug in the runner that prevented the right chronics to be read, and output wrong names
 - [FIXED] a bug preventing import if plotting packages where not installed, that causes the documentation to crash.
 
@@ -194,7 +199,7 @@ TODO for next versions
 - [UPDATED] More unit test for observations
 - [UPDATED] Remove the TODO's already coded
 - [UPDATED] GridStateFromFile can now read the starting date and the time interval of the chronics.
-- [UPDATED] Documentation of Observation: adding the units
+- [UPDATED] Documentation of BaseObservation: adding the units
   (`issue 22 <https://github.com/rte-france/Grid2Op/issues/22>`_)
 - [UPDATED] Notebook `getting_started/4_StudyYourAgent.ipynb` to use the converter now (much shorter and clearer)
 
@@ -204,7 +209,7 @@ TODO for next versions
 
 [0.4.2] - 2020-01-08
 --------------------
-- [BREAKING] previous saved BaseAction Spaces and Observation Spaces (as dictionnary) are no more compatible
+- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 ====================  =======================  =======================
@@ -225,12 +230,12 @@ Backend               lines_or_to_sub_pos      line_or_to_sub_pos
 Backend               lines_ex_to_sub_pos      line_ex_to_sub_pos
 Backend               lines_or_pos_topo_vect   line_or_pos_topo_vect
 Backend               lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
-BaseAction / Observation  _lines_or_to_subid       line_or_to_subid
-BaseAction / Observation  _lines_ex_to_subid       line_ex_to_subid
-BaseAction / Observation  _lines_or_to_sub_pos     line_or_to_sub_pos
-BaseAction / Observation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
-BaseAction / Observation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
-BaseAction / Observation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+BaseAction / BaseObservation  _lines_or_to_subid       line_or_to_subid
+BaseAction / BaseObservation  _lines_ex_to_subid       line_ex_to_subid
+BaseAction / BaseObservation  _lines_or_to_sub_pos     line_or_to_sub_pos
+BaseAction / BaseObservation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
+BaseAction / BaseObservation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
+BaseAction / BaseObservation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
 GridValue             n_lines                  n_line
 ====================  =======================  =======================
 
@@ -242,7 +247,7 @@ GridValue             n_lines                  n_line
 - [FIXED] checking key-word arguments in "make" function: if an invalid argument is provided,
   it now raises an error.
 - [UPDATED] multiple random generator streams for observations
-- [UPDATED] Refactoring of the BaseAction and Observation Space. They now both inherit from "Space"
+- [UPDATED] Refactoring of the BaseAction and BaseObservation Space. They now both inherit from "Space"
 - [UPDATED] the getting_started notebooks to reflect these changes
 
 [0.4.1] - 2019-12-17
@@ -253,12 +258,12 @@ GridValue             n_lines                  n_line
 [0.4.0] - 2019-12-04
 --------------------
 - [ADDED] Basic tools for plotting with the `PlotPlotly` module
-- [ADDED] support of maintenance operation as well as hazards in the Observation (and appropriated tests)
+- [ADDED] support of maintenance operation as well as hazards in the BaseObservation (and appropriated tests)
 - [ADDED] support for maintenance operation in the Environment (read from the chronics)
 - [ADDED] example of chronics with hazards and maintenance
 - [UPDATED] handling of the `AmbiguousAction` and `IllegalAction` exceptions (and appropriated tests)
-- [UPDATED] various documentation, in particular the class Observation
-- [UPDATED] information retrievable `Observation.state_of`
+- [UPDATED] various documentation, in particular the class BaseObservation
+- [UPDATED] information retrievable `BaseObservation.state_of`
 
 [0.3.6] - 2019-12-01
 --------------------
