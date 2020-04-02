@@ -107,6 +107,7 @@ ERR_MSG_KWARGS = {
 }
 NAME_CHRONICS_FOLDER = "chronics"
 NAME_GRID_FILE = "grid.json"
+NAME_GRID_LAYOUT_FILE = "grid_layout.json"
 NAME_CONFIG_FILE = "config.py"
 # TODO read the "ALLOWED_KWARGS" from the key of ERR_MSG
 
@@ -308,6 +309,10 @@ def make2(dataset_path="/", **kwargs):
     grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
     _check_path(grid_path_abs, "Dataset power flow solver configuration")
 
+    # Compute and find grid layout file
+    grid_layout_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_LAYOUT_FILE))
+    _check_path(grid_layout_path_abs, "Dataset grid layout")
+
     # Check provided config overrides are valid
     _check_kwargs(kwargs)
 
@@ -325,8 +330,11 @@ def make2(dataset_path="/", **kwargs):
         raise EnvError("Invalid dataset config file: {}".format(config_path_abs)) from None
 
     # Get graph layout
-    if "graph_layout" not in config_data:
-        raise EnvError("Dataset configuration {} is missing [graph_layout]".format(config_path_abs))
+    try:
+        with open(graph_layout_path_abs) as layout_fp:
+            graph_layout = json.load(layout_fp)
+    except Exception as e:
+        raise EnvError("Dataset {} doesn't have a valid graph layout".format(config_path_abs))
 
     # Get thermal limits
     thermal_limits = None
@@ -486,7 +494,7 @@ def make2(dataset_path="/", **kwargs):
         env.set_thermal_limit(thermal_limits)
 
     # Set graph layout
-    env.graph_layout = config_data["graph_layout"]
+    env.attach_layout(graph_layout)
 
     return env
     

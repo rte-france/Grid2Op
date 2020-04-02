@@ -14,13 +14,6 @@ config = {
     "chronics_class": Multifolder,
     "grid_value_class": GridStateFromFileWithForecasts,
     "volagecontroler_class": None,
-    "graph_layout": [
-	[0, 0],
-	[0, 400],
-	[200, 400],
-	[400, 400],
-	[400, 0]
-    ],
     "thermal_limits": None,
     "names_chronics_to_grid": None
 }
