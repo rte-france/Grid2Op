@@ -331,7 +331,7 @@ def make2(dataset_path="/", **kwargs):
 
     # Get graph layout
     try:
-        with open(graph_layout_path_abs) as layout_fp:
+        with open(grid_layout_path_abs) as layout_fp:
             graph_layout = json.load(layout_fp)
     except Exception as e:
         raise EnvError("Dataset {} doesn't have a valid graph layout".format(config_path_abs))
