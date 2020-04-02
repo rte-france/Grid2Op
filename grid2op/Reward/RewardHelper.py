@@ -50,7 +50,7 @@ class RewardHelper:
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         """
-        Gives the reward that follows the execution of the :class:`grid2op.Action.Action` action in the
+        Gives the reward that follows the execution of the :class:`grid2op.BaseAction.BaseAction` action in the
         :class:`grid2op.Environment.Environment` env;
 
 

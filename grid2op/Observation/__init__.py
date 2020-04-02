@@ -3,7 +3,8 @@ __all__ = [
     "ObsEnv",
     "ObservationSpace",
     "Observation",
-    "SerializableObservationSpace"
+    "SerializableObservationSpace",
+    "ObservationHelper"
 ]
 
 

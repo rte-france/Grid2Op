@@ -1,45 +1,46 @@
 import os
-import numpy as np
 import re
 import json
 import copy
+import pdb
 
 from grid2op.Exceptions import *
 from grid2op._utils import extract_from_dict, save_to_dict
 from grid2op.Space.Space import GridObjects
 from grid2op.Space.RandomObject import RandomObject
 
+
 class SerializableSpace(GridObjects, RandomObject):
     """
     This class allows to serialize / de serialize the action space or observation space.
 
     It should not be used inside an Environment, as some functions of the action might not be compatible with
-    the serialization, especially the checking of whether or not an Action is legal or not.
+    the serialization, especially the checking of whether or not an BaseAction is legal or not.
 
     Attributes
     ----------
 
     subtype: ``type``
         Type use to build the template object :attr:`SerializableSpace.template_obj`. This type should derive
-        from :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`.
+        from :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation`.
 
     _template_obj: :class:`grid2op.GridObjects`
         An instance of the "*subtype*" provided used to provide higher level utilities, such as the size of the
-        action (see :func:`grid2op.Action.Action.size`) or to sample a new Action
-        (see :func:`grid2op.Action.Action.sample`) for example.
+        action (see :func:`grid2op.BaseAction.BaseAction.size`) or to sample a new BaseAction
+        (see :func:`grid2op.BaseAction.BaseAction.sample`) for example.
 
     n: ``int``
         Size of the space
 
     shape: ``numpy.ndarray``, dtype:int
         Shape of each of the component of the Object if represented in a flat vector. An instance that derives from a
-        GridObject (for example :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`) can be
+        GridObject (for example :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation`) can be
         thought of as being concatenation of independant spaces. This vector gives the dimension of all the basic
         spaces they are made of.
 
     dtype: ``numpy.ndarray``, dtype:int
         Data type of each of the component of the Object if represented in a flat vector. An instance that derives from
-        a GridObject (for example :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation`) can be
+        a GridObject (for example :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation`) can be
         thought of as being concatenation of independant spaces. This vector gives the type of all the basic
         spaces they are made of.
 
@@ -50,7 +51,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
         subtype: ``type``
             Type of action used to build :attr:`SerializableActionSpace._template_act`. This type should derive
-            from :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observation` .
+            from :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.Observation.Observation` .
 
         """
 
@@ -83,7 +84,7 @@ class SerializableSpace(GridObjects, RandomObject):
         ----------
         dict_: ``dict``
             Representation of an Observation Space (aka :class:`grid2op.Observation.ObservartionHelper`)
-            or the Action Space (aka :class:`grid2op.Action.ActionSpace`)
+            or the BaseAction Space (aka :class:`grid2op.BaseAction.ActionSpace`)
             as a dictionnary.
 
         Returns
@@ -177,12 +178,12 @@ class SerializableSpace(GridObjects, RandomObject):
 
     def from_vect(self, obj_as_vect):
         """
-        Convert an action, represented as a vector to a valid :class:`Action` instance
+        Convert an action, represented as a vector to a valid :class:`BaseAction` instance
 
         Parameters
         ----------
         obj_as_vect: ``numpy.ndarray``
-            A object living in a space represented as a vector (typically an :class:`grid2op.Action.Action` or an
+            A object living in a space represented as a vector (typically an :class:`grid2op.BaseAction.BaseAction` or an
             :class:`grid2op.Observation.Observation` represented as a numpy vector)
 
         Returns

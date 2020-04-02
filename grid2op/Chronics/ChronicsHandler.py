@@ -12,6 +12,7 @@ from grid2op.Space import RandomObject
 from grid2op.Chronics.GridValue import GridValue
 from grid2op.Chronics.ChangeNothing import ChangeNothing
 
+
 class ChronicsHandler(RandomObject):
     """
     Represents a Chronics handler that returns a grid state.

@@ -17,7 +17,7 @@ observations. This imply that :func:`grid2op.Observation.Observation.simulate` i
 :class:`MultiEnvironment`
 
 Compare to regular Environments, :class:`MultiEnvironment` simply stack everything. You need to send not a single
-:class:`grid2op.Action.Action` but as many actions as there are underlying environments. You receive not one single
+:class:`grid2op.BaseAction.BaseAction` but as many actions as there are underlying environments. You receive not one single
 :class:`grid2op.Observation.Observation` but as many observations as the number of underlying environments.
 
 A broader support of regular grid2op environment capabilities as well as support for
@@ -72,7 +72,7 @@ import numpy as np
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
-from grid2op.Action import Action
+from grid2op.Action import BaseAction
 
 import pdb
 
@@ -243,7 +243,7 @@ class MultiEnvironment(GridObjects):
         Parameters
         ----------
         actions: ``list``
-            List of :attr:`MultiEnvironment.nb_env` :class:`grid2op.Action.Action`. Each action will be executed
+            List of :attr:`MultiEnvironment.nb_env` :class:`grid2op.BaseAction.BaseAction`. Each action will be executed
             in the corresponding underlying environment.
 
         Returns
@@ -266,7 +266,7 @@ class MultiEnvironment(GridObjects):
                                     "".format(len(actions), self.nb_env))
         for act in actions:
             if not isinstance(act, Action):
-                raise MultiEnvException("All actions send to MultiEnvironment.step should be of type \"grid2op.Action\""
+                raise MultiEnvException("All actions send to MultiEnvironment.step should be of type \"grid2op.BaseAction\""
                                         "and not {}".format(type(act)))
 
         self._send_act(actions)

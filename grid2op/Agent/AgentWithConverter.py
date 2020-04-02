@@ -7,10 +7,11 @@ from grid2op.Converter import Converter, IdToAct, ToVect
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.Agent import Agent
 
+
 class AgentWithConverter(Agent):
     """
     Compared to a regular Agent, these types of Agents are able to deal with a different representation of
-    :class:`grid2op.Action.Action` and :class:`grid2op.Observation.Observation`.
+    :class:`grid2op.BaseAction.BaseAction` and :class:`grid2op.Observation.Observation`.
 
     As any other Agents, AgentWithConverter will implement the :func:`Agent.act` method. But for them, it's slightly
     different.
@@ -21,7 +22,7 @@ class AgentWithConverter(Agent):
     Then, this `transformed_observation` is pass to the method :func:`AgentWithConverter.my_act` that is supposed
     to be defined for each agents. This function outputs an `encoded_act` which can be whatever you want to be.
 
-    Finally, the `encoded_act` is decoded into a proper action, object of class :class:`grid2op.Action.Action`,
+    Finally, the `encoded_act` is decoded into a proper action, object of class :class:`grid2op.BaseAction.BaseAction`,
     thanks to the method :func:`AgentWithConverter.convert_act`.
 
     This allows, for example, to represent actions as integers to train more easily standard discrete control algorithm
@@ -165,7 +166,7 @@ class AgentWithConverter(Agent):
 
         Returns
         -------
-        act: :grid2op.Action.Action`
+        act: :grid2op.BaseAction.BaseAction`
             A valid actions, represented as a class, that corresponds to the encoded action given as input.
 
         """

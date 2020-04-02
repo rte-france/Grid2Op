@@ -186,7 +186,7 @@ class Backend(GridObjects, ABC):
         For the L2RPN project, this action is mainly for topology if it has been sent by the agent.
         Or it can also affect production and loads, if the action is made by the environment.
 
-        The help of :func:`grid2op.Action.Action.__call__` or the code in Action.py file give more information about
+        The help of :func:`grid2op.BaseAction.BaseAction.__call__` or the code in BaseActiontion.py file give more information about
         the implementation of this method.
 
         :param action: the action to be implemented on the powergrid.

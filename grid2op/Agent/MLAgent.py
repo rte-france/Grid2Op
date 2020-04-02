@@ -7,6 +7,7 @@ from grid2op.Converter import Converter, IdToAct, ToVect
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.AgentWithConverter import AgentWithConverter
 
+
 class MLAgent(AgentWithConverter):
     """
     This agent allows to handle only vectors. The "my_act" function will return "do nothing" action (so it needs
@@ -23,17 +24,17 @@ class MLAgent(AgentWithConverter):
 
     def convert_from_vect(self, act):
         """
-        Helper to convert an action, represented as a numpy array as an :class:`grid2op.Action` instance.
+        Helper to convert an action, represented as a numpy array as an :class:`grid2op.BaseAction` instance.
 
         Parameters
         ----------
         act: ``numppy.ndarray``
-            An action cast as an :class:`grid2op.Action.Action` instance.
+            An action cast as an :class:`grid2op.BaseAction.BaseAction` instance.
 
         Returns
         -------
         res: :class:`grid2op.Action.Action`
-            The `act` parameters converted into a proper :class:`grid2op.Action.Action` object.
+            The `act` parameters converted into a proper :class:`grid2op.BaseAction.BaseAction` object.
         """
         res = self.action_space({})
         res.from_vect(act)

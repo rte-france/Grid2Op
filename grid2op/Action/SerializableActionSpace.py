@@ -6,7 +6,7 @@ import pdb
 
 from grid2op.Exceptions import *
 from grid2op.Space import SerializableSpace, GridObjects
-from grid2op.Action.Action import Action
+from grid2op.Action.BaseAction import BaseAction
 
 
 class SerializableActionSpace(SerializableSpace):
@@ -22,12 +22,12 @@ class SerializableActionSpace(SerializableSpace):
     actionClass: ``type``
         Type used to build the :attr:`SerializableActionSpace.template_act`
 
-    _template_act: :class:`Action`
+    _template_act: :class:`BaseAction`
         An instance of the "*actionClass*" provided used to provide higher level utilities, such as the size of the
         action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
     """
-    def __init__(self, gridobj, actionClass=Action):
+    def __init__(self, gridobj, actionClass=BaseAction):
         """
 
         Parameters
@@ -37,7 +37,7 @@ class SerializableActionSpace(SerializableSpace):
 
         actionClass: ``type``
             Type of action used to build :attr:`Space.SerializableSpace._template_obj`. It should derived from
-            :class:`Action`.
+            :class:`BaseAction`.
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
@@ -53,7 +53,7 @@ class SerializableActionSpace(SerializableSpace):
         Parameters
         ----------
         dict_: ``dict``
-            Representation of an Action Space (aka SerializableActionSpace) as a dictionary.
+            Representation of an BaseAction Space (aka SerializableActionSpace) as a dictionary.
 
         Returns
         -------
@@ -75,7 +75,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
-        res: :class:`Action`
+        res: :class:`BaseAction`
             A random action sampled from the :attr:`ActionSpace.actionClass`
 
         """
@@ -175,7 +175,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
-        res: :class:`Action`
+        res: :class:`BaseAction`
             The action with the modification implemented
 
         Raises
@@ -295,7 +295,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
-        res: :class:`Action`
+        res: :class:`BaseAction`
             The action with the modification implemented
 
         Raises
@@ -317,7 +317,7 @@ class SerializableActionSpace(SerializableSpace):
 
     def get_set_line_status_vect(self):
         """
-        Computes and returns a vector that can be used in the "set_status" keyword if building an :class:`Action`
+        Computes and returns a vector that can be used in the "set_status" keyword if building an :class:`BaseAction`
 
         Returns
         -------
@@ -329,7 +329,7 @@ class SerializableActionSpace(SerializableSpace):
 
     def get_change_line_status_vect(self):
         """
-        Computes and return a vector that can be used in the "change_line_status" keyword if building an :class:`Action`
+        Computes and return a vector that can be used in the "change_line_status" keyword if building an :class:`BaseAction`
 
         Returns
         -------
@@ -350,7 +350,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Parameters
         ----------
-        action_space: :class:`grid2op.Action.ActionHelper`
+        action_space: :class:`grid2op.BaseAction.ActionHelper`
             The action space used.
 
         Returns
@@ -386,7 +386,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Parameters
         ----------
-        action_space: :class:`grid2op.Action.ActionHelper`
+        action_space: :class:`grid2op.BaseAction.ActionHelper`
             The action space used.
 
         Returns

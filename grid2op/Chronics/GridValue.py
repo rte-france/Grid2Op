@@ -19,10 +19,10 @@ are not limited to:
     - planned outage: powerline disconnection anticipated in advance
     - hazards: powerline disconnection that cannot be anticipated, for example due to a windstorm.
 
-All powergrid modification that can be performed using an :class:`grid2op.Action` can be implemented as form of a
+All powergrid modification that can be performed using an :class:`grid2op.BaseAction` can be implemented as form of a
 :class:`GridValue`.
 
-The same mechanism than for :class:`grid2op.Action` or :class:`grid2op.Observation` is pursued here. All states
+The same mechanism than for :class:`grid2op.BaseAction` or :class:`grid2op.Observation` is pursued here. All states
 modifications made by the :class:`grid2op.Environment` must derived from the :class:`GridValue`. It is not
 recommended to instanciate them directly, but rather to use the :class:`ChronicsHandler` for such a purpose.
 
@@ -479,9 +479,9 @@ class GridValue(ABC):
     def load_next(self):
         """
         Generate the next values, either by reading from a file, or by generating on the fly and return a dictionnary
-        compatible with the :class:`grid2op.Action` class allowed for the :class:`Environment`.
+        compatible with the :class:`grid2op.BaseAction` class allowed for the :class:`Environment`.
 
-        More information about this dictionnary can be found at :func:`grid2op.Action.update`.
+        More information about this dictionnary can be found at :func:`grid2op.BaseAction.update`.
 
         As a (quick) reminder: this dictionnary has for keys:
 
@@ -495,7 +495,7 @@ class GridValue(ABC):
             The current timestamp for which the modifications have been generated.
 
         dict_: ``dict``
-            A dictionnary understandable by the ::func:`grid2op.Action.update` method. **NB** this function should
+            A dictionnary understandable by the ::func:`grid2op.BaseAction.update` method. **NB** this function should
             return the dictionnary that will be converted, is should not, in any case, return an action.
 
         maintenance_time: ``numpy.ndarray``, dtype:``int``

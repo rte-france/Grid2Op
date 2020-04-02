@@ -18,8 +18,8 @@ import json
 
 import pdb
 
-# from grid2op.Action import HelperAction, Action, TopologyAction
-from grid2op.Action import Action, TopologyAction, DontAct
+# from grid2op.BaseAction import HelperAction, BaseAction, TopologyAction
+from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, Observation
 from grid2op.Reward import FlatReward, Reward
@@ -121,7 +121,7 @@ class Runner(object):
     actionClass: ``type``
         The type of action that can be performed by the agent / bot / controler. The class should be given, and
         **not** an instance of this class. This type
-        should derived from :class:`grid2op.Action`. The default is :class:`grid2op.TopologyAction`.
+        should derived from :class:`grid2op.BaseAction`. The default is :class:`grid2op.TopologyAction`.
 
     observationClass: ``type``
         This type represents the class that will be used to build the :class:`grid2op.Observation` visible by the
@@ -141,7 +141,7 @@ class Runner(object):
         :class:`grid2op.GridStateFromFile` and it must be a subclass of :class:`grid2op.GridValue`.
 
     legalActClass: ``type``
-        This types control the mechanisms to assess if an :class:`grid2op.Action` is legal.
+        This types control the mechanisms to assess if an :class:`grid2op.BaseAction` is legal.
         Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
         Its default is :class:`grid2op.AlwaysLegal` and it must be a subclass of :class:`grid2op.LegalAction`.
 
@@ -151,7 +151,7 @@ class Runner(object):
         Its default is :class:`grid2op.PandaPowerBackend` and it must be a subclass of :class:`grid2op.Backend`.
 
     agentClass: ``type``
-        This types control the type of Agent, *eg.* the bot / controler that will take :class:`grid2op.Action` and
+        This types control the type of Agent, *eg.* the bot / controler that will take :class:`grid2op.BaseAction` and
         avoid cascading failures.
         Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
         Its default is :class:`grid2op.DoNothingAgent` and it must be a subclass of :class:`grid2op.Agent`.
@@ -300,8 +300,8 @@ class Runner(object):
                 "Parameter \"actionClass\" used to build the Runner should be a type (a class) and not an object "
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(actionClass)))
-        if not issubclass(actionClass, Action):
-            raise RuntimeError("Impossible to create a runner without an action class derived from grid2op.Action. "
+        if not issubclass(actionClass, BaseAction):
+            raise RuntimeError("Impossible to create a runner without an action class derived from grid2op.BaseAction. "
                                "Please modify \"actionClass\" parameter.")
         self.actionClass = actionClass
 
@@ -431,8 +431,8 @@ class Runner(object):
         self._other_rewards = other_rewards
 
         # for opponent (should be defined here) after the initialization of _BasicEnv
-        if not issubclass(opponent_action_class, Action):
-            raise EnvError("Impossible to make an environment with an opponent action class not derived from Action")
+        if not issubclass(opponent_action_class, BaseAction):
+            raise EnvError("Impossible to make an environment with an opponent action class not derived from BaseAction")
         try:
             self.opponent_init_budget = float(opponent_init_budget)
         except Exception as e:

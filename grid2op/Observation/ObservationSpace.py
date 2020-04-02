@@ -34,7 +34,7 @@ class ObservationSpace(SerializableObservationSpace):
         :func:`Observation.simulate`  and the reward used to train the Agent.
 
     action_helper_env: :class:`grid2op.Action.ActionSpace`
-        Action space used to create action during the :func:`Observation.simulate`
+        BaseAction space used to create action during the :func:`Observation.simulate`
 
     reward_helper: :class:`grid2op.Reward.HelperReward`
         Reward function used by the the :func:`Observation.simulate` function.

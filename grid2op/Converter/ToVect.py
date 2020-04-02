@@ -51,7 +51,7 @@ class ToVect(Converter):
         Returns
         -------
         regular_act: :class:`grid2op.Action.Action`
-            The corresponding action transformed with the :func:`grid2op.Action.Action.from_vect`.
+            The corresponding action transformed with the :func:`grid2op.BaseAction.BaseAction.from_vect`.
 
         """
         res = self.__call__({})

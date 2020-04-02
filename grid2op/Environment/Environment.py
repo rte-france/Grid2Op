@@ -2,7 +2,7 @@
 This module defines the :class:`Environment` the higher level representation of the world with which an
 :class:`grid2op.Agent` will interact.
 
-The environment receive an :class:`grid2op.Action.Action` from the :class:`grid2op.Agent.Agent` in the
+The environment receive an :class:`grid2op.BaseAction.BaseAction` from the :class:`grid2op.Agent.Agent` in the
 :func:`Environment.step`
 and returns an
 :class:`grid2op.Observation.Observation` that the :class:`grid2op.Agent.Agent` will use to perform the next action.
@@ -49,7 +49,7 @@ import pdb
 from abc import ABC, abstractmethod
 
 from grid2op.Space import GridObjects
-from grid2op.Action import ActionSpace, Action, TopologyAction, DontAct
+from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, Observation
 from grid2op.Reward import FlatReward, RewardHelper, Reward
@@ -313,10 +313,10 @@ class Environment(_BasicEnv):
             raise Grid2OpException("Parameter \"actionClass\" used to build the Environment should be a type (a class) "
                                    "and not an object (an instance of a class). "
                                    "It is currently \"{}\"".format(type(legalActClass)))
-        if not issubclass(actionClass, Action):
+        if not issubclass(actionClass, BaseAction):
             raise Grid2OpException(
                 "Parameter \"actionClass\" used to build the Environment should derived form the "
-                "grid2op.Action class, type provided is \"{}\"".format(
+                "grid2op.BaseAction class, type provided is \"{}\"".format(
                     type(actionClass)))
 
         if not isinstance(observationClass, type):
@@ -336,13 +336,13 @@ class Environment(_BasicEnv):
 
         # action that affect the grid made by the environment.
         self.helper_action_env = ActionSpace(gridobj=self.backend,
-                                              actionClass=Action,
-                                              legal_action=self.game_rules.legal_action)
+                                             actionClass=CompleteAction,
+                                             legal_action=self.game_rules.legal_action)
 
         self.helper_observation = ObservationSpace(gridobj=self.backend,
-                                                    observationClass=observationClass,
-                                                    rewardClass=rewardClass,
-                                                    env=self)
+                                                   observationClass=observationClass,
+                                                   rewardClass=rewardClass,
+                                                   env=self)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):

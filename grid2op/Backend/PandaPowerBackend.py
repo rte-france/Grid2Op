@@ -21,7 +21,7 @@ import pandapower.networks as pn
 import scipy
 
 from grid2op.Backend.Backend import Backend
-from grid2op.Action import Action
+from grid2op.Action import BaseAction
 from grid2op.Exceptions import *
 
 try:
@@ -117,8 +117,8 @@ class PandaPowerBackend(Backend):
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
         self.dim_topo = -1
-        self._vars_action = Action.vars_action
-        self._vars_action_set = Action.vars_action_set
+        self._vars_action = BaseAction.vars_action
+        self._vars_action_set = BaseAction.vars_action_set
         # self._time_topo_vect = 0.
 
     def get_nb_active_bus(self):
@@ -332,13 +332,13 @@ class PandaPowerBackend(Backend):
         self.a_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
         self._nb_bus_before = None
 
-    def apply_action(self, action: Action):
+    def apply_action(self, action: BaseAction):
         """
         Specific implementation of the method to apply an action modifying a powergrid in the pandapower format.
         """
 
-        if not isinstance(action, Action):
-            raise UnrecognizedAction("Action given to PandaPowerBackend should be of class Action and not "
+        if not isinstance(action, BaseAction):
+            raise UnrecognizedAction("BaseAction given to PandaPowerBackend should be of class BaseAction and not "
                                      "\"{}\"".format(action.__class__))
 
         # change the _injection if needed

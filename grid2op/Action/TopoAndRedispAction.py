@@ -6,12 +6,14 @@ import pdb
 
 from grid2op.Exceptions import *
 from grid2op.Space import SerializableSpace, GridObjects
-from grid2op.Action.Action import Action
+from grid2op.Action.BaseAction import BaseAction
 
-class TopoAndRedispAction(Action):
+
+class TopoAndRedispAction(BaseAction):
     def __init__(self, gridobj):
-        Action.__init__(self, gridobj)
-        self.authorized_keys = set([k for k in self.authorized_keys if k != "injection"])
+        BaseAction.__init__(self, gridobj)
+        self.authorized_keys = set([k for k in self.authorized_keys if k != "injection" and
+                                                                       k != "hazards" and k != "maintenance"])
 
         self.attr_list_vect = ["_set_line_status", "_switch_line_status",
                                "_set_topo_vect", "_change_bus_vect",
@@ -19,7 +21,7 @@ class TopoAndRedispAction(Action):
 
     def __call__(self):
         """
-        Compare to the ancestor :func:`Action.__call__` this type of Action doesn't allow to change the injections.
+        Compare to the ancestor :func:`BaseAction.__call__` this type of BaseAction doesn't allow to change the injections.
         The only difference is in the returned value *dict_injection* that is always an empty dictionary.
 
         Returns
@@ -28,19 +30,19 @@ class TopoAndRedispAction(Action):
             This dictionary is always empty
 
         set_line_status: :class:`numpy.ndarray`, dtype:int
-            This array is :attr:`Action._set_line_status`
+            This array is :attr:`BaseAction._set_line_status`
 
         switch_line_status: :class:`numpy.ndarray`, dtype:bool
-            This array is :attr:`Action._switch_line_status`
+            This array is :attr:`BaseAction._switch_line_status`
 
         set_topo_vect: :class:`numpy.ndarray`, dtype:int
-            This array is :attr:`Action._set_topo_vect`
+            This array is :attr:`BaseAction._set_topo_vect`
 
         change_bus_vect: :class:`numpy.ndarray`, dtype:bool
-            This array is :attr:`Action._change_bus_vect`
+            This array is :attr:`BaseAction._change_bus_vect`
 
         redispatch: :class:`numpy.ndarray`, dtype:float
-            Thie array is :attr:`Action._redispatch`
+            Thie array is :attr:`BaseAction._redispatch`
 
         """
         if self._dict_inj:
@@ -52,15 +54,15 @@ class TopoAndRedispAction(Action):
     def update(self, dict_):
         """
         As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
-        :class:`Action`.
+        :class:`BaseAction`.
 
-        It has only minor modifications compared to the original :func:`Action.update` implementation, most notably, it
-        doesn't update the :attr:`Action._dict_inj`. It raises a warning if attempting to change them.
+        It has only minor modifications compared to the original :func:`BaseAction.update` implementation, most notably, it
+        doesn't update the :attr:`BaseAction._dict_inj`. It raises a warning if attempting to change them.
 
         Parameters
         ----------
         dict_: :class:`dict`
-            See the help of :func:`Action.update` for a detailed explanation. **NB** all the explanations concerning the
+            See the help of :func:`BaseAction.update` for a detailed explanation. **NB** all the explanations concerning the
             "injection" part is irrelevant for this subclass.
 
         Returns

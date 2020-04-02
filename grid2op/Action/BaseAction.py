@@ -1,5 +1,5 @@
 """
-The "Action" module lets you define some actions on the underlying power _grid.
+The "BaseAction" module lets you define some actions on the underlying power _grid.
 These actions are either made by an agent, or by the environment.
 
 For now, the actions can act on:
@@ -14,26 +14,26 @@ For now, the actions can act on:
   - the status of the powerlines (connected/disconnected)
   - the configuration at substations eg setting different objects to different buses for example
 
-The Action class is abstract. You can implement it the way you want. If you decide to extend it, make sure
+The BaseAction class is abstract. You can implement it the way you want. If you decide to extend it, make sure
 that the :class:`grid2op.Backend` class will be able to understand it. If you don't, your extension will not affect the
-underlying powergrid. Indeed a :class:`grid2op.Backend` will call the :func:`Action.__call__` method and should
+underlying powergrid. Indeed a :class:`grid2op.Backend` will call the :func:`BaseAction.__call__` method and should
 understands its return type.
 
 In this module we derived two action class:
 
-  - :class:`Action` represents a type of action that can act on all the above-mentioned objects
+  - :class:`BaseAction` represents a type of action that can act on all the above-mentioned objects
   - :class:`TopologyAction` restricts the modification to line status modification and bus reconfiguration at substations.
 
 
-The :class:`Action` and all its derivatives also offer some usefull inspection utilities:
+The :class:`BaseAction` and all its derivatives also offer some usefull inspection utilities:
 
-  - :func:`Action.__str__` prints the action in a format that gives usefull information on how it will affect the powergrid
-  - :func:`Action.effect_on` returns a dictionnary that gives information about its effect.
+  - :func:`BaseAction.__str__` prints the action in a format that gives usefull information on how it will affect the powergrid
+  - :func:`BaseAction.effect_on` returns a dictionnary that gives information about its effect.
 
-Finally, :class:`Action` class define some strict behavior to follow if reimplementing them. The correctness of each
-instances of Action is assessed both when calling :func:`Action.update` or with a call to
-:func:`Action._check_for_ambiguity` performed for example by the Backend when it must implement its effect on the
-powergrid through a call to :func:`Action.__call__`
+Finally, :class:`BaseAction` class define some strict behavior to follow if reimplementing them. The correctness of each
+instances of BaseAction is assessed both when calling :func:`BaseAction.update` or with a call to
+:func:`BaseAction._check_for_ambiguity` performed for example by the Backend when it must implement its effect on the
+powergrid through a call to :func:`BaseAction.__call__`
 
 """
 
@@ -45,7 +45,7 @@ import itertools
 import pdb
 
 from grid2op.Exceptions import *
-from grid2op.Space import SerializableSpace, GridObjects
+from grid2op.Space import GridObjects
 
 # TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
 # ambiguous at all, same with "set" then "change")
@@ -59,16 +59,16 @@ from grid2op.Space import SerializableSpace, GridObjects
 
 # TODO tests for redispatching action.
 
-class Action(GridObjects):
+class BaseAction(GridObjects):
     """
-    This is a base class for each :class:`Action` objects.
+    This is a base class for each :class:`BaseAction` objects.
     As stated above, an action represents conveniently the modifications that will affect a powergrid.
 
     It is not recommended to instantiate an action from scratch. The recommended way to get an action is either by
-    modifying an existing one using the method :func:`Action.update` or to call and :class:`ActionSpace` object that
+    modifying an existing one using the method :func:`BaseAction.update` or to call and :class:`ActionSpace` object that
     has been properly set up by an :class:`grid2op.Environment`.
 
-    Action can be fully converted to and back from a numpy array with a **fixed** size.
+    BaseAction can be fully converted to and back from a numpy array with a **fixed** size.
 
     An action can modify the grid in multiple ways.
     It can change :
@@ -90,14 +90,14 @@ class Action(GridObjects):
             - "prod_v" a vector of the same size of the generators, giving the modification of the productions voltage
               setpoint
 
-    - the second element is made of force line status. It is made of a vector of size :attr:`Action._n_lines`
+    - the second element is made of force line status. It is made of a vector of size :attr:`BaseAction._n_lines`
       (the number of lines in the powergrid) and is interpreted as:
 
             - -1 force line disconnection
             - +1 force line reconnection
             - 0 do nothing to this line
 
-    - the third element is the switch line status vector. It is made of a vector of size :attr:`Action._n_lines` and is
+    - the third element is the switch line status vector. It is made of a vector of size :attr:`BaseAction._n_lines` and is
       interpreted as:
 
         - ``True``: change the line status
@@ -120,14 +120,14 @@ class Action(GridObjects):
     - the sixth element is a vector, representing the redispatching. Component of this vector is added to the
       generators active setpoint value (if set) of the first elements.
 
-    **NB** the difference between :attr:`Action._set_topo_vect` and :attr:`Action._change_bus_vect` is the following:
+    **NB** the difference between :attr:`BaseAction._set_topo_vect` and :attr:`BaseAction._change_bus_vect` is the following:
 
-        - If  a component of :attr:`Action._set_topo_vect` is 1, then the object (load, generator or powerline)
+        - If  a component of :attr:`BaseAction._set_topo_vect` is 1, then the object (load, generator or powerline)
           will be moved to bus 1 of the substation to which it is connected. If it is already to bus 1 nothing will be
           done.
           If it's on another bus it will connect it to bus 1. It's disconnected, it will reconnect it and connect it
           to bus 1.
-        - If a component of :attr:`Action._change_bus_vect` is True, then the object will be moved from one bus to
+        - If a component of :attr:`BaseAction._change_bus_vect` is True, then the object will be moved from one bus to
           another.
           If the object were on bus 1
           it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object were
@@ -136,8 +136,8 @@ class Action(GridObjects):
 
     The conversion to the action into an understandable format by the backend is performed by the "update" method,
     that takes into account a dictionary and is responsible to convert it into this format.
-    It is possible to overload this class as long as the overloaded :func:`Action.__call__` operator returns the
-    specified format, and the :func:`Action.__init__` method has the same signature.
+    It is possible to overload this class as long as the overloaded :func:`BaseAction.__call__` operator returns the
+    specified format, and the :func:`BaseAction.__init__` method has the same signature.
 
     This format is then digested by the backend and the powergrid is modified accordingly.
 
@@ -171,8 +171,8 @@ class Action(GridObjects):
             - "prod_v": same as above but set the voltage setpoint of generator units.
 
     _set_topo_vect: :class:`numpy.ndarray`, dtype:int
-        Similar to :attr:`Action._set_line_status` but instead of affecting the status of powerlines, it affects the
-        bus connectivity at a substation. It has the same size as the full topological vector (:attr:`Action._dim_topo`)
+        Similar to :attr:`BaseAction._set_line_status` but instead of affecting the status of powerlines, it affects the
+        bus connectivity at a substation. It has the same size as the full topological vector (:attr:`BaseAction._dim_topo`)
         and for each element it should be understood as:
 
             - 0: nothing is changed for this element
@@ -180,9 +180,9 @@ class Action(GridObjects):
             - -1: this element is affected to bus 2
 
     _change_bus_vect: :class:`numpy.ndarray`, dtype:bool
-         Similar to :attr:`Action._switch_line_status` but it affects the topology at substations instead of the status
+         Similar to :attr:`BaseAction._switch_line_status` but it affects the topology at substations instead of the status
          of
-         the powerline. It has the same size as the full topological vector (:attr:`Action._dim_topo`) and each
+         the powerline. It has the same size as the full topological vector (:attr:`BaseAction._dim_topo`) and each
          component should mean:
 
              - ``False``: the object is not affected
@@ -190,23 +190,23 @@ class Action(GridObjects):
                it was on bus 2 it will be moved on bus 1.
 
     authorized_keys: :class:`set`
-        The set indicating which keys the actions can understand when calling :func:`Action.update`
+        The set indicating which keys the actions can understand when calling :func:`BaseAction.update`
 
     _subs_impacted: :class:`numpy.ndarray`, dtype:bool
         This attributes is either not initialized (set to ``None``) or it tells, for each substation, if it is impacted
-        by the action (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``True``) or not
-        (in this case :attr:`Action._subs_impacted`\[sub_id\] is ``False``)
+        by the action (in this case :attr:`BaseAction._subs_impacted`\[sub_id\] is ``True``) or not
+        (in this case :attr:`BaseAction._subs_impacted`\[sub_id\] is ``False``)
 
     _lines_impacted: :class:`numpy.ndarray`, dtype:bool
         This attributes is either not initialized (set to ``None``) or it tells, for each powerline, if it is impacted
-        by the action (in this case :attr:`Action._lines_impacted`\[line_id\] is ``True``) or not
-        (in this case :attr:`Action._subs_impacted`\[line_id\] is ``False``)
+        by the action (in this case :attr:`BaseAction._lines_impacted`\[line_id\] is ``True``) or not
+        (in this case :attr:`BaseAction._subs_impacted`\[line_id\] is ``False``)
 
     vars_action: ``list``, static
-        The authorized key that are processed by :func:`Action.__call__` to modify the injections
+        The authorized key that are processed by :func:`BaseAction.__call__` to modify the injections
 
     vars_action_set: ``set``, static
-        The authorized key that is processed by :func:`Action.__call__` to modify the injections
+        The authorized key that is processed by :func:`BaseAction.__call__` to modify the injections
 
     _redispatch: :class:`numpy.ndarray`, dtype:float
         Amount of redispatching that this action will perform. Redispatching will increase the generator's active
@@ -224,7 +224,7 @@ class Action(GridObjects):
 
     def __init__(self, gridobj):
         """
-        This is used to create an Action instance. Preferably, :class:`Action` should be created with
+        This is used to create an BaseAction instance. Preferably, :class:`BaseAction` should be created with
         :class:`ActionSpace`.
 
         **It is NOT recommended** to create an action with this method. Please use :func:`ActionSpace.__call__` or
@@ -268,7 +268,7 @@ class Action(GridObjects):
 
         self.reset()
 
-        # decomposition of the Action into homogeneous sub-spaces
+        # decomposition of the BaseAction into homogeneous sub-spaces
         self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                                "_set_line_status", "_switch_line_status",
                                "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance"]
@@ -288,7 +288,7 @@ class Action(GridObjects):
                     res = np.full(self.n_load, fill_value=0., dtype=np.float)
                 else:
                     raise Grid2OpException("Impossible to find the attribute \"{}\" "
-                                           "into the Action of type \"{}\"".format(attr_name, type(self)))
+                                           "into the BaseAction of type \"{}\"".format(attr_name, type(self)))
         return res
 
     def _assign_attr_from_name(self, attr_nm, vect):
@@ -328,32 +328,32 @@ class Action(GridObjects):
 
     def get_set_line_status_vect(self):
         """
-        Computes and returns a vector that can be used in the :func:`Action.__call__` with the keyword
-        "set_status" if building an :class:`Action`.
+        Computes and returns a vector that can be used in the :func:`BaseAction.__call__` with the keyword
+        "set_status" if building an :class:`BaseAction`.
 
         **NB** this vector is not the internal vector of this action but corresponds to "do nothing" action.
 
         Returns
         -------
         res: :class:`numpy.array`, dtype:np.int
-            A vector that doesn't affect the grid, but can be used in :func:`Action.__call__` with the keyword
-            "set_status" if building an :class:`Action`.
+            A vector that doesn't affect the grid, but can be used in :func:`BaseAction.__call__` with the keyword
+            "set_status" if building an :class:`BaseAction`.
 
         """
         return np.full(shape=self.n_line, fill_value=0, dtype=np.int)
 
     def get_change_line_status_vect(self):
         """
-        Computes and returns a vector that can be used in the :func:`Action.__call__` with the keyword
-        "set_status" if building an :class:`Action`.
+        Computes and returns a vector that can be used in the :func:`BaseAction.__call__` with the keyword
+        "set_status" if building an :class:`BaseAction`.
 
         **NB** this vector is not the internal vector of this action but corresponds to "do nothing" action.
 
         Returns
         -------
         res: :class:`numpy.array`, dtype:np.bool
-            A vector that doesn't affect the grid, but can be used in :func:`Action.__call__` with the keyword
-            "set_status" if building an :class:`Action`.
+            A vector that doesn't affect the grid, but can be used in :func:`BaseAction.__call__` with the keyword
+            "set_status" if building an :class:`BaseAction`.
 
         """
         return np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
@@ -381,7 +381,7 @@ class Action(GridObjects):
 
         Parameters
         ----------
-        other: :class:`Action`
+        other: :class:`BaseAction`
             An instance of class Action to which "self" will be compared.
 
         Returns
@@ -473,14 +473,14 @@ class Action(GridObjects):
         Returns
         -------
         lines_impacted: :class:`numpy.array`, dtype:np.bool
-            A vector with the same size as the number of powerlines in the grid (:attr:`Action.n_line`) with for each
+            A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for each
             component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
-            :attr:`Action._lines_impacted` for more information.
+            :attr:`BaseAction._lines_impacted` for more information.
 
         subs_impacted: :class:`numpy.array`, dtype:np.bool
             A vector with the same size as the number of substations in the grid with for each
             component ``True`` if the substation is impacted by the action, and ``False`` otherwise. See
-            :attr:`Action._subs_impacted` for more information.
+            :attr:`BaseAction._subs_impacted` for more information.
 
         """
         if powerline_status is None:
@@ -569,7 +569,7 @@ class Action(GridObjects):
 
         Parameters
         ----------
-        other: :class:`Action`
+        other: :class:`BaseAction`
 
         Returns
         -------
@@ -637,30 +637,30 @@ class Action(GridObjects):
         This method is used to return the effect of the current action in a format understandable by the backend.
         This format is detailed below.
 
-        This function must also integrate the redispatching strategy for the Action.
+        This function must also integrate the redispatching strategy for the BaseAction.
 
         It also performs a check of whether or not an action is "Ambiguous", eg an action that reconnect a powerline
         but doesn't specify on which bus to reconnect it is said to be ambiguous.
 
-        If this :func:`Action.__call__` is overloaded, the call of :func:`Action._check_for_ambiguity` must be ensured
+        If this :func:`BaseAction.__call__` is overloaded, the call of :func:`BaseAction._check_for_ambiguity` must be ensured
         by this the derived class.
 
         Returns
         -------
         dict_injection: :class:`dict`
-            This dictionnary is :attr:`Action._dict_inj`
+            This dictionnary is :attr:`BaseAction._dict_inj`
 
         set_line_status: :class:`numpy.array`, dtype:int
-            This array is :attr:`Action._set_line_status`
+            This array is :attr:`BaseAction._set_line_status`
 
         switch_line_status: :class:`numpy.array`, dtype:bool
-            This array is :attr:`Action._switch_line_status`
+            This array is :attr:`BaseAction._switch_line_status`
 
         set_topo_vect: :class:`numpy.array`, dtype:int
-            This array is :attr:`Action._set_topo_vect`
+            This array is :attr:`BaseAction._set_topo_vect`
 
         change_bus_vect: :class:`numpy.array`, dtype:bool
-            This array is :attr:`Action._change_bus_vect`
+            This array is :attr:`BaseAction._change_bus_vect`
 
         redispatch: :class:`numpy.ndarray`, dtype:float
             This array, that has the same size as the number of generators indicates for each generator the amount of
@@ -693,7 +693,7 @@ class Action(GridObjects):
                     if k in self.vars_action_set:
                         self._dict_inj[k] = np.array(tmp_d[k])
                     else:
-                        warn = "The key {} is not recognized by Action when trying to modify the injections.".format(k)
+                        warn = "The key {} is not recognized by BaseAction when trying to modify the injections.".format(k)
                         warnings.warn(warn)
 
     def _digest_setbus(self, dict_):
@@ -1118,7 +1118,7 @@ class Action(GridObjects):
 
         Returns
         -------
-        self: :class:`Action`
+        self: :class:`BaseAction`
             Return the modified instance. This is handy to chain modifications if needed.
 
         """
@@ -1146,7 +1146,7 @@ class Action(GridObjects):
         """
         Says if the action, as defined is ambiguous *per se* or not.
 
-        See definition of :func:`Action.check_space_legit` for more details about *ambiguity per se*.
+        See definition of :func:`BaseAction.check_space_legit` for more details about *ambiguity per se*.
 
         Returns
         -------
@@ -1199,7 +1199,7 @@ class Action(GridObjects):
 
             - Some redispatching action is active, yet
               :attr:`grid2op.Space.GridObjects.redispatching_unit_commitment_availble` is set to ``False``
-            - the length of the redispatching vector :attr:`Action._redispatching` is not compatible with the number
+            - the length of the redispatching vector :attr:`BaseAction._redispatching` is not compatible with the number
               of generators.
             - some redispatching are above the maximum ramp up :attr:`grid2op.Space.GridObjects.gen_max_ramp_up`
             - some redispatching are below the maximum ramp down :attr:`grid2op.Space.GridObjects.gen_max_ramp_down`
@@ -1207,8 +1207,8 @@ class Action(GridObjects):
             - the redispatching and the production setpoint, if added, are above pmax for at least a generator
             - the redispatching and the production setpoint, if added, are below pmin for at least a generator
 
-        In case of need to overload this method, it is advise to still call this one from the base :class:`Action`
-        with ":code:`super()._check_for_ambiguity()`" or ":code:`Action._check_for_ambiguity(self)`".
+        In case of need to overload this method, it is advise to still call this one from the base :class:`BaseAction`
+        with ":code:`super()._check_for_ambiguity()`" or ":code:`BaseAction._check_for_ambiguity(self)`".
 
         Raises
         -------
@@ -1342,7 +1342,7 @@ class Action(GridObjects):
 
         Returns
         -------
-        self: :class:`Action`
+        self: :class:`BaseAction`
             The action sampled among the action space.
         """
         self.reset()
@@ -1393,7 +1393,7 @@ class Action(GridObjects):
         Returns
         -------
         str: :class:`str`
-            The string representation of an :class:`Action` in a human-readable format.
+            The string representation of an :class:`BaseAction` in a human-readable format.
 
         """
         res = ["This action will:"]

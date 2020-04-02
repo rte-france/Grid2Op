@@ -3,13 +3,13 @@ from grid2op.Exceptions.Grid2OpException import Grid2OpException
 # exception bad actions
 class IllegalAction(Grid2OpException):
     """
-    This exception indicate that the :class:`grid2op.Action` is illegal.
+    This exception indicate that the :class:`grid2op.BaseAction` is illegal.
 
     It is for example thrown when an :class:`grid2op.Agent` tries to perform an action against the rule.
     This is handled in :func:`grid2op.Environment.Environment.step`
 
-    An :class:`grid2op.Action` is said to be **illegal** depending on some rules implemented in
-    :func:`grid2op.Action.ActionSpace.is_legal` method.
+    An :class:`grid2op.BaseAction` is said to be **illegal** depending on some rules implemented in
+    :func:`grid2op.BaseAction.ActionSpace.is_legal` method.
     An action can be legal in some context, but illegal in others.
 
     """

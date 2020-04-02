@@ -39,7 +39,7 @@ import pdb
 
 from grid2op.Exceptions import *
 from grid2op.Space import SerializableSpace, GridObjects
-from grid2op.Action import Action
+from grid2op.Action import BaseAction
 from grid2op.Rules import GameRules, LegalAction
 
 # TODO be able to change reward here
@@ -185,7 +185,7 @@ class Observation(GridObjects):
             - there is a `0`: the powerline is not disconnected from the grid for maintenance
             - there is a `1`, `2`, ... the powerline will be disconnected for at least `1`, `2`, ... timestep (**NB**
               in all case, the powerline will stay disconnected until a :class:`grid2op.Agent.Agent` performs the
-              proper :class:`grid2op.Action.Action` to reconnect it).
+              proper :class:`grid2op.BaseAction.BaseAction` to reconnect it).
 
     target_dispatch: :class:`numpy.ndarray`, dtype:float
         For **each** generators, it gives the target redispatching, asked by the agent. This is the sum of all
@@ -531,11 +531,11 @@ class Observation(GridObjects):
         Test the equality of two actions.
 
         2 actions are said to be identical if the have the same impact on the powergrid. This is unlrelated to their
-        respective class. For example, if an Action is of class :class:`Action` and doesn't act on the _injection, it
-        can be equal to a an Action of derived class :class:`TopologyAction` (if the topological modification are the
+        respective class. For example, if an BaseAction is of class :class:`BaseAction` and doesn't act on the _injection, it
+        can be equal to a an BaseAction of derived class :class:`TopologyAction` (if the topological modification are the
         same of course).
 
-        This implies that the attributes :attr:`Action.authorized_keys` is not checked in this method.
+        This implies that the attributes :attr:`BaseAction.authorized_keys` is not checked in this method.
 
         Note that if 2 actions doesn't act on the same powergrid, or on the same backend (eg number of loads, or
         generators is not the same in *self* and *other*, or they are not in the same order) then action will be
@@ -550,7 +550,7 @@ class Observation(GridObjects):
         Parameters
         ----------
         other: :class:`Observation`
-            An instance of class Action to which "self" will be compared.
+            An instance of class BaseAction to which "self" will be compared.
 
         Returns
         -------

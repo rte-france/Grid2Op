@@ -32,7 +32,7 @@ class IdToAct(Converter):
     allow to do such action at one time step.
 
     **NB** The actions that are initialized by default uses the "set" way and not the "change" way (see the description
-    of :class:`grid2op.Action.Action` for more information).
+    of :class:`grid2op.BaseAction.BaseAction` for more information).
 
     For each powerline, 5 different actions will be computed:
 
@@ -43,7 +43,7 @@ class IdToAct(Converter):
     - reconnect it and connect it to bus 2 on "origin" end ann bus 2 on "extremity" end
 
     Actions corresponding to all topologies are also used by default. See
-    :func:`grid2op.Action.ActionSpace.get_all_unitary_topologies_set` for more information.
+    :func:`grid2op.BaseAction.ActionSpace.get_all_unitary_topologies_set` for more information.
 
 
     In this converter:

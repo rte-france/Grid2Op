@@ -8,7 +8,7 @@ class RandomObject(object):
     Attributes
     ----------
     space_prng: ``numpy.random.RandomState``
-        The random state of the observation (in case of non deterministic observations or Action.
+        The random state of the observation (in case of non deterministic observations or BaseAction.
         This should not be used at the
         moment)
 

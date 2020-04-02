@@ -12,6 +12,7 @@ from grid2op.Space import RandomObject
 from grid2op.Chronics.GridValue import GridValue
 from grid2op.Chronics.GridStateFromFile import GridStateFromFile
 
+
 class GridStateFromFileWithForecasts(GridStateFromFile):
     """
     An extension of :class:`GridStateFromFile` that implements the "forecast" functionality.
@@ -231,7 +232,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         exactly 2 elements:
 
           1. Is the time stamp of the forecast
-          2. An :class:`grid2op.Action` representing the modification of the powergrid after the forecast.
+          2. An :class:`grid2op.BaseAction` representing the modification of the powergrid after the forecast.
 
         For this class, only the forecast of the next time step is given, and only for the injections and maintenance.
 

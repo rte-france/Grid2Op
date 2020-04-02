@@ -1,5 +1,5 @@
 """
-This class abstracts the main components of Action, Observation, ActionSpace, and ObservationSpace.
+This class abstracts the main components of BaseAction, Observation, ActionSpace, and ObservationSpace.
 
 It represents a powergrid (the object in it) in a format completely agnostic to the solver used to compute
 the power flows (:class:`grid2op.Backend.Backend`).
@@ -24,7 +24,7 @@ class GridObjects:
 
     It stores information about numbers of objects, and which objects are where, their names, etc.
 
-    The classes :class:`grid2op.Action.Action`, :class:`grid2op.Action.ActionSpace`,
+    The classes :class:`grid2op.BaseAction.BaseAction`, :class:`grid2op.BaseAction.ActionSpace`,
     :class:`grid2op.Observation.Observation`, :class:`grid2op.Observation.ObservationSpace` and
     :class:`grid2op.Backend.Backend` all inherit from this class. This means that each of the above has its own
     representation of the powergrid.
@@ -526,7 +526,7 @@ class GridObjects:
         Parameters
         ----------
         vect: ``numpy.ndarray``
-            A vector representing an Action.
+            A vector representing an BaseAction.
 
         """
 

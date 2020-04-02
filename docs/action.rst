@@ -1,6 +1,6 @@
-Action
+BaseAction
 ===================================
-.. automodule:: grid2op.Action
+.. automodule:: grid2op.BaseAction
     :members:
     :private-members:
     :special-members:

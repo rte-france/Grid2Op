@@ -1,5 +1,6 @@
 from grid2op.Exceptions.Grid2OpException import Grid2OpException
 
+
 # Exception bad environment configured
 class EnvError(Grid2OpException):
     """

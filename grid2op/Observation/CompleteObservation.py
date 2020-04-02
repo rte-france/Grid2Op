@@ -4,8 +4,9 @@ import time
 import copy
 
 from grid2op.Exceptions import *
-from grid2op.Action import Action
+from grid2op.Action import BaseAction
 from grid2op.Observation.Observation import Observation
+
 
 class CompleteObservation(Observation):
     """
@@ -71,7 +72,8 @@ class CompleteObservation(Observation):
 
     """
     def __init__(self, gridobj,
-                 obs_env=None,action_helper=None,
+                 obs_env=None,
+                 action_helper=None,
                  seed=None):
 
         Observation.__init__(self, gridobj,

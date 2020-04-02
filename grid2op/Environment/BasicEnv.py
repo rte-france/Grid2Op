@@ -9,7 +9,7 @@ from grid2op.Parameters import Parameters
 from grid2op.Reward import Reward
 from grid2op.Reward import RewardHelper
 from grid2op.Opponent import OpponentSpace, UnlimitedBudget
-from grid2op.Action import ActionSpace, DontAct, Action
+from grid2op.Action import ActionSpace, DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 
@@ -145,8 +145,8 @@ class _BasicEnv(GridObjects, ABC):
         if not self.__is_init:
             raise EnvError("Impossible to create an opponent with a non initialized environment!")
 
-        if not issubclass(self.opponent_action_class, Action):
-            raise EnvError("Impossible to make an environment with an opponent action class not derived from Action")
+        if not issubclass(self.opponent_action_class, BaseAction):
+            raise EnvError("Impossible to make an environment with an opponent action class not derived from BaseAction")
         try:
             self.opponent_init_budget = float(self.opponent_init_budget)
         except Exception as e:
@@ -206,8 +206,8 @@ class _BasicEnv(GridObjects, ABC):
 
     @abstractmethod
     def init_backend(self, init_grid_path, chronics_handler, backend,
-                          names_chronics_to_backend, actionClass, observationClass,
-                          rewardClass, legalActClass):
+                     names_chronics_to_backend, actionClass, observationClass,
+                     rewardClass, legalActClass):
         pass
 
     def set_thermal_limit(self, thermal_limit):
@@ -641,7 +641,7 @@ class _BasicEnv(GridObjects, ABC):
         to reset this environment's state.
         Accepts an action and returns a tuple (observation, reward, done, info).
 
-        If the :class:`grid2op.Action.Action` is illegal or ambiguous, the step is performed, but the action is
+        If the :class:`grid2op.BaseAction.BaseAction` is illegal or ambiguous, the step is performed, but the action is
         replaced with a "do nothing" action.
 
         Parameters
@@ -697,7 +697,7 @@ class _BasicEnv(GridObjects, ABC):
             if is_illegal:
                 # action is replace by do nothing
                 action = self.helper_action_player({})
-                except_.append(IllegalAction("Action illegal"))
+                except_.append(IllegalAction("BaseAction illegal"))
 
             ambiguous, except_tmp = action.is_ambiguous()
             if ambiguous:

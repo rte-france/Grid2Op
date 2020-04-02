@@ -1,7 +1,7 @@
-from grid2op.Action.Action import Action
+from grid2op.Action.BaseAction import BaseAction
 
 
-class DontAct(Action):
+class DontAct(BaseAction):
     """
     This class is model the action where you force someone to do absolutely nothing.
 
@@ -9,11 +9,11 @@ class DontAct(Action):
 
     def __init__(self, gridobj):
         """
-        See the definition of :func:`Action.__init__` and of :class:`Action` for more information. Nothing more is done
+        See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing more is done
         in this constructor.
 
         """
-        Action.__init__(self, gridobj)
+        BaseAction.__init__(self, gridobj)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
