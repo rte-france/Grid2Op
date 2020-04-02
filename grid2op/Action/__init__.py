@@ -29,7 +29,7 @@ CompleteAction = BaseAction
 
 class HelperAction(ActionSpace):
     def __init__(self, *args, **kwargs):
-        ActionSpace.__init__(*args, **kwargs)
+        ActionSpace.__init__(self, *args, **kwargs)
         warnings.warn("HelperAction class has been renamed \"ActionSpace\" to be better integrated with "
                       "openai gym framework. The old name will be removed in future "
                       "versions.",
@@ -38,7 +38,7 @@ class HelperAction(ActionSpace):
 
 class Action(BaseAction):
     def __init__(self, *args, **kwargs):
-        BaseAction.__init__(*args, **kwargs)
+        BaseAction.__init__(self, *args, **kwargs)
         warnings.warn("Action class has been renamed \"BaseAction\" if it was the Base class of each Action class,"
                       "or \"CompleteAction\" for the action that gives the possibility to do every grid "
                       "manipulation in grid2op. This class Action will be removed in future versions.",

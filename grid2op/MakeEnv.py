@@ -832,6 +832,8 @@ def make(name_env="case14_realistic", **kwargs):
     elif name_env.lower() == "case14_realistic":
         env.set_thermal_limit(case14_real_TH_LIM)
         env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
+    elif name_env.lower() == "l2rpn_2019":
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
     elif name_env.lower() == "case5_example":
         env.attach_layout(CASE_5_GRAPH_LAYOUT)
     return env
