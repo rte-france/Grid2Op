@@ -740,6 +740,6 @@ class Environment(_BasicEnv):
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
-
+        res["grid_layout"] = self.grid_layout
         # TODO make a test for that
         return res

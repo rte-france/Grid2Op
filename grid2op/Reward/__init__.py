@@ -20,9 +20,9 @@ from grid2op.Reward.BaseReward import BaseReward
 import warnings
 
 
-class TODOReward(BaseReward):
+class Reward(BaseReward):
     def __init__(self, *args, **kwargs):
-        BaseReward.__init__(*args, **kwargs)
+        BaseReward.__init__(self, *args, **kwargs)
         warnings.warn("Reward class has been renamed \"BaseReward\". "
                       "This class Action will be removed in future versions.",
                       category=PendingDeprecationWarning)

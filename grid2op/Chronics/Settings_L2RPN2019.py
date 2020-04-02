@@ -15,6 +15,7 @@ from grid2op.Chronics.ReadPypowNetData import ReadPypowNetData  # imported by an
 
 file_dir = Path(__file__).parent.absolute()
 grid2op_root = file_dir.parent.absolute()
+grid2op_root = str(grid2op_root)
 dat_dir = os.path.abspath(os.path.join(grid2op_root, "data"))
 case_dir = "test_PandaPower"
 grid_file = "L2RPN_2019_grid.json"

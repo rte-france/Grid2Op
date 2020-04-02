@@ -226,7 +226,8 @@ class Runner(object):
                  other_rewards={},
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_init_budget=0):
+                 opponent_init_budget=0,
+                 grid_layout=None):
         """
         Initialize the Runner.
 
@@ -446,6 +447,7 @@ class Runner(object):
         self.opponent_action_class = opponent_action_class
         self.opponent_class = opponent_class
         self.opponent_init_budget = opponent_init_budget
+        self.grid_layout = grid_layout
 
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
@@ -465,6 +467,9 @@ class Runner(object):
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
+
+        if self.grid_layout is not None:
+            res.attach_layout(self.grid_layout)
 
         if self._useclass:
             agent = self.agentClass(res.helper_action_player)

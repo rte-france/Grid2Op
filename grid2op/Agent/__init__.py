@@ -25,7 +25,7 @@ import warnings
 
 class Agent(BaseAgent):
     def __init__(self, *args, **kwargs):
-        BaseAgent.__init__(*args, **kwargs)
+        BaseAgent.__init__(self, *args, **kwargs)
         warnings.warn("Agent class has been renamed \"BaseAgent\". The Agent class will be removed"
                       "in future versions.",
                       category=PendingDeprecationWarning)
