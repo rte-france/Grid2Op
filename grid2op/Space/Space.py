@@ -325,6 +325,18 @@ class GridObjects:
         The layout of the powergrid in a form of a dictionnary with keys the substation name, and value a tuple of
         the coordinate of this substation. If no layout are provided, it defaults to ``None``
 
+    shunts_data_available: ``bool``
+        Whether or not the backend support the shunt data.
+
+    n_shunt: ``int`` or ``None``
+        Number of shunts on the grid. It might be ``None`` if the backend does not support shunts.
+
+    name_shunt: ``numpy.ndarray``, dtype:``str`` or ``None``
+        Name of each shunt on the grid, or ``None`` if the backend does not support shunts.
+
+    shunt_to_subid: :class:`numpy.ndarray`, dtype:int
+        for each shunt (if supported), gives the id the substation to which it is connected
+
     """
     def __init__(self):
         # name of the objects
@@ -371,6 +383,7 @@ class GridObjects:
 
         self._type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
 
+        # redispatch data, not available in all environment
         self.redispatching_unit_commitment_availble = False
         self.gen_type = None
         self.gen_pmin = None
@@ -384,7 +397,14 @@ class GridObjects:
         self.gen_startup_cost = None  # start cost
         self.gen_shutdown_cost = None  # shutdown cost
 
+        # grid layout
         self.grid_layout = None
+
+        # shunt data, not available in every bakend
+        self.shunts_data_available = False
+        self.n_shunt = None
+        self.name_shunt = None
+        self.shunt_to_subid = None
 
     def _raise_error_attr_list_none(self):
         """
@@ -864,12 +884,37 @@ class GridObjects:
 
         if len(self.load_to_subid) != self.n_load:
             raise IncorrectNumberOfLoads()
+        if np.min(self.load_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(self.load_to_subid) > self.n_sub:
+            raise EnvError("Some load is supposed to be connected to substations with id {} which"
+                           "is greater than the number of substations of the grid, which is {}."
+                           "".format(np.max(self.load_to_subid), self.n_sub))
+
         if len(self.gen_to_subid) != self.n_gen:
             raise IncorrectNumberOfGenerators()
+        if np.min(self.gen_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(self.gen_to_subid) > self.n_sub:
+            raise EnvError("Some generator is supposed to be connected to substations with id {} which"
+                           "is greater than the number of substations of the grid, which is {}."
+                           "".format(np.max(self.gen_to_subid), self.n_sub))
         if len(self.line_or_to_subid) != self.n_line:
             raise IncorrectNumberOfLines()
+        if np.min(self.line_or_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(self.line_or_to_subid) > self.n_sub:
+            raise EnvError("Some powerline (or) is supposed to be connected to substations with id {} which"
+                           "is greater than the number of substations of the grid, which is {}."
+                           "".format(np.max(self.line_or_to_subid), self.n_sub))
         if len(self.line_ex_to_subid) != self.n_line:
             raise IncorrectNumberOfLines()
+        if np.min(self.line_ex_to_subid) < 0:
+            raise EnvError("Some shunt is connected to a negative substation id.")
+        if np.max(self.line_ex_to_subid) > self.n_sub:
+            raise EnvError("Some powerline (ex) is supposed to be connected to substations with id {} which"
+                           "is greater than the number of substations of the grid, which is {}."
+                           "".format(np.max(self.line_or_to_subid), self.n_sub))
 
         if len(self.load_to_sub_pos) != self.n_load:
             raise IncorrectNumberOfLoads()
@@ -1056,6 +1101,43 @@ class GridObjects:
             if np.any(self.gen_max_ramp_up[self.gen_redispatchable] > self.gen_pmax[self.gen_redispatchable]):
                 raise InvalidRedispatching("Invalid maximum ramp for some generator (above pmax)")
 
+        if self.shunts_data_available:
+            if self.n_shunt is None:
+                raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"n_shunt\" is not set.")
+            if self.name_shunt is None:
+                raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"name_shunt\" is not set.")
+            if self.shunt_to_subid is None:
+                raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"shunt_to_subid\" is not set.")
+
+            if not isinstance(self.name_shunt, np.ndarray):
+                try:
+                    self.name_shunt = np.array(self.name_shunt)
+                    self.name_shunt = self.name_shunt.astype(np.str)
+                except Exception as e:
+                    raise EnvError("name_shunt should be convertible to a numpy array with dtype \"str\".")
+
+            if not isinstance(self.shunt_to_subid, np.ndarray):
+                try:
+                    self.shunt_to_subid = np.array(self.shunt_to_subid)
+                    self.shunt_to_subid = self.shunt_to_subid.astype(np.int)
+                except Exception as e:
+                    raise EnvError("shunt_to_subid should be convertible to a numpy array with dtype \"int\".")
+
+            if self.name_shunt.shape[0] != self.n_shunt:
+                raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"name_shunt\" has not "
+                                                "\"n_shunt\" elements.")
+            if self.shunt_to_subid.shape[0] != self.n_shunt:
+                raise IncorrectNumberOfElements("Backend is supposed to support shunts, but \"shunt_to_subid\" has not "
+                                                "\"n_shunt\" elements.")
+            if self.n_shunt > 0:
+                # check the substation id only if there are shunt
+                if np.min(self.shunt_to_subid) < 0:
+                    raise EnvError("Some shunt is connected to a negative substation id.")
+                if np.max(self.shunt_to_subid) > self.n_sub:
+                    raise EnvError("Some shunt is supposed to be connected to substations with id {} which"
+                                   "is greater than the number of substations of the grid, which is {}."
+                                   "".format(np.max(self.shunt_to_subid), self.n_sub))
+
     def attach_layout(self, grid_layout):
         """
         grid layout is a dictionnary with the keys the name of the substations, and the value the tuple of coordinates
@@ -1112,7 +1194,7 @@ class GridObjects:
         self.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
         self.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
 
-        # for redispatching / unit commitment
+        # for redispatching / unit commitment (not available for all environment)
         self.gen_type = gridobj.gen_type
         self.gen_pmin = gridobj.gen_pmin
         self.gen_pmax = gridobj.gen_pmax
@@ -1126,7 +1208,14 @@ class GridObjects:
         self.gen_shutdown_cost = gridobj.gen_shutdown_cost
         self.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
 
+        # grid layout (not available for all environment
         self.grid_layout = gridobj.grid_layout
+
+        # shuunts data (not available for all backend)
+        self.shunts_data_available = gridobj.shunts_data_available
+        self.n_shunt = gridobj.n_shunt
+        self.name_shunt = gridobj.name_shunt
+        self.shunt_to_subid = gridobj.shunt_to_subid
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
@@ -1327,10 +1416,19 @@ class GridObjects:
             for nm_attr in self._li_attr_disp:
                 res[nm_attr] = None
 
+        # shunts
         if self.grid_layout is not None:
             save_to_dict(res, self, "grid_layout", lambda gl: {str(k): [float(x), float(y)] for k, (x,y) in gl.items()})
         else:
             res["grid_layout"] = None
+
+        # shunts
+        if self.shunts_data_available:
+            save_to_dict(res, self, "name_shunt", lambda li: [str(el) for el in li])
+            save_to_dict(res, self, "shunt_to_subid", lambda li: [int(el) for el in li])
+        else:
+            res["name_shunt"] = None
+            res["shunt_to_subid"] = None
 
         return res
 
@@ -1390,5 +1488,12 @@ class GridObjects:
                 res.__dict__[nm_attr] = extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr))
 
         res.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
+
+        res.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)
+        if res.name_shunt is not None:
+            res.shunts_data_available = True
+            res.n_shunt = len(res.name_shunt)
+            res.name_shunt = np.array(res.name_shunt).astype(str)
+            res.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(np.int))
 
         return res

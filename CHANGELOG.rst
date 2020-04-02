@@ -1,7 +1,7 @@
 Change Log
 ===========
 
-[0.6.0] - 2020-xx-yy
+[0.6.1] - 2020-xx-yy
 --------------------
 TODO for next versions
 
@@ -23,7 +23,7 @@ TODO for next versions
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-[0.6.0] - 2020-04-??
+[0.6.0] - 2020-04-03
 ---------------------
 - [BREAKING] `grid2op.GameRules` module renamed to `grid2op.RulesChecker`
 - [BREAKING] `grid2op.Converters` module renamed `grid2op.Converter`

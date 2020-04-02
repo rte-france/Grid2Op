@@ -329,6 +329,17 @@ class PandaPowerBackend(Backend):
         self.a_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
         self._nb_bus_before = None
 
+        # shunts data
+        self.n_shunt = self._grid.shunt.shape[0]
+        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=np.int) -1
+        name_shunt = []
+        for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
+            bus = int(row["bus"])
+            name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
+            self.shunt_to_subid[i] = bus
+        self.name_shunt = np.array(name_shunt)
+        self.shunts_data_available = True
+
     def apply_action(self, action: BaseAction):
         """
         Specific implementation of the method to apply an action modifying a powergrid in the pandapower format.
@@ -339,7 +350,7 @@ class PandaPowerBackend(Backend):
                                      "\"{}\"".format(action.__class__))
 
         # change the _injection if needed
-        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching = action()
+        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
 
         for k in dict_injection:
             if k in self._vars_action_set:

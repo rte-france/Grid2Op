@@ -265,6 +265,11 @@ class BaseAction(GridObjects):
         self._hazards = None
         self._maintenance = None
 
+        # shunt data (not available in all backends)
+        self.shunt_p = None
+        self.shunt_q = None
+        self.shunt_bus = None
+
         self.reset()
 
         # decomposition of the BaseAction into homogeneous sub-spaces
@@ -441,7 +446,25 @@ class BaseAction(GridObjects):
         if not np.all(self._change_bus_vect == other._change_bus_vect):
             return False
 
-        # objects are the same
+        # shunts are the same
+        if self.shunts_data_available:
+            if self.n_shunt != other.n_shunt:
+                return False
+            is_ok_me = np.isfinite(self.shunt_p)
+            is_ok_ot = np.isfinite(other.shunt_p)
+            if np.any(is_ok_me != is_ok_ot):
+                return False
+            if not np.all(self.shunt_p[is_ok_me] == other.shunt_p[is_ok_ot]):
+                return False
+            is_ok_me = np.isfinite(self.shunt_q)
+            is_ok_ot = np.isfinite(other.shunt_q)
+            if np.any(is_ok_me != is_ok_ot):
+                return False
+            if not np.all(self.shunt_q[is_ok_me] == other.shunt_q[is_ok_ot]):
+                return False
+            if not np.all(self.shunt_bus == other.shunt_bus):
+                return False
+
         return True
 
     def get_topological_impact(self, powerline_status=None):
@@ -556,6 +579,12 @@ class BaseAction(GridObjects):
         self._lines_impacted = None
         self._subs_impacted = None
 
+        # shunts
+        if self.shunts_data_available:
+            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=np.float)
+            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=np.float)
+            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=np.int)
+
     def __iadd__(self, other):
         """
         Add an action to this one.
@@ -629,6 +658,21 @@ class BaseAction(GridObjects):
         me_change[other_set != 0] = False
         self._set_topo_vect = me_set
         self._change_bus_vect = me_change
+
+        # shunts
+        if self.shunts_data_available:
+            val = other.shunt_p
+            ok_ind = np.isfinite(val)
+            self.shunt_p[ok_ind] = val[ok_ind]
+
+            val = other.shunt_q
+            ok_ind = np.isfinite(val)
+            self.shunt_q[ok_ind] = val[ok_ind]
+
+            val = other.shunt_bus
+            ok_ind = val != 0
+            self.shunt_bus[ok_ind] = val[ok_ind]
+
         return self
 
     def __call__(self):
@@ -665,6 +709,11 @@ class BaseAction(GridObjects):
             This array, that has the same size as the number of generators indicates for each generator the amount of
             redispatching performed by the action.
 
+        shunts: ``dict``
+            A dictionnary containing the shunts data, with keys: "shunt_p", "shunt_q" and "shunt_bus" and the
+            convention, for "shun_p" and "shunt_q" that Nan means "don't change" and for shunt_bus: -1 => disconnect
+            0 don't change, and 1 / 2 connect to bus 1 / 2
+
         Raises
         -------
         :class:`grid2op.Exceptions.AmbiguousAction`
@@ -680,8 +729,41 @@ class BaseAction(GridObjects):
         set_topo_vect = self._set_topo_vect
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
+        shunts = {}
+        if self.shunts_data_available:
+            shunts["shunt_p"] = self.shunt_p
+            shunts["shunt_q"] = self.shunt_q
+            shunts["shunt_bus"] = self.shunt_bus
+        return dict_inj, set_line_status, switch_line_status, set_topo_vect, change_bus_vect, redispatch, shunts
 
-        return dict_inj, set_line_status, switch_line_status, set_topo_vect, change_bus_vect, redispatch
+    def _digest_shunt(self, dict_):
+        if not self.shunts_data_available:
+            return
+        if "shunt" in dict_:
+            ddict_ = dict_["shunt"]
+            key_shunt_reco = {"set_bus", "shunt_p", "shunt_q"}
+            for k in ddict_:
+                if k not in key_shunt_reco:
+                    warn = "The key {} is not recognized by BaseAction when trying to modify the shunt.".format(k)
+                    warn += " Recognized keys are {}".format(sorted(key_shunt_reco))
+                    warnings.warn(warn)
+
+            for key_n, vect_self in zip(["set_bus", "shunt_p", "shunt_q"],
+                                        self.shunt_bus, self.shunt_p, self.shunt_q):
+                if key_n in ddict_:
+                    tmp = ddict_[key_n]
+                    if isinstance(tmp, np.ndarray):
+                        # complete shunt vector is provided
+                        vect_self[:] = tmp
+                    elif isinstance(tmp, list):
+                        # expected a list: (id shunt, new bus)
+                        for (sh_id, new_bus) in tmp:
+                            vect_self[sh_id] = new_bus
+                    elif tmp is None:
+                        pass
+                    else:
+                        raise AmbiguousAction("Invalid way to modify {} for shunts. It should be a numpy array or a "
+                                               "dictionnary.".format(key_n))
 
     def _digest_injection(self, dict_):
         # I update the action
@@ -1130,6 +1212,7 @@ class BaseAction(GridObjects):
                     warn = warn.format(kk, self.authorized_keys)
                     warnings.warn(warn)
 
+            self._digest_shunt(dict_)
             self._digest_injection(dict_)
             self._digest_redispatching(dict_)
             self._digest_setbus(dict_)
@@ -1322,6 +1405,27 @@ class BaseAction(GridObjects):
         if np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[self._set_line_status == 1]]):
             raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to which "
                                     "it is connected. This is ambiguous. You must *set* this bus instead.")
+
+        if self.shunts_data_available:
+            if self.shunt_p.shape[0] != self.n_shunt:
+                raise IncorrectNumberOfElements("Incorrect number of shunt (for shunt_p) in your action.")
+            if self.shunt_q.shape[0] != self.n_shunt:
+                raise IncorrectNumberOfElements("Incorrect number of shunt (for shunt_q) in your action.")
+            if self.shunt_bus.shape[0] != self.n_shunt:
+                raise IncorrectNumberOfElements("Incorrect number of shunt (for shunt_bus) in your action.")
+            if self.n_shunt > 0:
+                if np.max(self.shunt_bus) > 2:
+                    raise AmbiguousAction("Some shunt is connected to a bus greater than 2")
+                if np.min(self.shunt_bus) < -1:
+                    raise AmbiguousAction("Some shunt is connected to a bus smaller than -1")
+        else:
+            # shunt is not available
+            if self.shunt_p is not None:
+                raise AmbiguousAction("Attempt to modify a shunt (shunt_p) while shunt data is not handled by backend")
+            if self.shunt_q is not None:
+                raise AmbiguousAction("Attempt to modify a shunt (shunt_q) while shunt data is not handled by backend")
+            if self.shunt_bus is not None:
+                raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled by backend")
 
     def sample(self, space_prng):
         """
