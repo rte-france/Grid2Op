@@ -49,7 +49,7 @@ import pdb
 from abc import ABC, abstractmethod
 
 from grid2op.Space import GridObjects
-from grid2op.Action import ActionSpace, Action, TopologyAction
+from grid2op.Action import ActionSpace, Action, TopologyAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, Observation
 from grid2op.Reward import FlatReward, RewardHelper, Reward
@@ -60,7 +60,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.Plot import PlotPyGame
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Environment.BasicEnv import _BasicEnv
-
+from grid2op.Opponent import BaseOpponent
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
 
@@ -201,7 +201,10 @@ class Environment(_BasicEnv):
                  other_rewards={},
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
-                 tol_poly=1e-6
+                 tol_poly=1e-6,
+                 opponent_action_class=DontAct,
+                 opponent_class=BaseOpponent,
+                 opponent_init_budget=0
                  ):
         """
         Initialize the environment. See the descirption of :class:`grid2op.Environment.Environment` for more information.
@@ -240,6 +243,11 @@ class Environment(_BasicEnv):
         self.viewer = None
         self.metadata = None
         self.spec = None
+
+        # for opponent (should be defined here) after the initialization of _BasicEnv
+        self.opponent_action_class = opponent_action_class
+        self.opponent_class = opponent_class
+        self.opponent_init_budget = opponent_init_budget
 
         # for plotting
         self.graph_layout = None
@@ -323,8 +331,8 @@ class Environment(_BasicEnv):
 
         # action affecting the grid that will be made by the agent
         self.helper_action_player = ActionSpace(gridobj=self.backend,
-                                                 actionClass=actionClass,
-                                                 legal_action=self.game_rules.legal_action)
+                                                actionClass=actionClass,
+                                                legal_action=self.game_rules.legal_action)
 
         # action that affect the grid made by the environment.
         self.helper_action_env = ActionSpace(gridobj=self.backend,
@@ -364,6 +372,13 @@ class Environment(_BasicEnv):
         self.voltage_controler = self.voltagecontrolerClass(gridobj=self.backend,
                                                             controler_backend=self.backend)
 
+        # create the opponent
+        # At least the 3 following attributes should be set before calling _create_opponent
+        # self.opponent_action_class
+        # self.opponent_class
+        # self.opponent_init_budget
+        self._create_opponent()
+
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
         self._reset_maintenance()
@@ -386,6 +401,8 @@ class Environment(_BasicEnv):
 
         self.current_reward = self.reward_range[0]
         self.done = False
+
+        # reset everything to be consistent
         self._reset_vectors_and_timings()
 
     def _voltage_control(self, agent_action, prod_v_chronics):
@@ -585,6 +602,8 @@ class Environment(_BasicEnv):
             self.viewer.reset(self)
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()
+        # reset the opponent
+        self.oppSpace.reset()
         return self.get_obs()
 
     def render(self, mode='human'):
@@ -671,6 +690,9 @@ class Environment(_BasicEnv):
         res["thermal_limit_a"] = self._thermal_limit_a
         res["voltagecontrolerClass"] = self.voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
+        res["opponent_action_class"] = self.opponent_action_class
+        res["opponent_class"] = self.opponent_class
+        res["opponent_init_budget"] = self.opponent_init_budget
         return res
 
     def get_params_for_runner(self):
@@ -716,6 +738,9 @@ class Environment(_BasicEnv):
         res["thermal_limit_a"] = self._thermal_limit_a
         res["voltageControlerClass"] = self.voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
+        res["opponent_action_class"] = self.opponent_action_class
+        res["opponent_class"] = self.opponent_class
+        res["opponent_init_budget"] = self.opponent_init_budget
 
         # TODO make a test for that
         return res

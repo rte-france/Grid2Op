@@ -19,7 +19,7 @@ import json
 import pdb
 
 # from grid2op.Action import HelperAction, Action, TopologyAction
-from grid2op.Action import Action, TopologyAction
+from grid2op.Action import Action, TopologyAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, Observation
 from grid2op.Reward import FlatReward, Reward
@@ -32,6 +32,7 @@ from grid2op.Agent import DoNothingAgent, Agent
 from grid2op.EpisodeData import EpisodeData
 from grid2op._utils import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
+from grid2op.Opponent import BaseOpponent
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -222,8 +223,10 @@ class Runner(object):
                  voltageControlerClass=ControlVoltageFromFile,
                  thermal_limit_a=None,
                  max_iter=-1,
-                 other_rewards={}
-                 ):
+                 other_rewards={},
+                 opponent_action_class=DontAct,
+                 opponent_class=BaseOpponent,
+                 opponent_init_budget=0):
         """
         Initialize the Runner.
 
@@ -427,6 +430,23 @@ class Runner(object):
         self.voltageControlerClass = voltageControlerClass
         self._other_rewards = other_rewards
 
+        # for opponent (should be defined here) after the initialization of _BasicEnv
+        if not issubclass(opponent_action_class, Action):
+            raise EnvError("Impossible to make an environment with an opponent action class not derived from Action")
+        try:
+            self.opponent_init_budget = float(opponent_init_budget)
+        except Exception as e:
+            raise EnvError("Impossible to convert \"opponent_init_budget\" to a float with error {}".format(e))
+        if self.opponent_init_budget < 0.:
+            raise EnvError("If you want to deactive the opponent, please don't set its budget to a negative number."
+                           "Prefer the use of the DontAct action type (\"opponent_action_class=DontAct\" "
+                           "and / or set its budget to 0.")
+        if not issubclass(opponent_class, BaseOpponent):
+            raise EnvError("Impossible to make an opponent with a type that does not inherit from BaseOpponent.")
+        self.opponent_action_class = opponent_action_class
+        self.opponent_class = opponent_class
+        self.opponent_init_budget = opponent_init_budget
+
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
                             chronics_handler=chronics_handler,
@@ -438,7 +458,10 @@ class Runner(object):
                             rewardClass=self.rewardClass,
                             legalActClass=self.legalActClass,
                             voltagecontrolerClass=self.voltageControlerClass,
-                            other_rewards=self._other_rewards)
+                            other_rewards=self._other_rewards,
+                            opponent_action_class=self.opponent_action_class,
+                            opponent_class=self.opponent_class,
+                            opponent_init_budget=self.opponent_init_budget)
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)

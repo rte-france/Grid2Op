@@ -9,9 +9,10 @@ from grid2op.Environment.BasicEnv import _BasicEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import GameRules, LegalAction
 from grid2op.Action import Action
+from grid2op.Exceptions import Grid2OpException
 
 
-class ObsCH(ChangeNothing):
+class _ObsCH(ChangeNothing):
     """
     This class is reserved to internal use. Do not attempt to do anything with it.
     """
@@ -38,7 +39,7 @@ class ObsEnv(_BasicEnv):
         self._action = None
         self.init_grid(backend_instanciated)
         self.init_backend(init_grid_path=None,
-                          chronics_handler=ObsCH(),
+                          chronics_handler=_ObsCH(),
                           backend=backend_instanciated,
                           names_chronics_to_backend=None,
                           actionClass=action_helper.actionClass,
@@ -93,6 +94,7 @@ class ObsEnv(_BasicEnv):
         self.legalActClass = legalActClass
         self.helper_action_player = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
+        self._create_opponent()
 
     def _do_nothing(self):
         return self.donothing_act
@@ -210,14 +212,6 @@ class ObsEnv(_BasicEnv):
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self.backend.apply_action(self._action)
         return self.step(action)
-        # return self.current_obs, reward, has_error, {}
-
-    # def _get_reward(self, action, has_error, is_done,is_illegal, is_ambiguous):
-    #    if has_error:
-    #        res = self.reward_helper.range()[0]
-    #    else:
-    #        res = self.reward_helper(action, self, has_error, is_done, is_illegal, is_ambiguous)
-    #    return res
 
     def get_obs(self):
         """

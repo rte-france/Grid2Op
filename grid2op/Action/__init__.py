@@ -5,7 +5,8 @@ __all__ = [
     "SerializableActionSpace",
     "TopoAndRedispAction",
     "TopologyAction",
-    "VoltageOnlyAction"
+    "VoltageOnlyAction",
+    'DontAct'
 ]
 
 from grid2op.Action.Action import Action
@@ -15,6 +16,7 @@ from grid2op.Action.SerializableActionSpace import SerializableActionSpace
 from grid2op.Action.TopoAndRedispAction import TopoAndRedispAction
 from grid2op.Action.TopologyAction import TopologyAction
 from grid2op.Action.VoltageOnlyAction import VoltageOnlyAction
+from grid2op.Action.DontAct import DontAct
 import warnings
 
 

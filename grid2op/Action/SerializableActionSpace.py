@@ -8,6 +8,7 @@ from grid2op.Exceptions import *
 from grid2op.Space import SerializableSpace, GridObjects
 from grid2op.Action.Action import Action
 
+
 class SerializableActionSpace(SerializableSpace):
     """
     This class allows serializing/ deserializing the action space.
