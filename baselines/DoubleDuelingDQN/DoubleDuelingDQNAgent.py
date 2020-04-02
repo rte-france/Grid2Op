@@ -60,17 +60,14 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         # Compute dimensions from intial state
         self.observation_size = self.state.shape[0]
         self.action_size = action_space.size()
-        self.num_action = action_space.n
 
         # Load network graph
         self.Qmain = DoubleDuelingDQN(self.action_size,
-                                      self.num_action,
                                       self.observation_size,
                                       num_frames = self.num_frames,
                                       learning_rate = self.lr)
         if self.is_training:
             self.Qtarget = DoubleDuelingDQN(self.action_size,
-                                            self.num_action,
                                             self.observation_size,
                                             num_frames = self.num_frames,
                                             learning_rate = self.lr)
@@ -217,7 +214,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
     def _batch_train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, step):
         """Trains network to fit given parameters"""
-        Q = np.zeros((self.batch_size, self.num_action))
+        Q = np.zeros((self.batch_size, self.action_size))
 
         # Reshape frames to 1D
         input_size = self.observation_size * self.num_frames

@@ -11,12 +11,11 @@ import tensorflow.keras.activations as tfka
 class DoubleDuelingDQN(object):
     """Constructs the desired deep q learning network"""
     def __init__(self,
-                 action_size, num_action,
+                 action_size,
                  observation_size,                 
                  num_frames = 1,
                  learning_rate = 1e-5):
         self.action_size = action_size
-        self.num_action = num_action
         self.observation_size = observation_size
         self.lr = learning_rate
         self.num_frames = num_frames
@@ -30,17 +29,17 @@ class DoubleDuelingDQN(object):
         lay2 = tfkl.Dense(self.observation_size)(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
         
-        lay3 = tfkl.Dense(4*self.num_action)(lay2)
+        lay3 = tfkl.Dense(4*self.action_size)(lay2)
         lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
-        lay4 = tfkl.Dense(2*self.num_action)(lay3)
+        lay4 = tfkl.Dense(2*self.action_size)(lay3)
         lay4 = tfka.relu(lay4, alpha=0.01) #leaky_relu
 
-        advantage = tfkl.Dense(2*self.num_action)(lay4)
+        advantage = tfkl.Dense(2*self.action_size)(lay4)
         advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
-        advantage = tfkl.Dense(self.num_action)(advantage)
+        advantage = tfkl.Dense(self.action_size)(advantage)
 
-        value = tfkl.Dense(2*self.num_action)(lay4)
+        value = tfkl.Dense(2*self.action_size)(lay4)
         value = tfka.relu(value, alpha=0.01) #leaky_relu
         value = tfkl.Dense(1)(value)
 
@@ -52,7 +51,7 @@ class DoubleDuelingDQN(object):
         self.model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))
 
     def random_move(self):
-        opt_policy = np.random.randint(0, self.num_action)
+        opt_policy = np.random.randint(0, self.action_size)
 
         return opt_policy
         
