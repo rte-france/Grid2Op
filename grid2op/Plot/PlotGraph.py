@@ -31,14 +31,22 @@ class BasePlot(GridObjects):
 
     """
     def __init__(self,
-                 substation_layout,
                  observation_space,
+                 substation_layout=None,
                  radius_sub=20.,
                  load_prod_dist=70.,
                  bus_radius=6.):
+
         if substation_layout is None:
-            raise PlotError("Impossible to use plotting abilities without specifying a layout (coordinates) "
-                                   "of the substations.")
+            if observation_space.grid_layout is None:
+                # if no layout is provided, and observation_space has no layout, then it fails
+                raise PlotError("Impossible to use plotting abilities without specifying a layout (coordinates) "
+                                "of the substations.")
+
+            # if no layout is provided, use the one in the observation_space
+            substation_layout = []
+            for el in observation_space.name_sub:
+                substation_layout.append(observation_space.grid_layout[el])
 
         if len(substation_layout) != observation_space.n_sub:
             raise PlotError("You provided a layout with {} elements while there are {} substations on the powergrid. "

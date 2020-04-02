@@ -247,7 +247,6 @@ class Environment(_BasicEnv):
         self.opponent_init_budget = opponent_init_budget
 
         # for plotting
-        self.graph_layout = None
         self.init_backend(init_grid_path, chronics_handler, backend,
                           names_chronics_to_backend, actionClass, observationClass,
                           rewardClass, legalActClass)
@@ -282,9 +281,12 @@ class Environment(_BasicEnv):
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
 
         self.backend.load_redispacthing_data(os.path.split(self.init_grid_path)[0])
+        self.backend.load_grid_layout(os.path.split(self.init_grid_path)[0])
+
         self.backend.assert_grid_correct()
         self.init_grid(backend)
-        self._has_been_initialized()
+        self._has_been_initialized()  # really important to include this piece of code!
+
         if self._thermal_limit_a is None:
             self._thermal_limit_a = self.backend.thermal_limit_a
         else:

@@ -43,6 +43,9 @@ class BaseVoltageController(ABC):
                                         legal_action=legal_act)
         self.backend = controler_backend.copy()
 
+    def attach_layout(self, grid_layout):
+        self.action_space.attach_layout(grid_layout)
+
     @abstractmethod
     def fix_voltage(self, observation, agent_action, env_action, prod_v_chronics):
         """
