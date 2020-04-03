@@ -397,7 +397,28 @@ class PandaPowerBackend(Backend):
             # print('after tmp[ok_ind]: {}'.format(self._get_vector_inj["prod_p"](self._grid)))
 
         # shunts
-        
+        if shunts:
+            arr_ = shunts["shunt_p"]
+            is_ok = np.isfinite(arr_)
+            self._grid.shunt["p_mw"][is_ok] = arr_[is_ok]
+            arr_ = shunts["shunt_q"]
+            is_ok = np.isfinite(arr_)
+            self._grid.shunt["q_mvar"][is_ok] = arr_[is_ok]
+
+            arr_ = shunts["shunt_bus"]
+            ## turn off turned off shunt
+            turned_off = arr_ == -1
+            self._grid.shunt["in_service"][turned_off] = False
+            ## turn on turned on shunt
+            turned_on = arr_ >= 1
+            self._grid.shunt["in_service"][turned_on] = True
+
+            ## assign proper buses (1 = subid, 2 = subid + n_sub)
+            is_ok = arr_ > 0
+            bus_shunt = self.shunt_to_subid[is_ok]
+            bus_shunt[(arr_ == 2)[is_ok]] += self.n_sub
+            self._grid.shunt["bus"][is_ok] = bus_shunt
+
         # topology
         # run through all substations, find the topology. If it has changed, then update it.
         beg_ = 0

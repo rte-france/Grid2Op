@@ -275,7 +275,12 @@ class BaseAction(GridObjects):
         # decomposition of the BaseAction into homogeneous sub-spaces
         self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                                "_set_line_status", "_switch_line_status",
-                               "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance"]
+                               "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
+                               ]
+
+        if self.shunts_data_available:
+            self.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            self.authorized_keys.add("shunt")
 
         self._single_act = True
 
@@ -741,15 +746,16 @@ class BaseAction(GridObjects):
             return
         if "shunt" in dict_:
             ddict_ = dict_["shunt"]
-            key_shunt_reco = {"set_bus", "shunt_p", "shunt_q"}
+
+            key_shunt_reco = {"set_bus", "shunt_p", "shunt_q", "shunt_bus"}
             for k in ddict_:
                 if k not in key_shunt_reco:
                     warn = "The key {} is not recognized by BaseAction when trying to modify the shunt.".format(k)
                     warn += " Recognized keys are {}".format(sorted(key_shunt_reco))
                     warnings.warn(warn)
 
-            for key_n, vect_self in zip(["set_bus", "shunt_p", "shunt_q"],
-                                        self.shunt_bus, self.shunt_p, self.shunt_q):
+            for key_n, vect_self in zip(["shunt_bus", "shunt_p", "shunt_q", "set_bus"],
+                                        [self.shunt_bus, self.shunt_p, self.shunt_q, self.shunt_bus]):
                 if key_n in ddict_:
                     tmp = ddict_[key_n]
                     if isinstance(tmp, np.ndarray):
@@ -758,7 +764,13 @@ class BaseAction(GridObjects):
                     elif isinstance(tmp, list):
                         # expected a list: (id shunt, new bus)
                         for (sh_id, new_bus) in tmp:
+                            if sh_id < 0:
+                                raise AmbiguousAction("Invalid shunt id {}. Shunt id should be positive".format(sh_id))
+                            if sh_id >= self.n_shunt:
+                                raise AmbiguousAction("Invalid shunt id {}. Shunt id should be less than the number "
+                                                      "of shunt {}".format(sh_id, self.n_shunt))
                             vect_self[sh_id] = new_bus
+
                     elif tmp is None:
                         pass
                     else:
