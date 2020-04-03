@@ -38,7 +38,7 @@ if __name__ == "__main__":
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     # Create dataset env
-    env = make2(args.path_data, reward_class=RedispReward)
+    env = make2(args.path_data, reward_class=RedispReward, action_class=CustomAction)
 
     # Create agent
     agent = DDDQNAgent(env, env.action_space, is_training=False, num_frames=4)

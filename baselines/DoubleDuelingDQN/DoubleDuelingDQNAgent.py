@@ -59,7 +59,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self._reset_frame_buffer()
         # Compute dimensions from intial state
         self.observation_size = self.state.shape[0]
-        self.action_size = action_space.size()
+        self.action_size = self.action_space.size()
 
         # Load network graph
         self.Qmain = DoubleDuelingDQN(self.action_size,
