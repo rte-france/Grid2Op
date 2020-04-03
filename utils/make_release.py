@@ -57,7 +57,7 @@ if __name__ == "__main__":
     old_version = re.sub("version=", "", old_version)
     old_version = re.sub("'", "", old_version)
     old_version = re.sub('"', "", old_version)
-    if version <= old_version:
+    if version < old_version:
         raise RuntimeError("You provided the \"new\" version \"{}\" which is older (or equal) to the current version "
                            "found: \"{}\".".format(version, old_version))
 
