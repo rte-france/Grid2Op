@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import setuptools
 from setuptools import setup
 
 pkgs = {
