@@ -71,7 +71,7 @@ def print_actions(agent):
             "line_disconnect": prune_impact_count(impact["force_line"]["disconnections"], "count"),
             "connect_bus": prune_impact_array(impact["topology"], "assigned_bus"),
             "disconnect_bus": prune_impact_array(impact["topology"], "disconnect_bus"),
-            "switch_line": prune_impact_bool(impact["switch_line"], "changed"),
+            "switch_line": prune_impact_array(impact["switch_line"], "powerlines"),
             "switch_bus": prune_impact_array(impact["topology"], "bus_switch"),
             "redispatch": prune_impact_array(impact["redispatch"], "generators")
         }
