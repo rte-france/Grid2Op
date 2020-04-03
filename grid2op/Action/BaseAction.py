@@ -1521,9 +1521,14 @@ class BaseAction(GridObjects):
                 res.append("\t - set {} to {}".format(change['set'], change['to']))
         else:
             res.append("\t - NOT change anything to the injections")
-        
+
+        # redispatch
         if np.any(self._redispatch != 0.):
-            res.append("\t - perform the following redispatching action: {}".format(self._redispatch))
+            for gen_idx in range(self.n_gen):
+                if self._redispatch[gen_idx] != 0.0:
+                    gen_name = self.name_gen[gen_idx]
+                    r_amount = self._redispatch[gen_idx]
+                    res.append("\t - Redispatch {} of {}".format(gen_name, r_amount))
         else:
             res.append("\t - NOT perform any redispatching action")
 
@@ -1590,8 +1595,6 @@ class BaseAction(GridObjects):
             The dictionary representation of an action impact on objects
 
         """
-        # TODO: include redispatching 
-         
         # handles actions on injections
         has_impact = False
 
@@ -1682,12 +1685,31 @@ class BaseAction(GridObjects):
             topology['changed'] = True
             has_impact = True
 
+        # handle redispatching
+        redispatch = {
+            "changed": False,
+            "generators": []
+        }
+        if np.any(self._redispatch != 0.0):
+            for gen_idx in range(self.n_gen):
+                if self._redispatch[gen_idx] != 0.0:
+                    gen_name = self.name_gen[gen_idx]
+                    r_amount = self._redispatch[gen_idx]
+                    redispatch["generators"].append({
+                        "gen_id": gen_idx,
+                        "gen_name": gen_name,
+                        "amount": r_amount
+                    })
+            redispatch["changed"] = True
+            has_impact = True
+
         return {
             'has_impact': has_impact,
             'injection': inject_detail,
             'force_line': force_line_status,
             'switch_line': switch_line_status,
-            'topology': topology
+            'topology': topology,
+            'redispatch': redispatch
         }
 
     def as_dict(self):

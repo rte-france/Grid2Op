@@ -431,3 +431,31 @@ class SerializableActionSpace(SerializableSpace):
                 res += tmp
 
         return res
+
+    @staticmethod
+    def get_all_unitary_redispatch(action_space):
+        res =  []
+        n_gen = len(action_space.gen_redispatchable)
+
+        for gen_idx in range(n_gen):
+            # Skip non-dispatchable generators
+            if not action_space.gen_redispatchable[gen_idx]:
+                continue
+
+            # Create evenly spaced positive interval
+            ramps_up = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=5)
+            ramps_up = ramps_up[1:] # Exclude redispatch of 0MW
+
+            # Create evenly spaced negative interval
+            ramps_down = np.linspace(-action_space.gen_max_ramp_down[gen_idx], 0.0, num=5)
+            ramps_down = ramps_down[:-1] # Exclude redispatch of 0MW
+
+            # Merge intervals
+            ramps = np.append(ramps_up, ramps_down)
+
+            # Create ramp up actions
+            for ramp in ramps:
+                action = action_space({"redispatch": [(gen_idx, ramp)]})
+                res.append(action)
+
+        return res
