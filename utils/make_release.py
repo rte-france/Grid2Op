@@ -14,10 +14,10 @@ import subprocess
 import time
 
 
-def start_subprocess_print(li, sleepbefore=2):
+def start_subprocess_print(li, sleepbefore=2, cwd=None):
     print("Will execute command after {}s: \n\t{}".format(sleepbefore, " ".join(li)))
     time.sleep(sleepbefore)
-    subprocess.run(li)
+    subprocess.run(li, cwd=cwd)
 
 
 if __name__ == "__main__":
@@ -121,7 +121,5 @@ if __name__ == "__main__":
     
     # Create new docker containers
     for vers_ in [version, "latest"]:
-        pass
-        # start_subprocess_print(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
-        # start_subprocess_print(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
-    
+        start_subprocess_print(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
+        start_subprocess_print(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
