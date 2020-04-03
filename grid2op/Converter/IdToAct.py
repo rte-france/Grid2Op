@@ -79,23 +79,15 @@ class IdToAct(Converter):
             self.all_actions.append(super().__call__())
 
             if "_set_line_status" in self._template_act.attr_list_vect:
-                # powerline switch: disconnection
-                for i in range(self.n_line):
-                    self.all_actions.append(self.disconnect_powerline(line_id=i))
+                # lines 'set'
+                self.all_actions += self.get_all_unitary_line_set(self)
 
-                # powerline switch: reconnection
-                for bus_or in [1, 2]:
-                    for bus_ex in [1, 2]:
-                        for i in range(self.n_line):
-                            tmp_act = self.reconnect_powerline(line_id=i, bus_ex=bus_ex, bus_or=bus_or)
-                            self.all_actions.append(tmp_act)
-            elif "_switch_line_status" in self._template_act.attr_list_vect:
-                warnings.warn("\"_set_line_status\" is not possible, but \"_switch_line_status\" is. However this"
-                              "behaviour is not supported at the moment.")
-                # TODO support that above ^
+            if "_switch_line_status" in self._template_act.attr_list_vect:
+                # lines 'change'
+                self.all_actions += self.get_all_unitary_line_change(self)
 
             if "_set_topo_vect" in self._template_act.attr_list_vect:
-                # topologies using the 'set' method
+                # topologies 'set'
                 self.all_actions += self.get_all_unitary_topologies_set(self)
 
             if "_change_bus_vect" in self._template_act.attr_list_vect:
