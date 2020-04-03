@@ -92,9 +92,13 @@ class IdToAct(Converter):
             if "_set_topo_vect" in self._template_act.attr_list_vect:
                 # topologies using the 'set' method
                 self.all_actions += self.get_all_unitary_topologies_set(self)
-            elif "_change_bus_vect" in self._template_act.attr_list_vect:
+
+            if "_change_bus_vect" in self._template_act.attr_list_vect:
                 # topologies 'change'
                 self.all_actions += self.get_all_unitary_topologies_change(self)
+
+            if "_redispatch" in self._template_act.attr_list_vect:
+                self.all_actions += self.get_all_unitary_redispatch(self)
         else:
             self.all_actions = all_actions
         self.n = len(self.all_actions)
