@@ -358,6 +358,7 @@ class Runner(object):
                                "Please modify \"backendClass\" parameter.")
         self.backendClass = backendClass
 
+        self.__can_copy_agent = True
         if agentClass is not None:
             if agentInstance is not None:
                 raise RuntimeError("Impossible to build the backend. Only one of AgentClass or agentInstance can be "
@@ -380,6 +381,11 @@ class Runner(object):
             self.agentClass = None
             self._useclass = False
             self.agent = agentInstance
+            # Test if we can copy the agent for parallel runs
+            try:
+                copy.copy(self.agent)
+            except:
+                self.__can_copy_agent = False
         else:
             raise RuntimeError("Impossible to build the backend. Either AgentClass or agentInstance must be provided "
                                "and both are None.")
@@ -474,7 +480,10 @@ class Runner(object):
         if self._useclass:
             agent = self.agentClass(res.helper_action_player)
         else:
-            agent = self.agent
+            if self.__can_copy_agent:
+                agent = copy.copy(self.agent)
+            else:
+                agent = self.agent
         return res, agent
 
     def init_env(self):
@@ -543,6 +552,8 @@ class Runner(object):
         env.chronics_handler.tell_id(indx-1)
         # the "-1" above is because the environment will be reset. So it will increase id of 1.
         obs = env.reset()
+        # reset the agent
+        agent.reset()
 
         # compute the size and everything if it needs to be stored
         nb_timestep_max = env.chronics_handler.max_timestep()
@@ -734,6 +745,8 @@ class Runner(object):
         """
         This method will run in parrallel, independantly the nb_episode over nb_process.
 
+        In case the agent cannot be cloned using `copy.copy`: nb_process is set to 1
+
         Note that it restarts completely the :attr:`Runner.backend` and :attr:`Runner.env` if the computation
         is actually performed with more than 1 cores (nb_process > 1)
 
@@ -770,7 +783,7 @@ class Runner(object):
         if nb_process <= 0:
             raise RuntimeError(
                 "Runner: you need at least 1 process to run episodes")
-        if nb_process == 1:
+        if nb_process == 1 or self.__can_copy_agent is False:
             warnings.warn(
                 "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
             return [self.run_sequential(nb_episode, path_save=path_save)]

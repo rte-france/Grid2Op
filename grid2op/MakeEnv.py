@@ -96,7 +96,7 @@ ERR_MSG_KWARGS = {
     " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
     "voltage": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
     " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
-    "chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
+    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
                      "should be dictionnary.",
     "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
@@ -107,6 +107,7 @@ ERR_MSG_KWARGS = {
 }
 NAME_CHRONICS_FOLDER = "chronics"
 NAME_GRID_FILE = "grid.json"
+NAME_GRID_LAYOUT_FILE = "grid_layout.json"
 NAME_CONFIG_FILE = "config.py"
 # TODO read the "ALLOWED_KWARGS" from the key of ERR_MSG
 
@@ -308,6 +309,10 @@ def make2(dataset_path="/", **kwargs):
     grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
     _check_path(grid_path_abs, "Dataset power flow solver configuration")
 
+    # Compute and find grid layout file
+    grid_layout_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_LAYOUT_FILE))
+    _check_path(grid_layout_path_abs, "Dataset grid layout")
+
     # Check provided config overrides are valid
     _check_kwargs(kwargs)
 
@@ -325,8 +330,11 @@ def make2(dataset_path="/", **kwargs):
         raise EnvError("Invalid dataset config file: {}".format(config_path_abs)) from None
 
     # Get graph layout
-    if "graph_layout" not in config_data:
-        raise EnvError("Dataset configuration {} is missing [graph_layout]".format(config_path_abs))
+    try:
+        with open(grid_layout_path_abs) as layout_fp:
+            graph_layout = json.load(layout_fp)
+    except Exception as e:
+        raise EnvError("Dataset {} doesn't have a valid graph layout".format(config_path_abs))
 
     # Get thermal limits
     thermal_limits = None
@@ -335,13 +343,13 @@ def make2(dataset_path="/", **kwargs):
 
     # Get chronics_to_backend
     name_converter = None
-    if "chronics_to_grid" in config_data:
-        name_converter = config_data["chronics_to_grid"]
+    if "names_chronics_to_grid" in config_data:
+        name_converter = config_data["names_chronics_to_grid"]
     if name_converter is None:
         name_converter = {}
     names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
                                                  defaultClassApp=dict, defaultinstance=name_converter,
-                                                 msg_error=ERR_MSG_KWARGS["chronics_to_grid"])
+                                                 msg_error=ERR_MSG_KWARGS["names_chronics_to_grid"])
     # Get default backend class
     backend_class_cfg = PandaPowerBackend
     if "backend_class" in config_data and config_data["backend_class"] is not None:
@@ -486,7 +494,7 @@ def make2(dataset_path="/", **kwargs):
         env.set_thermal_limit(thermal_limits)
 
     # Set graph layout
-    env.graph_layout = config_data["graph_layout"]
+    env.attach_layout(graph_layout)
 
     return env
     

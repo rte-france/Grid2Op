@@ -89,10 +89,12 @@ class ObsEnv(_BasicEnv):
                     type(legalActClass)))
         self.game_rules = RulesChecker(legalActClass=legalActClass)
         self.legalActClass = legalActClass
-        self.helper_action_player = lambda x: self.donothing_act
+        self.helper_action_player = self._do_nothing
         self.backend.set_thermal_limit(self._thermal_limit_a)
-
         self._create_opponent()
+
+    def _do_nothing(self, x):
+        return self.donothing_act
 
     def _update_actions(self):
         """

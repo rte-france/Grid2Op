@@ -29,7 +29,13 @@ pkgs = {
             "Keras==2.3.1",
             "torch==1.4.0",
             "statsmodels==0.11.1",
-            "scikit-learn==0.22.2.post1"
+            "scikit-learn==0.22.2.post1",
+            "numpy==1.18.2",
+            "scipy==1.4.1",
+            "pandas==1.0.3",
+            "pandapower==2.2.2",
+            "tqdm==4.43.0",
+            "pathlib==1.0.1"
         ],
         "docs": [
             "numpydoc>=0.9.2",

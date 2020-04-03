@@ -11,12 +11,11 @@ import tensorflow.keras.activations as tfka
 class DoubleDuelingDQN(object):
     """Constructs the desired deep q learning network"""
     def __init__(self,
-                 action_size, num_action,
+                 action_size,
                  observation_size,                 
                  num_frames = 1,
                  learning_rate = 1e-5):
         self.action_size = action_size
-        self.num_action = num_action
         self.observation_size = observation_size
         self.lr = learning_rate
         self.num_frames = num_frames
@@ -24,36 +23,35 @@ class DoubleDuelingDQN(object):
         self.construct_q_network()
 
     def construct_q_network(self):
-        # Uses the network architecture found in DeepMind paper
-        # The inputs and outputs size have changed
-        # as well as replacing the convolution by dense layers.
-
         input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,))
         lay1 = tfkl.Dense(self.observation_size * self.num_frames)(input_layer)
                 
         lay2 = tfkl.Dense(self.observation_size)(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
         
-        lay3 = tfkl.Dense(4*self.num_action)(lay2)
+        lay3 = tfkl.Dense(4*self.action_size)(lay2)
         lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
-        lay4 = tfkl.Dense(2*self.num_action)(lay3)
+        lay4 = tfkl.Dense(2*self.action_size)(lay3)
+        lay4 = tfka.relu(lay4, alpha=0.01) #leaky_relu
 
-        advantage = tfkl.Dense(self.num_action)(lay4)
-        value = tfkl.Dense(self.num_action)(lay4)
-        
-        advantage_mean = tfk.backend.mean(advantage, axis=1, keepdims=True)
+        advantage = tfkl.Dense(2*self.action_size)(lay4)
+        advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
+        advantage = tfkl.Dense(self.action_size)(advantage)
+
+        value = tfkl.Dense(2*self.action_size)(lay4)
+        value = tfka.relu(value, alpha=0.01) #leaky_relu
+        value = tfkl.Dense(1)(value)
+
+        advantage_mean = tf.math.reduce_mean(advantage, axis=1, keepdims=True)
         advantage = tfkl.subtract([advantage, advantage_mean])
-        Q = tfkl.add([advantage, value])
+        Q = tf.math.add(value, advantage)
 
         self.model = tfk.Model(inputs=[input_layer], outputs=[Q])
         self.model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))
 
-        self.target_model = tfk.Model(inputs=[input_layer], outputs=[Q])
-        self.target_model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))
-
     def random_move(self):
-        opt_policy = np.random.randint(0, self.num_action)
+        opt_policy = np.random.randint(0, self.action_size)
 
         return opt_policy
         
@@ -64,10 +62,10 @@ class DoubleDuelingDQN(object):
 
         return opt_policy, q_actions[0]
 
-    def update_target(self):
-        # Set target network to main network
-        model_weights = self.model.get_weights()
-        self.target_model.set_weights(model_weights)
+    def update_weights(self, other_model):
+        # Set network weights to other network
+        model_weights = other_model.get_weights()
+        self.model.set_weights(model_weights)
 
     def save_network(self, path):
         # Saves model at specified path as h5 file
@@ -78,6 +76,5 @@ class DoubleDuelingDQN(object):
     def load_network(self, path):
         # nothing has changed
         self.model.load_weights(path)
-        self.target_model.load_weights(path)
         print("Succesfully loaded network from: {}".format(path))
 

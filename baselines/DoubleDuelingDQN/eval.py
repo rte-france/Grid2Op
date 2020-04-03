@@ -5,9 +5,10 @@ import tensorflow as tf
 
 from grid2op.MakeEnv import make2
 from grid2op.Runner import Runner
+from grid2op.Reward import RedispReward
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
-from CustomEconomicReward import CustomEconomicReward
+from CustomAction import CustomAction
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -21,6 +22,12 @@ def cli():
     parser.add_argument("--nb_episode", required=False,
                         default=1, type=int,
                         help="Number of episodes to evaluate")
+    parser.add_argument("--nb_process", required=False,
+                        default=1, type=int,
+                        help="Number of cores to use")
+    parser.add_argument("--max_steps", required=False,
+                        default=1000, type=int,
+                        help="Maximum number of steps per scenario")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -31,17 +38,12 @@ if __name__ == "__main__":
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     # Create dataset env
-    env = make2(args.path_data, reward_class=CustomEconomicReward)
+    env = make2(args.path_data, reward_class=RedispReward)
 
-    # Instanciate agent
-    agent = DDDQNAgent(env.action_space, num_frames=4)
-    # Get shapes from env
-    obs = env.reset()
-    state = agent.convert_obs(obs)
-    # Build Model
-    agent.init_deep_q(state)
+    # Create agent
+    agent = DDDQNAgent(env, env.action_space, is_training=False, num_frames=4)
     # Load weights from file
-    agent.deep_q.load_network(args.path_model)
+    agent.load_network(args.path_model)
 
     # Build runner
     runner_params = env.get_params_for_runner()
@@ -52,7 +54,10 @@ if __name__ == "__main__":
     # Run
     res = runner.run(path_save=args.path_logs,
                      nb_episode=args.nb_episode,
-                     max_iter=1000, pbar=True)
+                     nb_process=args.nb_process,
+                     max_iter=args.max_steps,
+                     pbar=True)
+
     # Print summary
     print("Evaluation summary:")
     for _, chron_name, cum_reward, nb_time_step, max_ts in res:
