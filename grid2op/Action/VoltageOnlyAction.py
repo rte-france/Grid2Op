@@ -23,6 +23,9 @@ class VoltageOnlyAction(BaseAction):
         BaseAction.__init__(self, gridobj)
         self.authorized_keys = {"injection"}
         self.attr_list_vect = ["prod_v"]
+        if self.shunts_data_available:
+            self.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            self.authorized_keys.add("shunt")
 
     def _check_dict(self):
         """
@@ -68,5 +71,6 @@ class VoltageOnlyAction(BaseAction):
                     warnings.warn(warn)
 
             self._digest_injection(dict_)
+            self._digest_shunt(dict_)
             self._check_dict()
         return self

@@ -6,9 +6,9 @@ import copy
 import pdb
 import warnings
 
-from grid2op.tests.helper_path_test import *
+from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP
 
-from grid2op.Action import ActionSpace
+from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, ChangeNothing
@@ -22,7 +22,7 @@ PATH_DATA_TEST = PATH_DATA_TEST_PP
 import pandapower as pppp
 
 
-class TestLoadingADN(unittest.TestCase):
+class TestLoadingCase(unittest.TestCase):
     def setUp(self):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
@@ -967,6 +967,32 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
         # this should not lead to a game over this time, the grid is connex!
         obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
         assert done_case2
+
+
+class TestShuntAction(HelperTests):
+    def test_shunt_ambiguous_id_incorrect(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("case5_example", gamerules_class=AlwaysLegal, action_class=CompleteAction) as env_case2:
+                with self.assertRaises(AmbiguousAction):
+                    act = env_case2.action_space({"shunt": {"set_bus": [(0, 2)]}})
+
+    def test_shunt_effect(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_ref = make("case14_realistic", gamerules_class=AlwaysLegal, action_class=CompleteAction)
+            env_change_q = make("case14_realistic", gamerules_class=AlwaysLegal, action_class=CompleteAction)
+
+        obs_ref, *_ = env_ref.step(env_ref.action_space())
+        obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, -30)]}}))
+        assert obs_ref.v_or[10] < obs_change_p.v_or[10]
+        obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, +30)]}}))
+        obs_ref, *_ = env_ref.step(env_ref.action_space())
+        assert obs_ref.v_or[10] > obs_change_p.v_or[10]
+        obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"set_bus": [(0, -1)]}}))
+        env_ref.backend._grid.shunt["in_service"] = False  # force disconnection of shunt
+        obs_ref, *_ = env_ref.step(env_ref.action_space())
+        assert np.abs(obs_ref.v_or[10] - obs_change_p.v_or[10]) < self.tol_one
 
 
 if __name__ == "__main__":

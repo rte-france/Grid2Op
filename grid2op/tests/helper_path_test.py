@@ -20,6 +20,7 @@ PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPowe
 EXAMPLE_CHRONICSPATH = os.path.abspath(os.path.join(data_dir, "5bus_example", "chronics"))
 EXAMPLE_CASEFILE = os.path.abspath(os.path.join(data_dir, "5bus_example", "5bus_example.json"))
 
+
 class HelperTests(unittest.TestCase):
     def __init__(self, methodName='runTest'):
         unittest.TestCase.__init__(self, methodName=methodName)

@@ -238,6 +238,7 @@ class CompleteObservation(BaseObservation):
         -------
         res: ``numpy.ndarray``, shape:dim_topo,dim_topo, dtype:float
             The connectivity matrix, as defined above
+
         """
         if self.connectivity_matrix_ is None:
             self.connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo),dtype=np.float)
