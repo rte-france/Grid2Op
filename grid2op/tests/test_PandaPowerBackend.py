@@ -71,7 +71,6 @@ class TestLoadingADN(unittest.TestCase):
         except Grid2OpException:
             pass
 
-
     def test_assert_grid_correct(self):
         backend = PandaPowerBackend()
         path_matpower = PATH_DATA_TEST

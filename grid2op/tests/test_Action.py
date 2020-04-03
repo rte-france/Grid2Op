@@ -84,7 +84,9 @@ class TestActionBase(ABC):
                     'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
                     'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
                     'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
-                    "grid_layout": None
+                    "grid_layout": None,
+                    "shunt_to_subid": None,
+                    "name_shunt": None
                     }
 
         # self.size_act = 229
@@ -101,6 +103,15 @@ class TestActionBase(ABC):
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
+
+    def test_call(self):
+        action = self.helper_action()
+        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
+
+    def test_compare(self):
+        action = self.helper_action()
+        action2 = self.helper_action()
+        assert action == action2
 
     def test_instanciate_action(self):
         """
@@ -556,7 +567,7 @@ class TestActionBase(ABC):
                                       "injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_line_status": change_status_orig,
                                      "set_line_status": set_status_orig})
-        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching = action()
+        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
         assert "load_p" in dict_injection
         assert np.all(dict_injection["load_p"] == new_vect)
         assert "load_q" in dict_injection

@@ -58,12 +58,14 @@ class TopologyAction(BaseAction):
         redispatch: :class:`numpy.ndarray`, dtype:float
             Thie array is :attr:`BaseAction._redispatch`
 
+        shunts: ``dict``
+            Always empty for this class
         """
         if self._dict_inj:
             raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
         self._check_for_ambiguity()
         return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect,\
-               self._redispatch
+               self._redispatch, {}
 
     def update(self, dict_):
         """
