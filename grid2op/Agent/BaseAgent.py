@@ -36,6 +36,13 @@ class BaseAgent(ABC):
     def __init__(self, action_space):
         self.action_space = action_space
 
+    def reset(self):
+        """
+        This method is called at the beginning of a new episode.
+        It is implemented by agents to reset their internal state if needed.
+        """
+        pass
+
     @abstractmethod
     def act(self, observation, reward, done=False):
         """

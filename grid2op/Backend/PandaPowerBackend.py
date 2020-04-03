@@ -129,6 +129,22 @@ class PandaPowerBackend(Backend):
         """
         return np.sum(self._grid.bus["in_service"])
 
+    @staticmethod
+    def _load_grid_load_p_mw(grid):
+        return grid.load["p_mw"]
+
+    @staticmethod
+    def _load_grid_load_q_mvar(grid):
+        return grid.load["q_mvar"]
+
+    @staticmethod
+    def _load_grid_gen_p_mw(grid):
+        return grid.gen["p_mw"]
+
+    @staticmethod
+    def _load_grid_gen_vm_pu(grid):
+        return grid.gen["vm_pu"]
+
     def load_grid(self, path=None, filename=None):
         """
         Load the _grid, and initialize all the member of the class. Note that in order to perform topological
@@ -298,10 +314,10 @@ class PandaPowerBackend(Backend):
         self._corresp_name_fun = {}
 
         self._get_vector_inj = {}
-        self._get_vector_inj["load_p"] = lambda grid: grid.load["p_mw"]
-        self._get_vector_inj["load_q"] = lambda grid: grid.load["q_mvar"]
-        self._get_vector_inj["prod_p"] = lambda grid: grid.gen["p_mw"]
-        self._get_vector_inj["prod_v"] = lambda grid: grid.gen["vm_pu"]
+        self._get_vector_inj["load_p"] = self._load_grid_load_p_mw #lambda grid: grid.load["p_mw"]
+        self._get_vector_inj["load_q"] = self._load_grid_load_q_mvar #lambda grid: grid.load["q_mvar"]
+        self._get_vector_inj["prod_p"] = self._load_grid_gen_p_mw #lambda grid: grid.gen["p_mw"]
+        self._get_vector_inj["prod_v"] = self._load_grid_gen_vm_pu #lambda grid: grid.gen["vm_pu"]
 
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)

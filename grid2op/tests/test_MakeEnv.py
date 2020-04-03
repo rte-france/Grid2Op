@@ -344,6 +344,7 @@ class TestMake2Config(unittest.TestCase):
             assert env.legalActClass == DefaultRules
             assert isinstance(env.voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
+            assert env.action_space.grid_layout != None
             
     def test_case5_runs(self):
         dataset_path = os.path.join(PATH_CHRONICS, "rte_case5_example")
@@ -364,6 +365,7 @@ class TestMake2Config(unittest.TestCase):
             assert env.legalActClass == DefaultRules
             assert isinstance(env.voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
+            assert env.action_space.grid_layout != None
             
     def test_case14_test_runs(self):
         dataset_path = os.path.join(PATH_CHRONICS, "rte_case14_test")
@@ -406,6 +408,7 @@ class TestMake2Config(unittest.TestCase):
             assert env.legalActClass == DefaultRules
             assert isinstance(env.voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
+            assert env.action_space.grid_layout != None
 
 
 class TestMake2ConfigOverride(unittest.TestCase):
