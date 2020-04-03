@@ -1,4 +1,4 @@
-Observation
+BaseObservation
 ===================================
 
 .. include:: global.rst

@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import copy
@@ -6,19 +5,22 @@ import unittest
 import json
 import numpy as np
 import pdb
+import re
 from abc import ABC, abstractmethod
 
-import helper_path_test  # usefull to set poperly the sys.path
+from grid2op.tests.helper_path_test import *
 
-from Exceptions import *
-from Action import HelperAction, Action, TopologyAction, TopoAndRedispAction, PowerLineSet
-from GameRules import GameRules, DefaultRules
-from Space import GridObjects
+from grid2op.Exceptions import *
+from grid2op.Action import ActionSpace, BaseAction, TopologyAction, TopoAndRedispAction, PowerLineSet, DontAct
+from grid2op.Rules import RulesChecker, DefaultRules
+from grid2op.Space import GridObjects
+from grid2op._utils import save_to_dict
+
 
 class TestActionBase(ABC):
 
     @abstractmethod
-    def _action_env_setup(self):
+    def _action_setup(self):
         pass
 
     def _skipMissingKey(self, key):
@@ -32,28 +34,31 @@ class TestActionBase(ABC):
         """
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         self.gridobj = GridObjects()
         self.gridobj.init_grid_vect(name_prod=["gen_{}".format(i) for i in range(5)],
-                                          name_load=["load_{}".format(i) for i in range(11)],
-                                          name_line=["line_{}".format(i) for i in range(20)],
-                                          name_sub=["sub_{}".format(i) for i in range(14)],
-                                          sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
-                                          load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
-                                          gen_to_subid=np.array([0, 1, 2, 5, 7]),
-                                          line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
+                                    name_load=["load_{}".format(i) for i in range(11)],
+                                    name_line=["line_{}".format(i) for i in range(20)],
+                                    name_sub=["sub_{}".format(i) for i in range(14)],
+                                    sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
+                                    load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
+                                    gen_to_subid=np.array([0, 1, 2, 5, 7]),
+                                    line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
                                                                        5,  6,  6,  8,  8, 9, 11, 12]),
-                                          line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
-                                                                       12,  7,  8,  9, 13, 10, 12, 13]),  #####
-                                          load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
-                                          gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
-                                          line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                    line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
+                                                                       12,  7,  8,  9, 13, 10, 12, 13]),
+                                    load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
+                                    gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
+                                    line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
                                                                         3, 0, 0, 1]),
-                                          line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0]),  #####
-                                          load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
-                                          gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
-                                          line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50]),
-                                          line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53]))
+                                    line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
+                                                                 0, 0]),
+                                    load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
+                                    gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
+                                    line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27,
+                                                                     31, 32, 37, 38, 40, 46, 50]),
+                                    line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
+                                                                     33, 36, 42, 55, 43, 49, 53]))
         # pdb.set_trace()
         self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
                     'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
@@ -79,20 +84,34 @@ class TestActionBase(ABC):
                     'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
                     'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
                     'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
-                    'subtype': 'Action.Action'}
+                    "grid_layout": None,
+                    "shunt_to_subid": None,
+                    "name_shunt": None
+                    }
 
-        self.size_act = 229
+        # self.size_act = 229
 
-        self.helper_action = HelperAction(self.gridobj, legal_action=self.game_rules.legal_action)
-        self.helper_action_env = self._action_env_setup()
-        self.authorized_keys = self.helper_action_env().authorized_keys
+        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.helper_action = self._action_setup()
+        save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+        # print(self.res["subtype"])
+        self.authorized_keys = self.helper_action().authorized_keys
+        self.size_act = self.helper_action.size()
 
     def tearDown(self):
         self.authorized_keys = {}
-        pass
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
+
+    def test_call(self):
+        action = self.helper_action()
+        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
+
+    def test_compare(self):
+        action = self.helper_action()
+        action2 = self.helper_action()
+        assert action == action2
 
     def test_instanciate_action(self):
         """
@@ -359,16 +378,21 @@ class TestActionBase(ABC):
 
     def test_ambiguity_line_reconnected_without_bus(self):
         self._skipMissingKey('set_line_status')
-
         arr = np.zeros(self.helper_action.n_line)
         arr[1] = 1
         action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "connected"
         # and i don't say on which bus to connect it
-        try:
+
+        if issubclass(self.helper_action.actionClass, PowerLineSet):
+            # this is a legal action for powerlineSet
             action()
-            raise RuntimeError("This should have thrown an InvalidBusStatus error")
-        except InvalidLineStatus as e:
-            pass
+        else:
+            try:
+                action()
+                raise RuntimeError("This should have thrown an InvalidBusStatus error for {}"
+                                   "".format(self.helper_action.actionClass))
+            except InvalidLineStatus as e:
+                pass
 
     def test_set_status_and_setbus_isambiguous(self):
         """
@@ -378,7 +402,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
 
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
-        id_=2
+        id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         arr2 = np.zeros(self.helper_action.n_line)
         arr2[id_] = -1
@@ -400,11 +424,11 @@ class TestActionBase(ABC):
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
-        assert action.effect_on(line_id=id_)["set_bus_or"] == 1
+        assert action.effect_on(line_id=id_)["set_bus_or"] == 1, "fail for {}".format(self.helper_action.actionClass)
         action.update({"hazards": [id_]})
-        assert action.effect_on(line_id=id_)["set_bus_or"] == 0
-        assert action.effect_on(line_id=id_)["set_line_status"] == -1
-        assert action.effect_on(line_id=id_)["set_bus_ex"] == 0
+        assert action.effect_on(line_id=id_)["set_bus_or"] == 0, "fail for {}".format(self.helper_action.actionClass)
+        assert action.effect_on(line_id=id_)["set_line_status"] == -1, "fail for {}".format(self.helper_action.actionClass)
+        assert action.effect_on(line_id=id_)["set_bus_ex"] == 0, "fail for {}".format(self.helper_action.actionClass)
 
     def test_action_str(self):
         self._skipMissingKey('set_bus')
@@ -428,7 +452,6 @@ class TestActionBase(ABC):
 
     def test_to_vect(self):
         self._skipMissingKey('set_bus')
-        self._skipMissingKey('change_bus')
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
@@ -437,26 +460,31 @@ class TestActionBase(ABC):
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
-        tmp = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                        0., 0., 0., 0., 0., 0.,
-                        0., 0., 0., 0., 0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  1.,  1.,  2.,  2.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  1.,  1.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                            0.,  0.,  0.])
+        tmp = np.zeros(self.size_act)
+
+        # compute the "set_bus" vect
+        id_set = np.where(np.array(action.attr_list_vect) == "_set_topo_vect")[0][0]
+        size_before = 0
+        for el in action.attr_list_vect[:id_set]:
+            arr_ = action._get_array_from_attr_name(el)
+            size_before += arr_.shape[0]
+        tmp[size_before:(size_before+action.dim_topo)] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 0])
+
+        id_change = np.where(np.array(action.attr_list_vect) == "_change_bus_vect")[0][0]
+        size_before = 0
+        for el in action.attr_list_vect[:id_change]:
+            arr_ = action._get_array_from_attr_name(el)
+            size_before += arr_.shape[0]
+        tmp[size_before:(size_before + action.dim_topo)] = 1.0 * np.array([False, False, False, False, False, False,  True,  True,  True,
+                                   False, False, False, False, False, False, False, False, False,
+                                   False, False, False, False, False, False, False, False, False,
+                                   False, False, False, False, False, False, False, False, False,
+                                   False, False, False, False, False, False, False, False, False,
+                                   False, False, False, False, False, False, False, False, False,
+                                   False, False])
+
         assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
         assert np.all(np.isfinite(res) == np.isfinite(tmp))
 
@@ -490,7 +518,6 @@ class TestActionBase(ABC):
 
         vect_act1 = action1.to_vect()
         action2.from_vect(vect_act1)
-        # pdb.set_trace()
         # if i load an action with from_vect it's equal to the original one
         assert action1 == action2
         vect_act2 = action2.to_vect()
@@ -540,7 +567,7 @@ class TestActionBase(ABC):
                                       "injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_line_status": change_status_orig,
                                      "set_line_status": set_status_orig})
-        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching = action()
+        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
         assert "load_p" in dict_injection
         assert np.all(dict_injection["load_p"] == new_vect)
         assert "load_q" in dict_injection
@@ -615,7 +642,7 @@ class TestActionBase(ABC):
         assert dict_ == self.res
 
     def test_from_dict(self):
-        res = HelperAction.from_dict(self.res )
+        res = ActionSpace.from_dict(self.res)
         assert np.all(res.name_gen == self.helper_action.name_gen)
         assert np.all(res.name_load == self.helper_action.name_load)
         assert np.all(res.name_line == self.helper_action.name_line)
@@ -642,7 +669,7 @@ class TestActionBase(ABC):
     def test_json_loadable(self):
         dict_ = self.helper_action.to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
-        res = HelperAction.from_dict(json.loads(tmp))
+        res = ActionSpace.from_dict(json.loads(tmp))
 
         assert np.all(res.name_gen == self.helper_action.name_gen)
         assert np.all(res.name_load == self.helper_action.name_load)
@@ -663,55 +690,55 @@ class TestActionBase(ABC):
         assert np.all(res.actionClass == self.helper_action.actionClass)
 
     def test_as_dict(self):
-        act = self.helper_action_env({})
+        act = self.helper_action({})
         dict_ = act.as_dict()
         assert dict_ == {}
 
     def test_to_from_vect_action(self):
-        act = self.helper_action_env({})
+        act = self.helper_action({})
         vect_ = act.to_vect()
-        act2 = self.helper_action_env.from_vect(vect_)
+        act2 = self.helper_action.from_vect(vect_)
         assert act == act2
 
     def test_sum_shape_equal_size(self):
-        act = self.helper_action_env({})
+        act = self.helper_action({})
         assert act.size() == np.sum(act.shape())
 
     def test_shape_correct(self):
-        act = self.helper_action_env({})
+        act = self.helper_action({})
         assert act.shape().shape == act.dtype().shape
 
     def test_redispatching(self):
         self._skipMissingKey('redispatch')
 
-        act = self.helper_action_env({"redispatch": [1, 10]})
-        act = self.helper_action_env({"redispatch": [(1, 10), (2, 100)]})
-        act = self.helper_action_env({"redispatch": np.array([10, 20, 30, 40, 50])})
+        act = self.helper_action({"redispatch": [1, 10]})
+        act = self.helper_action({"redispatch": [(1, 10), (2, 100)]})
+        act = self.helper_action({"redispatch": np.array([10, 20, 30, 40, 50])})
 
     def test_possibility_reconnect_powerlines(self):
         self._skipMissingKey('set_line_status')
         self._skipMissingKey('set_bus')
-        self.helper_action_env.legal_action = DefaultRules()
+        self.helper_action.legal_action = DefaultRules()
 
-        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        act = self.helper_action.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
         line_impact, sub_impact = act.get_topological_impact()
         assert np.sum(line_impact) == 1
         assert np.sum(sub_impact) == 0
 
-        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        act = self.helper_action.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
         act.update({"set_bus": {"generators_id": [(1,2)]}})
         line_impact, sub_impact = act.get_topological_impact()
         assert np.sum(line_impact) == 1
         assert np.all(sub_impact == [False, True] + [False for _ in range(12)])
 
-        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        act = self.helper_action.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
         act.update({"set_bus": {"generators_id": [(0, 2)]}})
         line_impact, sub_impact = act.get_topological_impact()
         assert np.sum(line_impact) == 1
         assert np.all(sub_impact == [True] + [False for _ in range(13)])
 
         # there were a bug that occurred when updating an action, some vectors were not reset
-        act = self.helper_action_env.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
+        act = self.helper_action.reconnect_powerline(line_id=1, bus_or=1, bus_ex=1)
         line_impact, sub_impact = act.get_topological_impact()
         assert np.sum(line_impact) == 1
         assert np.sum(sub_impact) == 0
@@ -723,11 +750,11 @@ class TestActionBase(ABC):
 
 class TestAction(TestActionBase, unittest.TestCase):
     """
-    Test suite using the Action class
+    Test suite using the BaseAction class
     """
 
-    def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=Action)
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=BaseAction)
 
 
 class TestTopologyAction(TestActionBase, unittest.TestCase):
@@ -735,8 +762,8 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
     Test suite using the TopologyAction class
     """
 
-    def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
 
 
 class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
@@ -744,8 +771,8 @@ class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
     Test suite using the TopologyAndRedisp class
     """
 
-    def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
 
 
 class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
@@ -753,8 +780,18 @@ class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
     Test suite using the PowerLineSet class
     """
 
-    def _action_env_setup(self):
-        return HelperAction(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
+
+
+class TestPowerDontAct(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerLineSet class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
+
 
 if __name__ == "__main__":
     unittest.main()

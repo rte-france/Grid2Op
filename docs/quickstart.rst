@@ -64,16 +64,16 @@ interesting part of this framework:
   `grid2op.main` function to assess how well an agent is performing.
 * 1_Observation_Agents details how to create
   an "expert agent" that will take pre defined actions based on the observation it gets from
-  the environment. This Notebook also covers the functioning of the Observation class.
+  the environment. This Notebook also covers the functioning of the BaseObservation class.
 * 2_Action_GridManipulation demonstrates
-  how to use the Action class and how to manipulate the powergrid.
+  how to use the BaseAction class and how to manipulate the powergrid.
 * 3_TrainingAnAgent shows how to get started with
   reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
   available on `his blog <https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368>`_
   or on `this github repository <https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial>`_ . This code will
   be adapted (only minor changes, most of them to fit the shape of the data)
   and a (D)DQN will be trained on this problem.
-* 4_StudyYourAgent shows how to study an Agent, for example
+* 4_StudyYourAgent shows how to study an BaseAgent, for example
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.

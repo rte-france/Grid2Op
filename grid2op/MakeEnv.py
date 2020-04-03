@@ -15,52 +15,36 @@ an issue in the official grid2op repository: `Grid2Op <https://github.com/rte-fr
 
 The environment created with this method should be fully compatible with the gym framework: if you are developing
 a new algorithm of "Reinforcement Learning" and you used the openai gym framework to do so, you can port your code
-in a few minutes (basically this consists in adapting the input and output dimension of your Agent) and make it work
+in a few minutes (basically this consists in adapting the input and output dimension of your BaseAgent) and make it work
 with a Grid2Op environment. An example of such modifications is exposed in the getting_started/ notebooks.
 
 """
 import os
+import importlib.util
 import pkg_resources
 import warnings
-
-try:
-    from .Environment import Environment
-    from .Backend import Backend
-    from .BackendPandaPower import PandaPowerBackend
-    from .Parameters import Parameters
-    from .ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
-    from .Action import Action, TopologyAction, TopoAndRedispAction
-    from .Exceptions import *
-    from .Observation import CompleteObservation, Observation
-    from .Reward import FlatReward, Reward, L2RPNReward, RedispReward
-    from .GameRules import LegalAction, AllwaysLegal, DefaultRules
-    from .VoltageControler import ControlVoltageFromFile
-
-    from .Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
-    from .Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
-    from .Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
-    from .Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
-    from .Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
-
-except (ModuleNotFoundError, ImportError):
-    from Environment import Environment
-    from Backend import Backend
-    from BackendPandaPower import PandaPowerBackend
-    from Parameters import Parameters
-    from ChronicsHandler import ChronicsHandler, Multifolder, GridStateFromFileWithForecasts, GridValue, ChangeNothing
-    from Action import Action, TopologyAction, TopoAndRedispAction
-    from Exceptions import *
-    from Observation import CompleteObservation, Observation
-    from Reward import FlatReward, Reward, L2RPNReward, RedispReward
-    from GameRules import LegalAction, AllwaysLegal, DefaultRules
-    from Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
-    from Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
-    from Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
-    from Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
-    from Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
-    from VoltageControler import ControlVoltageFromFile
-
+import numbers
 import pdb
+import json
+
+from grid2op.Environment import Environment
+from grid2op.Backend import Backend, PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
+from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
+from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, DontAct
+from grid2op.Exceptions import *
+from grid2op.Observation import CompleteObservation, BaseObservation
+from grid2op.Reward import FlatReward, BaseReward, L2RPNReward, RedispReward
+from grid2op.Rules import BaseRules, AlwaysLegal, DefaultRules
+from grid2op.VoltageControler import ControlVoltageFromFile
+from grid2op.Opponent import BaseOpponent
+
+from grid2op.Chronics.Settings_L2RPN2019 import L2RPN2019_CASEFILE, L2RPN2019_DICT_NAMES, ReadPypowNetData, CASE_14_L2RPN2019_LAYOUT
+from grid2op.Chronics.Settings_5busExample import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE, CASE_5_GRAPH_LAYOUT
+from grid2op.Chronics.Settings_case14_test import case14_test_CASEFILE, case14_test_CHRONICSPATH, case14_test_TH_LIM
+from grid2op.Chronics.Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
+from grid2op.Chronics.Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
 
 CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
                                             "test_PandaPower", "test_case14.json"))
@@ -89,7 +73,43 @@ NAMES_CHRONICS_TO_BACKEND = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'lo
 
 ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class", "chronics_path", "reward_class",
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
-                       "chronics_class"}
+                       "chronics_class", "volagecontroler_class", "other_rewards",
+                       'opponent_action_class', "opponent_class", "opponent_init_budget"}
+ALLOWED_KWARGS_MAKE2 = {"param", "backend", "observation_class", "gamerules_class", "reward_class",
+                        "action_class", "data_feeding_kwargs", "chronics_class", "volagecontroler_class",
+                        "other_rewards",
+                       'opponent_action_class', "opponent_class", "opponent_init_budget"}
+ERR_MSG_KWARGS = {
+    "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
+    "observation": "The type of observation of the environment (keyword \"observation_class\")" \
+    " must be a subclass of grid2op.BaseObservation",
+    "param": "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters",
+    "rules": "The type of rules of the environment (keyword \"gamerules_class\")" \
+    " must be a subclass of grid2op.BaseRules",
+    "reward": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.BaseReward",
+    "action": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction",
+    "data_feeding_kwargs": "The argument to build the data generation process [chronics]" \
+    "  (keyword \"data_feeding_kwargs\") should be a dictionnary.",
+    "chronics": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")" \
+    " should be a class that inherit grid2op.Chronics.GridValue.",
+    "chronics_handler": "The argument to build the data generation process [chronics] (keyword \"data_feeding\")" \
+    " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
+    "voltage": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
+    " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
+    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
+    "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
+                     "should be dictionnary.",
+    "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
+                             "inherit from \"BaseAction\"",
+    "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
+                             "inherit from \"BaseOpponent\"",
+    "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float"
+}
+NAME_CHRONICS_FOLDER = "chronics"
+NAME_GRID_FILE = "grid.json"
+NAME_GRID_LAYOUT_FILE = "grid_layout.json"
+NAME_CONFIG_FILE = "config.py"
+# TODO read the "ALLOWED_KWARGS" from the key of ERR_MSG
 
 
 def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
@@ -157,7 +177,17 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
         if isclass is False:
             # i must create an instance of a class. I check whether it's a instance.
             if not isinstance(res, defaultClassApp):
-                raise EnvError(msg_error)
+                if issubclass(defaultClassApp, numbers.Number):
+                    try:
+                        # if this is base numeric type, like float or anything, i try to convert to it (i want to
+                        # accept that "int" are float for example.
+                        res = defaultClassApp(res)
+                    except:
+                        # if there is any error, i raise the error message
+                        raise EnvError(msg_error)
+                else:
+                    # if there is any error, i raise the error message
+                    raise EnvError(msg_error)
         else:
             if not isinstance(res, type):
                 raise EnvError("Parameter \"{}\" should be a type and not an instance. It means that you provided an "
@@ -201,6 +231,274 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
     return res
 
 
+def _check_kwargs(kwargs):
+    for el in kwargs:
+        if not el in ALLOWED_KWARGS_MAKE2:
+            raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
+                           "No Environment will be created. "
+                           "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS_MAKE2)))
+
+def _check_path(path, info):
+    if path is None or os.path.exists(path) is False:
+        raise EnvError("Cannot find {}. {}".format(path, info))
+
+
+def make2(dataset_path="/", **kwargs):
+    """
+    This function is a shortcut to rapidly create environments within the grid2op Framework.
+
+    It mimic the ``gym.make`` function.
+
+    Parameters
+    ----------
+    dataset_path: ``str``
+        Path to the dataset folder
+
+    param: ``grid2op.Parameters.Parameters``, optional
+        Type of parameters used for the Environment. Parameters defines how the powergrid problem is cast into an
+        markov decision process, and some internal
+
+    backend: ``grid2op.Backend.Backend``, optional
+        The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
+
+    action_class: ``type``, optional
+        Type of BaseAction the BaseAgent will be able to perform.
+        If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
+
+    observation_class: ``type``, optional
+        Type of BaseObservation the BaseAgent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
+
+    reward_class: ``type``, optional
+        Type of reward signal the BaseAgent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
+
+    gamerules_class: ``type``, optional
+        Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
+        If provided, It must be a subclass of :class:`grid2op.RulesChecker.BaseRules`
+
+    data_feeding_kwargs: ``dict``, optional
+        Dictionnary that is used to build the `data_feeding` (chronics) objects.
+
+    chronics_class: ``type``, optional
+        The type of chronics that represents the dynamics of the Environment created. Usually they come from different
+        folders.
+
+    data_feeding: ``type``, optional
+        The type of chronics handler you want to use.
+
+    volagecontroler_class: ``type``, optional
+        The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
+
+    Returns
+    -------
+    env: :class:`grid2op.Environment.Environment`
+        The created environment.
+    """
+    # Compute and find root folder
+    _check_path(dataset_path, "Dataset root directory")
+    dataset_path_abs = os.path.abspath(dataset_path)
+    # Compute env name from directory name
+    name_env = os.path.split(dataset_path_abs)[1]
+    
+    # Compute and find chronics folder
+    chronics_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CHRONICS_FOLDER))
+    _check_path(chronics_path_abs, "Dataset chronics folder")
+
+    # Compute and find backend/grid file
+    grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
+    _check_path(grid_path_abs, "Dataset power flow solver configuration")
+
+    # Compute and find grid layout file
+    grid_layout_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_LAYOUT_FILE))
+    _check_path(grid_layout_path_abs, "Dataset grid layout")
+
+    # Check provided config overrides are valid
+    _check_kwargs(kwargs)
+
+    # Compute and find config file
+    config_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CONFIG_FILE))
+    _check_path(grid_path_abs, "Dataset environment configuration")
+    # Read config file
+    try:
+        spec = importlib.util.spec_from_file_location("config.config", config_path_abs)
+        config_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config_module)
+        config_data = config_module.config
+    except Exception as e:
+        print (e)
+        raise EnvError("Invalid dataset config file: {}".format(config_path_abs)) from None
+
+    # Get graph layout
+    try:
+        with open(grid_layout_path_abs) as layout_fp:
+            graph_layout = json.load(layout_fp)
+    except Exception as e:
+        raise EnvError("Dataset {} doesn't have a valid graph layout".format(config_path_abs))
+
+    # Get thermal limits
+    thermal_limits = None
+    if "thermal_limits" in config_data:
+        thermal_limits = config_data["thermal_limits"]
+
+    # Get chronics_to_backend
+    name_converter = None
+    if "names_chronics_to_grid" in config_data:
+        name_converter = config_data["names_chronics_to_grid"]
+    if name_converter is None:
+        name_converter = {}
+    names_chronics_to_backend = _get_default_aux("names_chronics_to_backend", kwargs,
+                                                 defaultClassApp=dict, defaultinstance=name_converter,
+                                                 msg_error=ERR_MSG_KWARGS["names_chronics_to_grid"])
+    # Get default backend class
+    backend_class_cfg = PandaPowerBackend
+    if "backend_class" in config_data and config_data["backend_class"] is not None:
+        backend_class_cfg = config_data["backend_class"]
+    ## Create the backend, to compute the powerflow
+    backend = _get_default_aux("backend", kwargs, defaultClass=backend_class_cfg,
+                               defaultClassApp=Backend, msg_error=ERR_MSG_KWARGS["backend"])
+
+    # Get default observation class
+    observation_class_cfg = CompleteObservation
+    if "observation_class" in config_data and config_data["observation_class"] is not None:
+        observation_class_cfg = config_data["observation_class"]
+    ## Setup the type of observation the agent will receive
+    observation_class = _get_default_aux("observation_class", kwargs, defaultClass=observation_class_cfg, isclass=True,
+                                         defaultClassApp=BaseObservation, msg_error=ERR_MSG_KWARGS["observation"])
+    
+    ## Create the parameters of the game, thermal limits threshold,
+    # simulate cascading failure, powerflow mode etc. (the gamification of the game)
+    param = _get_default_aux('param', kwargs, defaultClass=Parameters,
+                             defaultClassApp=Parameters, msg_error=ERR_MSG_KWARGS["param"])
+
+    # Get default rules class
+    rules_class_cfg = DefaultRules
+    if "rules_class" in config_data and config_data["rules_class"] is not None:
+        rules_class_cfg = config_data["rules_class"]
+    ## Create the rules of the game (mimic the operationnal constraints)
+    gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=rules_class_cfg,
+                                       defaultClassApp=BaseRules, msg_error=ERR_MSG_KWARGS["rules"],
+                                       isclass=True)
+
+    # Get default reward class
+    reward_class_cfg = L2RPNReward
+    if "reward_class" in config_data and config_data["reward_class"] is not None:
+        reward_class_cfg = config_data["reward_class"]
+    ## Setup the reward the agent will receive
+    reward_class = _get_default_aux("reward_class", kwargs, defaultClass=reward_class_cfg,
+                                    defaultClassApp=BaseReward, msg_error=ERR_MSG_KWARGS["reward"],
+                                    isclass=True)
+
+    # Get default BaseAction class
+    action_class_cfg = BaseAction
+    if "action_class" in config_data and config_data["action_class"] is not None:
+        action_class_cfg = config_data["action_class"]
+    ## Setup the type of action the BaseAgent can perform
+    action_class = _get_default_aux("action_class", kwargs, defaultClass=action_class_cfg,
+                                    defaultClassApp=BaseAction, msg_error=ERR_MSG_KWARGS["action"],
+                                    isclass=True)    
+    
+    # Get default Voltage class
+    voltage_class_cfg = ControlVoltageFromFile
+    if "voltage_class" in config_data and config_data["voltage_class"] is not None:
+        voltage_class_cfg = config_data["voltage_class"]
+    ### Create controler for voltages
+    volagecontroler_class = _get_default_aux("volagecontroler_class", kwargs,
+                                             defaultClassApp=voltage_class_cfg,
+                                             defaultClass=ControlVoltageFromFile,
+                                             msg_error=ERR_MSG_KWARGS["voltage"], isclass=True)
+
+    # Get default Chronics class
+    chronics_class_cfg = ChangeNothing
+    if "chronics_class" in config_data and config_data["chronics_class"] is not None:
+        chronics_class_cfg = config_data["chronics_class"]
+    # Get default Grid class
+    grid_value_class_cfg = GridStateFromFile
+    if "grid_value_class" in config_data and config_data["grid_value_class"] is not None:
+        grid_value_class_cfg = config_data["grid_value_class"]
+    
+    ## the chronics to use
+    ### the arguments used to build the data, note that the arguments must be compatible with the chronics class
+    default_chronics_kwargs = {
+        "chronicsClass": chronics_class_cfg,
+        "path": chronics_path_abs,
+        "gridvalueClass": grid_value_class_cfg
+    }
+
+    data_feeding_kwargs = _get_default_aux("data_feeding_kwargs", kwargs,
+                                           defaultClassApp=dict,
+                                           defaultinstance=default_chronics_kwargs,
+                                           msg_error=ERR_MSG_KWARGS["data_feeding_kwargs"])
+    for el in default_chronics_kwargs:
+        if not el in data_feeding_kwargs:
+            data_feeding_kwargs[el] = default_chronics_kwargs[el]
+
+    ### the chronics generator
+    chronics_class_used = _get_default_aux("chronics_class", kwargs,
+                                           defaultClassApp=GridValue,
+                                           defaultClass=data_feeding_kwargs["chronicsClass"],
+                                           msg_error=ERR_MSG_KWARGS["chronics"],
+                                           isclass=True)
+    data_feeding_kwargs["chronicsClass"] = chronics_class_used
+    data_feeding = _get_default_aux("data_feeding", kwargs,
+                                    defaultClassApp=ChronicsHandler,
+                                    defaultClass=ChronicsHandler,
+                                    build_kwargs=data_feeding_kwargs,
+                                    msg_error=ERR_MSG_KWARGS["chronics_handler"])
+
+    ### other rewards
+    other_rewards = _get_default_aux("other_rewards", kwargs,
+                                     defaultClassApp=dict,
+                                     defaultinstance={},
+                                     msg_error=ERR_MSG_KWARGS["other_rewards"],
+                                     isclass=False)
+
+    # Opponent
+    # TODO make that in config file of the default environment !!!
+    opponent_action_class = _get_default_aux("opponent_action_class",
+                                             kwargs,
+                                             defaultClassApp=BaseAction,
+                                             defaultClass=DontAct,
+                                             msg_error=ERR_MSG_KWARGS["opponent_action_class"],
+                                             isclass=True)
+    opponent_class = _get_default_aux("opponent_class",
+                                      kwargs,
+                                      defaultClassApp=BaseOpponent,
+                                      defaultClass=BaseOpponent,
+                                      msg_error=ERR_MSG_KWARGS["opponent_class"],
+                                      isclass=True)
+    opponent_init_budget = _get_default_aux("opponent_init_budget", kwargs,
+                                            defaultClassApp=float,
+                                            defaultinstance=0.,
+                                            msg_error=ERR_MSG_KWARGS["opponent_init_budget"],
+                                            isclass=False)
+
+    # Finally instanciate env from config & overrides
+    env = Environment(init_grid_path=grid_path_abs,
+                      chronics_handler=data_feeding,
+                      backend=backend,
+                      parameters=param,
+                      names_chronics_to_backend=names_chronics_to_backend,
+                      actionClass=action_class,
+                      observationClass=observation_class,
+                      rewardClass=reward_class,
+                      legalActClass=gamerules_class,
+                      voltagecontrolerClass=volagecontroler_class,
+                      other_rewards=other_rewards,
+                      opponent_action_class=opponent_action_class,
+                      opponent_class=opponent_class,
+                      opponent_init_budget=opponent_init_budget)
+
+    # Update the thermal limit if any
+    if thermal_limits is not None:
+        env.set_thermal_limit(thermal_limits)
+
+    # Set graph layout
+    env.attach_layout(graph_layout)
+
+    return env
+    
+    
 def make(name_env="case14_realistic", **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
@@ -225,20 +523,20 @@ def make(name_env="case14_realistic", **kwargs):
         The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
 
     action_class: ``type``, optional
-        Type of Action the Agent will be able to perform.
-        If provided, it must be a subclass of :class:`grid2op.Action.Action`
+        Type of BaseAction the BaseAgent will be able to perform.
+        If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
 
     observation_class: ``type``, optional
-        Type of Observation the Agent will receive.
-        If provided, It must be a subclass of :class:`grid2op.Action.Observation`
+        Type of BaseObservation the BaseAgent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
 
     reward_class: ``type``, optional
-        Type of reward signal the Agent will receive.
-        If provided, It must be a subclass of :class:`grid2op.Reward.Reward`
+        Type of reward signal the BaseAgent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
 
     gamerules_class: ``type``, optional
-        Type of "Rules" the Agent need to comply with. Rules are here to model some operational constraints.
-        If provided, It must be a subclass of :class:`grid2op.GameRules.LegalAction`
+        Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
+        If provided, It must be a subclass of :class:`grid2op.RulesChecker.BaseRules`
 
     grid_path: ``str``, optional
         The path where the powergrid is located.
@@ -259,6 +557,10 @@ def make(name_env="case14_realistic", **kwargs):
 
     volagecontroler_class: ``type``, optional
         The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
+
+    other_rewards: ``dict``, optional
+        Dictionnary with other rewards we might want to look at at during training. It is given as a dictionnary with
+        keys the name of the reward, and the values a class representing the new variables.
 
     Returns
     -------
@@ -287,9 +589,9 @@ def make(name_env="case14_realistic", **kwargs):
 
     ## type of observation the agent will receive
     msg_error = "The type of observation of the environment (keyword \"observation_class\")"
-    msg_error += " must be a subclass of grid2op.Observation"
+    msg_error += " must be a subclass of grid2op.BaseObservation"
     observation_class = _get_default_aux("observation_class", kwargs, defaultClass=CompleteObservation,
-                                         defaultClassApp=Observation,
+                                         defaultClassApp=BaseObservation,
                                          msg_error=msg_error,
                                          isclass=True)
 
@@ -301,7 +603,7 @@ def make(name_env="case14_realistic", **kwargs):
 
     # bulid the default parameters for each case file
     data_feeding_default_class = ChronicsHandler
-    gamerules_class = AllwaysLegal
+    gamerules_class = AlwaysLegal
     defaultinstance_chronics_kwargs = {}
     if name_env.lower() == "case14_fromfile":
         default_grid_path = CASE_14_FILE
@@ -387,7 +689,7 @@ def make(name_env="case14_realistic", **kwargs):
         default_grid_path = ""
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
-        gamerules_class = AllwaysLegal
+        gamerules_class = AlwaysLegal
     else:
         raise UnknownEnv("Unknown Environment named \"{}\". Current known environments are \"case14_fromfile\" "
                          "(default), \"case5_example\", \"case14_redisp\", \"case14_realistic\" "
@@ -399,24 +701,24 @@ def make(name_env="case14_realistic", **kwargs):
     # extract powergrid dependant parameters
     ## type of rules of the game (mimic the operationnal constraints)
     msg_error = "The type of rules of the environment (keyword \"gamerules_class\")"
-    msg_error += " must be a subclass of grid2op.LegalAction"
+    msg_error += " must be a subclass of grid2op.BaseRules"
     gamerules_class = _get_default_aux("gamerules_class", kwargs, defaultClass=gamerules_class,
-                                    defaultClassApp=LegalAction,
-                                    msg_error=msg_error,
-                                    isclass=True)
+                                       defaultClassApp=BaseRules,
+                                       msg_error=msg_error,
+                                       isclass=True)
 
     ## type of reward the agent will receive
     msg_error = "The type of observation of the environment (keyword \"reward_class\")"
-    msg_error += " must be a subclass of grid2op.Reward"
+    msg_error += " must be a subclass of grid2op.BaseReward"
     reward_class = _get_default_aux("reward_class", kwargs, defaultClass=default_reward_class,
-                                    defaultClassApp=Reward,
+                                    defaultClassApp=BaseReward,
                                     msg_error=msg_error,
                                     isclass=True)
 
-    ## type of action the Agent can perform
-    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.Action"
+    ## type of action the BaseAgent can perform
+    msg_error = "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction"
     action_class = _get_default_aux("action_class", kwargs, defaultClass=default_action_class,
-                                    defaultClassApp=Action,
+                                    defaultClassApp=BaseAction,
                                     msg_error=msg_error,
                                     isclass=True)
 
@@ -472,6 +774,34 @@ def make(name_env="case14_realistic", **kwargs):
                                              msg_error=msg_error,
                                              isclass=True)
 
+    ### other rewards
+    msg_error = "The argument to build the online controler for chronics (keyword \"other_rewards\")"
+    msg_error += " should be dictionnary."
+    other_rewards = _get_default_aux("other_rewards", kwargs,
+                                     defaultClassApp=dict,
+                                     defaultinstance={},
+                                     msg_error=msg_error,
+                                     isclass=False)
+
+    # Opponent
+    # TODO make that in config file of the default environment !!!
+    opponent_action_class = _get_default_aux("opponent_action_class",
+                                             kwargs,
+                                             defaultClassApp=BaseAction,
+                                             defaultClass=DontAct,
+                                             msg_error=ERR_MSG_KWARGS["opponent_action_class"],
+                                             isclass=True)
+    opponent_class = _get_default_aux("opponent_class",
+                                      kwargs,
+                                      defaultClassApp=BaseOpponent,
+                                      defaultClass=BaseOpponent,
+                                      msg_error=ERR_MSG_KWARGS["opponent_class"],
+                                      isclass=True)
+    opponent_init_budget = _get_default_aux("opponent_init_budget", kwargs,
+                                            defaultClassApp=float,
+                                            defaultinstance=0.,
+                                            msg_error=ERR_MSG_KWARGS["opponent_init_budget"],
+                                            isclass=False)
     if not os.path.exists(grid_path):
         raise EnvError("There is noting at \"{}\" where the powergrid should be located".format(
             os.path.abspath(grid_path)))
@@ -485,19 +815,25 @@ def make(name_env="case14_realistic", **kwargs):
                       observationClass=observation_class,
                       rewardClass=reward_class,
                       legalActClass=gamerules_class,
-                      voltagecontrolerClass=volagecontroler_class
+                      voltagecontrolerClass=volagecontroler_class,
+                      other_rewards=other_rewards,
+                      opponent_action_class=opponent_action_class,
+                      opponent_class=opponent_class,
+                      opponent_init_budget=opponent_init_budget
                       )
 
     # update the thermal limit if any
     if name_env.lower() == "case14_test":
         env.set_thermal_limit(case14_test_TH_LIM)
-        env.graph_layout = CASE_14_L2RPN2019_LAYOUT
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
     elif name_env.lower() == "case14_redisp":
         env.set_thermal_limit(case14_redisp_TH_LIM)
-        env.graph_layout = CASE_14_L2RPN2019_LAYOUT
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
     elif name_env.lower() == "case14_realistic":
         env.set_thermal_limit(case14_real_TH_LIM)
-        env.graph_layout = CASE_14_L2RPN2019_LAYOUT
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
+    elif name_env.lower() == "l2rpn_2019":
+        env.attach_layout(CASE_14_L2RPN2019_LAYOUT)
     elif name_env.lower() == "case5_example":
-        env.graph_layout = CASE_5_GRAPH_LAYOUT
+        env.attach_layout(CASE_5_GRAPH_LAYOUT)
     return env

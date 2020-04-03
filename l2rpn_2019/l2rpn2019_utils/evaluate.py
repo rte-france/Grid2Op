@@ -44,7 +44,7 @@ def evaluate_submission_score_as_codalab():
 
             print("Score for scenario {}: {}".format(el, tmp_sc))
             score += tmp_sc
-            duration += float(timings["Agent"]["total"])
+            duration += float(timings["BaseAgent"]["total"])
     else:
         print("Your submission is not valid.")
         score = -1

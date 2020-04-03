@@ -1,4 +1,4 @@
-Agent
+BaseAgent
 ===================================
 .. automodule:: grid2op.Agent
     :members:

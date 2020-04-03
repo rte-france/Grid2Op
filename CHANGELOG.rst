@@ -1,11 +1,11 @@
 Change Log
-=============
-[0.6.0] - 2020-xx-yy
+===========
+
+[0.6.1] - 2020-xx-yy
 --------------------
 TODO for next versions
 
-- [???] implement other "rewards" to look at (have a reward for training, but the possibility to inspect other loss)
-- [???] add the "anti-agent"
+- [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] rationalize the names of plotting utilities
@@ -21,6 +21,56 @@ TODO for next versions
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] fix notebook 5 texts
+
+[0.6.0] - 2020-04-03
+---------------------
+- [BREAKING] `grid2op.GameRules` module renamed to `grid2op.RulesChecker`
+- [BREAKING] `grid2op.Converters` module renamed `grid2op.Converter`
+- [BREAKING] `grid2op.ChronicsHandler` renamed to `grid2op.Chronics`
+- [BREAKING] `grid2op.PandaPowerBackend` is moved to `grid2op.Backend.PandaPowerBackend`
+- [BREAKING] `RulesChecker.Allwayslegal` is now `Rules.Alwayslegal`
+- [BREAKING] Plotting utils are now located in their own module `grid2op.Plot`
+- [DEPRECATION] `HelperAction` is now called `ActionSpace` to better suit open ai gym name. Use of `HelperAction`
+  will be deprecated in future versions.
+- [DEPRECATION] `ObservationHelper` is now called `ObservationSpace` to better suit open ai gym name.
+  Use of `ObservationHelper` will be deprecated in future versions.
+- [DEPRECATION] `Action` class has been split into `BaseAction` that serve as an abstract base class for all
+  action class, and `CompleteAction` (that inherit from BaseAction) for the class allowing to perform every
+  modification implemented in grid2op.
+- [DEPRECATION] `Observation` class has renamed `BaseObservation` that serve as an abstract base class for all
+  observation classes. Name Observation will be deprecated in future versions.
+- [DEPRECATION] `Agent` class has renamed `BaseAgent` that serve as an abstract base class for all
+  agent classes. Name Agent will be deprecated in future versions.
+- [DEPRECATION] `Reward` class has renamed `BaseReward` that serve as an abstract base class for all
+  reward classes. Name Reward will be deprecated in future versions.
+- [DEPRECATION] `LegalAction` class has renamed `BaseRules` that serve as an abstract base class for all
+  type of rules classes. Name `LegalAction` will be deprecated in future versions.
+- [DEPRECATION] typo fixed in `PreventReconection` class (now properly named `PreventReconnection`)
+- [ADDED] different kind of "Opponent" can now be implemented if needed (missing deep testing, different type of
+  class, and good documentation)
+- [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
+  that are given to the agent through the "information" return argument of `env.step`. See the documentation of
+  Environment.other_rewards.
+- [ADDED] Alternative method to load datasets based on new dataset format: `MakeEnv.make2`
+- [ADDED] Layout of the powergrid is part of the `GridObject` and is serialized along with the
+  action_space and observation_space. Plotting utilities no longer require specific layout (custom layout
+  can still be provided)
+- [ADDED] A new kind of actions that can change the value (and buses) to which shunt are connected. This support will
+  be helpfull for the `VoltageControler` class.
+- [FIXED] Loading L2RPN_2019 dataset
+- [FIXED] a bug that prevents the voltage controler to be changed when using `grid2op.make`.
+- [FIXED] `time_before_cooldown_line` vector were output twice in observation space
+  (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 1)
+- [FIXED] the number of active bus on a substation was not computed properly, which lead to some unexpected
+  behavior regarding the powerlines switches (depending on current stats of powerline, changing the buses of some
+  powerline has different effect)
+  (see `issue 47 <https://github.com/rte-france/Grid2Op/issues/47>`_ part 2)
+- [FIXED] wrong voltages were reported for PandapowerBackend that causes some isolated load to be not detected
+  (see `issue 51 <https://github.com/rte-france/Grid2Op/issues/51>`_ )
+- [FIXED] improve the install script to not crash when numba can be installed, but cannot be loaded.
+  (see `issue 50 <https://github.com/rte-france/Grid2Op/issues/50>`_ )
+- [UPDATED] import documentation of `Space` especially in case someone wants to build other type of Backend
 
 [0.5.8] - 2020-03-20
 --------------------
@@ -32,7 +82,7 @@ TODO for next versions
   nothing changes. If no files at all are provided, it raises an error.
 - [ADDED] possibility to change the controler for the generator voltage setpoints
   (See `VoltageControler` for more information). It can be customized as of now.
-- [ADDED] lots of new tests for majority of classes (ChronicsHandler, Action, Observations etc.)
+- [ADDED] lots of new tests for majority of classes (ChronicsHandler, BaseAction, Observations etc.)
 - [FIXED] voltages are now set to 0 when the powerline are disconnected, instead of being set to Nan in
   pandapower backend.
 - [FIXED] `ReadPypowNetData` does not crash when argument "chunk_size" is provided now.
@@ -47,6 +97,7 @@ TODO for next versions
 - [UPDATED] better display of the error message if all dispatchable generators are set
   `issue 39 <https://github.com/rte-france/Grid2Op/issues/39>`_
 - [UPDATED] change the link to the doc in the notebook to point to readthedoc and not to local documentation.
+- [UPDATED] Simulate action behavior result is the same as stepping given perfect forecasts at t+1 
 
 [0.5.7] - 2020-03-03
 --------------------
@@ -136,19 +187,19 @@ TODO for next versions
 [0.5.1] - 2020-01-24
 --------------------
 - [ADDED] extra tag 'all' to install all optional dependencies.
-- [FIXED] issue in the documentation of Observation, voltages are given in kV and not V.
+- [FIXED] issue in the documentation of BaseObservation, voltages are given in kV and not V.
 - [FIXED] a bug in the runner that prevented the right chronics to be read, and output wrong names
 - [FIXED] a bug preventing import if plotting packages where not installed, that causes the documentation to crash.
 
 [0.5.0] - 2020-01-23
 --------------------
-- [BREAKING] Action/Backend has been modified with the implementation of redispatching. If
+- [BREAKING] BaseAction/Backend has been modified with the implementation of redispatching. If
   you used a custom backend, you'll have to implement the "redispatching" part.
 - [BREAKING] with the introduction of redispatching, old action space and observation space,
   stored as json for example, will not be usable: action size and observation size
   have been modified.
 - [ADDED] A converter class that allows to pre-process observation, and post-process action
-  when given to an `Agent`. This allows for more flexibility in the `action_space` and
+  when given to an `BaseAgent`. This allows for more flexibility in the `action_space` and
   `observation_space`.
 - [ADDED] Adding another example notebook `getting_started/Example_5bus.ipynb`
 - [ADDED] Adding another renderer for the live environment.
@@ -156,11 +207,11 @@ TODO for next versions
 - [ADDED] More complete documentation of the representation of the powergrid
   (see documentation of `Space`)
 - [FIXED] A bug in the conversion from pair unit to kv in pandapower backend. Adding some tests for that too.
-- [UPDATED] More complete documentation of the Action class (with some examples)
+- [UPDATED] More complete documentation of the BaseAction class (with some examples)
 - [UPDATED] More unit test for observations
 - [UPDATED] Remove the TODO's already coded
 - [UPDATED] GridStateFromFile can now read the starting date and the time interval of the chronics.
-- [UPDATED] Documentation of Observation: adding the units
+- [UPDATED] Documentation of BaseObservation: adding the units
   (`issue 22 <https://github.com/rte-france/Grid2Op/issues/22>`_)
 - [UPDATED] Notebook `getting_started/4_StudyYourAgent.ipynb` to use the converter now (much shorter and clearer)
 
@@ -170,7 +221,7 @@ TODO for next versions
 
 [0.4.2] - 2020-01-08
 --------------------
-- [BREAKING] previous saved Action Spaces and Observation Spaces (as dictionnary) are no more compatible
+- [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
 ====================  =======================  =======================
@@ -191,12 +242,12 @@ Backend               lines_or_to_sub_pos      line_or_to_sub_pos
 Backend               lines_ex_to_sub_pos      line_ex_to_sub_pos
 Backend               lines_or_pos_topo_vect   line_or_pos_topo_vect
 Backend               lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
-Action / Observation  _lines_or_to_subid       line_or_to_subid
-Action / Observation  _lines_ex_to_subid       line_ex_to_subid
-Action / Observation  _lines_or_to_sub_pos     line_or_to_sub_pos
-Action / Observation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
-Action / Observation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
-Action / Observation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+BaseAction / BaseObservation  _lines_or_to_subid       line_or_to_subid
+BaseAction / BaseObservation  _lines_ex_to_subid       line_ex_to_subid
+BaseAction / BaseObservation  _lines_or_to_sub_pos     line_or_to_sub_pos
+BaseAction / BaseObservation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
+BaseAction / BaseObservation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
+BaseAction / BaseObservation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
 GridValue             n_lines                  n_line
 ====================  =======================  =======================
 
@@ -208,7 +259,7 @@ GridValue             n_lines                  n_line
 - [FIXED] checking key-word arguments in "make" function: if an invalid argument is provided,
   it now raises an error.
 - [UPDATED] multiple random generator streams for observations
-- [UPDATED] Refactoring of the Action and Observation Space. They now both inherit from "Space"
+- [UPDATED] Refactoring of the BaseAction and BaseObservation Space. They now both inherit from "Space"
 - [UPDATED] the getting_started notebooks to reflect these changes
 
 [0.4.1] - 2019-12-17
@@ -219,17 +270,17 @@ GridValue             n_lines                  n_line
 [0.4.0] - 2019-12-04
 --------------------
 - [ADDED] Basic tools for plotting with the `PlotPlotly` module
-- [ADDED] support of maintenance operation as well as hazards in the Observation (and appropriated tests)
+- [ADDED] support of maintenance operation as well as hazards in the BaseObservation (and appropriated tests)
 - [ADDED] support for maintenance operation in the Environment (read from the chronics)
 - [ADDED] example of chronics with hazards and maintenance
 - [UPDATED] handling of the `AmbiguousAction` and `IllegalAction` exceptions (and appropriated tests)
-- [UPDATED] various documentation, in particular the class Observation
-- [UPDATED] information retrievable `Observation.state_of`
+- [UPDATED] various documentation, in particular the class BaseObservation
+- [UPDATED] information retrievable `BaseObservation.state_of`
 
 [0.3.6] - 2019-12-01
 --------------------
 - [ADDED] functionality to restrict action based on previous actions
-  (impacts `Environment`, `GameRules` and `Parameters`)
+  (impacts `Environment`, `RulesChecker` and `Parameters`)
 - [ADDED] tests for the notebooks in `getting_started`
 - [UPDATED] readme to properly show the docker capability
 - [UPDATED] Readme with docker
