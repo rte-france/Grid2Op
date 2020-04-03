@@ -3,8 +3,10 @@ Change Log
 
 [0.6.1] - 2020-xx-yy
 --------------------
-TODO for next versions
+- [ADDED] BridgeReward. A reward based on graph connectivity, see implementation in grid2op.Reward.BridgeReward for details
 
+[TODO]
+--------------------
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
@@ -47,7 +49,6 @@ TODO for next versions
 - [DEPRECATION] `LegalAction` class has renamed `BaseRules` that serve as an abstract base class for all
   type of rules classes. Name `LegalAction` will be deprecated in future versions.
 - [DEPRECATION] typo fixed in `PreventReconection` class (now properly named `PreventReconnection`)
-- [ADDED] BridgeReward. A reward based on graph connectivity, see implementation for details
 - [ADDED] different kind of "Opponent" can now be implemented if needed (missing deep testing, different type of
   class, and good documentation)
 - [ADDED] implement other "rewards" to look at. It is now possible to have an environment that will compute more rewards
