@@ -331,7 +331,7 @@ class PandaPowerBackend(Backend):
 
         # shunts data
         self.n_shunt = self._grid.shunt.shape[0]
-        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=np.int) -1
+        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=np.int) - 1
         name_shunt = []
         for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
             bus = int(row["bus"])
@@ -380,6 +380,8 @@ class PandaPowerBackend(Backend):
             tmp[ok_ind] += redispatching[ok_ind]
             # print('after tmp[ok_ind]: {}'.format(self._get_vector_inj["prod_p"](self._grid)))
 
+        # shunts
+        
         # topology
         # run through all substations, find the topology. If it has changed, then update it.
         beg_ = 0

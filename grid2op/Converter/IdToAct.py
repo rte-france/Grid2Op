@@ -1,4 +1,5 @@
 from grid2op.Converter.Converters import Converter
+import warnings
 
 import pdb
 
@@ -74,7 +75,7 @@ class IdToAct(Converter):
         """
         if all_actions is None:
             self.all_actions = []
-            # add the do nothing topology
+            # add the do nothing action
             self.all_actions.append(super().__call__())
 
             if "_set_line_status" in self._template_act.attr_list_vect:
@@ -88,6 +89,10 @@ class IdToAct(Converter):
                         for i in range(self.n_line):
                             tmp_act = self.reconnect_powerline(line_id=i, bus_ex=bus_ex, bus_or=bus_or)
                             self.all_actions.append(tmp_act)
+            elif "_switch_line_status" in self._template_act.attr_list_vect:
+                warnings.warn("\"_set_line_status\" is not possible, but \"_switch_line_status\" is. However this"
+                              "behaviour is not supported at the moment.")
+                # TODO support that above ^
 
             if "_set_topo_vect" in self._template_act.attr_list_vect:
                 # topologies using the 'set' method
