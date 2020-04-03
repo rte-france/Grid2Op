@@ -70,7 +70,7 @@ setup(name='Grid2Op',
                        'independently of the software used to compute powerflow or method to generate grid '
                        'states or forecasts.',
       classifiers=[
-          'Development Status :: 5 - Beta',
+          'Development Status :: 4 - Beta',
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
           "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
