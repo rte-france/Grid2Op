@@ -1,4 +1,4 @@
-Action
+BaseAction
 ===================================
 .. automodule:: grid2op.Action
     :members:

@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
@@ -8,13 +7,12 @@ import warnings
 import numpy as np
 import pandapower as pp
 
+from grid2op.tests.helper_path_test import *
 
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
-
-from Exceptions import *
-from MakeEnv import make
-from Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
-from Parameters import Parameters
+from grid2op.Exceptions import *
+from grid2op.MakeEnv import make
+from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
+from grid2op.Parameters import Parameters
 
 import pdb
 
@@ -65,7 +63,7 @@ class TestAgent(HelperTests):
                        "\t - env update + observation: {:.2f}s",
                        "\t - time get topo vect: {:.2f}s",
                        "\t - time env obs space: {:.2f}s",
-                       "Agent: {:.2f}s", "Total time: {:.2f}s",
+                       "BaseAgent: {:.2f}s", "Total time: {:.2f}s",
                        "Cumulative reward: {:1f}"]
             msg_ = "\n".join(li_text)
             print(msg_.format(
@@ -94,7 +92,7 @@ class TestAgent(HelperTests):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent, i_max=10)
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
-        assert np.abs(cum_reward - 4285.13952) <= self.tol_one, "The reward has not been properly computed"
+        assert np.abs(cum_reward - 12075.38800) <= self.tol_one, "The reward has not been properly computed"
 
 
 if __name__ == "__main__":

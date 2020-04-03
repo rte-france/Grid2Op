@@ -1,0 +1,25 @@
+version: 2.1
+
+executors:
+  grid2op-executor:
+    docker:
+      - image: bdonnot/grid2op:latest
+    working_directory: /Grid2Op
+
+jobs:
+  test:
+    executor: grid2op-executor
+    parallelism: 4
+    steps:
+      - checkout
+      - run:
+          command: |
+            cd grid2op/tests/
+            circleci tests glob "test_*.py" | circleci tests split > /tmp/torun
+            python -m unittest $(cat /tmp/torun)
+
+workflows:
+  version: 2.1
+  test:
+    jobs:
+      - test

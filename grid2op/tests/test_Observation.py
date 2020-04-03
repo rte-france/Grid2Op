@@ -1,4 +1,3 @@
-# making some test that the backned is working as expected
 import os
 import sys
 import unittest
@@ -10,26 +9,18 @@ import numpy as np
 from numpy import dtype
 import pdb
 
-# making sure test can be ran from:
-# root package directory
-# RL4Grid subdirectory
-# RL4Grid/tests subdirectory
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
+from grid2op.tests.helper_path_test import *
 
-from Exceptions import *
-from Observation import ObservationHelper, CompleteObservation, ObsEnv, Observation
-
-from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
-
-from Exceptions import *
-from Action import HelperAction
-from GameRules import GameRules
-from Reward import L2RPNReward
-from Parameters import Parameters
-
-from BackendPandaPower import PandaPowerBackend
-from Environment import Environment
-from MakeEnv import make
+from grid2op.Exceptions import *
+from grid2op.Observation import ObservationSpace, CompleteObservation, ObsEnv, BaseObservation
+from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
+from grid2op.Action import ActionSpace
+from grid2op.Rules import RulesChecker
+from grid2op.Reward import L2RPNReward
+from grid2op.Parameters import Parameters
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Environment import Environment
+from grid2op.MakeEnv import make
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -48,7 +39,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         """
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         # pdb.set_trace()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()
@@ -134,7 +125,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'gen_cost_per_MW': [0.0, 0.0, 0.0, 0.0, 10.0],
                       'gen_startup_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'gen_shutdown_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
-                      'subtype': 'Observation.CompleteObservation'}
+                      'subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation',
+                      "grid_layout": None,
+                      'name_shunt': ['shunt_8_0'],
+                      'shunt_to_subid': [8]}
 
         self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),
@@ -143,13 +137,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                            dtype('float64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('float64'), dtype('float64'),
                                            dtype('float64'), dtype('bool'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
+                                           dtype('int64'), dtype('int64'), dtype('int64'),
                                            dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64')],
                                dtype=object)
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 20, 14, 20, 20, 20,
+                                            20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20, 20,
                                  5, 5])
-        self.size_obs = 454
+        self.size_obs = 434
 
     def test_sum_shape_equal_size(self):
         obs = self.env.helper_observation(self.env)
@@ -406,7 +400,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert dict_ == self.dict_
 
     def test_from_dict(self):
-        res = ObservationHelper.from_dict(self.dict_)
+        res = ObservationSpace.from_dict(self.dict_)
         assert res.n_gen == self.env.helper_observation.n_gen
         assert res.n_load == self.env.helper_observation.n_load
         assert res.n_line == self.env.helper_observation.n_line
@@ -432,7 +426,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_json_loadable(self):
         dict_ = self.env.helper_observation.to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
-        res = ObservationHelper.from_dict(json.loads(tmp))
+        res = ObservationSpace.from_dict(json.loads(tmp))
 
         assert res.n_gen == self.env.helper_observation.n_gen
         assert res.n_load == self.env.helper_observation.n_load
@@ -466,7 +460,7 @@ class TestObservationHazard(unittest.TestCase):
         # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         # pdb.set_trace()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()
@@ -545,7 +539,7 @@ class TestObservationMaintenance(unittest.TestCase):
         # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
-        self.game_rules = GameRules()
+        self.game_rules = RulesChecker()
         # pdb.set_trace()
         self.rewardClass = L2RPNReward
         self.reward_helper = self.rewardClass()

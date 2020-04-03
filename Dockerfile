@@ -9,23 +9,27 @@ RUN apt-get update && \
     apt-get install -y \
     less \
     apt-transport-https \
-    software-properties-common
-
-# Install octave
-RUN apt-get remove -y software-properties-common \
-    && rm -rf /var/lib/apt/lists/*
+    git \
+    ssh \
+    tar \
+    gzip \
+    ca-certificates
 
 # Retrieve Grid2Op
-RUN pip3 install -U numba matplotlib scipy numpy pandas pyaml pygame
-RUN git clone https://github.com/rte-france/Grid2Op
+RUN git clone https://github.com/BDonnot/Grid2Op
 
-# Install Grid2Op (including necessary packages installation)
-WORKDIR Grid2Op/
-RUN cd /Grid2Op
-RUN git pull && git checkout v0.5.4 && pip install -U . && cd ..
+# Install Grid2Op
+WORKDIR /Grid2Op
+# Use the latest release
+RUN git pull
+RUN git fetch --all --tags
+RUN git checkout "tags/v0.6.0" -b "v0.6.0-branch"
+# Install Dependencies
+RUN pip3 install -U .
+RUN pip3 install -e .[optional]
+RUN pip3 install -e .[test]
+RUN pip3 install -e .[challenge]
+WORKDIR /
 
 # Make port 80 available to the world outside this container
 EXPOSE 80
-
-# Run the sample experiments when the container launches
-CMD ["python3.6", "-m", "grid2op.main"]

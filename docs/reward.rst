@@ -1,4 +1,4 @@
-Reward
+BaseReward
 ===================================
 .. automodule:: grid2op.Reward
     :members:

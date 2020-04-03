@@ -1,8 +1,4 @@
-try:
-    from .Exceptions import Grid2OpException
-except (ModuleNotFoundError, ImportError):
-    from Exceptions import Grid2OpException
-
+from grid2op.Exceptions import Grid2OpException
 
 def extract_from_dict(dict_, key, converter):
     if not key in dict_:
