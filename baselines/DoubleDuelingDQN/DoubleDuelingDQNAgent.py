@@ -182,12 +182,12 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:
-                    # Update target network towards primary network
-                    self.Qtarget.update_weights(self.Qmain.model)
                     # Sample from experience buffer
                     s_batch, a_batch, r_batch, d_batch, s1_batch = self.replay_buffer.sample(self.batch_size)
                     # Perform training
                     self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, step)
+                    # Update target network towards primary network
+                    self.Qmain.update_target(self.Qtarget.model)
 
             total_reward += reward
             if self.done:
@@ -222,7 +222,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         t_input = np.reshape(s2_batch, (self.batch_size, input_size))
 
         # Batch predict
-        Q = self.Qmain.model.predict(m_input, batch_size = self.batch_size)
+        Q = self.Qmain.model.predict(t_input, batch_size = self.batch_size)
         Q2 = self.Qtarget.model.predict(t_input, batch_size = self.batch_size)
 
         # Compute batch Double Q update to Qtarget

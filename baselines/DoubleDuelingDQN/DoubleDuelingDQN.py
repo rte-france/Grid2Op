@@ -62,10 +62,22 @@ class DoubleDuelingDQN(object):
 
         return opt_policy, q_actions[0]
 
-    def update_weights(self, other_model):
-        # Set network weights to other network
-        model_weights = other_model.get_weights()
-        self.model.set_weights(model_weights)
+    def update_target_weights(self, target_model):
+        this_weights = self.model.get_weights()
+        target.model.set_weights(this_weights)
+
+    def update_target(self, target_model, tau=1e-2):
+        tau_inv = 1.0 - tau
+        # Get parameters to update
+        target_params = target_model.trainable_variables
+        main_params = self.model.trainable_variables
+
+        # Update each param
+        for i, var in enumerate(target_params):
+            var_persist = var.value() * tau_inv
+            var_update = main_params[i].value() * tau
+            # Poliak averaging
+            var.assign(var_update + var_persist)
 
     def save_network(self, path):
         # Saves model at specified path as h5 file

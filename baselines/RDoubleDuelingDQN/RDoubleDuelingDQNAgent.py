@@ -84,6 +84,19 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
         self.mem_state = np.zeros(self.Qmain.h_size)
         self.carry_state = np.zeros(self.Qmain.h_size)
 
+    def _register_experience(self, episode_exp, episode):
+        missing_obs = self.trace_length - len(episode_exp)
+
+        if missing_obs > 0: # We are missing exp to make a trace
+            exp = episode_exp[0] # Use inital state to fill out
+            for missing in range(missing_obs):
+                # Use do_nothing action at index 0
+                self.exp_buffer.add(exp[0], 0, exp[2], exp[3], exp[4], episode)
+
+        # Register the actual experience
+        for exp in episode_exp:
+            self.exp_buffer.add(exp[0], exp[1], exp[2], exp[3], exp[4], episode)
+
     ## Agent Interface
     def convert_obs(self, observation):
         return observation.to_vect()
@@ -127,9 +140,7 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
             if self.done:
                 self._reset_state()
                 # Push current episode experience to experience buffer
-                if len(episode_exp) >= self.trace_length:
-                    for exp in episode_exp:
-                        self.exp_buffer.add(exp[0], exp[1], exp[2], exp[3], exp[4], episode)
+                self._register_experience(episode_exp, episode)
                 # Reset current episode experience
                 episode += 1
                 episode_exp = []
@@ -166,12 +177,12 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.exp_buffer.can_sample():
-                    # Update target network towards primary network
-                    self.Qtarget.update_weights(self.Qmain.model)
                     # Sample from experience buffer
                     batch = self.exp_buffer.sample()
                     # Perform training
                     self._batch_train(batch, step)
+                    # Update target network towards primary network
+                    self.Qmain.update_target(self.Qtarget.model)
 
             total_reward += reward
             if self.done:
@@ -212,7 +223,7 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
 
         # Batch predict
         self.Qmain.trace_length.assign(self.trace_length)
-        Q, _, _ = self.Qmain.model.predict(m_input, batch_size = self.batch_size)
+        Q, _, _ = self.Qmain.model.predict(t_input, batch_size = self.batch_size)
         self.Qtarget.trace_length.assign(self.trace_length)
         Q2, _, _ = self.Qtarget.model.predict(t_input, batch_size = self.batch_size)
         
