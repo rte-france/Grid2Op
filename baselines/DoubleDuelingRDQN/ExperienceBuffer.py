@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from collections import deque
 import random
 import numpy as np
@@ -62,3 +64,20 @@ class ExperienceBuffer:
     def clear(self):
         self.buffer = [[]]
         self.current_episode = 0
+
+if __name__ == "__main__":
+    REPLAY_BUFFER_SIZE = 128
+    BATCH_SIZE = 32
+    TRACE_LENGTH = 8
+    rbuf = ExperienceBuffer(REPLAY_BUFFER_SIZE, BATCH_SIZE, TRACE_LENGTH)
+    for ep_idx in range(BATCH_SIZE + 1):
+        for t_idx in range(TRACE_LENGTH + 1): #range(np.random.randint(0, 32)):
+            rbuf.add([0] * 434, "a", "r", False, [4] * 434, ep_idx)
+            can_sample = rbuf.can_sample()
+            buf_info = "ep_idx={}, t_idx={}, can_sample={}"
+            print (buf_info.format(ep_idx, t_idx, str(can_sample)))
+            if can_sample:
+                batch = rbuf.sample()
+                s2_batch = np.vstack(batch[:, 4])
+                s2_batch = s2_batch.reshape(BATCH_SIZE, TRACE_LENGTH, 434)
+                print (s2_batch.shape)

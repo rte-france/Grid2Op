@@ -6,7 +6,7 @@ import tensorflow as tf
 from grid2op.MakeEnv import make2
 from grid2op.Reward import RedispReward
 
-from RDoubleDuelingDQNAgent import RDoubleDuelingDQNAgent as RDQNAgent
+from DoubleDuelingRDQNAgent import DoubleDuelingRDQNAgent as RDQNAgent
 from CustomAction import CustomAction
 
 def cli():

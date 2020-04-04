@@ -6,7 +6,7 @@ from grid2op.Agent import AgentWithConverter
 from grid2op.Converter import IdToAct
 
 from ExperienceBuffer import ExperienceBuffer
-from RDoubleDuelingDQN import RDoubleDuelingDQN
+from DoubleDuelingRDQN import DoubleDuelingRDQN
 
 INITIAL_EPSILON = 0.5
 FINAL_EPSILON = 0.001
@@ -57,7 +57,7 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
         self.action_size = self.action_space.size()
 
         # Load network graph
-        self.Qmain = RDoubleDuelingDQN(self.action_size,
+        self.Qmain = DoubleDuelingRDQN(self.action_size,
                                        self.observation_size,
                                        learning_rate = self.lr)
         # Setup inital state
@@ -72,7 +72,7 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
         self.done = True
         self.epoch_rewards = []
         self.epoch_alive = []
-        self.Qtarget = RDoubleDuelingDQN(self.action_size,
+        self.Qtarget = DoubleDuelingRDQN(self.action_size,
                                          self.observation_size,
                                          learning_rate = self.lr)
     

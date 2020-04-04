@@ -8,7 +8,7 @@ import tensorflow.keras.optimizers as tfko
 import tensorflow.keras.layers as tfkl
 import tensorflow.keras.activations as tfka
 
-class RDoubleDuelingDQN(object):
+class DoubleDuelingRDQN(object):
     def __init__(self,
                  action_size,
                  observation_size,
