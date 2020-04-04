@@ -115,7 +115,7 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
     def load_network(self, path):
         self.Qmain.load_network(path)
         if self.is_training:
-            self.Qtarget.update_weights(self.Qmain.model)
+            self.Qmain.update_target_weights(self.Qtarget.model)
 
     def save_network(self, path):
         self.Qmain.save_network(path)
