@@ -240,7 +240,15 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             with self.tf_writer.as_default():
                 mean_reward = np.mean(self.epoch_rewards)
                 mean_alive = np.mean(self.epoch_alive)
+                if len(self.epoch_rewards) >= 100:
+                    mean_reward_100 = np.mean(self.epoch_rewards[-100:])
+                    mean_alive_100 = np.mean(self.epoch_alive[-100:])
+                else:
+                    mean_reward_100 = mean_reward
+                    mean_alive_100 = mean_alive
                 tf.summary.scalar("mean_reward", mean_reward, step)
                 tf.summary.scalar("mean_alive", mean_alive, step)
+                tf.summary.scalar("mean_reward_100", mean_reward_100, step)
+                tf.summary.scalar("mean_alive_100", mean_alive_100, step)
                 tf.summary.scalar("loss", loss, step)
             print("loss =", loss)
