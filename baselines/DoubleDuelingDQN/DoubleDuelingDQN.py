@@ -26,20 +26,20 @@ class DoubleDuelingDQN(object):
         input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,))
         lay1 = tfkl.Dense(self.observation_size * self.num_frames)(input_layer)
                 
-        lay2 = tfkl.Dense(self.observation_size)(lay1)
+        lay2 = tfkl.Dense(512)(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
         
-        lay3 = tfkl.Dense(4*self.action_size)(lay2)
+        lay3 = tfkl.Dense(256)(lay2)
         lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
-        lay4 = tfkl.Dense(2*self.action_size)(lay3)
+        lay4 = tfkl.Dense(128)(lay3)
         lay4 = tfka.relu(lay4, alpha=0.01) #leaky_relu
 
-        advantage = tfkl.Dense(2*self.action_size)(lay4)
+        advantage = tfkl.Dense(64)(lay4)
         advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
         advantage = tfkl.Dense(self.action_size)(advantage)
 
-        value = tfkl.Dense(2*self.action_size)(lay4)
+        value = tfkl.Dense(64)(lay4)
         value = tfka.relu(value, alpha=0.01) #leaky_relu
         value = tfkl.Dense(1)(value)
 

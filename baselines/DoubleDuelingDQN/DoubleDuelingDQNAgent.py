@@ -12,7 +12,7 @@ INITIAL_EPSILON = 0.5
 FINAL_EPSILON = 0.001
 EPSILON_DECAY = 1024*16
 DISCOUNT_FACTOR = 0.99
-REPLAY_BUFFER_SIZE = 128
+REPLAY_BUFFER_SIZE = 2048
 UPDATE_FREQ = 16
 
 class DoubleDuelingDQNAgent(AgentWithConverter):
@@ -185,7 +185,8 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                     # Sample from experience buffer
                     s_batch, a_batch, r_batch, d_batch, s1_batch = self.replay_buffer.sample(self.batch_size)
                     # Perform training
-                    self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, step)
+                    training_step = step - num_pre_training_steps
+                    self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, training_step)
                     # Update target network towards primary network
                     self.Qmain.update_target(self.Qtarget.model)
 

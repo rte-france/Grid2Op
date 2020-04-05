@@ -15,7 +15,7 @@ class DoubleDuelingRDQN(object):
                  learning_rate = 1e-5):
         self.action_size = action_size
         self.observation_size = observation_size
-        self.h_size = (2 * self.action_size) + (2 * self.observation_size)
+        self.h_size = 512
 
         self.lr = learning_rate
         
@@ -30,12 +30,12 @@ class DoubleDuelingRDQN(object):
         input_layer = tfk.Input(dtype=tf.float32, shape=(None, self.observation_size), name='input_obs')
 
         # Forward pass
-        lay1 = tfkl.Dense(self.observation_size)(input_layer)
+        lay1 = tfkl.Dense(512)(input_layer)
                 
-        lay2 = tfkl.Dense(2 * self.observation_size)(lay1)
+        lay2 = tfkl.Dense(256)(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
         
-        lay3 = tfkl.Dense(2 * self.h_size)(lay2)
+        lay3 = tfkl.Dense(128)(lay2)
         lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
         lay4 = tfkl.Dense(self.h_size)(lay3)
@@ -48,11 +48,11 @@ class DoubleDuelingRDQN(object):
         lstm_output = lay5
 
         # Advantage and Value streams
-        advantage = tfkl.Dense(2 * self.action_size)(lstm_output)
+        advantage = tfkl.Dense(64)(lstm_output)
         advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
         advantage = tfkl.Dense(self.action_size)(advantage)
 
-        value = tfkl.Dense(self.observation_size)(lstm_output)
+        value = tfkl.Dense(64)(lstm_output)
         value = tfka.relu(value, alpha=0.01) #leaky_relu
         value = tfkl.Dense(1)(value)
 
