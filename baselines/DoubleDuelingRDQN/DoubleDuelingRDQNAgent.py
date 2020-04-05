@@ -108,8 +108,12 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
         self._reset_state()
 
     def my_act(self, state, reward, done=False):
-        self._save_current_frame(state)
-        a, _ = self.Qmain.predict_move(np.array(self.frames))
+        data_input = np.array(state)
+        data_input.reshape(1, 1, self.observation_size)
+        a, _, m, c = self.Qmain.predict_move(data_input, self.mem_state, self.carry_state)
+        self.mem_state = m
+        self.carry_state = c
+
         return a
     
     def load_network(self, path):
