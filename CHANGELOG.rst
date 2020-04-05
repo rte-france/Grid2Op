@@ -1,8 +1,8 @@
 Change Log
 ===========
 
-[0.6.1] - 2020-xx-yy
---------------------
+[0.6.zz] - 2020-xx-yy
+---------------------
 TODO for next versions
 
 - [???] test and doc for opponent
@@ -22,6 +22,15 @@ TODO for next versions
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
+
+[0.6.1] - 2020-04-??
+--------------------
+- [FIXED] if no redispatch actions are taken, then the game can no more invalid a provided action due to error in the
+  redispatching. This behavior was caused by increase / decrease of the system losses that was higher (in absolute
+  value) than the ramp of the generators connected to the slack bus. This has been fixed by removing the losses
+  of the powergrid in the computation of the redispatching algorithm. **side effect** for the generator connected
+  to the slack bus, the ramp min / up as well as pmin / pmax might not be respected in the results data provided
+  in the observation for example.
 
 [0.6.0] - 2020-04-03
 ---------------------

@@ -12,6 +12,7 @@ from grid2op.Opponent import OpponentSpace, UnlimitedBudget
 from grid2op.Action import ActionSpace, DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
+import pdb
 
 
 class _BasicEnv(GridObjects, ABC):
@@ -84,6 +85,7 @@ class _BasicEnv(GridObjects, ABC):
         self.gen_uptime = None
         self.gen_downtime = None
         self.gen_activeprod_t = None
+        self.gen_activeprod_t_redisp = None
 
         self._thermal_limit_a = thermal_limit_a
 
@@ -251,6 +253,7 @@ class _BasicEnv(GridObjects, ABC):
         #     self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
         self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
         self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
+        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=np.float)
 
     @staticmethod
     def _get_poly(t, tmp_p, pmin, pmax):
@@ -388,16 +391,16 @@ class _BasicEnv(GridObjects, ABC):
 
         # make sure that rampmin and max are met
         new_p_if_redisp_ok = new_p + self.actual_dispatch
-        gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t - self.gen_max_ramp_down)
-        gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t + self.gen_max_ramp_up)
+        gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t_redisp - self.gen_max_ramp_down)
+        gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t_redisp + self.gen_max_ramp_up)
 
         if np.any((gen_min[gen_redispatchable] > new_p_if_redisp_ok[gen_redispatchable]) |
                    (new_p_if_redisp_ok[gen_redispatchable] > gen_max[gen_redispatchable])) and \
-            np.any(self.gen_activeprod_t != 0.):
+            np.any(self.gen_activeprod_t_redisp != 0.):
 
             # i am in a case where the target redispatching is not possible, due to the new values
             # i need to come up with a solution to fix that
-            # note that the condition "np.any(self.gen_activeprod_t != 0.)" is added because at the first time
+            # note that the condition "np.any(self.gen_activeprod_t_redisp != 0.)" is added because at the first time
             # step there is no need to check all that.
             # but take into account pmin and pmax
             curtail_generation = 1. * new_p_if_redisp_ok
@@ -424,18 +427,20 @@ class _BasicEnv(GridObjects, ABC):
                 minimum_redisp[mask_max] = new_dispatch[mask_max] - self._epsilon_poly
                 maximum_redisp[mask_min] = new_dispatch[mask_min] + self._epsilon_poly
 
-            new_redisp, except_ = self._aux_aux_redisp(minimum_redisp,maximum_redisp,
+            new_redisp, except_ = self._aux_aux_redisp(minimum_redisp,
+                                                       maximum_redisp,
                                                        gen_redispatchable,
                                                        new_dispatch,
                                                        0.)
+            if except_ is not None:
+                pass
+                # import pdb
+                # pdb.set_trace()
 
             return new_redisp, except_
         return self.actual_dispatch, except_
 
     def _get_new_prod_setpoint(self, action):
-        except_ = None
-        redisp_act = 1. * action._redispatch
-
         # get the modification of generator active setpoint from the action
         new_p = 1. * self.gen_activeprod_t
         if "prod_p" in action._dict_inj:
@@ -450,7 +455,7 @@ class _BasicEnv(GridObjects, ABC):
             tmp = self.env_modification._dict_inj["prod_p"]
             indx_ok = np.isfinite(tmp)
             new_p[indx_ok] = tmp[indx_ok]
-        return new_p, except_
+        return new_p
 
     def _make_redisp_0sum(self, action, new_p):
         """
@@ -513,12 +518,13 @@ class _BasicEnv(GridObjects, ABC):
         redisp_act_orig[new_p == 0.] = 0.
         # TODO add a flag here too, like before (the action has been "cut")
 
-        # get the target redispatching (cumulation starting from the first element of the scenario)
+        # get the target redispatching (cumulation starting from the first element of the scenario)test_
+        # redispatch_act_above_pmax
         if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
                 np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= self._tol_poly:
             # make sure the redispatching action is zero sum
             new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch,
-                                                            self.gen_activeprod_t,
+                                                            self.gen_activeprod_t_redisp,
                                                             redisp_act_orig)
             if except_ is not None:
                 # if there is an error, then remove the above "action" and propagate it
@@ -712,18 +718,13 @@ class _BasicEnv(GridObjects, ABC):
 
             # get the modification of generator active setpoint from the environment
             self.env_modification, prod_v_chronics = self._update_actions()
+            new_p = self._get_new_prod_setpoint(action)
+
             if self.redispatching_unit_commitment_availble:
                 # remember generator that were "up" before the action
                 gen_up_before = self.gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                new_p, except_tmp = self._get_new_prod_setpoint(action)
-                if except_tmp is not None:
-                    action = self.helper_action_player({})
-                    is_illegal_redisp = True
-                    new_p, _ = self._get_new_prod_setpoint(action)
-                    except_.append(except_tmp)
-
                 except_tmp = self._make_redisp_0sum(action, new_p)
                 if except_tmp is not None:
                     action = self.helper_action_player({})
@@ -833,6 +834,11 @@ class _BasicEnv(GridObjects, ABC):
 
                 # extract production active value at this time step (should be independant of action class)
                 self.gen_activeprod_t, *_ = self.backend.generators_info()
+                # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
+                # of the system. So basically, when it's too high (higher than the ramp) it can
+                # mess up the rest of the environment
+                self.gen_activeprod_t_redisp = new_p + self.actual_dispatch
+                # self.gen_activeprod_t_redisp = self.gen_activeprod_t
 
                 has_error = False
             except Grid2OpException as e:
