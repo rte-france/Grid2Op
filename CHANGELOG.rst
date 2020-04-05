@@ -31,6 +31,8 @@ TODO for next versions
   of the powergrid in the computation of the redispatching algorithm. **side effect** for the generator connected
   to the slack bus, the ramp min / up as well as pmin / pmax might not be respected in the results data provided
   in the observation for example.
+- [FIXED] a bug in the computation of cascading failure that lead (sometimes) to diverging powerflow when in the fact
+  the powerflow did not diverge.
 
 [0.6.0] - 2020-04-03
 ---------------------

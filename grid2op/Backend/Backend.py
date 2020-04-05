@@ -610,7 +610,7 @@ class Backend(GridObjects, ABC):
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
 
             # start a powerflow on this new state
-            self._runpf_with_diverging_exception(self._grid)
+            self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
                 infos.append(self.copy())
         return disconnected_during_cf, infos
@@ -644,12 +644,6 @@ class Backend(GridObjects, ABC):
         p_gen, q_gen, v_gen = self.generators_info()
         p_load, q_load, v_load = self.loads_info()
         p_s, q_s, v_s, bus_s = self.shunt_info()
-
-        try:
-            self.sub_from_bus_id(0)
-            can_extract_shunt = True
-        except:
-            can_extract_shunt = False
 
         # fist check the "substation law" : nothing is created at any substation
         p_subs = np.zeros(self.n_sub)
@@ -693,7 +687,7 @@ class Backend(GridObjects, ABC):
             p_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += p_load[i]
             q_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += q_load[i]
 
-        if can_extract_shunt:
+        if self.shunts_data_available:
             for i in range(len(p_s)):
                 tmp_bus = bus_s[i]
                 sub_id = self.sub_from_bus_id(tmp_bus)
@@ -703,7 +697,8 @@ class Backend(GridObjects, ABC):
                 p_bus[sub_id, 1*(tmp_bus!=sub_id)] += p_s[i]
                 q_bus[sub_id, 1*(tmp_bus!=sub_id)] += q_s[i]
         else:
-            warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be incorrect.")
+            warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
+                          "incorrect.")
 
         return p_subs, q_subs, p_bus, q_bus
 
