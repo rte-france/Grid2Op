@@ -15,7 +15,7 @@ DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 256
 UPDATE_FREQ = 16
 
-class RDoubleDuelingDQNAgent(AgentWithConverter):
+class DoubleDuelingRDQNAgent(AgentWithConverter):
     def __init__(self,
                  env,
                  action_space,
@@ -78,7 +78,7 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
     
     def _reset_state(self):
         # Initial state
-        self.obs = self.env.reset()
+        self.obs = self.env.current_obs
         self.state = self.convert_obs(self.obs)
         self.done = False
         self.mem_state = np.zeros(self.Qmain.h_size)
@@ -142,6 +142,11 @@ class RDoubleDuelingDQNAgent(AgentWithConverter):
         while step < num_steps:
             # New episode
             if self.done:
+                try:
+                    self.env.reset()
+                except:
+                    self.env.reset()
+
                 self._reset_state()
                 # Push current episode experience to experience buffer
                 self._register_experience(episode_exp, episode)
