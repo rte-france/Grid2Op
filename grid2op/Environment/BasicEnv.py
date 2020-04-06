@@ -209,6 +209,10 @@ class _BasicEnv(GridObjects, ABC):
         self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
+        # Remember lines last bus
+        self.last_bus_line_or = np.full(shape=self.n_line, fill_value=1, dtype=np.int)
+        self.last_bus_line_ex = np.full(shape=self.n_line, fill_value=1, dtype=np.int)
+
         # initialize maintenance / hazards
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
@@ -639,6 +643,63 @@ class _BasicEnv(GridObjects, ABC):
         self.gen_downtime[gen_still_disconnected] += 1
         return except_
 
+    def _save_connected_lines_buses(self):
+        # All lines indexes
+        connected_lines = np.array(range(self.n_line))
+        # Only the connected lines indexes
+        connected_lines = connected_lines[self.backend.get_line_status()]
+
+        # Get lines buses from topo
+        topo = self.backend.get_topo_vect()
+        or_pos = self.line_or_pos_topo_vect
+        ex_pos = self.line_ex_pos_topo_vect
+
+        # Save each connected line buses
+        for line_idx in connected_lines:
+            # Find & save bus of line origin
+            line_bus_or = topo[or_pos[line_idx]]
+            self.last_bus_line_or[line_idx] = line_bus_or
+            # Find & save bus of line extermity
+            line_bus_ex = topo[ex_pos[line_idx]]
+            self.last_bus_line_ex[line_idx] = line_bus_ex
+
+    def _restore_missing_reconnecting_lines_buses(self, action):
+        """
+        Set the line buses of the line reconnect action if not already defined in the action
+        Set to previous bus for lines that will be reconnected without a specified bus
+        """
+        # Get lines buses in the action
+        target_topo = action._set_topo_vect
+        or_pos = self.line_or_pos_topo_vect
+        ex_pos = self.line_ex_pos_topo_vect
+
+        # All lines indexes
+        reconnected_lines = np.array(range(self.n_line))
+        # Keep only the indexes of lines reconnected by the action
+        inv_lines_status = np.logical_not(self.backend.get_line_status())
+        reconnected_lines = reconnected_lines[
+            np.logical_or(
+                # Reconnected using 'set_line_status' and actually disconnected in the backend
+                np.logical_and((action._set_line_status == 1), inv_lines_status),
+                # Reconnected using 'switch_line_status' and actually disconnected in the backend
+                np.logical_and(action._switch_line_status, inv_lines_status)
+            )]
+
+        # Check each line to be reconnected
+        for line_idx in reconnected_lines:
+            # Update line origin bus if not provided
+            line_or_target_bus = target_topo[or_pos[line_idx]]
+            if line_or_target_bus == 0:
+                restored_or = (line_idx, self.last_bus_line_or[line_idx])
+                action = action.update({ "set_bus": { "lines_or_id": [restored_or] } })
+            # Update line extremity bus if not provided
+            line_ex_target_bus = target_topo[ex_pos[line_idx]]
+            if line_ex_target_bus == 0:
+                restored_ex = (line_idx, self.last_bus_line_ex[line_idx])
+                action = action.update({ "set_bus": { "lines_ex_id": [restored_ex] } })
+
+        return action
+
     def get_obs(self):
         """
         Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
@@ -709,6 +770,9 @@ class _BasicEnv(GridObjects, ABC):
         previous_disp = 1.0 * self.actual_dispatch
         previous_target_disp = 1.0 * self.target_dispatch
         try:
+            action = self._restore_missing_reconnecting_lines_buses(action)
+            print (action)
+            
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:
@@ -857,6 +921,9 @@ class _BasicEnv(GridObjects, ABC):
         except StopIteration:
             # episode is over
             is_done = True
+
+        # Save the lines buses for later reconnecting
+        self._save_connected_lines_buses()
 
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,

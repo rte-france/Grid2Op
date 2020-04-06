@@ -9,6 +9,7 @@
 import copy
 import pdb
 import time
+import warnings
 
 from grid2op.tests.helper_path_test import *
 
@@ -16,7 +17,7 @@ from grid2op.Exceptions import *
 from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, GridStateFromFile
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
@@ -271,6 +272,38 @@ class TestAttachLayout(unittest.TestCase):
             assert "grid_layout" in dict_
             assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 
+class TestLineChangeLastBus(unittest.TestCase):
+    """
+    This function test that the behaviour of "step": it updates the action with the last known bus when reconnecting
 
+    """
+    def setUp(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("case14_test", chronics_class=ChangeNothing)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_set_reconnect(self):
+        LINE_ID = 4
+        bus_action = self.env.action_space({"set_bus": {"lines_ex_id": [(LINE_ID,2)]}})
+        print (bus_action)
+        set_status = self.env.action_space.get_set_line_status_vect()
+        set_status[LINE_ID] = -1
+        disconnect_action = self.env.action_space({'set_line_status': set_status})
+        set_status[LINE_ID] = 1
+        reconnect_action = self.env.action_space({'set_line_status': set_status})
+        
+        obs, r, d, _ = self.env.step(bus_action)
+        assert obs.line_status[LINE_ID] == True
+        assert d is False
+        obs, r, d, _ = self.env.step(disconnect_action)
+        assert obs.line_status[LINE_ID] == False
+        assert d is False
+        obs, r, d, info = self.env.step(reconnect_action)
+        print(info)
+        assert obs.line_status[LINE_ID] == True
+        
 if __name__ == "__main__":
     unittest.main()
