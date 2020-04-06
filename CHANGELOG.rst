@@ -31,6 +31,9 @@ Change Log
   in the observation for example.
 - [FIXED] a bug in the computation of cascading failure that lead (sometimes) to diverging powerflow when in the fact
   the powerflow did not diverge.
+- [FIXED] a bug in the `OneChangeThenNothing` agent.
+- [FIXED] a bug that lead to impossibility to load a powerline after a cascading failure in some cases. Now fixed by
+  resetting the appropriate vectors when calling "env.reset".
 - [ADDED] BridgeReward. A reward based on graph connectivity, see implementation in grid2op.Reward.BridgeReward for details
 
 [0.6.0] - 2020-04-03

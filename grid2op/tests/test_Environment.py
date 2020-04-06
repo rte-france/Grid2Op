@@ -305,5 +305,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         print(info)
         assert obs.line_status[LINE_ID] == True
         
+# TODO add test: fake a cascading failure, do a reset of an env, check that it can be loaded
+
 if __name__ == "__main__":
     unittest.main()

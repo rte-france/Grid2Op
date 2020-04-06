@@ -245,7 +245,7 @@ class EpisodeData:
                     arr = info["disc_lines"]
                     if arr is not None:
                         self.disc_lines = np.concatenate(
-                            (self.disc_lines, arr))
+                            (self.disc_lines, arr.reshape(1, -1)))
                     else:
                         self.disc_lines = np.concatenate(
                             (self.disc_lines, self.disc_lines_templ))
@@ -396,7 +396,7 @@ class CollectionWrapper:
         if efficient_storage:
             self.collection[time_step - 1, :] = values
         else:
-            self.collection = np.concatenate((self.collection, values))
+            self.collection = np.concatenate((self.collection, values.reshape(1, -1)))
 
     def save(self, path):
         np.save(path, self.collection)

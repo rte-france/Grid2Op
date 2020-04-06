@@ -53,6 +53,7 @@ Example (adapted from gym documentation available at
 import numpy as np
 import os
 import copy
+import pdb
 
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
@@ -390,9 +391,10 @@ class Environment(_BasicEnv):
         # first injections given)
         self._reset_maintenance()
         do_nothing = self.helper_action_env({})
-        *_, fail_to_start, _ = self.step(do_nothing)
+        *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
-            raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0.")
+            raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
+                                   "Available information are: {}".format(info))
 
         # test the backend returns object of the proper size
         self.backend.assert_grid_correct_after_powerflow()
@@ -542,8 +544,15 @@ class Environment(_BasicEnv):
         if self._thermal_limit_a is not None:
             self.backend.set_thermal_limit(self._thermal_limit_a)
 
+        # TODO this is super weird!!!!
+        # self.gen_downtime = self.gen_min_downtime + 1
+        # self.gen_uptime = self.gen_min_uptime + 1
         do_nothing = self.helper_action_env({})
-        self.step(do_nothing)
+        *_, fail_to_start, info = self.step(do_nothing)
+        if fail_to_start:
+            raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
+                                   "Available information are: {}".format(info))
+
         # test the backend returns object of the proper size
         self.backend.assert_grid_correct_after_powerflow()
 
@@ -602,13 +611,16 @@ class Environment(_BasicEnv):
                                          self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
+        self.env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
+        self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
         self.reset_grid()
         if self.viewer is not None:
             self.viewer.reset(self)
         # if True, then it will not disconnect lines above their thermal limits
-        self._reset_vectors_and_timings()
+        self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
+        # TODO add test above: fake a cascading failure, do a reset, check that it can be loaded
         # reset the opponent
         self.oppSpace.reset()
         return self.get_obs()
