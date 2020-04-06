@@ -3,10 +3,14 @@ import networkx as nx
 from grid2op.Reward.BaseReward import BaseReward
 
 class BridgeReward(BaseReward):
+    """
+    This reward computes a penalty based on how many bridges are present in the grid netwrok.
+    In graph theory, a bridge is an edge that if removed will cause the graph to be disconnected.
+    """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = 0
-        self.reward_max = 1000.0
+        self.reward_min = -1000.0
+        self.reward_max = 100.0
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         n_bus = 3

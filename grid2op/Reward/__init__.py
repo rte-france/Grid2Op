@@ -6,6 +6,8 @@ __all__ = [
     "L2RPNReward",
     "RedispReward",
     "BridgeReward",
+    "CloseToOverflowReward",
+    "DistanceReward",
     "RewardHelper",
     "BaseReward"
 ]
@@ -17,6 +19,8 @@ from grid2op.Reward.IncreasingFlatReward import IncreasingFlatReward
 from grid2op.Reward.L2RPNReward import L2RPNReward
 from grid2op.Reward.RedispReward import RedispReward
 from grid2op.Reward.BridgeReward import BridgeReward
+from grid2op.Reward.CloseToOverflowReward import CloseToOverflowReward
+from grid2op.Reward.DistanceReward import DistanceReward
 from grid2op.Reward.RewardHelper import RewardHelper
 from grid2op.Reward.BaseReward import BaseReward
 import warnings
