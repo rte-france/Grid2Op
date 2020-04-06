@@ -7,7 +7,7 @@ import warnings
 import numbers
 from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
-from grid2op.Reward import BaseReward, ConstantReward, EconomicReward, FlatReward, L2RPNReward, RedispReward
+from grid2op.Reward import *
 from grid2op import make
 
 
@@ -55,6 +55,10 @@ class TestLoadingL2RPNReward(TestLoadingReward, unittest.TestCase):
 class TestLoadingRedispReward(TestLoadingReward, unittest.TestCase):
     def _create_reward(self):
         return RedispReward()
+
+class TestLoadingBridgeReward(TestLoadingReward, unittest.TestCase):
+    def _create_reward(self):
+        return BridgeReward()
 
 
 if __name__ == "__main__":

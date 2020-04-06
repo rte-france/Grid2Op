@@ -5,6 +5,7 @@ __all__ = [
     "IncreasingFlatReward",
     "L2RPNReward",
     "RedispReward",
+    "BridgeReward",
     "RewardHelper",
     "BaseReward"
 ]
@@ -15,6 +16,7 @@ from grid2op.Reward.FlatReward import FlatReward
 from grid2op.Reward.IncreasingFlatReward import IncreasingFlatReward
 from grid2op.Reward.L2RPNReward import L2RPNReward
 from grid2op.Reward.RedispReward import RedispReward
+from grid2op.Reward.BridgeReward import BridgeReward
 from grid2op.Reward.RewardHelper import RewardHelper
 from grid2op.Reward.BaseReward import BaseReward
 import warnings
