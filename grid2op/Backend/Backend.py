@@ -41,6 +41,7 @@ import pandas as pd
 
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
+from grid2op.Action import CompleteAction
 
 import pdb
 
@@ -801,3 +802,15 @@ class Backend(GridObjects, ABC):
                                  "".format(el, e_))
 
         self.attach_layout(grid_layout=new_grid_layout)
+
+    def get_action_dict(self):
+        line_status = self.get_line_status()
+        topo_vect = self.get_topo_vect()
+        prod_p, _, prod_v = self.generators_info()
+        load_p, load_q, _ = self.loads_info()
+        set_me = CompleteAction(self)
+        set_me.update({"set_line_status": np.array(line_status),
+                       "set_bus": topo_vect,
+                       "injection": {"prod_p":prod_p, "prod_v": prod_v,
+                                     "load_p": load_p, "load_q": load_q}})
+        return set_me

@@ -256,6 +256,7 @@ class ObsEnv(_BasicEnv):
         # Make a copy of env state for simulation
         self._thermal_limit_a = env._thermal_limit_a
         self.gen_activeprod_t[:] = env.gen_activeprod_t[:]
+        self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp[:]
         self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable[:]
         self.times_before_topology_actionable[:]  = env.times_before_topology_actionable[:]
         self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection[:]
