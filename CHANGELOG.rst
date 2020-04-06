@@ -3,8 +3,10 @@ Change Log
 
 [0.6.1] - 2020-xx-yy
 --------------------
-TODO for next versions
+- [ADDED] BridgeReward. A reward based on graph connectivity, see implementation in grid2op.Reward.BridgeReward for details
 
+[TODO]
+--------------------
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.

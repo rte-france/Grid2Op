@@ -340,6 +340,34 @@ class SerializableActionSpace(SerializableSpace):
         return self._template_act.get_change_line_status_vect()
 
     @staticmethod
+    def get_all_unitary_line_set(action_space):
+        res = []
+
+        # powerline switch: disconnection
+        for i in range(action_space.n_line):
+            res.append(action_space.disconnect_powerline(line_id=i))
+
+        # powerline switch: reconnection
+        for bus_or in [1, 2]:
+            for bus_ex in [1, 2]:
+                for i in range(action_space.n_line):
+                    act = action_space.reconnect_powerline(line_id=i, bus_ex=bus_ex, bus_or=bus_or)
+                    res.append(act)
+
+        return res
+
+    @staticmethod
+    def get_all_unitary_line_change(action_space):
+        res = []
+
+        for i in range(action_space.n_line):
+            status = action_space.get_change_line_status_vect()
+            status[i] = True
+            res.append(action_space({"change_line_status": status}))
+
+        return res
+
+    @staticmethod
     def get_all_unitary_topologies_change(action_space):
         """
         This methods allows to compute and return all the unitary topological changes that can be performed on a

@@ -10,7 +10,8 @@ pkgs = {
         "pandas>=1.0.3",
         "pandapower>=2.2.2",
         "tqdm>=4.43.0",
-        "pathlib>=1.0.1"
+        "pathlib>=1.0.1",
+        "networkx>=2.4"
     ],
     "extras": {
         "test": [
@@ -36,7 +37,8 @@ pkgs = {
             "pandas==1.0.3",
             "pandapower==2.2.2",
             "tqdm==4.43.0",
-            "pathlib==1.0.1"
+            "pathlib==1.0.1",
+            "networkx==2.4"
         ],
         "docs": [
             "numpydoc>=0.9.2",
