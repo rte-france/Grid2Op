@@ -79,7 +79,14 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
     
     def _reset_state(self):
         # Initial state
-        self.obs = self.env.reset()
+        try:
+            self.obs = self.env.reset()
+        except:
+            print("chronic_id: ", self.env.chronics_handler.get_id())
+            print("active_prod_t: ", self.env.gen_activeprod_t)
+            print("active_prod_t_redisp: ", self.env.gen_activeprod_t_redisp)
+            self.obs = self.env.reset()
+
         self.state = self.convert_obs(self.obs)
         self.done = False
 
