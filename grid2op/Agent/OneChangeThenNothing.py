@@ -29,9 +29,9 @@ class OneChangeThenNothing(BaseAgent):
     def act(self, observation, reward, done=False):
         if self.has_changed:
             res = self.action_space({})
-            self.has_changed = True
         else:
             res = self.action_space(self._get_dict_act())
+            self.has_changed = True
         return res
 
     @abstractmethod

@@ -272,5 +272,6 @@ class TestAttachLayout(unittest.TestCase):
             assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 
 
+# TODO add test: fake a cascading failure, do a reset of an env, check that it can be loaded
 if __name__ == "__main__":
     unittest.main()

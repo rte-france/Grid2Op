@@ -253,15 +253,15 @@ class _BasicEnv(GridObjects, ABC):
         self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
         self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
         self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
+        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=np.float)
         # if self.redispatching_unit_commitment_availble:
         #     # pretend that all generator has been turned off for a suffcient number of timestep,
         #     # otherwise when reconnecting them at first step it's complicated
         #     self.gen_downtime = self.gen_min_downtime
         # else:
         #     self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
-        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=np.float)
 
     @staticmethod
     def _get_poly(t, tmp_p, pmin, pmax):
