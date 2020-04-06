@@ -121,7 +121,7 @@ class TestRedispatch(HelperTests):
         act = self.env.action_space({"redispatch": [2, 60]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0., -10.46650072,  50.89066718,   0., -40.42416646])
+        th_dispatch = np.array([0., -10.57042905,  50.89066718,   0., -40.32023813])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
         target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
@@ -230,14 +230,14 @@ class TestRedispatch(HelperTests):
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([0.,  0., 20.,  0.,  0.]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert self.compare_vect(obs.actual_dispatch, np.array([0.,  -5.34776078,  20.,   0., -14.65223922]))
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -5.36765536,  20., 0., -14.63234464]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
         act = self.env.action_space({"redispatch": [(2, 40.)]})
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([0.,  0., 60.,  0.,  0.]))
-        assert self.compare_vect(obs.actual_dispatch, np.array([0., -10.31164036, 50.39070301, 0., -40.07906265]))
+        assert self.compare_vect(obs.actual_dispatch, np.array([0., -10.3814061, 50.39070301, 0., -40.00929691]))
         assert np.all(obs.prod_p[:-1] <= self.env.gen_pmax[:-1])
         assert np.all(obs.prod_p[:-1] >= self.env.gen_pmin[:-1])
 
@@ -514,7 +514,7 @@ class TestLoadingBackendPandaPower(HelperTests):
     def test_dispatch_still_not_zero(self):
         env = self.env
 
-        max_iter = 26
+        max_iter = 27
         # agent = GreedyEconomic(env.action_space)
         done = False
         # reward = env.reward_range[0]
