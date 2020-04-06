@@ -5,6 +5,9 @@ import tensorflow as tf
 
 from grid2op.MakeEnv import make2
 from grid2op.Reward import RedispReward
+from grid2op.Reward import BridgeReward
+from grid2op.Reward import CloseToOverflowReward
+from grid2op.Reward import DistanceReward
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
 from CustomAction import CustomAction
@@ -36,7 +39,14 @@ def cli():
 
 if __name__ == "__main__":
     args = cli()
-    env = make2(args.path_data, reward_class=RedispReward, action_class=CustomAction)
+    env = make2(args.path_data,
+                action_class=CustomAction,
+                reward_class=RedispReward,
+                other_rewards={
+                    "bridge": BridgeReward,
+                    "close_to_of": CloseToOverflowReward,
+                    "distance": DistanceReward
+                })
 
     # Limit gpu usage
     physical_devices = tf.config.list_physical_devices('GPU')

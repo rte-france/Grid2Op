@@ -163,6 +163,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             # Execute action
             new_obs, reward, self.done, info = self.env.step(act)
             new_state = self.convert_obs(new_obs)
+            print (info["rewards"])
             
             # Save to frame buffer
             self._save_current_frame(self.state)
