@@ -87,6 +87,10 @@ class _BasicEnv(GridObjects, ABC):
         self.time_remaining_before_line_reconnection = None
         self.env_dc = self.parameters.ENV_DC
 
+        # Remember last line buses
+        self.last_bus_line_or = None
+        self.last_bus_line_ex = None
+
         # redispatching data
         self.target_dispatch = None
         self.actual_dispatch = None
@@ -771,7 +775,6 @@ class _BasicEnv(GridObjects, ABC):
         previous_target_disp = 1.0 * self.target_dispatch
         try:
             action = self._restore_missing_reconnecting_lines_buses(action)
-            print (action)
             
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)

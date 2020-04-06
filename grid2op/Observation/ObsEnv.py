@@ -272,6 +272,8 @@ class ObsEnv(_BasicEnv):
         self.duration_next_maintenance[:] = env.duration_next_maintenance[:]
         self.target_dispatch[:] = env.target_dispatch[:]
         self.actual_dispatch[:] = env.actual_dispatch[:]
+        self.last_bus_line_or = env.last_bus_line_or[:]
+        self.last_bus_line_ex = env.last_bus_line_ex[:]
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!
