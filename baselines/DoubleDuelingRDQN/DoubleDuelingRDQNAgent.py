@@ -8,9 +8,10 @@ from grid2op.Converter import IdToAct
 from ExperienceBuffer import ExperienceBuffer
 from DoubleDuelingRDQN import DoubleDuelingRDQN
 
-INITIAL_EPSILON = 0.85
+INITIAL_EPSILON = 0.95
 FINAL_EPSILON = 0.0
-EPSILON_DECAY = 1024*16
+DECAY_EPSILON = 1024*32
+STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 2048
 UPDATE_FREQ = 8
@@ -178,9 +179,11 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
 
             # Train when pre-training is over
             if step > num_pre_training_steps:
-                # Slowly decay chance of random action
+                # Slowly decay dropout rate
                 if epsilon > FINAL_EPSILON:
-                    epsilon -= (INITIAL_EPSILON-FINAL_EPSILON)/EPSILON_DECAY
+                    epsilon -= STEP_EPSILON
+                else:
+                    epsilon = FINAL_EPSILON
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.exp_buffer.can_sample():
