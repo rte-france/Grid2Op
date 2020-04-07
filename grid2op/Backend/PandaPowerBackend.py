@@ -153,6 +153,16 @@ class PandaPowerBackend(Backend):
     def _load_grid_gen_vm_pu(grid):
         return grid.gen["vm_pu"]
 
+    def reset(self, path=None, filename=None):
+        """
+        Reload the grid.
+        For pandapower, it is a bit faster to store of a copy of itself at the end of load_grid
+        and deep_copy it to itself instead of calling load_grid again
+        """
+        # Assign the content of itself as saved at the end of load_grid
+        # This overide all the attributes with the attributes from the copy in __pp_backend_initial_state
+        self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
+
     def load_grid(self, path=None, filename=None):
         """
         Load the _grid, and initialize all the member of the class. Note that in order to perform topological
@@ -361,6 +371,11 @@ class PandaPowerBackend(Backend):
             self.shunt_to_subid[i] = bus
         self.name_shunt = np.array(name_shunt)
         self.shunts_data_available = True
+
+        # Create a deep copy of itself in the initial state
+        pp_backend_initial_state = copy.deepcopy(self)
+        # Store it under super private attribute
+        self.__pp_backend_initial_state = pp_backend_initial_state
 
     def apply_action(self, action: BaseAction):
         """

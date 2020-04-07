@@ -155,6 +155,14 @@ class Backend(GridObjects, ABC):
         if np.any(~np.isfinite(tmp)):
             raise EnvError("Some components of \"backend.get_topo_vect()\" are not finite. This should be integer.")
 
+    def reset(self, grid_path, grid_filename=None):
+        """
+        Reload the power grid.
+        For backwards compatibility this method calls `Backend.load_grid`.
+        But it is encouraged to overload it in the subclasses.
+        """
+        self.load_grid(grid_path, filename=grid_filename)
+
     @abstractmethod
     def load_grid(self, path, filename=None):
         """
