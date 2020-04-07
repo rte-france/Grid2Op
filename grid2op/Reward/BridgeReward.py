@@ -18,7 +18,7 @@ class BridgeReward(BaseReward):
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = -1000.0
-        self.reward_max = 100.0
+        self.reward_max = 1000.0
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         n_bus = 3
@@ -61,5 +61,6 @@ class BridgeReward(BaseReward):
         # Find the bridges
         n_bridges = len(list(nx.bridges(G)))
 
-        reward = self.reward_max - (250.0 * n_bridges)
-        return reward
+        if n_bridges != 0:
+            return -1000.0 * n_bridges
+        return self.max_reward

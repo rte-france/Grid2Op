@@ -8,12 +8,10 @@ class DistanceReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = -10000.0
-        self.reward_max = 100.0
+        self.reward_min = -1000.0
+        self.reward_max = 1000.0
         
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        reward = self.reward_max
-        
         # Get topo from env
         obs = env.current_obs
         topo = obs.topo_vect
@@ -33,5 +31,6 @@ class DistanceReward(BaseReward):
             # Set index to next sub station
             idx += n_elems_on_sub
 
-        reward -= 150.0 * diff
-        return reward
+        if diff != 0:
+            return -500.0 * diff
+        return self.reward_max

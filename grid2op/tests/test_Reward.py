@@ -100,6 +100,10 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
         obs, r, d, info = self.env.step(set_action)
         assert r < 0.0
 
+class TestLoadingGameplayReward(TestLoadingReward, unittest.TestCase):
+    def _reward_type(self):
+        return GameplayReward
+
         
 if __name__ == "__main__":
     unittest.main()
