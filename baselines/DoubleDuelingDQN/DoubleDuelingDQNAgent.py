@@ -151,13 +151,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         while step < num_steps:
             # Init first time or new episode
             if self.done:
-                try:
-                    self.env.reset()
-                except:
-                    print("chronic_id: ", self.env.chronics_handler.get_id())
-                    print("active_prod_t: ", self.env.gen_activeprod_t)
-                    print("active_prod_t_redisp: ", self.env.gen_activeprod_t_redisp)
-                    self.env.reset()
+                self.env.reset() # This shouldn't raise
                 self._reset_state()
                 self._reset_frame_buffer()
             if step % 1000 == 0:

@@ -143,11 +143,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         while step < num_steps:
             # New episode
             if self.done:
-                try:
-                    self.env.reset()
-                except:
-                    self.env.reset()
-
+                self.env.reset() # This shouldn't raise
                 self._reset_state()
                 # Push current episode experience to experience buffer
                 self._register_experience(episode_exp, episode)
