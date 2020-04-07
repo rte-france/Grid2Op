@@ -23,6 +23,7 @@ Change Log
 
 [0.6.1] - 2020-04-??
 --------------------
+- [FIXED] Issue#54: Setting the bus for disconnected lines no longer counts as a substation operation.
 - [FIXED] if no redispatch actions are taken, then the game can no more invalid a provided action due to error in the
   redispatching. This behavior was caused by increase / decrease of the system losses that was higher (in absolute
   value) than the ramp of the generators connected to the slack bus. This has been fixed by removing the losses
@@ -34,7 +35,13 @@ Change Log
 - [FIXED] a bug in the `OneChangeThenNothing` agent.
 - [FIXED] a bug that lead to impossibility to load a powerline after a cascading failure in some cases. Now fixed by
   resetting the appropriate vectors when calling "env.reset".
-- [ADDED] BridgeReward. A reward based on graph connectivity, see implementation in grid2op.Reward.BridgeReward for details
+- [ADDED] Remember last line buses: Reconnecting a line without providing buses will reconnect it to the buses it was previously connected to (origin and extremity). 
+- [ADDED] Change lines status (aka. switch_line_status) unitary actions for subclasses of AgentWithConverter.
+- [ADDED] Dispatching unitary actions for subclasses of AgentWithConverter.
+- [ADDED] CombinedReward. A reward combiner to compute a weighted sum of other rewards.
+- [ADDED] CloseToOverflowReward. A reward that penalize agents when lines have almost reached max capacity.
+- [ADDED] DistanceReward. A reward based on how far way from the original topology the current grid is.
+- [ADDED] BridgeReward. A reward based on graph connectivity, see implementation in grid2op.Reward.BridgeReward for details.
 
 [0.6.0] - 2020-04-03
 ---------------------
