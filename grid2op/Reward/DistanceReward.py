@@ -10,6 +10,7 @@ class DistanceReward(BaseReward):
         BaseReward.__init__(self)
         self.reward_min = -1000.0
         self.reward_max = 1000.0
+        self.penalty_per_diff = -500.0
         
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         # Get topo from env
@@ -32,5 +33,5 @@ class DistanceReward(BaseReward):
             idx += n_elems_on_sub
 
         if diff != 0:
-            return -500.0 * diff
+            return self.penalty_per_diff * diff
         return self.reward_max

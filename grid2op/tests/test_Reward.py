@@ -104,6 +104,49 @@ class TestLoadingGameplayReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
         return GameplayReward
 
+class TestCombinedReward(TestLoadingReward, unittest.TestCase):
+    def _reward_type(self):
+        return CombinedReward
+
+    def test_add_reward(self):
+        cr = self.env.reward_helper.template_reward
+        assert cr is not None
+        cr.addReward("Gameplay", GameplayReward(), 1.0)
+        cr.addReward("Flat", FlatReward(), 1.0)
+
+    def test_remove_reward(self):
+        cr = self.env.reward_helper.template_reward
+        assert cr is not None
+        added = cr.addReward("Gameplay", GameplayReward(), 1.0)
+        assert added == True
+        removed = cr.removeReward("Gameplay")
+        assert removed == True
+        removed = cr.removeReward("Unknow")
+        assert removed == False
+
+    def test_update_reward_weight(self):
+        cr = self.env.reward_helper.template_reward
+        assert cr is not None
+        added = cr.addReward("Gameplay", GameplayReward(), 1.0)
+        assert added == True
+        updated = cr.updateRewardWeight("Gameplay", 0.5)
+        assert updated == True
+        updated = cr.updateRewardWeight("Unknow", 0.5)
+        assert updated == False
+
+    def test_combine_distance_gameplay(self):
+        cr = self.env.reward_helper.template_reward
+        assert cr is not None
+        added = cr.addReward("Gameplay", GameplayReward(), 1.0)
+        assert added == True
+        distance_reward = DistanceReward()
+        added = cr.addReward("Distance", distance_reward, 0.5)
+        assert added == True
+
+        self.env.reset()
+        set_action = self.env.action_space({"set_bus": {"lines_or_id": [(1,2)]}})
+        obs, r, d, info = self.env.step(set_action)
+        assert r == 0.5 * distance_reward.penalty_per_diff
         
 if __name__ == "__main__":
     unittest.main()
