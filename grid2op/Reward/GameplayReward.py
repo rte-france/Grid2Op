@@ -18,16 +18,16 @@ class GameplayReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.min_reward = -1000.0
-        self.max_reward = 1000.0
+        self.reward_min = -1000.0
+        self.reward_max = 1000.0
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             # Broke the game or did not respect the rules
-            return self.min_reward
+            return self.reward_min
         elif is_done:
             # Bonus for playing a full episode
-            return self.max_reward
+            return self.reward_max
         else:
             # Keep playing
             return 0.0

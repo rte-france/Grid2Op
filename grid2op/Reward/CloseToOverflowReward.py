@@ -28,4 +28,4 @@ class CloseToOverflowReward(BaseReward):
 
         if penalty != 0.0:
             return penalty
-        return self.max_reward
+        return self.reward_max
