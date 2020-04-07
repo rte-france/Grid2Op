@@ -63,4 +63,4 @@ class BridgeReward(BaseReward):
 
         if n_bridges != 0:
             return -1000.0 * n_bridges
-        return self.max_reward
+        return self.reward_max
