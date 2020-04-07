@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import argparse
 import tensorflow as tf
 
 from grid2op.MakeEnv import make2
 from grid2op.Reward import RedispReward
+from grid2op.Reward import BridgeReward
+from grid2op.Reward import CloseToOverflowReward
+from grid2op.Reward import DistanceReward
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
 from CustomAction import CustomAction
@@ -36,7 +47,14 @@ def cli():
 
 if __name__ == "__main__":
     args = cli()
-    env = make2(args.path_data, reward_class=RedispReward, action_class=CustomAction)
+    env = make2(args.path_data,
+                action_class=CustomAction,
+                reward_class=RedispReward,
+                other_rewards={
+                    "bridge": BridgeReward,
+                    "close_to_of": CloseToOverflowReward,
+                    "distance": DistanceReward
+                })
 
     # Limit gpu usage
     physical_devices = tf.config.list_physical_devices('GPU')

@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import os
 import sys
 import unittest
@@ -44,6 +52,8 @@ from grid2op.Opponent import BaseOpponent
 #    default_name_converter = NAMES_CHRONICS_TO_BACKEND
 #    default_action_class = TopologyAction
 #    default_reward_class = L2RPNReward
+
+
 class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_case14_fromfile(self):
         env = make("case14_fromfile")

@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 """
 This module presents an example of an implementation of a `grid2op.Backend` when using the powerflow
 implementation "pandapower" available at `PandaPower <https://www.pandapower.org/>`_ for more details about
@@ -330,8 +338,6 @@ class PandaPowerBackend(Backend):
         self.lines_or_pu_to_kv = self._grid.bus["vn_kv"][self.line_or_to_subid].values
         self.lines_ex_pu_to_kv = self._grid.bus["vn_kv"][self.line_ex_to_subid].values
 
-        self._nb_bus_before = self.get_nb_active_bus()
-
         self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
 
@@ -521,14 +527,12 @@ class PandaPowerBackend(Backend):
                 # remove the warning if _grid non connex. And it that case load flow as not converged
                 warnings.filterwarnings("ignore", category=scipy.sparse.linalg.MatrixRankWarning)
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
-                if nb_bus == self._nb_bus_before:
+                if self._nb_bus_before is None:
+                    self._pf_init = "dc"
+                elif nb_bus == self._nb_bus_before:
                     self._pf_init = "results"
-                    init_vm_pu = "results"
-                    init_va_degree = "results"
                 else:
                     self._pf_init = "auto"
-                    init_vm_pu = None
-                    init_va_degree = None
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = None  # if dc i start normally next time i call an ac powerflow

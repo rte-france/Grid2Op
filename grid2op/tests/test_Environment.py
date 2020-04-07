@@ -1,10 +1,15 @@
-import os
-import sys
-import unittest
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import copy
-import numpy as np
 import pdb
 import time
+import warnings
 
 from grid2op.tests.helper_path_test import *
 
@@ -12,11 +17,10 @@ from grid2op.Exceptions import *
 from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, GridStateFromFile
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
-from grid2op.Reward import EconomicReward
 
 DEBUG = False
 PROFILE_CODE = False
@@ -268,6 +272,42 @@ class TestAttachLayout(unittest.TestCase):
             assert "grid_layout" in dict_
             assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 
+class TestLineChangeLastBus(unittest.TestCase):
+    """
+    This function test that the behaviour of "step": it updates the action with the last known bus when reconnecting
+
+    """
+    def setUp(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 0
+            params.NO_OVERFLOW_DISCONNECTION = True
+
+            self.env = make("case14_test", chronics_class=ChangeNothing, param=params)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_set_reconnect(self):
+        LINE_ID = 4
+        bus_action = self.env.action_space({"set_bus": {"lines_ex_id": [(LINE_ID,2)]}})
+        set_status = self.env.action_space.get_set_line_status_vect()
+        set_status[LINE_ID] = -1
+        disconnect_action = self.env.action_space({'set_line_status': set_status})
+        set_status[LINE_ID] = 1
+        reconnect_action = self.env.action_space({'set_line_status': set_status})
+        
+        obs, r, d, _ = self.env.step(bus_action)
+        assert obs.line_status[LINE_ID] == True
+        assert d is False
+        obs, r, d, _ = self.env.step(disconnect_action)
+        assert obs.line_status[LINE_ID] == False
+        assert d is False
+        obs, r, d, info = self.env.step(reconnect_action)
+        assert obs.line_status[LINE_ID] == True
+        
+# TODO add test: fake a cascading failure, do a reset of an env, check that it can be loaded
 
 if __name__ == "__main__":
     unittest.main()

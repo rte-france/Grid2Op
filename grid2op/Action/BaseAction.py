@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 """
 The "BaseAction" module lets you define some actions on the underlying power _grid.
 These actions are either made by an agent, or by the environment.
@@ -512,43 +520,53 @@ class BaseAction(GridObjects):
         """
         if powerline_status is None:
             powerline_status = np.full(self.n_line, fill_value=False, dtype=np.bool)
+        not_powerline_status = ~(powerline_status)
 
         if self._lines_impacted is None:
-            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & (~powerline_status))
+            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & not_powerline_status)
 
         if self._subs_impacted is None:
-            # supposes tha self._lines_impacted
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
-            beg_ = 0
-            end_ = 0
-            powerlines_reco = np.where(self._set_line_status == 1 & (~powerline_status))[0]  # all the id of the powerlines reconnected
+            
+            # all the id of the powerlines reconnected
+            powerlines_status_reco = self._set_line_status == 1
+            powerlines_reco = np.array(list(range(self.n_line)))
+            powerlines_reco = powerlines_reco[powerlines_status_reco & not_powerline_status]
+            # all the reconnected lines origin substation id
             sub_or_id = self.line_or_to_subid[powerlines_reco]
+            # all the reconnected lines extremity substation id
             sub_ex_id = self.line_ex_to_subid[powerlines_reco]
+
+            # Group by sub_id => {sub_id: reconnected_count}
             sub_id = np.concatenate((sub_or_id, sub_ex_id))
             sub_id_unique, sub_counts = np.unique(sub_id, return_counts=True)
-            sub_counts = dict(zip(sub_id_unique, sub_counts))
-            is_sub_concerned = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
-            is_sub_concerned[sub_id_unique] = True
+            sub_reco_counts = dict(zip(sub_id_unique, sub_counts))
+            
+            # Loop over all substations
+            beg_ = 0
+            end_ = 0
             for sub_id, nb_obj in enumerate(self.sub_info):
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
+
+                # Handle change action
                 if np.any(self._change_bus_vect[beg_:end_]):
                     # change always impact the substations
                     self._subs_impacted[sub_id] = True
+
+                # Handle set action
                 nb_set = np.sum(self._set_topo_vect[beg_:end_] != 0)
                 if nb_set > 0:
-                    # if a powerline has been reconnected, don't count busor and busex as "impacted" if the action
-                    # concerned only the reconnected powerline
-                    # in some cases, set does not impact it then.
-                    if not is_sub_concerned[sub_id]:
-                        # no powerline are connected here so
-                        self._subs_impacted[sub_id] = True
-                    else:
-                        # in this case, i reconnected a powerline having one of its end on a substation, so you might not
-                        # need to count this action
-                        if sub_counts[sub_id] != nb_set:
-                            # in this case, only actions regarding reconnection of powerlines are performed
+                    # We have some lines reconnections, special case
+                    if sub_id in sub_reco_counts:
+                        if nb_set > sub_reco_counts[sub_id]:
+                            # Substation has other sets than line reconnections 
                             self._subs_impacted[sub_id] = True
+                        else:
+                            # Substation set is only from line reconnections: do not impact it
+                            self._subs_impacted[sub_id] = False
+                    else: # Any other set operations will impact the substation
+                        self._subs_impacted[sub_id] = True
 
                 beg_ += nb_obj
 

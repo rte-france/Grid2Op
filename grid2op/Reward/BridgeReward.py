@@ -1,11 +1,23 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import networkx as nx
 
 from grid2op.Reward.BaseReward import BaseReward
 
 class BridgeReward(BaseReward):
+    """
+    This reward computes a penalty based on how many bridges are present in the grid netwrok.
+    In graph theory, a bridge is an edge that if removed will cause the graph to be disconnected.
+    """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = 0
+        self.reward_min = -1000.0
         self.reward_max = 1000.0
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
@@ -49,5 +61,6 @@ class BridgeReward(BaseReward):
         # Find the bridges
         n_bridges = len(list(nx.bridges(G)))
 
-        reward = self.reward_max - (250.0 * n_bridges)
-        return reward
+        if n_bridges != 0:
+            return -1000.0 * n_bridges
+        return self.reward_max

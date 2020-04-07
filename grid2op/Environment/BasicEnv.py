@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import time
 import numpy as np
 import copy
@@ -12,6 +20,7 @@ from grid2op.Opponent import OpponentSpace, UnlimitedBudget
 from grid2op.Action import ActionSpace, DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
+import pdb
 
 
 class _BasicEnv(GridObjects, ABC):
@@ -78,12 +87,17 @@ class _BasicEnv(GridObjects, ABC):
         self.time_remaining_before_line_reconnection = None
         self.env_dc = self.parameters.ENV_DC
 
+        # Remember last line buses
+        self.last_bus_line_or = None
+        self.last_bus_line_ex = None
+
         # redispatching data
         self.target_dispatch = None
         self.actual_dispatch = None
         self.gen_uptime = None
         self.gen_downtime = None
         self.gen_activeprod_t = None
+        self.gen_activeprod_t_redisp = None
 
         self._thermal_limit_a = thermal_limit_a
 
@@ -199,6 +213,10 @@ class _BasicEnv(GridObjects, ABC):
         self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
         self.env_dc = self.parameters.ENV_DC
 
+        # Remember lines last bus
+        self.last_bus_line_or = np.full(shape=self.n_line, fill_value=1, dtype=np.int)
+        self.last_bus_line_ex = np.full(shape=self.n_line, fill_value=1, dtype=np.int)
+
         # initialize maintenance / hazards
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
@@ -243,14 +261,15 @@ class _BasicEnv(GridObjects, ABC):
         self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
         self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
         self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
+        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=np.float)
         # if self.redispatching_unit_commitment_availble:
         #     # pretend that all generator has been turned off for a suffcient number of timestep,
         #     # otherwise when reconnecting them at first step it's complicated
         #     self.gen_downtime = self.gen_min_downtime
         # else:
         #     self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
 
     @staticmethod
     def _get_poly(t, tmp_p, pmin, pmax):
@@ -388,16 +407,16 @@ class _BasicEnv(GridObjects, ABC):
 
         # make sure that rampmin and max are met
         new_p_if_redisp_ok = new_p + self.actual_dispatch
-        gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t - self.gen_max_ramp_down)
-        gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t + self.gen_max_ramp_up)
+        gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t_redisp - self.gen_max_ramp_down)
+        gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t_redisp + self.gen_max_ramp_up)
 
         if np.any((gen_min[gen_redispatchable] > new_p_if_redisp_ok[gen_redispatchable]) |
                    (new_p_if_redisp_ok[gen_redispatchable] > gen_max[gen_redispatchable])) and \
-            np.any(self.gen_activeprod_t != 0.):
+            np.any(self.gen_activeprod_t_redisp != 0.):
 
             # i am in a case where the target redispatching is not possible, due to the new values
             # i need to come up with a solution to fix that
-            # note that the condition "np.any(self.gen_activeprod_t != 0.)" is added because at the first time
+            # note that the condition "np.any(self.gen_activeprod_t_redisp != 0.)" is added because at the first time
             # step there is no need to check all that.
             # but take into account pmin and pmax
             curtail_generation = 1. * new_p_if_redisp_ok
@@ -424,18 +443,20 @@ class _BasicEnv(GridObjects, ABC):
                 minimum_redisp[mask_max] = new_dispatch[mask_max] - self._epsilon_poly
                 maximum_redisp[mask_min] = new_dispatch[mask_min] + self._epsilon_poly
 
-            new_redisp, except_ = self._aux_aux_redisp(minimum_redisp,maximum_redisp,
+            new_redisp, except_ = self._aux_aux_redisp(minimum_redisp,
+                                                       maximum_redisp,
                                                        gen_redispatchable,
                                                        new_dispatch,
                                                        0.)
+            if except_ is not None:
+                pass
+                # import pdb
+                # pdb.set_trace()
 
             return new_redisp, except_
         return self.actual_dispatch, except_
 
     def _get_new_prod_setpoint(self, action):
-        except_ = None
-        redisp_act = 1. * action._redispatch
-
         # get the modification of generator active setpoint from the action
         new_p = 1. * self.gen_activeprod_t
         if "prod_p" in action._dict_inj:
@@ -450,7 +471,7 @@ class _BasicEnv(GridObjects, ABC):
             tmp = self.env_modification._dict_inj["prod_p"]
             indx_ok = np.isfinite(tmp)
             new_p[indx_ok] = tmp[indx_ok]
-        return new_p, except_
+        return new_p
 
     def _make_redisp_0sum(self, action, new_p):
         """
@@ -513,12 +534,13 @@ class _BasicEnv(GridObjects, ABC):
         redisp_act_orig[new_p == 0.] = 0.
         # TODO add a flag here too, like before (the action has been "cut")
 
-        # get the target redispatching (cumulation starting from the first element of the scenario)
+        # get the target redispatching (cumulation starting from the first element of the scenario)test_
+        # redispatch_act_above_pmax
         if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
                 np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= self._tol_poly:
             # make sure the redispatching action is zero sum
             new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch,
-                                                            self.gen_activeprod_t,
+                                                            self.gen_activeprod_t_redisp,
                                                             redisp_act_orig)
             if except_ is not None:
                 # if there is an error, then remove the above "action" and propagate it
@@ -625,6 +647,63 @@ class _BasicEnv(GridObjects, ABC):
         self.gen_downtime[gen_still_disconnected] += 1
         return except_
 
+    def _save_connected_lines_buses(self):
+        # All lines indexes
+        connected_lines = np.array(range(self.n_line))
+        # Only the connected lines indexes
+        connected_lines = connected_lines[self.backend.get_line_status()]
+
+        # Get lines buses from topo
+        topo = self.backend.get_topo_vect()
+        or_pos = self.line_or_pos_topo_vect
+        ex_pos = self.line_ex_pos_topo_vect
+
+        # Save each connected line buses
+        for line_idx in connected_lines:
+            # Find & save bus of line origin
+            line_bus_or = topo[or_pos[line_idx]]
+            self.last_bus_line_or[line_idx] = line_bus_or
+            # Find & save bus of line extermity
+            line_bus_ex = topo[ex_pos[line_idx]]
+            self.last_bus_line_ex[line_idx] = line_bus_ex
+
+    def _restore_missing_reconnecting_lines_buses(self, action):
+        """
+        Set the line buses of the line reconnect action if not already defined in the action
+        Set to previous bus for lines that will be reconnected without a specified bus
+        """
+        # Get lines buses in the action
+        target_topo = action._set_topo_vect
+        or_pos = self.line_or_pos_topo_vect
+        ex_pos = self.line_ex_pos_topo_vect
+
+        # All lines indexes
+        reconnected_lines = np.array(range(self.n_line))
+        # Keep only the indexes of lines reconnected by the action
+        inv_lines_status = np.logical_not(self.backend.get_line_status())
+        reconnected_lines = reconnected_lines[
+            np.logical_or(
+                # Reconnected using 'set_line_status' and actually disconnected in the backend
+                np.logical_and((action._set_line_status == 1), inv_lines_status),
+                # Reconnected using 'switch_line_status' and actually disconnected in the backend
+                np.logical_and(action._switch_line_status, inv_lines_status)
+            )]
+
+        # Check each line to be reconnected
+        for line_idx in reconnected_lines:
+            # Update line origin bus if not provided
+            line_or_target_bus = target_topo[or_pos[line_idx]]
+            if line_or_target_bus == 0:
+                restored_or = (line_idx, self.last_bus_line_or[line_idx])
+                action = action.update({ "set_bus": { "lines_or_id": [restored_or] } })
+            # Update line extremity bus if not provided
+            line_ex_target_bus = target_topo[ex_pos[line_idx]]
+            if line_ex_target_bus == 0:
+                restored_ex = (line_idx, self.last_bus_line_ex[line_idx])
+                action = action.update({ "set_bus": { "lines_ex_id": [restored_ex] } })
+
+        return action
+
     def get_obs(self):
         """
         Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
@@ -695,6 +774,8 @@ class _BasicEnv(GridObjects, ABC):
         previous_disp = 1.0 * self.actual_dispatch
         previous_target_disp = 1.0 * self.target_dispatch
         try:
+            action = self._restore_missing_reconnecting_lines_buses(action)
+            
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:
@@ -712,18 +793,13 @@ class _BasicEnv(GridObjects, ABC):
 
             # get the modification of generator active setpoint from the environment
             self.env_modification, prod_v_chronics = self._update_actions()
+            new_p = self._get_new_prod_setpoint(action)
+
             if self.redispatching_unit_commitment_availble:
                 # remember generator that were "up" before the action
                 gen_up_before = self.gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                new_p, except_tmp = self._get_new_prod_setpoint(action)
-                if except_tmp is not None:
-                    action = self.helper_action_player({})
-                    is_illegal_redisp = True
-                    new_p, _ = self._get_new_prod_setpoint(action)
-                    except_.append(except_tmp)
-
                 except_tmp = self._make_redisp_0sum(action, new_p)
                 if except_tmp is not None:
                     action = self.helper_action_player({})
@@ -833,6 +909,11 @@ class _BasicEnv(GridObjects, ABC):
 
                 # extract production active value at this time step (should be independant of action class)
                 self.gen_activeprod_t, *_ = self.backend.generators_info()
+                # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
+                # of the system. So basically, when it's too high (higher than the ramp) it can
+                # mess up the rest of the environment
+                self.gen_activeprod_t_redisp = new_p + self.actual_dispatch
+                # self.gen_activeprod_t_redisp = self.gen_activeprod_t
 
                 has_error = False
             except Grid2OpException as e:
@@ -843,6 +924,9 @@ class _BasicEnv(GridObjects, ABC):
         except StopIteration:
             # episode is over
             is_done = True
+
+        # Save the lines buses for later reconnecting
+        self._save_connected_lines_buses()
 
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,

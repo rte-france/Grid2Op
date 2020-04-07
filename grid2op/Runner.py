@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 """
 This module is here to facilitate the evaluation of agent.
 It can handles all types of :class:`grid2op.BaseAgent`.
@@ -564,25 +572,34 @@ class Runner(object):
             # i don't store anything on drive, so i don't need to store anything on memory
             nb_timestep_max = 0
 
-        times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
-        rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
-        actions = np.full((nb_timestep_max, env.action_space.n),
-                          fill_value=np.NaN, dtype=np.float)
-        env_actions = np.full(
-            (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
-        observations = np.full(
-            (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
-        disc_lines = np.full(
-            (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
-        disc_lines_templ = np.full(
-            (1, env.backend.n_line), fill_value=False, dtype=np.bool)
+        if efficient_storing:
+            times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
+            rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
+            actions = np.full((nb_timestep_max, env.action_space.n),
+                              fill_value=np.NaN, dtype=np.float)
+            env_actions = np.full(
+                (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
+            observations = np.full(
+                (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
+            disc_lines = np.full(
+                (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
+            disc_lines_templ = np.full(
+                (1, env.backend.n_line), fill_value=False, dtype=np.bool)
+        else:
+            times = np.full(0, fill_value=np.NaN, dtype=np.float)
+            rewards = np.full(0, fill_value=np.NaN, dtype=np.float)
+            actions = np.full((0, env.action_space.n), fill_value=np.NaN, dtype=np.float)
+            env_actions = np.full((0, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
+            observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
+            disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
+            disc_lines_templ = np.full( (1, env.backend.n_line), fill_value=False, dtype=np.bool)
 
         if path_save is not None:
             # store observation at timestep 0
             if efficient_storing:
                 observations[time_step, :] = obs.to_vect()
             else:
-                observations = np.concatenate((observations, obs.to_vect()))
+                observations = np.concatenate((observations, obs.to_vect().reshape(1, -1)))
 
         episode = EpisodeData(actions=actions, env_actions=env_actions,
                               observations=observations,

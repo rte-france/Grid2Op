@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 """
 This module provides a way to serialize on disk et deserialize one run episode along with some 
 methods and utilities to ease its manipulation.
@@ -237,7 +245,7 @@ class EpisodeData:
                     arr = info["disc_lines"]
                     if arr is not None:
                         self.disc_lines = np.concatenate(
-                            (self.disc_lines, arr))
+                            (self.disc_lines, arr.reshape(1, -1)))
                     else:
                         self.disc_lines = np.concatenate(
                             (self.disc_lines, self.disc_lines_templ))
@@ -388,7 +396,7 @@ class CollectionWrapper:
         if efficient_storage:
             self.collection[time_step - 1, :] = values
         else:
-            self.collection = np.concatenate((self.collection, values))
+            self.collection = np.concatenate((self.collection, values.reshape(1, -1)))
 
     def save(self, path):
         np.save(path, self.collection)

@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 """
 This Module defines the template of a backend class.
 Backend instances are responsible to translate action (performed either by an BaseAgent or by the Environment) into
@@ -41,6 +49,7 @@ import pandas as pd
 
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
+from grid2op.Action import CompleteAction
 
 import pdb
 
@@ -310,15 +319,18 @@ class Backend(GridObjects, ABC):
         elif isinstance(limits, dict):
             for el in limits.keys():
                 if not el in self.name_line:
-                    raise BackendError("You asked to modify the thermal limit of powerline named \"{}\" that is not on the grid. Names of powerlines are {}".format(el, self.name_line))
+                    raise BackendError("You asked to modify the thermal limit of powerline named \"{}\" that is not "
+                                       "on the grid. Names of powerlines are {}".format(el, self.name_line))
             for i, el in self.name_line:
                 if el in limits:
                     try:
                         tmp = float(limits[el])
                     except:
-                        raise BackendError("Impossible to convert data ({}) for powerline named \"{}\" into float values".format(limits[el], el))
+                        raise BackendError("Impossible to convert data ({}) for powerline named \"{}\" into float "
+                                           "values".format(limits[el], el))
                     if tmp <= 0:
-                        raise BackendError("New thermal limit for powerlines \"{}\" is not positive ({})".format(el, tmp))
+                        raise BackendError("New thermal limit for powerlines \"{}\" is not positive ({})"
+                                           "".format(el, tmp))
                     self.thermal_limit_a[i] = tmp
 
     def update_thermal_limit(self, env):
@@ -354,7 +366,8 @@ class Backend(GridObjects, ABC):
         It is assumed that both :func:`Backend.get_line_flow` and *_get_thermal_limit* gives the value of the same end of the powerline.
         See the help of *_get_line_flow* for a more detailed description of this problem.
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
 
         :return: An array giving the thermal limit of the powerlines.
         :rtype: np.array, dtype:float
@@ -380,7 +393,8 @@ class Backend(GridObjects, ABC):
         """
         faster accessor to the line that are on overflow.
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
 
         :return: An array saying if a powerline is overflow or not
         :rtype: np.array, dtype:bool
@@ -455,7 +469,8 @@ class Backend(GridObjects, ABC):
         """
         It returns the information extracted from the _grid at the origin end of each powerline.
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
 
         Returns
         -------
@@ -475,7 +490,8 @@ class Backend(GridObjects, ABC):
         """
         It returns the information extracted from the _grid at the extremity end of each powerline.
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
 
         Returns
         -------
@@ -492,7 +508,8 @@ class Backend(GridObjects, ABC):
 
     def shunt_info(self):
         """
-        This method is optional. If implemented, it should return the proper information about the shunt in the powergrid.
+        This method is optional. If implemented, it should return the proper information about the shunt in the
+        powergrid.
 
         If not implemented it returns empty list.
 
@@ -574,18 +591,17 @@ class Backend(GridObjects, ABC):
         :param is_dc: mode of power flow (AC : False, DC: is_dc is True)
         :type is_dc: bool
 
-        :return: disconnected lines and list of Backend instances that allows to reconstruct the cascading failures (in which order the powerlines have been disconnected). Note that if :attr:`Backend.detailed_infos_for_cascading_failures` is set to False, the empty list will always be returned.
+        :return: disconnected lines and list of Backend instances that allows to reconstruct the cascading failures
+        (in which order the powerlines have been disconnected). Note that if
+        :attr:`Backend.detailed_infos_for_cascading_failures` is set to False, the empty list will always be returned.
         :rtype: tuple: np.array, dtype:bool, list
         """
-
-        lines_status_orig = self.get_line_status()  # original line status
         infos = []
         self._runpf_with_diverging_exception(is_dc)
 
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=np.bool)
         if env.no_overflow_disconnection:
             return disconnected_during_cf, infos
-
         # the environment disconnect some
         init_time_step_overflow = copy.deepcopy(env.timestep_overflow)
         while True:
@@ -610,7 +626,7 @@ class Backend(GridObjects, ABC):
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
 
             # start a powerflow on this new state
-            self._runpf_with_diverging_exception(self._grid)
+            self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
                 infos.append(self.copy())
         return disconnected_during_cf, infos
@@ -644,12 +660,6 @@ class Backend(GridObjects, ABC):
         p_gen, q_gen, v_gen = self.generators_info()
         p_load, q_load, v_load = self.loads_info()
         p_s, q_s, v_s, bus_s = self.shunt_info()
-
-        try:
-            self.sub_from_bus_id(0)
-            can_extract_shunt = True
-        except:
-            can_extract_shunt = False
 
         # fist check the "substation law" : nothing is created at any substation
         p_subs = np.zeros(self.n_sub)
@@ -693,7 +703,7 @@ class Backend(GridObjects, ABC):
             p_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += p_load[i]
             q_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += q_load[i]
 
-        if can_extract_shunt:
+        if self.shunts_data_available:
             for i in range(len(p_s)):
                 tmp_bus = bus_s[i]
                 sub_id = self.sub_from_bus_id(tmp_bus)
@@ -703,7 +713,8 @@ class Backend(GridObjects, ABC):
                 p_bus[sub_id, 1*(tmp_bus!=sub_id)] += p_s[i]
                 q_bus[sub_id, 1*(tmp_bus!=sub_id)] += q_s[i]
         else:
-            warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be incorrect.")
+            warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
+                          "incorrect.")
 
         return p_subs, q_subs, p_bus, q_bus
 
@@ -806,3 +817,20 @@ class Backend(GridObjects, ABC):
                                  "".format(el, e_))
 
         self.attach_layout(grid_layout=new_grid_layout)
+
+    def get_action_to_set(self):
+        line_status = self.get_line_status()
+        line_status = 2 * line_status - 1
+        line_status = line_status.astype(np.int)
+        topo_vect = self.get_topo_vect()
+        prod_p, _, prod_v = self.generators_info()
+        load_p, load_q, _ = self.loads_info()
+        set_me = CompleteAction(self)
+        set_me.update({"set_line_status": line_status,
+                       "set_bus": topo_vect})
+
+        #injs = {"prod_p": prod_p, "prod_v": prod_v,
+        #              "load_p": load_p, "load_q": load_q}}
+
+        # set_me.update({"injection": injs})
+        return set_me
