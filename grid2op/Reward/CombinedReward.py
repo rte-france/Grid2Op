@@ -37,7 +37,7 @@ class CombinedReward(BaseReward):
 
     def initialize(self, env):
         for key, reward in self.rewards.items():
-            reward.initialize(env)
+            reward["instance"].initialize(env)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         res = 0.0
