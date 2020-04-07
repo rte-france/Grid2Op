@@ -458,7 +458,7 @@ class TestReconnectionsLegality(unittest.TestCase):
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         # powerline 5 is connected
         # i fake a reconnection of it
-        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=2)
+        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=1)
         obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
         # this was illegal before, but test it is still illegal
         assert info_case2["is_illegal"], "action should be illegal as it consists of change both ends of a " \
@@ -467,7 +467,10 @@ class TestReconnectionsLegality(unittest.TestCase):
     def test_reconnect_disconnected(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make("case5_example")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 0
+            params.NO_OVERFLOW_DISCONNECTION = True
+            env_case2 = make("case5_example", param=params)
         obs = env_case2.reset()  # reset is good
         line_id = 5
         
@@ -477,16 +480,16 @@ class TestReconnectionsLegality(unittest.TestCase):
         # Line has been disconnected
         assert info["is_illegal"] == False
         assert done == False
-        assert obs.line_status[line_id] == False
+        assert np.sum(obs.line_status) == (env_case2.n_line - 1)
 
         # Reconnect the line
-        reco_act = env_case2.action_space.reconnect_powerline(line_id=line_id, bus_or=2, bus_ex=2)
+        reco_act = env_case2.action_space.reconnect_powerline(line_id=line_id, bus_or=1, bus_ex=2)
         obs, reward, done, info = env_case2.step(reco_act)
         # Check reconnecting is legal
         assert info["is_illegal"] == False
         assert done == False
         # Check line has been reconnected
-        assert obs.line_status[line_id] == True
+        assert np.sum(obs.line_status) == (env_case2.n_line)
 
 if __name__ == "__main__":
     unittest.main()

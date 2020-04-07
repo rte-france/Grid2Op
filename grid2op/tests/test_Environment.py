@@ -280,7 +280,11 @@ class TestLineChangeLastBus(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_test", chronics_class=ChangeNothing)
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 0
+            params.NO_OVERFLOW_DISCONNECTION = True
+
+            self.env = make("case14_test", chronics_class=ChangeNothing, param=params)
 
     def tearDown(self):
         self.env.close()
@@ -288,7 +292,6 @@ class TestLineChangeLastBus(unittest.TestCase):
     def test_set_reconnect(self):
         LINE_ID = 4
         bus_action = self.env.action_space({"set_bus": {"lines_ex_id": [(LINE_ID,2)]}})
-        print (bus_action)
         set_status = self.env.action_space.get_set_line_status_vect()
         set_status[LINE_ID] = -1
         disconnect_action = self.env.action_space({'set_line_status': set_status})
@@ -302,7 +305,6 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert obs.line_status[LINE_ID] == False
         assert d is False
         obs, r, d, info = self.env.step(reconnect_action)
-        print(info)
         assert obs.line_status[LINE_ID] == True
         
 # TODO add test: fake a cascading failure, do a reset of an env, check that it can be loaded
