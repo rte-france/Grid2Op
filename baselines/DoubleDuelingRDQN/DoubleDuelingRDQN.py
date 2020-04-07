@@ -121,7 +121,7 @@ class DoubleDuelingRDQN(object):
 
     def update_target_weights(self, target_model):
         this_weights = self.model.get_weights()
-        target.model.set_weights(this_weights)
+        target_model.set_weights(this_weights)
 
     def update_target(self, target_model, tau=1e-2):
         tau_inv = 1.0 - tau

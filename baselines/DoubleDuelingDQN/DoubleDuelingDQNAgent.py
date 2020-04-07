@@ -58,10 +58,6 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self.epoch_alive = None
         self.Qtarget = None
 
-        # Setup training vars if needed
-        if self.is_training:
-            self._init_training()
-
         # Setup inital state
         self._reset_state()
         self._reset_frame_buffer()
@@ -74,16 +70,20 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                                       self.observation_size,
                                       num_frames = self.num_frames,
                                       learning_rate = self.lr)
+        # Setup training vars if needed
         if self.is_training:
-            self.Qtarget = DoubleDuelingDQN(self.action_size,
-                                            self.observation_size,
-                                            num_frames = self.num_frames,
-                                            learning_rate = self.lr)
+            self._init_training()
+
     def _init_training(self):
         self.frames2 = []
         self.epoch_rewards = []
         self.epoch_alive = []
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE * self.batch_size)
+        self.Qtarget = DoubleDuelingDQN(self.action_size,
+                                        self.observation_size,
+                                        num_frames = self.num_frames,
+                                        learning_rate = self.lr)
+        self.Qmain.update_target_weights(self.Qtarget.model)
     
     def _reset_state(self):
         # Initial state

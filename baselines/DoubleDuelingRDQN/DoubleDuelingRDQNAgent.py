@@ -76,6 +76,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         self.Qtarget = DoubleDuelingRDQN(self.action_size,
                                          self.observation_size,
                                          learning_rate = self.lr)
+        self.Qmain.update_target_weights(self.Qtarget.model)
     
     def _reset_state(self):
         # Initial state
