@@ -11,11 +11,10 @@ from grid2op.Reward.BaseReward import BaseReward
 
 class GameplayReward(BaseReward):
     """
-    Most basic implementation of reward: everything has the same values.
-
-    Note that this :class:`BaseReward` subtype is not usefull at all, whether to train an :attr:`BaseAgent` nor to assess its
-    performance of course.
-
+    This rewards is strictly computed based on the Game status.
+    It yields a negative reward in case of game over.
+    A positive reward if the game is won (finished an episode)
+    Otherwise the reward is zero
     """
     def __init__(self):
         BaseReward.__init__(self)
