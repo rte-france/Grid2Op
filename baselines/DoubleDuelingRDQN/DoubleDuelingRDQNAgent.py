@@ -111,6 +111,8 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
     def my_act(self, state, reward, done=False):
         data_input = np.array(state)
         data_input.reshape(1, 1, self.observation_size)
+        self.Qmain.trace_length.assign(1)
+        self.Qmain.dropout_rate.assign(0.0)
         a, _, m, c = self.Qmain.predict_move(data_input, self.mem_state, self.carry_state)
         self.mem_state = m
         self.carry_state = c
