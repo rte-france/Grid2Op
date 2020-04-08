@@ -2,7 +2,7 @@ from grid2op.Action import TopologyAndDispatchAction
 from grid2op.Reward import RedispReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
-from grid2op.Chronics import GridStateFromFile
+from grid2op.Chronics import GridStateFromFileWithForecasts
 from grid2op.Backend import PandaPowerBackend
 
 config = {
