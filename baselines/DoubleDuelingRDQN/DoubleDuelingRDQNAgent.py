@@ -9,7 +9,7 @@ from ExperienceBuffer import ExperienceBuffer
 from DoubleDuelingRDQN import DoubleDuelingRDQN
 
 INITIAL_EPSILON = 0.99
-FINAL_EPSILON = 0.005
+FINAL_EPSILON = 0.0
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
@@ -178,8 +178,8 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
                 # Slowly decay dropout rate
                 if epsilon > FINAL_EPSILON:
                     epsilon -= STEP_EPSILON
-                else:
-                    epsilon = FINAL_EPSILON
+                if epsilon < 0.0:
+                    epsilon = 0.0
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.exp_buffer.can_sample():

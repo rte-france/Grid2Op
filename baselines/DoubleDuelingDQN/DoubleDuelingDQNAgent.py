@@ -16,9 +16,10 @@ from grid2op.Converter import IdToAct
 from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
-INITIAL_EPSILON = 0.5
-FINAL_EPSILON = 0.005
-EPSILON_DECAY = 1024*16
+INITIAL_EPSILON = 0.8
+FINAL_EPSILON = 0.0
+DECAY_EPSILON = 1024*32
+STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 2048
 UPDATE_FREQ = 16
@@ -187,7 +188,9 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             if step > num_pre_training_steps:
                 # Slowly decay chance of random action
                 if epsilon > FINAL_EPSILON:
-                    epsilon -= (INITIAL_EPSILON-FINAL_EPSILON)/EPSILON_DECAY
+                    epsilon -= STEP_EPSILON
+                if epsilon < 0.0:
+                    epsilon = 0.0
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:
