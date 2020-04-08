@@ -13,9 +13,10 @@ import tensorflow as tf
 
 from grid2op.MakeEnv import make2
 from grid2op.Reward import *
+from grid2op.Action import *
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
-from CustomAction import CustomAction
+
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     args = cli()
     # Create grid2op game environement
     env = make2(args.path_data,
-                action_class=CustomAction,
+                action_class=TopologyChangeAndDispatchAction,
                 reward_class=CombinedReward,
                 other_rewards={
                     "bridge": BridgeReward,
