@@ -695,12 +695,22 @@ class _BasicEnv(GridObjects, ABC):
             line_or_target_bus = target_topo[or_pos[line_idx]]
             if line_or_target_bus == 0:
                 restored_or = (line_idx, self.last_bus_line_or[line_idx])
-                action = action.update({ "set_bus": { "lines_or_id": [restored_or] } })
+                # Here we have to create a BaseAction because set_bus
+                # may not be allowed by the subtype of PlayableAction
+                new_action = BaseAction(self)
+                new_action += action
+                new_action.update({ "set_bus": { "lines_or_id": [restored_or] } })
+                action = new_action
             # Update line extremity bus if not provided
             line_ex_target_bus = target_topo[ex_pos[line_idx]]
             if line_ex_target_bus == 0:
                 restored_ex = (line_idx, self.last_bus_line_ex[line_idx])
-                action = action.update({ "set_bus": { "lines_ex_id": [restored_ex] } })
+                # Here we have to create a BaseAction because set_bus
+                # may not be allowed by the subtype of PlayableAction
+                new_action = BaseAction(self)
+                new_action += action
+                new_action.update({ "set_bus": { "lines_ex_id": [restored_ex] } })
+                action = new_action
 
         return action
 
