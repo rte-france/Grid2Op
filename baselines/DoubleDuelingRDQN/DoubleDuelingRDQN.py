@@ -24,44 +24,44 @@ class DoubleDuelingRDQN(object):
 
     def construct_q_network(self):
         # Defines input tensors and scalars
-        self.trace_length = tf.Variable(1, dtype=tf.int32)
-        self.dropout_rate = tf.Variable(0.0, dtype=tf.float32, trainable=False)
+        self.trace_length = tf.Variable(1, dtype=tf.int32, name="trace_length")
+        self.dropout_rate = tf.Variable(0.0, dtype=tf.float32, trainable=False, name="dropout_rate")
         input_mem_state = tfk.Input(dtype=tf.float32, shape=(self.h_size), name='input_mem_state')
         input_carry_state = tfk.Input(dtype=tf.float32, shape=(self.h_size), name='input_carry_state')
         input_layer = tfk.Input(dtype=tf.float32, shape=(None, self.observation_size), name='input_obs')
 
         # Forward pass
-        lay1 = tfkl.Dense(512)(input_layer)
+        lay1 = tfkl.Dense(512, name="fc_1")(input_layer)
         # Bayesian NN simulate
-        lay1 = tfkl.Dropout(self.dropout_rate)(lay1)
+        lay1 = tfkl.Dropout(self.dropout_rate, name="bnn_dropout")(lay1)
 
-        lay2 = tfkl.Dense(256)(lay1)
+        lay2 = tfkl.Dense(256, name="fc_2")(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
         
-        lay3 = tfkl.Dense(128)(lay2)
+        lay3 = tfkl.Dense(128, name="fc_3")(lay2)
         lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
-        lay4 = tfkl.Dense(self.h_size)(lay3)
+        lay4 = tfkl.Dense(self.h_size, name="fc_4")(lay3)
         
         # Recurring part
-        lstm_layer = tfkl.LSTM(self.h_size, return_state=True)
+        lstm_layer = tfkl.LSTM(self.h_size, return_state=True, name="lstm")
         lstm_input = lay4
         lstm_state = [input_mem_state, input_carry_state]
         lay5, mem_s, carry_s = lstm_layer(lstm_input, initial_state=lstm_state)
         lstm_output = lay5
         
         # Advantage and Value streams
-        advantage = tfkl.Dense(64)(lstm_output)
+        advantage = tfkl.Dense(64, name="fc_adv")(lstm_output)
         advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
-        advantage = tfkl.Dense(self.action_size)(advantage)
+        advantage = tfkl.Dense(self.action_size, name="adv")(advantage)
 
-        value = tfkl.Dense(64)(lstm_output)
+        value = tfkl.Dense(64, name="fc_val")(lstm_output)
         value = tfka.relu(value, alpha=0.01) #leaky_relu
-        value = tfkl.Dense(1)(value)
+        value = tfkl.Dense(1, name="val")(value)
 
-        advantage_mean = tf.math.reduce_mean(advantage, axis=1, keepdims=True)
-        advantage = tfkl.subtract([advantage, advantage_mean])
-        Q = tf.math.add(value, advantage)
+        advantage_mean = tf.math.reduce_mean(advantage, axis=1, keepdims=True, name="advantage_mean")
+        advantage = tfkl.subtract([advantage, advantage_mean], name="advantage_subtract")
+        Q = tf.math.add(value, advantage, name="Qout")
 
         # Backwards pass
         self.model = tfk.Model(inputs=[input_mem_state, input_carry_state, input_layer],
@@ -72,7 +72,6 @@ class DoubleDuelingRDQN(object):
             self._no_loss
         ]
         self.model.compile(loss=losses, optimizer=tfko.Adam(lr=self.lr))
-        self.model.summary()
 
     def _no_loss(self, y_true, y_pred):
         return 0.0

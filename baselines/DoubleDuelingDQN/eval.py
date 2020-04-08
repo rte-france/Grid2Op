@@ -55,13 +55,14 @@ if __name__ == "__main__":
     agent = DDDQNAgent(env, env.action_space, is_training=False, num_frames=4)
     # Load weights from file
     agent.load_network(args.path_model)
-
     # Build runner
     runner_params = env.get_params_for_runner()
     runner = Runner(**runner_params,
                     agentClass=None,
                     agentInstance=agent)
 
+    # Print model summary
+    agent.Qmain.model.summary()
     # Run
     res = runner.run(path_save=args.path_logs,
                      nb_episode=args.nb_episode,
