@@ -29,7 +29,7 @@ from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
 from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
-from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, VoltageOnlyAction
+from grid2op.Action import BaseAction, TopologyAction, TopologyAndDispatchAction, VoltageOnlyAction
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import FlatReward, BaseReward, L2RPNReward, RedispReward
 from grid2op.Rules import BaseRules, AlwaysLegal, DefaultRules
@@ -369,7 +369,7 @@ class TestMake2Config(unittest.TestCase):
         with make2(dataset_path) as env:
             # Check config is loaded from config.py
             assert env.rewardClass == RedispReward
-            assert env.actionClass == TopoAndRedispAction
+            assert env.actionClass == TopologyAndDispatchAction
             assert env.observationClass == CompleteObservation
             assert isinstance(env.backend, PandaPowerBackend)
             assert env.legalActClass == DefaultRules
@@ -391,7 +391,7 @@ class TestMake2Config(unittest.TestCase):
         with make2(dataset_path) as env:
             # Check config is loaded from config.py
             assert env.rewardClass == RedispReward
-            assert env.actionClass == TopoAndRedispAction
+            assert env.actionClass == TopologyAndDispatchAction
             assert env.observationClass == CompleteObservation
             assert isinstance(env.backend, PandaPowerBackend)
             assert env.legalActClass == DefaultRules

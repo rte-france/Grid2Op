@@ -13,21 +13,30 @@ import pdb
 from grid2op.Exceptions import AmbiguousAction
 from grid2op.Action.BaseAction import BaseAction
 
-
-class TopoAndRedispAction(BaseAction):
+class PlayableAction(BaseAction):
     def __init__(self, gridobj):
-        BaseAction.__init__(self, gridobj)
-        self.authorized_keys = set([k for k in self.authorized_keys if k != "injection" and
-                                                                       k != "hazards" and k != "maintenance"])
+        super().__init__(gridobj)
 
-        self.attr_list_vect = ["_set_line_status", "_switch_line_status",
-                               "_set_topo_vect", "_change_bus_vect",
-                               "_redispatch"]
+        self.authorized_keys = {
+            "set_line_status",
+            "change_line_status",
+            "set_bus",
+            "change_bus",
+            "redispatch"
+        }
+
+        self.attr_list_vect = [
+            "_set_line_status",
+            "_switch_line_status",
+            "_set_topo_vect",
+            "_change_bus_vect",
+            "_redispatch"
+        ]
 
     def __call__(self):
         """
-        Compare to the ancestor :func:`BaseAction.__call__` this type of BaseAction doesn't allow to change the injections.
-        The only difference is in the returned value *dict_injection* that is always an empty dictionary.
+        Compare to the ancestor :func:`BaseAction.__call__` this type of BaseAction doesn't allow internal actions
+        The returned tuple is same, but with empty dictionaries for internal actions
 
         Returns
         -------
@@ -53,28 +62,27 @@ class TopoAndRedispAction(BaseAction):
             Always empty for this class
         """
         if self._dict_inj:
-            raise AmbiguousAction("You asked to modify the injection with an action of class \"TopologyAction\".")
+            raise AmbiguousAction("Injections actions are not playable.")
+
         self._check_for_ambiguity()
-        return {}, self._set_line_status, self._switch_line_status, self._set_topo_vect, self._change_bus_vect,\
-               self._redispatch, {}
+        return {}, \
+            self._set_line_status, self._switch_line_status, \
+            self._set_topo_vect, self._change_bus_vect,\
+            self._redispatch, {}
 
     def update(self, dict_):
         """
-        As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
-        :class:`BaseAction`.
-
-        It has only minor modifications compared to the original :func:`BaseAction.update` implementation, most notably, it
-        doesn't update the :attr:`BaseAction._dict_inj`. It raises a warning if attempting to change them.
+        Similar to :class:`BaseAction`, except that the allowed entries are limited to the playable action set
 
         Parameters
         ----------
         dict_: :class:`dict`
-            See the help of :func:`BaseAction.update` for a detailed explanation. **NB** all the explanations concerning the
-            "injection" part is irrelevant for this subclass.
+            See the help of :func:`BaseAction.update` for a detailed explanation. 
+            If an entry is not in the playable action set, this will raise
 
         Returns
         -------
-        self: :class:`TopologyAction`
+        self: :class:`PlayableAction`
             Return object itself thus allowing multiple calls to "update" to be chained.
 
         """
@@ -88,12 +96,19 @@ class TopoAndRedispAction(BaseAction):
                     warn = warn.format(kk, self.authorized_keys)
                     warnings.warn(warn)
 
-            # self._digest_injection(dict_)  # only difference compared to the base class implementation.
+            # Injection are for internal use, thus do not process them
+            # self._digest_injection(dict_)
+            # Hazards are for internal use, thus do not process them
+            # self._digest_hazards(dict_) 
+            # Maintenances are for internal use, thus do not process them
+            # self._digest_maintenance(dict_)
+
             self._digest_setbus(dict_)
             self._digest_change_bus(dict_)
             self._digest_set_status(dict_)
             self._digest_change_status(dict_)
             self._digest_redispatching(dict_)
+
         return self
 
 

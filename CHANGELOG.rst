@@ -23,6 +23,7 @@ Change Log
 
 [0.6.1] - 2020-04-??
 --------------------
+- [DEPRECATION] `TopoAndRedispAction` is now called `TopologyAndDispatchAction`.
 - [FIXED] Issue#54: Setting the bus for disconnected lines no longer counts as a substation operation.
 - [FIXED] if no redispatch actions are taken, then the game can no more invalid a provided action due to error in the
   redispatching. This behavior was caused by increase / decrease of the system losses that was higher (in absolute

@@ -8,20 +8,14 @@
 
 from grid2op.Action.PlayableAction import PlayableAction
 
-class TopologyAction(PlayableAction):
+class PowerlineSetAction(PlayableAction):
     def __init__(self, gridobj):
         super().__init__(gridobj)
 
         self.authorized_keys = {
-            "set_line_status",
-            "change_line_status",
-            "set_bus",
-            "change_bus",
+            "set_line_status"
         }
 
         self.attr_list_vect = [
-            "_set_line_status",
-            "_switch_line_status",
-            "_set_topo_vect",
-            "_change_bus_vect",
+            "_set_line_status"
         ]
