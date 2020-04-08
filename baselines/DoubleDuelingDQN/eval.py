@@ -62,7 +62,10 @@ if __name__ == "__main__":
                     agentInstance=agent)
 
     # Print model summary
-    agent.Qmain.model.summary()
+    stringlist = []
+    agent.Qmain.model.summary(print_fn=lambda x: stringlist.append(x))
+    short_model_summary = "\n".join(stringlist)
+    print(short_model_summary)
     # Run
     res = runner.run(path_save=args.path_logs,
                      nb_episode=args.nb_episode,
