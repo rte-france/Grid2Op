@@ -27,23 +27,24 @@ try:
 except Exception as e:
     raise RuntimeError("Impossible to find library urllib. Please install it.")
 
-URL = None
 DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
-DICT_URL_GRID2OP_DL = {"l2rpn_2019":
-                    ("https://github.com/BDonnot/Grid2Op/releases/download/data_l2rpn_2019/data_l2rpn_2019.tar.bz2",
-                     "data_l2rpn_2019"),
-            "case14_redisp": (
-                "https://github.com/BDonnot/Grid2Op/releases/download/case14_redisp/case14_redisp.tar.bz2",
-                "case14_redisp"
-            ),
-            "case14_realistic": (
-                "https://github.com/BDonnot/Grid2Op/releases/download/case14_realistic/case14_realistic.tar.bz2",
-                "case14_realistic"
-            )
-            }
-
+URL_GRID2OP_DATA = "https://github.com/Tezirg/Grid2Op/releases/download/{}/{}"
+DATASET_TAG_v0_0_1 = "datasets-v0.0.1"
+DICT_URL_GRID2OP_DL = {
+    "case14_realistic": {
+        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_1, "rte_case14_realistic.tar.bz2"),
+        "name": "rte_case14_realistic"
+    },
+    "case14_redisp": {
+        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_1, "rte_case14_redisp.tar.bz2"),
+        "name": "rte_case14_redisp"
+    },
+    "l2rpn_2019": {
+        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_1, "rte_l2rpn_2019.tar.bz2"),
+        "name": "rte_l2rpn_2019"
+    }
+}
 LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()])
-
 
 class DownloadProgressBar(tqdm):
     """
@@ -80,7 +81,8 @@ def main_download(dataset_name, path_data):
               "".format(env_name=dataset_name, li_env=",".join(LI_VALID_ENV)))
         sys.exit(1)
 
-    URL, ds_name_dl = DICT_URL_GRID2OP_DL[dataset_name]
+    url = DICT_URL_GRID2OP_DL[dataset_name]["url"]
+    ds_name_dl = DICT_URL_GRID2OP_DL[dataset_name]["name"]
     final_path = os.path.join(path_data, ds_name_dl)
     if os.path.exists(final_path):
         print("Downloading and extracting this data would create a folder \"{final_path}\" "
@@ -109,12 +111,12 @@ def main_download(dataset_name, path_data):
 
     # download the data (with progress bar)
     print("downloading the training data, this may take a while.")
-    download_url(URL, output_path)
+    download_url(url, output_path)
 
     tar = tarfile.open(output_path, "r:bz2")
     print("Extract the tar archive in \"{}\"".format(os.path.abspath(path_data)))
     tar.extractall(path_data)
     tar.close()
     print("You may now use the environment \"{}\" with the available data by invoking:\n"
-          "\tenv = grid2op.make(name_env=\"{}\", chronics_path=\"{}\")"
-          "".format(dataset_name, dataset_name, final_path))
+          "\tenv = grid2op.make2(\"{}\")"
+          "".format(dataset_name, final_path))
