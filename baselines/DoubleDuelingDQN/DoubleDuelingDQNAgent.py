@@ -20,7 +20,7 @@ INITIAL_EPSILON = 0.5
 FINAL_EPSILON = 0.001
 EPSILON_DECAY = 1024*16
 DISCOUNT_FACTOR = 0.99
-REPLAY_BUFFER_SIZE = 128
+REPLAY_BUFFER_SIZE = 2048
 UPDATE_FREQ = 16
 
 class DoubleDuelingDQNAgent(AgentWithConverter):
@@ -87,7 +87,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
     
     def _reset_state(self):
         # Initial state
-        self.obs = self.env.reset()
+        self.obs = self.env.current_obs
         self.state = self.convert_obs(self.obs)
         self.done = False
 
@@ -126,7 +126,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
     def load_network(self, path):
         self.Qmain.load_network(path)
         if self.is_training:
-            self.Qtarget.update_weights(self.Qmain.model)
+            self.Qmain.update_target_weights(self.Qtarget.model)
 
     def save_network(self, path):
         self.Qmain.save_network(path)
@@ -151,6 +151,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         while step < num_steps:
             # Init first time or new episode
             if self.done:
+                self.env.reset() # This shouldn't raise
                 self._reset_state()
                 self._reset_frame_buffer()
             if step % 1000 == 0:
@@ -171,6 +172,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             # Execute action
             new_obs, reward, self.done, info = self.env.step(act)
             new_state = self.convert_obs(new_obs)
+            print (info["rewards"])
             
             # Save to frame buffer
             self._save_current_frame(self.state)
@@ -190,12 +192,13 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:
-                    # Update target network towards primary network
-                    self.Qtarget.update_weights(self.Qmain.model)
                     # Sample from experience buffer
                     s_batch, a_batch, r_batch, d_batch, s1_batch = self.replay_buffer.sample(self.batch_size)
                     # Perform training
-                    self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, step)
+                    training_step = step - num_pre_training_steps
+                    self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, training_step)
+                    # Update target network towards primary network
+                    self.Qmain.update_target(self.Qtarget.model)
 
             total_reward += reward
             if self.done:
@@ -230,7 +233,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         t_input = np.reshape(s2_batch, (self.batch_size, input_size))
 
         # Batch predict
-        Q = self.Qmain.model.predict(m_input, batch_size = self.batch_size)
+        Q = self.Qmain.model.predict(t_input, batch_size = self.batch_size)
         Q2 = self.Qtarget.model.predict(t_input, batch_size = self.batch_size)
 
         # Compute batch Double Q update to Qtarget
@@ -248,7 +251,15 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             with self.tf_writer.as_default():
                 mean_reward = np.mean(self.epoch_rewards)
                 mean_alive = np.mean(self.epoch_alive)
+                if len(self.epoch_rewards) >= 100:
+                    mean_reward_100 = np.mean(self.epoch_rewards[-100:])
+                    mean_alive_100 = np.mean(self.epoch_alive[-100:])
+                else:
+                    mean_reward_100 = mean_reward
+                    mean_alive_100 = mean_alive
                 tf.summary.scalar("mean_reward", mean_reward, step)
                 tf.summary.scalar("mean_alive", mean_alive, step)
+                tf.summary.scalar("mean_reward_100", mean_reward_100, step)
+                tf.summary.scalar("mean_alive_100", mean_alive_100, step)
                 tf.summary.scalar("loss", loss, step)
             print("loss =", loss)
