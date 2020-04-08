@@ -17,7 +17,7 @@ from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
 INITIAL_EPSILON = 0.5
-FINAL_EPSILON = 0.001
+FINAL_EPSILON = 0.005
 EPSILON_DECAY = 1024*16
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 2048
@@ -83,8 +83,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                                         self.observation_size,
                                         num_frames = self.num_frames,
                                         learning_rate = self.lr)
-        self.Qmain.update_target_weights(self.Qtarget.model)
-    
+
     def _reset_state(self):
         # Initial state
         self.obs = self.env.current_obs
@@ -172,11 +171,11 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             # Execute action
             new_obs, reward, self.done, info = self.env.step(act)
             new_state = self.convert_obs(new_obs)
-            print (info["rewards"])
             
-            # Save to frame buffer
-            self._save_current_frame(self.state)
-            self._save_next_frame(new_state)
+            # Save to frame buffer every even step
+            if step % 2 == 0:
+                self._save_current_frame(self.state)
+                self._save_next_frame(new_state)
 
             # Save to experience buffer
             if len(self.frames) == self.num_frames:

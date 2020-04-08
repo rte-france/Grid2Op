@@ -56,7 +56,12 @@ class DoubleDuelingDQN(object):
         Q = tf.math.add(value, advantage)
 
         self.model = tfk.Model(inputs=[input_layer], outputs=[Q])
-        self.model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))
+        self.model.compile(loss=self._clipped_mse_loss, optimizer=tfko.Adam(lr=self.lr))
+
+    def _clipped_mse_loss(self, Qnext, Q):
+        loss = tf.math.reduce_mean(tf.math.square(Qnext - Q), name="loss_mse")
+        clipped_loss = tf.clip_by_value(loss, 0.0, 10000.0, name="loss_clip")
+        return clipped_loss
 
     def random_move(self):
         opt_policy = np.random.randint(0, self.action_size)

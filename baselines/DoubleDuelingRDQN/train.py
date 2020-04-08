@@ -4,7 +4,7 @@ import argparse
 import tensorflow as tf
 
 from grid2op.MakeEnv import make2
-from grid2op.Reward import RedispReward
+from grid2op.Reward import *
 
 from DoubleDuelingRDQNAgent import DoubleDuelingRDQNAgent as RDQNAgent
 from CustomAction import CustomAction
@@ -28,7 +28,7 @@ def cli():
                         default=8, type=int,
                         help="Size of the trace to use during training")
     parser.add_argument("--learning_rate", required=False,
-                        default=1e-5, type=float,
+                        default=5e-6, type=float,
                         help="Learning rate for the Adam optimizer")
     parser.add_argument("--resume", required=False,
                         help="Path to model.h5 to resume training with")
@@ -38,10 +38,23 @@ if __name__ == "__main__":
     # Get params from command line
     args = cli()
 
-    # Load grid2op game
     env = make2(args.path_data,
-                reward_class=RedispReward,
-                action_class=CustomAction)
+                action_class=CustomAction,
+                reward_class=CombinedReward,
+                other_rewards={
+                    "bridge": BridgeReward,
+                    "overflow": CloseToOverflowReward,
+                    "distance": DistanceReward
+                })
+    # Register custom reward for training
+    cr = env.reward_helper.template_reward
+    cr.addReward("bridge", BridgeReward(), 0.3)
+    cr.addReward("overflow", CloseToOverflowReward(), 0.3)
+    cr.addReward("distance", DistanceReward(), 0.3)
+    cr.addReward("game", GameplayReward(), 1.0)
+    #cr.addReward("redisp", RedispReward(), 2.5e-4)
+    # Initialize custom rewards
+    cr.initialize(env)
 
     # Limit gpu usage
     physical_devices = tf.config.list_physical_devices('GPU')

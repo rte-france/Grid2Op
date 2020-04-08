@@ -2,7 +2,7 @@ from grid2op.Action import BaseAction
 
 class CustomAction(BaseAction):
     def __init__(self, gridobj,
-                 setSubset=False,
+                 setSubset=True,
                  changeSubset=True,
                  redispatchSubset=True):
         super().__init__(gridobj)

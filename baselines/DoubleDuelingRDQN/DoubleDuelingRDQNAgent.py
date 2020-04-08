@@ -8,13 +8,13 @@ from grid2op.Converter import IdToAct
 from ExperienceBuffer import ExperienceBuffer
 from DoubleDuelingRDQN import DoubleDuelingRDQN
 
-INITIAL_EPSILON = 0.95
-FINAL_EPSILON = 0.0
+INITIAL_EPSILON = 0.99
+FINAL_EPSILON = 0.005
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 2048
-UPDATE_FREQ = 8
+UPDATE_FREQ = 16
 
 class DoubleDuelingRDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -76,8 +76,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         self.Qtarget = DoubleDuelingRDQN(self.action_size,
                                          self.observation_size,
                                          learning_rate = self.lr)
-        self.Qmain.update_target_weights(self.Qtarget.model)
-    
+
     def _reset_state(self):
         # Initial state
         self.obs = self.env.current_obs

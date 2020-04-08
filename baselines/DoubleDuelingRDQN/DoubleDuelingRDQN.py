@@ -67,15 +67,20 @@ class DoubleDuelingRDQN(object):
         self.model = tfk.Model(inputs=[input_mem_state, input_carry_state, input_layer],
                                outputs=[Q, mem_s, carry_s])
         losses = [
-            'mse',
-            self.no_loss,
-            self.no_loss
+            self._clipped_mse_loss,
+            self._no_loss,
+            self._no_loss
         ]
         self.model.compile(loss=losses, optimizer=tfko.Adam(lr=self.lr))
         self.model.summary()
 
-    def no_loss(self, y_true, y_pred):
+    def _no_loss(self, y_true, y_pred):
         return 0.0
+
+    def _clipped_mse_loss(self, Qnext, Q):
+        loss = tf.math.reduce_mean(tf.math.square(Qnext - Q), name="loss_mse")
+        clipped_loss = tf.clip_by_value(loss, 0.0, 100000.0, name="loss_clip")
+        return clipped_loss
 
     def bayesian_move(self, data, mem, carry, rate = 0.0):
         self.dropout_rate.assign(float(rate))
