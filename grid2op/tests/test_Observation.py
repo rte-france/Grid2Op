@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import os
 import sys
 import unittest
@@ -320,11 +328,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs = self.env.helper_observation(self.env)
         dict_ = obs.state_of(load_id=0)
         assert "p" in dict_
-        assert dict_["p"] == 18.8
+        assert np.abs(dict_["p"] - 18.8) <= self.tol_one
         assert "q" in dict_
-        assert dict_["q"] == 13.4
+        assert np.abs(dict_["q"] - 13.4) <= self.tol_one
         assert "v" in dict_
-        assert dict_["v"] == 141.075
+        assert np.abs(dict_["v"] - 141.075) <= self.tol_one
         assert "bus" in dict_
         assert dict_["bus"] == 1
         assert "sub_id" in dict_

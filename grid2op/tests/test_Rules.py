@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import os
 import sys
 import unittest
@@ -441,8 +449,8 @@ class TestCooldown(unittest.TestCase):
         # TODO do these kind of test with modified parameters !!!
 
 
-class TestNoFakeRecoHack(unittest.TestCase):
-    def test(self):
+class TestReconnectionsLegality(unittest.TestCase):
+    def test_reconnect_already_connected(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_case2 = make("case5_example")
@@ -450,14 +458,173 @@ class TestNoFakeRecoHack(unittest.TestCase):
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         # powerline 5 is connected
         # i fake a reconnection of it
-        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5,
-                                                               bus_or=2,
-                                                               bus_ex=2)
+        act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=1)
         obs_case2, reward_case2, done_case2, info_case2 = env_case2.step(act_case2)
         # this was illegal before, but test it is still illegal
         assert info_case2["is_illegal"], "action should be illegal as it consists of change both ends of a " \
                                          "powerline, while authorizing only 1 substations change"
 
+    def test_reconnect_disconnected(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 0
+            params.NO_OVERFLOW_DISCONNECTION = True
+            env_case2 = make("case5_example", param=params)
+        obs = env_case2.reset()  # reset is good
+        line_id = 5
+        
+        # Disconnect the line
+        disco_act = env_case2.action_space.disconnect_powerline(line_id=line_id)
+        obs, reward, done, info = env_case2.step(disco_act)
+        # Line has been disconnected
+        assert info["is_illegal"] == False
+        assert done == False
+        assert np.sum(obs.line_status) == (env_case2.n_line - 1)
+
+        # Reconnect the line
+        reco_act = env_case2.action_space.reconnect_powerline(line_id=line_id, bus_or=1, bus_ex=2)
+        obs, reward, done, info = env_case2.step(reco_act)
+        # Check reconnecting is legal
+        assert info["is_illegal"] == False
+        assert done == False
+        # Check line has been reconnected
+        assert np.sum(obs.line_status) == (env_case2.n_line)
+
+class TestSubstationImpactLegality(unittest.TestCase):
+    def setUp(self):
+        # Create env with custom params
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.params = Parameters()
+            self.env = make("case5_example", param=self.params)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_setbus_line_no_sub_allowed_is_illegal(self):
+        # Set 0 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 0
+        # Make a setbus
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [(LINE_ID,2)]
+            }
+        })
+        # Make sure its illegal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == True
+
+    def test_two_setbus_line_one_sub_allowed_is_illegal(self):
+        # Set 1 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 1
+        # Make a double setbus
+        LINE1_ID = 4
+        LINE2_ID = 5
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [
+                    (LINE1_ID,2),
+                    (LINE2_ID,2)
+                ]
+            }
+        })
+        # Make sure its illegal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == True
+
+    def test_one_setbus_line_one_sub_allowed_is_legal(self):
+        # Set 1 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 1
+        # Make a setbus
+        LINE1_ID = 4
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [
+                    (LINE1_ID,2)
+                ]
+            }
+        })
+        # Make sure its legal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == False
+
+    def test_two_setbus_line_two_sub_allowed_is_legal(self):
+        # Set 2 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 2
+        # Make a double setbus
+        LINE1_ID = 4
+        LINE2_ID = 5
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [
+                    (LINE1_ID,2),
+                    (LINE2_ID,2)
+                ]
+            }
+        })
+        # Make sure its legal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == False
+
+    def test_changebus_line_no_sub_allowed_is_illegal(self):
+        # Set 0 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 0
+        # Make a changebus
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE_ID]
+            }
+        })
+        # Make sure its illegal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == True
+
+    def test_changebus_line_one_sub_allowed_is_legal(self):
+        # Set 1 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 1
+        # Make a changebus
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE_ID]
+            }
+        })
+        # Make sure its legal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == False
+
+    def test_changebus_two_line_one_sub_allowed_is_illegal(self):
+        # Set 1 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 1
+        # Make a changebus
+        LINE1_ID = 4
+        LINE2_ID = 5
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE1_ID, LINE2_ID]
+            }
+        })
+        # Make sure its illegal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == True
+
+    def test_changebus_two_line_two_sub_allowed_is_legal(self):
+        # Set 2 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 2
+        # Make a changebus
+        LINE1_ID = 4
+        LINE2_ID = 5
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE1_ID, LINE2_ID]
+            }
+        })
+        # Make sure its legal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == False
 
 if __name__ == "__main__":
     unittest.main()

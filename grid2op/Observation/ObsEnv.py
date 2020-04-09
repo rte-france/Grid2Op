@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import copy
 import numpy as np
 import pdb
@@ -256,6 +264,7 @@ class ObsEnv(_BasicEnv):
         # Make a copy of env state for simulation
         self._thermal_limit_a = env._thermal_limit_a
         self.gen_activeprod_t[:] = env.gen_activeprod_t[:]
+        self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp[:]
         self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable[:]
         self.times_before_topology_actionable[:]  = env.times_before_topology_actionable[:]
         self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection[:]
@@ -263,6 +272,8 @@ class ObsEnv(_BasicEnv):
         self.duration_next_maintenance[:] = env.duration_next_maintenance[:]
         self.target_dispatch[:] = env.target_dispatch[:]
         self.actual_dispatch[:] = env.actual_dispatch[:]
+        self.last_bus_line_or = env.last_bus_line_or[:]
+        self.last_bus_line_ex = env.last_bus_line_ex[:]
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!

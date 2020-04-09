@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import numpy as np
 import warnings
 import itertools
@@ -338,6 +346,34 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         return self._template_act.get_change_line_status_vect()
+
+    @staticmethod
+    def get_all_unitary_line_set(action_space):
+        res = []
+
+        # powerline switch: disconnection
+        for i in range(action_space.n_line):
+            res.append(action_space.disconnect_powerline(line_id=i))
+
+        # powerline switch: reconnection
+        for bus_or in [1, 2]:
+            for bus_ex in [1, 2]:
+                for i in range(action_space.n_line):
+                    act = action_space.reconnect_powerline(line_id=i, bus_ex=bus_ex, bus_or=bus_or)
+                    res.append(act)
+
+        return res
+
+    @staticmethod
+    def get_all_unitary_line_change(action_space):
+        res = []
+
+        for i in range(action_space.n_line):
+            status = action_space.get_change_line_status_vect()
+            status[i] = True
+            res.append(action_space({"change_line_status": status}))
+
+        return res
 
     @staticmethod
     def get_all_unitary_topologies_change(action_space):

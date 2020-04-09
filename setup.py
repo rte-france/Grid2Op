@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import subprocess
 import sys
 import setuptools
@@ -10,7 +18,8 @@ pkgs = {
         "pandas>=1.0.3",
         "pandapower>=2.2.2",
         "tqdm>=4.43.0",
-        "pathlib>=1.0.1"
+        "pathlib>=1.0.1",
+        "networkx>=2.4"
     ],
     "extras": {
         "test": [
@@ -36,7 +45,8 @@ pkgs = {
             "pandas==1.0.3",
             "pandapower==2.2.2",
             "tqdm==4.43.0",
-            "pathlib==1.0.1"
+            "pathlib==1.0.1",
+            "networkx==2.4"
         ],
         "docs": [
             "numpydoc>=0.9.2",
