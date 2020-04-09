@@ -36,7 +36,8 @@ Change Log
 - [FIXED] a bug that lead to impossibility to load a powerline after a cascading failure in some cases. Now fixed by
   resetting the appropriate vectors when calling "env.reset".
 - [FIXED] function `env.attach_render` that uses old names for the grid layout
-- [ADDED] Remember last line buses: Reconnecting a line without providing buses will reconnect it to the buses it was previously connected to (origin and extremity). 
+- [ADDED] Remember last line buses: Reconnecting a line without providing buses will reconnect it to the buses it
+  was previously connected to (origin and extremity).
 - [ADDED] Change lines status (aka. switch_line_status) unitary actions for subclasses of AgentWithConverter.
 - [ADDED] Dispatching unitary actions for subclasses of AgentWithConverter.
 - [ADDED] CombinedReward. A reward combiner to compute a weighted sum of other rewards.

@@ -272,6 +272,7 @@ class TestAttachLayout(unittest.TestCase):
             assert "grid_layout" in dict_
             assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 
+
 class TestLineChangeLastBus(unittest.TestCase):
     """
     This function test that the behaviour of "step": it updates the action with the last known bus when reconnecting
@@ -308,6 +309,46 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert obs.line_status[LINE_ID] == True
         
 # TODO add test: fake a cascading failure, do a reset of an env, check that it can be loaded
+
+
+class TestCascadingFailure(unittest.TestCase):
+    """
+    There has been a bug preventing to reload an environment if the previous one ended with a cascading failure.
+    It check that here.
+    """
+    def setUp(self):
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 0
+            params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
+            rules = DefaultRules
+            self.env = make("case14_test", chronics_class=ChangeNothing, param=params, gamerules_class=rules)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_simulate_cf(self):
+        thermal_limit = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,
+                                   10869.23856329,  4686.71726729, 15612.65903298,   300.07915572,
+                                     229.8060832 ,   169.97292682,   100.40192958,   265.47505664,
+                                   21193.86923911, 21216.44452327, 49701.1565287 ,   124.79684388,
+                                      67.59759985,   192.19424706,   666.76961936,  1113.52773632])
+        thermal_limit *= 2
+        thermal_limit[[0,1]] /= 2.1
+        self.env.set_thermal_limit(thermal_limit)
+        obs0 = self.env.reset()
+        obs1, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        obs2, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        obs3, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        obs_new = self.env.reset()
+        obs1, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+
 
 if __name__ == "__main__":
     unittest.main()
