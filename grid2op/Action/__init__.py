@@ -44,9 +44,10 @@ import warnings
 # CompleteAction to be symetrical to CompleteObservation
 CompleteAction = BaseAction
 
+
 class TopoAndRedispAction(TopologyAndDispatchAction):
     def __init__(self, gridobj):
-        super().__init__(gridobj)
+        super().__init__(self, gridobj)
         warnings.warn("TopoAndRedispAction has been renamed to TopologyAndDispatchAction"
                       " -- The old name will be removed in future versions",
                       category=PendingDeprecationWarning)

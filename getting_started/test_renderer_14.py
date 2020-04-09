@@ -3,8 +3,12 @@ from grid2op.Agent import DoNothingAgent
 from grid2op.Agent import GreedyAgent, RandomAgent
 import numpy as np
 import pdb
+import warnings
 
-env = grid2op.make("case14_realistic")
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore")
+    env = grid2op.make("case14_realistic")
 
 
 class MyExpertAgent(GreedyAgent):
@@ -112,9 +116,6 @@ all_obs.append(obs)
 reward = env.reward_range[0]
 done = False
 nb_step = 0
-# graph_layout = [(280, -81), (100, -270), (-366, -270), (-366, -54), (64, -54), (64, 54), (-450, 0),
-#                 (-550, 0), (-326, 54), (-222, 108), (-79, 162), (170, 270), (64, 270), (-222, 216)]
-# env.attach_renderer(graph_layout)
 while True:
     env.render()
     action = my_agent.act(obs, reward, done)

@@ -66,6 +66,7 @@ from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageControll
 from grid2op.Environment.BasicEnv import _BasicEnv
 from grid2op.Opponent import BaseOpponent
 from grid2op.Plot import PlotPyGame
+from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
@@ -516,12 +517,10 @@ class Environment(_BasicEnv):
     def attach_renderer(self, graph_layout=None):
         if self.viewer is not None:
             return
-        if graph_layout is not None:
-            self.viewer = PlotPyGame(observation_space=self.helper_observation,
-                                     substation_layout=graph_layout)
-            self.viewer.reset(self)
-        else:
-            raise PlotError("No layout are available for the powergrid. Renderer is not possible.")
+
+        self.viewer = PlotPyGame(observation_space=self.helper_observation,
+                                 substation_layout=graph_layout)
+        self.viewer.reset(self)
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -631,11 +630,12 @@ class Environment(_BasicEnv):
         self.attach_renderer()
         if mode == "human":
             if self.viewer is not None:
-                has_quit = self.viewer.render(self.current_obs,
-                                              reward=self.current_reward,
-                                              timestamp=self.time_stamp,
-                                              done=self.done)
-                if has_quit:
+                try:
+                    self.viewer.plot_obs(self.current_obs,
+                                         reward=self.current_reward,
+                                         timestamp=self.time_stamp,
+                                         done=self.done)
+                except PyGameQuit:
                     self.close()
                     exit()
             else:
