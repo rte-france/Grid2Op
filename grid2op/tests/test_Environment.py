@@ -320,10 +320,10 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert obs.line_status[LINE_ID] == False
         obs, r, d, info = self.env.step(reconnect_action)
         assert d is False, "Diverged powerflow on reconnection"
-        # Its reconnected
-        assert obs.line_status[LINE_ID] == True
+        assert info["is_illegal"] == False, "Reconnecting should be legal"
+        assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
         # Its reconnected to bus 2, without specifying it
-        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
     def test_change_reconnect(self):
         LINE_ID = 4
@@ -352,7 +352,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert info["is_illegal"] == False, "Reconnecting should be legal"
         assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
         # Its reconnected to bus 2, without specifying it
-        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
 class TestResetAfterCascadingFailure(unittest.TestCase):
     """
