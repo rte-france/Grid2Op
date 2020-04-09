@@ -16,6 +16,7 @@ __all__ = [
     "TopologySetAndDispatchAction",
     "TopologyChangeAction",
     "TopologyChangeAndDispatchAction",
+    "DispatchAction",
     # Backwards compat
     "TopoAndRedispAction",
     "HelperAction",
@@ -38,6 +39,7 @@ from grid2op.Action.TopologySetAction import TopologySetAction
 from grid2op.Action.TopologySetAndDispatchAction import TopologySetAndDispatchAction
 from grid2op.Action.TopologyChangeAction import TopologyChangeAction
 from grid2op.Action.TopologyChangeAndDispatchAction import TopologyChangeAndDispatchAction
+from grid2op.Action.DispatchAction import DispatchAction
 
 import warnings
 
