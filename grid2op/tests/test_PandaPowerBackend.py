@@ -25,6 +25,7 @@ from grid2op.Exceptions import *
 from grid2op.Rules import RulesChecker
 from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
+from grid2op.Space import GridObjects
 
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 import pandapower as pppp
@@ -1002,6 +1003,77 @@ class TestShuntAction(HelperTests):
         obs_ref, *_ = env_ref.step(env_ref.action_space())
         assert np.abs(obs_ref.v_or[10] - obs_change_p.v_or[10]) < self.tol_one
 
+class TestResetEqualsLoadGrid(unittest.TestCase):
+    def setUp(self):
+        self.env1 = make("case5_example", backend=PandaPowerBackend())
+        self.backend1 = self.env1.backend
+        self.env2 = make("case5_example", backend=PandaPowerBackend())
+        self.backend2 = self.env2.backend
 
+    def tearDown(self):
+        self.env1.close()
+        self.env2.close()
+
+    def test_reset_equals_reset(self):
+        # Reset backend1 with reset
+        self.env1.reset()
+        # Reset backend2 with reset
+        self.env2.reset()
+
+        # Compare
+        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        assert np.all(self.backend1.p_or == self.backend2.p_or)
+        assert np.all(self.backend1.q_or == self.backend2.q_or)
+        assert np.all(self.backend1.v_or == self.backend2.v_or)
+        assert np.all(self.backend1.a_or == self.backend2.a_or)
+        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+
+    def test_reset_equals_load_grid(self):
+        # Reset backend1 with reset
+        self.env1.reset()
+        # Reset backend2 with load_grid
+        self.backend2.reset = self.backend2.load_grid
+        self.env2.reset()
+
+        # Compare
+        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        assert np.all(self.backend1.p_or == self.backend2.p_or)
+        assert np.all(self.backend1.q_or == self.backend2.q_or)
+        assert np.all(self.backend1.v_or == self.backend2.v_or)
+        assert np.all(self.backend1.a_or == self.backend2.a_or)
+        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+
+    def test_load_grid_equals_load_grid(self):
+        # Reset backend1 with load_grid
+        self.backend1.reset = self.backend1.load_grid
+        self.env1.reset()
+        # Reset backend2 with load_grid
+        self.backend2.reset = self.backend2.load_grid
+        self.env2.reset()
+
+        # Compare
+        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        assert np.all(self.backend1.p_or == self.backend2.p_or)
+        assert np.all(self.backend1.q_or == self.backend2.q_or)
+        assert np.all(self.backend1.v_or == self.backend2.v_or)
+        assert np.all(self.backend1.a_or == self.backend2.a_or)
+        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+
+    
 if __name__ == "__main__":
     unittest.main()
