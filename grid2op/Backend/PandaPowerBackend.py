@@ -553,7 +553,6 @@ class PandaPowerBackend(Backend):
                     self._nb_bus_before = None  # if dc i start normally next time i call an ac powerflow
                 else:
                     pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
-                    self._nb_bus_before = nb_bus
 
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here
@@ -586,6 +585,7 @@ class PandaPowerBackend(Backend):
                 self.v_ex *= self.lines_ex_pu_to_kv
 
                 self.prod_p, self.prod_q, self.prod_v = self._gens_info()
+                self._nb_bus_before = None
 
                 return self._grid.converged
 
