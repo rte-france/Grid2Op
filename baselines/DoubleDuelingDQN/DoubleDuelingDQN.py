@@ -31,32 +31,37 @@ class DoubleDuelingDQN(object):
         self.construct_q_network()
 
     def construct_q_network(self):
-        input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,))
-        lay1 = tfkl.Dense(self.observation_size * self.num_frames)(input_layer)
+        input_layer = tfk.Input(shape = (self.observation_size * self.num_frames,), name="input_obs")
+        lay1 = tfkl.Dense(self.observation_size * self.num_frames, name="fc_1")(input_layer)
                 
-        lay2 = tfkl.Dense(512)(lay1)
+        lay2 = tfkl.Dense(512, name="fc_2")(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
         
-        lay3 = tfkl.Dense(256)(lay2)
+        lay3 = tfkl.Dense(256, name="fc_3")(lay2)
         lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
         
-        lay4 = tfkl.Dense(128)(lay3)
+        lay4 = tfkl.Dense(128, name="fc_4")(lay3)
         lay4 = tfka.relu(lay4, alpha=0.01) #leaky_relu
 
-        advantage = tfkl.Dense(64)(lay4)
+        advantage = tfkl.Dense(64, name="fc_adv")(lay4)
         advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
-        advantage = tfkl.Dense(self.action_size)(advantage)
+        advantage = tfkl.Dense(self.action_size, name="adv")(advantage)
 
-        value = tfkl.Dense(64)(lay4)
+        value = tfkl.Dense(64, name="fc_val")(lay4)
         value = tfka.relu(value, alpha=0.01) #leaky_relu
-        value = tfkl.Dense(1)(value)
+        value = tfkl.Dense(1, name="val")(value)
 
-        advantage_mean = tf.math.reduce_mean(advantage, axis=1, keepdims=True)
-        advantage = tfkl.subtract([advantage, advantage_mean])
-        Q = tf.math.add(value, advantage)
+        advantage_mean = tf.math.reduce_mean(advantage, axis=1, keepdims=True, name="adv_mean")
+        advantage = tfkl.subtract([advantage, advantage_mean], name="adv_subtract")
+        Q = tf.math.add(value, advantage, name="Qout")
 
         self.model = tfk.Model(inputs=[input_layer], outputs=[Q])
-        self.model.compile(loss='mse', optimizer=tfko.Adam(lr=self.lr))
+        self.model.compile(loss=self._clipped_mse_loss, optimizer=tfko.Adam(lr=self.lr))
+
+    def _clipped_mse_loss(self, Qnext, Q):
+        loss = tf.math.reduce_mean(tf.math.square(Qnext - Q), name="loss_mse")
+        clipped_loss = tf.clip_by_value(loss, 0.0, 10000.0, name="loss_clip")
+        return clipped_loss
 
     def random_move(self):
         opt_policy = np.random.randint(0, self.action_size)
@@ -72,7 +77,7 @@ class DoubleDuelingDQN(object):
 
     def update_target_weights(self, target_model):
         this_weights = self.model.get_weights()
-        target.model.set_weights(this_weights)
+        target_model.set_weights(this_weights)
 
     def update_target(self, target_model, tau=1e-2):
         tau_inv = 1.0 - tau

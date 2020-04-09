@@ -538,7 +538,7 @@ class Environment(_BasicEnv):
         If the thermal has been modified, it also modify them into the new backend.
 
         """
-        self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
+        self.backend.reset(self.init_grid_path)  # the real powergrid of the environment
         self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:

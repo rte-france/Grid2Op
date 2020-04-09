@@ -6,9 +6,9 @@ import tensorflow as tf
 from grid2op.MakeEnv import make2
 from grid2op.Runner import Runner
 from grid2op.Reward import RedispReward
+from grid2op.Action import *
 
 from DoubleDuelingRDQNAgent import DoubleDuelingRDQNAgent as RDQNAgent
-from CustomAction import CustomAction
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -38,7 +38,9 @@ if __name__ == "__main__":
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     # Create dataset env
-    env = make2(args.path_data, reward_class=RedispReward, action_class=CustomAction)
+    env = make2(args.path_data,
+                reward_class=RedispReward,
+                action_class=TopologyChangeAndDispatchAction)
 
     # Create agent
     agent = RDQNAgent(env, env.action_space, is_training=False)
@@ -51,6 +53,11 @@ if __name__ == "__main__":
                     agentClass=None,
                     agentInstance=agent)
 
+    # Print model summary
+    stringlist = []
+    agent.Qmain.model.summary(print_fn=lambda x: stringlist.append(x))
+    short_model_summary = "\n".join(stringlist)
+    print(short_model_summary)
     # Run
     res = runner.run(path_save=args.path_logs,
                      nb_episode=args.nb_episode,

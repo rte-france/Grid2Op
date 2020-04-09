@@ -17,12 +17,12 @@ class BridgeReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = -1000.0
-        self.reward_max = 1000.0
-
-    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        n_bus = 3
+        self.reward_min = 0.0
+        self.reward_max = 1.0
         
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        n_bus = 2
+
         # Get info from env
         obs = env.current_obs
         n_sub = obs.n_sub
@@ -48,7 +48,7 @@ class BridgeReward(BaseReward):
             lor_bus = topo[or_topo[line_idx]]
             lex_bus = topo[ex_topo[line_idx]]
 
-            if lor_bus == 0 or lex_bus == 0:
+            if lor_bus <= 0 or lex_bus <= 0:
                 continue
 
             # Compute edge vertices indices for current graph
@@ -61,6 +61,9 @@ class BridgeReward(BaseReward):
         # Find the bridges
         n_bridges = len(list(nx.bridges(G)))
 
-        if n_bridges != 0:
-            return -1000.0 * n_bridges
-        return self.reward_max
+        if n_bridges == 0:
+            return self.reward_max
+        elif n_bridges == 1:
+            return (self.reward_max + self.reward_min) / 2.0
+        else:
+            return self.reward_min

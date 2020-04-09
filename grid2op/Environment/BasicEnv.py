@@ -695,12 +695,20 @@ class _BasicEnv(GridObjects, ABC):
             line_or_target_bus = target_topo[or_pos[line_idx]]
             if line_or_target_bus == 0:
                 restored_or = (line_idx, self.last_bus_line_or[line_idx])
-                action = action.update({ "set_bus": { "lines_or_id": [restored_or] } })
+                action._digest_setbus({
+                    "set_bus": {
+                        "lines_or_id": [restored_or]
+                    }
+                })
             # Update line extremity bus if not provided
             line_ex_target_bus = target_topo[ex_pos[line_idx]]
             if line_ex_target_bus == 0:
                 restored_ex = (line_idx, self.last_bus_line_ex[line_idx])
-                action = action.update({ "set_bus": { "lines_ex_id": [restored_ex] } })
+                action._digest_setbus({
+                    "set_bus": {
+                        "lines_ex_id": [restored_ex]
+                    }
+                })
 
         return action
 
@@ -774,8 +782,8 @@ class _BasicEnv(GridObjects, ABC):
         previous_disp = 1.0 * self.actual_dispatch
         previous_target_disp = 1.0 * self.target_dispatch
         try:
+            # "smart" reconnecting
             action = self._restore_missing_reconnecting_lines_buses(action)
-            
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:

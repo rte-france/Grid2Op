@@ -21,9 +21,19 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+[0.7.0] - 2020-04-??
+--------------------
+- [DEPRECATION] `grid2op.Action.TopoAndRedispAction` is now `grid2op.Action.TopologyAndDispatchAction`.
+- [ADDED] `grid2op.Backend.reset` as a way for backends to implement a faster way to reload the grid. Implemented in `grid2op.Backend.PandaPowerBackend`
+- [ADDED] `grid2op.Action.TopologySetAction` A subset of actions to limit the agents scope to 'set' operations only
+- [ADDED] `grid2op.Action.TopologySetAndDispatchAction` A subset of actions to limit the agents scope to 'set' and 'redisp' operations only
+- [ADDED] `grid2op.Action.TopologyChangeAction` A subset of actions to limit the agents scope to 'change' operations only
+- [ADDED] `grid2op.Action.TopologyChangeAndDispatchAction` A subset of actions to limit the agents scope to 'change' and 'redisp' operations only
+- [ADDED] `grid2op.Action.DispatchAction` A subset of actions to limit the agents scope to 'redisp' operations only
+
 [0.6.1] - 2020-04-??
 --------------------
-- [FIXED] Issue#54: Setting the bus for disconnected lines no longer counts as a substation operation.
+- [FIXED] `Issue #54 <https://github.com/rte-france/Grid2Op/issues/54>`_: Setting the bus for disconnected lines no longer counts as a substation operation.
 - [FIXED] if no redispatch actions are taken, then the game can no more invalid a provided action due to error in the
   redispatching. This behavior was caused by increase / decrease of the system losses that was higher (in absolute
   value) than the ramp of the generators connected to the slack bus. This has been fixed by removing the losses

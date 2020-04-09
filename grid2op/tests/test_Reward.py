@@ -90,7 +90,7 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
         disconnect_action = self.env.action_space({"set_line_status": set_status})
 
         obs, r, d, info = self.env.step(disconnect_action)
-        assert r < 0.0
+        assert r < 1.0
 
     def test_setBus2(self):
         self.env.reset()
@@ -98,7 +98,7 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
         set_action = self.env.action_space({"set_bus": {"lines_or_id": [(0,2)]}})
 
         obs, r, d, info = self.env.step(set_action)
-        assert r < 0.0
+        assert r != 1.0
 
 class TestLoadingGameplayReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
@@ -113,6 +113,7 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         assert cr is not None
         cr.addReward("Gameplay", GameplayReward(), 1.0)
         cr.addReward("Flat", FlatReward(), 1.0)
+        cr.initialize(self.env)
 
     def test_remove_reward(self):
         cr = self.env.reward_helper.template_reward
@@ -137,16 +138,17 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
     def test_combine_distance_gameplay(self):
         cr = self.env.reward_helper.template_reward
         assert cr is not None
-        added = cr.addReward("Gameplay", GameplayReward(), 1.0)
+        added = cr.addReward("Gameplay", GameplayReward(), 0.5)
         assert added == True
         distance_reward = DistanceReward()
         added = cr.addReward("Distance", distance_reward, 0.5)
         assert added == True
-
         self.env.reset()
+        cr.initialize(self.env)
+
         set_action = self.env.action_space({"set_bus": {"lines_or_id": [(1,2)]}})
         obs, r, d, info = self.env.step(set_action)
-        assert r == 0.5 * distance_reward.penalty_per_diff
+        assert r < 1.0 
         
 if __name__ == "__main__":
     unittest.main()

@@ -8,13 +8,13 @@ from grid2op.Converter import IdToAct
 from ExperienceBuffer import ExperienceBuffer
 from DoubleDuelingRDQN import DoubleDuelingRDQN
 
-INITIAL_EPSILON = 0.95
+INITIAL_EPSILON = 0.99
 FINAL_EPSILON = 0.0
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 2048
-UPDATE_FREQ = 8
+UPDATE_FREQ = 16
 
 class DoubleDuelingRDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -76,7 +76,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         self.Qtarget = DoubleDuelingRDQN(self.action_size,
                                          self.observation_size,
                                          learning_rate = self.lr)
-    
+
     def _reset_state(self):
         # Initial state
         self.obs = self.env.current_obs
@@ -111,6 +111,8 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
     def my_act(self, state, reward, done=False):
         data_input = np.array(state)
         data_input.reshape(1, 1, self.observation_size)
+        self.Qmain.trace_length.assign(1)
+        self.Qmain.dropout_rate.assign(0.0)
         a, _, m, c = self.Qmain.predict_move(data_input, self.mem_state, self.carry_state)
         self.mem_state = m
         self.carry_state = c
@@ -178,8 +180,8 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
                 # Slowly decay dropout rate
                 if epsilon > FINAL_EPSILON:
                     epsilon -= STEP_EPSILON
-                else:
-                    epsilon = FINAL_EPSILON
+                if epsilon < 0.0:
+                    epsilon = 0.0
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.exp_buffer.can_sample():

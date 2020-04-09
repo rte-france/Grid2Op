@@ -12,13 +12,11 @@ import argparse
 import tensorflow as tf
 
 from grid2op.MakeEnv import make2
-from grid2op.Reward import RedispReward
-from grid2op.Reward import BridgeReward
-from grid2op.Reward import CloseToOverflowReward
-from grid2op.Reward import DistanceReward
+from grid2op.Reward import *
+from grid2op.Action import *
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
-from CustomAction import CustomAction
+
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
@@ -39,7 +37,7 @@ def cli():
                         default=4, type=int,
                         help="Number of observation frames to use during training")
     parser.add_argument("--learning_rate", required=False,
-                        default=1e-5, type=float,
+                        default=5e-6, type=float,
                         help="Learning rate for the Adam optimizer")
     parser.add_argument("--resume", required=False,
                         help="Path to model.h5 to resume training with")
@@ -47,14 +45,24 @@ def cli():
 
 if __name__ == "__main__":
     args = cli()
+    # Create grid2op game environement
     env = make2(args.path_data,
-                action_class=CustomAction,
-                reward_class=RedispReward,
+                action_class=TopologyChangeAndDispatchAction,
+                reward_class=CombinedReward,
                 other_rewards={
                     "bridge": BridgeReward,
-                    "close_to_of": CloseToOverflowReward,
+                    "overflow": CloseToOverflowReward,
                     "distance": DistanceReward
                 })
+    # Register custom reward for training
+    cr = env.reward_helper.template_reward
+    cr.addReward("bridge", BridgeReward(), 0.3)
+    cr.addReward("overflow", CloseToOverflowReward(), 0.3)
+    cr.addReward("distance", DistanceReward(), 0.3)
+    cr.addReward("game", GameplayReward(), 1.0)
+    #cr.addReward("redisp", RedispReward(), 2.5e-4)
+    # Initialize custom rewards
+    cr.initialize(env)
 
     # Limit gpu usage
     physical_devices = tf.config.list_physical_devices('GPU')

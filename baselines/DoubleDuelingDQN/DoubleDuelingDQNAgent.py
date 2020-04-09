@@ -16,12 +16,13 @@ from grid2op.Converter import IdToAct
 from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
-INITIAL_EPSILON = 0.5
-FINAL_EPSILON = 0.001
-EPSILON_DECAY = 1024*16
+INITIAL_EPSILON = 0.8
+FINAL_EPSILON = 0.0
+DECAY_EPSILON = 1024*32
+STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
-REPLAY_BUFFER_SIZE = 2048
-UPDATE_FREQ = 16
+REPLAY_BUFFER_SIZE = 1024*512 # Very large to prevent winner takes all
+UPDATE_FREQ = 64
 
 class DoubleDuelingDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -58,10 +59,6 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self.epoch_alive = None
         self.Qtarget = None
 
-        # Setup training vars if needed
-        if self.is_training:
-            self._init_training()
-
         # Setup inital state
         self._reset_state()
         self._reset_frame_buffer()
@@ -74,17 +71,20 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                                       self.observation_size,
                                       num_frames = self.num_frames,
                                       learning_rate = self.lr)
+        # Setup training vars if needed
         if self.is_training:
-            self.Qtarget = DoubleDuelingDQN(self.action_size,
-                                            self.observation_size,
-                                            num_frames = self.num_frames,
-                                            learning_rate = self.lr)
+            self._init_training()
+
     def _init_training(self):
         self.frames2 = []
         self.epoch_rewards = []
         self.epoch_alive = []
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE * self.batch_size)
-    
+        self.Qtarget = DoubleDuelingDQN(self.action_size,
+                                        self.observation_size,
+                                        num_frames = self.num_frames,
+                                        learning_rate = self.lr)
+
     def _reset_state(self):
         # Initial state
         self.obs = self.env.current_obs
@@ -172,11 +172,11 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             # Execute action
             new_obs, reward, self.done, info = self.env.step(act)
             new_state = self.convert_obs(new_obs)
-            print (info["rewards"])
             
-            # Save to frame buffer
-            self._save_current_frame(self.state)
-            self._save_next_frame(new_state)
+            # Save to frame buffer every even step
+            if step % 2 == 0:
+                self._save_current_frame(self.state)
+                self._save_next_frame(new_state)
 
             # Save to experience buffer
             if len(self.frames) == self.num_frames:
@@ -188,7 +188,9 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             if step > num_pre_training_steps:
                 # Slowly decay chance of random action
                 if epsilon > FINAL_EPSILON:
-                    epsilon -= (INITIAL_EPSILON-FINAL_EPSILON)/EPSILON_DECAY
+                    epsilon -= STEP_EPSILON
+                if epsilon < 0.0:
+                    epsilon = 0.0
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:

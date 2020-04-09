@@ -19,7 +19,7 @@ from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Action import ActionSpace, BaseAction, TopologyAction, TopoAndRedispAction, PowerLineSet, DontAct
+from grid2op.Action import ActionSpace, BaseAction, TopologyAction, TopologyAndDispatchAction, PowerlineSetAction, DontAct
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Space import GridObjects
 from grid2op._utils import save_to_dict
@@ -391,16 +391,12 @@ class TestActionBase(ABC):
         action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "connected"
         # and i don't say on which bus to connect it
 
-        if issubclass(self.helper_action.actionClass, PowerLineSet):
-            # this is a legal action for powerlineSet
+        try:
             action()
-        else:
-            try:
-                action()
-                raise RuntimeError("This should have thrown an InvalidBusStatus error for {}"
-                                   "".format(self.helper_action.actionClass))
-            except InvalidLineStatus as e:
-                pass
+            raise RuntimeError("This should have thrown an InvalidBusStatus error for {}"
+                               "".format(self.helper_action.actionClass))
+        except InvalidLineStatus as e:
+            pass
 
     def test_set_status_and_setbus_isambiguous(self):
         """
@@ -780,21 +776,21 @@ class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
 
 
-class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
+class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
     """
-    Test suite using the PowerLineSet class
+    Test suite using the PowerlineSetAction class
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
 
 
 class TestPowerDontAct(TestActionBase, unittest.TestCase):
     """
-    Test suite using the PowerLineSet class
+    Test suite using the PowerlineSetAction class
     """
 
     def _action_setup(self):
