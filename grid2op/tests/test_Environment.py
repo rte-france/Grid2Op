@@ -281,13 +281,13 @@ class TestLineChangeLastBus(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            params = Parameters()
-            params.MAX_SUB_CHANGED = 1
-            params.NO_OVERFLOW_DISCONNECTION = True
+            self.params = Parameters()
+            self.params.MAX_SUB_CHANGED = 1
+            self.params.NO_OVERFLOW_DISCONNECTION = True
 
             self.env = make("case14_test",
                             chronics_class=ChangeNothing,
-                            param=params)
+                            param=self.params)
 
     def tearDown(self):
         self.env.close()
@@ -319,11 +319,11 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert d is False
         assert obs.line_status[LINE_ID] == False
         obs, r, d, info = self.env.step(reconnect_action)
-        assert d is False
-        # Its reconnected
-        assert obs.line_status[LINE_ID] == True
+        assert d is False, "Diverged powerflow on reconnection"
+        assert info["is_illegal"] == False, "Reconnecting should be legal"
+        assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
         # Its reconnected to bus 2, without specifying it
-        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
     def test_change_reconnect(self):
         LINE_ID = 4
@@ -348,10 +348,11 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert d is False
         assert obs.line_status[LINE_ID] == False
         obs, r, d, info = self.env.step(switch_action)
-        assert d is False
-        assert obs.line_status[LINE_ID] == True
+        assert d is False, "Diverged powerflow on reconnection"
+        assert info["is_illegal"] == False, "Reconnecting should be legal"
+        assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
         # Its reconnected to bus 2, without specifying it
-        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
 class TestResetAfterCascadingFailure(unittest.TestCase):
     """
