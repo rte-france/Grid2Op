@@ -527,11 +527,19 @@ class BaseAction(GridObjects):
 
         if self._subs_impacted is None:
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
-            
+
+            # Mask of powerlines reconnected by set
+            powerlines_set_reco = self._set_line_status == 1
+            # Mask of powerlines reconnected by change
+            powerlines_change_reco = self._switch_line_status
             # all the id of the powerlines reconnected
-            powerlines_status_reco = self._set_line_status == 1
             powerlines_reco = np.array(list(range(self.n_line)))
-            powerlines_reco = powerlines_reco[powerlines_status_reco & not_powerline_status]
+            powerlines_reco = powerlines_reco[
+                np.logical_or(
+                    np.logical_and(powerlines_set_reco, not_powerline_status),
+                    np.logical_and(powerlines_change_reco, not_powerline_status)
+                )
+            ]
             # all the reconnected lines origin substation id
             sub_or_id = self.line_or_to_subid[powerlines_reco]
             # all the reconnected lines extremity substation id
