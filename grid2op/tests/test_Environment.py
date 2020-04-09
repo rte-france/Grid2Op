@@ -281,7 +281,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             params = Parameters()
-            params.MAX_SUB_CHANGED = 0
+            params.MAX_SUB_CHANGED = 1
             params.NO_OVERFLOW_DISCONNECTION = True
 
             self.env = make("case14_test", chronics_class=ChangeNothing, param=params)
@@ -297,7 +297,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         disconnect_action = self.env.action_space({'set_line_status': set_status})
         set_status[LINE_ID] = 1
         reconnect_action = self.env.action_space({'set_line_status': set_status})
-        
+
         obs, r, d, _ = self.env.step(bus_action)
         assert obs.line_status[LINE_ID] == True
         assert d is False
