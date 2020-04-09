@@ -1074,6 +1074,46 @@ class TestResetEqualsLoadGrid(unittest.TestCase):
         assert np.all(self.backend1.a_ex == self.backend2.a_ex)
         assert np.all(self.backend1.v_ex == self.backend2.v_ex)
 
+    def test_obs_from_same_chronic(self):
+        # Store first observation
+        obs1 = self.env1.current_obs
+        obs2 = None
+        for i in range(3):
+            self.env1.step(self.env1.action_space({}))
+
+        # Reset to first chronic
+        self.env1.chronics_handler.tell_id(-1)
+        self.env1.reset()
+
+        # Store second observation
+        obs2 = self.env1.current_obs
+
+        # Compare
+        assert np.allclose(obs1.prod_p, obs2.prod_p)
+        assert np.allclose(obs1.prod_q, obs2.prod_q)
+        assert np.allclose(obs1.prod_v, obs2.prod_v)
+        assert np.allclose(obs1.load_p, obs2.load_p)
+        assert np.allclose(obs1.load_q, obs2.load_q)
+        assert np.allclose(obs1.load_v, obs2.load_v)
+        assert np.allclose(obs1.p_or, obs2.p_or)
+        assert np.allclose(obs1.q_or, obs2.q_or)
+        assert np.allclose(obs1.v_or, obs2.v_or)
+        assert np.allclose(obs1.a_or, obs2.a_or)
+        assert np.allclose(obs1.p_ex, obs2.p_ex)
+        assert np.allclose(obs1.q_ex, obs2.q_ex)
+        assert np.allclose(obs1.v_ex, obs2.v_ex)
+        assert np.allclose(obs1.a_ex, obs2.a_ex)
+        assert np.allclose(obs1.rho, obs2.rho)
+        assert np.all(obs1.line_status == obs2.line_status)
+        assert np.all(obs1.topo_vect == obs2.topo_vect)
+        assert np.all(obs1.timestep_overflow == obs2.timestep_overflow)
+        assert np.all(obs1.time_before_cooldown_line == obs2.time_before_cooldown_line)
+        assert np.all(obs1.time_before_cooldown_sub == obs2.time_before_cooldown_sub)
+        assert np.all(obs1.time_before_line_reconnectable == obs2.time_before_line_reconnectable)
+        assert np.all(obs1.time_next_maintenance == obs2.time_next_maintenance)
+        assert np.all(obs1.duration_next_maintenance == obs2.duration_next_maintenance)
+        assert np.all(obs1.target_dispatch == obs2.target_dispatch)
+        assert np.all(obs1.actual_dispatch == obs2.actual_dispatch)
     
 if __name__ == "__main__":
     unittest.main()
