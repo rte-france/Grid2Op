@@ -516,9 +516,9 @@ class Environment(_BasicEnv):
     def attach_renderer(self, graph_layout=None):
         if self.viewer is not None:
             return
-        graph_layout = self.graph_layout if graph_layout is None else graph_layout
         if graph_layout is not None:
-            self.viewer = PlotPyGame(graph_layout, observation_space=self.helper_observation)
+            self.viewer = PlotPyGame(observation_space=self.helper_observation,
+                                     substation_layout=graph_layout)
             self.viewer.reset(self)
         else:
             raise PlotError("No layout are available for the powergrid. Renderer is not possible.")
