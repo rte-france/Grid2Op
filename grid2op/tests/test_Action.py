@@ -19,11 +19,10 @@ from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Action import ActionSpace, BaseAction, TopologyAction, TopologyAndDispatchAction, PowerlineSetAction, DontAct
+from grid2op.Action import *
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Space import GridObjects
 from grid2op._utils import save_to_dict
-
 
 class TestActionBase(ABC):
 
@@ -360,6 +359,7 @@ class TestActionBase(ABC):
         assert action.effect_on(gen_id=0)["change_bus"] == False
 
     def test_ambiguity_topo(self):
+        self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
         action = self.helper_action({"change_bus": {"lines_or_id": [1]}})  # i switch the bus of the origin of powerline 1
@@ -404,6 +404,7 @@ class TestActionBase(ABC):
         :return:
         """
         self._skipMissingKey('set_bus')
+        self._skipMissingKey('set_line_status')
 
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_ = 2
@@ -456,6 +457,7 @@ class TestActionBase(ABC):
 
     def test_to_vect(self):
         self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
@@ -769,14 +771,53 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
 
-
-class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
+class TestDispatchAction(TestActionBase, unittest.TestCase):
     """
-    Test suite using the TopologyAndRedisp class
+    Test suite using the DispatchAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DispatchAction)
+
+class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologyAndDispatchAction class
     """
 
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
+
+class TestTopologySetAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologySetAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAction)
+
+class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologySetAndDispatchAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAndDispatchAction)
+
+class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologySetAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAction)
+
+class TestTopologyChangeAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologyChangeAndDispatchAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAndDispatchAction)
 
 
 class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
@@ -786,6 +827,14 @@ class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
 
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
+
+class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerlineChangeAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
 
 
 class TestPowerDontAct(TestActionBase, unittest.TestCase):
