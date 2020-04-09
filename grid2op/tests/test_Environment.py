@@ -282,7 +282,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             params = Parameters()
-            params.MAX_SUB_CHANGED = 0
+            params.MAX_SUB_CHANGED = 1
             params.NO_OVERFLOW_DISCONNECTION = True
 
             self.env = make("case14_test",
@@ -294,6 +294,8 @@ class TestLineChangeLastBus(unittest.TestCase):
 
     def test_set_reconnect(self):
         LINE_ID = 4
+        line_ex_topo = self.env.line_ex_pos_topo_vect[LINE_ID]
+        line_or_topo = self.env.line_or_pos_topo_vect[LINE_ID]
         bus_action = self.env.action_space({
             "set_bus": {
                 "lines_ex_id": [(LINE_ID,2)]
@@ -308,18 +310,25 @@ class TestLineChangeLastBus(unittest.TestCase):
         reconnect_action = self.env.action_space({
             'set_line_status': set_status
         })
-        
-        obs, r, d, _ = self.env.step(bus_action)
-        assert obs.line_status[LINE_ID] == True
+
+        obs, r, d, info = self.env.step(bus_action)
         assert d is False
+        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.line_status[LINE_ID] == True
         obs, r, d, _ = self.env.step(disconnect_action)
-        assert obs.line_status[LINE_ID] == False
         assert d is False
+        assert obs.line_status[LINE_ID] == False
         obs, r, d, info = self.env.step(reconnect_action)
+        assert d is False
+        # Its reconnected
         assert obs.line_status[LINE_ID] == True
+        # Its reconnected to bus 2, without specifying it
+        assert obs.topo_vect[line_ex_topo] == 2
 
     def test_change_reconnect(self):
         LINE_ID = 4
+        line_ex_topo = self.env.line_ex_pos_topo_vect[LINE_ID]
+        line_or_topo = self.env.line_or_pos_topo_vect[LINE_ID]
         bus_action = self.env.action_space({
             "set_bus": {
                 "lines_ex_id": [(LINE_ID,2)]
@@ -332,15 +341,55 @@ class TestLineChangeLastBus(unittest.TestCase):
         })
 
         obs, r, d, _ = self.env.step(bus_action)
-        assert obs.line_status[LINE_ID] == True
         assert d is False
+        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.line_status[LINE_ID] == True
         obs, r, d, info = self.env.step(switch_action)
         assert d is False
         assert obs.line_status[LINE_ID] == False
         obs, r, d, info = self.env.step(switch_action)
+        assert d is False
         assert obs.line_status[LINE_ID] == True
-        
-# TODO add test: fake a cascading failure, do a reset of an env, check that it can be loaded
+        # Its reconnected to bus 2, without specifying it
+        assert obs.topo_vect[line_ex_topo] == 2
+
+class TestResetAfterCascadingFailure(unittest.TestCase):
+    """
+    Fake a cascading failure, do a reset of an env, check that it can be loaded
+
+    """
+    def setUp(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 2
+            self.env = make("case14_test",
+                            chronics_class=ChangeNothing,
+                            param=params)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_reset_after_cascading(self):
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [(LINE_ID,2)],
+                "lines_or_id": [(LINE_ID,2)]
+            }
+        })
+        nothing_action = self.env.action_space({})
+
+        for i in range(3):
+            obs, r, d, i = self.env.step(bus_action)
+            # Ensure cascading happened
+            assert d is True
+            # Reset env, this shouldn't raise
+            self.env.reset()
+            # Step once
+            obs, r, d, i = self.env.step(nothing_action)
+            # Ensure stepping has been successful
+            assert d is False
 
 if __name__ == "__main__":
     unittest.main()

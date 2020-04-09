@@ -784,7 +784,6 @@ class _BasicEnv(GridObjects, ABC):
         try:
             # "smart" reconnecting
             action = self._restore_missing_reconnecting_lines_buses(action)
-
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:

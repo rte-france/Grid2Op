@@ -98,13 +98,15 @@ class PlayableAction(BaseAction):
         self._reset_vect()
         warn_msg = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
 
-        if dict_ is not None:
-            for kk in dict_.keys():
-                if kk not in self.authorized_keys:
-                    warn = warn_msg.format(kk, self.authorized_keys)
-                    warnings.warn(warn)
-                else:
-                    self.authorized_keys_to_digest[kk](dict_)
+        if dict_ is None:
+            return self
+
+        for kk in dict_.keys():
+            if kk not in self.authorized_keys:
+                warn = warn_msg.format(kk, self.authorized_keys)
+                warnings.warn(warn)
+            else:
+                self.authorized_keys_to_digest[kk](dict_)
 
         return self
 
