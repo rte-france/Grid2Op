@@ -568,5 +568,63 @@ class TestSubstationImpactLegality(unittest.TestCase):
         _, _, _, i = self.env.step(bus_action)
         assert i["is_illegal"] == False
 
+    def test_changebus_line_no_sub_allowed_is_illegal(self):
+        # Set 0 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 0
+        # Make a changebus
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE_ID]
+            }
+        })
+        # Make sure its illegal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == True
+
+    def test_changebus_line_one_sub_allowed_is_legal(self):
+        # Set 1 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 1
+        # Make a changebus
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE_ID]
+            }
+        })
+        # Make sure its legal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == False
+
+    def test_changebus_two_line_one_sub_allowed_is_illegal(self):
+        # Set 1 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 1
+        # Make a changebus
+        LINE1_ID = 4
+        LINE2_ID = 5
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE1_ID, LINE2_ID]
+            }
+        })
+        # Make sure its illegal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == True
+
+    def test_changebus_two_line_two_sub_allowed_is_legal(self):
+        # Set 2 allowed substation changes
+        self.params.MAX_SUB_CHANGED = 2
+        # Make a changebus
+        LINE1_ID = 4
+        LINE2_ID = 5
+        bus_action = self.env.action_space({
+            "change_bus": {
+                "lines_ex_id": [LINE1_ID, LINE2_ID]
+            }
+        })
+        # Make sure its legal
+        _, _, _, i = self.env.step(bus_action)
+        assert i["is_illegal"] == False
+
 if __name__ == "__main__":
     unittest.main()
