@@ -33,6 +33,14 @@ class PlayableAction(BaseAction):
             "_redispatch"
         ]
 
+        self.authorized_keys_to_digest = {
+            "set_line_status": self._digest_set_status,
+            "change_line_status": self._digest_change_status,
+            "set_bus": self._digest_setbus,
+            "change_bus": self._digest_change_bus,
+            "redispatch": self._digest_redispatching
+        }
+
     def __call__(self):
         """
         Compare to the ancestor :func:`BaseAction.__call__` this type of BaseAction doesn't allow internal actions
@@ -88,26 +96,15 @@ class PlayableAction(BaseAction):
         """
 
         self._reset_vect()
+        warn_msg = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
 
         if dict_ is not None:
             for kk in dict_.keys():
                 if kk not in self.authorized_keys:
-                    warn = "The key \"{}\" used to update an action will be ignored. Valid keys are {}"
-                    warn = warn.format(kk, self.authorized_keys)
+                    warn = warn_msg.format(kk, self.authorized_keys)
                     warnings.warn(warn)
-
-            # Injection are for internal use, thus do not process them
-            # self._digest_injection(dict_)
-            # Hazards are for internal use, thus do not process them
-            # self._digest_hazards(dict_) 
-            # Maintenances are for internal use, thus do not process them
-            # self._digest_maintenance(dict_)
-
-            self._digest_setbus(dict_)
-            self._digest_change_bus(dict_)
-            self._digest_set_status(dict_)
-            self._digest_change_status(dict_)
-            self._digest_redispatching(dict_)
+                else:
+                    self.authorized_keys_to_digest[kk](dict_)
 
         return self
 

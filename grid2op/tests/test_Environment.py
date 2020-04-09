@@ -21,6 +21,7 @@ from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
+from grid2op.Action import *
 
 DEBUG = False
 PROFILE_CODE = False
@@ -284,19 +285,29 @@ class TestLineChangeLastBus(unittest.TestCase):
             params.MAX_SUB_CHANGED = 0
             params.NO_OVERFLOW_DISCONNECTION = True
 
-            self.env = make("case14_test", chronics_class=ChangeNothing, param=params)
+            self.env = make("case14_test",
+                            chronics_class=ChangeNothing,
+                            param=params)
 
     def tearDown(self):
         self.env.close()
 
     def test_set_reconnect(self):
         LINE_ID = 4
-        bus_action = self.env.action_space({"set_bus": {"lines_ex_id": [(LINE_ID,2)]}})
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [(LINE_ID,2)]
+            }
+        })
         set_status = self.env.action_space.get_set_line_status_vect()
         set_status[LINE_ID] = -1
-        disconnect_action = self.env.action_space({'set_line_status': set_status})
+        disconnect_action = self.env.action_space({
+            'set_line_status': set_status
+        })
         set_status[LINE_ID] = 1
-        reconnect_action = self.env.action_space({'set_line_status': set_status})
+        reconnect_action = self.env.action_space({
+            'set_line_status': set_status
+        })
         
         obs, r, d, _ = self.env.step(bus_action)
         assert obs.line_status[LINE_ID] == True
@@ -305,6 +316,28 @@ class TestLineChangeLastBus(unittest.TestCase):
         assert obs.line_status[LINE_ID] == False
         assert d is False
         obs, r, d, info = self.env.step(reconnect_action)
+        assert obs.line_status[LINE_ID] == True
+
+    def test_change_reconnect(self):
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [(LINE_ID,2)]
+            }
+        })
+        switch_status = self.env.action_space.get_change_line_status_vect()
+        switch_status[LINE_ID] = True
+        switch_action = self.env.action_space({
+            'change_line_status': switch_status
+        })
+
+        obs, r, d, _ = self.env.step(bus_action)
+        assert obs.line_status[LINE_ID] == True
+        assert d is False
+        obs, r, d, info = self.env.step(switch_action)
+        assert d is False
+        assert obs.line_status[LINE_ID] == False
+        obs, r, d, info = self.env.step(switch_action)
         assert obs.line_status[LINE_ID] == True
         
 # TODO add test: fake a cascading failure, do a reset of an env, check that it can be loaded
