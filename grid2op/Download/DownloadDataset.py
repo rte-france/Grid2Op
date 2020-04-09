@@ -29,18 +29,18 @@ except Exception as e:
 
 DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
 URL_GRID2OP_DATA = "https://github.com/Tezirg/Grid2Op/releases/download/{}/{}"
-DATASET_TAG_v0_0_1 = "datasets-v0.0.1"
+DATASET_TAG_v0_0_2 = "datasets-v0.0.2"
 DICT_URL_GRID2OP_DL = {
     "case14_realistic": {
-        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_1, "rte_case14_realistic.tar.bz2"),
+        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_realistic.tar.bz2"),
         "name": "rte_case14_realistic"
     },
     "case14_redisp": {
-        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_1, "rte_case14_redisp.tar.bz2"),
+        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_redisp.tar.bz2"),
         "name": "rte_case14_redisp"
     },
     "l2rpn_2019": {
-        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_1, "rte_l2rpn_2019.tar.bz2"),
+        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_l2rpn_2019.tar.bz2"),
         "name": "rte_l2rpn_2019"
     }
 }
