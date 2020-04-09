@@ -355,6 +355,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         # Its reconnected to bus 2, without specifying it
         assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
 
+
 class TestResetAfterCascadingFailure(unittest.TestCase):
     """
     Fake a cascading failure, do a reset of an env, check that it can be loaded
