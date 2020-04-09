@@ -12,6 +12,10 @@ class DispatchAction(PlayableAction):
     def __init__(self, gridobj):
         super().__init__(gridobj)
 
+        self.authorized_keys = {
+            "redispatch"
+        }
+
         self.attr_list_vect = [
             "_redispatch"
         ]
