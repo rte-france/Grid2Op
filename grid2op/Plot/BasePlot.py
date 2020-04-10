@@ -137,7 +137,7 @@ class BasePlot(GridObjects):
         return fig
 
     def plot_info(self, fig=None, line_info=None, load_info=None, gen_info=None, sub_info=None,
-                  colormap=None):
+                  colormap=None, unit=None):
 
         """
         Plot some information on the powergrid. For now, only numeric data are supported.
@@ -146,19 +146,20 @@ class BasePlot(GridObjects):
         ----------
         line_info: ``list``
             information to be displayed in the powerlines, in place of their name and id (for example their
-            thermal limit) [must have the same size as the number of powerlines]
+            thermal limit) [must have the same size as the number of powerlines and convertible to float]
 
         load_info: ``list``
             information to display in the generators, in place of their name and id
-            [must have the same size as the number of loads]
+            [must have the same size as the number of loads and convertible to float]
 
         gen_info: ``list``
             information to display in the generators, in place of their name and id (for example their pmax)
-            [must have the same size as the number of generators]
+            [must have the same size as the number of generators and convertible to float]
 
         sub_info: ``list``
             information to display in the substation, in place of their name and id (for example the number of
-            different topologies possible at this substation) [must have the same size as the number of substations]
+            different topologies possible at this substation) [must have the same size as the number of substations,
+            and convertible to float]
 
         colormap: ``str``
             If not None, one of "line", "load", "gen" or "sub". If None, default colors will be used for each
@@ -168,41 +169,53 @@ class BasePlot(GridObjects):
         fig: ``matplotlib figure``
             The figure on which to draw. It is created by the method if ``None``.
 
+        unit: ``str``, optional
+            The unit in which the data are provided. For example, if you provide in `line_info` some data in mega-watt
+            (MW) you can add `unit="MW"` to have the unit display on the screen.
+
         """
         fig = self.init_fig(fig, reward=None, done=None, timestamp=None)
 
         # draw powerline
+        unit_line = None
         if line_info is not None:
+            unit_line = unit
             if len(line_info) != self.n_line:
                 raise PlotError("Impossible to display these information on the powerlines: there are {} elements"
                                 "provided while {} powerlines on this grid".format(len(line_info), self.n_line))
             line_info = np.array(line_info).astype(np.float)
         line_info = [line_info, line_info, line_info]
-        lines = self._draw_powerlines(fig, vals=line_info, colormap=colormap)
+        lines = self._draw_powerlines(fig, vals=line_info, colormap=colormap, unit=unit_line)
 
         # draw substation
+        unit_sub = None
         if sub_info is not None:
+            unit_sub = unit
             if len(sub_info) != self.n_sub:
                 raise PlotError("Impossible to display these information on the substations: there are {} elements"
                                 "provided while {} substations on this grid".format(len(sub_info), self.n_sub))
             sub_info = np.array(sub_info).astype(np.float)
-        subs = self._draw_subs(fig, vals=sub_info, colormap=colormap)
+        subs = self._draw_subs(fig, vals=sub_info, colormap=colormap, unit=unit_sub)
 
         # draw loads
+        unit_load = None
         if load_info is not None:
+            unit_load = unit
             if len(load_info) != self.n_load:
                 raise PlotError("Impossible to display these information on the loads: there are {} elements"
                                 "provided while {} loads on this grid".format(len(load_info), self.n_load))
             load_info = np.array(load_info).astype(np.float)
-        loads = self._draw_loads(fig, vals=load_info, colormap=colormap)
+        loads = self._draw_loads(fig, vals=load_info, colormap=colormap, unit=unit_load)
 
         # draw gens
+        unit_gen = None
         if gen_info is not None:
+            unit_gen = unit
             if len(gen_info) != self.n_gen:
                 raise PlotError("Impossible to display these information on the generators: there are {} elements"
                                 "provided while {} generators on this grid".format(len(gen_info), self.n_gen))
             gen_info = np.array(gen_info).astype(np.float)
-        gens = self._draw_gens(fig, vals=gen_info, colormap=colormap)
+        gens = self._draw_gens(fig, vals=gen_info, colormap=colormap, unit=unit_gen)
 
         self._post_process_obs(fig, reward=None, done=None, timestamp=None,
                                subs=subs, lines=lines, loads=loads, gens=gens, topos=[])

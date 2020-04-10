@@ -251,10 +251,14 @@ class PlotPlotly(BasePlot):
         self.col_load = "black"
         self.col_gen = "darkgreen"
         self.default_color = "black"
+        self.type_fig_allowed = go.Figure
 
     def init_fig(self, fig, reward, done, timestamp):
         if fig is None:
             fig = go.Figure()
+        elif not isinstance(fig, self.type_fig_allowed):
+            raise PlotError("PlotPlotly cannot plot on figure of type {}. The accepted type is {}. You provided an "
+                            "invalid argument for \"fig\"".format(type(fig), self.type_fig_allowed))
         return fig
 
     def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):

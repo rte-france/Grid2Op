@@ -407,6 +407,9 @@ class TestLoadingBackendPandaPower(HelperTests):
             warnings.filterwarnings("ignore")
             self.env = make("case14_test")
 
+    def tearDown(self):
+        self.env.close()
+
     def test_invalid_dispatch(self):
         self.env.set_id(0)  # make sure to use the same environment input data.
         obs_init = self.env.reset()  # reset the environment
@@ -552,6 +555,49 @@ class TestLoadingBackendPandaPower(HelperTests):
         assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
         assert len(info['exception']), "this redispatching should not be possible"
+
+
+class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests):
+    def setUp(self):
+        # powergrid
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("case14_test")
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_accept_almost_zerozum_too_high(self):
+        redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 + 1e-7)]})
+        obs, reward, done, info = self.env.step(redisp_act)
+        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
+        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
+        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+        assert len(info['exception']) == 0
+
+    def test_accept_almost_zerozum_too_low(self):
+        redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 - 1e-7)]})
+        obs, reward, done, info = self.env.step(redisp_act)
+        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
+        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
+        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+        assert len(info['exception']) == 0
+
+    def test_accept_almost_zerozum_shouldnotbepossible_low(self):
+        redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 - 1e-1)]})
+        obs, reward, done, info = self.env.step(redisp_act)
+        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
+        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
+        assert np.all(obs.actual_dispatch == 0.)
+        assert len(info['exception'])
+
+    def test_accept_almost_zerozum_shouldnotbepossible_high(self):
+        redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 + 1e-1)]})
+        obs, reward, done, info = self.env.step(redisp_act)
+        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
+        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
+        assert np.all(obs.actual_dispatch == 0.)
+        assert len(info['exception'])
 
 
 if __name__ == "__main__":

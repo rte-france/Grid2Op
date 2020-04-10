@@ -313,11 +313,11 @@ class _BasicEnv(GridObjects, ABC):
         new_redisp = None
         except_ = None
         val_sum = +np.sum(redisp_act[avail_gen])-np.sum(redisp_act)
-        if np.abs(val_sum - min_disp) > self._tol_poly:
+        if val_sum < min_disp - self._tol_poly:
             except_ = InvalidRedispatching("Impossible to perform this redispatching. Minimum ramp (or pmin) for "
                                            "available generators is not enough to absord "
                                            "{}MW. min possible is {}MW".format(val_sum, min_disp))
-        elif np.abs(val_sum - max_disp) > self._tol_poly:
+        elif val_sum > max_disp + self._tol_poly:
             except_ = InvalidRedispatching("Impossible to perform this redispatching. Maximum ramp (or pmax) for "
                                            "available generators is not enough to absord "
                                            "{}MW, max possible is {}MW".format(val_sum, max_disp))

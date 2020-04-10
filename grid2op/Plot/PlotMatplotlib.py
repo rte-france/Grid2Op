@@ -39,6 +39,7 @@ import pdb
 from grid2op.Exceptions import PlotError
 from grid2op.Plot.BasePlot import BasePlot
 try:
+    import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
     can_plot = True
@@ -86,12 +87,29 @@ class PlotMatplotlib(BasePlot):
         self.default_color = "k"
 
         self.my_cmap = plt.get_cmap("Reds")
+        self.accepted_figure_class = matplotlib.figure.Figure
+        self.accepted_figure_class_tuple = (matplotlib.figure.Figure, matplotlib.axes.Axes)
 
     def init_fig(self, fig, reward, done, timestamp):
         if fig is None:
             fig, ax = plt.subplots(1, 1, figsize=self.figsize)
-        else:
+        elif isinstance(fig, tuple):
+            if len(fig) != 2:
+                raise PlotError("PlotMatplotlib \"fig\" argument should be, if a tuple, a tuple containing a figure "
+                                "and an axe, for example the results of `plt.subplots(1, 1)`. You provided "
+                                "a tuple of length {}".format(len(fig)))
+            fig, ax = fig
+            if not isinstance(fig, self.accepted_figure_class):
+                raise PlotError("PlotMatplotlib \"fig\" argument should be an object of type \"{}\" and not \"{}\"."
+                                "".format(self.accepted_figure_class, type(fig)))
+            if not isinstance(ax, self.accepted_figure_class_tuple[1]):
+                raise PlotError("PlotMatplotlib \"fig\" argument should be an object of type \"{}\" and not \"{}\"."
+                                "".format(self.accepted_figure_class, type(ax)))
+        elif isinstance(fig, self.accepted_figure_class):
             ax = fig.gca()
+        else:
+            raise PlotError("PlotMatplotlib \"fig\" argument should be an object of type \"{}\" and not \"{}\"."
+                                "".format(self.accepted_figure_class, type(fig)))
         return (fig, ax)
 
     def post_process_layout(self, fig, subs, lines, loads, gens, topos):
