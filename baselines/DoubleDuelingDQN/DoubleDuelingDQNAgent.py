@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import os
+import json
 import numpy as np
 import tensorflow as tf
 
@@ -16,13 +18,15 @@ from grid2op.Converter import IdToAct
 from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
-INITIAL_EPSILON = 0.9
-FINAL_EPSILON = 0.001
+INITIAL_EPSILON = 0.7
+FINAL_EPSILON = 0.0
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
-DISCOUNT_FACTOR = 0.99
+DISCOUNT_FACTOR = 0.9
 REPLAY_BUFFER_SIZE = 1024*512 # Very large to prevent winner takes all
 UPDATE_FREQ = 32
+UPDATE_TARGET_HARD_FREQ = 5
+UPDATE_TARGET_SOFT_TAU = 0.1
 
 class DoubleDuelingDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -107,6 +111,22 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         if len(self.frames2) > self.num_frames:
             self.frames2.pop(0)
 
+    def _save_hyperparameters(self):
+        hp = {
+            "e_start": INITIAL_EPSILON,
+            "e_end": FINAL_EPSILON,
+            "e_decay": DECAY_EPSILON,
+            "discount": DISCOUNT_FACTOR,
+            "buffer_size": REPLAY_BUFFER_SIZE,
+            "update_freq": UPDATE_FREQ,
+            "update_hard": UPDATE_TARGET_HARD_FREQ,
+            "update_soft": UPDATE_TARGET_SOFT_TAU,            
+        }
+        hp_filename = "{}-hypers.json".format(self.name)
+        hp_path = os.path.join("./logs", hp_filename)
+        with open(hp_path, 'w') as fp:
+            json.dump(hp, fp=fp, indent=2)
+
     ## Agent Interface
     def convert_obs(self, observation):
         return observation.to_vect()
@@ -146,6 +166,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self.done = True
 
         self.tf_writer = tf.summary.create_file_writer("./logs/{}".format(self.name), name=self.name)
+        self._save_hyperparameters()
         
         # Training loop
         while step < num_steps:
@@ -196,10 +217,13 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                     # Sample from experience buffer
                     s_batch, a_batch, r_batch, d_batch, s1_batch = self.replay_buffer.sample(self.batch_size)
                     # Perform training
-                    training_step = step - num_pre_training_steps
-                    self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, training_step)
+                    self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, step)
                     # Update target network towards primary network
-                    self.Qmain.update_target(self.Qtarget.model)
+                    self.Qmain.update_target(self.Qtarget.model, tau=UPDATE_TARGET_SOFT_TAU)
+
+                # Every UPDATE_TARGET_HARD_FREQ trainings, update target completely
+                if step % (UPDATE_FREQ * UPDATE_TARGET_HARD_FREQ) == 0:
+                    self.Qmain.update_target_weights(self.Qtarget.model)
 
             total_reward += reward
             if self.done:
@@ -247,8 +271,8 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         # Batch train
         loss = self.Qmain.model.train_on_batch(m_input, Q)
 
-        # Log some useful metrics every 5 updates
-        if step % (5 * UPDATE_FREQ) == 0:
+        # Log some useful metrics every even updates
+        if step % (2 * UPDATE_FREQ) == 0:
             with self.tf_writer.as_default():
                 mean_reward = np.mean(self.epoch_rewards)
                 mean_alive = np.mean(self.epoch_alive)

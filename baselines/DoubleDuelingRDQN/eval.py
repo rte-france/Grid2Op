@@ -26,7 +26,7 @@ def cli():
                         default=1, type=int,
                         help="Number of cores to use")
     parser.add_argument("--max_steps", required=False,
-                        default=1000, type=int,
+                        default=8000, type=int,
                         help="Maximum number of steps per scenario")
     return parser.parse_args()
 

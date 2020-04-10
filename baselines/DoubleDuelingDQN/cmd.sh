@@ -1,10 +1,11 @@
-#!bash
+#!/bin/bash
 
-export DQN_NAME=dqn-X-0.0.x
+export DQN_NAME=dqn-X.0.0.x
 export DQN_DATA=~/data_grid2op/rte_case14_realistic
 
 ./inspect_action_space.py --path_data $DQN_DATA
 
+rm -rf ./logs/$DQN_NAME
 ./train.py \
     --num_pre_steps 256 \
     --num_train_steps 131072 \

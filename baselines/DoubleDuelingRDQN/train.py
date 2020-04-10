@@ -29,7 +29,7 @@ def cli():
                         default=8, type=int,
                         help="Size of the trace to use during training")
     parser.add_argument("--learning_rate", required=False,
-                        default=5e-6, type=float,
+                        default=1e-5, type=float,
                         help="Learning rate for the Adam optimizer")
     parser.add_argument("--resume", required=False,
                         help="Path to model.h5 to resume training with")

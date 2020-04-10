@@ -15,6 +15,8 @@ STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 4096
 UPDATE_FREQ = 64
+UPDATE_TARGET_HARD_FREQ = 5
+UPDATE_TARGET_SOFT_TAU = 0.1
 
 class DoubleDuelingRDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -98,6 +100,22 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         for exp in episode_exp:
             self.exp_buffer.add(exp[0], exp[1], exp[2], exp[3], exp[4], episode)
 
+    def _save_hyperparameters(self):
+        hp = {
+            "e_start": INITIAL_EPSILON,
+            "e_end": FINAL_EPSILON,
+            "e_decay": DECAY_EPSILON,
+            "discount": DISCOUNT_FACTOR,
+            "buffer_size": REPLAY_BUFFER_SIZE,
+            "update_freq": UPDATE_FREQ,
+            "update_hard": UPDATE_TARGET_HARD_FREQ,
+            "update_soft": UPDATE_TARGET_SOFT_TAU,            
+        }
+        hp_filename = "{}-hypers.json".format(self.name)
+        hp_path = os.path.join("./logs", hp_filename)
+        with open(hp_path, 'w') as fp:
+            json.dump(hp, fp=fp, indent=2)
+
     ## Agent Interface
     def convert_obs(self, observation):
         return observation.to_vect()
@@ -139,6 +157,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         episode_exp = []
 
         self.tf_writer = tf.summary.create_file_writer("./logs/{}".format(self.name), name=self.name)
+        self._save_hyperparameters()
         
         self._reset_state()
         # Training loop
@@ -191,7 +210,11 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
                     training_step = step - num_pre_training_steps
                     self._batch_train(batch, training_step)
                     # Update target network towards primary network
-                    self.Qmain.update_target(self.Qtarget.model)
+                    self.Qmain.update_target(self.Qtarget.model, tau=UPDATE_TARGET_SOFT_TAU)
+
+                # Every UPDATE_TARGET_HARD_FREQ trainings, update target completely
+                if step % (UPDATE_FREQ * UPDATE_TARGET_HARD_FREQ) == 0:
+                    self.Qmain.update_target_weights(self.Qtarget.model)
 
             total_reward += reward
             if self.done:
