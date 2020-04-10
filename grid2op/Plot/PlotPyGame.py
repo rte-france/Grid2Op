@@ -19,6 +19,8 @@ import numpy as np
 import cmath
 import math
 import os
+import time
+import copy
 
 from grid2op.Plot.BasePlot import BasePlot
 from grid2op.Exceptions.PlotExceptions import PyGameQuit
@@ -155,7 +157,7 @@ class PlotPyGame(BasePlot):
             the buses.
 
         timestep_duration_seconds: ``float``
-            Currently not implemented.
+            Minimum time during which a time step will stay on the screen, in second.
 
         fontsize: ``int``
             size of the font used to display the texts.
@@ -180,6 +182,7 @@ class PlotPyGame(BasePlot):
         self.__is_init = False
         self.video_width, self.video_height = 1300, 700
         self.timestep_duration_seconds = timestep_duration_seconds
+        self.time_last = None
         self.fontsize = fontsize
         self.background_color = [70, 70, 73]
 
@@ -391,14 +394,23 @@ class PlotPyGame(BasePlot):
             self.nb_timestep += 1
 
         # The game is not paused anymore (or never has been), I can render the next surface
+        if self.time_last is not None:
+            tmp = time.time()  # in second
+            if tmp - self.time_last < self.timestep_duration_seconds:
+                nb_sec_wait = int(1000 * (self.timestep_duration_seconds - (tmp - self.time_last)))
+                pygame.time.wait(nb_sec_wait)  # it's in ms
+            self.time_last = time.time()
+        else:
+            self.time_last = time.time()
         self.screen.fill(self.background_color)
 
-        if not done:
-            # draw the generic information on the right part
-            self._draw_generic_info(reward, done, timestamp)
-        else:
-            # inform user that it's over
-            self._draw_final_information(reward, done, timestamp)
+        if done is not None:
+            if not done:
+                # draw the generic information on the right part
+                self._draw_generic_info(reward, done, timestamp)
+            else:
+                # inform user that it's over
+                self._draw_final_information(reward, done, timestamp)
 
     def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
         """
@@ -425,6 +437,7 @@ class PlotPyGame(BasePlot):
                 key_pressed, has_quit = self._press_key_to_quit()
                 # TODO that with fps !!!
                 pygame.time.wait(250)  # it's in ms
+            self._quit_and_close()
 
     def _draw_generic_info(self, reward=None, done=None, timestamp=None):
         if reward is not None:
@@ -459,12 +472,23 @@ class PlotPyGame(BasePlot):
     def _get_default_cmap(self, normalized_val):
         # step 0: compute thickness and color
         max_val = 1.
-        if normalized_val < max_val:
-            amount_green = 255 - int(255. * normalized_val / max_val)
+        ratio_ok = 0.7
+        if normalized_val < ratio_ok * max_val:
+            amount_green = 255 - int(255. * normalized_val / (max_val * ratio_ok))
         else:
-            amount_green = 0.
+            amount_green = int(0)
+        amount_red = 0
+        if amount_red > ratio_ok:
+            amount_red = 250 # int(255 - (5 + int(250. * (normalized_val - ratio_ok) / (max_val - ratio_ok))))
 
-        amount_red = int(255 - (50 + int(205. * normalized_val / max_val)))
+        if amount_red < 0:
+            amount_red = int(0)
+        elif amount_red > 255:
+            amount_red = int(255)
+        if amount_green < 0:
+            amount_green = int(0)
+        elif amount_green > 255:
+            amount_green = int(255)
         color = pygame.Color(amount_red, amount_green, 20)
         return color
 
