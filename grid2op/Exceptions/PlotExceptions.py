@@ -13,3 +13,8 @@ from grid2op.Exceptions.Grid2OpException import Grid2OpException
 class PlotError(Grid2OpException):
     """General exception raised by any class that handles plots"""
     pass
+
+
+class PyGameQuit(PlotError):
+    """ Raised when the player quit the renderer"""
+    pass

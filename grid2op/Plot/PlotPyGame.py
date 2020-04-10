@@ -20,7 +20,8 @@ import cmath
 import math
 import os
 
-from grid2op.Plot.PlotGraph import BasePlot
+from grid2op.Plot.BasePlot import BasePlot
+from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 try:
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
@@ -176,13 +177,17 @@ class PlotPyGame(BasePlot):
                           bus_radius=bus_radius)
 
         # pygame
-        pygame.init()
+        self.__is_init = False
         self.video_width, self.video_height = 1300, 700
         self.timestep_duration_seconds = timestep_duration_seconds
-        self.display_called = False
-        self.screen = pygame.display.set_mode((self.video_width, self.video_height), pygame.RESIZABLE)
+        self.fontsize = fontsize
         self.background_color = [70, 70, 73]
-        self.font = pygame.font.Font(None, fontsize)
+
+        # init pygame
+        self.display_called = None
+        self.screen = None
+        self.font = None
+        self.init_pygame()
 
         # pause button
         self.font_pause = pygame.font.Font(None, 30)
@@ -195,6 +200,21 @@ class PlotPyGame(BasePlot):
         # utilities
         self.cum_reward = 0.
         self.nb_timestep = 0
+
+        # colors
+        self.col_line = pygame.Color(0, 0, 255)
+        self.col_sub = pygame.Color(255, 0, 0)
+        self.col_load = pygame.Color(0, 0, 0)
+        self.col_gen = pygame.Color(0, 255, 0)
+        self.default_color = pygame.Color(0, 0, 0)
+
+    def init_pygame(self):
+        if self.__is_init is False:
+            pygame.init()
+            self.display_called = False
+            self.screen = pygame.display.set_mode((self.video_width, self.video_height), pygame.RESIZABLE)
+            self.font = pygame.font.Font(None, self.fontsize)
+            self.__is_init = True
 
     def reset(self, env):
         """
@@ -276,7 +296,10 @@ class PlotPyGame(BasePlot):
         This method is called when the renderer should be close.
         """
         self.display_called = False
-        pygame.quit()
+        try:
+            self._quit_and_close()
+        except PyGameQuit:
+            pass
 
     def _get_plot_pause(self):
         position = 300
@@ -297,32 +320,6 @@ class PlotPyGame(BasePlot):
                          10)
         pygame.display.flip()
 
-    def _make_screen(self, obs, reward=None, done=None, timestamp=None):
-        self.cum_reward += reward
-        self.nb_timestep += 1
-
-        # if not "line" in self._layout:
-        #     # update the layout of the objects only once to ensure the same positionning is used
-        #     # if more than 1 observation are displayed one after the other.
-        #     self._compute_layout(obs)
-
-        # The game is not paused anymore (or never has been), I can render the next surface
-        self.screen.fill(self.background_color)
-
-        if not done:
-            # draw the generic information on the right part
-            self._draw_generic_info(reward, done, timestamp)
-        else:
-            # inform user that it's over
-            self._draw_final_information(reward, done, timestamp)
-
-        # draw the state now
-        self._draw_subs(observation=obs)
-        self._draw_powerlines(observation=obs)
-        self._draw_loads(observation=obs)
-        self._draw_gens(observation=obs)
-        self._draw_topos(observation=obs)
-
     def _draw_final_information(self, reward, done, timestamp):
             text_label = "GAME OVER, press any key to continue to next episode."
             text_graphic = self.font.render(text_label, True, self.color_text)
@@ -333,6 +330,17 @@ class PlotPyGame(BasePlot):
             text_label = "Total number timesteps: {:.1f}".format(self.nb_timestep)
             text_graphic = self.font.render(text_label, True, self.color_text)
             self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
+
+    def _quit_and_close(self):
+        # pygame.reset_vars()
+        # pygame.gameLoop()
+        pygame.display.quit()
+        # pygame.quit()
+        self.display_called = None
+        self.screen = None
+        self.font = None
+        self.__is_init = False
+        raise PyGameQuit()
 
     def get_rgb(self, obs, reward=None, done=None, timestamp=None):
         """
@@ -359,38 +367,12 @@ class PlotPyGame(BasePlot):
             softwares.
 
         """
-        self._make_screen(obs, reward, done, timestamp)
+        self.plot_obs(obs, reward, done, timestamp)
         return pygame.surfarray.array3d(self.screen)
 
-    def render(self, obs, reward=None, done=None, timestamp=None):
-        """
-        This function is called when the human renderer mode is called. It displays the observation on the screen,
-        and allows for basic interactions, such as pausing or exiting.
+    def init_fig(self, fig, reward, done, timestamp):
+        self.init_pygame()
 
-        **NB** pressing "escape" key or the "exit" screen button will quit the game. It will end the current episode,
-        and won't start any other episode.
-
-        Parameters
-        ----------
-        obs: :class:`grid2op.Observation.Observation`
-            The observation to converte into a 3d array
-
-        reward: ``float``
-            The current reward
-
-        done: ``bool``
-            Whether this is the last frame of the episode.
-
-        timestamp: ``datetime.datetime``
-            The curent datetime corresponding to the observation
-
-        Returns
-        -------
-        res: ``bool``
-            Whether the human decided to quit the window. If ``True`` then it will completly quit the game, ending all
-            steps of this episode and all episode afterwards.
-
-        """
         if not self.display_called:
             self.display_called = True
             self.screen.fill(self.background_color)
@@ -402,18 +384,47 @@ class PlotPyGame(BasePlot):
             pygame.time.wait(250)  # it's in ms
 
         if has_quit:
-            return has_quit
+            self._quit_and_close()
 
-        self._make_screen(obs, reward, done, timestamp)
+        if reward is not None:
+            self.cum_reward += reward
+            self.nb_timestep += 1
 
+        # The game is not paused anymore (or never has been), I can render the next surface
+        self.screen.fill(self.background_color)
+
+        if not done:
+            # draw the generic information on the right part
+            self._draw_generic_info(reward, done, timestamp)
+        else:
+            # inform user that it's over
+            self._draw_final_information(reward, done, timestamp)
+
+    def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
+        """
+        In canse of plotply, fig is whether the player press "quit" or not
+
+        Parameters
+        ----------
+        fig
+        subs
+        lines
+        loads
+        gens
+        topos
+
+        Returns
+        -------
+
+        """
+        self._draw_final_information(reward, done, timestamp)
         pygame.display.flip()
         if done:
             key_pressed = False
             while not key_pressed:
                 key_pressed, has_quit = self._press_key_to_quit()
+                # TODO that with fps !!!
                 pygame.time.wait(250)  # it's in ms
-
-        return has_quit
 
     def _draw_generic_info(self, reward=None, done=None, timestamp=None):
         if reward is not None:
@@ -435,57 +446,65 @@ class PlotPyGame(BasePlot):
             text_graphic = self.font.render(text_label, True, self.color_text)
             self.screen.blit(text_graphic, (self.window_grid[0]+100, 200))
 
-    def _draw_sub(self, center):
+    def _draw_subs_one_sub(self, fig, sub_id, center, this_col, text):
         pygame.draw.circle(self.screen,
                            self.color_text,
                            [int(el) for el in center],
                            int(self.radius_sub),
                            2)
 
-    def _draw_powerlines(self, observation):
+        text_graphic = self.font.render(text, True, this_col)
+        self._aligned_text(center, text_graphic, center)
 
-        for line_id, (rho, status, p_or) in enumerate(zip(observation.rho, observation.line_status, observation.p_or)):
-            # the next 5 lines are always the same, for each observation, it makes sense to compute it once
-            # and then reuse it
+    def _get_default_cmap(self, normalized_val):
+        # step 0: compute thickness and color
+        max_val = 1.
+        if normalized_val < max_val:
+            amount_green = 255 - int(255. * normalized_val / max_val)
+        else:
+            amount_green = 0.
 
-            pos_or, pos_ex, *_ = self._get_line_coord(line_id)
+        amount_red = int(255 - (50 + int(205. * normalized_val / max_val)))
+        color = pygame.Color(amount_red, amount_green, 20)
+        return color
 
-            if not status:
-                # line is disconnected
-                _draw_dashed_line(self.screen, pygame.Color(0, 0, 0), pos_or, pos_ex)
-            else:
-                # line is connected
+    def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
+        text_graphic = self.font.render(txt_, True, this_col)
+        pos_txt = [int((pos_or[0] + pos_ex[0]) * 0.5), int((pos_or[1] + pos_ex[1]) * 0.5)]
+        how_center = "center|center"
+        self._aligned_text(how_center, text_graphic, pos_txt)
 
-                # step 0: compute thickness and color
-                if rho < (self.rho_max / 1.5):
-                    amount_green = 255 - int(255. * 1.5 * rho / self.rho_max)
-                else:
-                    amount_green = 0
+        if not status:
+            # line is disconnected
+            _draw_dashed_line(self.screen, this_col, pos_or, pos_ex)
+        else:
+            # line is connected
 
-                amount_red = int(255 - (50 + int(205. * rho / self.rho_max)))
-                color = pygame.Color(amount_red, amount_green, 20)
+            width = 1
+            if value > self.rho_max:
+                width = 4
+            elif value > 1.:
+                width = 3
+            elif value > 0.9:
+                width = 2
+            width += 3
 
-                width = 1
-                if rho > self.rho_max:
-                    width = 4
-                elif rho > 1.:
-                    width = 3
-                elif rho > 0.9:
-                    width = 2
-                width += 3
+            # step 1: draw the powerline with right color and thickness
+            pygame.draw.line(self.screen, this_col, pos_or, pos_ex, width)
 
-                # step 1: draw the powerline with right color and thickness
-                pygame.draw.line(self.screen, color, pos_or, pos_ex, width)
-
-                # step 2: draw arrows indicating current flows
-                _draw_arrow(self.screen, color, pos_or, pos_ex,
-                            p_or >= 0.,
-                            num_arrows=width,
-                            width=width)
+            # step 2: draw arrows indicating current flows
+            _draw_arrow(self.screen, this_col, pos_or, pos_ex,
+                        or_to_ex,
+                        num_arrows=width,
+                        width=width)
 
     def _aligned_text(self, pos, text_graphic, pos_text):
-        pos_x = pos_text.real
-        pos_y = pos_text.imag
+        if isinstance(pos_text, complex):
+            pos_x = pos_text.real
+            pos_y = pos_text.imag
+        else:
+            pos_x, pos_y = pos_text
+
         width = text_graphic.get_width()
         height = text_graphic.get_height()
 
@@ -499,54 +518,41 @@ class PlotPyGame(BasePlot):
             pos_y -= height // 2
         elif pos == "down|center":
             pos_x -= width // 2
+        elif pos == "center|center":
+            pos_x -= width // 2
+            pos_y -= height // 2
         self.screen.blit(text_graphic, (pos_x, pos_y))
 
-    def _draw_loads(self, observation):
-        for c_id, por in enumerate(observation.load_p):
-            pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(c_id)
+    def _draw_loads_one_load(self, fig, l_id, pos_load, txt_, pos_end_line, pos_load_sub, how_center, this_col):
+        width = 2
+        pygame.draw.line(self.screen, this_col, pos_load_sub, (pos_end_line.real, pos_end_line.imag), width)
+        text_graphic = self.font.render(txt_, True, this_col)
+        self._aligned_text(how_center, text_graphic, pos_load)
 
-            color = pygame.Color(0, 0, 0)
-            width = 2
-            pygame.draw.line(self.screen, color, pos_load_sub, (pos_end_line.real, pos_end_line.imag), width)
-            text_label = "- {:.1f} MW".format(por)
-            text_graphic = self.font.render(text_label, True, color)
-            self._aligned_text(how_center, text_graphic, pos_load)
+    def _draw_gens_one_gen(self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col):
+        width = 2
+        pygame.draw.line(self.screen, this_col, pos_gen_sub, (pos_end_line.real, pos_end_line.imag), width)
+        text_graphic = self.font.render(txt_, True, this_col)
+        self._aligned_text(how_center, text_graphic, pos_gen)
+        return None
 
-    def _draw_gens(self, observation):
-        for g_id, por in enumerate(observation.prod_p):
-            pos_end_line, pos_gen_sub, pos_gen, how_center = self._get_gen_coord(g_id)
+    def _draw_topos_one_sub(self, fig, sub_id, buses_z, elements, bus_vect):
+        colors = [pygame.Color(255, 127, 14), pygame.Color(31, 119, 180)]
 
-            color = pygame.Color(0, 0, 0)
-            width = 2
-            pygame.draw.line(self.screen, color, pos_gen_sub, (pos_end_line.real, pos_end_line.imag), width)
-            text_label = "+ {:.1f} MW".format(por)
-            text_graphic = self.font.render(text_label, True, color)
-            self._aligned_text(how_center, text_graphic, pos_gen)
+        # I plot the buses
+        for bus_id, z_bus in enumerate(buses_z):
+            pygame.draw.circle(self.screen,
+                               colors[bus_id],
+                               [int(z_bus.real), int(z_bus.imag)],
+                               int(self.bus_radius),
+                               0)
 
-    def _draw_topos(self, observation):
-        for sub_id, elements in enumerate(self.subs_elements):
-            buses_z, bus_vect = self._get_topo_coord(sub_id, observation, elements)
-
-            if not buses_z:
-                # I don't plot details of substations with 1 bus for better quality
-                continue
-
-            colors = [pygame.Color(255, 127, 14), pygame.Color(31, 119, 180)]
-
-            # I plot the buses
-            for bus_id, z_bus in enumerate(buses_z):
-                pygame.draw.circle(self.screen,
-                                   colors[bus_id],
-                                   [int(z_bus.real), int(z_bus.imag)],
-                                   int(self.bus_radius),
-                                   0)
-
-            # i connect every element to the proper bus with the proper color
-            for el_nm, dict_el in elements.items():
-                this_el_bus = bus_vect[dict_el["sub_pos"]] -1
-                if this_el_bus >= 0:
-                    pygame.draw.line(self.screen,
-                                     colors[this_el_bus],
-                                     [int(dict_el["z"].real), int(dict_el["z"].imag)],
-                                     [int(buses_z[this_el_bus].real), int(buses_z[this_el_bus].imag)],
-                                     2)
+        # i connect every element to the proper bus with the proper color
+        for el_nm, dict_el in elements.items():
+            this_el_bus = bus_vect[dict_el["sub_pos"]] -1
+            if this_el_bus >= 0:
+                pygame.draw.line(self.screen,
+                                 colors[this_el_bus],
+                                 [int(dict_el["z"].real), int(dict_el["z"].imag)],
+                                 [int(buses_z[this_el_bus].real), int(buses_z[this_el_bus].imag)],
+                                 2)
