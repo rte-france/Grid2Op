@@ -102,6 +102,9 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
 
     def _save_hyperparameters(self):
         hp = {
+            "lr": self.lr,
+            "batch_size": self.batch_size,
+            "trace_len": self.trace_length,
             "e_start": INITIAL_EPSILON,
             "e_end": FINAL_EPSILON,
             "e_decay": DECAY_EPSILON,

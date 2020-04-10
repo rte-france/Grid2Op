@@ -113,6 +113,9 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
     def _save_hyperparameters(self):
         hp = {
+            "lr": self.lr,
+            "batch_size": self.batch_size,
+            "stack_frames": self.num_frames,
             "e_start": INITIAL_EPSILON,
             "e_end": FINAL_EPSILON,
             "e_decay": DECAY_EPSILON,
@@ -120,7 +123,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             "buffer_size": REPLAY_BUFFER_SIZE,
             "update_freq": UPDATE_FREQ,
             "update_hard": UPDATE_TARGET_HARD_FREQ,
-            "update_soft": UPDATE_TARGET_SOFT_TAU,            
+            "update_soft": UPDATE_TARGET_SOFT_TAU,
         }
         hp_filename = "{}-hypers.json".format(self.name)
         hp_path = os.path.join("./logs", hp_filename)
