@@ -6,6 +6,8 @@ import numpy as np
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import networkx as nx
+import matplotlib.pyplot as plt
 
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
@@ -25,6 +27,8 @@ class VizServer:
         external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
         self.app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
         self.episode = self.load(args)
+        self.gridLayout = self.improveGraphLayout(self.episode["steps"][0]["obs"])
+        self.episode["obs_space"].grid_layout = self.gridLayout
         self.app.layout = self.setupLayout()
         self.plot_helper = PlotPlotly(observation_space=self.episode["obs_space"])
 
@@ -42,6 +46,47 @@ class VizServer:
                           [dash.dependencies.State("step-slider", "value"),
                            dash.dependencies.State("step-slider", "min"),
                            dash.dependencies.State("step-slider", "max")])(self.triggerButtons)
+
+    @staticmethod
+    def improveGraphLayout(obs):
+        n_sub = obs.n_sub
+        name_sub = obs.name_sub
+        n_line = obs.n_line
+        or_sub = obs.line_or_to_subid
+        ex_sub = obs.line_ex_to_subid
+        
+        # Create a graph of substations vertices
+        G = nx.Graph()
+        
+        # Set lines edges for current bus
+        for line_idx in range(n_line):
+            lor_sub = or_sub[line_idx]
+            lex_sub = ex_sub[line_idx]
+
+            # Compute edge vertices indices for current graph
+            left_v = lor_sub
+            right_v = lex_sub
+
+            # Register edge in graph
+            G.add_edge(left_v, right_v)
+
+        # Convert our layout to nx format
+        initial_layout = {}
+        for sub_idx, sub_name in enumerate(name_sub):
+            initial_layout[sub_idx] = obs.grid_layout[sub_name]
+
+        # Use kamada_kawai algorithm
+        kkl = nx.kamada_kawai_layout(G, scale=1000.0)
+        #kkl = nx.spring_layout(G, scale=1000.0, iterations=5000)
+        # Convert back to our layout format
+        improved_layout = {}
+        for sub_idx, v in kkl.items():
+            sub_key = name_sub[sub_idx]
+            vx = np.round(v[0])
+            vy = np.round(v[1])
+            improved_layout[sub_key] = [vx, vy]
+
+        return improved_layout
 
     @staticmethod
     def load(args):
@@ -88,7 +133,8 @@ class VizServer:
 
     def setupLayout(self):
         title = html.H1(children='Viz demo')
-        graph = dcc.Graph(id="grid-graph")
+        graph = dcc.Graph(id="grid-graph",
+                          config={'displayModeBar': False})
         self.prev_clicks = 0
         prev_step_button = html.Button("Prev", id="prev-step", n_clicks=0)
         self.next_clicks = 0
