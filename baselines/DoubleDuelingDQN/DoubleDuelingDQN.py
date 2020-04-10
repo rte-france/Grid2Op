@@ -60,7 +60,7 @@ class DoubleDuelingDQN(object):
 
     def _clipped_mse_loss(self, Qnext, Q):
         loss = tf.math.reduce_mean(tf.math.square(Qnext - Q), name="loss_mse")
-        clipped_loss = tf.clip_by_value(loss, 0.0, 10000.0, name="loss_clip")
+        clipped_loss = tf.clip_by_value(loss, 0.0, 1000.0, name="loss_clip")
         return clipped_loss
 
     def random_move(self):
