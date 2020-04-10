@@ -37,7 +37,7 @@ def cli():
                         default=4, type=int,
                         help="Number of observation frames to use during training")
     parser.add_argument("--learning_rate", required=False,
-                        default=5e-6, type=float,
+                        default=1e-6, type=float,
                         help="Learning rate for the Adam optimizer")
     parser.add_argument("--resume", required=False,
                         help="Path to model.h5 to resume training with")
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     args = cli()
     # Create grid2op game environement
     env = make2(args.path_data,
-                action_class=TopologyChangeAndDispatchAction,
+                action_class=PowerlineChangeAndDispatchAction,
                 reward_class=CombinedReward,
                 other_rewards={
                     "bridge": BridgeReward,
@@ -56,9 +56,9 @@ if __name__ == "__main__":
                 })
     # Register custom reward for training
     cr = env.reward_helper.template_reward
-    cr.addReward("bridge", BridgeReward(), 0.3)
-    cr.addReward("overflow", CloseToOverflowReward(), 0.3)
-    cr.addReward("distance", DistanceReward(), 0.3)
+    cr.addReward("bridge", BridgeReward(), 0.25)
+    cr.addReward("overflow", CloseToOverflowReward(), 0.5)
+    cr.addReward("distance", DistanceReward(), 0.25)
     cr.addReward("game", GameplayReward(), 1.0)
     #cr.addReward("redisp", RedispReward(), 2.5e-4)
     # Initialize custom rewards

@@ -15,9 +15,9 @@ import tensorflow as tf
 import numpy as np
 
 from grid2op.MakeEnv import make2
+from grid2op.Action import *
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent
-from CustomAction import CustomAction
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -95,7 +95,7 @@ def print_actions(agent):
 
 if __name__ == "__main__":
     args = cli()
-    env = make2(args.path_data, action_class=CustomAction)
+    env = make2(args.path_data, action_class=PowerlineChangeAndDispatchAction)
     # Limit gpu usage
     physical_devices = tf.config.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(physical_devices[0], True)

@@ -9,12 +9,12 @@ from ExperienceBuffer import ExperienceBuffer
 from DoubleDuelingRDQN import DoubleDuelingRDQN
 
 INITIAL_EPSILON = 0.99
-FINAL_EPSILON = 0.0
+FINAL_EPSILON = 0.001
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
-REPLAY_BUFFER_SIZE = 2048
-UPDATE_FREQ = 16
+REPLAY_BUFFER_SIZE = 4096
+UPDATE_FREQ = 64
 
 class DoubleDuelingRDQNAgent(AgentWithConverter):
     def __init__(self,

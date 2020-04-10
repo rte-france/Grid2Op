@@ -16,13 +16,13 @@ from grid2op.Converter import IdToAct
 from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
-INITIAL_EPSILON = 0.8
-FINAL_EPSILON = 0.0
+INITIAL_EPSILON = 0.9
+FINAL_EPSILON = 0.001
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 1024*512 # Very large to prevent winner takes all
-UPDATE_FREQ = 64
+UPDATE_FREQ = 32
 
 class DoubleDuelingDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -172,11 +172,10 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             # Execute action
             new_obs, reward, self.done, info = self.env.step(act)
             new_state = self.convert_obs(new_obs)
-            
-            # Save to frame buffer every even step
-            if step % 2 == 0:
-                self._save_current_frame(self.state)
-                self._save_next_frame(new_state)
+
+            # Save current observation to stacking buffer
+            self._save_current_frame(self.state)
+            self._save_next_frame(new_state)
 
             # Save to experience buffer
             if len(self.frames) == self.num_frames:
