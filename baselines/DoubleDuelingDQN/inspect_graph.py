@@ -39,7 +39,9 @@ class VizServer:
         self.app.callback([dash.dependencies.Output("step-slider", "value")],
                           [dash.dependencies.Input("prev-step", "n_clicks"),
                            dash.dependencies.Input("next-step", "n_clicks")],
-                          [dash.dependencies.State("step-slider", "value")])(self.triggerButtons)
+                          [dash.dependencies.State("step-slider", "value"),
+                           dash.dependencies.State("step-slider", "min"),
+                           dash.dependencies.State("step-slider", "max")])(self.triggerButtons)
 
     @staticmethod
     def load(args):
@@ -129,15 +131,18 @@ class VizServer:
         html_curr_act = [html.P("Next Action:"), html.P(str(curr_act))]
         return [html_prev_act, html_curr_act]
 
-    def triggerButtons(self, prev_clicks, next_clicks, slider_value):
+    def triggerButtons(self, prev_clicks, next_clicks, slider_value, slider_min, slider_max):
+        new_value = 0
         if self.prev_clicks < prev_clicks:
             self.prev_clicks = prev_clicks
-            return [slider_value - 1]
+            new_value = slider_value - 1
 
         if self.next_clicks < next_clicks:
             self.next_clicks = next_clicks
-            return [slider_value + 1]
-        return [0]
+            new_value = slider_value + 1
+
+        new_value = np.clip(new_value, slider_min, slider_max)
+        return [new_value]
 
     def run(self, debug=False):
         self.app.run_server(debug=debug)
