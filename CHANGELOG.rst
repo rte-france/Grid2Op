@@ -6,7 +6,7 @@ Change Log
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-- [???] rationalize the names of plotting utilities
+
 - [???] better explanation of the notebook 3 with action silently
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
@@ -36,6 +36,8 @@ Change Log
   and 'redisp' operations only
 - [ADDED] `grid2op.Action.DispatchAction` A subset of actions to limit the agents scope to 'redisp' operations only
 - [ADDED] a new method to plot other values that the default one for plotplotly.
+- [ADDED] a better plotting utilities that is now consistent with `PlotPlotly`, `PlotMatplotlib` and `PlotPyGame`
+
 
 [0.6.1] - 2020-04-??
 --------------------

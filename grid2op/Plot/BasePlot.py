@@ -18,6 +18,7 @@ import cmath
 import math
 import numpy as np
 import warnings
+import copy
 
 import pdb
 
@@ -124,17 +125,19 @@ class BasePlot(GridObjects):
         """
         fig = self.init_fig(fig, reward, done, timestamp)
         # draw powerline
-        self._draw_powerlines(fig)
+        lines = self._draw_powerlines(fig)
         # draw substation
-        self._draw_subs(fig)
+        subs = self._draw_subs(fig)
         # draw loads
-        self._draw_loads(fig)
+        loads = self._draw_loads(fig)
         # draw gens
-        self._draw_gens(fig)
+        gens = self._draw_gens(fig)
+        self._post_process_obs(fig, reward=None, done=None, timestamp=None,
+                               subs=subs, lines=lines, loads=loads, gens=gens, topos=[])
         return fig
 
-    def plot_info(self, line_info=None, load_info=None, gen_info=None, sub_info=None,
-                  colormap=None, fig=None):
+    def plot_info(self, fig=None, line_info=None, load_info=None, gen_info=None, sub_info=None,
+                  colormap=None):
 
         """
         Plot some information on the powergrid. For now, only numeric data are supported.
@@ -173,6 +176,7 @@ class BasePlot(GridObjects):
             if len(line_info) != self.n_line:
                 raise PlotError("Impossible to display these information on the powerlines: there are {} elements"
                                 "provided while {} powerlines on this grid".format(len(line_info), self.n_line))
+            line_info = np.array(line_info).astype(np.float)
         line_info = [line_info, line_info, line_info]
         lines = self._draw_powerlines(fig, vals=line_info, colormap=colormap)
 
@@ -181,6 +185,7 @@ class BasePlot(GridObjects):
             if len(sub_info) != self.n_sub:
                 raise PlotError("Impossible to display these information on the substations: there are {} elements"
                                 "provided while {} substations on this grid".format(len(sub_info), self.n_sub))
+            sub_info = np.array(sub_info).astype(np.float)
         subs = self._draw_subs(fig, vals=sub_info, colormap=colormap)
 
         # draw loads
@@ -188,6 +193,7 @@ class BasePlot(GridObjects):
             if len(load_info) != self.n_load:
                 raise PlotError("Impossible to display these information on the loads: there are {} elements"
                                 "provided while {} loads on this grid".format(len(load_info), self.n_load))
+            load_info = np.array(load_info).astype(np.float)
         loads = self._draw_loads(fig, vals=load_info, colormap=colormap)
 
         # draw gens
@@ -195,6 +201,7 @@ class BasePlot(GridObjects):
             if len(gen_info) != self.n_gen:
                 raise PlotError("Impossible to display these information on the generators: there are {} elements"
                                 "provided while {} generators on this grid".format(len(gen_info), self.n_gen))
+            gen_info = np.array(gen_info).astype(np.float)
         gens = self._draw_gens(fig, vals=gen_info, colormap=colormap)
 
         self._post_process_obs(fig, reward=None, done=None, timestamp=None,
@@ -209,7 +216,8 @@ class BasePlot(GridObjects):
                  timestamp=None,
                  line_info="rho",
                  load_info="p",
-                 gen_info="p"):
+                 gen_info="p",
+                 colormap="line"):
         """
         Plot the given observation in the given figure.
 
@@ -267,7 +275,7 @@ class BasePlot(GridObjects):
             raise PlotError("Impossible to plot value \"{}\" for line. Possible values are \"rho\", \"p\", \"v\" and \"a\".")
         line_vals.append(observation.line_status)
         line_vals.append(observation.p_or)
-        lines = self._draw_powerlines(fig, vals=line_vals, unit=line_units)
+        lines = self._draw_powerlines(fig, vals=line_vals, unit=line_units, colormap=colormap)
 
         # draw the loads
         if load_info == "p":
@@ -278,7 +286,7 @@ class BasePlot(GridObjects):
             load_units = "kV"
         else:
             raise PlotError("Impossible to plot value \"{}\" for load. Possible values are \"p\" and \"v\".")
-        loads = self._draw_loads(fig, vals=loads_vals, unit=load_units)
+        loads = self._draw_loads(fig, vals=loads_vals, unit=load_units, colormap=colormap)
 
         # draw the generators
         if gen_info == "p":
@@ -289,7 +297,7 @@ class BasePlot(GridObjects):
             gen_units = "kV"
         else:
             raise PlotError("Impossible to plot value \"{}\" for generators. Possible values are \"p\" and \"v\".")
-        gens = self._draw_gens(fig, vals=gen_vals, unit=gen_units)
+        gens = self._draw_gens(fig, vals=gen_vals, unit=gen_units, colormap=colormap)
         # draw the topologies
         topos = self._draw_topos(fig=fig, observation=observation)
         self._post_process_obs(fig, reward, done, timestamp, subs, lines, loads, gens, topos)
@@ -521,7 +529,6 @@ class BasePlot(GridObjects):
     def _get_position(theta):
         quarter_pi = cmath.pi / 4
         half_pi = cmath.pi / 2.
-
         if theta >= -quarter_pi and theta < quarter_pi:
             res = "center|left"
         elif theta >= quarter_pi and theta < quarter_pi + half_pi:
@@ -530,13 +537,20 @@ class BasePlot(GridObjects):
             res = "center|right"
         else:
             res = "down|center"
-
         return res
 
     def _get_text_unit(self, number, unit):
         if number is not None:
+            if isinstance(number, float) or isinstance(number, np.float):
+                if np.isfinite(number):
+                    if unit == "%":
+                        number *= 100.
+                    number = "{:.1f}".format(number)
+                else:
+                    return None
+
             if unit is not None:
-                txt_ = "{:.1f}{}".format(number if unit != "%" else number * 100, unit)
+                txt_ = "{}{}".format(number, unit)
             else:
                 txt_ = number
         else:
@@ -545,15 +559,14 @@ class BasePlot(GridObjects):
 
     def _draw_subs(self, fig=None, vals=None, colormap=None, unit=None):
         subs = []
-        colormap_ = lambda x: self.col_line
+        colormap_ = lambda x: self.col_sub
         texts = None
         if vals is not None:
             texts = [self._get_text_unit(val, unit) for val in vals]
 
         if colormap is not None:
-            colormap_ = lambda x: self.col_sub
             if colormap == "sub":
-                colormap_ = self.get_sub_color_map()
+                # normalize value for the color map
                 vals = self._get_vals(vals)
 
         if texts is not None:
@@ -565,7 +578,10 @@ class BasePlot(GridObjects):
                 this_col = colormap_("")
             else:
                 txt_ = texts[sub_id]
-                this_col = colormap_(vals[sub_id])
+                if colormap == "sub":
+                    this_col = self._get_sub_color_map(vals[sub_id])
+                else:
+                    this_col = self.default_color
             subs.append(self._draw_subs_one_sub(fig, sub_id, center, this_col, txt_))
         return subs
 
@@ -578,7 +594,6 @@ class BasePlot(GridObjects):
     def _draw_powerlines(self, fig=None, vals=None, colormap=None, unit=None):
         lines = []
 
-
         colormap_ = lambda x: self.col_line
         texts = None
         if vals is not None:
@@ -586,19 +601,23 @@ class BasePlot(GridObjects):
             texts = [self._get_text_unit(val, unit) for val in vals[0]]
 
         if colormap is not None:
-            colormap_ = lambda x: self.col_line
-            if colormap == "load":
-                colormap_ = self._get_line_color_map()
+            if colormap == "line":
+                # normalize the value for the color map
                 vals_0 = self._get_vals(vals[0])
 
         for line_id in range(self.n_line):
             pos_or, pos_ex, *_ = self._get_line_coord(line_id)
+
             if texts is None:
                 txt_ = "{}\nid: {}".format(self.name_line[line_id], line_id)
                 this_col = colormap_("")
             else:
                 txt_ = texts[line_id]
-                this_col = colormap_(vals[0][line_id])
+                if colormap == "line":
+                    this_col = self._get_line_color_map(vals_0[line_id])
+                else:
+                    this_col = self.default_color
+
             if vals is not None:
                 value = vals_0[line_id]
                 status = vals[1][line_id]
@@ -607,6 +626,14 @@ class BasePlot(GridObjects):
                 value = 0.
                 status = True
                 por = 1.
+
+            if por is None:
+                por = 1.
+            if status is None:
+                status = True
+
+            if not status:
+                this_col = self.default_color
             lines.append(self._draw_powerlines_one_powerline(fig, line_id, pos_or, pos_ex,
                                                              status, value, txt_, por >= 0., this_col))
         return lines
@@ -623,9 +650,8 @@ class BasePlot(GridObjects):
             texts = [self._get_text_unit(val, unit) for val in vals]
 
         if colormap is not None:
-            colormap_ = lambda x: "k"
             if colormap == "load":
-                colormap_ = self._get_load_color_map()
+                # normalized the value for the color map
                 vals = self._get_vals(vals)
 
         for c_id in range(self.n_load):
@@ -635,7 +661,10 @@ class BasePlot(GridObjects):
                 this_col = colormap_("")
             else:
                 txt_ = texts[c_id]
-                this_col = colormap_(vals[c_id])
+                if colormap == "load":
+                    this_col = self._get_load_color_map(vals[c_id])
+                else:
+                    this_col = self.default_color
 
             loads.append(self._draw_loads_one_load(fig, c_id, pos_load, txt_, pos_end_line,
                                                    pos_load_sub, how_center, this_col))
@@ -644,16 +673,23 @@ class BasePlot(GridObjects):
     def _draw_loads_one_load(self, fig, l_id, pos_load, txt_, pos_end_line, pos_load_sub, how_center, this_col):
         return None
 
-    def _get_load_color_map(self):
-        return None
+    def _get_sub_color_map(self, normalized_val):
+        return self._get_default_cmap(normalized_val)
 
-    def _get_gen_color_map(self):
-        return None
+    def _get_load_color_map(self, normalized_val):
+        return self._get_default_cmap(normalized_val)
 
-    def _get_line_color_map(self):
-        return None
+    def _get_gen_color_map(self, normalized_val):
+        return self._get_default_cmap(normalized_val)
+
+    def _get_line_color_map(self, normalized_val):
+        return self._get_default_cmap(normalized_val)
+
+    def _get_default_cmap(self, normalized_val):
+        return self.default_color
 
     def _get_vals(self, vals):
+        vals = copy.deepcopy(vals)
         min_ = np.min(vals)
         max_ = np.max(vals)
         vals -= min_
@@ -672,9 +708,8 @@ class BasePlot(GridObjects):
             texts = [self._get_text_unit(val, unit) for val in vals]
 
         if colormap is not None:
-            colormap_ = lambda x: self.col_gen
             if colormap == "gen":
-                colormap_ = self._get_gen_color_map()
+                # normalized the value for plot
                 vals = self._get_vals(vals)
 
         for g_id in range(self.n_gen):
@@ -684,7 +719,10 @@ class BasePlot(GridObjects):
                 this_col = colormap_("")
             else:
                 txt_ = texts[g_id]
-                this_col = colormap_(vals[g_id])
+                if colormap == "gen":
+                    this_col = self._get_gen_color_map(vals[g_id])
+                else:
+                    this_col = self.default_color
             gens.append(self._draw_gens_one_gen(fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col))
         return gens
 
@@ -759,11 +797,11 @@ class BasePlot(GridObjects):
                       "Please use \"plot_obs\" instead.",
                       category=PendingDeprecationWarning)
 
-        res = self.get_plot_observation(observation,
-                                        fig=fig,
-                                        line_info=line_info,
-                                        load_info=load_info,
-                                        gen_info=gen_info)
+        res = self.plot_obs(observation,
+                            fig=fig,
+                            line_info=line_info,
+                            load_info=load_info,
+                            gen_info=gen_info)
         return res
 
     def get_plot_observation(self, observation, fig=None,
@@ -798,9 +836,9 @@ class BasePlot(GridObjects):
                       "Please use \"plot_obs\" instead.",
                       category=PendingDeprecationWarning)
 
-        res = self.get_plot_observation(observation,
-                                        fig=fig,
-                                        line_info=line_info,
-                                        load_info=load_info,
-                                        gen_info=gen_info)
+        res = self.plot_obs(observation,
+                            fig=fig,
+                            line_info=line_info,
+                            load_info=load_info,
+                            gen_info=gen_info)
         return res

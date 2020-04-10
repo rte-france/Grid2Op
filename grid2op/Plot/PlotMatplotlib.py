@@ -85,6 +85,8 @@ class PlotMatplotlib(BasePlot):
         self.figsize = figsize
         self.default_color = "k"
 
+        self.my_cmap = plt.get_cmap("Reds")
+
     def init_fig(self, fig, reward, done, timestamp):
         if fig is None:
             fig, ax = plt.subplots(1, 1, figsize=self.figsize)
@@ -108,9 +110,6 @@ class PlotMatplotlib(BasePlot):
             verticalalignment = "top"
         return verticalalignment
 
-    def _get_load_color_map(self):
-        return plt.get_cmap("Reds")
-
     def _draw_loads_one_load(self, fig, l_id, pos_load, txt_, pos_end_line, pos_load_sub, how_center, this_col):
         fig, ax = fig
         ax.plot([pos_load_sub[0], pos_load.real],
@@ -124,9 +123,6 @@ class PlotMatplotlib(BasePlot):
                     color=this_col,
                     horizontalalignment=how_center.split('|')[1],
                     verticalalignment=verticalalignment)
-
-    def _get_gen_color_map(self):
-        return plt.get_cmap("Reds")
 
     def _draw_gens_one_gen(self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col):
         fig, ax = fig
@@ -143,13 +139,14 @@ class PlotMatplotlib(BasePlot):
                     horizontalalignment=how_center.split('|')[1],
                     verticalalignment=verticalalignment)
 
-    def _get_line_color_map(self):
-        return plt.get_cmap("Reds")
-
     def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
         fig, ax = fig
-        ax.plot([pos_or[0], pos_ex[0]], [pos_or[1], pos_ex[1]],
-                    color=this_col, alpha=self.alpha_obj)
+        ax.plot([pos_or[0], pos_ex[0]],
+                [pos_or[1], pos_ex[1]],
+                color=this_col,
+                alpha=self.alpha_obj,
+                linestyle="solid" if status else "dashed")
+
         if txt_ is not None:
             ax.text((pos_or[0] + pos_ex[0]) * 0.5,
                     (pos_or[1] + pos_ex[1]) * 0.5,
@@ -158,12 +155,9 @@ class PlotMatplotlib(BasePlot):
                      horizontalalignment='center',
                      verticalalignment='center')
 
-    def _get_sub_color_map(self):
-        return plt.get_cmap("Reds")
-
     def _draw_subs_one_sub(self, fig, sub_id, center, this_col, text):
         fig, ax = fig
-        sub_circ = plt.Circle(center, self.radius_sub, color=this_col, fill=False, alpha=self.alpha_obj)
+        sub_circ = plt.Circle(center, self.radius_sub, color=this_col, fill=False)  #, alpha=self.alpha_obj)
         ax.add_artist(sub_circ)
         if text is not None:
             ax.text(center[0],
@@ -173,6 +167,8 @@ class PlotMatplotlib(BasePlot):
                     horizontalalignment='center',
                     verticalalignment='center')
 
+    def _get_default_cmap(self, normalized_val):
+        return self.my_cmap(normalized_val)
 
 
 
