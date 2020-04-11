@@ -34,6 +34,12 @@ class CombinedReward(BaseReward):
             return True
         return False
 
+    def __iter__(self):
+        for k, v in self.rewards.items():
+            r_dict = dict(v["instance"])
+            r_dict["weight"] = v["weight"]
+            yield (k, r_dict)
+
     def initialize(self, env):
         for key, reward in self.rewards.items():
             reward_w = reward["weight"]

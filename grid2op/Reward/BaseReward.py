@@ -119,3 +119,12 @@ class BaseReward(ABC):
 
         """
         return self.reward_min, self.reward_max
+
+    def __iter__(self):
+        """
+        Implements python iterable to get a dict summary using `summary = dict(reward_instance)`
+        Can be overloaded by subclass, default implementation gives name, reward_min, reward_max
+        """
+        yield ("name", self.__class__.__name__)
+        yield ("reward_min", self.reward_min)
+        yield ("reward_max", self.reward_max)
