@@ -101,6 +101,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
             self.exp_buffer.add(exp[0], exp[1], exp[2], exp[3], exp[4], episode)
 
     def _save_hyperparameters(self):
+        r_instance = self.env.reward_helper.template_reward
         hp = {
             "lr": self.lr,
             "batch_size": self.batch_size,
@@ -112,7 +113,8 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
             "buffer_size": REPLAY_BUFFER_SIZE,
             "update_freq": UPDATE_FREQ,
             "update_hard": UPDATE_TARGET_HARD_FREQ,
-            "update_soft": UPDATE_TARGET_SOFT_TAU,            
+            "update_soft": UPDATE_TARGET_SOFT_TAU,
+            "reward": dict(r_instance)
         }
         hp_filename = "{}-hypers.json".format(self.name)
         hp_path = os.path.join("./logs", hp_filename)

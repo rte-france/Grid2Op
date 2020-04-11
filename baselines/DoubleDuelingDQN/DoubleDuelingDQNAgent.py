@@ -19,11 +19,11 @@ from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
 INITIAL_EPSILON = 0.7
-FINAL_EPSILON = 0.0
+FINAL_EPSILON = 0.003
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
-DISCOUNT_FACTOR = 0.9
-REPLAY_BUFFER_SIZE = 1024*512 # Very large to prevent winner takes all
+DISCOUNT_FACTOR = 0.95
+REPLAY_BUFFER_SIZE = 1024*128
 UPDATE_FREQ = 32
 UPDATE_TARGET_HARD_FREQ = 5
 UPDATE_TARGET_SOFT_TAU = 0.1
@@ -112,6 +112,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             self.frames2.pop(0)
 
     def _save_hyperparameters(self):
+        r_instance = self.env.reward_helper.template_reward
         hp = {
             "lr": self.lr,
             "batch_size": self.batch_size,
@@ -124,6 +125,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             "update_freq": UPDATE_FREQ,
             "update_hard": UPDATE_TARGET_HARD_FREQ,
             "update_soft": UPDATE_TARGET_SOFT_TAU,
+            "reward": dict(r_instance)
         }
         hp_filename = "{}-hypers.json".format(self.name)
         hp_path = os.path.join("./logs", hp_filename)
