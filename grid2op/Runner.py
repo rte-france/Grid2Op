@@ -852,21 +852,19 @@ class Runner(object):
 
         """
         if nb_episode < 0:
-            raise RuntimeError(
-                "Impossible to run a negative number of scenarios.")
+            raise RuntimeError("Impossible to run a negative number of scenarios.")
         if nb_episode == 0:
             res = []
         else:
             if nb_process <= 0:
-                raise RuntimeError(
-                    "Impossible to run using less than 1 process.")
+                raise RuntimeError("Impossible to run using less than 1 process.")
             if max_iter is not None:
                 self.chronics_handler.set_max_iter(max_iter)
+
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
                 res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar)
             else:
-                self.logger.info("Parrallel runner used.")
-                res = self.run_parrallel(
-                    nb_episode, nb_process=nb_process, path_save=path_save)
+                self.logger.info("Parallel runner used.")
+                res = self.run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save)
         return res

@@ -23,7 +23,7 @@ import time
 import copy
 
 from grid2op.Plot.BasePlot import BasePlot
-from grid2op.Exceptions.PlotExceptions import PyGameQuit
+from grid2op.Exceptions.PlotExceptions import PyGameQuit, PlotError
 
 try:
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
@@ -165,7 +165,7 @@ class PlotPyGame(BasePlot):
 
         """
         if not can_plot:
-            raise RuntimeError("Impossible to plot as pygame cannot be imported.")
+            raise PlotError("Impossible to plot as pygame cannot be imported.")
 
         self.window_grid = (1000, 700)
         self.lag_x = 150
@@ -324,15 +324,17 @@ class PlotPyGame(BasePlot):
         pygame.display.flip()
 
     def _draw_final_information(self, reward, done, timestamp):
-            text_label = "GAME OVER, press any key to continue to next episode."
-            text_graphic = self.font.render(text_label, True, self.color_text)
-            self.screen.blit(text_graphic, (self.window_grid[0]+100, 100))
-            text_label = "Total cumulated reward: {:.1f}".format(self.cum_reward)
-            text_graphic = self.font.render(text_label, True, self.color_text)
-            self.screen.blit(text_graphic, (self.window_grid[0]+100, 130))
-            text_label = "Total number timesteps: {:.1f}".format(self.nb_timestep)
-            text_graphic = self.font.render(text_label, True, self.color_text)
-            self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
+        if done is not None:
+            if done:
+                text_label = "GAME OVER, press any key to continue to next episode."
+                text_graphic = self.font.render(text_label, True, self.color_text)
+                self.screen.blit(text_graphic, (self.window_grid[0]+100, 100))
+                text_label = "Total cumulated reward: {:.1f}".format(self.cum_reward)
+                text_graphic = self.font.render(text_label, True, self.color_text)
+                self.screen.blit(text_graphic, (self.window_grid[0]+100, 130))
+                text_label = "Total number timesteps: {:.1f}".format(self.nb_timestep)
+                text_graphic = self.font.render(text_label, True, self.color_text)
+                self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
 
     def _quit_and_close(self):
         # pygame.reset_vars()
@@ -451,9 +453,6 @@ class PlotPyGame(BasePlot):
             text_graphic = self.font.render(text_label, True, self.color_text)
             self.screen.blit(text_graphic, (self.window_grid[0]+100, 160))
 
-        if done is not None:
-            pass
-
         if timestamp is not None:
             text_label = "Date : {:%Y-%m-%d %H:%M}".format(timestamp)
             text_graphic = self.font.render(text_label, True, self.color_text)
@@ -473,14 +472,18 @@ class PlotPyGame(BasePlot):
         # step 0: compute thickness and color
         max_val = 1.
         ratio_ok = 0.7
-        if normalized_val < ratio_ok * max_val:
-            amount_green = 255 - int(255. * normalized_val / (max_val * ratio_ok))
-        else:
-            amount_green = int(0)
-        amount_red = 0
-        if amount_red > ratio_ok:
-            amount_red = 250 # int(255 - (5 + int(250. * (normalized_val - ratio_ok) / (max_val - ratio_ok))))
+        start_red = 0.5
+        amount_green = 235 - int(235. * (normalized_val / (max_val * ratio_ok))**4)
+        amount_red = int(255 * (normalized_val/ (max_val * ratio_ok))**4)
 
+        # if normalized_val < ratio_ok * max_val:
+        #    amount_green = 100 - int(100. * normalized_val / (max_val * ratio_ok))
+        # if normalized_val > ratio_ok:
+        #    tmp = (1.0 * (normalized_val - ratio_ok) / (max_val - ratio_ok))**2
+        #    amount_red += int(235. * tmp)
+        # print("normalized_val {}, amount_red {}".format(normalized_val, amount_red))
+
+        # fix to prevent pygame bug
         if amount_red < 0:
             amount_red = int(0)
         elif amount_red > 255:
@@ -489,6 +492,8 @@ class PlotPyGame(BasePlot):
             amount_green = int(0)
         elif amount_green > 255:
             amount_green = int(255)
+        amount_red = int(amount_red)
+        amount_green = int(amount_green)
         color = pygame.Color(amount_red, amount_green, 20)
         return color
 
@@ -580,3 +585,4 @@ class PlotPyGame(BasePlot):
                                  [int(dict_el["z"].real), int(dict_el["z"].imag)],
                                  [int(buses_z[this_el_bus].real), int(buses_z[this_el_bus].imag)],
                                  2)
+        return []
