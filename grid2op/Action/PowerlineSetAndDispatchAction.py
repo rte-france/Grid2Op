@@ -14,6 +14,7 @@ class PowerlineSetAndDispatchAction(PlayableAction):
 
         self.authorized_keys = {
             "set_line_status",
+            "set_bus",
             "redispatch"
         }
 
