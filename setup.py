@@ -32,8 +32,7 @@ pkgs = {
             "matplotlib==3.2.1",
             "plotly==4.5.4",
             "seaborn==0.10.0",
-            "pygame==1.9.6",
-            "dash==1.10.0"
+            "pygame==1.9.6"
         ],
         "challenge": [
             "tensorflow==2.1.0",
