@@ -29,11 +29,11 @@ except Exception as e:
 
 DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
 URL_GRID2OP_DATA = "https://github.com/Tezirg/Grid2Op/releases/download/{}/{}"
-DATASET_TAG_v0_0_2 = "datasets-v0.0.2"
+DATASET_TAG_v0_0_3 = "datasets-v0.0.3"
 DICT_URL_GRID2OP_DL = {
-    "rte_case14_realistic": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_realistic.tar.bz2"),
-    "rte_case14_redisp": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_redisp.tar.bz2"),
-    "rte_l2rpn_2019": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_l2rpn_2019.tar.bz2")
+    "rte_case14_realistic": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_3, "rte_case14_realistic.tar.bz2"),
+    "rte_case14_redisp": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_3, "rte_case14_redisp.tar.bz2"),
+    "rte_l2rpn_2019": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_3, "rte_l2rpn_2019.tar.bz2")
 }
 LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()])
 
