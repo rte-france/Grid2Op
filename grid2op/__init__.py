@@ -27,7 +27,7 @@ __all__ = [
     "command_line"
 ]
 
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make, make2
 
 # TODO remove -- Export hardcoded datasets settings at top-level
 from grid2op.MakeEnv import CASE_14_FILE
