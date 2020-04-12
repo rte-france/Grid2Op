@@ -24,6 +24,7 @@ Change Log
 [0.7.0] - 2020-04-??
 --------------------
 - [DEPRECATION] `grid2op.Action.TopoAndRedispAction` is now `grid2op.Action.TopologyAndDispatchAction`.
+- [FIXED] Command line install scripts: Can now use `grid2op.main` and `grid2op.download` after installing the package
 - [FIXED] a bug that prevented to perform redispatching action if the sum of the action was neglectible (*eg* 1e-14)
   instead of a bare 0.
 - [ADDED] `grid2op.Backend.reset` as a way for backends to implement a faster way to reload the grid. Implemented in
