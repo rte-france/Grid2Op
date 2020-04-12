@@ -28,21 +28,20 @@ DEFAULT_TEST_CASE = os.path.join(pkg_resources.resource_filename(__name__, 'data
 DEFAULT_CHRONICS_DATA = os.path.join(pkg_resources.resource_filename(__name__, 'data'),
                                      "test_multi_chronics")
 
-
-def main(path_casefile=None,
-         path_chronics=None,
-         path_parameters=None,
-         chronics_class=Multifolder,
-         backend_class=PandaPowerBackend,
-         agent_class=DoNothingAgent,
-         reward_class=FlatReward,
-         observation_class=CompleteObservation,
-         legalAct_class=AlwaysLegal,
-         nb_episode=3,
-         nb_process=1,
-         path_save=None,
-         names_chronics_to_backend=None,
-         gridStateclass_kwargs={}):
+def main_run(path_casefile=None,
+             path_chronics=None,
+             path_parameters=None,
+             chronics_class=Multifolder,
+             backend_class=PandaPowerBackend,
+             agent_class=DoNothingAgent,
+             reward_class=FlatReward,
+             observation_class=CompleteObservation,
+             legalAct_class=AlwaysLegal,
+             nb_episode=3,
+             nb_process=1,
+             path_save=None,
+             names_chronics_to_backend=None,
+             gridStateclass_kwargs={}):
     if path_casefile is None:
         init_grid_path = DEFAULT_TEST_CASE
     else:
@@ -71,7 +70,7 @@ def main(path_casefile=None,
     return res
 
 
-if __name__ == "__main__":
+def main_cli():
     parser = argparse.ArgumentParser(description='Launch the evaluation of the Grid2Op ("Grid To Operate") code.')
     parser.add_argument('--path_save', default=None,
                         help='The path where the log of the experience will be stored (default: None -> nothing stored)')
@@ -128,17 +127,19 @@ if __name__ == "__main__":
         msg_ += "\n\t- results will be saved in \"{}\"".format(args.path_save)
     print(msg_.format(case_file=args.path_casefile, data=args.path_chronics, process=args.nb_process,
                       nb_episode=args.nb_episode))
-    res = main(path_save=path_save,
-               nb_process=args.nb_process,
-               nb_episode=args.nb_episode,
-               path_casefile=args.path_casefile,
-               path_chronics=args.path_chronics,
-               path_parameters=path_parameter,
-               names_chronics_to_backend=names_chronics_to_backend
-               )
+    res = main_run(path_save=path_save,
+                   nb_process=args.nb_process,
+                   nb_episode=args.nb_episode,
+                   path_casefile=args.path_casefile,
+                   path_chronics=args.path_chronics,
+                   path_parameters=path_parameter,
+                   names_chronics_to_backend=names_chronics_to_backend)
     print("The results are:")
     for chron_name, _, cum_reward, nb_time_step, max_ts in res:
         msg_tmp = "\tFor chronics located at {}\n".format(chron_name)
         msg_tmp += "\t\t - cumulative reward: {:.2f}\n".format(cum_reward)
         msg_tmp += "\t\t - number of time steps completed: {:.0f} / {:.0f}".format(nb_time_step, max_ts)
         print(msg_tmp)
+
+if __name__ == "__main__":
+    main_cli()

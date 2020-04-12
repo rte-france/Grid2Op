@@ -17,13 +17,14 @@ __all__ = [
     "Rules",
     "Reward",
     "Runner",
-    "main",
     "Utils",
     "Plot",
     "EpisodeData",
     "Download",
     "VoltageControler",
-    "tests"
+    "tests",
+    "main",
+    "command_line"
 ]
 
 from grid2op.MakeEnv import make
@@ -37,3 +38,5 @@ from grid2op.MakeEnv import EXAMPLE_CHRONICSPATH
 from grid2op.MakeEnv import EXAMPLE_CASEFILE
 from grid2op.MakeEnv import L2RPN2019_CASEFILE
 from grid2op.MakeEnv import L2RPN2019_DICT_NAMES
+
+from grid2op.Download import download

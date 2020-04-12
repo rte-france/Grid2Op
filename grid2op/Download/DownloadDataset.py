@@ -31,18 +31,9 @@ DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
 URL_GRID2OP_DATA = "https://github.com/Tezirg/Grid2Op/releases/download/{}/{}"
 DATASET_TAG_v0_0_2 = "datasets-v0.0.2"
 DICT_URL_GRID2OP_DL = {
-    "case14_realistic": {
-        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_realistic.tar.bz2"),
-        "name": "rte_case14_realistic"
-    },
-    "case14_redisp": {
-        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_redisp.tar.bz2"),
-        "name": "rte_case14_redisp"
-    },
-    "l2rpn_2019": {
-        "url": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_l2rpn_2019.tar.bz2"),
-        "name": "rte_l2rpn_2019"
-    }
+    "rte_case14_realistic": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_realistic.tar.bz2"),
+    "rte_case14_redisp": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_case14_redisp.tar.bz2"),
+    "rte_l2rpn_2019": URL_GRID2OP_DATA.format(DATASET_TAG_v0_0_2, "rte_l2rpn_2019.tar.bz2")
 }
 LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()])
 
@@ -81,18 +72,18 @@ def main_download(dataset_name, path_data):
               "".format(env_name=dataset_name, li_env=",".join(LI_VALID_ENV)))
         sys.exit(1)
 
-    url = DICT_URL_GRID2OP_DL[dataset_name]["url"]
-    ds_name_dl = DICT_URL_GRID2OP_DL[dataset_name]["name"]
+    url = DICT_URL_GRID2OP_DL[dataset_name]
+    ds_name_dl = dataset_name
     final_path = os.path.join(path_data, ds_name_dl)
     if os.path.exists(final_path):
         print("Downloading and extracting this data would create a folder \"{final_path}\" "
               "but this folder already exists. Either you already downloaded the data, in this case "
               "you can invoke the environment from a python script with:\n"
-              "\t env = grid2op.make(name_env=\"{env_name}\", chronics_path=\"{final_path}\")\n"
+              "\t env = grid2op.make2(\"{final_path}\")\n"
               "Alternatively you can also delete the folder \"{final_path}\" from your computer and run this command "
               "again.\n"
               "Finally, you can download the data in a different folder by specifying (in a command prompt):\n"
-              "\t python -m grid2op.download --name \"{env_name}\" --path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD"
+              "\t grid2op.download --name \"{env_name}\" --path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD"
               "".format(final_path=final_path, env_name=dataset_name))
         sys.exit(1)
 
