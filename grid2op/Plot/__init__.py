@@ -3,7 +3,8 @@ __all__ = [
     "PlotMatplotlib",
     "PlotPlotly",
     "PlotPyGame",
-    "Plotting"
+    "Plotting",
+    "PlotEpisode",
 ]
 
 from grid2op.Plot.BasePlot import BasePlot
@@ -11,6 +12,7 @@ from grid2op.Plot.PlotMatplotlib import PlotMatplotlib
 from grid2op.Plot.PlotPlotly import PlotPlotly
 from grid2op.Plot.PlotPyGame import PlotPyGame
 from grid2op.Plot.Plotting import Plotting
+from grid2op.Plot.PlotEpisode import PlotEpisode
 
 import warnings
 

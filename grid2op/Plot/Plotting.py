@@ -13,6 +13,7 @@ from grid2op.Plot.PlotPyGame import PlotPyGame
 
 from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
+
 class Plotting:
     allwed_display_mod = {"pygame": PlotPyGame,
                           "plotly": PlotPlotly,

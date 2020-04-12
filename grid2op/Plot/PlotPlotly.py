@@ -281,9 +281,10 @@ class PlotPlotly(BasePlot):
         for el, trace_ in gens:
             gens_el.append(el)
             traces.append(trace_)
-        for el, trace_ in topos:
+        for el, _ in topos:
             topos_el.append(el)
-            traces.append(trace_)
+            topos_el.append(el)
+            # traces.append(trace_)
         fig.update_layout(shapes=subs_el + lines_el + loads_el + gens_el + topos_el)
 
         for trace_ in traces:
@@ -423,7 +424,7 @@ class PlotPlotly(BasePlot):
                 fillcolor=bus_color,
                 line_color=bus_color,
             )
-            res_sub.append(res)
+            res_sub.append((res, None))
         # i connect every element to the proper bus with the proper color
         for el_nm, dict_el in elements.items():
             this_el_bus = bus_vect[dict_el["sub_pos"]] -1
@@ -437,7 +438,7 @@ class PlotPlotly(BasePlot):
                     x1=buses_z[this_el_bus].real,
                     y1=buses_z[this_el_bus].imag,
                     line=dict(color='#ff7f0e' if this_el_bus == 0 else '#1f77b4'))
-                res_sub.append(res)
+                res_sub.append((res, None))
         return res_sub
 
     def _get_default_cmap(self, normalized_value):

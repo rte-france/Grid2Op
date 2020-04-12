@@ -188,8 +188,24 @@ class PlotMatplotlib(BasePlot):
     def _get_default_cmap(self, normalized_val):
         return self.my_cmap(normalized_val)
 
+    def _draw_topos_one_sub(self, fig, sub_id, buses_z, elements, bus_vect):
+        fig, ax = fig
+        res_sub = []
+        # I plot the buses
+        for bus_id, z_bus in enumerate(buses_z):
+            bus_color = '#ff7f0e' if bus_id == 0 else '#1f77b4'
+            bus_circ = plt.Circle((z_bus.real, z_bus.imag), self.bus_radius, color=bus_color, fill=True)
+            ax.add_artist(bus_circ)
 
-
+        # i connect every element to the proper bus with the proper color
+        for el_nm, dict_el in elements.items():
+            this_el_bus = bus_vect[dict_el["sub_pos"]] -1
+            if this_el_bus >= 0:
+                color = '#ff7f0e' if this_el_bus == 0 else '#1f77b4'
+                ax.plot([buses_z[this_el_bus].real, dict_el["z"].real],
+                        [ buses_z[this_el_bus].imag, dict_el["z"].imag],
+                        color=color, alpha=self.alpha_obj)
+        return []
 
 
 
