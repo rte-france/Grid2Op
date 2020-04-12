@@ -47,20 +47,15 @@ if __name__ == "__main__":
     args = cli()
     # Create grid2op game environement
     env = make2(args.path_data,
-                action_class=PowerlineChangeAndDispatchAction,
-                reward_class=CombinedReward,
-                other_rewards={
-                    "bridge": BridgeReward,
-                    "overflow": CloseToOverflowReward,
-                    "distance": DistanceReward
-                })
+                action_class=TopologyChangeAndDispatchAction,
+                reward_class=CombinedReward)
     # Register custom reward for training
     cr = env.reward_helper.template_reward
     cr.addReward("bridge", BridgeReward(), 0.33)
     cr.addReward("overflow", CloseToOverflowReward(), 0.33)
     cr.addReward("distance", DistanceReward(), 0.33)
-    cr.addReward("game", GameplayReward(), 1.0)
-    #cr.addReward("redisp", RedispReward(), 2.5e-4)
+    cr.addReward("game", GameplayReward(), 5.0)
+    #cr.addReward("l2rpn", L2RPNReward(), 0.5 * 1.0 / env.n_line)
     # Initialize custom rewards
     cr.initialize(env)
 

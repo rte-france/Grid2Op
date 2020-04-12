@@ -16,7 +16,7 @@ DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 4096
 UPDATE_FREQ = 64
 UPDATE_TARGET_HARD_FREQ = 5
-UPDATE_TARGET_SOFT_TAU = 0.1
+UPDATE_TARGET_SOFT_TAU = 0.01
 
 class DoubleDuelingRDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -145,7 +145,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
     def load_network(self, path):
         self.Qmain.load_network(path)
         if self.is_training:
-            self.Qmain.update_target_weights(self.Qtarget.model)
+            self.Qmain.update_target_hard(self.Qtarget.model)
 
     def save_network(self, path):
         self.Qmain.save_network(path)
@@ -215,11 +215,11 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
                     training_step = step - num_pre_training_steps
                     self._batch_train(batch, training_step)
                     # Update target network towards primary network
-                    self.Qmain.update_target(self.Qtarget.model, tau=UPDATE_TARGET_SOFT_TAU)
+                    self.Qmain.update_target_soft(self.Qtarget.model, tau=UPDATE_TARGET_SOFT_TAU)
 
                 # Every UPDATE_TARGET_HARD_FREQ trainings, update target completely
                 if step % (UPDATE_FREQ * UPDATE_TARGET_HARD_FREQ) == 0:
-                    self.Qmain.update_target_weights(self.Qtarget.model)
+                    self.Qmain.update_target_hard(self.Qtarget.model)
 
             total_reward += reward
             if self.done:
@@ -249,7 +249,7 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         Q = np.zeros((self.batch_size, self.action_size))
         batch_mem = np.zeros((self.batch_size, self.Qmain.h_size))
         batch_carry = np.zeros((self.batch_size, self.Qmain.h_size))
-        
+
         input_size = self.observation_size
         m_data = np.vstack(batch[:, 0])
         m_data = m_data.reshape(self.batch_size, self.trace_length, input_size)
@@ -261,16 +261,17 @@ class DoubleDuelingRDQNAgent(AgentWithConverter):
         # Batch predict
         self.Qmain.trace_length.assign(self.trace_length)
         self.Qmain.dropout_rate.assign(0.0)
-        Q, _, _ = self.Qmain.model.predict(t_input, batch_size = self.batch_size)
-        
         self.Qtarget.trace_length.assign(self.trace_length)
         self.Qtarget.dropout_rate.assign(0.0)
+
+        Q, _, _ = self.Qmain.model.predict(m_input, batch_size = self.batch_size)
+        Q1, _, _ = self.Qmain.model.predict(t_input, batch_size = self.batch_size)
         Q2, _, _ = self.Qtarget.model.predict(t_input, batch_size = self.batch_size)
-        
+
         # Compute batch Double Q update to Qtarget
         for i in range(self.batch_size):
             idx = i * (self.trace_length - 1)
-            doubleQ = Q2[i, np.argmax(Q[i])]
+            doubleQ = Q2[i, np.argmax(Q1[i])]
             a = batch[idx][1]
             r = batch[idx][2]
             d = batch[idx][3]

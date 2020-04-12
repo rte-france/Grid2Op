@@ -8,6 +8,7 @@
 
 import os
 import json
+import math
 import numpy as np
 import tensorflow as tf
 
@@ -18,15 +19,15 @@ from grid2op.Converter import IdToAct
 from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
-INITIAL_EPSILON = 0.7
-FINAL_EPSILON = 0.003
+INITIAL_EPSILON = 0.9
+FINAL_EPSILON = 0.005
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
-DISCOUNT_FACTOR = 0.95
+DISCOUNT_FACTOR = 0.99
 REPLAY_BUFFER_SIZE = 1024*128
 UPDATE_FREQ = 32
 UPDATE_TARGET_HARD_FREQ = 5
-UPDATE_TARGET_SOFT_TAU = 0.1
+UPDATE_TARGET_SOFT_TAU = 0.01
 
 class DoubleDuelingDQNAgent(AgentWithConverter):
     def __init__(self,
@@ -62,6 +63,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         self.epoch_rewards = None
         self.epoch_alive = None
         self.Qtarget = None
+        self.epsilon = 0.0
 
         # Setup inital state
         self._reset_state()
@@ -80,10 +82,11 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             self._init_training()
 
     def _init_training(self):
+        self.epsilon = INITIAL_EPSILON
         self.frames2 = []
         self.epoch_rewards = []
         self.epoch_alive = []
-        self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE * self.batch_size)
+        self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
         self.Qtarget = DoubleDuelingDQN(self.action_size,
                                         self.observation_size,
                                         num_frames = self.num_frames,
@@ -111,12 +114,13 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         if len(self.frames2) > self.num_frames:
             self.frames2.pop(0)
 
-    def _save_hyperparameters(self):
+    def _save_hyperparameters(self, steps):
         r_instance = self.env.reward_helper.template_reward
         hp = {
             "lr": self.lr,
             "batch_size": self.batch_size,
             "stack_frames": self.num_frames,
+            "iter": steps,
             "e_start": INITIAL_EPSILON,
             "e_end": FINAL_EPSILON,
             "e_decay": DECAY_EPSILON,
@@ -134,7 +138,19 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
     ## Agent Interface
     def convert_obs(self, observation):
-        return observation.to_vect()
+        # Made a custom version to normalize per attribute
+        #return observation.to_vect()
+        li_vect=  []
+        for el in observation.attr_list_vect:
+            v = observation._get_array_from_attr_name(el).astype(np.float)
+            v_fix = np.nan_to_num(v)
+            v_norm = np.linalg.norm(v_fix)
+            if v_norm > 1000.0:
+                v_res = (v_fix / v_norm) * 10.0
+            else:
+                v_res = v_fix
+            li_vect.append(v_res)
+        return np.concatenate(li_vect)
 
     def convert_act(self, action):
         return super().convert_act(action)
@@ -151,7 +167,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
     def load_network(self, path):
         self.Qmain.load_network(path)
         if self.is_training:
-            self.Qmain.update_target_weights(self.Qtarget.model)
+            self.Qmain.update_target_hard(self.Qtarget.model)
 
     def save_network(self, path):
         self.Qmain.save_network(path)
@@ -165,13 +181,13 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
         # Loop vars
         num_steps = num_pre_training_steps + num_training_steps
         step = 0
-        epsilon = INITIAL_EPSILON
+        self.epsilon = INITIAL_EPSILON
         alive_steps = 0
         total_reward = 0
         self.done = True
 
         self.tf_writer = tf.summary.create_file_writer("./logs/{}".format(self.name), name=self.name)
-        self._save_hyperparameters()
+        self._save_hyperparameters(num_steps)
         
         # Training loop
         while step < num_steps:
@@ -181,14 +197,14 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                 self._reset_state()
                 self._reset_frame_buffer()
             if step % 1000 == 0:
-                print("Step [{}] -- Random [{}]".format(step, epsilon))
+                print("Step [{}] -- Random [{}]".format(step, self.epsilon))
 
             # Choose an action
             if step <= num_pre_training_steps:
                 a = self.Qmain.random_move()
             elif len(self.frames) < self.num_frames:
                 a = self.Qmain.random_move()
-            elif np.random.rand(1) < epsilon:
+            elif np.random.rand(1) < self.epsilon:
                 a = self.Qmain.random_move()
             else:
                 a, _ = self.Qmain.predict_move(np.array(self.frames))
@@ -211,11 +227,13 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
             # Perform training when we have enough experience in buffer
             if step > num_pre_training_steps:
+                training_step = step - num_pre_training_steps
                 # Slowly decay chance of random action
-                if epsilon > FINAL_EPSILON:
-                    epsilon -= STEP_EPSILON
-                if epsilon < 0.0:
-                    epsilon = 0.0
+                if self.epsilon > FINAL_EPSILON:
+                    self.epsilon -= STEP_EPSILON
+                # Make sure we dont go below final epsilon
+                if self.epsilon < FINAL_EPSILON:
+                    self.epsilon = FINAL_EPSILON
 
                 # Perform training at given frequency
                 if step % UPDATE_FREQ == 0 and self.replay_buffer.size() >= self.batch_size:
@@ -224,11 +242,11 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
                     # Perform training
                     self._batch_train(s_batch, a_batch, r_batch, d_batch, s1_batch, step)
                     # Update target network towards primary network
-                    self.Qmain.update_target(self.Qtarget.model, tau=UPDATE_TARGET_SOFT_TAU)
+                    self.Qmain.update_target_soft(self.Qtarget.model, tau=UPDATE_TARGET_SOFT_TAU)
 
                 # Every UPDATE_TARGET_HARD_FREQ trainings, update target completely
                 if step % (UPDATE_FREQ * UPDATE_TARGET_HARD_FREQ) == 0:
-                    self.Qmain.update_target_weights(self.Qtarget.model)
+                    self.Qmain.update_target_hard(self.Qtarget.model)
 
             total_reward += reward
             if self.done:
@@ -259,22 +277,23 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
 
         # Reshape frames to 1D
         input_size = self.observation_size * self.num_frames
-        m_input = np.reshape(s_batch, (self.batch_size, input_size))
-        t_input = np.reshape(s2_batch, (self.batch_size, input_size))
+        input_t = np.reshape(s_batch, (self.batch_size, input_size))
+        input_t_1 = np.reshape(s2_batch, (self.batch_size, input_size))
 
         # Batch predict
-        Q = self.Qmain.model.predict(t_input, batch_size = self.batch_size)
-        Q2 = self.Qtarget.model.predict(t_input, batch_size = self.batch_size)
+        Q = self.Qmain.model.predict(input_t, batch_size = self.batch_size)
+        Q1 = self.Qmain.model.predict(input_t_1, batch_size = self.batch_size)
+        Q2 = self.Qtarget.model.predict(input_t_1, batch_size = self.batch_size)
 
-        # Compute batch Double Q update to Qtarget
+        # Compute batch Qtarget using Double DQN
         for i in range(self.batch_size):
-            doubleQ = Q2[i, np.argmax(Q[i])]
+            doubleQ = Q2[i, np.argmax(Q1[i])]
             Q[i, a_batch[i]] = r_batch[i]
             if d_batch[i] == False:
                 Q[i, a_batch[i]] += DISCOUNT_FACTOR * doubleQ
 
         # Batch train
-        loss = self.Qmain.model.train_on_batch(m_input, Q)
+        loss = self.Qmain.model.train_on_batch(input_t, Q)
 
         # Log some useful metrics every even updates
         if step % (2 * UPDATE_FREQ) == 0:

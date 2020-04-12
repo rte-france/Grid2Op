@@ -90,7 +90,7 @@ class DoubleDuelingRDQN(object):
         carry_input = carry.reshape(1, -1)
         model_input = [mem_input, carry_input, data_input]
         
-        Q, mem, carry = self.model.predict(model_input, batch_size = 1)     
+        Q, mem, carry = self.model.predict(model_input, batch_size = 1)
         move = np.argmax(Q)
 
         return move, Q, mem, carry
@@ -118,16 +118,16 @@ class DoubleDuelingRDQN(object):
         carry_input = carry.reshape(1, -1)
         model_input = [mem_input, carry_input, data_input]
         
-        Q, mem, carry = self.model.predict(model_input, batch_size = 1)     
+        Q, mem, carry = self.model.predict(model_input, batch_size = 1)
         move = np.argmax(Q)
 
         return move, Q, mem, carry
 
-    def update_target_weights(self, target_model):
+    def update_target_hard(self, target_model):
         this_weights = self.model.get_weights()
         target_model.set_weights(this_weights)
 
-    def update_target(self, target_model, tau=1e-2):
+    def update_target_soft(self, target_model, tau=1e-2):
         tau_inv = 1.0 - tau
         # Get parameters to update
         target_params = target_model.trainable_variables

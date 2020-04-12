@@ -14,7 +14,7 @@ import tensorflow as tf
 
 from grid2op.MakeEnv import make2
 from grid2op.Runner import Runner
-from grid2op.Reward import RedispReward
+from grid2op.Reward import *
 from grid2op.Action import *
 from grid2op.Agent import DoNothingAgent
 
@@ -54,7 +54,12 @@ if __name__ == "__main__":
     # Create dataset env
     env = make2(args.path_data,
                 reward_class=RedispReward,
-                action_class=PowerlineChangeAndDispatchAction)
+                action_class=TopologyChangeAndDispatchAction,
+                other_rewards={
+                    "bridge": BridgeReward,
+                    "overflow": CloseToOverflowReward,
+                    "distance": DistanceReward
+                })
     runner_params = env.get_params_for_runner()
     runner_params["verbose"] = args.verbose
 
