@@ -5,14 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-This class represents the base class of all "Opponents".
-
-In certain modeling of the powergrid, some oponent can take
-
-TODO
-"""
 from grid2op.Exceptions import OpponentError
 from grid2op.Reward import RewardHelper, BaseReward
 

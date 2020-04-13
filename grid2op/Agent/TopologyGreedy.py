@@ -21,7 +21,7 @@ class TopologyGreedy(GreedyAgent):
       - changing the topology of one substation.
 
     To choose, it will simulate the outcome of all actions, and then chose the action leading to the best rewards.
-    
+
     """
     def __init__(self, action_space, action_space_converter=None):
         GreedyAgent.__init__(self, action_space, action_space_converter=action_space_converter)

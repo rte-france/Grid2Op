@@ -5,19 +5,16 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-The opponent cannot act indefinitely, this would make the "game" impossible to play for the BaseAgent.
-
-Thus, Opponent have some budget. Budget are computed using this class
-
-TODO
-"""
 import numpy as np
 from grid2op.Exceptions import OpponentError
 
 
 class BaseActionBudget:
+    """
+    This is the base class representing the action bugdet.
+    It makes sure the opponent uses the correct type of "action", and  compute the bugdet associated to it.
+
+    """
     def __init__(self, action_space):
         self.action_space = action_space
 
@@ -32,7 +29,8 @@ class BaseActionBudget:
 
         Returns
         -------
-        cost:
+        cost: the cost of the action performed by the opponent.
+
         """
         if not isinstance(attack, self.action_space.actionClass):
             raise OpponentError("Attempt to use an attack of type \"{}\" which is not a instance of \"{}\", "

@@ -15,7 +15,7 @@ class GreedyAgent(BaseAgent):
     """
     This is a class of "Greedy BaseAgent". Greedy agents are all executing the same kind of algorithm to take action:
 
-      1. They :func:`grid2op.BaseObservation.simulate` all actions in a given set
+      1. They :func:`grid2op.Observation.Observation.simulate` all actions in a given set
       2. They take the action that maximise the simulated reward among all these actions
 
     This class is an abstract class (object of this class cannot be created). To create "GreedyAgent" one must

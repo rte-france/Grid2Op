@@ -8,7 +8,11 @@
 
 from grid2op.Reward.BaseReward import BaseReward
 
+
 class CombinedReward(BaseReward):
+    """
+    This class allows to combine multiple rewards, by summing them for example.
+    """
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = 0.0

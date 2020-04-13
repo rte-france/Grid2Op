@@ -5,16 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-The challenge "learning to run a power network" offers different _parameters to be customized, or to learn an
-:class:`grid2op.BaseAgent` that will perform better for example.
-
-This class is an attempt to group them all inside one single structure.
-
-For now, :class:`Parameters` have default value, but the can be read back / from json. Other serialization method will
-come soon.
-"""
 import os
 import json
 import warnings
@@ -26,12 +16,13 @@ class Parameters:
     Main classes representing the _parameters of the game. The main paratemeters are describe bellow.
 
     Note that changing the values of these _parameters might not be enough. If these _parameters are not used in the
-    :class:`grid2op.RulesChecker`, then modifying them will have no impact at all.
+    :class:`grid2op.Rules.RulesChecker`, then modifying them will have no impact at all.
 
     Attributes
     ----------
     NO_OVERFLOW_DISCONNECTION: ``bool``
-        If set to ``True`` then the :class:`grid2op.Environment` will not disconnect powerline above their thermal
+        If set to ``True`` then the :class:`grid2op.Environment.Environment` will not disconnect powerline above their
+        thermal
         limit. Default is ``False``
 
     NB_TIMESTEP_POWERFLOW_ALLOWED: ``int``
@@ -46,20 +37,22 @@ class Parameters:
 
     NB_TIMESTEP_LINE_STATUS_REMODIF: ``int``
         When someone acts on a powerline by changing its status (connected / disconnected) this number indicates
-        how many timesteps the :class:`grid2op.BaseAgent.BaseAgent` has to wait before being able to modify this status again.
+        how many timesteps the :class:`grid2op.Agent.BaseAgent` has to wait before being able to modify this status
+        again.
         For examle, if this is 1, this means that an BaseAgent can act on status of a powerline 1 out of 2 time step (1
         time step it acts, another one it cools down, and the next one it can act again). Having it at 0 it equivalent
         to deactivate this feature (default).
 
     NB_TIMESTEP_TOPOLOGY_REMODIF: ``int``
         When someone changes the topology of a substations, this number indicates how many timesteps the
-        :class:`grid2op.BaseAgent.BaseAgent` has to wait before being able to modify the topology on this same substation. It
+        :class:`grid2op.Agent.BaseAgent` has to wait before being able to modify the topology on this same substation. It
         has the same behaviour as :attr:`Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF`. To deactivate this feature,
         put it at 0 (default).
 
     HARD_OVERFLOW_THRESHOLD: ``float``
         If a the powerflow on a line is above HARD_OVERFLOW_THRESHOLD * thermal limit (and
-        :attr:`.NO_OVERFLOW_DISCONNECTION` is set to ``False``) then it is automatically disconnected, regardless of
+        :attr:`Parameters.NO_OVERFLOW_DISCONNECTION` is set to ``False``) then it is automatically disconnected,
+        regardless of
         the number of timesteps it is on overflow). This is called a "hard overflow"
 
     ENV_DC: ``bool``
@@ -68,26 +61,29 @@ class Parameters:
         "alternative current" powerflow. It is also less precise. The default is ``False``
 
     FORECAST_DC: ``bool``
-        Whether to use the direct current approximation in the :func:`grid2op.BaseObservation.forecasts` method. Default
-        is ``False``. This can speed up the computation.
+        Whether to use the direct current approximation in the :func:`grid2op.Observation.BaseObservation.simulate`
+        method. Default is ``False``. Setting :attr:`FORECAST_DC` to `True` can speed up the computation of the
+        `simulate` function, but will make the results less accurate.
 
     MAX_SUB_CHANGED: ``int``
         Maximum number of substations that can be reconfigured between two consecutive timesteps by an
-        :class:`grid2op.BaseAgent`. Default value is 1.
+        :class:`grid2op.Agent.BaseAgent`. Default value is 1.
 
 
     MAX_LINE_STATUS_CHANGED: ``int``
         Maximum number of powerlines statuses that can be changed between two consecutive timestetps by an
-        :class:`grid2op.BaseAgent`. Default value is 1.
+        :class:`grid2op.Agent.BaseAgent`. Default value is 1.
 
     """
     def __init__(self, parameters_path=None):
         """
         Build an object representing the _parameters of the game.
+
         Parameters
         ----------
         parameters_path: ``str``, optional
             Path where to look for parameters.
+
         """
         # if True, then it will not disconnect lines above their thermal limits
         self.NO_OVERFLOW_DISCONNECTION = False
@@ -203,7 +199,7 @@ class Parameters:
 
     def to_dict(self):
         """
-        Serialize all the _parameters as a dictionnary; Usefull to write it in json format.
+        Serialize all the _parameters as a dictionnary; Useful to write it in json format.
 
         Returns
         -------

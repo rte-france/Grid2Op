@@ -1,6 +1,6 @@
 .. currentmodule:: grid2op.Action
 
-Action Module
+Action
 ===================================
 
 Objectives
@@ -39,6 +39,12 @@ instances of BaseAction is assessed both when calling :func:`BaseAction.update` 
 :func:`BaseAction._check_for_ambiguity` performed for example by the Backend when it must implement its effect on the
 powergrid through a call to :func:`BaseAction.__call__`
 
+Easier actions manipulation
+----------------------------
+The action class presented here can be quite complex to apprehend, especially for a machine learning algorithm.
+
+It is possible to use the :class:`grid2op.Converter` class for such purpose. You can have a look at the dedicated
+documentation.
 
 Detailed Documentation by class
 -------------------------------

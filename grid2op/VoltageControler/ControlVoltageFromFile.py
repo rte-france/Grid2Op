@@ -37,7 +37,7 @@ class ControlVoltageFromFile(BaseVoltageController):
 
         Parameters
         ----------
-        gridobj: :class:`grid2op.Space.Space`
+        gridobj: :class:`grid2op.Space.GridObjects`
             Structure of the powergrid
 
         envbackend: :class:`grid2op.Backend.Backend`

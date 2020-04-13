@@ -6,38 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-This Module defines the template of a backend class.
-Backend instances are responsible to translate action (performed either by an BaseAgent or by the Environment) into
-comprehensive powergrid modifications.
-They are responsible to perform the powerflow (AC or DC) computation.
-
-It is also through the backend that some quantities about the powergrid (such as the flows) can be inspected.
-
-A backend is mandatory for a Grid2Op environment to work.
-
-To be a valid backend, some properties are mandatory:
-
-    - order of objects matters and should be deterministic (for example :func:`Backend.get_line_status`
-      shall return the status of the lines always in the same order)
-    - order of objects should be the same if the same underlying object is queried (for example, is
-      :func:`Backend.get_line_status`\[i\] is the status of the powerline "*toto*", then
-      :func:`Backend.get_thermal_limit`\[i\] returns the thermal limits of this same powerline "*toto*")
-    - it allows to compute AC and DC powerflow
-    - it allows to:
-
-        - change the value consumed (both active and reactive) by each load of the network
-        - change the amount of power produced and the voltage setpoint of each generator unit of the powergrid
-        - allow for powerline connection / disconnection
-        - allow for the modification of the connectivity of the powergrid (change in topology)
-        - allow for deep copy.
-
-The order of the values returned are always the same and determined when the backend is loaded by its attribute
-'\*_names'. For example, when the ith element of the results of a call to :func:`Backend.get_line_flow` is the
-flow on the powerline with name `lines_names[i]`.
-
-"""
-
 import copy
 import os
 import warnings
@@ -61,7 +29,30 @@ class Backend(GridObjects, ABC):
     """
     This is a base class for each :class:`Backend` object.
     It allows to run power flow smoothly, and abstract the method of computing cascading failures.
-    This class allow the user or the agent to interact with an power flow calculator, while relying on dedicated methods to change the power _grid behaviour.
+    This class allow the user or the agent to interact with an power flow calculator, while relying on dedicated
+    methods to change the power grid behaviour.
+
+    An example of a valid backend is provided in the :class:`PandapowerBackend`.
+
+    All the abstract methods (that need to be implemented for a backend to work properly) are:
+
+    - :func:`Backend.load_grid`
+    - :func:`Backend.close`
+    - :func:`Backend.apply_action`
+    - :func:`Backend.runpf`
+    - :func:`Backend.copy`
+    - :func:`Backend.get_line_status`
+    - :func:`Backend.get_line_flow`
+    - :func:`Backend.get_topo_vect`
+    - :func:`Backend._disconnect_line`
+    - :func:`Backend.generators_info`
+    - :func:`Backend.loads_info`
+    - :func:`Backend.lines_or_info`
+    - :func:`Backend.lines_ex_info`
+
+    And, if the flag :attr:Backend.shunts_data_available` is set to ``True`` the method :func:`Backend.shunt_info`
+    should also be implemented.
+
 
     Attributes
     ----------

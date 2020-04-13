@@ -30,41 +30,56 @@ class CompleteObservation(BaseObservation):
         4. the day of the week. Monday = 0, Sunday = 6 [1 element]
         5. the hour of the day [1 element]
         6. minute of the hour  [1 element]
-        7. :attr:`BaseObservation.prod_p` the active value of the productions [:attr:`BaseObservation.n_gen` elements]
-        8. :attr:`BaseObservation.prod_q` the reactive value of the productions [:attr:`BaseObservation.n_gen` elements]
-        9. :attr:`BaseObservation.prod_q` the voltage setpoint of the productions [:attr:`BaseObservation.n_gen` elements]
-        10. :attr:`BaseObservation.load_p` the active value of the loads [:attr:`BaseObservation.n_load` elements]
-        11. :attr:`BaseObservation.load_q` the reactive value of the loads [:attr:`BaseObservation.n_load` elements]
-        12. :attr:`BaseObservation.load_v` the voltage setpoint of the loads [:attr:`BaseObservation.n_load` elements]
-        13. :attr:`BaseObservation.p_or` active flow at origin of powerlines [:attr:`BaseObservation.n_line` elements]
-        14. :attr:`BaseObservation.q_or` reactive flow at origin of powerlines [:attr:`BaseObservation.n_line` elements]
-        15. :attr:`BaseObservation.v_or` voltage at origin of powerlines [:attr:`BaseObservation.n_line` elements]
-        16. :attr:`BaseObservation.a_or` current flow at origin of powerlines [:attr:`BaseObservation.n_line` elements]
-        17. :attr:`BaseObservation.p_ex` active flow at extremity of powerlines [:attr:`BaseObservation.n_line` elements]
-        18. :attr:`BaseObservation.q_ex` reactive flow at extremity of powerlines [:attr:`BaseObservation.n_line` elements]
-        19. :attr:`BaseObservation.v_ex` voltage at extremity of powerlines [:attr:`BaseObservation.n_line` elements]
-        20. :attr:`BaseObservation.a_ex` current flow at extremity of powerlines [:attr:`BaseObservation.n_line` elements]
-        21. :attr:`BaseObservation.rho` line capacity used (current flow / thermal limit) [:attr:`BaseObservation.n_line` elements]
-        22. :attr:`BaseObservation.line_status` line status [:attr:`BaseObservation.n_line` elements]
+        7. :attr:`BaseObservation.prod_p` the active value of the productions
+           [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        8. :attr:`BaseObservation.prod_q` the reactive value of the productions
+           [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        9. :attr:`BaseObservation.prod_q` the voltage setpoint of the productions
+           [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        10. :attr:`BaseObservation.load_p` the active value of the loads
+            [:attr:`grid2op.Space.GridObjects.n_load` elements]
+        11. :attr:`BaseObservation.load_q` the reactive value of the loads
+            [:attr:`grid2op.Space.GridObjects.n_load` elements]
+        12. :attr:`BaseObservation.load_v` the voltage setpoint of the loads
+            [:attr:`grid2op.Space.GridObjects.n_load` elements]
+        13. :attr:`BaseObservation.p_or` active flow at origin of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        14. :attr:`BaseObservation.q_or` reactive flow at origin of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        15. :attr:`BaseObservation.v_or` voltage at origin of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        16. :attr:`BaseObservation.a_or` current flow at origin of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        17. :attr:`BaseObservation.p_ex` active flow at extremity of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        18. :attr:`BaseObservation.q_ex` reactive flow at extremity of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        19. :attr:`BaseObservation.v_ex` voltage at extremity of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        20. :attr:`BaseObservation.a_ex` current flow at extremity of powerlines
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        21. :attr:`BaseObservation.rho` line capacity used (current flow / thermal limit)
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
+        22. :attr:`BaseObservation.line_status` line status [:attr:`grid2op.Space.GridObjects.n_line` elements]
         23. :attr:`BaseObservation.timestep_overflow` number of timestep since the powerline was on overflow
-            (0 if the line is not on overflow)[:attr:`BaseObservation.n_line` elements]
+            (0 if the line is not on overflow)[:attr:`grid2op.Space.GridObjects.n_line` elements]
         24. :attr:`BaseObservation.topo_vect` representation as a vector of the topology [for each element
             it gives its bus]. See :func:`grid2op.Backend.Backend.get_topo_vect` for more information.
         25. :attr:`BaseObservation.time_before_cooldown_line` representation of the cooldown time on the powerlines
-            [:attr:`BaseObservation.n_line` elements]
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
         26. :attr:`BaseObservation.time_before_cooldown_sub` representation of the cooldown time on the substations
-            [:attr:`BaseObservation.n_sub` elements]
+            [:attr:`grid2op.Space.GridObjects.n_sub` elements]
         27. :attr:`BaseObservation.time_before_line_reconnectable` number of timestep to wait before a powerline
             can be reconnected (it is disconnected due to maintenance, cascading failure or overflow)
-            [:attr:`BaseObservation.n_line` elements]
+            [:attr:`grid2op.Space.GridObjects.n_line` elements]
         28. :attr:`BaseObservation.time_next_maintenance` number of timestep before the next maintenance (-1 means
             no maintenance are planned, 0 a maintenance is in operation) [:attr:`BaseObservation.n_line` elements]
         29. :attr:`BaseObservation.duration_next_maintenance` duration of the next maintenance. If a maintenance
             is taking place, this is the number of timestep before it ends. [:attr:`BaseObservation.n_line` elements]
         30. :attr:`BaseObservation.target_dispatch` the target dispatch for each generator
-            [:attr:`BaseObservation.n_gen` elements]
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         31. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
-            [:attr:`BaseObservation.n_gen` elements]
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
 
     This behavior is specified in the :attr:`BaseObservation.attr_list_vect` vector.
 

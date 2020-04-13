@@ -6,14 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-This class represent a BaseOpponent.
-
-It does absolutely nothing.
-
-The method :func:`BaseOpponent.attack` should be overidden for opponent to take other actions.
-"""
-
 
 class BaseOpponent(object):
     def __init__(self, action_space):

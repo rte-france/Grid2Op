@@ -5,28 +5,15 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-This module is here to facilitate the evaluation of agent.
-It can handles all types of :class:`grid2op.BaseAgent`.
-
-"""
 import time
 import warnings
 
 import numpy as np
 import copy
 
-import os
-import sys
-
 from multiprocessing import Pool
 
-import json
-
 import pdb
-
-# from grid2op.BaseAction import HelperAction, BaseAction, TopologyAction
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, BaseObservation
@@ -445,7 +432,7 @@ class Runner(object):
         self.voltageControlerClass = voltageControlerClass
         self._other_rewards = other_rewards
 
-        # for opponent (should be defined here) after the initialization of _BasicEnv
+        # for opponent (should be defined here) after the initialization of BaseEnv
         if not issubclass(opponent_action_class, BaseAction):
             raise EnvError("Impossible to make an environment with an opponent action class not derived from BaseAction")
         try:

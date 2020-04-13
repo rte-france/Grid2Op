@@ -1,7 +1,4 @@
 import numpy as np
-from abc import ABC, abstractmethod
-
-from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
 
 

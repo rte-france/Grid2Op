@@ -6,10 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Action.BaseAction import BaseAction
+from grid2op.Action.PlayableAction import PlayableAction
 
 
-class DontAct(BaseAction):
+class DontAct(PlayableAction):
     """
     This class is model the action where you force someone to do absolutely nothing. It is not the "do nothing"
     action.
@@ -22,11 +22,10 @@ class DontAct(BaseAction):
     def __init__(self, gridobj):
         """
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing
-        more is done
-        in this constructor.
+        more is done in this constructor.
 
         """
-        BaseAction.__init__(self, gridobj)
+        PlayableAction.__init__(self, gridobj)
 
         self.authorized_keys = set()
         self.attr_list_vect = []
