@@ -23,6 +23,10 @@ Change Log
 
 [0.7.0] - 2020-04-??
 --------------------
+- [BREAKING] class `grid2op.Environment.BasicEnv` has been renamed `BaseEnv` for consistency. As this class
+  should not be used outside of this code base, no backward compatibility has been enforced.
+- [BREAKING] class `grid2op.Environment.ObsEnv` has been renamed `_ObsEnv` to insist on its "privateness". As this class
+  should not be used outside of this code base, no backward compatibility has been enforced.
 - [DEPRECATION] `grid2op.Action.TopoAndRedispAction` is now `grid2op.Action.TopologyAndDispatchAction`.
 - [FIXED] a bug that prevented to perform redispatching action if the sum of the action was neglectible (*eg* 1e-14)
   instead of an exact `0`.
@@ -40,6 +44,7 @@ Change Log
 - [ADDED] a class to replay a logger using `PlotPyGame` class (`grid2op.Plot.EpisodeReplay`)
 - [ADDED] a method to parse back the observations with lower memory footprint and faster, when the observations
   are serialized into a numpy array by the runner, and only some attributes are necessary.
+- [UPDATED] overall documentation: more simple theme, easier organization of each sections.
 
 
 [0.6.1] - 2020-04-??
