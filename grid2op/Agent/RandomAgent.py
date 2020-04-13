@@ -16,6 +16,11 @@ class RandomAgent(AgentWithConverter):
     """
     This agent acts randomnly on the powergrid. It uses the :class:`grid2op.Converters.IdToAct` to compute all the
     possible actions available for the environment. And then chooses a random one among all these.
+
+    **NB** Action are taken randomly among unary actions. For example, if a game rules allows to take actions that
+    can disconnect a powerline AND modify the topology of a substation an action that do both will not be sampled
+    by this class.
+
     """
     def __init__(self, action_space, action_space_converter=IdToAct, **kwargs_converter):
         AgentWithConverter.__init__(self, action_space, action_space_converter, **kwargs_converter)

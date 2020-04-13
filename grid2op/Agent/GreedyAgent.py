@@ -18,8 +18,8 @@ class GreedyAgent(BaseAgent):
       1. They :func:`grid2op.BaseObservation.simulate` all actions in a given set
       2. They take the action that maximise the simulated reward among all these actions
 
-    To make the creation of such BaseAgent, we created this abstract class (object of this class cannot be created). Two
-    examples of such greedy agents are provided with :class:`PowerLineSwitch` and :class:`TopologyGreedy`.
+    This class is an abstract class (object of this class cannot be created). To create "GreedyAgent" one must
+    override this class. Examples are provided with :class:`PowerLineSwitch` and :class:`TopologyGreedy`.
     """
     def __init__(self, action_space, action_space_converter=None):
         BaseAgent.__init__(self, action_space)

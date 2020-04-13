@@ -179,7 +179,6 @@ class Environment(_BasicEnv):
     max_timestep_topology_deactivated
     time_next_maintenance
     duration_next_maintenance
-    hard_overflow_threshold
     time_remaining_before_reconnection
 
     # redispacthing

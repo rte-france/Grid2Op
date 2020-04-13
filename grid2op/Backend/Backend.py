@@ -593,16 +593,25 @@ class Backend(GridObjects, ABC):
 
         Note that it **DOESNT** update the environment with the disconnected lines.
 
-        :param env: the environment in which the powerflow is ran.
-        :type env: :class:`grid2op.Environment.Environment`
+        Attributes
+        ----------
+        env: :class:`grid2op.Environment.Environment`
+            the environment in which the powerflow is ran.
 
-        :param is_dc: mode of power flow (AC : False, DC: is_dc is True)
-        :type is_dc: bool
+        is_dc: ``bool``
+            mode of power flow (AC : False, DC: is_dc is True)
 
-        :return: disconnected lines and list of Backend instances that allows to reconstruct the cascading failures
-        (in which order the powerlines have been disconnected). Note that if
-        :attr:`Backend.detailed_infos_for_cascading_failures` is set to False, the empty list will always be returned.
-        :rtype: tuple: np.array, dtype:bool, list
+        Returns
+        --------
+        disconnected_during_cf: ``numpy.ndarray``, dtype=bool
+            For each powerlines, it returns ``True`` if the powerline has been disconnected due to a cascading failure
+            or ``False`` otherwise.
+
+        infos: ``list``
+            If :attr:`Backend.detailed_infos_for_cascading_failures` is ``True`` then it returns the different
+            state computed by the powerflow (can drastically slow down this function, as it requires
+            deep copy of backend object). Otherwise the list is always empty.
+
         """
         infos = []
         self._runpf_with_diverging_exception(is_dc)

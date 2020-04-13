@@ -5,7 +5,6 @@ __all__ = [
     "SerializableActionSpace",
     "PlayableAction",
     "VoltageOnlyAction",
-    "CompleteAction",
     # Usable
     "DontAct",
     "PowerlineSetAction",
@@ -43,11 +42,14 @@ from grid2op.Action.DispatchAction import DispatchAction
 
 import warnings
 
-# CompleteAction to be symetrical to CompleteObservation
-CompleteAction = BaseAction
-
 
 class TopoAndRedispAction(TopologyAndDispatchAction):
+    """
+    .. deprecated:: 0.7.0
+        Use :class:`TopologyAndDispatchAction` instead.
+
+    This class has been renamed :class:`TopologyAndDispatchAction` for better consistency with others.
+    """
     def __init__(self, gridobj):
         super().__init__(self, gridobj)
         warnings.warn("TopoAndRedispAction has been renamed to TopologyAndDispatchAction"
@@ -56,6 +58,12 @@ class TopoAndRedispAction(TopologyAndDispatchAction):
     
 
 class HelperAction(ActionSpace):
+    """
+    .. deprecated:: 0.7.0
+        Use :class:`ActionSpace` instead.
+
+    This class has been renamed :class:`ActionSpace` for better consistency with others.
+    """
     def __init__(self, *args, **kwargs):
         ActionSpace.__init__(self, *args, **kwargs)
         warnings.warn("HelperAction class has been renamed \"ActionSpace\" to be better integrated with "
@@ -65,6 +73,17 @@ class HelperAction(ActionSpace):
 
 
 class Action(BaseAction):
+    """
+    .. deprecated:: 0.7.0
+        Use :class:`BaseAction` if "Action" was used to denote the base type of which all actions should inherit,
+        or use :class:`CompleteAction` to give the possibility at your agent to act on everything.
+
+    For better consistency and clarity, this class has been split in two and renamed.
+
+    The base class of each "action" has been nmaed :class:`BaseAction`.
+
+    For allowing participants to take any possible actions, please use the :class:`TopologyAndDispatchAction`.
+    """
     def __init__(self, *args, **kwargs):
         BaseAction.__init__(self, *args, **kwargs)
         warnings.warn("Action class has been renamed \"BaseAction\" if it was the Base class of each Action class,"

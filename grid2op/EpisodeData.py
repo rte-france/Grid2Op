@@ -117,9 +117,12 @@ class EpisodeData:
             self.episode_path = os.path.join(self.agent_path, name)
             self.serialize = True
             if not os.path.exists(self.agent_path):
-                os.mkdir(self.agent_path)
-                self.logger.info(
-                    "Creating path \"{}\" to save the runner".format(self.agent_path))
+                try:
+                    os.mkdir(self.agent_path)
+                    self.logger.info(
+                        "Creating path \"{}\" to save the runner".format(self.agent_path))
+                except FileExistsError:
+                    pass
 
             act_space_path = os.path.join(
                 self.agent_path, EpisodeData.ACTION_SPACE)

@@ -853,6 +853,7 @@ class Runner(object):
         """
         if nb_episode < 0:
             raise RuntimeError("Impossible to run a negative number of scenarios.")
+
         if nb_episode == 0:
             res = []
         else:

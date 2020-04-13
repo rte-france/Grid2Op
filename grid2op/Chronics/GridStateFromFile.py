@@ -278,7 +278,7 @@ class GridStateFromFile(GridValue):
         """
         In this function, the numpy arrays are read from the csv using the panda.dataframe engine.
 
-        In order to be valid, the folder located at :attr:`GridStateFromFile.path` should at least contain:
+        In order to be valid, the folder located at :attr:`GridStateFromFile.path` can contain:
 
           - a file named "load_p.csv" used to initialize :attr:`GridStateFromFile.load_p`
           - a file named "load_q.csv" used to initialize :attr:`GridStateFromFile.load_q`
@@ -288,6 +288,7 @@ class GridStateFromFile(GridValue):
           - a file named "maintenance.csv" used to initialize :attr:`GridStateFromFile.maintenance`
 
         All these csv must have the same separator specified by :attr:`GridStateFromFile.sep`.
+        If one of these file is missing, it is equivalent to "change nothing" class.
 
         If a file named "start_datetime.info" is present, then it will be used to initialized
         :attr:`GridStateFromFile.start_datetime`. If this file exists, it should count only one row, with the
