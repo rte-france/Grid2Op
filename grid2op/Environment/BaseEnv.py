@@ -704,13 +704,16 @@ class BaseEnv(GridObjects, ABC):
         return except_
 
     def _save_connected_lines_buses(self):
+        # No updated observation: skip
+        if self.current_obs is None:
+            return
         # All lines indexes
         connected_lines = np.array(range(self.n_line))
         # Only the connected lines indexes
         connected_lines = connected_lines[self.backend.get_line_status()]
 
         # Get lines buses from topo
-        topo = self.backend.get_topo_vect()
+        topo = self.current_obs.topo_vect
         or_pos = self.line_or_pos_topo_vect
         ex_pos = self.line_ex_pos_topo_vect
 

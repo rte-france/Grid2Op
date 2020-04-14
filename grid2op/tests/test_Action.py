@@ -852,6 +852,22 @@ class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
 
+class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerlineSetAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAndDispatchAction)
+
+class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerlineChangeAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAndDispatchAction)
+
 
 class TestDontAct(TestActionBase, unittest.TestCase):
     """

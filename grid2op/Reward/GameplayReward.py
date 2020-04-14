@@ -30,4 +30,4 @@ class GameplayReward(BaseReward):
             return self.reward_max
         else:
             # Keep playing
-            return (self.reward_max / 10.0)
+            return 0.0

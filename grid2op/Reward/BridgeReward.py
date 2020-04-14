@@ -37,14 +37,15 @@ class BridgeReward(BaseReward):
         # Create a graph of vertices
         # Use one vertex per substation per bus
         G = nx.Graph()
-        G.add_nodes_from(range(n_sub * n_bus))
         
         # Set lines edges for current bus
         for line_idx in range(n_line):
             # Skip if line is disconnected
             if obs.line_status[line_idx] is False:
                 continue
-            
+            # Get substation index for current line
+            lor_sub = or_sub[line_idx]
+            lex_sub = ex_sub[line_idx]
             # Get the buses for current line
             lor_bus = topo[or_topo[line_idx]]
             lex_bus = topo[ex_topo[line_idx]]
@@ -53,8 +54,8 @@ class BridgeReward(BaseReward):
                 continue
 
             # Compute edge vertices indices for current graph
-            left_v = (lor_bus - 1) * n_sub
-            right_v = (lex_bus - 1) * n_sub
+            left_v = (lor_bus - 1) * n_bus + lor_sub
+            right_v = (lex_bus - 1) * n_bus + lex_sub
 
             # Register edge in graph
             G.add_edge(left_v, right_v)

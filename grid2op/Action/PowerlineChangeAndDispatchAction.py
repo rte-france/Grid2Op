@@ -8,13 +8,12 @@
 
 from grid2op.Action.PlayableAction import PlayableAction
 
-
-class TopologySetAndDispatchAction(PlayableAction):
+class PowerlineChangeAndDispatchAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` implements the modifications 
-    of the grid with "set" topological actions and allows for redispatching.
+    This type of :class:`PlayableAction` only implements the 
+    modifications of the grid with powerlines switch and dispatch actions.
 
-    It accepts the key words: "set_line_status", "set_bus" and "redispatch".
+    It accepts the key words: "change_line_status" and "redispatch".
     Nothing else is supported and any attempt to use something else 
     will have no impact.
     """
@@ -22,13 +21,11 @@ class TopologySetAndDispatchAction(PlayableAction):
         super().__init__(gridobj)
 
         self.authorized_keys = {
-            "set_line_status",
-            "set_bus",
+            "change_line_status",
             "redispatch"
         }
-        
+
         self.attr_list_vect = [
-            "_set_line_status",
-            "_set_topo_vect",
+            "_switch_line_status",
             "_redispatch"
         ]
