@@ -444,6 +444,26 @@ class TestTopoAction(unittest.TestCase):
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
+    def test_get_topo_vect_speed(self):
+        # retrieve some initial data to be sure only a subpart of the _grid is modified
+        conv = self.backend.runpf()
+        init_amps_flow = self.backend.get_line_flow()
+
+        # check that maintenance vector is properly taken into account
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        id_=1
+        action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
+
+        # apply the action here
+        self.backend.apply_action(action)
+        conv = self.backend.runpf()
+        assert conv
+        after_amps_flow = self.backend.get_line_flow()
+
+        topo_vect = self.backend.get_topo_vect()
+        topo_vect_old = self.backend._get_topo_vect_old()
+        assert self.compare_vect(topo_vect, topo_vect_old) == True
+
     def test_topo_set1sub(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         conv = self.backend.runpf()

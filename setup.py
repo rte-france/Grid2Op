@@ -33,8 +33,8 @@ pkgs = {
             "plotly>=4.5.4",
             "seaborn>=0.10.0",
             "pygame>=1.9.6",
-            "imageio",
-            "imageio_ffmpeg"
+            "imageio>=2.8.0",
+            "imageio_ffmpeg>=0.4.1"
         ],
         "challenge": [
             "tensorflow==2.1.0",
@@ -55,7 +55,7 @@ pkgs = {
             "sphinx>=2.4.4",
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
-            "autodocsumm",
+            "autodocsumm>=0.1.13"
         ]
     }
 }

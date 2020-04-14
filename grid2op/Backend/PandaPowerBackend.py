@@ -696,7 +696,7 @@ class PandaPowerBackend(Backend):
 
         return res
 
-    def get_topo_vect_old(self):
+    def _get_topo_vect_old(self):
         # beg__ = time.time()
         # TODO refactor this, this takes a looong time
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)

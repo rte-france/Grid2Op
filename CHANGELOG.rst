@@ -3,6 +3,8 @@ Change Log
 
 [TODO]
 --------------------
+- [???] Extensive tests for BridgeReward
+- [???] Extensive tests for DistanceReward
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
@@ -28,11 +30,16 @@ Change Log
 - [BREAKING] class `grid2op.Environment.ObsEnv` has been renamed `_ObsEnv` to insist on its "privateness". As this class
   should not be used outside of this code base, no backward compatibility has been enforced.
 - [DEPRECATION] `grid2op.Action.TopoAndRedispAction` is now `grid2op.Action.TopologyAndDispatchAction`.
+- [FIXED] Performances caveats regarding `grid2op.Backend.PandaPowerBackend.get_topo_vect`: Reduced the method running time and reduced number of direct calls to it. 
 - [FIXED] Command line install scripts: Can now use `grid2op.main` and `grid2op.download` after installing the package
 - [FIXED] a bug that prevented to perform redispatching action if the sum of the action was neglectible (*eg* 1e-14)
   instead of an exact `0`.
 - [ADDED] `grid2op.Backend.reset` as a way for backends to implement a faster way to reload the grid. Implemented in
   `grid2op.Backend.PandaPowerBackend`
+- [ADDED] `grid2op.Action.PowerlineChangeAndDispatchAction` A subset of actions to limit the agents scope to 'switch line' and 'dispatch' operations only
+- [ADDED] `grid2op.Action.PowerlineChangeAction` A subset of actions to limit the agents scope to 'switch line' operations only
+- [ADDED] `grid2op.Action.PowerlineSetAndDispatchAction` A subset of actions to limit the agents scope to 'set line' and 'dispatch' operations only
+- [ADDED] `grid2op.Action.PowerlineSetAction` A subset of actions to limit the agents scope to 'set line' operations only
 - [ADDED] `grid2op.Action.TopologySetAction` A subset of actions to limit the agents scope to 'set' operations only
 - [ADDED] `grid2op.Action.TopologySetAndDispatchAction` A subset of actions to limit the agents scope to 'set' and
   'redisp' operations only

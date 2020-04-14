@@ -14,7 +14,7 @@ import os
 import pkg_resources
 import argparse
 
-from grid2op.Observation import ObservationHelper, CompleteObservation, ObsEnv
+from grid2op.Observation import ObservationHelper, CompleteObservation
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import FlatReward
 from grid2op.Agent import DoNothingAgent

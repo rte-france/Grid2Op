@@ -11,11 +11,13 @@ from grid2op.Action import BaseAction
 
 class TopologyAndDispatchAction(BaseAction):
     """
-    This type of :class:`PlayableAction` implements the modifications of the grid with topological and redispatching
-    actions.
+    This type of :class:`PlayableAction` implements the modifications 
+    of the grid with topological and redispatching actions.
 
-    It accepts the key words: "set_line_status", "change_line_status", "set_bus", "change_bus" and "redispatch".
-    Nothing else is supported and any attempt to use something else will have not impact.
+    It accepts the key words: "set_line_status", "change_line_status", 
+    "set_bus", "change_bus" and "redispatch".
+    Nothing else is supported and any attempt to use something else 
+    will have no impact.
     """
     def __init__(self, gridobj):
         super().__init__(gridobj)
