@@ -11,10 +11,12 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class TopologyChangeAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` implements the modifications of the grid with "change" topological actions.
+    This type of :class:`PlayableAction` implements the modifications 
+    of the grid with "change" topological actions.
 
     It accepts the key words: "change_line_status" and "change_bus".
-    Nothing else is supported and any attempt to use something else will have not impact.
+    Nothing else is supported and any attempt to use something else 
+    will have no impact.
     """
     def __init__(self, gridobj):
         super().__init__(gridobj)

@@ -11,9 +11,11 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class PowerlineSetAction(PlayableAction):
     """
-    This type of :class:`PlayableAction` only implements the modifications of the grid through "set_line_status" keyword.
+    This type of :class:`PlayableAction` only implements the modifications 
+    of the grid through "set_line_status" keyword.
 
-    Nothing else is supported and any attempt to use something else will have no impact.
+    Nothing else is supported and any attempt to use something 
+    else will have no impact.
 
     """
     def __init__(self, gridobj):
