@@ -3,6 +3,8 @@ Change Log
 
 [TODO]
 --------------------
+- [???] Extensive tests for BridgeReward
+- [???] Extensive tests for DistanceReward
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
