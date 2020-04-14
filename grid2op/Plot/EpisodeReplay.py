@@ -74,7 +74,7 @@ class EpisodeReplay(object):
         self.agent_path = agent_path
         self.episode_data = None
 
-    def replay_episode(self, episode_id, max_fps=10, video_name=None):
+    def replay_episode(self, episode_id, max_fps=10, video_name=None, display=True):
         """
         When called, this function will start the display of the episode in a "mini movie" format.
 
@@ -110,9 +110,12 @@ class EpisodeReplay(object):
         all_obs = [el for el in self.episode_data.observations]
         all_reward = [el for el in self.episode_data.rewards]
         if video_name is not None:
-            total_array = np.zeros((nb_timestep_played, plot_runner.video_width, plot_runner.video_height, 3),
+            total_array = np.zeros((nb_timestep_played+1, plot_runner.video_width, plot_runner.video_height, 3),
                                    dtype=np.uint8)
-            # total_array = np.zeros((50, plot_runner.video_width, plot_runner.video_height, 3), dtype=np.uint8)
+
+        if display is False:
+            plot_runner.deactivate_display()
+
         for i, (obs, reward) in enumerate(zip(all_obs, all_reward)):
             timestamp = datetime(year=obs.year,
                                  month=obs.month,

@@ -211,6 +211,9 @@ class PlotPyGame(BasePlot):
         self.col_gen = pygame.Color(0, 255, 0)
         self.default_color = pygame.Color(0, 0, 0)
 
+        # deactivate the display on the screen
+        self._deactivate_display = False
+
     def init_pygame(self):
         if self.__is_init is False:
             pygame.init()
@@ -253,6 +256,8 @@ class PlotPyGame(BasePlot):
 
     def _event_looper(self, force=False):
         has_quit = False
+        if self._deactivate_display:
+            return force, has_quit
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 has_quit = True
@@ -281,6 +286,8 @@ class PlotPyGame(BasePlot):
             will be computed. ``False`` otherwise.
 
         """
+        if self._deactivate_display:
+            return
         has_quit = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -347,6 +354,9 @@ class PlotPyGame(BasePlot):
         self.__is_init = False
         raise PyGameQuit()
 
+    def deactivate_display(self):
+        self._deactivate_display = True
+
     def get_rgb(self, obs, reward=None, done=None, timestamp=None):
         """
         Computes and returns the rgb 3d array from an observation, and potentially other informations.
@@ -396,7 +406,8 @@ class PlotPyGame(BasePlot):
             self.nb_timestep += 1
 
         # The game is not paused anymore (or never has been), I can render the next surface
-        if self.time_last is not None:
+
+        if self.time_last is not None and self._deactivate_display is False:
             tmp = time.time()  # in second
             if tmp - self.time_last < self.timestep_duration_seconds:
                 nb_sec_wait = int(1000 * (self.timestep_duration_seconds - (tmp - self.time_last)))
@@ -433,13 +444,14 @@ class PlotPyGame(BasePlot):
         """
         self._draw_final_information(reward, done, timestamp)
         pygame.display.flip()
-        if done:
-            key_pressed = False
-            while not key_pressed:
-                key_pressed, has_quit = self._press_key_to_quit()
-                # TODO that with fps !!!
-                pygame.time.wait(250)  # it's in ms
-            self._quit_and_close()
+        if self._deactivate_display is False:
+            if done:
+                key_pressed = False
+                while not key_pressed:
+                    key_pressed, has_quit = self._press_key_to_quit()
+                    # TODO that with fps !!!
+                    pygame.time.wait(250)  # it's in ms
+                self._quit_and_close()
 
     def _draw_generic_info(self, reward=None, done=None, timestamp=None):
         if reward is not None:

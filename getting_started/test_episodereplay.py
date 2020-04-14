@@ -28,7 +28,14 @@ class CustomRandom(RandomAgent):
 
 runner = Runner(**env.get_params_for_runner(), agentClass=CustomRandom)
 path_agent = os.path.join(path_agents, "RandomAgent")
-res = runner.run(nb_episode=1, path_save=path_agent, pbar=tqdm)
-plot_epi = EpisodeReplay(path_agent)
-#plot_epi.replay_episode("001", max_fps=5, video_name="test.mp4")
-plot_epi.replay_episode(res[0][1], max_fps=2, video_name="random_agent.gif")
+res = runner.run(nb_episode=2, path_save=path_agent, pbar=tqdm)
+
+ep_replay = EpisodeReplay(agent_path=path_agent)
+for _, chron_name, cum_reward, nb_time_step, max_ts in res:
+    ep_replay.replay_episode(chron_name,
+                             video_name=os.path.join(path_agent, chron_name, "epidose.gif"),
+                             display=False)
+if False:
+    plot_epi = EpisodeReplay(path_agent)
+    #plot_epi.replay_episode("001", max_fps=5, video_name="test.mp4")
+    plot_epi.replay_episode(res[0][1], max_fps=2, video_name="random_agent.gif")

@@ -548,7 +548,7 @@ class Runner(object):
         # the "-1" above is because the environment will be reset. So it will increase id of 1.
         obs = env.reset()
         # reset the agent
-        agent.reset()
+        agent.reset(obs)
 
         # compute the size and everything if it needs to be stored
         nb_timestep_max = env.chronics_handler.max_timestep()

@@ -27,10 +27,15 @@ class BaseAgent(ABC):
     def __init__(self, action_space):
         self.action_space = action_space
 
-    def reset(self):
+    def reset(self, obs):
         """
         This method is called at the beginning of a new episode.
         It is implemented by agents to reset their internal state if needed.
+
+        Attributes
+        -----------
+        obs: :class:`grid2op.Observation.BaseObservation`
+            The first observation corresponding to the initial state of the environment.
         """
         pass
 
@@ -42,7 +47,7 @@ class BaseAgent(ABC):
 
         Parameters
         ----------
-        observation: :class:`grid2op.Observation.Observation`
+        observation: :class:`grid2op.Observation.BaseObservation`
             The current observation of the :class:`grid2op.Environment.Environment`
 
         reward: ``float``
@@ -53,7 +58,7 @@ class BaseAgent(ABC):
 
         Returns
         -------
-        res: :class:`grid2op.Action.Action`
+        res: :class:`grid2op.Action.PlaybleAction`
             The action chosen by the bot / controler / agent.
 
         """
