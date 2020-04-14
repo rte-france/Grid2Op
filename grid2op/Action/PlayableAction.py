@@ -13,7 +13,12 @@ import pdb
 from grid2op.Exceptions import AmbiguousAction
 from grid2op.Action.BaseAction import BaseAction
 
+
 class PlayableAction(BaseAction):
+    """
+    From this class inherit all actions that the player will be allowed to do. This includes for example
+    :class:`TopologyAndDispatchAction` or :class:`TopologyAction`
+    """
     def __init__(self, gridobj):
         super().__init__(gridobj)
 

@@ -1,18 +1,16 @@
 __all__ = [
     "CompleteObservation",
-    "ObsEnv",
-    "ObservationSpace",
+    "_ObsEnv",
     "BaseObservation",
-    "SerializableObservationSpace",
-    "ObservationHelper"
+    "ObservationHelper",
+    "Observation"
 ]
 
 
 from grid2op.Observation.CompleteObservation import CompleteObservation
-from grid2op.Observation.ObsEnv import ObsEnv
-from grid2op.Observation.ObservationSpace import ObservationSpace
+from grid2op.Observation._ObsEnv import _ObsEnv
 from grid2op.Observation.BaseObservation import BaseObservation
-from grid2op.Observation.SerializableObservationSpace import SerializableObservationSpace
+from grid2op.Observation.ObservationSpace import ObservationSpace
 import warnings
 
 

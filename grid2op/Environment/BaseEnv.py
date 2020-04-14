@@ -17,15 +17,68 @@ from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
 from grid2op.Reward import RewardHelper
 from grid2op.Opponent import OpponentSpace, UnlimitedBudget
-from grid2op.Action import ActionSpace, DontAct, BaseAction
+from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
+from grid2op.Action import ActionSpace
 import pdb
 
 
-class _BasicEnv(GridObjects, ABC):
+class BaseEnv(GridObjects, ABC):
     """
-    Internal class, do not use
+    Internal class, do not use.
+
+    This class represent some usefull abstraction that is re used by :class:`Environment` and
+    :class:`grid2op.Observation._Obsenv` for example.
+
+    Attributes
+    ----------
+
+    no_overflow_disconnection: ``bool``
+        Whether or not cascading failures are computed or not (TRUE = the powerlines above their thermal limits will
+        not be disconnected). This is initialized based on the attribute
+        :attr:`grid2op.Parameters.Parameters.NO_OVERFLOW_DISCONNECTION`.
+
+    timestep_overflow: ``numpy.ndarray``, dtype: int
+        Number of consecutive timesteps each powerline has been on overflow.
+
+    nb_timestep_overflow_allowed: ``numpy.ndarray``, dtype: int
+        Number of consecutive timestep each powerline can be on overflow. It is usually read from
+        :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_POWERFLOW_ALLOWED`.
+
+    hard_overflow_threshold: ``float``
+        Number of timestep before an :class:`grid2op.BaseAgent.BaseAgent` can reconnet a powerline that has been
+        disconnected
+        by the environment due to an overflow.
+
+    env_dc: ``bool``
+        Whether the environment computes the powerflow using the DC approximation or not. It is usually read from
+        :attr:`grid2op.Parameters.Parameters.ENV_DC`.
+
+
+    TODO update with maintenance, hazards etc. see below
+    # store actions "cooldown"
+    times_before_line_status_actionable
+    max_timestep_line_status_deactivated
+    times_before_topology_actionable
+    max_timestep_topology_deactivated
+    time_next_maintenance
+    duration_next_maintenance
+    hard_overflow_threshold
+    time_remaining_before_reconnection
+
+    # redispacthing
+    target_dispatch
+    actual_dispatch
+
+    gen_activeprod_t:
+        Should be initialized at 0. for "step" to properly recognize it's the first time step of the game
+
+    other_rewards: ``dict``
+        Dictionnary with key being the name (identifier) and value being some RewardHelper. At each time step, all the
+        values will be computed by the :class:`Environment` and the information about it will be returned in the
+        "reward" key of the "info" dictionnary of the :func:`Environment.step`.
+
     """
     def __init__(self,
                  parameters,
@@ -133,8 +186,11 @@ class _BasicEnv(GridObjects, ABC):
         self.other_rewards = {}
         for k, v in other_rewards.items():
             if not issubclass(v, BaseReward):
-                raise Grid2OpException("All keys of \"rewards\" key word argument should be classes that inherit from "
-                                       "\"grid2op.BaseReward\"")
+                raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
+                                       "from \"grid2op.BaseReward\"")
+            if not isinstance(k, str):
+                raise Grid2OpException("All keys of \"rewards\" should be of string type.")
+
             self.other_rewards[k] = RewardHelper(v)
 
         # opponent
@@ -289,7 +345,7 @@ class _BasicEnv(GridObjects, ABC):
     @staticmethod
     def _get_t(tmp_p, pmin, pmax, total_dispatch):
         # to_dispatch = too_much.sum() + not_enough.sum()
-        p_0, p_1, p_2 = _BasicEnv._get_poly_coeff(tmp_p, pmin, pmax)
+        p_0, p_1, p_2 = BaseEnv._get_poly_coeff(tmp_p, pmin, pmax)
 
         res = np.roots((p_2, p_1, p_0-(total_dispatch)))
         res = res[np.isreal(res)]
@@ -588,7 +644,7 @@ class _BasicEnv(GridObjects, ABC):
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
         function can be overide for a more complex handling of the voltages.
 
-        It mush update (if needed) the voltages of the environment action :attr:`BasicEnv.env_modification`
+        It must update (if needed) the voltages of the environment action :attr:`BaseEnv.env_modification`
 
         Parameters
         ----------

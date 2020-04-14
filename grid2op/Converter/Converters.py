@@ -5,43 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-In this module of grid2op, the "converters" are defined.
-
-A converter is a specific class of :class:`grid2op.BaseAction.ActionSpace` (ie of BaseAction Space) that allows the agent to
-manipulate this action to have a different representation of it.
-
-For example, suppose we are dealing with TopologyAction (only manipulating the graph of the powergrid). This is a
-discrete "action space". Often, it's custom to deal with such action space by enumerating all actions, and then assign
-to all valid actions a unique ID.
-
-This can be done easily with the :class:`IdToAct` class.
-
-More concretely, the diagram of an agent is:
-
-i) receive an observation (in a form of an object of class :class:`grid2op.BaseObservation.BaseObservation`)
-ii) implement the :func:`grid2op.BaseAgent.BaseAgent.act` taking as input an :class:`grid2op.BaseObservation.BaseObservation` and
-    returning an :class:`grid2op.BaseAction.BaseAction`
-iii) this :class:`grid2op.BaseAction.BaseAction` is then digested by the environment
-
-Introducing some converters lead to the following:
-
-i) receive an observation (:class:`grid2op.BaseObservation.BaseObservation`)
-ii) the transformer automatically (using :func:`Converter.convert_obs`) to a `transformed observation`
-iii) implement the function :func:`grid2op.BaseAgent.AgentWithConverter.my_act` that takes as input
-     a `transformed observation` and returns an `encoded action`
-iv) the transformer automatically transforms back the `encoded action` into a proper :class:`grid2op.BaseAction.BaseAction`
-v) this :class:`grid2op.BaseAction.BaseAction` is then digested by the environment
-
-This simple mechanism allows people to focus on iii) above (typically implemented with artificial neural networks)
-without having to worry each time about the complex representations of actions and observations.
-
-More details and a concrete example is given in the documentation of the class
-:class:`grid2op.BaseAgent.AgentWithConverter`.
-
-Some examples of converters are given in :class:`IdToAct` and :class:`ToVect`.
-"""
 from grid2op.Action import ActionSpace
 
 import pdb

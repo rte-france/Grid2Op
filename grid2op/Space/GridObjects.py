@@ -12,6 +12,10 @@ This class abstracts the main components of BaseAction, BaseObservation, ActionS
 It represents a powergrid (the object in it) in a format completely agnostic to the solver used to compute
 the power flows (:class:`grid2op.Backend.Backend`).
 
+See :class:`grid2op.Converter` for a different type of Action / Observation. These can be used to transform
+complex :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observaion` into more convient structures
+to manipulate.
+
 """
 import os
 import numpy as np
@@ -32,8 +36,8 @@ class GridObjects:
 
     It stores information about numbers of objects, and which objects are where, their names, etc.
 
-    The classes :class:`grid2op.BaseAction.BaseAction`, :class:`grid2op.BaseAction.ActionSpace`,
-    :class:`grid2op.BaseObservation.BaseObservation`, :class:`grid2op.BaseObservation.ObservationSpace` and
+    The classes :class:`grid2op.Action.BaseAction`, :class:`grid2op.Action.ActionSpace`,
+    :class:`grid2op.Observation.BaseObservation`, :class:`grid2op.Observation.ObservationSpace` and
     :class:`grid2op.Backend.Backend` all inherit from this class. This means that each of the above has its own
     representation of the powergrid.
 
@@ -65,19 +69,19 @@ class GridObjects:
 
     We define the "topology" as the busbar to which each object is connected: each object being connected to either
     busbar 1 or busbar 2, this topology can be represented by a vector of fixed size (and it actually is in
-    :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` or in :func:`grid2op.Backend.Backend.get_topo_vect`). There are
+    :attr:`grid2op.Observation.BaseObservation.topo_vect` or in :func:`grid2op.Backend.Backend.get_topo_vect`). There are
     multiple ways to make such a vector. We decided to concatenate all the (fictive) vectors described above. This
     concatenation represents the actual topology of this powergrid at a given timestep. This class doesn't store this
-    information (see :class:`grid2op.BaseObservation.BaseObservation` for such purpose).
+    information (see :class:`grid2op.Observation.BaseObservation` for such purpose).
     This entails that:
 
     - the bus to which each object on a substation will be stored in consecutive components of such a vector. For
       example, if the first substation of the grid has 5 elements connected to it, then the first 5 elements of
-      :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` will represent these 5 elements. The number of elements
+      :attr:`grid2op.Observation.BaseObservation.topo_vect` will represent these 5 elements. The number of elements
       in each substation is given in :attr:`grid2op.Space.GridObjects.sub_info`.
     - the substation are stored in "order": objects of the first substations are represented, then this is the objects
       of the second substation etc. So in the example above, the 6th element of
-      :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` is an object connected to the second substation.
+      :attr:`grid2op.Observation.BaseObservation.topo_vect` is an object connected to the second substation.
     - to know on which position of this "topology vector" we can find the information relative a specific element
       it is possible to:
 
@@ -89,11 +93,11 @@ class GridObjects:
           ii) once this substation id is known, compute which are the components of the topological vector that encodes
               information about this substation. For example, if the substation id `sub_id` is 4, we a) count the number
               of elements in substations with id 0, 1, 2 and 3 (say it's 42) we know, by definition that the substation
-              4 is encoded in ,:attr:`grid2op.BaseObservation.BaseObservation.topo_vect` starting at component 42 and b) this
+              4 is encoded in ,:attr:`grid2op.Observation.BaseObservation.topo_vect` starting at component 42 and b) this
               substations has :attr:`GridObjects.sub_info` [sub_id] elements (for the sake of the example say it's 5)
               then the end of the vector for substation 4 will be 42+5 = 47. Finally, we got the representation of the
               "local topology" of the substation 4 by looking at
-              :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` [42:47].
+              :attr:`grid2op.Observation.BaseObservation.topo_vect` [42:47].
           iii) retrieve which component of this vector of dimension 5 (remember we assumed substation 4 had 5 elements)
                encodes information about the origin end of the line with id `l_id`. This information is given in
                :attr:`GridObjects.line_or_to_sub_pos` [l_id]. This is a number between 0 and 4, say it's 3. 3 being
@@ -104,7 +108,7 @@ class GridObjects:
           :attr:`GridObjects.line_or_pos_topo_vect` [l_id] = 45 (=42+3:
           42 being the index on which the substation started and 3 being the index of the object in the substation)
         - method 3 (recommended): use any of the function that computes it for you:
-          :func:`grid2op.BaseObservation.BaseObservation.state_of` is such an interesting method. The two previous methods
+          :func:`grid2op.Observation.BaseObservation.state_of` is such an interesting method. The two previous methods
           "method 1" and "method 2" were presented as a way to give detailed and "concrete" example on how the
           modeling of the powergrid work.
 

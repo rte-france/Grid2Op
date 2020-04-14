@@ -10,7 +10,7 @@ import copy
 import numpy as np
 import pdb
 
-from grid2op.Environment.BasicEnv import _BasicEnv
+from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
 from grid2op.Action import BaseAction
@@ -25,19 +25,21 @@ class _ObsCH(ChangeNothing):
         return []
 
 
-class ObsEnv(_BasicEnv):
+class _ObsEnv(BaseEnv):
     """
-    This class is an 'Emulator' of a :class:`grid2op.Environment` used to be able to 'simulate' forecasted grid states.
-    It should not be used outside of an :class:`grid2op.BaseObservation` instance, or one of its derivative.
+    This class is an 'Emulator' of a :class:`grid2op.Environment.Environment` used to be able to 'simulate'
+    forecasted grid states.
+    It should not be used outside of an :class:`grid2op.Observation.BaseObservation` instance, or one of its derivative.
 
-    It contains only the most basic element of an Environment. See :class:`grid2op.Environment` for more details.
+    It contains only the most basic element of an Environment. See :class:`grid2op.Environment.Environment` for more
+    details.
 
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
     def __init__(self, backend_instanciated, parameters, reward_helper, obsClass,
                  action_helper, thermal_limit_a, legalActClass, donothing_act,
                  other_rewards={}):
-        _BasicEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
+        BaseEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
         self.donothing_act = donothing_act
         self.reward_helper = reward_helper
         self.obsClass = None
@@ -243,7 +245,7 @@ class ObsEnv(_BasicEnv):
 
         Parameters
         ----------
-        env: :class:`grid2op.Environement._BasicEnv`
+        env: :class:`grid2op.Environement.BaseEnv`
             A reference to the environement
 
         Returns

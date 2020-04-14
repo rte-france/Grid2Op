@@ -23,10 +23,14 @@ Change Log
 
 [0.7.0] - 2020-04-??
 --------------------
+- [BREAKING] class `grid2op.Environment.BasicEnv` has been renamed `BaseEnv` for consistency. As this class
+  should not be used outside of this code base, no backward compatibility has been enforced.
+- [BREAKING] class `grid2op.Environment.ObsEnv` has been renamed `_ObsEnv` to insist on its "privateness". As this class
+  should not be used outside of this code base, no backward compatibility has been enforced.
 - [DEPRECATION] `grid2op.Action.TopoAndRedispAction` is now `grid2op.Action.TopologyAndDispatchAction`.
 - [FIXED] Command line install scripts: Can now use `grid2op.main` and `grid2op.download` after installing the package
 - [FIXED] a bug that prevented to perform redispatching action if the sum of the action was neglectible (*eg* 1e-14)
-  instead of a bare 0.
+  instead of an exact `0`.
 - [ADDED] `grid2op.Backend.reset` as a way for backends to implement a faster way to reload the grid. Implemented in
   `grid2op.Backend.PandaPowerBackend`
 - [ADDED] `grid2op.Action.TopologySetAction` A subset of actions to limit the agents scope to 'set' operations only
@@ -38,6 +42,10 @@ Change Log
 - [ADDED] `grid2op.Action.DispatchAction` A subset of actions to limit the agents scope to 'redisp' operations only
 - [ADDED] a new method to plot other values that the default one for plotplotly.
 - [ADDED] a better plotting utilities that is now consistent with `PlotPlotly`, `PlotMatplotlib` and `PlotPyGame`
+- [ADDED] a class to replay a logger using `PlotPyGame` class (`grid2op.Plot.EpisodeReplay`)
+- [ADDED] a method to parse back the observations with lower memory footprint and faster, when the observations
+  are serialized into a numpy array by the runner, and only some attributes are necessary.
+- [UPDATED] overall documentation: more simple theme, easier organization of each sections.
 
 
 [0.6.1] - 2020-04-??

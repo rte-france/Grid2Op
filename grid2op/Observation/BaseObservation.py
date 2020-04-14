@@ -5,39 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-In a "reinforcement learning" framework, an :class:`grid2op.BaseAgent` receive two information before taking any action on
-the :class:`grid2op.Environment`. One of them is the :class:`grid2op.BaseReward` that tells it how well the past action
-performed. The second main input received from the environment is the :class:`BaseObservation`. This is gives the BaseAgent
-partial, noisy, or complete information about the current state of the environment. This module implement a generic
-:class:`BaseObservation`  class and an example of a complete observation in the case of the Learning
-To Run a Power Network (`l2RPN <https://l2rpn.chalearn.org/>`_ ) competition.
-
-Compared to other Reinforcement Learning problems the L2PRN competition allows another flexibility. Today, when
-operating a powergrid, operators have "forecasts" at their disposal. We wanted to make them available in the
-L2PRN competition too. In the  first edition of the L2PRN competition, was offered the
-functionality to simulate the effect of an action on a forecasted powergrid.
-This forecasted powergrid used:
-
-  - the topology of the powergrid of the last know time step
-  - all the injections of given in files.
-
-This functionality was originally attached to the Environment and could only be used to simulate the effect of an action
-on this unique time step. We wanted in this recoding to change that:
-
-  - in an RL setting, an :class:`grid2op.BaseAgent` should not be able to look directly at the :class:`grid2op.Environment`.
-    The only information about the Environment the BaseAgent should have is through the :class:`grid2op.BaseObservation` and
-    the :class:`grid2op.BaseReward`. Having this principle implemented will help enforcing this principle.
-  - In some wider context, it is relevant to have these forecasts available in multiple way, or modified by the
-    :class:`grid2op.BaseAgent` itself (for example having forecast available for the next 2 or 3 hours, with the BaseAgent able
-    not only to change the topology of the powergrid with actions, but also the injections if he's able to provide
-    more accurate predictions for example.
-
-The :class:`BaseObservation` class implement the two above principles and is more flexible to other kind of forecasts,
-or other methods to build a power grid based on the forecasts of injections.
-"""
-
 import copy
 import numpy as np
 from abc import ABC, abstractmethod

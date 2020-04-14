@@ -5,51 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-This module defines the :class:`Environment` the higher level representation of the world with which an
-:class:`grid2op.BaseAgent` will interact.
-
-The environment receive an :class:`grid2op.BaseAction.BaseAction` from the :class:`grid2op.BaseAgent.BaseAgent` in the
-:func:`Environment.step`
-and returns an
-:class:`grid2op.BaseObservation.BaseObservation` that the :class:`grid2op.BaseAgent.BaseAgent` will use to perform the next action.
-
-An environment is better used inside a :class:`grid2op.Runner.Runner`, mainly because runners abstract the interaction
-between environment and agent, and ensure the environment are properly reset after each episode.
-
-It is however totally possible to use as any gym Environment.
-
-Example (adapted from gym documentation available at
-`gym random_agent.py <https://github.com/openai/gym/blob/master/examples/agents/random_agent.py>`_ ):
-
-.. code-block:: python
-
-    import grid2op
-    from grid2op.BaseAgent import DoNothingAgent
-    env = grid2op.make()
-    agent = DoNothingAgent(env.action_space)
-    env.seed(0)
-    episode_count = 100
-    reward = 0
-    done = False
-    total_reward = 0
-    for i in range(episode_count):
-        ob = env.reset()
-        while True:
-           action = agent.act(ob, reward, done)
-           ob, reward, done, _ = env.step(action)
-           total_reward += reward
-           if done:
-               # in this case the episode is over
-               break
-
-    # Close the env and write monitor result info to disk
-    env.close()
-    print("The total reward was {:.2f}".format(total_reward))
-
-"""
-
 import numpy as np
 import os
 import copy
@@ -63,7 +18,7 @@ from grid2op.Rules import RulesChecker, AlwaysLegal, BaseRules
 from grid2op.Backend import Backend
 from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
-from grid2op.Environment.BasicEnv import _BasicEnv
+from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent
 from grid2op.Plot import PlotPyGame
 from grid2op.Exceptions.PlotExceptions import PyGameQuit
@@ -71,9 +26,11 @@ from grid2op.Exceptions.PlotExceptions import PyGameQuit
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
 
-class Environment(_BasicEnv):
+class Environment(BaseEnv):
     """
+    This class is the grid2op implementation of the "Environment" entity in the RL framework.
 
+    TODO clean the attribute, make a doc for all of them, move the description of some of them in BaseEnv when relevant.
     Attributes
     ----------
     logger: ``logger``
@@ -97,11 +54,12 @@ class Environment(_BasicEnv):
     backend: :class:`grid2op.Backend.Backend`
         The backend used to compute powerflows and cascading failures.
 
-    game_rules: :class:`grid2op.GameRules.RulesChecker`
+    game_rules: :class:`grid2op.Rules.RulesChecker`
         The rules of the game (define which actions are legal and which are not)
 
     helper_action_player: :class:`grid2op.Action.ActionSpace`
-        Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.BaseAgent` (player)
+        Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent.BaseAgent`
+        (player)
 
     helper_action_env: :class:`grid2op.Action.ActionSpace`
         Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
@@ -111,26 +69,6 @@ class Environment(_BasicEnv):
 
     current_obs: :class:`grid2op.Observation.Observation`
         The current observation (or None if it's not intialized)
-
-    no_overflow_disconnection: ``bool``
-        Whether or not cascading failures are computed or not (TRUE = the powerlines above their thermal limits will
-        not be disconnected). This is initialized based on the attribute
-        :attr:`grid2op.Parameters.Parameters.NO_OVERFLOW_DISCONNECTION`.
-
-    timestep_overflow: ``numpy.ndarray``, dtype: int
-        Number of consecutive timesteps each powerline has been on overflow.
-
-    nb_timestep_overflow_allowed: ``numpy.ndarray``, dtype: int
-        Number of consecutive timestep each powerline can be on overflow. It is usually read from
-        :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_POWERFLOW_ALLOWED`.
-
-    hard_overflow_threshold: ``float``
-        Number of timestep before an :class:`grid2op.BaseAgent.BaseAgent` can reconnet a powerline that has been disconnected
-        by the environment due to an overflow.
-
-    env_dc: ``bool``
-        Whether the environment computes the powerflow using the DC approximation or not. It is usually read from
-        :attr:`grid2op.Parameters.Parameters.ENV_DC`.
 
     chronics_handler: :class:`grid2op.ChronicsHandler.ChronicsHandler`
         Helper to get the modification of each time step during the episode.
@@ -170,29 +108,6 @@ class Environment(_BasicEnv):
 
     current_reward: ``float``
         The reward of the current time step
-
-    TODO update with maintenance, hazards etc. see below
-    # store actions "cooldown"
-    times_before_line_status_actionable
-    max_timestep_line_status_deactivated
-    times_before_topology_actionable
-    max_timestep_topology_deactivated
-    time_next_maintenance
-    duration_next_maintenance
-    hard_overflow_threshold
-    time_remaining_before_reconnection
-
-    # redispacthing
-    target_dispatch
-    actual_dispatch
-
-    gen_activeprod_t:
-        Should be initialized at 0. for "step" to properly recognize it's the first time step of the game
-
-    other_rewards: ``dict``
-        Dictionnary with key being the name (identifier) and value being some RewardHelper. At each time step, all the
-        values will be computed by the :class:`Environment` and the information about it will be returned in the
-        "reward" key of the "info" dictionnary of the :func:`Environment.step`.
     """
     def __init__(self,
                  init_grid_path: str,
@@ -213,26 +128,7 @@ class Environment(_BasicEnv):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0
                  ):
-        """
-        Initialize the environment. See the descirption of :class:`grid2op.Environment.Environment` for more information.
-
-        Parameters
-        ----------
-        init_grid_path: ``str``
-            Used to initailize :attr:`Environment.init_grid_path`
-
-        chronics_handler
-        backend
-        parameters
-        names_chronics_to_backend
-        actionClass
-        observationClass
-        rewardClass
-        legalActClass
-        """
-        # TODO documentation!!
-
-        _BasicEnv.__init__(self,
+        BaseEnv.__init__(self,
                            parameters=parameters,
                            thermal_limit_a=thermal_limit_a,
                            epsilon_poly=epsilon_poly,
@@ -251,7 +147,7 @@ class Environment(_BasicEnv):
         self.metadata = None
         self.spec = None
 
-        # for opponent (should be defined here) after the initialization of _BasicEnv
+        # for opponent (should be defined here) after the initialization of BaseEnv
         self.opponent_action_class = opponent_action_class
         self.opponent_class = opponent_class
         self.opponent_init_budget = opponent_init_budget
@@ -265,6 +161,24 @@ class Environment(_BasicEnv):
                      init_grid_path, chronics_handler, backend,
                      names_chronics_to_backend, actionClass, observationClass,
                      rewardClass, legalActClass):
+        """
+        TODO documentation
+
+        Parameters
+        ----------
+        init_grid_path
+        chronics_handler
+        backend
+        names_chronics_to_backend
+        actionClass
+        observationClass
+        rewardClass
+        legalActClass
+
+        Returns
+        -------
+
+        """
 
         if not isinstance(rewardClass, type):
             raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should be a type (a class) "
@@ -420,7 +334,7 @@ class Environment(_BasicEnv):
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
         function can be overide for a more complex handling of the voltages.
 
-        It mush update (if needed) the voltages of the environment action :attr:`BasicEnv.env_modification`
+        It must update (if needed) the voltages of the environment action :attr:`BaseEnv.env_modification`
 
         Parameters
         ----------
@@ -515,6 +429,16 @@ class Environment(_BasicEnv):
         self.chronics_handler.tell_id(id_-1)
 
     def attach_renderer(self, graph_layout=None):
+        """
+        This function will attach a renderer, necessary to use for plotting capabilities.
+
+        Parameters
+        ----------
+        graph_layout: ``dict`` or ``list``
+            If ``None`` this class will use the default substations layout provided when the environment was created.
+            Otherwise it will use the data provided.
+
+        """
         if self.viewer is not None:
             return
 
@@ -543,9 +467,6 @@ class Environment(_BasicEnv):
         if self._thermal_limit_a is not None:
             self.backend.set_thermal_limit(self._thermal_limit_a)
 
-        # TODO this is super weird!!!!
-        # self.gen_downtime = self.gen_min_downtime + 1
-        # self.gen_uptime = self.gen_min_uptime + 1
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
@@ -559,11 +480,13 @@ class Environment(_BasicEnv):
         """
         Add a text logger to this  :class:`Environment`
 
-        Logging is for now an incomplete feature. It will get improved
+        Logging is for now an incomplete feature, really incomplete (beta)
+
+
         Parameters
         ----------
-            logger:
-               The logger to use
+        logger:
+           The logger to use
 
         """
         self.logger = logger
@@ -625,6 +548,9 @@ class Environment(_BasicEnv):
         return self.get_obs()
 
     def render(self, mode='human'):
+        """
+        Render the state of the environment on the screen.
+        """
         err_msg = "Impossible to use the renderer, please set it up with  \"env.init_renderer(graph_layout)\", " \
                   "graph_layout being the position of each substation of the powergrid that you must provide"
         self.attach_renderer()

@@ -231,7 +231,8 @@ class TestActionBase(ABC):
             action = self.helper_action({"hazards": disco})
             for j in range(self.helper_action.n_line):
                 expected_res = -1 if j == i else 0
-                assert action.effect_on(line_id=j)["set_line_status"] == expected_res, "problem with line {} if line {} is disconnected".format(j, i)
+                assert action.effect_on(line_id=j)["set_line_status"] == expected_res, \
+                    "problem with line {} if line {} is disconnected".format(j, i)
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_status(self):
@@ -474,16 +475,18 @@ class TestActionBase(ABC):
         for el in action.attr_list_vect[:id_set]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
-        tmp[size_before:(size_before+action.dim_topo)] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 0])
+        tmp[size_before:(size_before+action.dim_topo)] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 0,
+                                                                   0, 0])
 
         id_change = np.where(np.array(action.attr_list_vect) == "_change_bus_vect")[0][0]
         size_before = 0
         for el in action.attr_list_vect[:id_change]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
-        tmp[size_before:(size_before + action.dim_topo)] = 1.0 * np.array([False, False, False, False, False, False,  True,  True,  True,
+        tmp[size_before:(size_before + action.dim_topo)] = 1.0 * np.array([False, False, False, False, False, False,
+                                                                           True,  True,  True,
                                    False, False, False, False, False, False, False, False, False,
                                    False, False, False, False, False, False, False, False, False,
                                    False, False, False, False, False, False, False, False, False,
@@ -538,7 +541,6 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_line_status')
         self._skipMissingKey('change_line_status')
         self._skipMissingKey('injection')
-
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
@@ -753,6 +755,13 @@ class TestActionBase(ABC):
         assert np.sum(line_impact) == 1
         assert np.all(sub_impact == [False, True] + [False for _ in range(12)])
 
+    def test_extract_from_vect(self):
+        self._skipMissingKey('set_line_status')
+        act = self.helper_action()
+        vect = act.to_vect()
+        res = self.helper_action.extract_from_vect(vect, "_set_line_status")
+        assert np.all(res == act._set_line_status)
+
 
 class TestAction(TestActionBase, unittest.TestCase):
     """
@@ -771,6 +780,7 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
 
+
 class TestDispatchAction(TestActionBase, unittest.TestCase):
     """
     Test suite using the DispatchAction class
@@ -778,6 +788,7 @@ class TestDispatchAction(TestActionBase, unittest.TestCase):
 
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DispatchAction)
+
 
 class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
     """
@@ -787,6 +798,7 @@ class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
 
+
 class TestTopologySetAction(TestActionBase, unittest.TestCase):
     """
     Test suite using the TopologySetAction class
@@ -794,6 +806,7 @@ class TestTopologySetAction(TestActionBase, unittest.TestCase):
 
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAction)
+
 
 class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
     """
@@ -803,6 +816,7 @@ class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAndDispatchAction)
 
+
 class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
     """
     Test suite using the TopologySetAction class
@@ -810,6 +824,7 @@ class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
 
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAction)
+
 
 class TestTopologyChangeAndDispatchAction(TestActionBase, unittest.TestCase):
     """
@@ -827,6 +842,7 @@ class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
 
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
+
 
 class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
     """
@@ -853,9 +869,9 @@ class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAndDispatchAction)
 
 
-class TestPowerDontAct(TestActionBase, unittest.TestCase):
+class TestDontAct(TestActionBase, unittest.TestCase):
     """
-    Test suite using the PowerlineSetAction class
+    Test suite using the DontAct class
     """
 
     def _action_setup(self):

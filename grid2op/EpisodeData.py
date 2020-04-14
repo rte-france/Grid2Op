@@ -10,40 +10,42 @@
 This module provides a way to serialize on disk et deserialize one run episode along with some 
 methods and utilities to ease its manipulation.
 
-If enabled when usign the :class:`Runner`, the :class:`EpisodeData` will save the information in a structured way. For each episode there will be a folder
-with:
+If enabled when usign the :class:`Runner`, the :class:`EpisodeData`
+will save the information in a structured way. For each episode there will be a folder with:
 
   - "episode_meta.json" that represents some meta information about:
 
-    - "backend_type": the name of the :class:`grid2op.Backend` class used
+    - "backend_type": the name of the :class:`grid2op.Backend.Backend` class used
     - "chronics_max_timestep": the **maximum** number of timestep for the chronics used
     - "chronics_path": the path where the temporal data (chronics) are located
     - "env_type": the name of the :class:`grid2op.Environment` class used.
     - "grid_path": the path where the powergrid has been loaded from
 
   - "episode_times.json": gives some information about the total time spend in multiple part of the runner, mainly the
-    :class:`grid2op.BaseAgent` (and especially its method :func:`grid2op.BaseAgent.act`) and amount of time spent in the
-    :class:`grid2op.Environment`
+    :class:`grid2op.Agent.BaseAgent` (and especially its method :func:`grid2op.BaseAgent.act`) and amount of time
+    spent in the :class:`grid2op.Environment.Environment`
 
   - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters.Parameters` used for this episode
   - "rewards.npy" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
     reward at index `i` is the one observed by the agent at time `i` and **NOT** the reward sent by the
     :class:`grid2op.Environment` after the action has been implemented.
   - "exec_times.npy" is a numpy 1d array giving the execution time of each time step of the episode
-  - "actions.npy" gives the actions that has been taken by the :class:`grid2op.BaseAgent.BaseAgent`. At row `i` of "actions.npy" is a
+  - "actions.npy" gives the actions that has been taken by the :class:`grid2op.BaseAgent.BaseAgent`. At row `i` of
+    "actions.npy" is a
     vectorized representation of the action performed by the agent at timestep `i` *ie.* **after** having observed
     the observation present at row `i` of "observation.npy" and the reward showed in row `i` of "rewards.npy".
   - "disc_lines.npy" gives which lines have been disconnected during the simulation of the cascading failure at each
     time step. The same convention as for "rewards.npy" has been adopted. This means that the powerlines are
-    disconnected when the :class:`grid2op.BaseAgent` takes the :class:`grid2op.BaseAction` at time step `i`.
-  - "observations.npy" is a numpy 2d array reprensenting the :class:`grid2op.BaseObservation.BaseObservation` at the disposal of the
-    :class:`grid2op.BaseAgent` when he took his action.
+    disconnected when the :class:`grid2op.Agent.BaseAgent` takes the :class:`grid2op.BaseAction` at time step `i`.
+  - "observations.npy" is a numpy 2d array representing the :class:`grid2op.BaseObservation.BaseObservation` at the
+    disposal of the
+    :class:`grid2op.Agent.BaseAgent` when he took his action.
   - "env_modifications.npy" is a 2d numpy array representing the modification of the powergrid from the environment.
     these modification usually concerns the hazards, maintenance, as well as modification of the generators production
     setpoint or the loads consumption.
 
-All of the above should allow to read back, and better understand the behaviour of some :class:`grid2op.BaseAgent.BaseAgent`, even
-though such utility functions have not been coded yet.
+All of the above should allow to read back, and better understand the behaviour of some
+:class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
 """
 
 import datetime as dt
@@ -117,9 +119,12 @@ class EpisodeData:
             self.episode_path = os.path.join(self.agent_path, name)
             self.serialize = True
             if not os.path.exists(self.agent_path):
-                os.mkdir(self.agent_path)
-                self.logger.info(
-                    "Creating path \"{}\" to save the runner".format(self.agent_path))
+                try:
+                    os.mkdir(self.agent_path)
+                    self.logger.info(
+                        "Creating path \"{}\" to save the runner".format(self.agent_path))
+                except FileExistsError:
+                    pass
 
             act_space_path = os.path.join(
                 self.agent_path, EpisodeData.ACTION_SPACE)
@@ -315,23 +320,30 @@ class EpisodeData:
 class CollectionWrapper:
     """
     A wrapping class to add some behaviors (iterability, item access, update, save)
-    to grid2op object collections (BaseAction and BaseObservation classes essentially).
+    to grid2op object collections (:class:`grid2op.Action.BaseAction` and :class:`grid2op.Observation.BaseObservation`
+    classes essentially).
 
     Attributes
     ----------
     collection: ``type``
         The collection to wrap.
+
     helper:
         The helper object used to access elements of the collection through a 
         `from_vect` method.
+
     collection_name: ``str``
         The name of the collection.
+
     elem_name: ``str``
         The name of one element of the collection.
+
     i: ``int``
         Integer used for iteration.
+
     _game_over: ``int``
         The time step at which the game_over occurs. None if there is no game_over
+
     objects:
         The collection of objects built with the `from_vect` method
 
@@ -339,13 +351,16 @@ class CollectionWrapper:
     -------
     update(time_step, values, efficient_storage)
         update the collection with new `values` for a given `time_step`.
+
     save(path)
         save the collection to disk using `path` as the path to the file to write in.
+
     Raises
     ------
-    Grid2OpException
+    :class:`grid2op.Exceptions.Grid2OpException`
         If the helper function has no from_vect method.
         If trying to access an element outside of the collection
+
     """
 
     def __init__(self, collection, helper, collection_name):

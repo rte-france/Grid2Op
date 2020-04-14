@@ -1,7 +1,7 @@
 Getting started
 ===================================
 
-TODO
+TODO lots of modifications have been made, this section needs to be re written.
 
 ############
 Installation

@@ -14,7 +14,7 @@ import pdb
 
 from grid2op.Exceptions import *
 from grid2op._utils import extract_from_dict, save_to_dict
-from grid2op.Space.Space import GridObjects
+from grid2op.Space.GridObjects import GridObjects
 from grid2op.Space.RandomObject import RandomObject
 
 
@@ -82,6 +82,14 @@ class SerializableSpace(GridObjects, RandomObject):
 
         self.shape = self._template_obj.shape()
         self.dtype = self._template_obj.dtype()
+
+        self._to_extract_vect = {}  # key: attr name, value: tuple: (beg_, end_, dtype)
+        beg_ = 0
+        end_ = 0
+        for attr, size, dtype_ in zip(self._template_obj.attr_list_vect, self.shape, self.dtype):
+            end_ += size
+            self._to_extract_vect[attr] = (beg_, end_, dtype_)
+            beg_ += size
 
     @staticmethod
     def from_dict(dict_):
@@ -203,4 +211,16 @@ class SerializableSpace(GridObjects, RandomObject):
         """
         res = copy.deepcopy(self._template_obj)
         res.from_vect(obj_as_vect)
+        return res
+
+    def extract_from_vect(self, obj_as_vect, attr_name):
+        beg_, end_, dtype = self.get_indx_extract(attr_name)
+        res = obj_as_vect[beg_:end_].astype(dtype)
+        return res
+
+    def get_indx_extract(self, attr_name):
+        if attr_name not in self._to_extract_vect:
+            raise Grid2OpException("Attribute \"{}\" is not found in the object of type \"{}\"."
+                                   "".format(attr_name, self.subtype))
+        res = self._to_extract_vect[attr_name]
         return res

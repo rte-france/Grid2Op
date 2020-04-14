@@ -8,7 +8,15 @@
 
 from grid2op.Action import BaseAction
 
+
 class TopologyChangeAndDispatchAction(BaseAction):
+    """
+    This type of :class:`PlayableAction` implements the modifications of the grid with "change" topological actions and
+    allows for redispatching.
+
+    It accepts the key words: "change_line_status", "change_bus" and "redispatch".
+    Nothing else is supported and any attempt to use something else will have not impact.
+    """
     def __init__(self, gridobj):
         super().__init__(gridobj)
 

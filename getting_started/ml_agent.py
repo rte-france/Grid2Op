@@ -29,7 +29,8 @@ with warnings.catch_warnings():
 import grid2op
 from grid2op.Agent import AgentWithConverter
 from grid2op.Converter import IdToAct
-from grid2op.Reward import RedispReward
+
+
 class TrainingParam(object):
     """
     A class to store the training parameters of the models. It was hard coded in the notebook 3.

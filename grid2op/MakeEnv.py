@@ -12,8 +12,11 @@ The function define in this module is the easiest and most convenient ways to cr
 
 To get started with such an environment, you can simply do:
 
->>> import grid2op
->>> env = grid2op.make()
+..code-block:: python
+
+    import grid2op
+    env = grid2op.make()
+
 
 You can consult the different notebooks in the `getting_stared` directory of this package for more information on
 how to use it.

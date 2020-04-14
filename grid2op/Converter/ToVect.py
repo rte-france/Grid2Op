@@ -27,7 +27,8 @@ class ToVect(Converter):
 
     def convert_obs(self, obs):
         """
-        This converter will match the observation to a vector, using the :func:`grid2op.BaseObservation.BaseObservation.to_vect`
+        This converter will match the observation to a vector, using the
+        :func:`grid2op.Observation.BaseObservation.to_vect`
         function.
 
         Parameters
@@ -55,7 +56,7 @@ class ToVect(Converter):
         Returns
         -------
         regular_act: :class:`grid2op.Action.Action`
-            The corresponding action transformed with the :func:`grid2op.BaseAction.BaseAction.from_vect`.
+            The corresponding action transformed with the :func:`grid2op.Action.BaseAction.from_vect`.
 
         """
         res = self.__call__({})
