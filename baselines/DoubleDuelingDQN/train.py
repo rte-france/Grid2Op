@@ -17,7 +17,6 @@ from grid2op.Action import *
 
 from DoubleDuelingDQNAgent import DoubleDuelingDQNAgent as DDDQNAgent
 
-
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline DDQN")
     parser.add_argument("--path_data", required=True,
@@ -47,15 +46,15 @@ if __name__ == "__main__":
     args = cli()
     # Create grid2op game environement
     env = make2(args.path_data,
-                action_class=TopologyChangeAndDispatchAction,
+                action_class=TopologyChangeAction,
                 reward_class=CombinedReward)
     # Register custom reward for training
     cr = env.reward_helper.template_reward
-    cr.addReward("bridge", BridgeReward(), 0.33)
-    cr.addReward("overflow", CloseToOverflowReward(), 0.33)
-    cr.addReward("distance", DistanceReward(), 0.33)
-    cr.addReward("game", GameplayReward(), 5.0)
-    #cr.addReward("l2rpn", L2RPNReward(), 0.5 * 1.0 / env.n_line)
+    cr.addReward("bridge", BridgeReward(), 5.0)
+    cr.addReward("overflow", CloseToOverflowReward(), 10.0)
+    #cr.addReward("distance", DistanceReward(), 1.0)
+    cr.addReward("game", GameplayReward(), 10.0)
+    #cr.addReward("redisp", RedispReward(), 1e-3)
     # Initialize custom rewards
     cr.initialize(env)
 

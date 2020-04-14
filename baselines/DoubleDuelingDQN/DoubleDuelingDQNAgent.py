@@ -20,11 +20,11 @@ from ReplayBuffer import ReplayBuffer
 from DoubleDuelingDQN import DoubleDuelingDQN
 
 INITIAL_EPSILON = 0.9
-FINAL_EPSILON = 0.005
+FINAL_EPSILON = 0.0
 DECAY_EPSILON = 1024*32
 STEP_EPSILON = (INITIAL_EPSILON-FINAL_EPSILON)/DECAY_EPSILON
 DISCOUNT_FACTOR = 0.99
-REPLAY_BUFFER_SIZE = 1024*128
+REPLAY_BUFFER_SIZE = 1024*64
 UPDATE_FREQ = 32
 UPDATE_TARGET_HARD_FREQ = 5
 UPDATE_TARGET_SOFT_TAU = 0.01
@@ -145,7 +145,7 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             v = observation._get_array_from_attr_name(el).astype(np.float)
             v_fix = np.nan_to_num(v)
             v_norm = np.linalg.norm(v_fix)
-            if v_norm > 1000.0:
+            if v_norm > 1e4:
                 v_res = (v_fix / v_norm) * 10.0
             else:
                 v_res = v_fix
@@ -214,6 +214,9 @@ class DoubleDuelingDQNAgent(AgentWithConverter):
             # Execute action
             new_obs, reward, self.done, info = self.env.step(act)
             new_state = self.convert_obs(new_obs)
+            if info["is_illegal"] or info["is_ambiguous"] or \
+               info["is_dispatching_illegal"] or info["is_illegal_reco"]:
+                print (a, info)
 
             # Save current observation to stacking buffer
             self._save_current_frame(self.state)

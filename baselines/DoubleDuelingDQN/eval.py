@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # Create dataset env
     env = make2(args.path_data,
                 reward_class=RedispReward,
-                action_class=TopologyChangeAndDispatchAction,
+                action_class=TopologyChangeAction,
                 other_rewards={
                     "bridge": BridgeReward,
                     "overflow": CloseToOverflowReward,

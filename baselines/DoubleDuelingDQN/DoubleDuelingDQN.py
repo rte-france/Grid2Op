@@ -35,18 +35,18 @@ class DoubleDuelingDQN(object):
         lay1 = tfkl.Dense(self.observation_size * 2, name="fc_1")(input_layer)
         lay1 = tfka.relu(lay1, alpha=0.01) #leaky_relu
 
-        lay2 = tfkl.Dense(self.observation_size, name="fc_2")(lay1)
+        lay2 = tfkl.Dense(256, name="fc_2")(lay1)
         lay2 = tfka.relu(lay2, alpha=0.01) #leaky_relu
 
-        lay3 = tfkl.Dense(self.action_size * 4, name="fc_3")(lay2)
-        lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
+        #lay3 = tfkl.Dense(self.action_size * 4, name="fc_3")(lay2)
+        #lay3 = tfka.relu(lay3, alpha=0.01) #leaky_relu
 
-        advantage = tfkl.Dense(self.action_size * 2, name="fc_adv")(lay3)
-        advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
+        advantage = tfkl.Dense(128, name="fc_adv")(lay2)
+        #advantage = tfka.relu(advantage, alpha=0.01) #leaky_relu
         advantage = tfkl.Dense(self.action_size, name="adv")(advantage)
 
-        value = tfkl.Dense(self.action_size * 2, name="fc_val")(lay3)
-        value = tfka.relu(value, alpha=0.01) #leaky_relu
+        value = tfkl.Dense(128, name="fc_val")(lay2)
+        #value = tfka.relu(value, alpha=0.01) #leaky_relu
         value = tfkl.Dense(1, name="val")(value)
 
         advantage_mean = tf.math.reduce_mean(advantage, axis=1, keepdims=True, name="adv_mean")
