@@ -19,11 +19,10 @@ from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Action import ActionSpace, BaseAction, TopologyAction, TopoAndRedispAction, PowerLineSet, DontAct
+from grid2op.Action import *
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Space import GridObjects
 from grid2op._utils import save_to_dict
-
 
 class TestActionBase(ABC):
 
@@ -232,7 +231,8 @@ class TestActionBase(ABC):
             action = self.helper_action({"hazards": disco})
             for j in range(self.helper_action.n_line):
                 expected_res = -1 if j == i else 0
-                assert action.effect_on(line_id=j)["set_line_status"] == expected_res, "problem with line {} if line {} is disconnected".format(j, i)
+                assert action.effect_on(line_id=j)["set_line_status"] == expected_res, \
+                    "problem with line {} if line {} is disconnected".format(j, i)
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_status(self):
@@ -360,6 +360,7 @@ class TestActionBase(ABC):
         assert action.effect_on(gen_id=0)["change_bus"] == False
 
     def test_ambiguity_topo(self):
+        self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
         action = self.helper_action({"change_bus": {"lines_or_id": [1]}})  # i switch the bus of the origin of powerline 1
@@ -391,16 +392,12 @@ class TestActionBase(ABC):
         action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "connected"
         # and i don't say on which bus to connect it
 
-        if issubclass(self.helper_action.actionClass, PowerLineSet):
-            # this is a legal action for powerlineSet
+        try:
             action()
-        else:
-            try:
-                action()
-                raise RuntimeError("This should have thrown an InvalidBusStatus error for {}"
-                                   "".format(self.helper_action.actionClass))
-            except InvalidLineStatus as e:
-                pass
+            raise RuntimeError("This should have thrown an InvalidBusStatus error for {}"
+                               "".format(self.helper_action.actionClass))
+        except InvalidLineStatus as e:
+            pass
 
     def test_set_status_and_setbus_isambiguous(self):
         """
@@ -408,6 +405,7 @@ class TestActionBase(ABC):
         :return:
         """
         self._skipMissingKey('set_bus')
+        self._skipMissingKey('set_line_status')
 
         arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_ = 2
@@ -460,6 +458,7 @@ class TestActionBase(ABC):
 
     def test_to_vect(self):
         self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
@@ -476,16 +475,18 @@ class TestActionBase(ABC):
         for el in action.attr_list_vect[:id_set]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
-        tmp[size_before:(size_before+action.dim_topo)] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 0])
+        tmp[size_before:(size_before+action.dim_topo)] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 0,
+                                                                   0, 0])
 
         id_change = np.where(np.array(action.attr_list_vect) == "_change_bus_vect")[0][0]
         size_before = 0
         for el in action.attr_list_vect[:id_change]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
-        tmp[size_before:(size_before + action.dim_topo)] = 1.0 * np.array([False, False, False, False, False, False,  True,  True,  True,
+        tmp[size_before:(size_before + action.dim_topo)] = 1.0 * np.array([False, False, False, False, False, False,
+                                                                           True,  True,  True,
                                    False, False, False, False, False, False, False, False, False,
                                    False, False, False, False, False, False, False, False, False,
                                    False, False, False, False, False, False, False, False, False,
@@ -540,7 +541,6 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_line_status')
         self._skipMissingKey('change_line_status')
         self._skipMissingKey('injection')
-
 
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
@@ -755,6 +755,13 @@ class TestActionBase(ABC):
         assert np.sum(line_impact) == 1
         assert np.all(sub_impact == [False, True] + [False for _ in range(12)])
 
+    def test_extract_from_vect(self):
+        self._skipMissingKey('set_line_status')
+        act = self.helper_action()
+        vect = act.to_vect()
+        res = self.helper_action.extract_from_vect(vect, "_set_line_status")
+        assert np.all(res == act._set_line_status)
+
 
 class TestAction(TestActionBase, unittest.TestCase):
     """
@@ -774,27 +781,97 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
 
 
-class TestTopologyAndRedispAction(TestActionBase, unittest.TestCase):
+class TestDispatchAction(TestActionBase, unittest.TestCase):
     """
-    Test suite using the TopologyAndRedisp class
-    """
-
-    def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopoAndRedispAction)
-
-
-class TestPowerLineSetAction(TestActionBase, unittest.TestCase):
-    """
-    Test suite using the PowerLineSet class
+    Test suite using the DispatchAction class
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerLineSet)
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DispatchAction)
 
 
-class TestPowerDontAct(TestActionBase, unittest.TestCase):
+class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
     """
-    Test suite using the PowerLineSet class
+    Test suite using the TopologyAndDispatchAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
+
+
+class TestTopologySetAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologySetAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAction)
+
+
+class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologySetAndDispatchAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAndDispatchAction)
+
+
+class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologySetAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAction)
+
+
+class TestTopologyChangeAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the TopologyChangeAndDispatchAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAndDispatchAction)
+
+
+class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerlineSetAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
+
+
+class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerlineChangeAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
+
+class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerlineSetAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAndDispatchAction)
+
+class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the PowerlineChangeAction class
+    """
+
+    def _action_setup(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAndDispatchAction)
+
+
+class TestDontAct(TestActionBase, unittest.TestCase):
+    """
+    Test suite using the DontAct class
     """
 
     def _action_setup(self):

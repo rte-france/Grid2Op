@@ -25,6 +25,7 @@ from grid2op.Exceptions import *
 from grid2op.Rules import RulesChecker
 from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
+from grid2op.Space import GridObjects
 
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 import pandapower as pppp
@@ -442,6 +443,26 @@ class TestTopoAction(unittest.TestCase):
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred- true)) <= self.tolvect
+
+    def test_get_topo_vect_speed(self):
+        # retrieve some initial data to be sure only a subpart of the _grid is modified
+        conv = self.backend.runpf()
+        init_amps_flow = self.backend.get_line_flow()
+
+        # check that maintenance vector is properly taken into account
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        id_=1
+        action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
+
+        # apply the action here
+        self.backend.apply_action(action)
+        conv = self.backend.runpf()
+        assert conv
+        after_amps_flow = self.backend.get_line_flow()
+
+        topo_vect = self.backend.get_topo_vect()
+        topo_vect_old = self.backend._get_topo_vect_old()
+        assert self.compare_vect(topo_vect, topo_vect_old) == True
 
     def test_topo_set1sub(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
@@ -1002,6 +1023,117 @@ class TestShuntAction(HelperTests):
         obs_ref, *_ = env_ref.step(env_ref.action_space())
         assert np.abs(obs_ref.v_or[10] - obs_change_p.v_or[10]) < self.tol_one
 
+class TestResetEqualsLoadGrid(unittest.TestCase):
+    def setUp(self):
+        self.env1 = make("case5_example", backend=PandaPowerBackend())
+        self.backend1 = self.env1.backend
+        self.env2 = make("case5_example", backend=PandaPowerBackend())
+        self.backend2 = self.env2.backend
 
+    def tearDown(self):
+        self.env1.close()
+        self.env2.close()
+
+    def test_reset_equals_reset(self):
+        # Reset backend1 with reset
+        self.env1.reset()
+        # Reset backend2 with reset
+        self.env2.reset()
+
+        # Compare
+        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        assert np.all(self.backend1.p_or == self.backend2.p_or)
+        assert np.all(self.backend1.q_or == self.backend2.q_or)
+        assert np.all(self.backend1.v_or == self.backend2.v_or)
+        assert np.all(self.backend1.a_or == self.backend2.a_or)
+        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+
+    def test_reset_equals_load_grid(self):
+        # Reset backend1 with reset
+        self.env1.reset()
+        # Reset backend2 with load_grid
+        self.backend2.reset = self.backend2.load_grid
+        self.env2.reset()
+
+        # Compare
+        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        assert np.all(self.backend1.p_or == self.backend2.p_or)
+        assert np.all(self.backend1.q_or == self.backend2.q_or)
+        assert np.all(self.backend1.v_or == self.backend2.v_or)
+        assert np.all(self.backend1.a_or == self.backend2.a_or)
+        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+
+    def test_load_grid_equals_load_grid(self):
+        # Reset backend1 with load_grid
+        self.backend1.reset = self.backend1.load_grid
+        self.env1.reset()
+        # Reset backend2 with load_grid
+        self.backend2.reset = self.backend2.load_grid
+        self.env2.reset()
+
+        # Compare
+        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        assert np.all(self.backend1.p_or == self.backend2.p_or)
+        assert np.all(self.backend1.q_or == self.backend2.q_or)
+        assert np.all(self.backend1.v_or == self.backend2.v_or)
+        assert np.all(self.backend1.a_or == self.backend2.a_or)
+        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+
+    def test_obs_from_same_chronic(self):
+        # Store first observation
+        obs1 = self.env1.current_obs
+        obs2 = None
+        for i in range(3):
+            self.env1.step(self.env1.action_space({}))
+
+        # Reset to first chronic
+        self.env1.chronics_handler.tell_id(-1)
+        self.env1.reset()
+
+        # Store second observation
+        obs2 = self.env1.current_obs
+
+        # Compare
+        assert np.allclose(obs1.prod_p, obs2.prod_p)
+        assert np.allclose(obs1.prod_q, obs2.prod_q)
+        assert np.allclose(obs1.prod_v, obs2.prod_v)
+        assert np.allclose(obs1.load_p, obs2.load_p)
+        assert np.allclose(obs1.load_q, obs2.load_q)
+        assert np.allclose(obs1.load_v, obs2.load_v)
+        assert np.allclose(obs1.p_or, obs2.p_or)
+        assert np.allclose(obs1.q_or, obs2.q_or)
+        assert np.allclose(obs1.v_or, obs2.v_or)
+        assert np.allclose(obs1.a_or, obs2.a_or)
+        assert np.allclose(obs1.p_ex, obs2.p_ex)
+        assert np.allclose(obs1.q_ex, obs2.q_ex)
+        assert np.allclose(obs1.v_ex, obs2.v_ex)
+        assert np.allclose(obs1.a_ex, obs2.a_ex)
+        assert np.allclose(obs1.rho, obs2.rho)
+        assert np.all(obs1.line_status == obs2.line_status)
+        assert np.all(obs1.topo_vect == obs2.topo_vect)
+        assert np.all(obs1.timestep_overflow == obs2.timestep_overflow)
+        assert np.all(obs1.time_before_cooldown_line == obs2.time_before_cooldown_line)
+        assert np.all(obs1.time_before_cooldown_sub == obs2.time_before_cooldown_sub)
+        assert np.all(obs1.time_before_line_reconnectable == obs2.time_before_line_reconnectable)
+        assert np.all(obs1.time_next_maintenance == obs2.time_next_maintenance)
+        assert np.all(obs1.duration_next_maintenance == obs2.duration_next_maintenance)
+        assert np.all(obs1.target_dispatch == obs2.target_dispatch)
+        assert np.all(obs1.actual_dispatch == obs2.actual_dispatch)
+    
 if __name__ == "__main__":
     unittest.main()

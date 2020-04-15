@@ -6,23 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-In this RL framework, an :class:`BaseAgent` is an entity that acts on the :class:`Environment`. BaseAgent can alternatively
-be named "bot" or "controller" in other literature.
-
-This module presents a few possible :class:`BaseAgent` that can serve either as baseline, or as example on how to
-implement such agents.
-
-To perform their actions, agent receive two main signals from the :class:`grid2op.Environment`:
-
-  - the :class:`grid2op.BaseReward` that states how good the previous has been
-  - the :class:`grid2op.BaseObservation` that is a (partial) view on the state of the Environment.
-
-Both these signals can be use to determine what is the best action to perform on the grid. This is actually the main
-objective of an :class:`BaseAgent`, and this is done in the :func:`BaseAgent.act` method.
-
-"""
-
 from abc import ABC, abstractmethod
 
 
@@ -44,10 +27,15 @@ class BaseAgent(ABC):
     def __init__(self, action_space):
         self.action_space = action_space
 
-    def reset(self):
+    def reset(self, obs):
         """
         This method is called at the beginning of a new episode.
         It is implemented by agents to reset their internal state if needed.
+
+        Attributes
+        -----------
+        obs: :class:`grid2op.Observation.BaseObservation`
+            The first observation corresponding to the initial state of the environment.
         """
         pass
 
@@ -59,7 +47,7 @@ class BaseAgent(ABC):
 
         Parameters
         ----------
-        observation: :class:`grid2op.Observation.Observation`
+        observation: :class:`grid2op.Observation.BaseObservation`
             The current observation of the :class:`grid2op.Environment.Environment`
 
         reward: ``float``
@@ -70,7 +58,7 @@ class BaseAgent(ABC):
 
         Returns
         -------
-        res: :class:`grid2op.Action.Action`
+        res: :class:`grid2op.Action.PlaybleAction`
             The action chosen by the bot / controler / agent.
 
         """

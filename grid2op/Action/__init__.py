@@ -1,45 +1,50 @@
 __all__ = [
+    # Internals
     "BaseAction",
+    "PlayableAction",
     "ActionSpace",
-    "PowerLineSet",
     "SerializableActionSpace",
-    "TopoAndRedispAction",
-    "TopologyAction",
+    # Usable
     "VoltageOnlyAction",
-    'DontAct',
-    "HelperAction",
     "CompleteAction",
+    "DontAct",
+    "PowerlineSetAction",
+    "PowerlineChangeAction",
+    "PowerlineSetAndDispatchAction",
+    "PowerlineChangeAndDispatchAction",
+    "TopologyAction",
+    "TopologyAndDispatchAction",
+    "TopologySetAction",
+    "TopologySetAndDispatchAction",
+    "TopologyChangeAction",
+    "TopologyChangeAndDispatchAction",
+    "DispatchAction",
+    # Backwards compat
+    "TopoAndRedispAction",
+    "HelperAction",
     "Action"
 ]
 
+# Internals
 from grid2op.Action.BaseAction import BaseAction
-from grid2op.Action.ActionSpace import ActionSpace
-from grid2op.Action.PowerLineSet import PowerLineSet
-from grid2op.Action.SerializableActionSpace import SerializableActionSpace
-from grid2op.Action.TopoAndRedispAction import TopoAndRedispAction
-from grid2op.Action.TopologyAction import TopologyAction
+from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.Action.VoltageOnlyAction import VoltageOnlyAction
+from grid2op.Action.CompleteAction import CompleteAction
+from grid2op.Action.ActionSpace import ActionSpace
+from grid2op.Action.SerializableActionSpace import SerializableActionSpace
+
 from grid2op.Action.DontAct import DontAct
-import warnings
+from grid2op.Action.PowerlineSetAction import PowerlineSetAction
+from grid2op.Action.PowerlineChangeAction import PowerlineChangeAction
+from grid2op.Action.PowerlineSetAndDispatchAction import PowerlineSetAndDispatchAction
+from grid2op.Action.PowerlineChangeAndDispatchAction import PowerlineChangeAndDispatchAction
+from grid2op.Action.TopologyAction import TopologyAction
+from grid2op.Action.TopologyAndDispatchAction import TopologyAndDispatchAction
+from grid2op.Action.TopologySetAction import TopologySetAction
+from grid2op.Action.TopologySetAndDispatchAction import TopologySetAndDispatchAction
+from grid2op.Action.TopologyChangeAction import TopologyChangeAction
+from grid2op.Action.TopologyChangeAndDispatchAction import TopologyChangeAndDispatchAction
+from grid2op.Action.DispatchAction import DispatchAction
 
+from grid2op.Action.Deprecated import TopoAndRedispAction, HelperAction, Action
 
-# CompleteAction to be symetrical to CompleteObservation
-CompleteAction = BaseAction
-
-
-class HelperAction(ActionSpace):
-    def __init__(self, *args, **kwargs):
-        ActionSpace.__init__(self, *args, **kwargs)
-        warnings.warn("HelperAction class has been renamed \"ActionSpace\" to be better integrated with "
-                      "openai gym framework. The old name will be removed in future "
-                      "versions.",
-                      category=PendingDeprecationWarning)
-
-
-class Action(BaseAction):
-    def __init__(self, *args, **kwargs):
-        BaseAction.__init__(self, *args, **kwargs)
-        warnings.warn("Action class has been renamed \"BaseAction\" if it was the Base class of each Action class,"
-                      "or \"CompleteAction\" for the action that gives the possibility to do every grid "
-                      "manipulation in grid2op. This class Action will be removed in future versions.",
-                      category=PendingDeprecationWarning)

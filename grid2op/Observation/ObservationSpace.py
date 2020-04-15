@@ -8,10 +8,10 @@
 
 import copy
 
-from grid2op.Reward import RewardHelper
 from grid2op.Observation.SerializableObservationSpace import SerializableObservationSpace
+from grid2op.Reward import RewardHelper
 from grid2op.Observation.CompleteObservation import CompleteObservation
-from grid2op.Observation.ObsEnv import ObsEnv
+from grid2op.Observation._ObsEnv import _ObsEnv
 
 
 class ObservationSpace(SerializableObservationSpace):
@@ -29,7 +29,7 @@ class ObservationSpace(SerializableObservationSpace):
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
 
-    _empty_obs: ``BaseObservation.BaseObservation``
+    _empty_obs: :class:`grid2op.Observation.BaseObservation`
         An empty observation with the proper dimensions.
 
     parameters: :class:`grid2op.Parameters.Parameters`
@@ -46,8 +46,8 @@ class ObservationSpace(SerializableObservationSpace):
     reward_helper: :class:`grid2op.Reward.HelperReward`
         BaseReward function used by the the :func:`BaseObservation.simulate` function.
 
-    obs_env: :class:`ObsEnv`
-        Instance of the environenment used by the BaseObservation Helper to provide forcecast of the grid state.
+    obs_env: :class:`_ObsEnv`
+        Instance of the environment used by the BaseObservation Helper to provide forcecast of the grid state.
 
     _empty_obs: :class:`BaseObservation`
         An instance of the observation that is updated and will be sent to he BaseAgent.
@@ -86,7 +86,7 @@ class ObservationSpace(SerializableObservationSpace):
         # TODO here: have another backend maybe
         self.backend_obs = env.backend.copy()
 
-        self.obs_env = ObsEnv(backend_instanciated=self.backend_obs, obsClass=self.observationClass,
+        self.obs_env = _ObsEnv(backend_instanciated=self.backend_obs, obsClass=self.observationClass,
                               parameters=env.parameters,
                               reward_helper=self.reward_helper,
                               action_helper=self.action_helper_env,

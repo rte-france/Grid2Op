@@ -24,6 +24,26 @@ class MLAgent(AgentWithConverter):
         self.do_nothing_vect = action_space({}).to_vect()
 
     def my_act(self, transformed_observation, reward, done=False):
+        """
+        By default this agent returns only the "do nothing" action, unless some smarter implementations are provided
+        for this function.
+
+        Parameters
+        ----------
+        transformed_observation: ``numpy.ndarray``, dtype=float
+            The observation transformed into a 1d numpy array of float. All components of the observation are kept.
+
+        reward: ``float``
+            Reward of the previous action
+
+        done: ``bool``
+            Whether the episode is over or not.
+
+        Returns
+        -------
+        res: ``numpy.ndarray``, dtype=float
+            The action taken represented as a vector.
+        """
         return self.do_nothing_vect
 
     def convert_from_vect(self, act):

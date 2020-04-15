@@ -19,18 +19,19 @@ from grid2op.Agent.BaseAgent import BaseAgent
 class AgentWithConverter(BaseAgent):
     """
     Compared to a regular BaseAgent, these types of Agents are able to deal with a different representation of
-    :class:`grid2op.BaseAction.BaseAction` and :class:`grid2op.BaseObservation.BaseObservation`.
+    :class:`grid2op.Action.BaseAction` and :class:`grid2op.Observation.BaseObservation`.
 
     As any other Agents, AgentWithConverter will implement the :func:`BaseAgent.act` method. But for them, it's slightly
     different.
 
-    They receive in this method an observation, as an object (ie an instance of :class:`grid2op.BaseObservation`). This
+    They receive in this method an observation, as an object (ie an instance of
+    :class:`grid2op.Observation.BaseObservation`). This
     object can then be converted to any other object with the method :func:`AgentWithConverter.convert_obs`.
 
     Then, this `transformed_observation` is pass to the method :func:`AgentWithConverter.my_act` that is supposed
     to be defined for each agents. This function outputs an `encoded_act` which can be whatever you want to be.
 
-    Finally, the `encoded_act` is decoded into a proper action, object of class :class:`grid2op.BaseAction.BaseAction`,
+    Finally, the `encoded_act` is decoded into a proper action, object of class :class:`grid2op.Action.BaseAction`,
     thanks to the method :func:`AgentWithConverter.convert_act`.
 
     This allows, for example, to represent actions as integers to train more easily standard discrete control algorithm
@@ -48,9 +49,9 @@ class AgentWithConverter(BaseAgent):
 
     Suppose also that, after some
     features engineering, it's best for the neural network to use only the load active values
-    (:attr:`grid2op.BaseObservation.BaseObservation.load_p`) and the sum of the
-    relative flows (:attr:`grid2op.BaseObservation.BaseObservation.rho`) with the active flow
-    (:attr:`grid2op.BaseObservation.BaseObservation.p_or`) [**NB** that agent would not make sense a priori, but who knows]
+    (:attr:`grid2op.Observation.BaseObservation.load_p`) and the sum of the
+    relative flows (:attr:`grid2op.Observation.BaseObservation.rho`) with the active flow
+    (:attr:`grid2op.Observation.BaseObservation.p_or`) [**NB** that agent would not make sense a priori, but who knows]
 
     Suppose that this neural network can be accessed with a class `AwesomeNN` (not available...) that can
     predict some actions. It can be loaded with the "load" method and make predictions with the
@@ -140,10 +141,11 @@ class AgentWithConverter(BaseAgent):
 
     def convert_obs(self, observation):
         """
-        This function convert the observation, that is an object of class :class:`grid2op.BaseObservation.BaseObservation`
+        This function convert the observation, that is an object of class :class:`grid2op.Observation.BaseObservation`
         into a representation understandable by the BaseAgent.
 
-        For example, and agent could only want to look at the relative flows :attr:`grid2op.BaseObservation.BaseObservation.rho`
+        For example, and agent could only want to look at the relative flows
+        :attr:`grid2op.Observation.BaseObservation.rho`
         to take his decision. This is possible by  overloading this method.
 
         This method can also be used to scale the observation such that each compononents has mean 0 and variance 1

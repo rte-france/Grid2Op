@@ -47,7 +47,8 @@ To use this plotting utilities, for example in a jupyter notebook please refer t
 
 import numpy as np
 
-from grid2op.Plot.PlotGraph import BasePlot
+from grid2op.Plot.BasePlot import BasePlot
+from grid2op.Exceptions import PlotError
 
 try:
     import plotly.graph_objects as go
@@ -61,7 +62,7 @@ except Exception as e:
 
 
 # Some utilities to plot substation, lines or get the color id for the colormap.
-def draw_sub(pos, radius=50):
+def draw_sub(pos, radius=50, line_color="LightSeaGreen"):
     """
     This function will draw the contour of a unique substation.
 
@@ -88,8 +89,8 @@ def draw_sub(pos, radius=50):
         y0=pos_y - radius,
         x1=pos_x + radius,
         y1=pos_y + radius,
-        line_color="LightSeaGreen",
-        fillcolor="lightgray"
+        line_color=line_color,
+        layer="below"
     )
     return res
 
@@ -109,20 +110,20 @@ def get_col(rho):
         The integer (between 0 and 6) of this line capacity usage in terms of color.
 
     """
-    if rho < 0.7:
+    if rho < 0.3:
         return 0
-    if rho < 0.8:
+    if rho < 0.5:
         return 1
-    if rho < 0.9:
+    if rho < 0.75:
         return 2
-    if rho < 1.:
+    if rho < 0.9:
         return 3
-    if rho < 1.1:
+    if rho < 0.95:
         return 5
     return 6
 
 
-def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status):
+def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status, line_color="gray"):
     """
     Draw a powerline with the color depending on its line capacity usage.
 
@@ -160,8 +161,9 @@ def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status):
         y0=y_0,
         x1=x_1,
         y1=y_1,
+        layer="below",
         line=dict(
-            color=color_palette[get_col(rho)] if status else "gray",
+            color=line_color,
             dash=None if status else "dash"
         )
     )
@@ -236,75 +238,57 @@ class PlotPlotly(BasePlot):
                           load_prod_dist=load_prod_dist,
                           bus_radius=bus_radius)
         if not can_plot:
-            raise RuntimeError("Impossible to plot as plotly cannot be imported. Please install \"plotly\" and "
-                               "\"seaborn\" with \"pip install --update plotly seaborn\"")
+            raise PlotError("Impossible to plot as plotly cannot be imported. Please install \"plotly\" and "
+                            "\"seaborn\" with \"pip install --update plotly seaborn\"")
 
         # define a color palette, whatever...
         sns.set()
-        # pal = sns.dark_palette("palegreen")
-        # pal = sns.color_palette("coolwarm", 7)
-        # pal = sns.light_palette("red", 7)
-        # self.cols = pal.as_hex()
         pal = sns.light_palette("darkred", 8)
         self.cols = pal.as_hex()[1:]
 
-    def plot_observation(self, observation, fig=None):
-        res = self.get_plot_observation(observation, fig=fig)
-        return res
+        self.col_line = "royalblue"
+        self.col_sub = "red"
+        self.col_load = "black"
+        self.col_gen = "darkgreen"
+        self.default_color = "black"
+        self.type_fig_allowed = go.Figure
 
-    def get_plot_observation(self, observation, fig=None):
-        """
-        Plot the given observation in the given figure.
-
-        For now it represents information about load and generator active values.
-        It also display dashed powerlines when they are disconnected and the color of each powerlines depends on
-        its relative flow (its flow in amperes divided by its maximum capacity).
-
-        If a substation counts only 1 bus, nothing specific is display. If it counts more, then buses are materialized
-        by colored dot and lines will connect every object to its appropriate bus (with the proper color).
-
-        Names of substation and objects are NOT displayed on this figure to lower the amount of information.
-
-        Parameters
-        ----------
-        observation: :class:`grid2op.Observation.Observation`
-            The observation to plot
-
-        fig: :class:`plotly.graph_objects.Figure`
-            The figure on which to plot the observation. Possibly ``None``, in this case a new figure is made.
-
-        Returns
-        -------
-        res: :class:`plotly.graph_objects.Figure`
-            The figure updated with the data from the new observation.
-        """
+    def init_fig(self, fig, reward, done, timestamp):
         if fig is None:
             fig = go.Figure()
+        elif not isinstance(fig, self.type_fig_allowed):
+            raise PlotError("PlotPlotly cannot plot on figure of type {}. The accepted type is {}. You provided an "
+                            "invalid argument for \"fig\"".format(type(fig), self.type_fig_allowed))
+        return fig
 
-        # draw name of substation
-        # fig.add_trace(go.Scatter(x=[el for el, _ in self._layout["substations"]],
-        #                          y=[el for _, el in self._layout["substations"]],
-        #                          text=["sub_{}".format(i) for i, _ in enumerate(self._layout["substations"])],
-        #                          mode="text",
-        #                          showlegend=False))
-
-        # if not "line" in self._layout:
-        #     # update the layout of the objects only once to ensure the same positionning is used
-        #     # if more than 1 observation are displayed one after the other.
-        #     self._compute_layout()
-
-        # draw substation
-        subs = self._draw_subs(observation=observation)
-        # draw powerlines
-        lines = self._draw_powerlines(observation, fig)
-        # draw the loads
-        loads = self._draw_loads(observation, fig)
-        # draw the generators
-        gens = self._draw_gens(observation, fig)
-        # draw the topologies
-        topos = self._draw_topos(observation, fig)
+    def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
         # update the figure with all these information
-        fig.update_layout(shapes=subs + lines + loads + gens + topos)
+        traces = []
+        subs_el = []
+        lines_el = []
+        loads_el = []
+        gens_el = []
+        topos_el = []
+        for el, trace_ in subs:
+            subs_el.append(el)
+            traces.append(trace_)
+        for el, trace_ in lines:
+            lines_el.append(el)
+            traces.append(trace_)
+        for el, trace_ in loads:
+            loads_el.append(el)
+            traces.append(trace_)
+        for el, trace_ in gens:
+            gens_el.append(el)
+            traces.append(trace_)
+        for el, _ in topos:
+            topos_el.append(el)
+            topos_el.append(el)
+            # traces.append(trace_)
+        fig.update_layout(shapes=subs_el + lines_el + loads_el + gens_el + topos_el)
+
+        for trace_ in traces:
+            fig.add_trace(trace_)
 
         # update legend, background color, size of the plot etc.
         fig.update_xaxes(range=[np.min([el for el, _ in self._layout["substations"]]) - 1.5 * (self.radius_sub +
@@ -324,15 +308,25 @@ class PlotPlotly(BasePlot):
             ),
             height=600,
             width=800,
-            plot_bgcolor="white"
+            plot_bgcolor="white",
+            yaxis={'showgrid': False, "showline": False, "zeroline": False},
+            xaxis={'showgrid': False, "showline": False, "zeroline": False}
         )
         return fig
 
-    def _draw_sub(self, center):
-        res = draw_sub(center, radius=self.radius_sub)
-        return res
+    def _draw_subs_one_sub(self, fig, sub_id, center, this_col, txt_):
+        trace = go.Scatter(x=[center[0]],
+                           y=[center[1]],
+                           text=[txt_],
+                           mode="text",
+                           showlegend=False,
+                           textfont=dict(
+                               color=this_col
+                           ))
+        res = draw_sub(center, radius=self.radius_sub, line_color=this_col)
+        return res, trace
 
-    def _draw_powerlines(self, observation, fig):
+    def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
         """
         Draw the powerline, between two substations.
 
@@ -345,119 +339,107 @@ class PlotPlotly(BasePlot):
         -------
 
         """
+        tmp = draw_line(pos_or,
+                        pos_ex,
+                        rho=value,
+                        color_palette=self.cols,
+                        status=status,
+                        line_color=this_col
+                        )
+        trace = go.Scatter(x=[(pos_or[0] + pos_ex[0]) / 2],
+                           y=[(pos_or[1] + pos_ex[1]) / 2],
+                           text=[txt_],
+                           mode="text",
+                           showlegend=False,
+                           textfont=dict(
+                               color=this_col
+                           ))
+        return tmp, trace
 
-        lines = []
-        for line_id, (rho, status) in enumerate(zip(observation.rho, observation.line_status)):
-            # compute the coordinates of the powerlines (coordinates of origin and extremity)
-            pos_or, pos_ex, *_ = self._get_line_coord(line_id)
+    def _draw_loads_one_load(self, fig, l_id, pos_load, txt_, pos_end_line, pos_load_sub, how_center, this_col):
+        # add the MW load
+        trace = go.Scatter(x=[pos_load.real],
+                           y=[pos_load.imag],
+                           text=[txt_],
+                           mode="text",
+                           showlegend=False,
+                           textfont=dict(
+                               color=this_col
+                           ))
+        # add the line between the MW display and the substation
+        # TODO later one, add something that looks like a load, a house for example
+        res = go.layout.Shape(
+            type="line",
+            xref="x",
+            yref="y",
+            x0=pos_end_line.real,
+            y0=pos_end_line.imag,
+            x1=pos_load_sub[0],
+            y1=pos_load_sub[1],
+            layer="below",
+            line=dict(color=this_col
+            )
+        )
+        return res, trace
 
-            # this depends on the grid
-            # on this powergrid, thermal limit are not set at all. They are basically random.
-            # so i multiply them by 300
-            # rho *= 300
-            lines.append(draw_line(pos_or, pos_ex,
-                                   rho=rho,
-                                   color_palette=self.cols,
-                                   status=status))
+    def _draw_gens_one_gen(self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col):
+        # add the MW load
+        trace = go.Scatter(x=[pos_gen.real],
+                           y=[pos_gen.imag],
+                           text=[txt_],
+                           mode="text",
+                           showlegend=False,
+                           textfont=dict(
+                               color=this_col
+                           ))
+        # add the line between the MW display and the substation
+        # TODO later one, add something that looks like a generator, and could depend on the type of it!
+        res = go.layout.Shape(
+            type="line",
+            xref="x",
+            yref="y",
+            x0=pos_end_line.real,
+            y0=pos_end_line.imag,
+            x1=pos_gen_sub[0],
+            y1=pos_gen_sub[1],
+            layer="below",
+            line=dict(color=this_col
+            )
+        )
+        return res, trace
 
-            fig.add_trace(go.Scatter(x=[(pos_or[0] + pos_ex[0]) / 2],
-                                     y=[(pos_or[1] + pos_ex[1]) / 2],
-                                     text=["{:.1f}%".format(rho * 100)],
-                                     mode="text",
-                                     showlegend=False))
-        return lines
-
-    def _draw_loads(self, observation, fig):
-        loads = []
-        for c_id, por in enumerate(observation.load_p):
-            pos_end_line, pos_load_sub, pos_load, how_center = self._get_load_coord(c_id)
-
-            # add the MW load
-            fig.add_trace(go.Scatter(x=[pos_load.real],
-                                     y=[pos_load.imag],
-                                     text=["- {:.0f} MW".format(por)],
-                                     mode="text",
-                                     showlegend=False))
-            # add the line between the MW display and the substation
-            # TODO later one, add something that looks like a load, a house for example
+    def _draw_topos_one_sub(self, fig, sub_id, buses_z, elements, bus_vect):
+        res_sub = []
+        # I plot the buses
+        for bus_id, z_bus in enumerate(buses_z):
+            bus_color = '#ff7f0e' if bus_id == 0 else '#1f77b4'
             res = go.layout.Shape(
-                type="line",
+                type="circle",
                 xref="x",
                 yref="y",
-                x0=pos_end_line.real,
-                y0=pos_end_line.imag,
-                x1=pos_load_sub[0],
-                y1=pos_load_sub[1],
-                line=dict(
-                )
+                x0=z_bus.real - self.bus_radius,
+                y0=z_bus.imag - self.bus_radius,
+                x1=z_bus.real + self.bus_radius,
+                y1=z_bus.imag + self.bus_radius,
+                fillcolor=bus_color,
+                line_color=bus_color,
             )
-            loads.append(res)
-        return loads
-
-    def _draw_gens(self, observation, fig):
-        gens = []
-        for g_id, por in enumerate(observation.prod_p):
-            pos_end_line, pos_gen_sub, pos_gen, how_center = self._get_gen_coord(g_id)
-
-            # add the MW load
-            fig.add_trace(go.Scatter(x=[pos_gen.real],
-                                     y=[pos_gen.imag],
-                                     text=["+ {:.0f} MW".format(por)],
-                                     mode="text",
-                                     showlegend=False))
-            # add the line between the MW display and the substation
-            # TODO later one, add something that looks like a load, a house for example
-            res = go.layout.Shape(
-                type="line",
-                xref="x",
-                yref="y",
-                x0=pos_end_line.real,
-                y0=pos_end_line.imag,
-                x1=pos_gen_sub[0],
-                y1=pos_gen_sub[1],
-                line=dict(
-                )
-            )
-            gens.append(res)
-        return gens
-
-    def _draw_topos(self, observation, fig):
-        res_topo = []
-        for sub_id, elements in enumerate(self.subs_elements):
-
-            buses_z, bus_vect = self._get_topo_coord(sub_id, observation, elements)
-
-            if not buses_z:
-                # I don't plot details of substations with 1 bus for better quality
-                continue
-
-            # I plot the buses
-            for bus_id, z_bus in enumerate(buses_z):
-                bus_color = '#ff7f0e' if bus_id == 0 else '#1f77b4'
+            res_sub.append((res, None))
+        # i connect every element to the proper bus with the proper color
+        for el_nm, dict_el in elements.items():
+            this_el_bus = bus_vect[dict_el["sub_pos"]] -1
+            if this_el_bus >= 0:
                 res = go.layout.Shape(
-                    type="circle",
+                    type="line",
                     xref="x",
                     yref="y",
-                    x0=z_bus.real - self.bus_radius,
-                    y0=z_bus.imag - self.bus_radius,
-                    x1=z_bus.real + self.bus_radius,
-                    y1=z_bus.imag + self.bus_radius,
-                    fillcolor=bus_color,
-                    line_color=bus_color,
-                )
-                res_topo.append(res)
-            # i connect every element to the proper bus with the proper color
-            for el_nm, dict_el in elements.items():
-                this_el_bus = bus_vect[dict_el["sub_pos"]] -1
-                if this_el_bus >= 0:
-                    res = go.layout.Shape(
-                        type="line",
-                        xref="x",
-                        yref="y",
-                        x0=dict_el["z"].real,
-                        y0=dict_el["z"].imag,
-                        x1=buses_z[this_el_bus].real,
-                        y1=buses_z[this_el_bus].imag,
-                        line=dict(color='#ff7f0e' if this_el_bus == 0 else '#1f77b4'))
-                    res_topo.append(res)
-        return res_topo
+                    x0=dict_el["z"].real,
+                    y0=dict_el["z"].imag,
+                    x1=buses_z[this_el_bus].real,
+                    y1=buses_z[this_el_bus].imag,
+                    line=dict(color='#ff7f0e' if this_el_bus == 0 else '#1f77b4'))
+                res_sub.append((res, None))
+        return res_sub
+
+    def _get_default_cmap(self, normalized_value):
+        return self.cols[get_col(normalized_value)]

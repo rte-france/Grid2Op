@@ -10,6 +10,7 @@ import networkx as nx
 
 from grid2op.Reward.BaseReward import BaseReward
 
+
 class BridgeReward(BaseReward):
     """
     This reward computes a penalty based on how many bridges are present in the grid netwrok.
@@ -17,12 +18,12 @@ class BridgeReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = -1000.0
-        self.reward_max = 1000.0
-
-    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        n_bus = 3
+        self.reward_min = 0.0
+        self.reward_max = 1.0
         
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        n_bus = 2
+
         # Get info from env
         obs = env.current_obs
         n_sub = obs.n_sub
@@ -36,24 +37,25 @@ class BridgeReward(BaseReward):
         # Create a graph of vertices
         # Use one vertex per substation per bus
         G = nx.Graph()
-        G.add_nodes_from(range(n_sub * n_bus))
         
         # Set lines edges for current bus
         for line_idx in range(n_line):
             # Skip if line is disconnected
             if obs.line_status[line_idx] is False:
                 continue
-            
+            # Get substation index for current line
+            lor_sub = or_sub[line_idx]
+            lex_sub = ex_sub[line_idx]
             # Get the buses for current line
             lor_bus = topo[or_topo[line_idx]]
             lex_bus = topo[ex_topo[line_idx]]
 
-            if lor_bus == 0 or lex_bus == 0:
+            if lor_bus <= 0 or lex_bus <= 0:
                 continue
 
             # Compute edge vertices indices for current graph
-            left_v = (lor_bus - 1) * n_sub
-            right_v = (lex_bus - 1) * n_sub
+            left_v = (lor_bus - 1) * n_bus + lor_sub
+            right_v = (lex_bus - 1) * n_bus + lex_sub
 
             # Register edge in graph
             G.add_edge(left_v, right_v)
@@ -61,6 +63,9 @@ class BridgeReward(BaseReward):
         # Find the bridges
         n_bridges = len(list(nx.bridges(G)))
 
-        if n_bridges != 0:
-            return -1000.0 * n_bridges
-        return self.reward_max
+        if n_bridges == 0:
+            return self.reward_max
+        elif n_bridges == 1:
+            return (self.reward_max + self.reward_min) / 2.0
+        else:
+            return self.reward_min

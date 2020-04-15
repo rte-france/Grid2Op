@@ -470,7 +470,7 @@ class SerializableActionSpace(SerializableSpace):
 
     @staticmethod
     def get_all_unitary_redispatch(action_space):
-        res =  []
+        res = []
         n_gen = len(action_space.gen_redispatchable)
 
         for gen_idx in range(n_gen):

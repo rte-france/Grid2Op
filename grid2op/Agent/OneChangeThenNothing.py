@@ -21,20 +21,65 @@ class OneChangeThenNothing(BaseAgent):
     be overridden and the method :func:`OneChangeThenNothing._get_dict_act` be defined. Basically, it must know
     what action to do.
 
+    Attributes
+    ------------
+    my_dict: ``dict`` (class member)
+        Representation, as a dictionnary of the only action that this Agent will do at the first time step.
+
+    Examples
+    ---------
+
+    We advise to use this class as following
+
+    .. code-block:: python
+
+
+        import grid2op
+        from grid2op.Agent import OneChangeThenNothing
+        acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionnaries. Each dictionnaries representing a valid action
+
+        env = grid2op.make()  # create an environment
+        for act_as_dict in zip(acts_dict_):
+            # generate the proper class that will perform the first action (encoded by {}) in acts_dict_
+            agent_class = OneChangeThenNothing.gen_next(act_as_dict)
+
+            # start a runner with this agent
+            runner = Runner(**env.get_params_for_runner(), agentClass=agent_class)
+            # run 2 episode with it
+            res_2 = runner.run(nb_episode=2)
+
     """
+
+    my_dict = {}
+
     def __init__(self, action_space, action_space_converter=None):
         BaseAgent.__init__(self, action_space)
         self.has_changed = False
+        self.do_nothing_action = self.action_space({})
 
     def act(self, observation, reward, done=False):
+        """
+        If this agent had not acted, then it does (first time step).
+
+        Afterwards it does nothing.
+
+        Parameters
+        ----------
+        observation
+        reward
+        done
+
+        Returns
+        -------
+
+        """
         if self.has_changed:
-            res = self.action_space({})
+            res = self.do_nothing_action
         else:
             res = self.action_space(self._get_dict_act())
             self.has_changed = True
         return res
 
-    @abstractmethod
     def _get_dict_act(self):
         """
         Function that need to be overridden to indicate which action to perfom.
@@ -45,4 +90,21 @@ class OneChangeThenNothing(BaseAgent):
             A dictionnary that can be converted into a valid :class:`grid2op.BaseAction.BaseAction`. See the help of
             :func:`grid2op.BaseAction.ActionSpace.__call__` for more information.
         """
-        pass
+        return self.my_dict
+
+
+    @classmethod
+    def gen_next(cls, dict_):
+        """
+        This function allows to change the dictionnary of the action that the agent will perform.
+
+        Parameters
+        ----------
+        dict_: ``dict``
+            A dictionnary representing an action. This dictionnary is assumed to be convertible into an action.
+            No check is performed at this stage.
+
+
+        """
+        cls.my_dict = dict_
+        return cls

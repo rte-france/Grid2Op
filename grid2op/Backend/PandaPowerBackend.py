@@ -153,6 +153,16 @@ class PandaPowerBackend(Backend):
     def _load_grid_gen_vm_pu(grid):
         return grid.gen["vm_pu"]
 
+    def reset(self, path=None, filename=None):
+        """
+        Reload the grid.
+        For pandapower, it is a bit faster to store of a copy of itself at the end of load_grid
+        and deep_copy it to itself instead of calling load_grid again
+        """
+        # Assign the content of itself as saved at the end of load_grid
+        # This overide all the attributes with the attributes from the copy in __pp_backend_initial_state
+        self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
+
     def load_grid(self, path=None, filename=None):
         """
         Load the _grid, and initialize all the member of the class. Note that in order to perform topological
@@ -361,6 +371,11 @@ class PandaPowerBackend(Backend):
             self.shunt_to_subid[i] = bus
         self.name_shunt = np.array(name_shunt)
         self.shunts_data_available = True
+
+        # Create a deep copy of itself in the initial state
+        pp_backend_initial_state = copy.deepcopy(self)
+        # Store it under super private attribute
+        self.__pp_backend_initial_state = pp_backend_initial_state
 
     def apply_action(self, action: BaseAction):
         """
@@ -638,6 +653,50 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iloc[id - self._number_true_line] = True
 
     def get_topo_vect(self):
+        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
+
+        line_status = self.get_line_status()
+
+        i = 0
+        for row in self._grid.line[["from_bus", "to_bus"]].values:
+            bus_or_id = row[0]
+            bus_ex_id = row[1]
+            if line_status[i]:
+                res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
+                res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
+            else:
+                res[self.line_or_pos_topo_vect[i]] = -1
+                res[self.line_ex_pos_topo_vect[i]] = -1
+            i += 1
+
+        nb = self._number_true_line
+        i = 0
+        for row in self._grid.trafo[["hv_bus", "lv_bus"]].values:
+            bus_or_id = row[0]
+            bus_ex_id = row[1]
+
+            j = i + nb
+            if line_status[j]:
+                res[self.line_or_pos_topo_vect[j]] = 1 if bus_or_id == self.line_or_to_subid[j] else 2
+                res[self.line_ex_pos_topo_vect[j]] = 1 if bus_ex_id == self.line_ex_to_subid[j] else 2
+            else:
+                res[self.line_or_pos_topo_vect[j]] = -1
+                res[self.line_ex_pos_topo_vect[j]] = -1
+            i += 1
+
+        i = 0
+        for bus_id in self._grid.gen["bus"].values:
+            res[self.gen_pos_topo_vect[i]] = 1 if bus_id == self.gen_to_subid[i] else 2
+            i += 1
+
+        i = 0
+        for bus_id in self._grid.load["bus"].values:
+            res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
+            i += 1
+
+        return res
+
+    def _get_topo_vect_old(self):
         # beg__ = time.time()
         # TODO refactor this, this takes a looong time
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)

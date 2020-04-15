@@ -12,8 +12,11 @@ The function define in this module is the easiest and most convenient ways to cr
 
 To get started with such an environment, you can simply do:
 
->>> import grid2op
->>> env = grid2op.make()
+..code-block:: python
+
+    import grid2op
+    env = grid2op.make()
+
 
 You can consult the different notebooks in the `getting_stared` directory of this package for more information on
 how to use it.
@@ -40,7 +43,7 @@ from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, Multifolder, ChangeNothing
 from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, GridValue
-from grid2op.Action import BaseAction, TopologyAction, TopoAndRedispAction, DontAct
+from grid2op.Action import BaseAction, TopologyAction, TopologyAndDispatchAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import FlatReward, BaseReward, L2RPNReward, RedispReward
@@ -659,7 +662,7 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = {}
-        default_action_class = TopoAndRedispAction
+        default_action_class = TopologyAndDispatchAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules
     elif name_env.lower() == "case14_redisp":
@@ -674,7 +677,7 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = {}
-        default_action_class = TopoAndRedispAction
+        default_action_class = TopologyAndDispatchAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules
     elif name_env.lower() == "case14_realistic":
@@ -689,7 +692,7 @@ def make(name_env="case14_realistic", **kwargs):
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
         default_name_converter = {}
-        default_action_class = TopoAndRedispAction
+        default_action_class = TopologyAndDispatchAction
         default_reward_class = RedispReward
         gamerules_class = DefaultRules
     elif name_env.lower() == "blank":

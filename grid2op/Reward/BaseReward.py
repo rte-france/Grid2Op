@@ -5,17 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-This module implements some utilities to get rewards given an :class:`grid2op.BaseAction` an :class:`grid2op.Environment`
-and some associated context (like has there been an error etc.)
-
-It is possible to modify the reward to use to better suit a training scheme, or to better take into account
-some phenomenon  by simulating the effect of some :class:`grid2op.BaseAction` using :func:`grid2op.BaseObservation.simulate`.
-Doing so only requires to derive the :class:`BaseReward`, and most notably the three abstract methods
-:func:`BaseReward.__init__`, :func:`BaseReward.initialize` and :func:`BaseReward.__call__`
-
-"""
 from abc import ABC, abstractmethod
 
 
@@ -23,7 +12,7 @@ class BaseReward(ABC):
     """
     Base class from which all rewards used in the Grid2Op framework should derived.
 
-    In reinforcement learning, a reward is a signal send by the :class:`grid2op.Environment` to the
+    In reinforcement learning, a reward is a signal send by the :class:`grid2op.Environment.Environment` to the
     :class:`grid2op.BaseAgent` indicating how well this agent performs.
 
     One of the goal of Reinforcement Learning is to maximize the (discounted) sum of (expected) rewards over time.
@@ -31,11 +20,13 @@ class BaseReward(ABC):
     Attributes
     ----------
     reward_min: ``float``
-        The minimum reward an :class:`grid2op.BaseAgent` can get performing the worst possible :class:`grid2op.BaseAction` in
+        The minimum reward an :class:`grid2op.BaseAgent` can get performing the worst possible
+        :class:`grid2op.Action.BaseAction` in
         the worst possible scenario.
 
     reward_max: ``float``
-        The maximum reward an :class:`grid2op.BaseAgent` can get performing the best possible :class:`grid2op.BaseAction` in
+        The maximum reward an :class:`grid2op.Agent.BaseAgent` can get performing the best possible
+        :class:`grid2op.Action.BaseAction` in
         the best possible scenario.
 
     """
@@ -119,3 +110,12 @@ class BaseReward(ABC):
 
         """
         return self.reward_min, self.reward_max
+
+    def __iter__(self):
+        """
+        Implements python iterable to get a dict summary using `summary = dict(reward_instance)`
+        Can be overloaded by subclass, default implementation gives name, reward_min, reward_max
+        """
+        yield ("name", self.__class__.__name__)
+        yield ("reward_min", self.reward_min)
+        yield ("reward_max", self.reward_max)

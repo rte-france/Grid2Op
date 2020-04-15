@@ -5,72 +5,6 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-"""
-This class allows to evaluate a single agent instance on multiple environments running in parrallel.
-
-It uses the python "multiprocessing" framework to work, and thus is suitable only on a single machine with multiple
-cores (cpu / thread). We do not recommend to use this method on a cluster of different machines.
-
-This class uses the following representation:
-
-- an :grid2op.BaseAgent.BaseAgent: lives in a main process
-- different environment lives into different processes
-- a call to :func:`MultiEnv.step` will perform one step per environment, in parallel using a ``Pipe`` to transfer data
-  to and from the main process from each individual environment process. It is a synchronous function. It means
-  it will wait for every environment to finish the step before returning all the information.
-
-There are some limitations. For example, even if forecast are available, it's not possible to use forecast of the
-observations. This imply that :func:`grid2op.BaseObservation.BaseObservation.simulate` is not available when using
-:class:`MultiEnvironment`
-
-Compare to regular Environments, :class:`MultiEnvironment` simply stack everything. You need to send not a single
-:class:`grid2op.BaseAction.BaseAction` but as many actions as there are underlying environments. You receive not one single
-:class:`grid2op.BaseObservation.BaseObservation` but as many observations as the number of underlying environments.
-
-A broader support of regular grid2op environment capabilities as well as support for
-:func:`grid2op.BaseObservation.BaseObservation.simulate` call will be added in the future.
-
-An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
-
-.. code-block:: python
-
-    from grid2op.BaseAgent import DoNothingAgent
-    from grid2op.MakeEnv import make
-
-    # create a simple environment
-    env = make()
-    # number of parrallel environment
-    nb_env = 2  # change that to adapt to your system
-    NB_STEP = 100  # number of step for each environment
-
-    # create a simple agent
-    agent = DoNothingAgent(env.action_space)
-
-    # create the multi environment class
-    multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
-
-    # making is usable
-    obs = multi_envs.reset()
-    rews = [env.reward_range[0] for i in range(nb_env)]
-    dones = [False for i in range(nb_env)]
-
-    # performs the appropriated steps
-    for i in range(NB_STEP):
-        acts = [None for _ in range(nb_env)]
-        for env_act_id in range(nb_env):
-            acts[env_act_id] = agent.act(obs[env_act_id], rews[env_act_id], dones[env_act_id])
-        obs, rews, dones, infos = multi_envs.step(acts)
-
-        # DO SOMETHING WITH THE AGENT IF YOU WANT
-
-    # close the environments
-    multi_envs.close()
-    # close the initial environment
-    env.close()
-
-"""
-
 from multiprocessing import Process, Pipe
 import numpy as np
 
@@ -90,7 +24,7 @@ class RemoteEnv(Process):
 
     Note that the environment is only created in the subprocess, and is not available in the main process. Once created
     it is not possible to access anything directly from it in the main process, where the BaseAgent lives. Only the
-    :class:`grid2op.BaseObservation.BaseObservation` are forwarded to the agent.
+    :class:`grid2op.Observation.BaseObservation` are forwarded to the agent.
 
     """
     def __init__(self, env_params, remote, parent_remote, seed, name=None):
@@ -110,8 +44,8 @@ class RemoteEnv(Process):
         be transfer to / from the main process.
 
         This function also makes sure the chronics are read in different order accross all processes. This is done
-        by calling the :func:`grid2op.ChronicsHandler.GridValue.shuffle` method. An example of how to use this function
-        is provided in :func:`grid2op.ChronicsHandler.Multifolder.shuffle`.
+        by calling the :func:`grid2op.Chronics.GridValue.shuffle` method. An example of how to use this function
+        is provided in :func:`grid2op.Chronics.Multifolder.shuffle`.
 
         """
         # TODO documentation
@@ -178,14 +112,67 @@ class RemoteEnv(Process):
 
 class MultiEnvironment(GridObjects):
     """
-    This class allows to execute in parallel multiple environments. This can be usefull to train agents such as
-    A3C for example.
+    This class allows to evaluate a single agent instance on multiple environments running in parrallel.
 
-    Note that it is not per se an Environment, and lack many members of such.
+    It uses the python "multiprocessing" framework to work, and thus is suitable only on a single machine with multiple
+    cores (cpu / thread). We do not recommend to use this method on a cluster of different machines.
 
-    It uses the multiprocessing python module as a way to handle this parallelism. As some objects are not pickable,
-    all the process are completely independant. It is not possible to directly get back in the main process (the one
-    where this environment has been created) any attributes of any of the underlying environment.
+    This class uses the following representation:
+
+    - an :grid2op.BaseAgent.BaseAgent: lives in a main process
+    - different environment lives into different processes
+    - a call to :func:`MultiEnv.step` will perform one step per environment, in parallel using a ``Pipe`` to transfer data
+      to and from the main process from each individual environment process. It is a synchronous function. It means
+      it will wait for every environment to finish the step before returning all the information.
+
+    There are some limitations. For example, even if forecast are available, it's not possible to use forecast of the
+    observations. This imply that :func:`grid2op.Observation.BaseObservation.simulate` is not available when using
+    :class:`MultiEnvironment`
+
+    Compare to regular Environments, :class:`MultiEnvironment` simply stack everything. You need to send not a single
+    :class:`grid2op.Action.BaseAction` but as many actions as there are underlying environments. You receive not one single
+    :class:`grid2op.Observation.BaseObservation` but as many observations as the number of underlying environments.
+
+    A broader support of regular grid2op environment capabilities as well as support for
+    :func:`grid2op.Observation.BaseObservation.simulate` call will be added in the future.
+
+    An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
+
+    .. code-block:: python
+
+        from grid2op.BaseAgent import DoNothingAgent
+        from grid2op.MakeEnv import make
+
+        # create a simple environment
+        env = make()
+        # number of parrallel environment
+        nb_env = 2  # change that to adapt to your system
+        NB_STEP = 100  # number of step for each environment
+
+        # create a simple agent
+        agent = DoNothingAgent(env.action_space)
+
+        # create the multi environment class
+        multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
+
+        # making is usable
+        obs = multi_envs.reset()
+        rews = [env.reward_range[0] for i in range(nb_env)]
+        dones = [False for i in range(nb_env)]
+
+        # performs the appropriated steps
+        for i in range(NB_STEP):
+            acts = [None for _ in range(nb_env)]
+            for env_act_id in range(nb_env):
+                acts[env_act_id] = agent.act(obs[env_act_id], rews[env_act_id], dones[env_act_id])
+            obs, rews, dones, infos = multi_envs.step(acts)
+
+            # DO SOMETHING WITH THE AGENT IF YOU WANT
+
+        # close the environments
+        multi_envs.close()
+        # close the initial environment
+        env.close()
 
     Attributes
     -----------
@@ -248,7 +235,7 @@ class MultiEnvironment(GridObjects):
         Parameters
         ----------
         actions: ``list``
-            List of :attr:`MultiEnvironment.nb_env` :class:`grid2op.BaseAction.BaseAction`. Each action will be executed
+            List of :attr:`MultiEnvironment.nb_env` :class:`grid2op.Action.BaseAction`. Each action will be executed
             in the corresponding underlying environment.
 
         Returns
@@ -286,7 +273,7 @@ class MultiEnvironment(GridObjects):
         -------
         res: ``list``
             The list of all observations. This list counts :attr:`MultiEnvironment.nb_env` elements, each one being
-            an :class:`grid2OP.BaseObservation.Observations`.
+            an :class:`grid2op.Observation.BaseObservation`.
 
         """
         for remote in self._remotes:

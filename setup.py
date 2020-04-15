@@ -28,11 +28,13 @@ pkgs = {
             "jyquickhelper>=0.3.128"
         ],
         "optional": [
-            "numba==0.48.0",
-            "matplotlib==3.2.1",
-            "plotly==4.5.4",
-            "seaborn==0.10.0",
-            "pygame==1.9.6"
+            "numba>=0.48.0",
+            "matplotlib>=3.2.1",
+            "plotly>=4.5.4",
+            "seaborn>=0.10.0",
+            "pygame>=1.9.6",
+            "imageio>=2.8.0",
+            "imageio_ffmpeg>=0.4.1"
         ],
         "challenge": [
             "tensorflow==2.1.0",
@@ -52,7 +54,8 @@ pkgs = {
             "numpydoc>=0.9.2",
             "sphinx>=2.4.4",
             "sphinx-rtd-theme>=0.4.3",
-            "sphinxcontrib-trio>=1.1.0"
+            "sphinxcontrib-trio>=1.1.0",
+            "autodocsumm>=0.1.13"
         ]
     }
 }
