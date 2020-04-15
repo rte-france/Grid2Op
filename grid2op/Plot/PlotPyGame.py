@@ -214,6 +214,12 @@ class PlotPyGame(BasePlot):
         # deactivate the display on the screen
         self._deactivate_display = False
 
+    def change_duration_timestep_display(self, new_timestep_duration_seconds):
+        """
+        Change the duration on which the screen is displayed.
+        """
+        self.timestep_duration_seconds = new_timestep_duration_seconds
+
     def init_pygame(self):
         if self.__is_init is False:
             pygame.init()

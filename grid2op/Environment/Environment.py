@@ -547,6 +547,13 @@ class Environment(BaseEnv):
         self.oppSpace.reset()
         return self.get_obs()
 
+    def change_duration_timestep_display(self, new_timestep_duration_seconds):
+        """
+        Change the duration on which the screen is displayed.
+        """
+        self.attach_renderer()
+        self.viewer.new_timestep_duration_seconds(new_timestep_duration_seconds)
+
     def render(self, mode='human'):
         """
         Render the state of the environment on the screen.
@@ -563,7 +570,7 @@ class Environment(BaseEnv):
                                          done=self.done)
                 except PyGameQuit:
                     self.close()
-                    exit()
+                    raise
             else:
                 raise Grid2OpException(err_msg)
         elif mode == "rgb_array":

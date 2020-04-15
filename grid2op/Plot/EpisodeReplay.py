@@ -134,5 +134,5 @@ class EpisodeReplay(object):
                 break
 
         if video_name is not None:
-            print("saving video in \"{}\"".format(os.path.abspath(video_name)))
             imageio.mimwrite(video_name, np.swapaxes(total_array, 1,2), fps=max_fps)
+        plot_runner.close()

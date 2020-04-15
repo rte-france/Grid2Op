@@ -1122,7 +1122,7 @@ class BaseEnv(GridObjects, ABC):
 
     def close(self):
         # todo there might be some side effect
-        if self.viewer:
+        if self.viewer is not None:
             self.viewer.close()
             self.viewer = None
         self.backend.close()
