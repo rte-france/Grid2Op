@@ -16,14 +16,13 @@ Change Log
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
-- [???] fast implementation of "replay" using PlotPygame and EpisodeData
 - [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
   (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-[0.7.0] - 2020-04-??
+[0.7.0] - 2020-04-15
 --------------------
 - [BREAKING] class `grid2op.Environment.BasicEnv` has been renamed `BaseEnv` for consistency. As this class
   should not be used outside of this code base, no backward compatibility has been enforced.
@@ -59,6 +58,7 @@ Change Log
 - [ADDED] a class to replay a logger using `PlotPyGame` class (`grid2op.Plot.EpisodeReplay`)
 - [ADDED] a method to parse back the observations with lower memory footprint and faster, when the observations
   are serialized into a numpy array by the runner, and only some attributes are necessary.
+- [ADDED] fast implementation of "replay" using PlotPygame and EpisodeData
 - [UPDATED] overall documentation: more simple theme, easier organization of each section.
 
 
