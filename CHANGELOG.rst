@@ -29,16 +29,23 @@ Change Log
   should not be used outside of this code base, no backward compatibility has been enforced.
 - [BREAKING] class `grid2op.Environment.ObsEnv` has been renamed `_ObsEnv` to insist on its "privateness". As this class
   should not be used outside of this code base, no backward compatibility has been enforced.
+- [BREAKING] the "baselines" directory has been moved in another python package that will be released soon.
 - [DEPRECATION] `grid2op.Action.TopoAndRedispAction` is now `grid2op.Action.TopologyAndDispatchAction`.
-- [FIXED] Performances caveats regarding `grid2op.Backend.PandaPowerBackend.get_topo_vect`: Reduced the method running time and reduced number of direct calls to it. 
+- [FIXED] Performances caveats regarding `grid2op.Backend.PandaPowerBackend.get_topo_vect`: Reduced the method running
+  time and reduced number of direct calls to it.
 - [FIXED] Command line install scripts: Can now use `grid2op.main` and `grid2op.download` after installing the package
 - [FIXED] a bug that prevented to perform redispatching action if the sum of the action was neglectible (*eg* 1e-14)
   instead of an exact `0`.
+- [FIXED] Manifest.ini and dockerfile to be complient with standard installation of a python package.
+- [ADDED] a notebook to better explain the plotting capabilities of grid2op (work in progrress)
 - [ADDED] `grid2op.Backend.reset` as a way for backends to implement a faster way to reload the grid. Implemented in
   `grid2op.Backend.PandaPowerBackend`
-- [ADDED] `grid2op.Action.PowerlineChangeAndDispatchAction` A subset of actions to limit the agents scope to 'switch line' and 'dispatch' operations only
-- [ADDED] `grid2op.Action.PowerlineChangeAction` A subset of actions to limit the agents scope to 'switch line' operations only
-- [ADDED] `grid2op.Action.PowerlineSetAndDispatchAction` A subset of actions to limit the agents scope to 'set line' and 'dispatch' operations only
+- [ADDED] `grid2op.Action.PowerlineChangeAndDispatchAction` A subset of actions to limit the agents scope to
+  'switch line' and 'dispatch' operations only
+- [ADDED] `grid2op.Action.PowerlineChangeAction` A subset of actions to limit the agents scope to 'switch line'
+  operations only
+- [ADDED] `grid2op.Action.PowerlineSetAndDispatchAction` A subset of actions to limit the agents scope to 'set line'
+  and 'dispatch' operations only
 - [ADDED] `grid2op.Action.PowerlineSetAction` A subset of actions to limit the agents scope to 'set line' operations only
 - [ADDED] `grid2op.Action.TopologySetAction` A subset of actions to limit the agents scope to 'set' operations only
 - [ADDED] `grid2op.Action.TopologySetAndDispatchAction` A subset of actions to limit the agents scope to 'set' and
@@ -52,12 +59,13 @@ Change Log
 - [ADDED] a class to replay a logger using `PlotPyGame` class (`grid2op.Plot.EpisodeReplay`)
 - [ADDED] a method to parse back the observations with lower memory footprint and faster, when the observations
   are serialized into a numpy array by the runner, and only some attributes are necessary.
-- [UPDATED] overall documentation: more simple theme, easier organization of each sections.
+- [UPDATED] overall documentation: more simple theme, easier organization of each section.
 
 
 [0.6.1] - 2020-04-??
 --------------------
-- [FIXED] `Issue #54 <https://github.com/rte-france/Grid2Op/issues/54>`_: Setting the bus for disconnected lines no longer counts as a substation operation.
+- [FIXED] `Issue #54 <https://github.com/rte-france/Grid2Op/issues/54>`_: Setting the bus for disconnected lines no
+  longer counts as a substation operation.
 - [FIXED] if no redispatch actions are taken, then the game can no more invalid a provided action due to error in the
   redispatching. This behavior was caused by increase / decrease of the system losses that was higher (in absolute
   value) than the ramp of the generators connected to the slack bus. This has been fixed by removing the losses
