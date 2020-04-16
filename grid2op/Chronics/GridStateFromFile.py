@@ -10,6 +10,7 @@ import os
 import copy
 import numpy as np
 import pandas as pd
+import warnings
 from datetime import datetime, timedelta
 import pdb
 
@@ -132,6 +133,11 @@ class GridStateFromFile(GridValue):
         self._order_hazards = None
         self._order_maintenance = None
 
+        # order of the names in the backend
+        self._order_backend_loads = None
+        self._order_backend_prods = None
+        self._order_backend_lines = None
+
     def _assert_correct(self, dict_convert, order_backend):
         len_backend = len(order_backend)
         len_dict_keys = len(dict_convert)
@@ -206,7 +212,7 @@ class GridStateFromFile(GridValue):
         file_ext = self._get_fileext(data_name)
         if file_ext is not None:
             res = pd.read_csv(os.path.join(self.path, "{}{}".format(data_name, file_ext)),
-                        sep=self.sep, chunksize=self.chunk_size)
+                              sep=self.sep, chunksize=self.chunk_size)
         else:
             res = None
         return res
@@ -320,6 +326,10 @@ class GridStateFromFile(GridValue):
         self.n_load = len(order_backend_loads)
         self.n_line = len(order_backend_lines)
 
+        self._order_backend_loads = order_backend_loads
+        self._order_backend_prods = order_backend_prods
+        self._order_backend_lines = order_backend_lines
+
         self.names_chronics_to_backend = copy.deepcopy(names_chronics_to_backend)
         if self.names_chronics_to_backend is None:
             self.names_chronics_to_backend = {}
@@ -350,14 +360,14 @@ class GridStateFromFile(GridValue):
         read_compressed = self._get_fileext("hazards")
         if read_compressed is not None:
             hazards = pd.read_csv(os.path.join(self.path, "hazards{}".format(read_compressed)),
-                                       sep=self.sep)
+                                  sep=self.sep)
         else:
             hazards = None
 
         read_compressed = self._get_fileext("maintenance")
         if read_compressed is not None:
             maintenance = pd.read_csv(os.path.join(self.path, "maintenance{}".format(read_compressed)),
-                                           sep=self.sep)
+                                      sep=self.sep)
         else:
             maintenance = None
 
@@ -553,7 +563,7 @@ class GridStateFromFile(GridValue):
         dict_ = {}
         prod_v = None
         if self.load_p is not None:
-            dict_["load_p"] =  1.0 * self.load_p[self.current_index, :]
+            dict_["load_p"] = 1.0 * self.load_p[self.current_index, :]
         if self.load_q is not None:
             dict_["load_q"] = 1.0 * self.load_q[self.current_index, :]
         if self.prod_p is not None:
@@ -685,3 +695,147 @@ class GridStateFromFile(GridValue):
 
     def set_chunk_size(self, new_chunk_size):
         self.chunk_size = new_chunk_size
+
+    def _convert_datetime(self, datetime_beg):
+        res = datetime_beg
+        if not isinstance(datetime_beg, datetime):
+            try:
+                res = datetime.strptime(datetime_beg, "%Y-%m-%d %H:%M")
+            except:
+                try:
+                    res = datetime.strptime(datetime_beg, "%Y-%m-%d")
+                except:
+                    raise ChronicsError("Impossible to convert \"{}\" to a valid datetime. Accepted format is "
+                                        "\"%Y-%m-%d %H:%M\"".format(datetime_beg))
+        return res
+
+    def _extract_array(self, nm):
+        var = self.__dict__[nm]
+        if var is None:
+            return None
+        else:
+            return var[self.current_index,:]
+
+    def _save_array(self, array_, path_out, name, colnames):
+        if array_ is None:
+            return
+        tmp = pd.DataFrame(array_)
+        tmp.columns = colnames
+        tmp.to_csv(os.path.join(path_out, name), index=False, sep=self.sep)
+
+    def _init_res_split(self, nb_rows):
+        res_prod_p = None
+        res_prod_v = None
+        res_load_p = None
+        res_load_q = None
+        res_maintenance = None
+        res_hazards = None
+        if self.prod_p is not None:
+            res_prod_p = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+        if self.prod_v is not None:
+            res_prod_v = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+        if self.load_p is not None:
+            res_load_p = np.zeros((nb_rows, self.n_load), dtype=np.float)
+        if self.load_q is not None:
+            res_load_q = np.zeros((nb_rows, self.n_load), dtype=np.float)
+        if self.maintenance is not None:
+            res_maintenance = np.zeros((nb_rows, self.n_line), dtype=np.float)
+        if self.hazards is not None:
+            res_hazards = np.zeros((nb_rows, self.n_line), dtype=np.float)
+        return res_prod_p, res_prod_v, res_load_p, res_load_q, res_maintenance, res_hazards
+
+    def _update_res_split(self, i, tmp, *arrays):
+        res_prod_p, res_prod_v, res_load_p, res_load_q, res_maintenance, res_hazards = arrays
+        if res_prod_p is not None:
+            res_prod_p[i, :] = tmp._extract_array("prod_p")
+        if res_prod_v is not None:
+            res_prod_v[i, :] = tmp._extract_array("prod_v")
+        if res_load_p is not None:
+            res_load_p[i, :] = tmp._extract_array("load_p")
+        if res_load_q is not None:
+            res_load_q[i, :] = tmp._extract_array("load_q")
+        if res_maintenance is not None:
+            res_maintenance[i, :] = tmp._extract_array("maintenance")
+        if res_hazards is not None:
+            res_hazards[i, :] = tmp._extract_array("hazards")
+
+    def _clean_arrays(self, i, *arrays):
+        res_prod_p, res_prod_v, res_load_p, res_load_q, res_maintenance, res_hazards = arrays
+        if res_prod_p is not None:
+            res_prod_p = res_prod_p[:i, :]
+        if res_prod_v is not None:
+            res_prod_v = res_prod_v[:i, :]
+        if res_load_p is not None:
+            res_load_p = res_load_p[:i, :]
+        if res_load_q is not None:
+            res_load_q = res_load_q[:i, :]
+        if res_maintenance is not None:
+            res_maintenance = res_maintenance[:i, :]
+        if res_hazards is not None:
+            res_hazards = res_hazards[:i, :]
+        return res_prod_p, res_prod_v, res_load_p, res_load_q, res_maintenance, res_hazards
+
+    def _get_name_arrays_for_saving(self):
+        return ["prod_p", "prod_v", "load_p", "load_q", "maintenance", "hazards"]
+
+    def _get_colorder_arrays_for_saving(self):
+        return [self._order_backend_prods, self._order_backend_prods,
+                self._order_backend_loads, self._order_backend_loads,
+                self._order_backend_lines, self._order_backend_lines]
+
+    def split_and_save(self, datetime_beg, datetime_end, path_out):
+        # work on a copy of myself
+        tmp = copy.deepcopy(self)
+        datetime_beg = self._convert_datetime(datetime_beg)
+        datetime_end = self._convert_datetime(datetime_end)
+
+        nb_rows = datetime_end - datetime_beg
+        nb_rows = nb_rows.total_seconds()
+        nb_rows = int(nb_rows / self.time_interval.total_seconds())+1
+        if nb_rows <= 0:
+            raise ChronicsError("Invalid time step to be extracted. Make sure \"datetime_beg\" is lower than "
+                                "\"datetime_end\"")
+
+        # prepare folder
+        if not os.path.exists(path_out):
+            os.mkdir(path_out)
+
+        # skip until datetime_beg starts
+        curr_dt = tmp.current_datetime
+        if curr_dt > datetime_beg:
+            warnings.warn("split_and_save: you ask for a beginning of the extraction of the chronics after the "
+                          "current datetime of it. If they ever existed, the data in the chronics prior to {}"
+                          "will be ignored".format(curr_dt))
+        # in the chronics we load the first row to initialize the data, so here we stop just a bit before that
+        datetime_start = datetime_beg - self.time_interval
+        while curr_dt < datetime_start:
+            curr_dt, *_ = tmp.load_next()
+        real_init_dt = curr_dt
+
+        arrays = self._init_res_split(nb_rows)
+        i = 0
+        while curr_dt < datetime_end:
+            self._update_res_split(i, tmp, *arrays)
+            curr_dt, *_ = tmp.load_next()
+            i += 1
+        if i < nb_rows:
+            warnings.warn("split_and_save: chronics goes up to {} but you want to split it up to {}. Results "
+                          "has been troncated".format(curr_dt, datetime_end))
+
+        arrays = self._clean_arrays(i, *arrays)
+        nms = self._get_name_arrays_for_saving()
+        orders_columns = self._get_colorder_arrays_for_saving()
+        for el, nm, colnames in zip(arrays,
+                                    nms,
+                                    orders_columns):
+            nm = "{}{}".format(nm, ".csv.bz2")
+            self._save_array(el, path_out, nm, colnames)
+
+        with open(os.path.join(path_out, "start_datetime.info"), "w") as f:
+            f.write("{:%Y-%m-%d %H:%M}\n".format(real_init_dt))
+
+        tmp_for_time_delta = datetime(year=2018, month=1, day=1, hour=0, minute=0, second=0) + self.time_interval
+        with open(os.path.join(path_out, "time_interval.info"), "w") as f:
+            f.write("{:%H:%M}\n".format(tmp_for_time_delta))
+
+

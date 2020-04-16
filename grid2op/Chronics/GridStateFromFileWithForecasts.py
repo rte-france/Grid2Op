@@ -273,3 +273,65 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
     def get_id(self) -> str:
         return self.path
+
+    def _init_res_split(self, nb_rows):
+        res_load_p_f = None
+        res_load_q_f = None
+        res_prod_p_f = None
+        res_prod_v_f = None
+        res_maintenance_f = None
+        if self.prod_p_forecast is not None:
+            res_prod_p_f = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+        if self.prod_v_forecast is not None:
+            res_prod_v_f = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+        if self.load_p_forecast is not None:
+            res_load_p_f = np.zeros((nb_rows, self.n_load), dtype=np.float)
+        if self.load_q_forecast is not None:
+            res_load_q_f = np.zeros((nb_rows, self.n_load), dtype=np.float)
+        if self.maintenance_forecast is not None:
+            res_maintenance_f = np.zeros((nb_rows, self.n_line), dtype=np.float)
+        res = super()._init_res_split(nb_rows)
+        res += tuple([res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f, res_maintenance_f])
+        return res
+
+    def _update_res_split(self, i, tmp, *arrays):
+        *args_super, res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f, res_maintenance_f = arrays
+        super()._update_res_split(i, tmp, *args_super)
+        if res_prod_p_f is not None:
+            res_prod_p_f[i, :] = tmp._extract_array("prod_p_forecast")
+        if res_prod_v_f is not None:
+            res_prod_v_f[i, :] = tmp._extract_array("prod_v_forecast")
+        if res_load_p_f is not None:
+            res_load_p_f[i, :] = tmp._extract_array("load_p_forecast")
+        if res_load_q_f is not None:
+            res_load_q_f[i, :] = tmp._extract_array("load_q_forecast")
+        if res_maintenance_f is not None:
+            res_maintenance_f[i, :] = tmp._extract_array("maintenance_forecast")
+
+    def _clean_arrays(self, i, *arrays):
+        *args_super, res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f, res_maintenance_f = arrays
+        res = super()._clean_arrays(i, *args_super)
+        if res_prod_p_f is not None:
+            res_prod_p_f = res_prod_p_f[:i, :]
+        if res_prod_v_f is not None:
+            res_prod_v_f = res_prod_v_f[:i, :]
+        if res_load_p_f is not None:
+            res_load_p_f = res_load_p_f[:i, :]
+        if res_load_q_f is not None:
+            res_load_q_f = res_load_q_f[:i, :]
+        if res_maintenance_f is not None:
+            res_maintenance_f = res_maintenance_f[:i, :]
+        res += tuple([res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f, res_maintenance_f])
+        return res
+
+    def _get_name_arrays_for_saving(self):
+        res = super()._get_name_arrays_for_saving()
+        res += ["prod_p_forecast", "prod_v_forecast", "load_p_forecast", "load_q_forecast", "maintenance_forecast"]
+        return res
+
+    def _get_colorder_arrays_for_saving(self):
+        res = super()._get_colorder_arrays_for_saving()
+        res += tuple([self._order_backend_prods, self._order_backend_prods,
+                      self._order_backend_loads, self._order_backend_loads,
+                      self._order_backend_lines])
+        return res

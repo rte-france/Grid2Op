@@ -190,4 +190,6 @@ getting_started/awesome_agent_logs/
 getting_started/path_agents/
 **Test.ipynb
 baselines/
+test_saving_chron_proper_format/
+test_split_and_save.py
 
