@@ -25,9 +25,6 @@ class GameplayReward(BaseReward):
         if has_error or is_illegal or is_ambiguous:
             # Broke the game or did not respect the rules
             return self.reward_min
-        elif is_done:
-            # Bonus for playing a full episode
-            return self.reward_max
         else:
-            # Keep playing
-            return 0.0
+            # Keep playing or finished episode
+            return (self.reward_max / 10.0)

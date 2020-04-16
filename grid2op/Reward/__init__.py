@@ -10,6 +10,7 @@ __all__ = [
     "DistanceReward",
     "GameplayReward",
     "CombinedReward",
+    "CombinedScaledReward",
     "RewardHelper",
     "BaseReward"
 ]
@@ -25,6 +26,7 @@ from grid2op.Reward.CloseToOverflowReward import CloseToOverflowReward
 from grid2op.Reward.DistanceReward import DistanceReward
 from grid2op.Reward.GameplayReward import GameplayReward
 from grid2op.Reward.CombinedReward import CombinedReward
+from grid2op.Reward.CombinedScaledReward import CombinedScaledReward
 from grid2op.Reward.RewardHelper import RewardHelper
 from grid2op.Reward.BaseReward import BaseReward
 

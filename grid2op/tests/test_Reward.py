@@ -40,6 +40,17 @@ class TestLoadingReward(ABC):
         assert isinstance(r_, numbers.Number)
         assert issubclass(self._reward_type(), BaseReward)
 
+    def test_set_range(self):
+        # Get the reward instance
+        r_instance = self.env.reward_helper.template_reward
+        assert r_instance is not None
+
+        # Set the range
+        r_instance.set_range(-42.0, 42.0)
+        # Test it's set
+        rmin, rmax = r_instance.get_range()
+        assert rmin == -42.0
+        assert rmax == 42.0
 
 class TestLoadingConstantReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
@@ -149,6 +160,49 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         set_action = self.env.action_space({"set_bus": {"lines_or_id": [(1,2)]}})
         obs, r, d, info = self.env.step(set_action)
         assert r < 1.0 
+
+class TestCombinedScaledReward(TestLoadingReward, unittest.TestCase):
+    def _reward_type(self):
+        return CombinedScaledReward
         
+    def test_scaled_gameplay_fail(self):
+        cr = self.env.reward_helper.template_reward
+        assert cr is not None
+        # Register gameplay reward with big weight
+        added = cr.addReward("Gameplay", GameplayReward(), 500.0)
+        assert added == True
+        self.env.reset()
+        cr.initialize(self.env)
+
+        # Make a diverging action
+        set_action = self.env.action_space({
+            "set_bus": {
+                "lines_or_id": [(1,2)],
+                "lines_ex_id": [(1,2)]
+            }
+        })
+        obs, r, d, info = self.env.step(set_action)
+        # Test it's within range
+        rmin, rmax = cr.get_range()
+        assert r >= rmin
+        assert r <= rmax 
+
+    def test_scaled_gameplay_fail(self):
+        cr = self.env.reward_helper.template_reward
+        assert cr is not None
+        # Register gameplay reward with big weight
+        added = cr.addReward("Gameplay", GameplayReward(), 500.0)
+        assert added == True
+        self.env.reset()
+        cr.initialize(self.env)
+
+        # Make a do_nothing
+        set_action = self.env.action_space({})
+        obs, r, d, info = self.env.step(set_action)
+        # Test it's within range
+        rmin, rmax = cr.get_range()
+        assert r >= rmin
+        assert r <= rmax 
+
 if __name__ == "__main__":
     unittest.main()
