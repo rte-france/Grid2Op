@@ -80,6 +80,9 @@ class OneChangeThenNothing(BaseAgent):
             self.has_changed = True
         return res
 
+    def reset(self, obs):
+        self.has_changed = False
+
     def _get_dict_act(self):
         """
         Function that need to be overridden to indicate which action to perfom.

@@ -326,7 +326,8 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
     def _get_name_arrays_for_saving(self):
         res = super()._get_name_arrays_for_saving()
-        res += ["prod_p_forecast", "prod_v_forecast", "load_p_forecast", "load_q_forecast", "maintenance_forecast"]
+        res += ["prod_p_forecasted", "prod_v_forecasted", "load_p_forecasted",
+                "load_q_forecasted", "maintenance_forecasted"]
         return res
 
     def _get_colorder_arrays_for_saving(self):

@@ -20,6 +20,8 @@ will save the information in a structured way. For each episode there will be a 
     - "chronics_path": the path where the temporal data (chronics) are located
     - "env_type": the name of the :class:`grid2op.Environment` class used.
     - "grid_path": the path where the powergrid has been loaded from
+    - "nb_timestep_played": number of time step the agent has succesfully managed
+    - "cumulative_reward": its total cumulative reward
 
   - "episode_times.json": gives some information about the total time spend in multiple part of the runner, mainly the
     :class:`grid2op.Agent.BaseAgent` (and especially its method :func:`grid2op.BaseAgent.act`) and amount of time

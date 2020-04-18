@@ -37,6 +37,7 @@ DICT_URL_GRID2OP_DL = {
 }
 LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()])
 
+
 class DownloadProgressBar(tqdm):
     """
     This class is here to show the progress bar when downloading this dataset

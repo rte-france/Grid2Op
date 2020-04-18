@@ -8,7 +8,9 @@ Change Log
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-
+- [???] refacto the backend and the actions, backend you get set only, env takes care of the rest
+- [???] refacto the dataset handling
+- [???] implement "skip" method for chronics to skip up to a certain date.
 - [???] better explanation of the notebook 3 with action silently
 - [???] have something remembering the topology in the environment, and when an object is
   reconnected, and no buses are specified, then it connects it to last buses.
@@ -21,6 +23,12 @@ Change Log
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
+
+[0.7.1] - 2020-04-xx
+----------------------
+- [FIXED] a bug in the chronics making it not start at the appropriate time step
+- [FIXED] a bug in "OneChangeThenNothing" agent that prevent it to be restarted properly.
+- [ADDED] a method to extract only some part of a chronic.
 
 [0.7.0] - 2020-04-15
 --------------------

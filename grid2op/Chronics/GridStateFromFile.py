@@ -176,6 +176,7 @@ class GridStateFromFile(GridValue):
                                             "it's composed of only one line with a datetime in the \"%Y-%m-%d %H:%M\""
                                             "format.")
             self.start_datetime = tmp
+            self.current_datetime = tmp
 
         if os.path.exists(os.path.join(self.path, "time_interval.info")):
             with open(os.path.join(self.path, "time_interval.info"), "r") as f:

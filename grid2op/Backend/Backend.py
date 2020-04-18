@@ -276,7 +276,8 @@ class Backend(GridObjects, ABC):
         It is also possible, for a specific application, to return the maximum current flow between both ends of a power
         _grid for more complex scenario.
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
 
         :return: an array with the line flows of each powerline
         :rtype: np.array, dtype:float
@@ -362,7 +363,9 @@ class Backend(GridObjects, ABC):
         """
         Gives the thermal limit (in amps) for each powerline of the _grid. Only one value per powerline is returned.
 
-        It is assumed that both :func:`Backend.get_line_flow` and *_get_thermal_limit* gives the value of the same end of the powerline.
+        It is assumed that both :func:`Backend.get_line_flow` and *_get_thermal_limit* gives the value of the same
+        end of the powerline.
+
         See the help of *_get_line_flow* for a more detailed description of this problem.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
@@ -386,7 +389,8 @@ class Backend(GridObjects, ABC):
         """
         num_ = self.get_line_flow()
         denom_ = self.get_thermal_limit()
-        return num_ / denom_
+        res = np.divide(num_, denom_)
+        return res
 
     def get_line_overflow(self):
         """
