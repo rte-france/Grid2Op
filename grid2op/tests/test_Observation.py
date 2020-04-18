@@ -6,29 +6,22 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
-import unittest
-import datetime
 import json
 import warnings
-from io import StringIO
-import numpy as np
 from numpy import dtype
 import pdb
 
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.Observation import ObservationSpace, CompleteObservation, _ObsEnv, BaseObservation
-from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
-from grid2op.Action import ActionSpace
+from grid2op.Observation import ObservationSpace, CompleteObservation
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts
 from grid2op.Rules import RulesChecker
 from grid2op.Reward import L2RPNReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make_new
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -628,13 +621,13 @@ class TestUpdateEnvironement(unittest.TestCase):
         # Create env and obs in left hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.lenv = make("case5_example")
+            self.lenv = make_new("rte_case5_example", __dev=True)
             self.lobs = self.lenv.reset()
 
         # Create env and obs in right hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.renv = make("case5_example")
+            self.renv = make_new("rte_case5_example", __dev=True)
             # Step once to make it different
             self.robs, _, _, _ = self.renv.step(self.renv.action_space())
 
@@ -728,7 +721,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_realistic")
+            self.env = make_new("rte_case14_realistic", __dev=True)
 
         # Set forecasts to actual values so that simulate runs on the same numbers as step
         self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)

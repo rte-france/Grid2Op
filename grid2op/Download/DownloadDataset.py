@@ -27,7 +27,6 @@ try:
 except Exception as e:
     raise RuntimeError("Impossible to find library urllib. Please install it.")
 
-DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
 URL_GRID2OP_DATA = "https://github.com/Tezirg/Grid2Op/releases/download/{}/{}"
 DATASET_TAG_v0_1_0 = "datasets-v0.1.0"
 DICT_URL_GRID2OP_DL = {

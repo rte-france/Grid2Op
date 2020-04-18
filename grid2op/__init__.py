@@ -17,7 +17,6 @@ __all__ = [
     "Rules",
     "Reward",
     "Runner",
-    "Utils",
     "Plot",
     "EpisodeData",
     "Download",
@@ -27,7 +26,7 @@ __all__ = [
     "command_line"
 ]
 
-from grid2op.MakeEnv import make, make2
+from grid2op.MakeEnv import make, make2, make_new, list_available_remove_env
 
 # TODO remove -- Export hardcoded datasets settings at top-level
 from grid2op.MakeEnv import CASE_14_FILE

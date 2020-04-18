@@ -6,10 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
-import unittest
-import numpy as np
 import pdb
 import warnings
 from grid2op.tests.helper_path_test import *
@@ -20,7 +16,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules import *
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make_new
 
 
 class TestLoadingBackendFunc(unittest.TestCase):
@@ -438,7 +434,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
 class TestCooldown(unittest.TestCase):
     def setUp(self):
-        self.env = make("case5_example", gamerules_class=DefaultRules)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make_new("rte_case5_example", __dev=True, gamerules_class=DefaultRules)
 
     def tearDown(self):
         self.env.close()
@@ -453,7 +451,7 @@ class TestReconnectionsLegality(unittest.TestCase):
     def test_reconnect_already_connected(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make("case5_example")
+            env_case2 = make_new("rte_case5_example", __dev=True)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         # powerline 5 is connected
@@ -470,7 +468,7 @@ class TestReconnectionsLegality(unittest.TestCase):
             params = Parameters()
             params.MAX_SUB_CHANGED = 0
             params.NO_OVERFLOW_DISCONNECTION = True
-            env_case2 = make("case5_example", param=params)
+            env_case2 = make_new("rte_case5_example", __dev=True, param=params)
         obs = env_case2.reset()  # reset is good
         line_id = 5
         
@@ -491,13 +489,14 @@ class TestReconnectionsLegality(unittest.TestCase):
         # Check line has been reconnected
         assert np.sum(obs.line_status) == (env_case2.n_line)
 
+
 class TestSubstationImpactLegality(unittest.TestCase):
     def setUp(self):
         # Create env with custom params
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.params = Parameters()
-            self.env = make("case5_example", param=self.params)
+            self.env = make_new("rte_case5_example", __dev=True, param=self.params)
 
     def tearDown(self):
         self.env.close()
@@ -625,6 +624,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
         # Make sure its legal
         _, _, _, i = self.env.step(bus_action)
         assert i["is_illegal"] == False
+
 
 if __name__ == "__main__":
     unittest.main()

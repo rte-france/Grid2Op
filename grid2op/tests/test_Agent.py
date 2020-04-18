@@ -6,19 +6,14 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
-import unittest
-import datetime
 import time
 import warnings
-import numpy as np
 import pandapower as pp
 
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make_new
 from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
 from grid2op.Parameters import Parameters
 
@@ -40,7 +35,7 @@ class TestAgent(HelperTests):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_redisp", param=param)
+            self.env = make_new("rte_case14_redisp", __dev=True, param=param)
 
     def tearDown(self):
         self.env.close()

@@ -16,12 +16,15 @@ import numbers
 from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
-from grid2op import make
+from grid2op.MakeEnv import make_new
 
 
 class TestLoadingReward(ABC):
     def setUp(self):
-        self.env = make("case5_example", reward_class=self._reward_type())
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make_new("rte_case5_example", __dev=True, reward_class=self._reward_type())
+
         self.action = self.env.action_space()
         self.has_error = False
         self.is_done = False
@@ -65,9 +68,11 @@ class TestLoadingRedispReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
         return RedispReward
 
+
 class TestLoadingBridgeReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
         return BridgeReward
+
 
 class TestDistanceReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
@@ -100,9 +105,11 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
         obs, r, d, info = self.env.step(set_action)
         assert r != 1.0
 
+
 class TestLoadingGameplayReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
         return GameplayReward
+
 
 class TestCombinedReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):

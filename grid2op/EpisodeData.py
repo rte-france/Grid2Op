@@ -58,12 +58,10 @@ import time
 import numpy as np
 import pandas as pd
 
-try:
-    from .Exceptions import Grid2OpException, AmbiguousAction
-    from .Utils import ActionSpace, ObservationSpace
-except (ModuleNotFoundError, ImportError):
-    from Exceptions import Grid2OpException, AmbiguousAction
-    from Utils import ActionSpace, ObservationSpace
+
+from grid2op.Exceptions import Grid2OpException, AmbiguousAction
+from grid2op.Action import ActionSpace
+from grid2op.Observation import ObservationSpace
 
 
 class EpisodeData:

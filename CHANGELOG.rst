@@ -29,6 +29,8 @@ Change Log
 - [FIXED] a bug in the chronics making it not start at the appropriate time step
 - [FIXED] a bug in "OneChangeThenNothing" agent that prevent it to be restarted properly.
 - [ADDED] a method to extract only some part of a chronic.
+- [UPDATED] test data and datasets are no longer included in the package distribution
+- [UPDATED] a new function `make_with_download` that will make obsolete the "grid2op.download" script in future versions
 
 [0.7.0] - 2020-04-15
 --------------------
