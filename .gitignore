@@ -170,7 +170,7 @@ getting_started/study_agent_getting_started/
 **Untitled.ipynb
 grid2op/tests/test_agent/
 grid2op/tests/start_datetime.info
-grid2op/data/*/chronics/
+# grid2op/data/*/chronics/
 
 l2rpn_2019/data/
 l2rpn_2019/expe_saved/

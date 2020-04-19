@@ -148,9 +148,13 @@ if __name__ == "__main__":
     pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
     # TODO refacto these, no need to have 3 times almost the same "templatedockerfile"
     # update docker for test version
-    modify_and_push_docker(version, path=path, "templateDockerFile_test", docker_versions=["test"])
+    modify_and_push_docker(version, path=path,
+                           templateDockerFile_to_use="templateDockerFile_test",
+                           docker_versions=["test"])
     # update docker for "light"
-    modify_and_push_docker(version, path=path, "templateDockerFile_light", docker_versions=["light"])
+    modify_and_push_docker(version, path=path,
+                           templateDockerFile_to_use="templateDockerFile_light",
+                           docker_versions=["light"])
     # update version for competition and regular version
     modify_and_push_docker(version, path=path)
 
