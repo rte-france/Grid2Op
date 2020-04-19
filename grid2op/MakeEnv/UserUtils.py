@@ -36,7 +36,7 @@ def list_available_local_env():
     res = []
     if not os.path.exists(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA):
         return res
-    
+
     for el in os.listdir(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA):
         tmp_dir = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, el)
         if os.path.exists(os.path.join(tmp_dir, "config.py")) and \
