@@ -6,18 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-
-
-"""
 import os
 import importlib.util
 import pkg_resources
 import warnings
 import numbers
-import requests
-import time
-import pdb
 import json
 
 from grid2op.Environment import Environment
@@ -28,7 +21,7 @@ from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, 
 from grid2op.Action import BaseAction, TopologyAction, TopologyAndDispatchAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, BaseObservation
-from grid2op.Reward import FlatReward, BaseReward, L2RPNReward, RedispReward
+from grid2op.Reward import BaseReward, L2RPNReward, RedispReward
 from grid2op.Rules import BaseRules, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
@@ -633,10 +626,12 @@ def make(name_env="case14_realistic", **kwargs):
 
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
-        default_name_converter = NAMES_CHRONICS_TO_BACKEND
+        default_name_converter = {}
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
     elif name_env.lower() == "l2rpn_2019":
+        warnings.warn("You are using the \"l2rpn_2019\" environmnet, which will be remove from this package in "
+                      "future versions. Please use \"make_new\" to download the real l2rpn dataset.")
         if chronics_path == '':
             msg_error = "Default chronics (provided in this package) cannot be used with the environment "
             msg_error += "\"l2rpn_2019\". Please download the training data using either the method described in" \

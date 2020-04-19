@@ -15,9 +15,7 @@
 import os
 import argparse
 import re
-import sys
 import pdb
-import json
 import subprocess
 import time
 

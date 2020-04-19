@@ -5,6 +5,7 @@ Change Log
 --------------------
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
+- [???] make multiple dockers, one for testing, one for distribution with all extra, and one "light"
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
@@ -28,9 +29,11 @@ Change Log
 ----------------------
 - [FIXED] a bug in the chronics making it not start at the appropriate time step
 - [FIXED] a bug in "OneChangeThenNothing" agent that prevent it to be restarted properly.
+- [FIXED] a bug with the generated docker file that does not update to the last version of the package.
 - [ADDED] a method to extract only some part of a chronic.
 - [UPDATED] test data and datasets are no longer included in the package distribution
 - [UPDATED] a new function `make_with_download` that will make obsolete the "grid2op.download" script in future versions
+- [UPDATED] the python "requests" package is now a dependency
 
 [0.7.0] - 2020-04-15
 --------------------

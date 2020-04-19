@@ -19,7 +19,8 @@ pkgs = {
         "pandapower>=2.2.2",
         "tqdm>=4.43.0",
         "pathlib>=1.0.1",
-        "networkx>=2.4"
+        "networkx>=2.4",
+        "requests>=2.23.0"
     ],
     "extras": {
         "test": [
