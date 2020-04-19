@@ -26,6 +26,27 @@ def start_subprocess_print(li, sleepbefore=2, cwd=None):
     subprocess.run(li, cwd=cwd)
 
 
+def modify_and_push_docker(version,  # grid2op version
+                           path,
+                           templateDockerFile_to_use="templateDockerFile",
+                           docker_versions=[version, "latest"]):
+    # Dockerfile
+    template_dockerfile = os.path.join(path, "utils", templateDockerFile_to_use)
+    dockerfile = os.path.join(path, "Dockerfile")
+    with open(template_dockerfile, "r") as f:
+        new_setup = f.read()
+    new_setup = re.sub("__VERSION__",
+                       "v{}".format(version),
+                       new_setup)
+    with open(dockerfile, "w") as f:
+        f.write(new_setup)
+
+    # Create new docker containers
+    for vers_ in docker_versions:
+        start_subprocess_print(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
+        start_subprocess_print(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Update the version of grid2op in the python files.')
     parser.add_argument('--version', default=None,
@@ -113,6 +134,7 @@ if __name__ == "__main__":
                        new_setup)
     with open(dockerfile, "w") as f:
         f.write(new_setup)
+
     # Stage in git
     start_subprocess_print(["git", "add", dockerfile])
         
@@ -124,8 +146,11 @@ if __name__ == "__main__":
 
     # Wait for user to push changes
     pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
-    
-    # Create new docker containers
-    for vers_ in [version, "latest"]:
-        start_subprocess_print(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
-        start_subprocess_print(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
+    # TODO refacto these, no need to have 3 times almost the same "templatedockerfile"
+    # update docker for test version
+    modify_and_push_docker(version, path=path, "templateDockerFile_test", docker_versions=["test"])
+    # update docker for "light"
+    modify_and_push_docker(version, path=path, "templateDockerFile_light", docker_versions=["light"])
+    # update version for competition and regular version
+    modify_and_push_docker(version, path=path)
+
