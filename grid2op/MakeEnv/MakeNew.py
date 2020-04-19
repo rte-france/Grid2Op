@@ -6,9 +6,13 @@ import pkg_resources
 
 from grid2op.MakeEnv.MakeEnv import make_from_dataset_path
 from grid2op.Exceptions import Grid2OpException, UnknownEnv
-from grid2op.MakeEnv.PathUtils import DEFAULT_PATH_DATA, _create_path_folder
+import grid2op.MakeEnv.PathUtils
+# do not do "from grid2op.MakeEnv.PathUtils import DEFAULT_PATH_DATA" because this path
+# can be modified by "UserUtils" If it's modified by the user, after it has been imported here
+# the change will not be made.
+from grid2op.MakeEnv.PathUtils import _create_path_folder
 
-from grid2op.Download.DownloadDataset import main_download
+from grid2op.Download.DownloadDataset import _aux_download
 import pdb
 
 PAHT_DATA_FOLDER = pkg_resources.resource_filename("grid2op", "data")
@@ -74,11 +78,6 @@ def _list_available_remove_env_aux():
     return avail_datasets_json
 
 
-def list_available_remove_env():
-    avail_datasets_json = _list_available_remove_env_aux()
-    return sorted(avail_datasets_json.keys())
-
-
 def _fecth_environments(dataset_name):
     avail_datasets_json = _list_available_remove_env_aux()
     if not dataset_name in avail_datasets_json:
@@ -123,6 +122,8 @@ def _extract_ds_name(dataset_path):
 
 
 # TODO add some kind of md5sum (or something else) in the remote json to check if version is locally updated (once in a while)
+# TODO: logger instead of print would be so much better.
+# TODO and an overall logger verbosity
 def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
@@ -196,9 +197,9 @@ def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kw
         return res
     dataset_name = _extract_ds_name(dataset_path)
     res = None
-    if os.path.exists(os.path.join(DEFAULT_PATH_DATA, dataset_name)):
+    if os.path.exists(os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)):
         # second check in the DEFAULT_PATH_DATA if the environment is present (typically if env is given by name)
-        real_ds_path = os.path.join(DEFAULT_PATH_DATA, dataset_name)
+        real_ds_path = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)
         res = make_from_dataset_path(real_ds_path, **kwargs)
     elif dataset_name in TEST_DEV_ENVS and (__dev or local):
         if not __dev:
@@ -210,10 +211,12 @@ def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kw
         res = make_from_dataset_path(TEST_DEV_ENVS[dataset_name], **kwargs)
     elif not local:
         # third try to download the environment
-        _create_path_folder(DEFAULT_PATH_DATA)
+        print("It is the first time you use the environment \"{}\". We will attempt to download this environment from "
+              "remote")
+        _create_path_folder(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
         url = _fecth_environments(dataset_name)
-        main_download(url, DEFAULT_PATH_DATA)
-        real_ds_path = os.path.join(DEFAULT_PATH_DATA, dataset_name)
+        _aux_download(url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
+        real_ds_path = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)
         res = make_from_dataset_path(real_ds_path, **kwargs)
     else:
         raise UnknownEnv("Impossible to load locally the environment named \"{}\".".format(dataset_path))

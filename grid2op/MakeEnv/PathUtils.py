@@ -10,16 +10,18 @@
 import os
 import json
 
+# TODO use something a bit different when in venv for example
+# look at where the local package can be installed
 DEFAULT_PATH_CONFIG = os.path.expanduser("~/.grid2opconfig.json")
 DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
-
+KEY_DATA_PATH = "data_path"
 
 if os.path.exists(DEFAULT_PATH_CONFIG):
     with open(DEFAULT_PATH_CONFIG, "r") as f:
         dict_ = json.load(f)
 
-    if "data_path" in dict_:
-        DEFAULT_PATH_DATA = os.path.abspath(dict_["data_path"])
+    if KEY_DATA_PATH in dict_:
+        DEFAULT_PATH_DATA = os.path.abspath(dict_[KEY_DATA_PATH])
 
 
 def _create_path_folder(data_path):

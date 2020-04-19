@@ -50,7 +50,7 @@ It has the following behavior:
    have the possibility to search for these environments provided in the package.
 5) if nothing is found, :func:`make_new` throws a EnvError.
 
-TODO: behaviour of ".grid2opconfig.json"
+TODO: explain behaviour of ".grid2opconfig.json"
 
 
 Detailed Documentation by class
