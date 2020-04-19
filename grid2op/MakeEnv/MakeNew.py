@@ -122,8 +122,74 @@ def _extract_ds_name(dataset_path):
     return dataset_name
 
 
-# TODO add some kind of md5sum in the remote json to check if version is locally updated (once in a while)
+# TODO add some kind of md5sum (or something else) in the remote json to check if version is locally updated (once in a while)
 def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kwargs):
+    """
+    This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
+
+    Other environments, with different powergrids will be made available in the future and will be easily downloadable
+    using this function.
+
+    It mimic the `gym.make` function.
+
+    Parameters
+    ----------
+
+    dataset_path: ``str``
+        Path to the dataset folder, defaults to "rte_case14_realistic"
+
+    local: ``bool``
+        Do not attempt to download data for environments stored remotely. See the global help of this module for
+        detailed behavior above this flag.
+
+    param: ``grid2op.Parameters.Parameters``, optional
+        Type of parameters used for the Environment. Parameters defines how the powergrid problem is cast into an
+        markov decision process, and some internal
+
+    backend: ``grid2op.Backend.Backend``, optional
+        The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
+
+    action_class: ``type``, optional
+        Type of BaseAction the BaseAgent will be able to perform.
+        If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
+
+    observation_class: ``type``, optional
+        Type of BaseObservation the BaseAgent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
+
+    reward_class: ``type``, optional
+        Type of reward signal the BaseAgent will receive.
+        If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
+
+    gamerules_class: ``type``, optional
+        Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
+        If provided, It must be a subclass of :class:`grid2op.RulesChecker.BaseRules`
+
+    data_feeding_kwargs: ``dict``, optional
+        Dictionnary that is used to build the `data_feeding` (chronics) objects.
+
+    chronics_class: ``type``, optional
+        The type of chronics that represents the dynamics of the Environment created. Usually they come from different
+        folders.
+
+    data_feeding: ``type``, optional
+        The type of chronics handler you want to use.
+
+    volagecontroler_class: ``type``, optional
+        The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
+
+    chronics_path: ``str``
+        Path where to look for the chronics dataset (optional)
+
+    grid_path: ``str``, optional
+        The path where the powergrid is located.
+        If provided it must be a string, and point to a valid file present on the hard drive.
+
+    Returns
+    -------
+    env: :class:`grid2op.Environment.Environment`
+        The created environment.
+    """
     if os.path.exists(dataset_path):
         # first, if a path is provided, check if there is something there
         res = make_from_dataset_path(dataset_path, **kwargs)
