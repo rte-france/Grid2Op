@@ -10,9 +10,9 @@ import warnings
 import pdb
 
 from grid2op.tests.helper_path_test import *
+PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
 
 from grid2op.Chronics import Multifolder
-from grid2op import CASE_14_FILE, CHRONICS_MLUTIEPISODE
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make_new
@@ -27,8 +27,8 @@ class TestRunner(HelperTests):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        self.init_grid_path = CASE_14_FILE
-        self.path_chron = CHRONICS_MLUTIEPISODE
+        self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
+        self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
         self.max_iter = 10
         self.real_reward = 199.99800

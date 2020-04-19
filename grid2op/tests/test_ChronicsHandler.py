@@ -15,7 +15,6 @@ from grid2op.MakeEnv import make_new
 from grid2op.Exceptions import *
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
 from grid2op.Backend import PandaPowerBackend
-from grid2op import CHRONICS_MLUTIEPISODE
 
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
@@ -452,7 +451,7 @@ class TestLoadingChronicsHandlerPP(HelperTests):
 
 class TestLoadingMultiFolder(HelperTests):
     def setUp(self):
-        self.path = CHRONICS_MLUTIEPISODE
+        self.path = os.path.join(PATH_CHRONICS, "test_multi_chronics")
 
         self.n_gen = 5
         self.n_load = 11
@@ -540,7 +539,7 @@ class TestEnvChunk(HelperTests):
             warnings.filterwarnings("ignore")
             self.env = make_new("rte_case14_realistic", __dev=True)
             self.env.chronics_handler.set_max_iter(self.max_iter)
-
+            
     def tearDown(self):
         self.env.close()
 

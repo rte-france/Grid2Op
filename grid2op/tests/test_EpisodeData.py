@@ -19,8 +19,7 @@ from grid2op.Runner import Runner
 from grid2op.EpisodeData import EpisodeData
 
 DEBUG = True
-
-from grid2op import CASE_14_FILE, CHRONICS_MLUTIEPISODE
+PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
 
 
 class TestEpisodeData(unittest.TestCase):
@@ -34,8 +33,9 @@ class TestEpisodeData(unittest.TestCase):
         self.max_iter = 10
         self.real_reward = 199.99800
 
-        self.init_grid_path = CASE_14_FILE
-        self.path_chron = CHRONICS_MLUTIEPISODE
+        self.init_grid_path = os.path.join(
+            PATH_DATA_TEST_PP, "test_case14.json")
+        self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
         self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
                                                     "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
