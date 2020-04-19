@@ -26,7 +26,7 @@ grid2op_root = file_dir.parent.absolute()
 grid2op_root = str(grid2op_root)
 dat_dir = os.path.abspath(os.path.join(grid2op_root, "data"))
 case_dir = "l2rpn_2019"
-grid_file = "L2RPN_2019_grid.json"
+grid_file = "grid.json"
 
 L2RPN2019_CASEFILE = os.path.join(dat_dir, case_dir, grid_file)
 L2RPN2019_CHRONICSPATH = os.path.join(dat_dir, case_dir, "chronics")

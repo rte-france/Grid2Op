@@ -29,7 +29,7 @@ def start_subprocess_print(li, sleepbefore=2, cwd=None):
 def modify_and_push_docker(version,  # grid2op version
                            path,
                            templateDockerFile_to_use="templateDockerFile",
-                           docker_versions=[version, "latest"]):
+                           docker_versions=[]):
     # Dockerfile
     template_dockerfile = os.path.join(path, "utils", templateDockerFile_to_use)
     dockerfile = os.path.join(path, "Dockerfile")
@@ -156,5 +156,5 @@ if __name__ == "__main__":
                            templateDockerFile_to_use="templateDockerFile_light",
                            docker_versions=["light"])
     # update version for competition and regular version
-    modify_and_push_docker(version, path=path)
+    modify_and_push_docker(version, path=path, docker_versions=[version, "latest"])
 
