@@ -24,7 +24,6 @@ from grid2op.Exceptions import *
 from grid2op.Rules import RulesChecker
 from grid2op.MakeEnv import make_new
 from grid2op.Rules import AlwaysLegal
-
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
 
