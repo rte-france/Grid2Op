@@ -37,7 +37,7 @@ RUN git checkout "tags/__VERSION__" -b "__VERSION__-branch"
 RUN pip3 install -U .
 RUN pip3 install -U .[optional]
 RUN pip3 install -U .[test]
-RUN pip3 install -U .[challenge]
+RUN pip3 install -U .[challenge] --default-timeout=600 --no-cache-dir
 WORKDIR /
 
 # Make port 80 available to the world outside this container
