@@ -539,7 +539,7 @@ class TestEnvChunk(HelperTests):
             warnings.filterwarnings("ignore")
             self.env = make_new("rte_case14_realistic", __dev=True)
             self.env.chronics_handler.set_max_iter(self.max_iter)
-            
+
     def tearDown(self):
         self.env.close()
 

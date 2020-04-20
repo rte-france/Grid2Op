@@ -147,7 +147,10 @@ if __name__ == "__main__":
     # Wait for user to push changes
     pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
     # TODO refacto these, no need to have 3 times almost the same "templatedockerfile"
+
     # update docker for test version
+    # TODO remove the "-e" in this docker file, and copy paste the data in data_test in the appropriate folder
+    # that you can get with a python call
     modify_and_push_docker(version, path=path,
                            templateDockerFile_to_use="templateDockerFile_test",
                            docker_versions=["test"])
