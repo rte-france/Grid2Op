@@ -17,7 +17,7 @@ import warnings
 
 from grid2op.PlotGrid.BasePlot import BasePlot
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
-from grid2op.PlotGrid import PlotUtil as pltu
+from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 from grid2op.Exceptions import PlotError
 
 class PlotPlotly(BasePlot):
