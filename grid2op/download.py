@@ -13,7 +13,7 @@ import argparse
 import os
 import sys
 
-from grid2op.PathUtils import DEFAULT_PATH_DATA
+from grid2op.MakeEnv.PathUtils import DEFAULT_PATH_DATA
 from grid2op.Download.DownloadDataset import main_download
 from grid2op.Download.DownloadDataset import LI_VALID_ENV
 
