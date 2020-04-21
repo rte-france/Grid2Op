@@ -31,3 +31,6 @@ WORKDIR /Grid2Op
 RUN git pull
 RUN pip3 install -e .[test]
 WORKDIR /
+
+# Make port 80 available to the world outside this container
+EXPOSE 80
