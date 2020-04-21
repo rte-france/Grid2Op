@@ -37,7 +37,8 @@ Change Log
 - [UPDATED] the python "requests" package is now a dependency
 - [ADDED] class `grid2op.Reward.CombinedScaledReward`: A reward combiner with linear interpolation to stay within a given range.
 - [ADDED] `grid2op.Reward.BaseReward.set_range`: All rewards have a default setter for their `reward_min` and `reward_max` attributes.
-
+- [ADDED] `grid2op.PlotGrid`: Revamped plotting capabilities while keeping the interface we know from `grid2op.Plot`
+- [ADDED] `grid2op.replay` binary: This binary is installed with grid2op and allows to replay a runner log with visualization and gif export
 
 [0.7.0] - 2020-04-15
 --------------------
