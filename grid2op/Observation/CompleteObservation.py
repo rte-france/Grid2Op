@@ -9,6 +9,7 @@
 import numpy as np
 import copy
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Observation.BaseObservation import BaseObservation
 
 
@@ -137,12 +138,12 @@ class CompleteObservation(BaseObservation):
         self.reset()
 
         # extract the time stamps
-        self.year = env.time_stamp.year
-        self.month = env.time_stamp.month
-        self.day = env.time_stamp.day
-        self.hour_of_day = env.time_stamp.hour
-        self.minute_of_hour = env.time_stamp.minute
-        self.day_of_week = env.time_stamp.weekday()
+        self.year = dt_int(env.time_stamp.year)
+        self.month = dt_int(env.time_stamp.month)
+        self.day = dt_int(env.time_stamp.day)
+        self.hour_of_day = dt_int(env.time_stamp.hour)
+        self.minute_of_hour = dt_int(env.time_stamp.minute)
+        self.day_of_week = dt_int(env.time_stamp.weekday())
 
         # get the values related to topology
         self.timestep_overflow = copy.copy(env.timestep_overflow)
@@ -162,7 +163,7 @@ class CompleteObservation(BaseObservation):
             self._forecasted_grid[i]["setbus"] = self.topo_vect
 
         self._forecasted_grid = [None for _ in self._forecasted_inj]
-        self.rho = env.backend.get_relative_flow()
+        self.rho = env.backend.get_relative_flow().astype(dt_float)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env.times_before_line_status_actionable
@@ -264,7 +265,7 @@ class CompleteObservation(BaseObservation):
 
         """
         if self.connectivity_matrix_ is None:
-            self.connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo),dtype=np.float)
+            self.connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
             # fill it by block for the objects
             beg_ = 0
             end_ = 0
@@ -273,7 +274,7 @@ class CompleteObservation(BaseObservation):
                 # especially if written in c++
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
-                tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=np.float)
+                tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=dt_float)
                 for obj1 in range(nb_obj):
                     for obj2 in range(obj1+1, nb_obj):
                         if self.topo_vect[beg_+obj1] == self.topo_vect[beg_+obj2]:
@@ -308,7 +309,7 @@ class CompleteObservation(BaseObservation):
         if self.bus_connectivity_matrix_ is None:
             # computes the number of buses in the powergrid.
             nb_bus = 0
-            nb_bus_per_sub = np.zeros(self.sub_info.shape[0])
+            nb_bus_per_sub = np.zeros(self.sub_info.shape[0], dtype=dt_int)
             beg_ = 0
             end_ = 0
             for sub_id, nb_obj in enumerate(self.sub_info):
@@ -322,7 +323,7 @@ class CompleteObservation(BaseObservation):
                 beg_ += nb_obj
 
             # define the bus_connectivity_matrix
-            self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=np.float)
+            self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
             np.fill_diagonal(self.bus_connectivity_matrix_, 1)
 
             for q_id in range(self.n_line):

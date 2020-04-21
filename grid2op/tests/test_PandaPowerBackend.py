@@ -15,6 +15,7 @@ import warnings
 
 from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
@@ -336,7 +337,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         maintenance[19] = True
         action = self.action_env({"maintenance": maintenance})  # update the action
 
@@ -365,7 +366,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         maintenance[17] = True
         action = self.action_env({"hazards": maintenance})  # update the action
 
@@ -392,10 +393,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         maintenance[19] = True
 
-        disc = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        disc = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         disc[17] = True
 
         action = self.action_env({"hazards": disc, "maintenance": maintenance})  # update the action
@@ -446,7 +447,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
         id_=1
         action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
 
@@ -466,7 +467,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
         id_=1
         action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
 
@@ -519,7 +520,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr = np.array([False, False, False, True, True, True], dtype=dt_bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
 
@@ -569,7 +570,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = np.array([el for el in self.backend.get_line_flow()])
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr = np.array([False, False, False, True, True, True], dtype=dt_bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
 
@@ -637,8 +638,8 @@ class TestTopoAction(unittest.TestCase):
 
     def test_topo_change_2sub(self):
         # check that maintenance vector is properly taken into account
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},

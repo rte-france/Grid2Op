@@ -10,9 +10,9 @@ import os
 import copy
 import numpy as np
 import pandas as pd
-import pdb
 from datetime import timedelta
 
+from grid2op._utils import dt_float, dt_bool
 from grid2op.Exceptions import EnvError, IncorrectNumberOfLoads, IncorrectNumberOfLines, IncorrectNumberOfGenerators
 from grid2op.Exceptions import ChronicsError
 from grid2op.Chronics.GridStateFromFile import GridStateFromFile
@@ -158,13 +158,13 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self.prod_v_forecast = None
 
         if load_p is not None:
-            self.load_p_forecast = copy.deepcopy(load_p.values[:, self._order_load_p_forecasted])
+            self.load_p_forecast = copy.deepcopy(load_p.values[:, self._order_load_p_forecasted].astype(dt_float))
         if load_q is not None:
-            self.load_q_forecast = copy.deepcopy(load_q.values[:, self._order_load_q_forecasted])
+            self.load_q_forecast = copy.deepcopy(load_q.values[:, self._order_load_q_forecasted].astype(dt_float))
         if prod_p is not None:
-            self.prod_p_forecast = copy.deepcopy(prod_p.values[:, self._order_prod_p_forecasted])
+            self.prod_p_forecast = copy.deepcopy(prod_p.values[:, self._order_prod_p_forecasted].astype(dt_float))
         if prod_v is not None:
-            self.prod_v_forecast = copy.deepcopy(prod_v.values[:, self._order_prod_v_forecasted])
+            self.prod_v_forecast = copy.deepcopy(prod_v.values[:, self._order_prod_v_forecasted].astype(dt_float))
 
         if maintenance is not None:
             if maintenance is not None:
@@ -172,6 +172,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
 
             # there are _maintenance and hazards only if the value in the file is not 0.
             self.maintenance_forecast = self.maintenance != 0.
+            self.maintenance_forecast = self.maintenance_forecast.astype(dt_bool)
 
     def check_validity(self, backend):
         super(GridStateFromFileWithForecasts, self).check_validity(backend)
@@ -255,13 +256,13 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         res = {}
         dict_ = {}
         if self.load_p_forecast is not None:
-            dict_["load_p"] = 1.0 * self.load_p_forecast[self.current_index, :]
+            dict_["load_p"] = dt_float(1.0 * self.load_p_forecast[self.current_index, :])
         if self.load_q_forecast is not None:
-            dict_["load_q"] = 1.0 * self.load_q_forecast[self.current_index, :]
+            dict_["load_q"] = dt_float(1.0 * self.load_q_forecast[self.current_index, :])
         if self.prod_p_forecast is not None:
-            dict_["prod_p"] = 1.0 * self.prod_p_forecast[self.current_index, :]
+            dict_["prod_p"] = dt_float(1.0 * self.prod_p_forecast[self.current_index, :])
         if self.prod_v_forecast is not None:
-            dict_["prod_v"] = 1.0 * self.prod_v_forecast[self.current_index, :]
+            dict_["prod_v"] = dt_float(1.0 * self.prod_v_forecast[self.current_index, :])
         if dict_:
             res["injection"] = dict_
 
@@ -281,15 +282,15 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         res_prod_v_f = None
         res_maintenance_f = None
         if self.prod_p_forecast is not None:
-            res_prod_p_f = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+            res_prod_p_f = np.zeros((nb_rows, self.n_gen), dtype=dt_float)
         if self.prod_v_forecast is not None:
-            res_prod_v_f = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+            res_prod_v_f = np.zeros((nb_rows, self.n_gen), dtype=dt_float)
         if self.load_p_forecast is not None:
-            res_load_p_f = np.zeros((nb_rows, self.n_load), dtype=np.float)
+            res_load_p_f = np.zeros((nb_rows, self.n_load), dtype=dt_float)
         if self.load_q_forecast is not None:
-            res_load_q_f = np.zeros((nb_rows, self.n_load), dtype=np.float)
+            res_load_q_f = np.zeros((nb_rows, self.n_load), dtype=dt_float)
         if self.maintenance_forecast is not None:
-            res_maintenance_f = np.zeros((nb_rows, self.n_line), dtype=np.float)
+            res_maintenance_f = np.zeros((nb_rows, self.n_line), dtype=dt_float)
         res = super()._init_res_split(nb_rows)
         res += tuple([res_prod_p_f, res_prod_v_f, res_load_p_f, res_load_q_f, res_maintenance_f])
         return res

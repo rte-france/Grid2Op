@@ -6,8 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import pdb
-
 from grid2op.Agent.GreedyAgent import GreedyAgent
 
 
@@ -23,8 +21,8 @@ class TopologyGreedy(GreedyAgent):
     To choose, it will simulate the outcome of all actions, and then chose the action leading to the best rewards.
 
     """
-    def __init__(self, action_space, action_space_converter=None):
-        GreedyAgent.__init__(self, action_space, action_space_converter=action_space_converter)
+    def __init__(self, action_space):
+        GreedyAgent.__init__(self, action_space)
         self.li_actions = None
 
     def _get_tested_action(self, observation):

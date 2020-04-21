@@ -10,6 +10,7 @@ import copy
 import numpy as np
 import pdb
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
@@ -166,7 +167,7 @@ class _ObsEnv(BaseEnv):
 
         # update the action that set the grid to the real value
         self._action = BaseAction(gridobj=self)
-        self._action.update({"set_line_status": np.array(self._line_status),
+        self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
                                            "load_p": self._load_p, "load_q": self._load_q}})
@@ -258,24 +259,24 @@ class _ObsEnv(BaseEnv):
         self._topo_vect = real_backend.get_topo_vect()
 
         # convert line status to -1 / 1 instead of false / true
-        self._line_status = real_backend.get_line_status().astype(np.int)  # false -> 0 true -> 1
+        self._line_status = real_backend.get_line_status().astype(dt_int)  # false -> 0 true -> 1
         self._line_status *= 2  # false -> 0 true -> 2
         self._line_status -= 1  # false -> -1; true -> 1
         self.is_init = False
 
         # Make a copy of env state for simulation
-        self._thermal_limit_a = env._thermal_limit_a
-        self.gen_activeprod_t[:] = env.gen_activeprod_t[:]
-        self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp[:]
-        self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable[:]
-        self.times_before_topology_actionable[:]  = env.times_before_topology_actionable[:]
-        self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection[:]
-        self.time_next_maintenance[:] = env.time_next_maintenance[:]
-        self.duration_next_maintenance[:] = env.duration_next_maintenance[:]
-        self.target_dispatch[:] = env.target_dispatch[:]
-        self.actual_dispatch[:] = env.actual_dispatch[:]
-        self.last_bus_line_or = env.last_bus_line_or[:]
-        self.last_bus_line_ex = env.last_bus_line_ex[:]
+        self._thermal_limit_a = env._thermal_limit_a.astype(dt_float)
+        self.gen_activeprod_t[:] = env.gen_activeprod_t[:].astype(dt_float)
+        self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp[:].astype(dt_float)
+        self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable[:].astype(dt_int)
+        self.times_before_topology_actionable[:]  = env.times_before_topology_actionable[:].astype(dt_int)
+        self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection[:].astype(dt_int)
+        self.time_next_maintenance[:] = env.time_next_maintenance[:].astype(dt_int)
+        self.duration_next_maintenance[:] = env.duration_next_maintenance[:].astype(dt_int)
+        self.target_dispatch[:] = env.target_dispatch[:].astype(dt_float)
+        self.actual_dispatch[:] = env.actual_dispatch[:].astype(dt_float)
+        self.last_bus_line_or = env.last_bus_line_or[:].astype(dt_int)
+        self.last_bus_line_ex = env.last_bus_line_ex[:].astype(dt_int)
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!

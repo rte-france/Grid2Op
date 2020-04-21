@@ -8,8 +8,8 @@
 
 import numpy as np
 from datetime import datetime, timedelta
-import pdb
 
+from grid2op._utils import dt_int
 from grid2op.Chronics.GridValue import GridValue
 
 
@@ -31,9 +31,9 @@ class ChangeNothing(GridValue):
         self.n_line = len(order_backend_lines)
         self.curr_iter = 0
 
-        self.maintenance_time = np.zeros(shape=(self.n_line, ), dtype=np.int) - 1
-        self.maintenance_duration = np.zeros(shape=(self.n_line, ), dtype=np.int)
-        self.hazard_duration = np.zeros(shape=(self.n_line, ), dtype=np.int)
+        self.maintenance_time = np.zeros(shape=(self.n_line, ), dtype=dt_int) - 1
+        self.maintenance_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
+        self.hazard_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
 
     def load_next(self):
         """

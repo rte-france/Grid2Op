@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-from abc import ABC, abstractmethod
 
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward

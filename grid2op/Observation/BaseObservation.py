@@ -7,9 +7,10 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
 import numpy as np
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import pdb
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
@@ -426,57 +427,57 @@ class BaseObservation(GridObjects):
 
         """
         # vecorized _grid
-        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = np.ones(shape=self.n_line, dtype=np.bool)
+        self.line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         # topological vector
-        self.topo_vect = np.full(shape=self.dim_topo, dtype=np.int, fill_value=0)
+        self.topo_vect = np.full(shape=self.dim_topo, dtype=dt_int, fill_value=0)
 
         # generators information
-        self.prod_p = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
-        self.prod_q = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
-        self.prod_v = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.prod_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.prod_q = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.prod_v = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
         # loads information
-        self.load_p = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
-        self.load_q = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
-        self.load_v = np.full(shape=self.n_load, dtype=np.float, fill_value=np.NaN)
+        self.load_p = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
+        self.load_q = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
+        self.load_v = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
         # lines origin information
-        self.p_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.q_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.v_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.a_or = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.p_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.v_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.a_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
         # lines extremity information
-        self.p_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.q_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.v_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.a_ex = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.p_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.v_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.a_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
         # lines relative flows
-        self.rho = np.full(shape=self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.rho = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
-        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=np.int, fill_value=-1)
-        self.time_before_line_reconnectable = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
-        self.time_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
-        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=np.int, fill_value=-1)
+        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=dt_int, fill_value=-1)
+        self.time_before_line_reconnectable = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.time_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
 
         # calendar data
-        self.year = 1970
-        self.month = 0
-        self.day = 0
-        self.hour_of_day = 0
-        self.minute_of_hour = 0
-        self.day_of_week = 0
+        self.year = dt_int(1970)
+        self.month = dt_int(0)
+        self.day = dt_int(0)
+        self.hour_of_day = dt_int(0)
+        self.minute_of_hour = dt_int(0)
+        self.day_of_week = dt_int(0)
 
         # forecasts
         self._forecasted_inj = []
         self._forecasted_grid = []
 
         # redispatching
-        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
-        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=np.NaN)
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
 
     def __compare_stats(self, other, name):
         if self.__dict__[name] is None and other.__dict__[name] is not None:
@@ -486,9 +487,10 @@ class BaseObservation(GridObjects):
         if self.__dict__[name] is not None:
             if self.__dict__[name].shape != other.__dict__[name].shape:
                 return False
+
             if self.__dict__[name].dtype != other.__dict__[name].dtype:
                 return False
-            if np.issubdtype(self.__dict__[name].dtype, np.dtype(float).type):
+            if np.issubdtype(self.__dict__[name].dtype, np.dtype(dt_float).type):
                 # special case of floating points, otherwise vector are never equal
                 if not np.all(np.abs(self.__dict__[name] - other.__dict__[name]) <= self._tol_equal):
                     return False

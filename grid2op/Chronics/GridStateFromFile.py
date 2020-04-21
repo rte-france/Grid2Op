@@ -14,6 +14,7 @@ import warnings
 from datetime import datetime, timedelta
 import pdb
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import IncorrectNumberOfElements, ChronicsError, ChronicsNotFoundError
 from grid2op.Exceptions import IncorrectNumberOfLoads, IncorrectNumberOfGenerators, IncorrectNumberOfLines
 from grid2op.Exceptions import EnvError, InsufficientData
@@ -231,31 +232,31 @@ class GridStateFromFile(GridValue):
         if load_p is not None:
             self._assert_correct_second_stage(load_p.columns, self.names_chronics_to_backend, "loads", "active")
             order_chronics_load_p = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-                                              for el in load_p.columns]).astype(np.int)
+                                              for el in load_p.columns]).astype(dt_int)
         if load_q is not None:
             self._assert_correct_second_stage(load_q.columns, self.names_chronics_to_backend, "loads", "reactive")
             order_backend_load_q = np.array([order_backend_loads[self.names_chronics_to_backend["loads"][el]]
-                                             for el in load_q.columns]).astype(np.int)
+                                             for el in load_q.columns]).astype(dt_int)
 
         if prod_p is not None:
             self._assert_correct_second_stage(prod_p.columns, self.names_chronics_to_backend, "prods", "active")
             order_backend_prod_p = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-                                             for el in prod_p.columns]).astype(np.int)
+                                             for el in prod_p.columns]).astype(dt_int)
 
         if prod_v is not None:
             self._assert_correct_second_stage(prod_v.columns, self.names_chronics_to_backend, "prods", "voltage magnitude")
             order_backend_prod_v = np.array([order_backend_prods[self.names_chronics_to_backend["prods"][el]]
-                                             for el in prod_v.columns]).astype(np.int)
+                                             for el in prod_v.columns]).astype(dt_int)
 
         if hazards is not None:
             self._assert_correct_second_stage(hazards.columns, self.names_chronics_to_backend, "lines", "hazards")
             order_backend_hazards = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
-                                              for el in hazards.columns]).astype(np.int)
+                                              for el in hazards.columns]).astype(dt_int)
 
         if maintenance is not None:
             self._assert_correct_second_stage(maintenance.columns, self.names_chronics_to_backend, "lines", "maintenance")
             order_backend_maintenance = np.array([order_backend_lines[self.names_chronics_to_backend["lines"][el]]
-                                                  for el in maintenance.columns]).astype(np.int)
+                                                  for el in maintenance.columns]).astype(dt_int)
 
         return order_chronics_load_p, order_backend_load_q, \
                order_backend_prod_p, order_backend_prod_v, \
@@ -468,20 +469,20 @@ class GridStateFromFile(GridValue):
         self.maintenance_duration = None
 
         if load_p is not None:
-            self.load_p = copy.deepcopy(load_p.values[:, self._order_load_p])
+            self.load_p = copy.deepcopy(load_p.values[:, self._order_load_p].astype(dt_float))
         if load_q is not None:
-            self.load_q = copy.deepcopy(load_q.values[:, self._order_load_q])
+            self.load_q = copy.deepcopy(load_q.values[:, self._order_load_q].astype(dt_float))
         if prod_p is not None:
-            self.prod_p = copy.deepcopy(prod_p.values[:, self._order_prod_p])
+            self.prod_p = copy.deepcopy(prod_p.values[:, self._order_prod_p].astype(dt_float))
         if prod_v is not None:
-            self.prod_v = copy.deepcopy(prod_v.values[:, self._order_prod_v])
+            self.prod_v = copy.deepcopy(prod_v.values[:, self._order_prod_v].astype(dt_float))
 
         # TODO optimize this piece of code, and the whole laoding process if hazards.csv and maintenance.csv are
         # provided in the proper format.
         if hazards is not None:
             # hazards and maintenance cannot be computed by chunk. So we need to differenciate their behaviour
             self.hazards = copy.deepcopy(hazards.values[:, self._order_hazards])
-            self.hazard_duration = np.zeros(shape=(self.hazards.shape[0], self.n_line), dtype=np.int)
+            self.hazard_duration = np.zeros(shape=(self.hazards.shape[0], self.n_line), dtype=dt_int)
             for line_id in range(self.n_line):
                 self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
 
@@ -489,8 +490,8 @@ class GridStateFromFile(GridValue):
 
         if maintenance is not None:
             self.maintenance = copy.deepcopy(maintenance.values[:, self._order_maintenance])
-            self.maintenance_time = np.zeros(shape=(self.maintenance.shape[0], self.n_line), dtype=np.int) - 1
-            self.maintenance_duration = np.zeros(shape=(self.maintenance.shape[0], self.n_line), dtype=np.int)
+            self.maintenance_time = np.zeros(shape=(self.maintenance.shape[0], self.n_line), dtype=dt_int) - 1
+            self.maintenance_duration = np.zeros(shape=(self.maintenance.shape[0], self.n_line), dtype=dt_int)
 
             # test that with chunk size
             for line_id in range(self.n_line):
@@ -499,6 +500,7 @@ class GridStateFromFile(GridValue):
 
             # there are _maintenance and hazards only if the value in the file is not 0.
             self.maintenance = self.maintenance != 0.
+            self.maintenance = self.maintenance.astype(dt_bool)
 
     def done(self):
         """
@@ -584,16 +586,16 @@ class GridStateFromFile(GridValue):
         self.curr_iter += 1
 
         if self.maintenance_time is not None:
-            maintenance_time = 1 * self.maintenance_time[self.current_index, :]
-            maintenance_duration = 1 * self.maintenance_duration[self.current_index, :]
+            maintenance_time = dt_int(1 * self.maintenance_time[self.current_index, :])
+            maintenance_duration = dt_int(1 * self.maintenance_duration[self.current_index, :])
         else:
-            maintenance_time = np.full(self.n_line, fill_value=-1, dtype=np.int)
-            maintenance_duration = np.full(self.n_line, fill_value=0, dtype=np.int)
+            maintenance_time = np.full(self.n_line, fill_value=-1, dtype=dt_int)
+            maintenance_duration = np.full(self.n_line, fill_value=0, dtype=dt_int)
 
         if self.hazard_duration is not None:
             hazard_duration = 1 * self.hazard_duration[self.current_index, :]
         else:
-            hazard_duration = np.full(self.n_line, fill_value=-1, dtype=np.int)
+            hazard_duration = np.full(self.n_line, fill_value=-1, dtype=dt_int)
 
         return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration, prod_v
 
@@ -732,17 +734,17 @@ class GridStateFromFile(GridValue):
         res_maintenance = None
         res_hazards = None
         if self.prod_p is not None:
-            res_prod_p = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+            res_prod_p = np.zeros((nb_rows, self.n_gen), dtype=dt_float)
         if self.prod_v is not None:
-            res_prod_v = np.zeros((nb_rows, self.n_gen), dtype=np.float)
+            res_prod_v = np.zeros((nb_rows, self.n_gen), dtype=dt_float)
         if self.load_p is not None:
-            res_load_p = np.zeros((nb_rows, self.n_load), dtype=np.float)
+            res_load_p = np.zeros((nb_rows, self.n_load), dtype=dt_float)
         if self.load_q is not None:
-            res_load_q = np.zeros((nb_rows, self.n_load), dtype=np.float)
+            res_load_q = np.zeros((nb_rows, self.n_load), dtype=dt_float)
         if self.maintenance is not None:
-            res_maintenance = np.zeros((nb_rows, self.n_line), dtype=np.float)
+            res_maintenance = np.zeros((nb_rows, self.n_line), dtype=dt_float)
         if self.hazards is not None:
-            res_hazards = np.zeros((nb_rows, self.n_line), dtype=np.float)
+            res_hazards = np.zeros((nb_rows, self.n_line), dtype=dt_float)
         return res_prod_p, res_prod_v, res_load_p, res_load_q, res_maintenance, res_hazards
 
     def _update_res_split(self, i, tmp, *arrays):

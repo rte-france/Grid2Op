@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 import pdb
 
+from grid2op._utils import dt_int
 from grid2op.Exceptions import EnvError
 
 # TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number
@@ -265,7 +266,7 @@ class GridValue(ABC):
 
         """
 
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -340,7 +341,7 @@ class GridValue(ABC):
 
         """
 
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0,0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -418,7 +419,7 @@ class GridValue(ABC):
 
         """
 
-        res = np.full(hazard.shape, fill_value=np.NaN, dtype=np.int)
+        res = np.full(hazard.shape, fill_value=np.NaN, dtype=dt_int)
         hazard = np.concatenate((hazard, (0, 0)))
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array

@@ -13,6 +13,7 @@ import warnings
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters

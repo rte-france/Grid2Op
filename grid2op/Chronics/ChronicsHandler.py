@@ -8,7 +8,6 @@
 
 import os
 from datetime import timedelta
-import pdb
 
 from grid2op.Exceptions import Grid2OpException, ChronicsError
 from grid2op.Space import RandomObject

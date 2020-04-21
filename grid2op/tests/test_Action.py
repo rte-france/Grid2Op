@@ -8,12 +8,12 @@
 
 import copy
 import json
-import pdb
 import re
 from abc import ABC, abstractmethod
 
 from grid2op.tests.helper_path_test import *
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Action import *
 from grid2op.Rules import RulesChecker, DefaultRules
@@ -44,7 +44,7 @@ class TestActionBase(ABC):
                                     name_load=["load_{}".format(i) for i in range(11)],
                                     name_line=["line_{}".format(i) for i in range(20)],
                                     name_sub=["sub_{}".format(i) for i in range(14)],
-                                    sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=np.int),
+                                    sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int),
                                     load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
                                     gen_to_subid=np.array([0, 1, 2, 5, 7]),
                                     line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
@@ -193,7 +193,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_line_status')
 
         for i in range(self.helper_action.n_line):
-            disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=np.int)
+            disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=dt_int)
             disco[i] = 1
             action = self.helper_action({"set_line_status": disco})
             for j in range(self.helper_action.n_line):
@@ -208,7 +208,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_line_status')
 
         for i in range(self.helper_action.n_line):
-            disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=np.int)
+            disco = np.full(shape=self.helper_action.n_line, fill_value=0, dtype=dt_int)
             disco[i] = -1
             action = self.helper_action({"set_line_status": disco})
             for j in range(self.helper_action.n_line):
@@ -223,7 +223,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('hazards')
 
         for i in range(self.helper_action.n_line):
-            disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=np.bool)
+            disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=dt_bool)
             disco[i] = True
             action = self.helper_action({"hazards": disco})
             for j in range(self.helper_action.n_line):
@@ -236,7 +236,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('change_line_status')
 
         for i in range(self.helper_action.n_line):
-            disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=np.bool)
+            disco = np.full(shape=self.helper_action.n_line, fill_value=False, dtype=dt_bool)
             disco[i] = True
             action = self.helper_action({"change_line_status": disco})
             for j in range(self.helper_action.n_line):
@@ -256,7 +256,7 @@ class TestActionBase(ABC):
     def test_update_set_topo_by_dict_sub(self):
         self._skipMissingKey('set_bus')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["set_bus_or"] == 1
         assert action.effect_on(line_id=3)["set_bus_or"] == 1
@@ -271,8 +271,8 @@ class TestActionBase(ABC):
     def test_update_set_topo_by_dict_sub2(self):
         self._skipMissingKey('set_bus')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
-        arr3 = np.array([1, 2, 1, 2, 1, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
+        arr3 = np.array([1, 2, 1, 2, 1, 2], dtype=dt_int)
         action = self.helper_action({"set_bus": {"substations_id": [(3, arr3), (1, arr)]}})
         assert action.effect_on(line_id=2)["set_bus_or"] == 1
         assert action.effect_on(line_id=3)["set_bus_or"] == 1
@@ -328,7 +328,7 @@ class TestActionBase(ABC):
     def test_update_change_bus_by_dict_sub(self):
         self._skipMissingKey('change_bus')
 
-        arr = np.array([True, True, True, False, False, False], dtype=np.bool)
+        arr = np.array([True, True, True, False, False, False], dtype=dt_bool)
         action = self.helper_action({"change_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["change_bus_or"] == True
         assert action.effect_on(line_id=3)["change_bus_or"] == True
@@ -343,8 +343,8 @@ class TestActionBase(ABC):
     def test_update_change_bus_by_dict_sub2(self):
         self._skipMissingKey('change_bus')
 
-        arr = np.array([True, True, True, False, False, False], dtype=np.bool)
-        arr3 = np.array([True, False, True, False, True, False], dtype=np.bool)
+        arr = np.array([True, True, True, False, False, False], dtype=dt_bool)
+        arr3 = np.array([True, False, True, False, True, False], dtype=dt_bool)
         action = self.helper_action({"change_bus": {"substations_id": [(3, arr3), (1, arr)]}})
         assert action.effect_on(line_id=2)["change_bus_or"] == True
         assert action.effect_on(line_id=3)["change_bus_or"] == True
@@ -404,7 +404,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('set_line_status')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
         id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         arr2 = np.zeros(self.helper_action.n_line)
@@ -424,7 +424,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('hazards')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
         id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=id_)["set_bus_or"] == 1, "fail for {}".format(self.helper_action.actionClass)
@@ -437,8 +437,8 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
@@ -457,8 +457,8 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
@@ -498,8 +498,8 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         action1 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
@@ -514,8 +514,8 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         action1 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
@@ -539,18 +539,18 @@ class TestActionBase(ABC):
         self._skipMissingKey('change_line_status')
         self._skipMissingKey('injection')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         new_vect = np.random.randn(self.helper_action.n_load)
         new_vect2 = np.random.randn(self.helper_action.n_load)
 
-        change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(np.bool)
+        change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(dt_bool)
         set_status_orig = np.random.randint(-1, 2, self.helper_action.n_line)
         set_status_orig[change_status_orig] = 0
 
-        change_topo_vect_orig = np.random.randint(0, 2, self.helper_action.dim_topo).astype(np.bool)
+        change_topo_vect_orig = np.random.randint(0, 2, self.helper_action.dim_topo).astype(dt_bool)
         # powerline that are set to be reconnected, can't be moved to another bus
         change_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]] = False
         change_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]] = False
@@ -594,11 +594,11 @@ class TestActionBase(ABC):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = 2
 
         do_nothing = self.helper_action({})
@@ -849,6 +849,7 @@ class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
 
+
 class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
     """
     Test suite using the PowerlineSetAction class
@@ -856,6 +857,7 @@ class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
 
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAndDispatchAction)
+
 
 class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
     """

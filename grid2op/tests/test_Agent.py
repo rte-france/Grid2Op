@@ -83,19 +83,19 @@ class TestAgent(HelperTests):
         agent = DoNothingAgent(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for do nothing"
-        assert np.abs(cum_reward - 35140.02895) <= self.tol_one, "The reward has not been properly computed"
+        assert np.abs(cum_reward - 35140.02903) <= self.tol_one, "The reward has not been properly computed"
 
     def test_1_powerlineswitch(self):
         agent = PowerLineSwitch(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-        assert np.abs(cum_reward - 35147.56202) <= self.tol_one, "The reward has not been properly computed"
+        assert np.abs(cum_reward - 35147.56210) <= self.tol_one, "The reward has not been properly computed"
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent, i_max=10)
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
-        assert np.abs(cum_reward - 12075.38800) <= self.tol_one, "The reward has not been properly computed"
+        assert np.abs(cum_reward - 12075.38803) <= self.tol_one, "The reward has not been properly computed"
 
 
 if __name__ == "__main__":

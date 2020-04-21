@@ -625,7 +625,7 @@ class Runner(object):
         episode.set_meta(env, time_step, cum_reward)
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
-                   "\t - env update + observation: {:.2f}s", "BaseAgent: {:.2f}s", "Total time: {:.2f}s",
+                   "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
                    "Cumulative reward: {:1f}"]
         msg_ = "\n".join(li_text)
         logger.info(msg_.format(

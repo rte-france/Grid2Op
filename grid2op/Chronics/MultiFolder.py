@@ -8,7 +8,7 @@
 
 import os
 import numpy as np
-from datetime import  timedelta
+from datetime import timedelta
 import pdb
 
 from grid2op.Exceptions import *

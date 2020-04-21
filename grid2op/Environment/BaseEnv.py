@@ -11,6 +11,7 @@ import numpy as np
 import copy
 from abc import ABC, abstractmethod
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
@@ -96,21 +97,21 @@ class BaseEnv(GridObjects, ABC):
         self.parameters = parameters
 
         # some timers
-        self._time_apply_act = 0
-        self._time_powerflow = 0
-        self._time_extract_obs = 0
-        self._time_opponent = 0
+        self._time_apply_act = dt_float(0)
+        self._time_powerflow = dt_float(0)
+        self._time_extract_obs = dt_float(0)
+        self._time_opponent = dt_float(0)
 
         # data relative to interpolation
-        self._epsilon_poly = epsilon_poly
-        self._tol_poly = tol_poly
+        self._epsilon_poly = dt_float(epsilon_poly)
+        self._tol_poly = dt_float(tol_poly)
 
         # define logger
         self.logger = None
 
         # and calendar data
         self.time_stamp = None
-        self.nb_time_step = 0
+        self.nb_time_step = dt_int(0)
 
         # observation
         self.current_obs = None
@@ -247,36 +248,36 @@ class BaseEnv(GridObjects, ABC):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         # store actions "cooldown"
-        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
         # for maintenance operation
-        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
-        self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
         self.env_dc = self.parameters.ENV_DC
 
         # Remember lines last bus
-        self.last_bus_line_or = np.full(shape=self.n_line, fill_value=1, dtype=np.int)
-        self.last_bus_line_ex = np.full(shape=self.n_line, fill_value=1, dtype=np.int)
+        self.last_bus_line_or = np.full(shape=self.n_line, fill_value=1, dtype=dt_int)
+        self.last_bus_line_ex = np.full(shape=self.n_line, fill_value=1, dtype=dt_int)
 
         # initialize maintenance / hazards
-        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
-        self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
 
         self._reset_redispatching()
         self.__is_init = True
@@ -300,7 +301,7 @@ class BaseEnv(GridObjects, ABC):
         if not self.__is_init:
             raise Grid2OpException("Impossible to set the thermal limit to a non initialized Environment")
         try:
-            tmp = np.array(thermal_limit).flatten().astype(np.float)
+            tmp = np.array(thermal_limit).flatten().astype(dt_float)
         except Exception as e:
             raise Grid2OpException("Impossible to convert the vector as input into a 1d numpy float array.")
         if tmp.shape[0] != self.n_line:
@@ -314,18 +315,18 @@ class BaseEnv(GridObjects, ABC):
 
     def _reset_redispatching(self):
         # redispatching
-        self.target_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
-        self.actual_dispatch = np.full(shape=self.n_gen, dtype=np.float, fill_value=0.)
-        self.gen_uptime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
-        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=np.float)
-        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=np.float)
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=0.)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=0.)
+        self.gen_uptime = np.full(shape=self.n_gen, dtype=dt_int, fill_value=0)
+        self.gen_downtime = np.full(shape=self.n_gen, dtype=dt_int, fill_value=0)
+        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
+        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
         # if self.redispatching_unit_commitment_availble:
         #     # pretend that all generator has been turned off for a suffcient number of timestep,
         #     # otherwise when reconnecting them at first step it's complicated
         #     self.gen_downtime = self.gen_min_downtime
         # else:
-        #     self.gen_downtime = np.full(shape=self.n_gen, dtype=np.int, fill_value=0)
+        #     self.gen_downtime = np.full(shape=self.n_gen, dtype=dt_int, fill_value=0)
 
     @staticmethod
     def _get_poly(t, tmp_p, pmin, pmax):
@@ -945,7 +946,7 @@ class BaseEnv(GridObjects, ABC):
                 beg_ = time.time()
                 self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                 overflow_lines = self.backend.get_line_overflow()
-                # overflow_lines = np.full(self.n_line, fill_value=False, dtype=np.bool)
+                # overflow_lines = np.full(self.n_line, fill_value=False, dtype=dt_bool)
 
                 # one timestep passed, i can maybe reconnect some lines
                 self.time_remaining_before_line_reconnection[self.time_remaining_before_line_reconnection > 0] -= 1
@@ -1061,20 +1062,20 @@ class BaseEnv(GridObjects, ABC):
 
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
                                                     fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.env_dc = self.parameters.ENV_DC
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=np.int)
+        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
-        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # reset timings
         self._time_apply_act = 0
@@ -1087,9 +1088,9 @@ class BaseEnv(GridObjects, ABC):
         self.done = False
 
     def _reset_maintenance(self):
-        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
-        self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
+        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
 
     def __enter__(self):
         """

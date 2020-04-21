@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # update docker for "light"
     modify_and_push_docker(version, path=path,
                            templateDockerFile_to_use="templateDockerFile_light",
-                           docker_versions=["light"])
+                           docker_versions=[f"{version}-light"])
     # update version for competition and regular version
     modify_and_push_docker(version, path=path, docker_versions=[version, "latest"])
 

@@ -6,8 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import pdb
-
 from grid2op.Converter import ToVect
 from grid2op.Agent.AgentWithConverter import AgentWithConverter
 

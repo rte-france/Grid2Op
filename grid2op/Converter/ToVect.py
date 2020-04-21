@@ -8,8 +8,6 @@
 
 from grid2op.Converter.Converters import Converter
 
-import pdb
-
 
 class ToVect(Converter):
     """

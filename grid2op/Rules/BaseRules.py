@@ -8,8 +8,6 @@
 
 from abc import ABC, abstractmethod
 
-import pdb
-
 
 class BaseRules(ABC):
     """

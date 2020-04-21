@@ -7,12 +7,12 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-import warnings
 import itertools
 
 import pdb
 
-from grid2op.Exceptions import *
+from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.Exceptions import AmbiguousAction, Grid2OpException
 from grid2op.Space import SerializableSpace
 from grid2op.Action.BaseAction import BaseAction
 
@@ -329,7 +329,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
-        res: :class:`numpy.array`, dtype:np.int
+        res: :class:`numpy.array`, dtype:dt_int
             A vector that doesn't affect the grid, but can be used in "set_line_status"
 
         """
@@ -341,7 +341,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
-        res: :class:`numpy.array`, dtype:np.bool
+        res: :class:`numpy.array`, dtype:dt_bool
             A vector that doesn't affect the grid, but can be used in "change_line_status"
 
         """
@@ -402,8 +402,8 @@ class SerializableActionSpace(SerializableSpace):
                 pass
 
             for tup in itertools.product(S, repeat=num_el - 1):
-                indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
-                tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
+                indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
+                tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
                 indx[tup] = True
                 if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
                     # i need 2 elements on each bus at least
@@ -435,7 +435,7 @@ class SerializableActionSpace(SerializableSpace):
         S = [0, 1]
         for sub_id, num_el in enumerate(action_space.sub_info):
             tmp = []
-            new_topo = np.full(shape=num_el, fill_value=1, dtype=np.int)
+            new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
             # perform the action "set everything on bus 1"
             action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
             tmp.append(action)
@@ -446,12 +446,12 @@ class SerializableActionSpace(SerializableSpace):
 
             # computes all the topologies at 2 buses for this substation
             for tup in itertools.product(S, repeat=num_el - 1):
-                indx = np.full(shape=num_el, fill_value=False, dtype=np.bool)
-                tup = np.array((0, *tup)).astype(np.bool)  # add a zero to first element -> break symmetry
+                indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
+                tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
                 indx[tup] = True
                 if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
                     # i need 2 elements on each bus at least
-                    new_topo = np.full(shape=num_el, fill_value=1, dtype=np.int)
+                    new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
                     new_topo[~indx] = 2
 
                     if np.sum(indx[powerlines_id]) == 0 or np.sum(~indx[powerlines_id]) == 0:
