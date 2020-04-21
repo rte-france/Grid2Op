@@ -25,6 +25,7 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+
 [0.7.1] - 2020-04-xx
 ----------------------
 - [FIXED] a bug in the chronics making it not start at the appropriate time step
@@ -34,6 +35,9 @@ Change Log
 - [UPDATED] test data and datasets are no longer included in the package distribution
 - [UPDATED] a new function `make_with_download` that will make obsolete the "grid2op.download" script in future versions
 - [UPDATED] the python "requests" package is now a dependency
+- [ADDED] class `grid2op.Reward.CombinedScaledReward`: A reward combiner with linear interpolation to stay within a given range.
+- [ADDED] `grid2op.Reward.BaseReward.set_range`: All rewards have a default setter for their `reward_min` and `reward_max` attributes.
+
 
 [0.7.0] - 2020-04-15
 --------------------
