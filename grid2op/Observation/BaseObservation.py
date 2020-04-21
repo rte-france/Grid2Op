@@ -10,7 +10,7 @@ import numpy as np
 from abc import abstractmethod
 import pdb
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 

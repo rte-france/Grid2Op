@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 import pdb
 
-from grid2op._utils import dt_int
+from grid2op.dtypes import dt_int
 from grid2op.Exceptions import EnvError
 
 # TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number

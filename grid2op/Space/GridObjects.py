@@ -19,7 +19,7 @@ to manipulate.
 """
 import numpy as np
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 

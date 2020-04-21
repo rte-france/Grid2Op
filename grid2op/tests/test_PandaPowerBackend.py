@@ -15,7 +15,6 @@ import warnings
 
 from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP
 
-from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
@@ -337,7 +336,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         maintenance[19] = True
         action = self.action_env({"maintenance": maintenance})  # update the action
 
@@ -366,7 +365,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         maintenance[17] = True
         action = self.action_env({"hazards": maintenance})  # update the action
 
@@ -393,10 +392,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         maintenance[19] = True
 
-        disc = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
+        disc = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
         disc[17] = True
 
         action = self.action_env({"hazards": disc, "maintenance": maintenance})  # update the action
@@ -447,7 +446,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_=1
         action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
 
@@ -467,7 +466,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
         id_=1
         action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
 
@@ -520,7 +519,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr = np.array([False, False, False, True, True, True], dtype=np.bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
 
@@ -570,7 +569,7 @@ class TestTopoAction(unittest.TestCase):
         init_amps_flow = np.array([el for el in self.backend.get_line_flow()])
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr = np.array([False, False, False, True, True, True], dtype=np.bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
 
@@ -638,8 +637,8 @@ class TestTopoAction(unittest.TestCase):
 
     def test_topo_change_2sub(self):
         # check that maintenance vector is properly taken into account
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
         id_2 = 12
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
@@ -899,7 +898,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_set_bus(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(__dev=True)
+            env = make_new(test=True)
         env.reset()
         # action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
@@ -910,7 +909,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_change_bus(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(__dev=True)
+            env = make_new(test=True)
         env.reset()
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -920,7 +919,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_change_bustwice(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(__dev=True)
+            env = make_new(test=True)
         env.reset()
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -931,7 +930,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_isolate_load(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(__dev=True)
+            env = make_new(test=True)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
         assert done, "an isolated laod has not lead to a game over"
@@ -939,7 +938,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case1 = make_new("rte_case5_example", __dev=True, gamerules_class=AlwaysLegal)
+            env_case1 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case1.reset()  # reset is good
         act = env_case1.action_space.disconnect_powerline(line_id=5)  # I disconnect a powerline
         obs, reward, done, info = env_case1.step(act)  # do the action, it's valid
@@ -952,7 +951,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus2(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", __dev=True, gamerules_class=AlwaysLegal)
+            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=2)  # reconnect powerline on bus 2 both ends
@@ -965,7 +964,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus3(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", __dev=True, gamerules_class=AlwaysLegal)
+            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=1, bus_ex=2)  # reconnect powerline on bus 2 both ends
@@ -976,7 +975,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus4(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", __dev=True, gamerules_class=AlwaysLegal)
+            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=1)  # reconnect powerline on bus 2 both ends
@@ -987,7 +986,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus5(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", __dev=True, gamerules_class=AlwaysLegal)
+            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         act_case2 = env_case2.action_space({"set_bus": {"lines_or_id": [(5,2)], "lines_ex_id": [(5,2)]}})  # reconnect powerline on bus 2 both ends
         # this should not lead to a game over this time, the grid is connex!
@@ -999,17 +998,15 @@ class TestShuntAction(HelperTests):
     def test_shunt_ambiguous_id_incorrect(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", __dev=True, gamerules_class=AlwaysLegal, action_class=CompleteAction) as env_case2:
+            with make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal, action_class=CompleteAction) as env_case2:
                 with self.assertRaises(AmbiguousAction):
                     act = env_case2.action_space({"shunt": {"set_bus": [(0, 2)]}})
 
     def test_shunt_effect(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = make_new("rte_case14_realistic", __dev=True, gamerules_class=AlwaysLegal,
-                                         action_class=CompleteAction)
-            env_change_q = make_new("rte_case14_realistic", __dev=True, gamerules_class=AlwaysLegal,
-                                              action_class=CompleteAction)
+            env_ref = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal, action_class=CompleteAction)
+            env_change_q = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal, action_class=CompleteAction)
 
         obs_ref, *_ = env_ref.step(env_ref.action_space())
         obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, -30)]}}))
@@ -1027,9 +1024,9 @@ class TestResetEqualsLoadGrid(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make_new("rte_case5_example", __dev=True, backend=PandaPowerBackend())
+            self.env1 = make_new("rte_case5_example", test=True, backend=PandaPowerBackend())
             self.backend1 = self.env1.backend
-            self.env2 = make_new("rte_case5_example", __dev=True, backend=PandaPowerBackend())
+            self.env2 = make_new("rte_case5_example", test=True, backend=PandaPowerBackend())
             self.backend2 = self.env2.backend
 
     def tearDown(self):

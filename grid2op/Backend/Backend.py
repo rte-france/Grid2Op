@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction

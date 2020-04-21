@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 from abc import ABC, abstractmethod
-from grid2op._utils import dt_float
+from grid2op.dtypes import dt_float
 
 
 class BaseReward(ABC):

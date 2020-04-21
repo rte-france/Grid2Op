@@ -14,7 +14,7 @@ from datetime import timedelta, datetime
 import numpy as np
 import pandas as pd
 
-from grid2op._utils import dt_int
+from grid2op.dtypes import dt_int
 from grid2op.Chronics import GridStateFromFileWithForecasts
 from grid2op.Exceptions import ChronicsError
 

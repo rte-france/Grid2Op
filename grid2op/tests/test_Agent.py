@@ -35,7 +35,7 @@ class TestAgent(HelperTests):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_redisp", __dev=True, param=param)
+            self.env = make_new("rte_case14_redisp", test=True, param=param)
 
     def tearDown(self):
         self.env.close()

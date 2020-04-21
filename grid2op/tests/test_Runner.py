@@ -84,14 +84,14 @@ class TestRunner(HelperTests):
     def test_init_from_env(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case14_test", __dev=True) as env:
+            with make_new("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=self.max_iter )
 
     def test_init_from_env_with_other_reward(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case14_test", __dev=True, other_rewards={"test": L2RPNReward}) as env:
+            with make_new("rte_case14_test", test=True, other_rewards={"test": L2RPNReward}) as env:
                 runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=self.max_iter)
 

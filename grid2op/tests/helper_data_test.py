@@ -8,7 +8,7 @@
 
 import numpy as np
 
-from grid2op._utils import dt_float
+from grid2op.dtypes import dt_float
 _case_14_layout = [(-280, -81), (-100, -270), (366, -270), (366, -54),
                    (-64, -54), (-64, 54), (450, 0), (550, 0), (326, 54),
                    (222, 108), (79, 162), (-170, 270), (-64, 270), (222, 216)]

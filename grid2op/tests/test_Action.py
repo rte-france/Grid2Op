@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 
 from grid2op.tests.helper_path_test import *
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Action import *
 from grid2op.Rules import RulesChecker, DefaultRules

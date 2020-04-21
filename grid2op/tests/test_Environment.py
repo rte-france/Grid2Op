@@ -190,7 +190,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case5_example", __dev=True)
+            self.env = make_new("rte_case5_example", test=True)
 
     def tearDown(self):
         self.env.close()
@@ -235,10 +235,7 @@ class TestOtherReward(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case5_example",
-                                          __dev=True,
-                                          reward_class=L2RPNReward,
-                                          other_rewards={"test": L2RPNReward})
+            self.env = make_new("rte_case5_example", test=True, reward_class=L2RPNReward, other_rewards={"test": L2RPNReward})
 
     def tearDown(self):
         self.env.close()
@@ -264,9 +261,7 @@ class TestAttachLayout(unittest.TestCase):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example",
-                                    __dev=True, reward_class=L2RPNReward,
-                                    other_rewards={"test": L2RPNReward}) \
+            with make_new("rte_case5_example", test=True, reward_class=L2RPNReward, other_rewards={"test": L2RPNReward}) \
                     as env:
                 env.attach_layout(my_layout)
                 act = env.action_space()
@@ -301,10 +296,7 @@ class TestLineChangeLastBus(unittest.TestCase):
 
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env = make_new("rte_case14_test",
-                                              __dev=True,
-                                              chronics_class=ChangeNothing,
-                                              param=self.params)
+                self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=self.params)
 
     def tearDown(self):
         self.env.close()
@@ -382,10 +374,7 @@ class TestResetAfterCascadingFailure(unittest.TestCase):
             warnings.filterwarnings("ignore")
             params = Parameters()
             params.MAX_SUB_CHANGED = 2
-            self.env = make_new("rte_case14_test",
-                                          __dev=True,
-                                          chronics_class=ChangeNothing,
-                                          param=params)
+            self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params)
 
     def tearDown(self):
         self.env.close()
@@ -425,10 +414,8 @@ class TestCascadingFailure(unittest.TestCase):
             params.MAX_SUB_CHANGED = 0
             params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
             rules = DefaultRules
-            self.env = make_new("rte_case14_test",
-                                          __dev=True,
-                                          chronics_class=ChangeNothing,
-                                          param=params, gamerules_class=rules)
+            self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params,
+                                gamerules_class=rules)
 
     def tearDown(self):
         self.env.close()

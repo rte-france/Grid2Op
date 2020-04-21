@@ -8,7 +8,7 @@
 from multiprocessing import Process, Pipe
 import numpy as np
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment

@@ -12,7 +12,7 @@ import warnings
 
 import pdb
 
-from grid2op._utils import dt_int, dt_bool, dt_float
+from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 

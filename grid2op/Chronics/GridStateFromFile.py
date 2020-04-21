@@ -14,7 +14,7 @@ import warnings
 from datetime import datetime, timedelta
 import pdb
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import IncorrectNumberOfElements, ChronicsError, ChronicsNotFoundError
 from grid2op.Exceptions import IncorrectNumberOfLoads, IncorrectNumberOfGenerators, IncorrectNumberOfLines
 from grid2op.Exceptions import EnvError, InsufficientData

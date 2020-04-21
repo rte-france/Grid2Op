@@ -13,7 +13,6 @@ import warnings
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
@@ -330,7 +329,7 @@ class TestRedispTooLowHigh(HelperTests):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_redisp", __dev=True)
+            self.env = make_new("rte_case14_redisp", test=True)
 
         # i don't want to be bother by ramps in these test (note that is NOT recommended to change that)
         self.env.gen_max_ramp_down[:] = 5000
@@ -398,7 +397,7 @@ class TestLoadingBackendPandaPower(HelperTests):
         # powergrid
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_test", __dev=True)
+            self.env = make_new("rte_case14_test", test=True)
 
     def tearDown(self):
         self.env.close()
@@ -555,7 +554,7 @@ class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests):
         # powergrid
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_test", __dev=True)
+            self.env = make_new("rte_case14_test", test=True)
 
     def tearDown(self):
         self.env.close()

@@ -38,7 +38,7 @@ Change Log
 - [ADDED] `grid2op.replay` binary: This binary is installed with grid2op and allows to replay a runner log with visualization and gif export
 - [ADDED] a `LicensesInformation` file that put a link for all dependencies of the project.
 - [UPDATED] test data and datasets are no longer included in the package distribution
-- [UPDATED] a new function `make_with_download` that will make obsolete the "grid2op.download" script in future versions
+- [UPDATED] a new function `make_new` that will make obsolete the "grid2op.download" script in future versions
 - [UPDATED] the python "requests" package is now a dependency
 
 [0.7.0] - 2020-04-15

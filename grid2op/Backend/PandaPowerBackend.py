@@ -25,7 +25,7 @@ import pandas as pd
 import pandapower as pp
 import scipy
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Backend.Backend import Backend
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import *

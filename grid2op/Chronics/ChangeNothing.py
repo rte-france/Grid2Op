@@ -9,7 +9,7 @@
 import numpy as np
 from datetime import datetime, timedelta
 
-from grid2op._utils import dt_int
+from grid2op.dtypes import dt_int
 from grid2op.Chronics.GridValue import GridValue
 
 

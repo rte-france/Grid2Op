@@ -11,7 +11,7 @@ import numpy as np
 import copy
 from abc import ABC, abstractmethod
 
-from grid2op._utils import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters

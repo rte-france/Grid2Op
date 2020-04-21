@@ -124,7 +124,7 @@ def _extract_ds_name(dataset_path):
 # TODO add some kind of md5sum (or something else) in the remote json to check if version is locally updated (once in a while)
 # TODO: logger instead of print would be so much better.
 # TODO and an overall logger verbosity
-def make_new(dataset_path="rte_case14_realistic", test=False, local=False, __dev=False, **kwargs):
+def make_new(dataset_path="rte_case14_realistic", test=False, **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -191,8 +191,6 @@ def make_new(dataset_path="rte_case14_realistic", test=False, local=False, __dev
     env: :class:`grid2op.Environment.Environment`
         The created environment.
     """
-    # TODO i will remove it later (when notebook will be updated, and the documantation too)
-    test = local or __dev or test
     if os.path.exists(dataset_path):
         # first, if a path is provided, check if there is something there
         res = make_from_dataset_path(dataset_path, **kwargs)

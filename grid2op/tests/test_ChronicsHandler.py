@@ -203,16 +203,6 @@ class TestLoadingChronicsHandler(HelperTests):
         assert self.compare_vect(res["injection"]['load_p'], vect)
         assert chron_handl.done()
 
-    def test_fast_forward(self):
-        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
-        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
-                     self.order_backend_lines, self.order_backend_subs)
-        chron_handl.fast_forward(287)
-        _, res, *_ = chron_handl.next_time_step()
-        vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
-        assert self.compare_vect(res["injection"]['load_p'], vect)
-        assert chron_handl.done()
-
     def test_stopiteration(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
@@ -547,7 +537,7 @@ class TestEnvChunk(HelperTests):
         self.max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_realistic", __dev=True)
+            self.env = make_new("rte_case14_realistic", test=True)
             self.env.chronics_handler.set_max_iter(self.max_iter)
 
     def tearDown(self):
@@ -579,7 +569,7 @@ class TestMissingData(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with self.assertRaises(EnvError):
-                with make_new("rte_case14_realistic", __dev=True, chronics_path="/answer/life/42"):
+                with make_new("rte_case14_realistic", test=True, chronics_path="/answer/life/42"):
                     pass
 
     def run_env_till_over(self, env, max_iter):
@@ -596,9 +586,8 @@ class TestMissingData(HelperTests):
         max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example",
-                                    __dev=True,
-                                    chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) \
+            with make_new("rte_case5_example", test=True,
+                          chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) \
                     as env:
                 # test a first time without chunks
                 env.set_id(0)

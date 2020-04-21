@@ -18,7 +18,7 @@ class TestLoadingMultiEnv(unittest.TestCase):
         nb_env = 1
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", __dev=True) as env:
+            with make_new("rte_case5_example", test=True) as env:
                 multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
         multi_envs.close()
 

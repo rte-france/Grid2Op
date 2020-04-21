@@ -7,8 +7,10 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
+import sys
 import unittest
 import warnings
+import time
 import numpy as np
 import pdb
 
@@ -17,7 +19,7 @@ from grid2op.tests.helper_path_test import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFIL
 from grid2op.tests.helper_data_test import case14_redisp_TH_LIM, case14_test_TH_LIM, case14_real_TH_LIM
 
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import make2
+from grid2op.MakeEnv import  make2
 from grid2op.MakeEnv.MakeEnv import _get_default_aux
 from grid2op.MakeEnv import make_new
 from grid2op.Backend import PandaPowerBackend
@@ -54,26 +56,26 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
         self.skipTest("deprecated test")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new("rte_case14_fromfile", __dev=True)
+            env = make_new("rte_case14_fromfile", test=True)
             obs = env.reset()
 
     def test_case5_example(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new("rte_case5_example", __dev=True)
+            env = make_new("rte_case5_example", test=True)
             obs = env.reset()
 
     def test_case5_redispatch_available(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", __dev=True) as env:
+            with make_new("rte_case5_example", test=True) as env:
                 obs = env.reset()
                 assert env.redispatching_unit_commitment_availble == True
 
     def test_case5_can_simulate(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", __dev=True) as env:
+            with make_new("rte_case5_example", test=True) as env:
                 obs = env.reset()
                 sim_obs, reward, done, info = obs.simulate(env.action_space())
                 assert sim_obs != obs
@@ -81,20 +83,20 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_case14_redisp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new("rte_case14_redisp", __dev=True)
+            env = make_new("rte_case14_redisp", test=True)
             obs = env.reset()
 
     def test_case14redisp_redispatch_available(self):
         with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with make_new("rte_case14_redisp", __dev=True) as env:
+                with make_new("rte_case14_redisp", test=True) as env:
                     obs = env.reset()
                     assert env.redispatching_unit_commitment_availble == True
 
     def test_case14redisp_can_simulate(self):
         with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with make_new("rte_case14_redisp", __dev=True) as env:
+                with make_new("rte_case14_redisp", test=True) as env:
                     obs = env.reset()
                     sim_obs, reward, done, info = obs.simulate(env.action_space())
                     assert sim_obs != obs
@@ -102,27 +104,27 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_case14redisp_test_thermals(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case14_redisp", __dev=True) as env:
+            with make_new("rte_case14_redisp", test=True) as env:
                 obs = env.reset()
                 assert np.all(env._thermal_limit_a == case14_redisp_TH_LIM)
 
     def test_case14_realistic(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new("rte_case14_realistic", __dev=True)
+            env = make_new("rte_case14_realistic", test=True)
             obs = env.reset()
 
     def test_case14realistic_redispatch_available(self):
         with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with make_new("rte_case14_realistic", __dev=True) as env:
+                with make_new("rte_case14_realistic", test=True) as env:
                     obs = env.reset()
                     assert env.redispatching_unit_commitment_availble == True
 
     def test_case14realistic_can_simulate(self):
         with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with make_new("rte_case14_realistic", __dev=True) as env:
+                with make_new("rte_case14_realistic", test=True) as env:
                     obs = env.reset()
                     sim_obs, reward, done, info = obs.simulate(env.action_space())
                     assert sim_obs != obs
@@ -130,27 +132,27 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_case14realistic_test_thermals(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case14_realistic", __dev=True) as env:
+            with make_new("rte_case14_realistic", test=True) as env:
                 obs = env.reset()
                 assert np.all(env._thermal_limit_a == case14_real_TH_LIM)
 
     def test_case14_test(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new("rte_case14_test", __dev=True)
+            env = make_new("rte_case14_test", test=True)
             obs = env.reset()
 
     def test_case14test_redispatch_available(self):
         with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with make_new("rte_case14_test", __dev=True) as env:
+                with make_new("rte_case14_test", test=True) as env:
                     obs = env.reset()
                     assert env.redispatching_unit_commitment_availble == True
 
     def test_case14test_can_simulate(self):
         with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                with make_new("rte_case14_test", __dev=True) as env:
+                with make_new("rte_case14_test", test=True) as env:
                     obs = env.reset()
                     sim_obs, reward, done, info = obs.simulate(env.action_space())
                     assert sim_obs != obs
@@ -158,7 +160,7 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_case14test_thermals(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case14_test", __dev=True) as env:
+            with make_new("rte_case14_test", test=True) as env:
                 obs = env.reset()
                 assert np.all(env._thermal_limit_a == case14_test_TH_LIM)
 
@@ -243,56 +245,56 @@ class TestkwargsName(unittest.TestCase):
     def test_param(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", param=Parameters(), __dev=True) as env:
+            with make_new("rte_case5_example", test=True, param=Parameters()) as env:
                 obs = env.reset()
 
     def test_backend(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", backend=PandaPowerBackend(), __dev=True) as env:
+            with make_new("rte_case5_example", test=True, backend=PandaPowerBackend()) as env:
                 obs = env.reset()
 
     def test_obsclass(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", observation_class=CompleteObservation, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, observation_class=CompleteObservation) as env:
                 obs = env.reset()
 
     def test_gamerules(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", gamerules_class=AlwaysLegal, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal) as env:
                 obs = env.reset()
 
     def test_chronics_path(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", chronics_path=EXAMPLE_CHRONICSPATH, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, chronics_path=EXAMPLE_CHRONICSPATH) as env:
                 obs = env.reset()
 
     def test_reward_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", reward_class=FlatReward, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, reward_class=FlatReward) as env:
                 obs = env.reset()
 
     def test_action_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", action_class=BaseAction, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, action_class=BaseAction) as env:
                 obs = env.reset()
 
     def test_grid_path(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", grid_path=EXAMPLE_CASEFILE, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, grid_path=EXAMPLE_CASEFILE) as env:
                 obs = env.reset()
 
     def test_names_chronics_to_backend(self):
         self.skipTest("deprecated test for now")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", names_chronics_to_backend={}, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, names_chronics_to_backend={}) as env:
                 obs = env.reset()
 
     def test_data_feeding_kwargs(self):
@@ -300,43 +302,43 @@ class TestkwargsName(unittest.TestCase):
             warnings.filterwarnings("ignore")
             dict_ = {"chronicsClass": Multifolder, "path": EXAMPLE_CHRONICSPATH,
                     "gridvalueClass": GridStateFromFileWithForecasts}
-            with make_new("rte_case5_example", data_feeding_kwargs=dict_, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, data_feeding_kwargs=dict_) as env:
                 obs = env.reset()
 
     def test_chronics_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", chronics_class=Multifolder, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, chronics_class=Multifolder) as env:
                 pass
 
     def test_volagecontroler_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", volagecontroler_class=ControlVoltageFromFile, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, volagecontroler_class=ControlVoltageFromFile) as env:
                 obs = env.reset()
 
     def test_other_rewards(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", other_rewards={"test": L2RPNReward}, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, other_rewards={"test": L2RPNReward}) as env:
                 obs = env.reset()
 
     def test_opponent_action_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", opponent_action_class=BaseAction, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, opponent_action_class=BaseAction) as env:
                 obs = env.reset()
 
     def test_opponent_class(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", opponent_class=BaseOpponent, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, opponent_class=BaseOpponent) as env:
                 obs = env.reset()
 
     def test_opponent_init_budget(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", opponent_init_budget=10, __dev=True) as env:
+            with make_new("rte_case5_example", test=True, opponent_init_budget=10) as env:
                 obs = env.reset()
 
 
