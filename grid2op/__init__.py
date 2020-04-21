@@ -1,6 +1,5 @@
 """
 Grid2Op
-Documentation will be made later on.
 
 """
 __version__ = '0.7.0'

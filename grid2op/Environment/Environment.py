@@ -445,6 +445,8 @@ class Environment(BaseEnv):
             return
 
         if graph_layout is None:
+            # Grid layout must be ordered by keys in order to display correctly
+            # Apparently sub stations indexes to grid_layout key is in alphabetical order
             graph_layout = collections.OrderedDict(sorted(self.helper_observation.grid_layout.items()))
 
         self.helper_observation.grid_layout = graph_layout
