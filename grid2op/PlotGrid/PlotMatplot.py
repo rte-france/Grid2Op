@@ -9,7 +9,7 @@ from matplotlib import cm
 
 from grid2op.PlotGrid.BasePlot import BasePlot
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
-import grid2op.PlotGrid.PlotUtil as pltu
+from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 from grid2op.Exceptions import PlotError
 
 class PlotMatplot(BasePlot):

@@ -91,13 +91,13 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
             initial_layout[sub_idx] = sub_pos
         for load_idx, load_subid in enumerate(obs.load_to_subid):
             sub_name = layout_keys[load_subid]
-            load_pos = copy.deepcopy(obs.grid_layout[sub_name])
+            load_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
             load_pos[0] -= (load_idx + 1)
             load_pos[1] += (load_idx + 1)
             initial_layout[load_offset + load_idx] = load_pos
         for gen_idx, gen_subid in enumerate(obs.gen_to_subid):
             sub_name = layout_keys[gen_subid]
-            gen_pos = copy.deepcopy(obs.grid_layout[sub_name])
+            gen_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
             gen_pos[0] += (gen_idx + 1)
             gen_pos[1] -= (gen_idx + 1)
             initial_layout[gen_offset + gen_idx] = gen_pos        

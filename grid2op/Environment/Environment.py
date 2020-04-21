@@ -9,6 +9,7 @@ import numpy as np
 import os
 import copy
 import pdb
+import collections
 
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
@@ -443,8 +444,11 @@ class Environment(BaseEnv):
         if self.viewer is not None:
             return
 
-        self.viewer = PlotMatplot(self.helper_observation,
-                                  grid_layout=graph_layout)
+        if graph_layout is None:
+            graph_layout = collections.OrderedDict(sorted(self.helper_observation.grid_layout.items()))
+
+        self.helper_observation.grid_layout = graph_layout
+        self.viewer = PlotMatplot(self.helper_observation)
         self.viewer_fig = None
 
     def __str__(self):
@@ -548,13 +552,6 @@ class Environment(BaseEnv):
         # reset the opponent
         self.oppSpace.reset()
         return self.get_obs()
-
-    def change_duration_timestep_display(self, new_timestep_duration_seconds):
-        """
-        Change the duration on which the screen is displayed.
-        """
-        self.attach_renderer()
-        self.viewer.new_timestep_duration_seconds(new_timestep_duration_seconds)
 
     def render(self, mode='human'):
         """
