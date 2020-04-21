@@ -6,12 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from abc import ABC, abstractmethod
-import numpy as np
-import itertools
+from abc import abstractmethod
 import pdb
 
-from grid2op.Converter import Converter, IdToAct, ToVect
+from grid2op.Converter import Converter
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Agent.BaseAgent import BaseAgent
 

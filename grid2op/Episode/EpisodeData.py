@@ -276,8 +276,8 @@ class EpisodeData:
                 env._time_powerflow)
             self.episode_times["Env"]["observation_computation"] = float(
                 env._time_extract_obs)
-            self.episode_times["BaseAgent"] = {}
-            self.episode_times["BaseAgent"]["total"] = float(time_act)
+            self.episode_times["Agent"] = {}
+            self.episode_times["Agent"]["total"] = float(time_act)
             self.episode_times["total"] = float(end_ - beg_)
 
     def to_disk(self):

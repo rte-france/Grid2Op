@@ -10,6 +10,8 @@ import json
 import warnings
 import re
 
+from grid2op._utils import dt_int, dt_float, dt_bool
+
 
 class Parameters:
     """
@@ -89,20 +91,20 @@ class Parameters:
         self.NO_OVERFLOW_DISCONNECTION = False
 
         # number of timestep before powerline with an overflow is automatically disconnected
-        self.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
+        self.NB_TIMESTEP_POWERFLOW_ALLOWED = dt_int(2)
 
         # number of timestep before a line can be reconnected if it has suffer a forced disconnection
-        self.NB_TIMESTEP_RECONNECTION = 10
+        self.NB_TIMESTEP_RECONNECTION = dt_int(10)
 
         # number of timestep before a substation topology can be modified again
-        self.NB_TIMESTEP_TOPOLOGY_REMODIF = 0
-        self.NB_TIMESTEP_LINE_STATUS_REMODIF = 0
+        self.NB_TIMESTEP_TOPOLOGY_REMODIF = dt_int(0)
+        self.NB_TIMESTEP_LINE_STATUS_REMODIF = dt_int(0)
 
         # threshold above which a powerline is instantly disconnected by protections
         # this is expressed in relative value of the thermal limits
         # for example setting "HARD_OVERFLOW_THRESHOLD = 2" is equivalent, if a powerline has a thermal limit of
         # 243 A, to disconnect it instantly if it has a powerflow higher than 2 * 243 = 486 A
-        self.HARD_OVERFLOW_THRESHOLD = 2
+        self.HARD_OVERFLOW_THRESHOLD = dt_int(2)
 
         # are the powerflow performed by the environment in DC mode (dc powerflow) or AC (ac powerflow)
         self.ENV_DC = False
@@ -111,10 +113,10 @@ class Parameters:
         self.FORECAST_DC = False
 
         # maximum number of substations that can be change in one action
-        self.MAX_SUB_CHANGED = 1
+        self.MAX_SUB_CHANGED = dt_int(1)
 
         # maximum number of powerline status that can be changed in one action
-        self.MAX_LINE_STATUS_CHANGED = 1
+        self.MAX_LINE_STATUS_CHANGED = dt_int(1)
 
         if parameters_path is not None:
             if os.path.isfile(parameters_path):
@@ -166,13 +168,13 @@ class Parameters:
             self.NO_OVERFLOW_DISCONNECTION = Parameters._isok_txt(dict_["NO_OVERFLOW_DISCONNECTION"])
 
         if "NB_TIMESTEP_POWERFLOW_ALLOWED" in dict_:
-            self.NB_TIMESTEP_POWERFLOW_ALLOWED = int(dict_["NB_TIMESTEP_POWERFLOW_ALLOWED"])
+            self.NB_TIMESTEP_POWERFLOW_ALLOWED = dt_int(dict_["NB_TIMESTEP_POWERFLOW_ALLOWED"])
 
         if "NB_TIMESTEP_RECONNECTION" in dict_:
-            self.NB_TIMESTEP_RECONNECTION = int(dict_["NB_TIMESTEP_RECONNECTION"])
+            self.NB_TIMESTEP_RECONNECTION = dt_int(dict_["NB_TIMESTEP_RECONNECTION"])
 
         if "HARD_OVERFLOW_THRESHOLD" in dict_:
-            self.HARD_OVERFLOW_THRESHOLD = float(dict_["HARD_OVERFLOW_THRESHOLD"])
+            self.HARD_OVERFLOW_THRESHOLD = dt_float(dict_["HARD_OVERFLOW_THRESHOLD"])
 
         if "ENV_DC" in dict_:
             self.ENV_DC = Parameters._isok_txt(dict_["ENV_DC"])
@@ -181,16 +183,16 @@ class Parameters:
             self.FORECAST_DC = Parameters._isok_txt(dict_["FORECAST_DC"])
 
         if "MAX_SUB_CHANGED" in dict_:
-            self.MAX_SUB_CHANGED = int(dict_["MAX_SUB_CHANGED"])
+            self.MAX_SUB_CHANGED = dt_int(dict_["MAX_SUB_CHANGED"])
 
         if "MAX_LINE_STATUS_CHANGED" in dict_:
-            self.MAX_LINE_STATUS_CHANGED = int(dict_["MAX_LINE_STATUS_CHANGED"])
+            self.MAX_LINE_STATUS_CHANGED = dt_int(dict_["MAX_LINE_STATUS_CHANGED"])
 
         if "NB_TIMESTEP_TOPOLOGY_REMODIF" in dict_:
-            self.NB_TIMESTEP_TOPOLOGY_REMODIF = int(dict_["NB_TIMESTEP_TOPOLOGY_REMODIF"])
+            self.NB_TIMESTEP_TOPOLOGY_REMODIF = dt_int(dict_["NB_TIMESTEP_TOPOLOGY_REMODIF"])
 
         if "NB_TIMESTEP_LINE_STATUS_REMODIF" in dict_:
-            self.NB_TIMESTEP_TOPOLOGY_REMODIF = int(dict_["NB_TIMESTEP_LINE_STATUS_REMODIF"])
+            self.NB_TIMESTEP_TOPOLOGY_REMODIF = dt_int(dict_["NB_TIMESTEP_LINE_STATUS_REMODIF"])
 
         ignored_keys = dict_.keys() - self.__dict__.keys()
         if len(ignored_keys):
@@ -211,7 +213,7 @@ class Parameters:
         res["NO_OVERFLOW_DISCONNECTION"] = bool(self.NO_OVERFLOW_DISCONNECTION)
         res["NB_TIMESTEP_POWERFLOW_ALLOWED"] = int(self.NB_TIMESTEP_POWERFLOW_ALLOWED)
         res["NB_TIMESTEP_RECONNECTION"] = int(self.NB_TIMESTEP_RECONNECTION)
-        res["HARD_OVERFLOW_THRESHOLD"] = int(self.HARD_OVERFLOW_THRESHOLD)
+        res["HARD_OVERFLOW_THRESHOLD"] = float(self.HARD_OVERFLOW_THRESHOLD)
         res["ENV_DC"] = bool(self.ENV_DC)
         res["FORECAST_DC"] = bool(self.FORECAST_DC)
         res["MAX_SUB_CHANGED"] = int(self.MAX_SUB_CHANGED)

@@ -53,7 +53,8 @@ pkgs = {
             "pandapower==2.2.2",
             "tqdm==4.43.0",
             "pathlib==1.0.1",
-            "networkx==2.4"
+            "networkx==2.4",
+            "gym==0.17.1",
         ],
         "docs": [
             "numpydoc>=0.9.2",

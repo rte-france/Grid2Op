@@ -4,7 +4,7 @@ import os
 import warnings
 import pkg_resources
 
-from grid2op.MakeEnv.MakeEnv import make_from_dataset_path
+from grid2op.MakeEnv.MakeEnv import make_from_dataset_path, make
 from grid2op.Exceptions import Grid2OpException, UnknownEnv
 import grid2op.MakeEnv.PathUtils
 # do not do "from grid2op.MakeEnv.PathUtils import DEFAULT_PATH_DATA" because this path
@@ -124,7 +124,7 @@ def _extract_ds_name(dataset_path):
 # TODO add some kind of md5sum (or something else) in the remote json to check if version is locally updated (once in a while)
 # TODO: logger instead of print would be so much better.
 # TODO and an overall logger verbosity
-def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kwargs):
+def make_new(dataset_path="rte_case14_realistic", test=False, local=False, __dev=False, **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -139,7 +139,7 @@ def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kw
     dataset_path: ``str``
         Path to the dataset folder, defaults to "rte_case14_realistic"
 
-    local: ``bool``
+    test: ``bool``
         Do not attempt to download data for environments stored remotely. See the global help of this module for
         detailed behavior above this flag.
 
@@ -191,6 +191,8 @@ def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kw
     env: :class:`grid2op.Environment.Environment`
         The created environment.
     """
+    # TODO i will remove it later (when notebook will be updated, and the documantation too)
+    test = local or __dev or test
     if os.path.exists(dataset_path):
         # first, if a path is provided, check if there is something there
         res = make_from_dataset_path(dataset_path, **kwargs)
@@ -201,18 +203,20 @@ def make_new(dataset_path="rte_case14_realistic", local=False, __dev=False, **kw
         # second check in the DEFAULT_PATH_DATA if the environment is present (typically if env is given by name)
         real_ds_path = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)
         res = make_from_dataset_path(real_ds_path, **kwargs)
-    elif dataset_name in TEST_DEV_ENVS and (__dev or local):
-        if not __dev:
-            warnings.warn("You are using a development environment. This is really not recommended for training agents.")
+    elif dataset_name in TEST_DEV_ENVS and test:
+        warnings.warn("You are using a development environment. This is really not recommended for training agents.")
         if not dataset_name.startswith("rte"):
             warnings.warn("The name \"{}\" has been deprecated and will be removed in future version. Please update "
                           "with an environment names starting by \"rte\" or \"l2rpn\""
                           "".format(dataset_name))
-        res = make_from_dataset_path(TEST_DEV_ENVS[dataset_name], **kwargs)
+        if dataset_name == "blank":
+            res = make(dataset_name, **kwargs)
+        else:
+            res = make_from_dataset_path(TEST_DEV_ENVS[dataset_name], **kwargs)
     elif not local:
         # third try to download the environment
         print("It is the first time you use the environment \"{}\". We will attempt to download this environment from "
-              "remote")
+              "remote".format(dataset_name))
         _create_path_folder(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
         url = _fecth_environments(dataset_name)
         _aux_download(url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)

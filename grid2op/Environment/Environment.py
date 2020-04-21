@@ -11,6 +11,7 @@ import copy
 import pdb
 import collections
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
@@ -213,9 +214,9 @@ class Environment(BaseEnv):
         self._has_been_initialized()  # really important to include this piece of code!
 
         if self._thermal_limit_a is None:
-            self._thermal_limit_a = self.backend.thermal_limit_a
+            self._thermal_limit_a = self.backend.thermal_limit_a.astype(dt_float)
         else:
-            self.backend.set_thermal_limit(self._thermal_limit_a)
+            self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         *_, tmp = self.backend.generators_info()
 
@@ -472,7 +473,7 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:
-            self.backend.set_thermal_limit(self._thermal_limit_a)
+            self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
@@ -512,7 +513,7 @@ class Environment(BaseEnv):
 
         """
         try:
-            seed = np.array(seed).astype('int64')
+            seed = np.array(seed).astype(dt_int)
         except Exception as e:
             raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
                                    "numpy 64 integer.")

@@ -7,10 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
-import sys
 import unittest
 import warnings
-import time
 import numpy as np
 import pdb
 
@@ -19,7 +17,7 @@ from grid2op.tests.helper_path_test import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFIL
 from grid2op.tests.helper_data_test import case14_redisp_TH_LIM, case14_test_TH_LIM, case14_real_TH_LIM
 
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import  make2
+from grid2op.MakeEnv import make2
 from grid2op.MakeEnv.MakeEnv import _get_default_aux
 from grid2op.MakeEnv import make_new
 from grid2op.Backend import PandaPowerBackend

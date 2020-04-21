@@ -8,6 +8,7 @@
 
 from grid2op.Action.PlayableAction import PlayableAction
 
+
 class PowerlineSetAndDispatchAction(PlayableAction):
     """
     This type of :class:`PlayableAction` only implements the 

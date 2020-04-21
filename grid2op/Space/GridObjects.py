@@ -17,9 +17,9 @@ complex :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observaion
 to manipulate.
 
 """
-import os
 import numpy as np
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
@@ -471,11 +471,11 @@ class GridObjects:
 
         if self._vectorized is None:
             self._raise_error_attr_list_none()
-            li_vect = [self._get_array_from_attr_name(el).astype(np.float) for el in self.attr_list_vect]
+            li_vect = [self._get_array_from_attr_name(el).astype(dt_float) for el in self.attr_list_vect]
             if li_vect:
                 self._vectorized = np.concatenate(li_vect)
             else:
-                self._vectorized = np.array([], dtype=np.float)
+                self._vectorized = np.array([], dtype=dt_float)
         return self._vectorized
 
     def shape(self):
@@ -708,7 +708,7 @@ class GridObjects:
 
         :return:
         """
-        res = np.zeros(shape=vect_to_subid.shape)
+        res = np.zeros(shape=vect_to_subid.shape, dtype=dt_int)
         for i, (sub_id, my_pos) in enumerate(zip(vect_to_subid, vect_to_sub_pos)):
             obj_before = np.sum(self.sub_info[:sub_id])
             res[i] = obj_before + my_pos
@@ -730,16 +730,16 @@ class GridObjects:
         :return: ``None``
         """
         # self.assert_grid_correct()
-        self.load_pos_topo_vect = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos).astype(np.int)
-        self.gen_pos_topo_vect = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos).astype(np.int)
-        self.line_or_pos_topo_vect = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos).astype(np.int)
-        self.line_ex_pos_topo_vect = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos).astype(np.int)
+        self.load_pos_topo_vect = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos).astype(dt_int)
+        self.gen_pos_topo_vect = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos).astype(dt_int)
+        self.line_or_pos_topo_vect = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos).astype(dt_int)
+        self.line_ex_pos_topo_vect = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos).astype(dt_int)
 
     def assert_grid_correct(self):
         """
         Performs some checking on the loaded _grid to make sure it is consistent.
         It also makes sure that the vector such as *sub_info*, *load_to_subid* or *gen_to_sub_pos* are of the
-        right type eg. numpy.ndarray with dtype: np.int
+        right type eg. numpy.ndarray with dtype: dt_int
 
         It is called after the _grid has been loaded.
 
@@ -780,82 +780,82 @@ class GridObjects:
         if not isinstance(self.sub_info, np.ndarray):
             try:
                 self.sub_info = np.array(self.sub_info)
-                self.sub_info = self.sub_info.astype(np.int)
+                self.sub_info = self.sub_info.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.sub_info should be convertible to a numpy array")
 
         if not isinstance(self.load_to_subid, np.ndarray):
             try:
                 self.load_to_subid = np.array(self.load_to_subid)
-                self.load_to_subid = self.load_to_subid.astype(np.int)
+                self.load_to_subid = self.load_to_subid.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.load_to_subid should be convertible to a numpy array")
         if not isinstance(self.gen_to_subid, np.ndarray):
             try:
                 self.gen_to_subid = np.array(self.gen_to_subid)
-                self.gen_to_subid = self.gen_to_subid.astype(np.int)
+                self.gen_to_subid = self.gen_to_subid.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.gen_to_subid should be convertible to a numpy array")
         if not isinstance(self.line_or_to_subid, np.ndarray):
             try:
                 self.line_or_to_subid = np.array(self.line_or_to_subid)
-                self.line_or_to_subid = self.line_or_to_subid .astype(np.int)
+                self.line_or_to_subid = self.line_or_to_subid .astype(dt_int)
             except Exception as e:
                 raise EnvError("self.line_or_to_subid should be convertible to a numpy array")
         if not isinstance(self.line_ex_to_subid, np.ndarray):
             try:
                 self.line_ex_to_subid = np.array(self.line_ex_to_subid)
-                self.line_ex_to_subid = self.line_ex_to_subid.astype(np.int)
+                self.line_ex_to_subid = self.line_ex_to_subid.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.line_ex_to_subid should be convertible to a numpy array")
 
         if not isinstance(self.load_to_sub_pos, np.ndarray):
             try:
                 self.load_to_sub_pos = np.array(self.load_to_sub_pos)
-                self.load_to_sub_pos = self.load_to_sub_pos.astype(np.int)
+                self.load_to_sub_pos = self.load_to_sub_pos.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.load_to_sub_pos should be convertible to a numpy array")
         if not isinstance(self.gen_to_sub_pos, np.ndarray):
             try:
                 self.gen_to_sub_pos = np.array(self.gen_to_sub_pos)
-                self.gen_to_sub_pos = self.gen_to_sub_pos.astype(np.int)
+                self.gen_to_sub_pos = self.gen_to_sub_pos.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array")
         if not isinstance(self.line_or_to_sub_pos, np.ndarray):
             try:
                 self.line_or_to_sub_pos = np.array(self.line_or_to_sub_pos)
-                self.line_or_to_sub_pos = self.line_or_to_sub_pos.astype(np.int)
+                self.line_or_to_sub_pos = self.line_or_to_sub_pos.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array")
         if not isinstance(self.line_ex_to_sub_pos, np.ndarray):
             try:
                 self.line_ex_to_sub_pos = np.array(self.line_ex_to_sub_pos)
-                self.line_ex_to_sub_pos = self.line_ex_to_sub_pos .astype(np.int)
+                self.line_ex_to_sub_pos = self.line_ex_to_sub_pos .astype(dt_int)
             except Exception as e:
                 raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array")
 
         if not isinstance(self.load_pos_topo_vect, np.ndarray):
             try:
                 self.load_pos_topo_vect = np.array(self.load_pos_topo_vect)
-                self.load_pos_topo_vect = self.load_pos_topo_vect.astype(np.int)
+                self.load_pos_topo_vect = self.load_pos_topo_vect.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array")
         if not isinstance(self.gen_pos_topo_vect, np.ndarray):
             try:
                 self.gen_pos_topo_vect = np.array(self.gen_pos_topo_vect)
-                self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(np.int)
+                self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array")
         if not isinstance(self.line_or_pos_topo_vect, np.ndarray):
             try:
                 self.line_or_pos_topo_vect = np.array(self.line_or_pos_topo_vect)
-                self.line_or_pos_topo_vect = self.line_or_pos_topo_vect.astype(np.int)
+                self.line_or_pos_topo_vect = self.line_or_pos_topo_vect.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array")
         if not isinstance(self.line_ex_pos_topo_vect, np.ndarray):
             try:
                 self.line_ex_pos_topo_vect = np.array(self.line_ex_pos_topo_vect)
-                self.line_ex_pos_topo_vect = self.line_ex_pos_topo_vect.astype(np.int)
+                self.line_ex_pos_topo_vect = self.line_ex_pos_topo_vect.astype(dt_int)
             except Exception as e:
                 raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array")
 
@@ -947,7 +947,7 @@ class GridObjects:
             raise IncorrectNumberOfLines()
 
         # test if object are connected to right substation
-        obj_per_sub = np.zeros(shape=(self.n_sub,))
+        obj_per_sub = np.zeros(shape=(self.n_sub,), dtype=dt_int)
         for sub_id in self.load_to_subid:
             obj_per_sub[sub_id] += 1
         for sub_id in self.gen_to_subid:
@@ -1096,9 +1096,9 @@ class GridObjects:
             for el, type_ in zip(["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
                                   "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
                                   "gen_startup_cost", "gen_shutdown_cost"],
-                                 [str, np.float, np.float, np.bool, np.float,
-                                 np.float, np.int, np.int, np.float,
-                                 np.float, np.float]):
+                                 [str, dt_float, dt_float, dt_bool, dt_float,
+                                 dt_float, dt_int, dt_int, dt_float,
+                                 dt_float, dt_float]):
                 if not isinstance(self.__dict__[el], np.ndarray):
                     try:
                         self.__dict__[el] = np.array(self.__dict__[el])
@@ -1131,7 +1131,7 @@ class GridObjects:
             if not isinstance(self.shunt_to_subid, np.ndarray):
                 try:
                     self.shunt_to_subid = np.array(self.shunt_to_subid)
-                    self.shunt_to_subid = self.shunt_to_subid.astype(np.int)
+                    self.shunt_to_subid = self.shunt_to_subid.astype(dt_int)
                 except Exception as e:
                     raise EnvError("shunt_to_subid should be convertible to a numpy array with dtype \"int\".")
 
@@ -1467,21 +1467,21 @@ class GridObjects:
         res.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
         res.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
 
-        res.sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(np.int))
-        res.load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(np.int))
-        res.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(np.int))
-        res.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(np.int))
-        res.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(np.int))
+        res.sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(dt_int))
+        res.load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(dt_int))
+        res.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(dt_int))
+        res.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(dt_int))
+        res.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int))
 
-        res.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        res.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        res.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(np.int))
-        res.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(np.int))
+        res.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        res.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        res.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        res.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int))
 
-        res.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        res.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        res.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(np.int))
-        res.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(np.int))
+        res.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        res.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        res.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        res.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
 
         res.n_gen = len(res.name_gen)
         res.n_load = len(res.name_load)
@@ -1494,8 +1494,8 @@ class GridObjects:
             # and no need to make anything else, because everything is already initialized at None
         else:
             res.redispatching_unit_commitment_availble = True
-            type_attr_disp = [str, np.float, np.float, np.bool, np.float, np.float,
-                              np.int, np.int, np.float, np.float, np.float]
+            type_attr_disp = [str, dt_float, dt_float, dt_bool, dt_float, dt_float,
+                              dt_int, dt_int, dt_float, dt_float, dt_float]
             for nm_attr, type_attr in zip(res._li_attr_disp, type_attr_disp):
                 res.__dict__[nm_attr] = extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr))
 
@@ -1506,6 +1506,6 @@ class GridObjects:
             res.shunts_data_available = True
             res.n_shunt = len(res.name_shunt)
             res.name_shunt = np.array(res.name_shunt).astype(str)
-            res.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(np.int))
+            res.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int))
 
         return res

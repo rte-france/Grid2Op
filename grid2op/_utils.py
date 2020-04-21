@@ -5,8 +5,38 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
+import numpy as np
 from grid2op.Exceptions import Grid2OpException
+
+dt_int = np.int32  # dtype('int64') or dtype('int32') depending on platform => i force it to int32
+dt_float = np.float32    # dtype('float64') or dtype('float32') depending on platform  => i force it to float32
+dt_bool = np.bool
+
+
+def extract_from_dict(dict_, key, converter):
+    if not key in dict_:
+        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
+    try:
+        res = converter(dict_[key])
+    except:
+        raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
+    return res
+
+
+def save_to_dict(res_dict, me, key, converter):
+    if not key in me.__dict__:
+        raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
+    try:
+        res = converter(me.__dict__[key])
+    except:
+        raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
+
+    if key in res_dict:
+        msg_err_ = "Key \"{}\" is already present in the result dictionnary. This would override it" \
+                   " and is not supported."
+        raise Grid2OpException(msg_err_.format(key))
+    res_dict[key] = res
+
 
 class _FakePbar(object):
     """

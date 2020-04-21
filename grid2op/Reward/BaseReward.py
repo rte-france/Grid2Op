@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 from abc import ABC, abstractmethod
+from grid2op._utils import dt_float
 
 
 class BaseReward(ABC):
@@ -36,8 +37,8 @@ class BaseReward(ABC):
         Initializes :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`
 
         """
-        self.reward_min = 0
-        self.reward_max = 0
+        self.reward_min = dt_float(0.)
+        self.reward_max = dt_float(0.)
 
     def initialize(self, env):
         """

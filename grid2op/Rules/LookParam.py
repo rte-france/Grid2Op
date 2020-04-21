@@ -9,8 +9,6 @@
 import numpy as np
 from grid2op.Rules.BaseRules import BaseRules
 
-import pdb
-
 
 class LookParam(BaseRules):
     """

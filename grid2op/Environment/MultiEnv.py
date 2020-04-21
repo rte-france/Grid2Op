@@ -8,6 +8,7 @@
 from multiprocessing import Process, Pipe
 import numpy as np
 
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
@@ -200,7 +201,7 @@ class MultiEnvironment(GridObjects):
                               remote=work_remote,
                               parent_remote=remote,
                               name="env: {}".format(i),
-                              seed=np.random.randint(np.iinfo(np.uint32).max))
+                              seed=np.random.randint(np.iinfo(dt_int).max))
                     for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
 
         for p in self._ps:
