@@ -24,7 +24,7 @@ RUN apt-get update && \
     ca-certificates
 
 # Retrieve Grid2Op
-RUN git clone https://github.com/bdonnot/Grid2Op
+RUN git clone https://github.com/bdonnot/Grid2Op #redo
 
 # Install Grid2Op
 WORKDIR /Grid2Op
