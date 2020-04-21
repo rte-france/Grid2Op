@@ -24,7 +24,7 @@ from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Agent import DoNothingAgent, BaseAgent
-from grid2op.EpisodeData import EpisodeData
+from grid2op.Episode import EpisodeData
 from grid2op._utils import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent

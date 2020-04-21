@@ -20,7 +20,9 @@ pkgs = {
         "tqdm>=4.43.0",
         "pathlib>=1.0.1",
         "networkx>=2.4",
-        "requests>=2.23.0"
+        "requests>=2.23.0",
+        "imageio>=2.8.0",
+        "matplotlib>=3.2.1"
     ],
     "extras": {
         "test": [
@@ -30,12 +32,14 @@ pkgs = {
         ],
         "optional": [
             "numba>=0.48.0",
-            "matplotlib>=3.2.1",
             "plotly>=4.5.4",
             "seaborn>=0.10.0",
+            "pygifsicle>=1.0.1",
+            "psutil>=5.7.0"
+        ],
+        "deprecated": [
             "pygame>=1.9.6",
-            "imageio>=2.8.0",
-            "imageio_ffmpeg>=0.4.1"
+            "imageio-ffmpeg>=0.4.1"
         ],
         "challenge": [
             "tensorflow==2.1.0",
@@ -106,7 +110,8 @@ setup(name='Grid2Op',
       entry_points= {
           'console_scripts': [
               'grid2op.main=grid2op.command_line:main',
-              'grid2op.download=grid2op.command_line:download'
+              'grid2op.download=grid2op.command_line:download',
+              'grid2op.replay=grid2op.command_line:replay'
           ]
      }
 )

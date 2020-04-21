@@ -20,7 +20,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent
-from grid2op.Plot import PlotPyGame
+from grid2op.PlotGrid import PlotMatplot
 from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
@@ -319,8 +319,9 @@ class Environment(BaseEnv):
         self.observation_space = self.helper_observation  # this return an observation.
         self.reward_range = self.reward_helper.range()
         self.viewer = None
+        self.viewer_fig = None
 
-        self.metadata = {'render.modes': ["human", "rgb_array"]}
+        self.metadata = {'render.modes': ["human", "silent"]}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -434,7 +435,7 @@ class Environment(BaseEnv):
 
         Parameters
         ----------
-        graph_layout: ``dict`` or ``list``
+        graph_layout: ``dict``
             If ``None`` this class will use the default substations layout provided when the environment was created.
             Otherwise it will use the data provided.
 
@@ -442,9 +443,9 @@ class Environment(BaseEnv):
         if self.viewer is not None:
             return
 
-        self.viewer = PlotPyGame(observation_space=self.helper_observation,
-                                 substation_layout=graph_layout)
-        self.viewer.reset(self)
+        self.viewer = PlotMatplot(self.helper_observation,
+                                  grid_layout=graph_layout)
+        self.viewer_fig = None
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -538,8 +539,9 @@ class Environment(BaseEnv):
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
         self.reset_grid()
-        if self.viewer is not None:
-            self.viewer.reset(self)
+        if self.viewer_fig is not None:
+            del self.viewer_fig
+            self.viewer_fig = None
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
         # TODO add test above: fake a cascading failure, do a reset, check that it can be loaded
@@ -556,33 +558,28 @@ class Environment(BaseEnv):
 
     def render(self, mode='human'):
         """
-        Render the state of the environment on the screen.
+        Render the state of the environment on the screen, using matplotlib
+        Also returns the Matplotlib figure
         """
-        err_msg = "Impossible to use the renderer, please set it up with  \"env.init_renderer(graph_layout)\", " \
-                  "graph_layout being the position of each substation of the powergrid that you must provide"
-        self.attach_renderer()
-        if mode == "human":
-            if self.viewer is not None:
-                try:
-                    self.viewer.plot_obs(self.current_obs,
-                                         reward=self.current_reward,
-                                         timestamp=self.time_stamp,
-                                         done=self.done)
-                except PyGameQuit:
-                    self.close()
-                    raise
-            else:
-                raise Grid2OpException(err_msg)
-        elif mode == "rgb_array":
-            if self.viewer is not None:
-                return np.array(self.viewer.get_rgb(self.current_obs,
-                                                    reward=self.current_reward,
-                                                    timestamp=self.time_stamp,
-                                                    done=self.done))
-            else:
-                raise Grid2OpException(err_msg)
-        else:
-            raise Grid2OpException("Renderer mode \"{}\" not supported.".format(mode))
+        # Check mode is correct
+        if mode not in self.metadata["render.modes"]:
+            err_msg = "Renderer mode \"{}\" not supported. Available modes are {}."
+            raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
+
+        # Render the current observation
+        self.attach_renderer() # Does nothing if viewer exists
+        fig = self.viewer.plot_obs(self.current_obs, figure=self.viewer_fig, redraw=True)
+
+        # First time show for human mode
+        if self.viewer_fig is None and mode == "human":
+            fig.show()
+        else: # Update the figure content
+            fig.canvas.draw()
+
+        # Store to re-use the figure
+        self.viewer_fig = fig
+        # Return the figure in case it needs to be saved/used
+        return self.viewer_fig
 
     def copy(self):
         """

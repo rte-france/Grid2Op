@@ -16,7 +16,7 @@ from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Runner import Runner
-from grid2op.EpisodeData import EpisodeData
+from grid2op.Episode import EpisodeData
 
 DEBUG = True
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))

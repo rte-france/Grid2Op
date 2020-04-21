@@ -10,7 +10,7 @@ import sys
 import numpy as np
 from datetime import datetime
 
-from grid2op.EpisodeData import EpisodeData
+from grid2op.Episode import EpisodeData
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Plot.PlotPyGame import PlotPyGame
 from grid2op.Exceptions.PlotExceptions import PyGameQuit
