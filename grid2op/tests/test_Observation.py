@@ -13,6 +13,7 @@ import pdb
 
 from grid2op.tests.helper_path_test import *
 
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Observation import ObservationSpace, CompleteObservation
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts
@@ -131,16 +132,19 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'name_shunt': ['shunt_8_0'],
                       'shunt_to_subid': [8]}
 
-        self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('bool'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64')],
+        self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
+                                dt_int, dt_int, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_bool, dt_int, dt_int,
+                                dt_int, dt_int, dt_int,
+                                dt_int, dt_int, dt_float, dt_float],
                                dtype=object)
+
+        self.dtypes = np.array([np.dtype(el) for el in self.dtypes])
+
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                             20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20, 20,
                                  5, 5])
@@ -337,7 +341,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "p" in dict_
         assert dict_["p"] == 0.0
         assert "q" in dict_
-        assert np.abs(dict_["q"] - 47.48313177017934) <= self.tol_one
+        assert np.abs(dict_["q"] - 47.48287) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 141.075) <= self.tol_one
         assert "bus" in dict_
@@ -350,11 +354,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         dict_both = obs.state_of(line_id=0)
         assert "origin" in dict_both
         dict_ = dict_both["origin"]
-
         assert "p" in dict_
-        assert np.abs(dict_["p"] - 109.77536682689008) <= self.tol_one
+        assert np.abs(dict_["p"] - 109.77537) <= self.tol_one
         assert "q" in dict_
-        assert np.abs(dict_["q"] - -8.7165023030358) <= self.tol_one
+        assert np.abs(dict_["q"] - -8.71631) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 143.1) <= self.tol_one
         assert "bus" in dict_
@@ -365,9 +368,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "extremity" in dict_both
         dict_ = dict_both["extremity"]
         assert "p" in dict_
-        assert np.abs(dict_["p"] - -107.69115512018216) <= self.tol_one
+        assert np.abs(dict_["p"] - -107.69115) <= self.tol_one
         assert "q" in dict_
-        assert np.abs(dict_["q"] - 9.230658220781127) <= self.tol_one
+        assert np.abs(dict_["q"] - 9.230471) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 141.075) <= self.tol_one
         assert "bus" in dict_
