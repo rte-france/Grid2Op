@@ -18,7 +18,6 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
 from grid2op import make
 
-
 class TestLoadingReward(ABC):
     def setUp(self):
         self.env = make("case5_example", reward_class=self._reward_type())
@@ -114,6 +113,10 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
 class TestLoadingGameplayReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
         return GameplayReward
+
+class TestLoadingLinesReconnectedReward(TestLoadingReward, unittest.TestCase):
+    def _reward_type(self):
+        return LinesReconnectedReward
 
 class TestCombinedReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):

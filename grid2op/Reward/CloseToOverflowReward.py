@@ -17,7 +17,8 @@ class CloseToOverflowReward(BaseReward):
     def initialize(self, env):
         pass
         
-    def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
+    def __call__(self,  action, env, has_error,
+                 is_done, is_illegal, is_ambiguous):
         thermal_limits = env.backend.get_thermal_limit()
         lineflow_ratio = env.current_obs.rho
 
@@ -27,6 +28,9 @@ class CloseToOverflowReward(BaseReward):
             if (limit < 400.00 and ratio > 0.90) or ratio >= 0.95:
                 close_to_overflow += 1.0
 
-        close_to_overflow = np.clip(close_to_overflow, 0.0, self.max_overflowed)
-        penalty = np.interp(close_to_overflow, [0.0, self.max_overflowed], [self.reward_min, self.reward_max])
-        return self.reward_max - penalty
+        close_to_overflow = np.clip(close_to_overflow,
+                                    0.0, self.max_overflowed)
+        reward = np.interp(close_to_overflow,
+                           [0.0, self.max_overflowed],
+                           [self.reward_max, self.reward_min])
+        return reward

@@ -21,7 +21,8 @@ class GameplayReward(BaseReward):
         self.reward_min = -1.0
         self.reward_max = 1.0
 
-    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+    def __call__(self, action, env, has_error,
+                 is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             # Broke the game or did not respect the rules
             return self.reward_min
