@@ -178,7 +178,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = 2
 
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -195,7 +195,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         try:
             self.env.parameters.MAX_SUB_CHANGED = 2
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-            self.env.time_remaining_before_reconnection[id_line] = 1
+            self.env.time_remaining_before_line_reconnection[id_line] = 1
             _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
                                                              "set_bus": {"substations_id": [(id_2, arr2)]},
                                                              "change_line_status": arr_line1,
@@ -206,18 +206,22 @@ class TestLoadingBackendFunc(unittest.TestCase):
         except IllegalAction:
             pass
 
-        self.env.time_remaining_before_reconnection = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
         self.env.parameters.MAX_SUB_CHANGED = 2
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-        self.env.time_remaining_before_reconnection[1] = 1
-        _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                         "set_bus": {"substations_id": [(id_2, arr2)]},
-                                                         "change_line_status": arr_line1,
-                                                         "set_line_status": arr_line2},
-                                                        env=self.env,
-                                                        check_legal=True)
+        self.env.time_remaining_before_line_reconnection[1] = 1
+        _ = self.helper_action({
+            "change_bus": {
+                "substations": [(id_1, arr1)]
+            },
+            "set_bus": {
+                "substations_id": [(id_2, arr2)]
+            },
+            "change_line_status": arr_line1,
+            "set_line_status": arr_line2
+        }, env=self.env, check_legal=True)
 
     def test_linereactionnable_throw(self):
         id_1 = 1

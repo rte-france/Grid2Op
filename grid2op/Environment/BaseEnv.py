@@ -65,7 +65,7 @@ class BaseEnv(GridObjects, ABC):
     time_next_maintenance
     duration_next_maintenance
     hard_overflow_threshold
-    time_remaining_before_reconnection
+    time_remaining_before_line_reconnection
 
     # redispacthing
     target_dispatch
@@ -157,7 +157,7 @@ class BaseEnv(GridObjects, ABC):
         # maintenance / hazards
         self.time_next_maintenance = None
         self.duration_next_maintenance = None
-        self.time_remaining_before_reconnection = None
+        self.time_remaining_before_line_reconnection = None
 
         # store environment modifications
         self._injection = None
@@ -276,7 +276,7 @@ class BaseEnv(GridObjects, ABC):
         # initialize maintenance / hazards
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
-        self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
 
         self._reset_redispatching()
         self.__is_init = True
@@ -962,11 +962,9 @@ class BaseEnv(GridObjects, ABC):
                 # build the topological action "cooldown"
                 aff_lines, aff_subs = action.get_topological_impact()
                 if self.max_timestep_line_status_deactivated > 0:
-                    # this is a feature I want to consider in the parameters
                     self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
                     self.times_before_line_status_actionable[aff_lines] = self.max_timestep_line_status_deactivated
                 if self.max_timestep_topology_deactivated > 0:
-                    # this is a feature I want to consider in the parameters
                     self.times_before_topology_actionable[self.times_before_topology_actionable > 0] -= 1
                     self.times_before_topology_actionable[aff_subs] = self.max_timestep_topology_deactivated
 
@@ -1089,7 +1087,7 @@ class BaseEnv(GridObjects, ABC):
     def _reset_maintenance(self):
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=np.int)
-        self.time_remaining_before_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=np.int)
 
     def __enter__(self):
         """
