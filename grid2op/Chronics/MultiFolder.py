@@ -270,3 +270,22 @@ class Multifolder(GridValue):
                            self._names_chronics_to_backend)
             path_out_chron = os.path.join(path_out, id_this_chron)
             tmp.split_and_save(datetime_beg[id_this_chron], datetime_end[id_this_chron], path_out_chron)
+
+    def fast_forward(self, nb_timestep):
+        """
+        This method allows you to skip some time step at the beginning of the chronics.
+
+        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
+        Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
+        00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
+        the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
+
+
+        Parameters
+        ----------
+        nb_timestep: ``int``
+            Number of time step to "fast forward"
+
+        """
+        for _ in range(nb_timestep):
+            self.data.load_next()

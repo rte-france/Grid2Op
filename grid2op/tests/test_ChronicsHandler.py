@@ -203,6 +203,16 @@ class TestLoadingChronicsHandler(HelperTests):
         assert self.compare_vect(res["injection"]['load_p'], vect)
         assert chron_handl.done()
 
+    def test_fast_forward(self):
+        chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
+        chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,
+                     self.order_backend_lines, self.order_backend_subs)
+        chron_handl.fast_forward(287)
+        _, res, *_ = chron_handl.next_time_step()
+        vect = [19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6]
+        assert self.compare_vect(res["injection"]['load_p'], vect)
+        assert chron_handl.done()
+
     def test_stopiteration(self):
         chron_handl = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path)
         chron_handl.initialize(self.order_backend_loads, self.order_backend_prods,

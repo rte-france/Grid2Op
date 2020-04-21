@@ -150,7 +150,7 @@ class TestActionBase(ABC):
         """
         self._skipMissingKey('injection')
 
-        new_vect = np.random.randn(self.helper_action.n_load)
+        new_vect = np.random.randn(self.helper_action.n_load).astype(dt_float)
         action = self.helper_action({"injection": {"load_p": new_vect}})
         self.compare_vect(action._dict_inj["load_p"], new_vect)
         for i in range(self.helper_action.n_load):
@@ -163,7 +163,7 @@ class TestActionBase(ABC):
         """
         self._skipMissingKey('injection')
 
-        new_vect = np.random.randn(self.helper_action.n_gen)
+        new_vect = np.random.randn(self.helper_action.n_gen).astype(dt_float)
         action = self.helper_action({"injection": {"prod_v": new_vect}})
         self.compare_vect(action._dict_inj["prod_v"], new_vect)
         for i in range(self.helper_action.n_gen):
@@ -176,8 +176,8 @@ class TestActionBase(ABC):
         """
         self._skipMissingKey('injection')
 
-        new_vect = np.random.randn(self.helper_action.n_load)
-        new_vect2 = np.random.randn(self.helper_action.n_load)
+        new_vect = np.random.randn(self.helper_action.n_load).astype(dt_float)
+        new_vect2 = np.random.randn(self.helper_action.n_load).astype(dt_float)
         action = self.helper_action({"injection": {"load_p": new_vect, "load_q": new_vect2}})
         assert self.compare_vect(action._dict_inj["load_p"], new_vect)
         assert self.compare_vect(action._dict_inj["load_q"], new_vect2)
@@ -543,8 +543,8 @@ class TestActionBase(ABC):
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
-        new_vect = np.random.randn(self.helper_action.n_load)
-        new_vect2 = np.random.randn(self.helper_action.n_load)
+        new_vect = np.random.randn(self.helper_action.n_load).astype(dt_int)
+        new_vect2 = np.random.randn(self.helper_action.n_load).astype(dt_int)
 
         change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(dt_bool)
         set_status_orig = np.random.randint(-1, 2, self.helper_action.n_line)

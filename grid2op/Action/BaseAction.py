@@ -12,7 +12,7 @@ import warnings
 
 import pdb
 
-from grid2op._utils import dt_int, dt_bool
+from grid2op._utils import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
@@ -262,9 +262,9 @@ class BaseAction(GridObjects):
                 res = self._dict_inj[attr_name]
             else:
                 if attr_name == "prod_p" or attr_name == "prod_v":
-                    res = np.full(self.n_gen, fill_value=0., dtype=np.float)
+                    res = np.full(self.n_gen, fill_value=0., dtype=dt_float)
                 elif attr_name == "load_p" or attr_name == "load_q":
-                    res = np.full(self.n_load, fill_value=0., dtype=np.float)
+                    res = np.full(self.n_load, fill_value=0., dtype=dt_float)
                 else:
                     raise Grid2OpException("Impossible to find the attribute \"{}\" "
                                            "into the BaseAction of type \"{}\"".format(attr_name, type(self)))
@@ -568,7 +568,7 @@ class BaseAction(GridObjects):
         self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
         # redispatching vector
-        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=np.float)
+        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
         self._vectorized = None
         self._lines_impacted = None
@@ -576,8 +576,8 @@ class BaseAction(GridObjects):
 
         # shunts
         if self.shunts_data_available:
-            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=np.float)
-            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=np.float)
+            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
+            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
             self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=dt_int)
 
     def __iadd__(self, other):
@@ -774,7 +774,7 @@ class BaseAction(GridObjects):
                 tmp_d = dict_["injection"]
                 for k in tmp_d:  # ["load_p", "prod_p", "load_q", "prod_v"]:
                     if k in self.vars_action_set:
-                        self._dict_inj[k] = np.array(tmp_d[k])
+                        self._dict_inj[k] = np.array(tmp_d[k]).astype(dt_float)
                     else:
                         warn = "The key {} is not recognized by BaseAction when trying to modify the injections.".format(k)
                         warnings.warn(warn)
@@ -974,8 +974,8 @@ class BaseAction(GridObjects):
 
     def __convert_and_redispatch(self, kk, val):
         try:
-            kk = int(kk)
-            val = float(val)
+            kk = dt_int(kk)
+            val = dt_float(val)
         except Exception as e:
             raise AmbiguousAction("In redispatching, it's not possible to understand the key/value pair "
                                   "{}/{} provided in the dictionnary. Key must be an integer, value "

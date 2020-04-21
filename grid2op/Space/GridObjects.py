@@ -708,7 +708,7 @@ class GridObjects:
 
         :return:
         """
-        res = np.zeros(shape=vect_to_subid.shape)
+        res = np.zeros(shape=vect_to_subid.shape, dtype=dt_int)
         for i, (sub_id, my_pos) in enumerate(zip(vect_to_subid, vect_to_sub_pos)):
             obj_before = np.sum(self.sub_info[:sub_id])
             res[i] = obj_before + my_pos
@@ -947,7 +947,7 @@ class GridObjects:
             raise IncorrectNumberOfLines()
 
         # test if object are connected to right substation
-        obj_per_sub = np.zeros(shape=(self.n_sub,))
+        obj_per_sub = np.zeros(shape=(self.n_sub,), dtype=dt_int)
         for sub_id in self.load_to_subid:
             obj_per_sub[sub_id] += 1
         for sub_id in self.gen_to_subid:

@@ -14,6 +14,7 @@ import copy
 from multiprocessing import Pool
 
 import pdb
+from grid2op._utils import dt_int, dt_float, dt_bool
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, BaseObservation
@@ -436,7 +437,7 @@ class Runner(object):
         if not issubclass(opponent_action_class, BaseAction):
             raise EnvError("Impossible to make an environment with an opponent action class not derived from BaseAction")
         try:
-            self.opponent_init_budget = float(opponent_init_budget)
+            self.opponent_init_budget = dt_float(opponent_init_budget)
         except Exception as e:
             raise EnvError("Impossible to convert \"opponent_init_budget\" to a float with error {}".format(e))
         if self.opponent_init_budget < 0.:
@@ -560,26 +561,26 @@ class Runner(object):
             nb_timestep_max = 0
 
         if efficient_storing:
-            times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
-            rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=np.float)
+            times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
+            rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
             actions = np.full((nb_timestep_max, env.action_space.n),
-                              fill_value=np.NaN, dtype=np.float)
+                              fill_value=np.NaN, dtype=dt_float)
             env_actions = np.full(
-                (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
+                (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
             observations = np.full(
-                (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
+                (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full(
-                (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
+                (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
             disc_lines_templ = np.full(
-                (1, env.backend.n_line), fill_value=False, dtype=np.bool)
+                (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
         else:
-            times = np.full(0, fill_value=np.NaN, dtype=np.float)
-            rewards = np.full(0, fill_value=np.NaN, dtype=np.float)
-            actions = np.full((0, env.action_space.n), fill_value=np.NaN, dtype=np.float)
-            env_actions = np.full((0, env.helper_action_env.n), fill_value=np.NaN, dtype=np.float)
-            observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=np.float)
-            disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=np.bool)
-            disc_lines_templ = np.full( (1, env.backend.n_line), fill_value=False, dtype=np.bool)
+            times = np.full(0, fill_value=np.NaN, dtype=dt_float)
+            rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
+            actions = np.full((0, env.action_space.n), fill_value=np.NaN, dtype=dt_float)
+            env_actions = np.full((0, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
+            observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
+            disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
+            disc_lines_templ = np.full( (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
 
         if path_save is not None:
             # store observation at timestep 0

@@ -222,7 +222,7 @@ class BaseEnv(GridObjects, ABC):
         if not issubclass(self.opponent_action_class, BaseAction):
             raise EnvError("Impossible to make an environment with an opponent action class not derived from BaseAction")
         try:
-            self.opponent_init_budget = float(self.opponent_init_budget)
+            self.opponent_init_budget = dt_float(self.opponent_init_budget)
         except Exception as e:
             raise EnvError("Impossible to convert \"opponent_init_budget\" to a float with error {}".format(e))
         if self.opponent_init_budget < 0.:
@@ -250,7 +250,8 @@ class BaseEnv(GridObjects, ABC):
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
+                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED,
+                                                    dtype=dt_int)
         # store actions "cooldown"
         self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
@@ -1064,7 +1065,8 @@ class BaseEnv(GridObjects, ABC):
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED)
+                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED,
+                                                    dtype=dt_int)
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.env_dc = self.parameters.ENV_DC
@@ -1158,8 +1160,8 @@ class BaseEnv(GridObjects, ABC):
                 tmp = grid_layout[el]
                 try:
                     x,y = tmp
-                    x = float(x)
-                    y = float(y)
+                    x = dt_float(x)
+                    y = dt_float(y)
                     res[el] = (x, y)
                 except Exception as e_:
                     raise EnvError("attach_layout: impossible to convert the value of \"{}\" to a pair of float "
@@ -1176,3 +1178,22 @@ class BaseEnv(GridObjects, ABC):
                 self.voltage_controler.attach_layout(res)
             if self.opponent_action_space is not None:
                 self.opponent_action_space.attach_layout(res)
+
+    def fast_forward_chronics(self, nb_timestep):
+        """
+        This method allows you to skip some time step at the beginning of the chronics.
+
+        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
+        Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
+        00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
+        the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
+
+
+        Parameters
+        ----------
+        nb_timestep: ``int``
+            Number of time step to "fast forward"
+
+        """
+        for _ in range(nb_timestep):
+            self.chronics_handler.load_next()

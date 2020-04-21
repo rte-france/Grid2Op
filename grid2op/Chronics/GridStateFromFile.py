@@ -840,5 +840,3 @@ class GridStateFromFile(GridValue):
         tmp_for_time_delta = datetime(year=2018, month=1, day=1, hour=0, minute=0, second=0) + self.time_interval
         with open(os.path.join(path_out, "time_interval.info"), "w") as f:
             f.write("{:%H:%M}\n".format(tmp_for_time_delta))
-
-
