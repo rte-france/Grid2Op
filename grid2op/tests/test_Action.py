@@ -18,7 +18,7 @@ from grid2op.Exceptions import *
 from grid2op.Action import *
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Space import GridObjects
-from grid2op._utils import save_to_dict
+from grid2op.Space.space_utils import save_to_dict
 
 
 class TestActionBase(ABC):

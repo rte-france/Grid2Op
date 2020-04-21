@@ -21,7 +21,7 @@ import os
 import numpy as np
 
 from grid2op.Exceptions import *
-from grid2op._utils import extract_from_dict, save_to_dict
+from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 import pdb
 
