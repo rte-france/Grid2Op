@@ -24,24 +24,10 @@ RUN apt-get update && \
     ca-certificates
 
 # Retrieve Grid2Op
-RUN git clone https://github.com/bdonnot/Grid2Op #redo
+RUN git clone https://github.com/BDonnot/Grid2Op
 
-# Install Grid2Op
+# Install in edit mode for testing
 WORKDIR /Grid2Op
-# Use the latest release
 RUN git pull
-RUN git remote update
-RUN git fetch --all --tags
-# Install Dependencies
-RUN pip3 install -U -e .[test]
-
-# force the "install" of test data in proper repo
+RUN pip3 install -e .[test]
 WORKDIR /
-RUN python3 -c "import grid2op; import os; print(os.path.split(grid2op.__file__)[0])" > cptest_data
-WORKDIR /Grid2Op
-RUN tail -n 1 /cptest_data | xargs cp -R grid2op/data_test
-RUN rm /cptest_data
-WORKDIR /
-
-# Make port 80 available to the world outside this container
-EXPOSE 80
