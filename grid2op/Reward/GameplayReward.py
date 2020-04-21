@@ -28,4 +28,4 @@ class GameplayReward(BaseReward):
             return self.reward_min
         else:
             # Keep playing or finished episode
-            return (self.reward_max / 10.0)
+            return self.reward_max
