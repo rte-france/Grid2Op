@@ -10,7 +10,7 @@ class LinesReconnectedReward(BaseReward):
     def __init__(self):
         BaseReward.__init__(self)
         self.reward_min = 0.0
-        self.reward_max = -1.0
+        self.reward_max = 1.0
         self.penalty_max_at_n_lines = 2.0
 
     def __call__(self, action, env, has_error,
