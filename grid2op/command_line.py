@@ -16,6 +16,6 @@ def replay():
         from grid2op.Episode.EpisodeReplay import replay_cli as replayEntryPoint
         replayEntryPoint()
     except:
-        warn_msg = "Episode replay is missing an optional dependency" \
+        warn_msg = "\nEpisode replay is missing an optional dependency\n" \
                    "Please run pip3 install grid2op[optional]"
         warnings.warn(warn_msg)
