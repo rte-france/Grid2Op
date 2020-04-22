@@ -8,6 +8,6 @@ from grid2op.Episode.EpisodeData import EpisodeData
 try:
     from grid2op.Episode.EpisodeReplay import EpisodeReplay
     __all__.append("EpisodeReplay")
-except:
+except ImportError:
     pass # Silent fail for optional dependencies
 

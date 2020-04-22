@@ -8,10 +8,10 @@ from grid2op.PlotGrid.BasePlot import BasePlot
 try:
     from grid2op.PlotGrid.PlotMatplot import PlotMatplot
     __all__.append("PlotMatplot")
-except:
+except ImportError:
     pass # Silent fail because it is optional
 try:
     from grid2op.PlotGrid.PlotPlotly import PlotPlotly
     __all__.append("PlotPlotly")
-except:
+except ImportError:
     pass # Silent fail because it is optional
