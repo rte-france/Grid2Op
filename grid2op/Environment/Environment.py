@@ -321,7 +321,7 @@ class Environment(BaseEnv):
         self.viewer = None
         self.viewer_fig = None
 
-        self.metadata = {'render.modes': ["human", "silent"]}
+        self.metadata = {'render.modes': []}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -447,9 +447,9 @@ class Environment(BaseEnv):
         # Do we have the dependency
         try:
             from grid2op.PlotGrid import PlotMatplot
-        except:
+        except ImportError:
             err_msg = "Cannot attach renderer: missing dependency\n" \
-                      "Please install matplotlib or run pip install .[optional]"
+                      "Please install matplotlib or run pip install grid2op[optional]"
             raise Grid2OpException(err_msg) from None
 
         if graph_layout is None:
@@ -460,6 +460,8 @@ class Environment(BaseEnv):
         self.helper_observation.grid_layout = graph_layout
         self.viewer = PlotMatplot(self.helper_observation)
         self.viewer_fig = None
+        # Set renderer modes
+        self.metadata = {'render.modes': ["human", "silent"]}
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -568,15 +570,15 @@ class Environment(BaseEnv):
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
         """
-        # Check mode is correct
-        if mode not in self.metadata["render.modes"]:
-            err_msg = "Renderer mode \"{}\" not supported. Available modes are {}."
-            raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
-
         # Try to create a plotter instance
         # Does nothing if viewer exists
         # Raises if matplot is not installed
         self.attach_renderer()
+        
+        # Check mode is correct
+        if mode not in self.metadata["render.modes"]:
+            err_msg = "Renderer mode \"{}\" not supported. Available modes are {}."
+            raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
 
         # Render the current observation
         fig = self.viewer.plot_obs(self.current_obs, figure=self.viewer_fig, redraw=True)
