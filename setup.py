@@ -13,11 +13,11 @@ from setuptools import setup
 
 pkgs = {
     "required": [
-        "numpy>=1.18.2",
+        "numpy>=1.18.3",
         "scipy>=1.4.1",
         "pandas>=1.0.3",
         "pandapower>=2.2.2",
-        "tqdm>=4.43.0",
+        "tqdm>=4.45.0",
         "pathlib>=1.0.1",
         "networkx>=2.4",
         "requests>=2.23.0"
@@ -42,19 +42,20 @@ pkgs = {
             "imageio-ffmpeg>=0.4.1"
         ],
         "challenge": [
+            "numpy==1.18.3",
+            "scipy==1.4.1",
+            "pandas==1.0.3",
+            "pandapower==2.2.2",
+            "tqdm==4.45.0",
+            "pathlib==1.0.1",
+            "networkx==2.4",
+            "requests==2.23.0",
             "tensorflow==2.1.0",
             "Keras==2.3.1",
             "torch==1.4.0",
             "statsmodels==0.11.1",
             "scikit-learn==0.22.2.post1",
-            "numpy==1.18.2",
-            "scipy==1.4.1",
-            "pandas==1.0.3",
-            "pandapower==2.2.2",
-            "tqdm==4.43.0",
-            "pathlib==1.0.1",
-            "networkx==2.4",
-            "gym==0.17.1",
+            "gym==0.17.1"
         ],
         "docs": [
             "numpydoc>=0.9.2",
@@ -83,7 +84,7 @@ except Exception as e:
     warnings.warn("Numba is not available for your platform. You could gain massive speed up if you could install it.")
 
 setup(name='Grid2Op',
-      version='0.7.0',
+      version='0.7.2',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations '
                        'independently of the software used to compute powerflow or method to generate grid '
