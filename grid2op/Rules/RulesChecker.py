@@ -10,8 +10,6 @@ from grid2op.Exceptions import Grid2OpException
 from grid2op.Rules.BaseRules import BaseRules
 from grid2op.Rules.AlwaysLegal import AlwaysLegal
 
-import pdb
-
 
 class RulesChecker(object):
     """

@@ -6,36 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-The function define in this module is the easiest and most convenient ways to create a valid
-:class:`grid2op.Environment.Environment`.
-
-To get started with such an environment, you can simply do:
-
-..code-block:: python
-
-    import grid2op
-    env = grid2op.make()
-
-
-You can consult the different notebooks in the `getting_stared` directory of this package for more information on
-how to use it.
-
-Created Environment should behave exactly like a gym environment. If you notice any unwanted behavior, please address
-an issue in the official grid2op repository: `Grid2Op <https://github.com/rte-france/Grid2Op>`_
-
-The environment created with this method should be fully compatible with the gym framework: if you are developing
-a new algorithm of "Reinforcement Learning" and you used the openai gym framework to do so, you can port your code
-in a few minutes (basically this consists in adapting the input and output dimension of your BaseAgent) and make it work
-with a Grid2Op environment. An example of such modifications is exposed in the getting_started/ notebooks.
-
-"""
 import os
 import importlib.util
 import pkg_resources
 import warnings
 import numbers
-import pdb
 import json
 
 from grid2op.Environment import Environment
@@ -46,7 +21,7 @@ from grid2op.Chronics import GridStateFromFile, GridStateFromFileWithForecasts, 
 from grid2op.Action import BaseAction, TopologyAction, TopologyAndDispatchAction, DontAct
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, BaseObservation
-from grid2op.Reward import FlatReward, BaseReward, L2RPNReward, RedispReward
+from grid2op.Reward import BaseReward, L2RPNReward, RedispReward
 from grid2op.Rules import BaseRules, AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
@@ -57,10 +32,10 @@ from grid2op.Chronics.Settings_case14_test import case14_test_CASEFILE, case14_t
 from grid2op.Chronics.Settings_case14_redisp import case14_redisp_CASEFILE, case14_redisp_CHRONICSPATH, case14_redisp_TH_LIM
 from grid2op.Chronics.Settings_case14_realistic import case14_real_CASEFILE, case14_real_CHRONICSPATH, case14_real_TH_LIM
 
-CASE_14_FILE = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data"),
-                                            "test_PandaPower", "test_case14.json"))
-CHRONICS_FODLER = os.path.abspath(os.path.join(pkg_resources.resource_filename(__name__, "data")))
-CHRONICS_MLUTIEPISODE = os.path.join(CHRONICS_FODLER, "test_multi_chronics")
+data_folder = pkg_resources.resource_filename("grid2op", "data")
+CASE_14_FILE = os.path.abspath(os.path.join(data_folder, "rte_case14_redisp", "grid.json"))
+CHRONICS_FODLER = os.path.abspath(os.path.join(data_folder, "rte_case14_redisp", "chronics", "0"))
+CHRONICS_MLUTIEPISODE = os.path.join(data_folder, "rte_case14_redisp", "chronics")
 
 NAMES_CHRONICS_TO_BACKEND = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
                                        "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
@@ -86,10 +61,12 @@ ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
                        "chronics_class", "volagecontroler_class", "other_rewards",
                        'opponent_action_class', "opponent_class", "opponent_init_budget"}
+
 ALLOWED_KWARGS_MAKE2 = {"param", "backend", "observation_class", "gamerules_class", "reward_class",
                         "action_class", "data_feeding_kwargs", "chronics_class", "volagecontroler_class",
-                        "other_rewards",
+                        "other_rewards", "chronics_path", "grid_path",
                        'opponent_action_class', "opponent_class", "opponent_init_budget"}
+
 ERR_MSG_KWARGS = {
     "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
     "observation": "The type of observation of the environment (keyword \"observation_class\")" \
@@ -114,8 +91,11 @@ ERR_MSG_KWARGS = {
                              "inherit from \"BaseAction\"",
     "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
                              "inherit from \"BaseOpponent\"",
-    "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float"
+    "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float",
+    "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
+    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string."
 }
+
 NAME_CHRONICS_FOLDER = "chronics"
 NAME_GRID_FILE = "grid.json"
 NAME_GRID_LAYOUT_FILE = "grid_layout.json"
@@ -249,12 +229,13 @@ def _check_kwargs(kwargs):
                            "No Environment will be created. "
                            "Accepted keyword arguments are {}".format(el, sorted(ALLOWED_KWARGS_MAKE2)))
 
+
 def _check_path(path, info):
     if path is None or os.path.exists(path) is False:
         raise EnvError("Cannot find {}. {}".format(path, info))
 
 
-def make2(dataset_path="/", **kwargs):
+def make_from_dataset_path(dataset_path="/", **kwargs):
     """
     This function is a shortcut to rapidly create environments within the grid2op Framework.
 
@@ -301,6 +282,13 @@ def make2(dataset_path="/", **kwargs):
     volagecontroler_class: ``type``, optional
         The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
 
+    chronics_path: ``str``
+        Path where to look for the chronics dataset (optional)
+
+    grid_path: ``str``, optional
+        The path where the powergrid is located.
+        If provided it must be a string, and point to a valid file present on the hard drive.
+
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
@@ -313,11 +301,25 @@ def make2(dataset_path="/", **kwargs):
     name_env = os.path.split(dataset_path_abs)[1]
     
     # Compute and find chronics folder
-    chronics_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CHRONICS_FOLDER))
+    chronics_path = _get_default_aux("chronics_path", kwargs,
+                                     defaultClassApp=str, defaultinstance='',
+                                     msg_error=ERR_MSG_KWARGS["chronics_path"])
+    if chronics_path == "":
+        # if no "chronics_path" argument is provided, look into the "chronics" folder
+        chronics_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CHRONICS_FOLDER))
+    else:
+        # otherwise use it
+        chronics_path_abs = os.path.abspath(chronics_path)
     _check_path(chronics_path_abs, "Dataset chronics folder")
 
     # Compute and find backend/grid file
-    grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
+    grid_path = _get_default_aux("grid_path", kwargs,
+                                 defaultClassApp=str, defaultinstance="",
+                                 msg_error=ERR_MSG_KWARGS["grid_path"])
+    if grid_path == "":
+        grid_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_GRID_FILE))
+    else:
+        grid_path_abs = os.path.abspath(grid_path)
     _check_path(grid_path_abs, "Dataset power flow solver configuration")
 
     # Compute and find grid layout file
@@ -329,7 +331,8 @@ def make2(dataset_path="/", **kwargs):
 
     # Compute and find config file
     config_path_abs = os.path.abspath(os.path.join(dataset_path_abs, NAME_CONFIG_FILE))
-    _check_path(grid_path_abs, "Dataset environment configuration")
+    _check_path(config_path_abs, "Dataset environment configuration")
+
     # Read config file
     try:
         spec = importlib.util.spec_from_file_location("config.config", config_path_abs)
@@ -623,10 +626,12 @@ def make(name_env="case14_realistic", **kwargs):
 
         defaultinstance_chronics_kwargs = {"chronicsClass": Multifolder, "path": chronics_path,
                                            "gridvalueClass": GridStateFromFileWithForecasts}
-        default_name_converter = NAMES_CHRONICS_TO_BACKEND
+        default_name_converter = {}
         default_action_class = TopologyAction
         default_reward_class = L2RPNReward
     elif name_env.lower() == "l2rpn_2019":
+        warnings.warn("You are using the \"l2rpn_2019\" environmnet, which will be remove from this package in "
+                      "future versions. Please use \"make_new\" to download the real l2rpn dataset.")
         if chronics_path == '':
             msg_error = "Default chronics (provided in this package) cannot be used with the environment "
             msg_error += "\"l2rpn_2019\". Please download the training data using either the method described in" \

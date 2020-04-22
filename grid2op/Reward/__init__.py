@@ -9,9 +9,13 @@ __all__ = [
     "CloseToOverflowReward",
     "DistanceReward",
     "GameplayReward",
+    "LinesReconnectedReward",
     "CombinedReward",
+    "CombinedScaledReward",
     "RewardHelper",
-    "BaseReward"
+    "BaseReward",
+    # TODO it would be better to have a specific package for this, but in the mean time i put it here
+    "L2RPNSandBoxScore"
 ]
 
 from grid2op.Reward.ConstantReward import ConstantReward
@@ -24,9 +28,12 @@ from grid2op.Reward.BridgeReward import BridgeReward
 from grid2op.Reward.CloseToOverflowReward import CloseToOverflowReward
 from grid2op.Reward.DistanceReward import DistanceReward
 from grid2op.Reward.GameplayReward import GameplayReward
+from grid2op.Reward.LinesReconnectedReward import LinesReconnectedReward
 from grid2op.Reward.CombinedReward import CombinedReward
+from grid2op.Reward.CombinedScaledReward import CombinedScaledReward
 from grid2op.Reward.RewardHelper import RewardHelper
 from grid2op.Reward.BaseReward import BaseReward
+from grid2op.Reward.L2RPNSandBoxScore import L2RPNSandBoxScore
 
 import warnings
 

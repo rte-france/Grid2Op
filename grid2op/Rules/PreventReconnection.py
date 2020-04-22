@@ -9,8 +9,6 @@
 import numpy as np
 from grid2op.Rules.BaseRules import BaseRules
 
-import pdb
-
 
 class PreventReconnection(BaseRules):
     """
@@ -30,7 +28,7 @@ class PreventReconnection(BaseRules):
 
         """
         aff_lines, aff_subs = action.get_topological_impact()
-        if np.any(env.time_remaining_before_reconnection[aff_lines] > 0):
+        if np.any(env.time_remaining_before_line_reconnection[aff_lines] > 0):
             # i tried to act on a powerline removed because an overflow
             return False
 

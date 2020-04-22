@@ -8,7 +8,7 @@
 
 import os
 import numpy as np
-from datetime import  timedelta
+from datetime import timedelta
 import pdb
 
 from grid2op.Exceptions import *
@@ -77,8 +77,21 @@ class Multifolder(GridValue):
         self.id_chron_folder_current = 0
         self.chunk_size = chunk_size
 
+        # for saving
+        self._order_backend_loads = None
+        self._order_backend_prods = None
+        self._order_backend_lines = None
+        self._order_backend_subs = None
+        self._names_chronics_to_backend = None
+
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
+
+        self._order_backend_loads = order_backend_loads
+        self._order_backend_prods = order_backend_prods
+        self._order_backend_lines = order_backend_lines
+        self._order_backend_subs = order_backend_subs
+        self._names_chronics_to_backend = names_chronics_to_backend
 
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
@@ -226,3 +239,53 @@ class Multifolder(GridValue):
 
     def set_chunk_size(self, new_chunk_size):
         self.chunk_size = new_chunk_size
+
+    def split_and_save(self, datetime_beg, datetime_end, path_out):
+        if not isinstance(datetime_beg, dict):
+            datetime_beg_orig = datetime_beg
+            datetime_beg = {}
+            for subpath in self.subpaths:
+                id_this_chron = os.path.split(subpath)[-1]
+                datetime_beg[id_this_chron] = datetime_beg_orig
+        if not isinstance(datetime_end, dict):
+            datetime_end_orig = datetime_end
+            datetime_end = {}
+            for subpath in self.subpaths:
+                id_this_chron = os.path.split(subpath)[-1]
+                datetime_end[id_this_chron] = datetime_end_orig
+
+        for subpath in self.subpaths:
+            id_this_chron = os.path.split(subpath)[-1]
+            if not id_this_chron in datetime_beg:
+                continue
+            tmp = self.gridvalueClass(time_interval=self.time_interval,
+                                      sep=self.sep,
+                                      path=subpath,
+                                      max_iter=self.max_iter,
+                                      chunk_size=self.chunk_size)
+            tmp.initialize(self._order_backend_loads,
+                           self._order_backend_prods,
+                           self._order_backend_lines,
+                           self._order_backend_subs,
+                           self._names_chronics_to_backend)
+            path_out_chron = os.path.join(path_out, id_this_chron)
+            tmp.split_and_save(datetime_beg[id_this_chron], datetime_end[id_this_chron], path_out_chron)
+
+    def fast_forward(self, nb_timestep):
+        """
+        This method allows you to skip some time step at the beginning of the chronics.
+
+        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
+        Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
+        00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
+        the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
+
+
+        Parameters
+        ----------
+        nb_timestep: ``int``
+            Number of time step to "fast forward"
+
+        """
+        for _ in range(nb_timestep):
+            self.data.load_next()

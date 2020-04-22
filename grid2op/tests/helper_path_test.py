@@ -18,12 +18,13 @@ from pathlib import Path
 
 test_dir = Path(__file__).parent.absolute()
 grid2op_dir = os.fspath(test_dir.parent.absolute())
-data_dir = os.path.abspath(os.path.join(grid2op_dir, "data"))
+data_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
 
 sys.path.insert(0, grid2op_dir)
 
 PATH_DATA_TEST = data_dir
 PATH_CHRONICS = data_dir
+PATH_CHRONICS_Make2 = os.path.abspath(os.path.join(grid2op_dir, "data"))
 PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPower"))
 EXAMPLE_CHRONICSPATH = os.path.abspath(os.path.join(data_dir, "5bus_example", "chronics"))
 EXAMPLE_CASEFILE = os.path.abspath(os.path.join(data_dir, "5bus_example", "5bus_example.json"))

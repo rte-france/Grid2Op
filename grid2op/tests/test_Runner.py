@@ -6,13 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
-import unittest
-import datetime
 import warnings
-import time
-import numpy as np
 import pdb
 
 from grid2op.tests.helper_path_test import *
@@ -21,7 +15,7 @@ PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_mul
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make_new
 from grid2op.Runner import Runner
 
 DEBUG = True
@@ -90,18 +84,16 @@ class TestRunner(HelperTests):
     def test_init_from_env(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("case14_test") as env:
+            with make_new("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=self.max_iter )
 
     def test_init_from_env_with_other_reward(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("case14_test", other_rewards={"test": L2RPNReward}) as env:
+            with make_new("rte_case14_test", test=True, other_rewards={"test": L2RPNReward}) as env:
                 runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=self.max_iter)
-
-
 
 
 if __name__ == "__main__":

@@ -1,9 +1,13 @@
 __all__ = [
-    "CompleteObservation",
+    # private
     "_ObsEnv",
+    # real export
+    "CompleteObservation",
     "BaseObservation",
+    "ObservationSpace",
+    # deprecated
+    "Observation",
     "ObservationHelper",
-    "Observation"
 ]
 
 

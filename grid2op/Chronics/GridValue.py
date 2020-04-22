@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 import pdb
 
+from grid2op.dtypes import dt_int
 from grid2op.Exceptions import EnvError
 
 # TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number
@@ -265,7 +266,7 @@ class GridValue(ABC):
 
         """
 
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0, 0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -340,7 +341,7 @@ class GridValue(ABC):
 
         """
 
-        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=np.int)
+        res = np.full(maintenance.shape, fill_value=np.NaN, dtype=dt_int)
         maintenance = np.concatenate((maintenance, (0,0)))
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -418,7 +419,7 @@ class GridValue(ABC):
 
         """
 
-        res = np.full(hazard.shape, fill_value=np.NaN, dtype=np.int)
+        res = np.full(hazard.shape, fill_value=np.NaN, dtype=dt_int)
         hazard = np.concatenate((hazard, (0, 0)))
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
@@ -624,3 +625,22 @@ class GridValue(ABC):
 
         """
         pass
+
+    def fast_forward(self, nb_timestep):
+        """
+        This method allows you to skip some time step at the beginning of the chronics.
+
+        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
+        Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
+        00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
+        the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
+
+
+        Parameters
+        ----------
+        nb_timestep: ``int``
+            Number of time step to "fast forward"
+
+        """
+        for _ in range(nb_timestep):
+            self.load_next()

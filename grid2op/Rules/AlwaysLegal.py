@@ -8,8 +8,6 @@
 
 from grid2op.Rules.BaseRules import BaseRules
 
-import pdb
-
 
 class AlwaysLegal(BaseRules):
     """

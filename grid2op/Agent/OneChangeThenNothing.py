@@ -6,9 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from abc import abstractmethod
-import pdb
-
 from grid2op.Agent.BaseAgent import BaseAgent
 
 
@@ -52,7 +49,7 @@ class OneChangeThenNothing(BaseAgent):
 
     my_dict = {}
 
-    def __init__(self, action_space, action_space_converter=None):
+    def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
         self.has_changed = False
         self.do_nothing_action = self.action_space({})
@@ -79,6 +76,9 @@ class OneChangeThenNothing(BaseAgent):
             res = self.action_space(self._get_dict_act())
             self.has_changed = True
         return res
+
+    def reset(self, obs):
+        self.has_changed = False
 
     def _get_dict_act(self):
         """

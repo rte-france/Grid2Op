@@ -20,6 +20,7 @@ import re
 
 import tarfile
 
+from grid2op.Exceptions import Grid2OpException
 import pdb
 
 try:
@@ -27,7 +28,6 @@ try:
 except Exception as e:
     raise RuntimeError("Impossible to find library urllib. Please install it.")
 
-DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
 URL_GRID2OP_DATA = "https://github.com/Tezirg/Grid2Op/releases/download/{}/{}"
 DATASET_TAG_v0_1_0 = "datasets-v0.1.0"
 DICT_URL_GRID2OP_DL = {
@@ -36,6 +36,7 @@ DICT_URL_GRID2OP_DL = {
     "l2rpn_2019": URL_GRID2OP_DATA.format(DATASET_TAG_v0_1_0, "l2rpn_2019.tar.bz2")
 }
 LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()])
+
 
 class DownloadProgressBar(tqdm):
     """
@@ -62,30 +63,21 @@ def download_url(url, output_path):
         urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
 
 
-def main_download(dataset_name, path_data):
-
-    dataset_name = dataset_name.lower().rstrip().lstrip()
-    dataset_name = re.sub('"', "", dataset_name)
-
-    if dataset_name not in DICT_URL_GRID2OP_DL:
-        print("Impossible to find environment named \"{env_name}\". Known environments are:\n{li_env}"
-              "".format(env_name=dataset_name, li_env=",".join(LI_VALID_ENV)))
-        sys.exit(1)
-
-    url = DICT_URL_GRID2OP_DL[dataset_name]
+def _aux_download(url, dataset_name, path_data):
     ds_name_dl = dataset_name
     final_path = os.path.join(path_data, ds_name_dl)
     if os.path.exists(final_path):
-        print("Downloading and extracting this data would create a folder \"{final_path}\" "
-              "but this folder already exists. Either you already downloaded the data, in this case "
-              "you can invoke the environment from a python script with:\n"
-              "\t env = grid2op.make2(\"{final_path}\")\n"
-              "Alternatively you can also delete the folder \"{final_path}\" from your computer and run this command "
-              "again.\n"
-              "Finally, you can download the data in a different folder by specifying (in a command prompt):\n"
-              "\t grid2op.download --name \"{env_name}\" --path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD"
-              "".format(final_path=final_path, env_name=dataset_name))
-        sys.exit(1)
+        str_ = "Downloading and extracting this data would create a folder \"{final_path}\" " \
+              "but this folder already exists. Either you already downloaded the data, in this case " \
+              "you can invoke the environment from a python script with:\n" \
+              "\t env = grid2op.make2(\"{final_path}\")\n" \
+              "Alternatively you can also delete the folder \"{final_path}\" from your computer and run this command " \
+              "again.\n" \
+              "Finally, you can download the data in a different folder by specifying (in a command prompt):\n" \
+              "\t grid2op.download --name \"{env_name}\" --path_save PATH\WHERE\YOU\WANT\TO\DOWNLOAD" \
+              "".format(final_path=final_path, env_name=dataset_name)
+        print(str_)
+        raise Grid2OpException(str_)
 
     if not os.path.exists(path_data):
         print("Creating path \"{}\" where data for \"{}\" environment will be downloaded."
@@ -93,10 +85,11 @@ def main_download(dataset_name, path_data):
         try:
             os.mkdir(path_data)
         except Exception as e:
-            print("Impossible to create path \"{}\" to store the data. Please save the data in a different repository "
-                  "with setting the argument \"--path_save\""
-                  "".format(path_data))
-            sys.exit(1)
+            str_ ="Impossible to create path \"{}\" to store the data. Please save the data in a different repository " \
+                  "with setting the argument \"--path_save\"" \
+                  "".format(path_data)
+            print(str_)
+            raise Grid2OpException(str_)
 
     output_path = os.path.abspath(os.path.join(path_data, "{}.tar.bz2".format(ds_name_dl)))
 
@@ -111,3 +104,17 @@ def main_download(dataset_name, path_data):
     print("You may now use the environment \"{}\" with the available data by invoking:\n"
           "\tenv = grid2op.make2(\"{}\")"
           "".format(dataset_name, final_path))
+
+
+def main_download(dataset_name, path_data):
+
+    dataset_name = dataset_name.lower().rstrip().lstrip()
+    dataset_name = re.sub('"', "", dataset_name)
+
+    if dataset_name not in DICT_URL_GRID2OP_DL:
+       print("Impossible to find environment named \"{env_name}\". Known environments are:\n{li_env}"
+             "".format(env_name=dataset_name, li_env=",".join(LI_VALID_ENV)))
+       sys.exit(1)
+
+    url = DICT_URL_GRID2OP_DL[dataset_name]
+    _aux_download(url, dataset_name, path_data)

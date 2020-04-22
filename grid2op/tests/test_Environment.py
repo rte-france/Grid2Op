@@ -19,7 +19,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make_new
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Action import *
 
@@ -188,7 +188,9 @@ class TestIllegalAmbiguous(unittest.TestCase):
         # powergrid
         self.tolvect = 1e-2
         self.tol_one = 1e-4
-        self.env = make("case5_example")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make_new("rte_case5_example", test=True)
 
     def tearDown(self):
         self.env.close()
@@ -231,7 +233,10 @@ class TestOtherReward(unittest.TestCase):
         # powergrid
         self.tolvect = 1e-2
         self.tol_one = 1e-4
-        self.env = make("case5_example", reward_class=L2RPNReward, other_rewards={"test": L2RPNReward})
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make_new("rte_case5_example", test=True, reward_class=L2RPNReward,
+                                other_rewards={"test": L2RPNReward})
 
     def tearDown(self):
         self.env.close()
@@ -254,24 +259,28 @@ class TestOtherReward(unittest.TestCase):
 class TestAttachLayout(unittest.TestCase):
     def test_attach(self):
         my_layout = [(0, 0), (0, 400), (200, 400), (400, 400), (400, 0)]
-        with make("case5_example", reward_class=L2RPNReward, other_rewards={"test": L2RPNReward}) as env:
-            env.attach_layout(my_layout)
-            act = env.action_space()
-            dict_act = act.to_dict()
-            assert "grid_layout" in dict_act
-            assert dict_act["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-            dict_ = env.helper_action_player.to_dict()
-            assert "grid_layout" in dict_
-            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-            dict_ = env.helper_action_env.to_dict()
-            assert "grid_layout" in dict_
-            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-            dict_ = env.helper_observation.to_dict()
-            assert "grid_layout" in dict_
-            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-            dict_ = env.opponent_action_space.to_dict()
-            assert "grid_layout" in dict_
-            assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_new("rte_case5_example", test=True, reward_class=L2RPNReward, other_rewards={"test": L2RPNReward}) \
+                    as env:
+                env.attach_layout(my_layout)
+                act = env.action_space()
+                dict_act = act.to_dict()
+                assert "grid_layout" in dict_act
+                assert dict_act["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env.helper_action_player.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env.helper_action_env.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env.helper_observation.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env.opponent_action_space.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 
 
 class TestLineChangeLastBus(unittest.TestCase):
@@ -286,9 +295,9 @@ class TestLineChangeLastBus(unittest.TestCase):
             self.params.MAX_SUB_CHANGED = 1
             self.params.NO_OVERFLOW_DISCONNECTION = True
 
-            self.env = make("case14_test",
-                            chronics_class=ChangeNothing,
-                            param=self.params)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=self.params)
 
     def tearDown(self):
         self.env.close()
@@ -366,9 +375,7 @@ class TestResetAfterCascadingFailure(unittest.TestCase):
             warnings.filterwarnings("ignore")
             params = Parameters()
             params.MAX_SUB_CHANGED = 2
-            self.env = make("case14_test",
-                            chronics_class=ChangeNothing,
-                            param=params)
+            self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params)
 
     def tearDown(self):
         self.env.close()
@@ -408,7 +415,8 @@ class TestCascadingFailure(unittest.TestCase):
             params.MAX_SUB_CHANGED = 0
             params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
             rules = DefaultRules
-            self.env = make("case14_test", chronics_class=ChangeNothing, param=params, gamerules_class=rules)
+            self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params,
+                                gamerules_class=rules)
 
     def tearDown(self):
         self.env.close()

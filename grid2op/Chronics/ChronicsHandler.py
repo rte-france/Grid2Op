@@ -8,7 +8,6 @@
 
 import os
 from datetime import timedelta
-import pdb
 
 from grid2op.Exceptions import Grid2OpException, ChronicsError
 from grid2op.Space import RandomObject
@@ -225,3 +224,22 @@ class ChronicsHandler(RandomObject):
             raise Grid2OpException("The maximum number of iterations possible for this chronics, before it ends.")
         self.max_iter = max_iter
         self.real_data.max_iter = max_iter
+
+    def fast_forward(self, nb_timestep):
+        """
+        This method allows you to skip some time step at the beginning of the chronics.
+
+        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
+        Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
+        00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
+        the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
+
+
+        Parameters
+        ----------
+        nb_timestep: ``int``
+            Number of time step to "fast forward"
+
+        """
+        for _ in range(nb_timestep):
+            self.real_data.load_next()

@@ -5,7 +5,8 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+import numpy as np
 
-# this files present utilitary class
-from grid2op.Observation import ObservationSpace
-from grid2op.Action import ActionSpace
+dt_int = np.int32  # dtype('int64') or dtype('int32') depending on platform => i force it to int32
+dt_float = np.float32    # dtype('float64') or dtype('float32') depending on platform  => i force it to float32
+dt_bool = np.bool

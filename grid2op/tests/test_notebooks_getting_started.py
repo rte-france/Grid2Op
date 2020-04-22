@@ -6,22 +6,14 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
 import shutil
-import sys
-import unittest
-import json
-import numpy as np
-import subprocess
 
 import pdb
-
-import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 
 from grid2op.tests.helper_path_test import *
 
 # TODO check these tests, they don't appear to be working
+
 
 def delete_all(folder):
     """
@@ -77,31 +69,34 @@ class TestNotebook(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    notebooks_path = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
-    path_save_notebook = os.path.join(PATH_DATA_TEST, "../tests/test_notebooks")
+    if False:
+        import nbformat
+        from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
+        notebooks_path = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
+        path_save_notebook = os.path.join(PATH_DATA_TEST, "../tests/test_notebooks")
 
-    if not os.path.exists(path_save_notebook):
-        os.mkdir(path_save_notebook)
-    else:
-        delete_all(path_save_notebook)
+        if not os.path.exists(path_save_notebook):
+            os.mkdir(path_save_notebook)
+        else:
+            delete_all(path_save_notebook)
 
-    all_notebook = export_all_notebook(notebooks_path)
+        all_notebook = export_all_notebook(notebooks_path)
 
-    all_funs = []
-    for notebook_filename in all_notebook:
-        def f(self):
-            with open(notebook_filename) as f:
-                nb = nbformat.read(f, as_version=4)
-                ep = ExecutePreprocessor(timeout=600)
-                try:
-                    ep.preprocess(nb, {'metadata': {'path': path_save_notebook}})
-                except CellExecutionError:
-                    raise
-        all_funs.append(("test_{}".format(os.path.split(notebook_filename)[-1]), f))
+        all_funs = []
+        for notebook_filename in all_notebook:
+            def f(self):
+                with open(notebook_filename) as f:
+                    nb = nbformat.read(f, as_version=4)
+                    ep = ExecutePreprocessor(timeout=600)
+                    try:
+                        ep.preprocess(nb, {'metadata': {'path': path_save_notebook}})
+                    except CellExecutionError:
+                        raise
+            all_funs.append(("test_{}".format(os.path.split(notebook_filename)[-1]), f))
 
-    for nm, f in all_funs:
-        pass
-        # setattr(TestNotebook, nm, f)
+        for nm, f in all_funs:
+            pass
+            setattr(TestNotebook, nm, f)
 
-    unittest.main()
+    # unittest.main()
 
