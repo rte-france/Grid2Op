@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction
@@ -22,7 +23,7 @@ from grid2op.Action import CompleteAction
 import pdb
 
 
-# TODO URGENT: if chronics are "loop through" multiple times, only last results are saved. :-/
+# TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 
 class Backend(GridObjects, ABC):
@@ -276,7 +277,8 @@ class Backend(GridObjects, ABC):
         It is also possible, for a specific application, to return the maximum current flow between both ends of a power
         _grid for more complex scenario.
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
 
         :return: an array with the line flows of each powerline
         :rtype: np.array, dtype:float
@@ -323,7 +325,7 @@ class Backend(GridObjects, ABC):
             for i, el in self.name_line:
                 if el in limits:
                     try:
-                        tmp = float(limits[el])
+                        tmp = dt_float(limits[el])
                     except:
                         raise BackendError("Impossible to convert data ({}) for powerline named \"{}\" into float "
                                            "values".format(limits[el], el))
@@ -362,7 +364,9 @@ class Backend(GridObjects, ABC):
         """
         Gives the thermal limit (in amps) for each powerline of the _grid. Only one value per powerline is returned.
 
-        It is assumed that both :func:`Backend.get_line_flow` and *_get_thermal_limit* gives the value of the same end of the powerline.
+        It is assumed that both :func:`Backend.get_line_flow` and *_get_thermal_limit* gives the value of the same
+        end of the powerline.
+
         See the help of *_get_line_flow* for a more detailed description of this problem.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
@@ -386,7 +390,8 @@ class Backend(GridObjects, ABC):
         """
         num_ = self.get_line_flow()
         denom_ = self.get_thermal_limit()
-        return num_ / denom_
+        res = np.divide(num_, denom_)
+        return res
 
     def get_line_overflow(self):
         """
@@ -607,7 +612,7 @@ class Backend(GridObjects, ABC):
         infos = []
         self._runpf_with_diverging_exception(is_dc)
 
-        disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=np.bool)
+        disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
         if env.no_overflow_disconnection:
             return disconnected_during_cf, infos
         # the environment disconnect some
@@ -771,34 +776,34 @@ class Backend(GridObjects, ABC):
         self.redispatching_unit_commitment_availble = True
 
         self.gen_type = np.full(self.n_gen, fill_value="aaaaaaaaaa")
-        self.gen_pmin = np.full(self.n_gen, fill_value=1., dtype=np.float)
-        self.gen_pmax = np.full(self.n_gen, fill_value=1., dtype=np.float)
-        self.gen_redispatchable = np.full(self.n_gen, fill_value=False, dtype=np.bool)
-        self.gen_max_ramp_up = np.full(self.n_gen, fill_value=0., dtype=np.float)
-        self.gen_max_ramp_down = np.full(self.n_gen, fill_value=0., dtype=np.float)
-        self.gen_min_uptime = np.full(self.n_gen, fill_value=-1, dtype=np.int)
-        self.gen_min_downtime = np.full(self.n_gen, fill_value=-1, dtype=np.int)
-        self.gen_cost_per_MW = np.full(self.n_gen, fill_value=1., dtype=np.float)  # marginal cost
-        self.gen_startup_cost = np.full(self.n_gen, fill_value=1., dtype=np.float)  # start cost
-        self.gen_shutdown_cost = np.full(self.n_gen, fill_value=1., dtype=np.float)  # shutdown cost
+        self.gen_pmin = np.full(self.n_gen, fill_value=1., dtype=dt_float)
+        self.gen_pmax = np.full(self.n_gen, fill_value=1., dtype=dt_float)
+        self.gen_redispatchable = np.full(self.n_gen, fill_value=False, dtype=dt_bool)
+        self.gen_max_ramp_up = np.full(self.n_gen, fill_value=0., dtype=dt_float)
+        self.gen_max_ramp_down = np.full(self.n_gen, fill_value=0., dtype=dt_float)
+        self.gen_min_uptime = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
+        self.gen_min_downtime = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
+        self.gen_cost_per_MW = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # marginal cost
+        self.gen_startup_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # start cost
+        self.gen_shutdown_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # shutdown cost
 
         for i, gen_nm in enumerate(self.name_gen):
             tmp_gen = gen_info[gen_nm]
             self.gen_type[i] = str(tmp_gen["type"])
-            self.gen_pmin[i] = float(tmp_gen["pmin"])
-            self.gen_pmax[i] = float(tmp_gen["pmax"])
-            self.gen_redispatchable[i] = bool(tmp_gen["type"] not in ["wind", "solar"])
-            tmp = float(tmp_gen["max_ramp_up"])
+            self.gen_pmin[i] = dt_float(tmp_gen["pmin"])
+            self.gen_pmax[i] = dt_float(tmp_gen["pmax"])
+            self.gen_redispatchable[i] = dt_bool(tmp_gen["type"] not in ["wind", "solar"])
+            tmp = dt_float(tmp_gen["max_ramp_up"])
             if np.isfinite(tmp):
                 self.gen_max_ramp_up[i] = tmp
-            tmp = float(tmp_gen["max_ramp_down"])
+            tmp = dt_float(tmp_gen["max_ramp_down"])
             if np.isfinite(tmp):
                 self.gen_max_ramp_down[i] = tmp
-            self.gen_min_uptime[i] = int(tmp_gen["min_up_time"])
-            self.gen_min_downtime[i] = int(tmp_gen["min_down_time"])
-            self.gen_cost_per_MW[i] = float(tmp_gen["marginal_cost"])
-            self.gen_startup_cost[i] = float(tmp_gen["start_cost"])
-            self.gen_shutdown_cost[i] = float(tmp_gen["shut_down_cost"])
+            self.gen_min_uptime[i] = dt_int(tmp_gen["min_up_time"])
+            self.gen_min_downtime[i] = dt_int(tmp_gen["min_down_time"])
+            self.gen_cost_per_MW[i] = dt_float(tmp_gen["marginal_cost"])
+            self.gen_startup_cost[i] = dt_float(tmp_gen["start_cost"])
+            self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
 
     def load_grid_layout(self, path, name='grid_layout.json'):
         full_fn = os.path.join(path, name)
@@ -817,8 +822,8 @@ class Backend(GridObjects, ABC):
             tmp = dict_[el]
             try:
                 x, y = tmp
-                x = float(x)
-                y = float(y)
+                x = dt_float(x)
+                y = dt_float(y)
                 new_grid_layout[el] = (x, y)
             except Exception as e_:
                 return Exception("fail to convert coordinates for {} into list of coordinates with error {}"
@@ -829,7 +834,7 @@ class Backend(GridObjects, ABC):
     def get_action_to_set(self):
         line_status = self.get_line_status()
         line_status = 2 * line_status - 1
-        line_status = line_status.astype(np.int)
+        line_status = line_status.astype(dt_int)
         topo_vect = self.get_topo_vect()
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()

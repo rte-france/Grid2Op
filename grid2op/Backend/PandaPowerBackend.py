@@ -25,6 +25,7 @@ import pandas as pd
 import pandapower as pp
 import scipy
 
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Backend.Backend import Backend
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import *
@@ -252,19 +253,19 @@ class PandaPowerBackend(Backend):
         self.name_sub = np.array(self.name_sub)
 
         #  number of elements per substation
-        self.sub_info = np.zeros(self.n_sub, dtype=np.int)
+        self.sub_info = np.zeros(self.n_sub, dtype=dt_int)
 
-        self.load_to_subid = np.zeros(self.n_load, dtype=np.int)
-        self.gen_to_subid = np.zeros(self.n_gen, dtype=np.int)
-        self.line_or_to_subid = np.zeros(self.n_line, dtype=np.int)
-        self.line_ex_to_subid = np.zeros(self.n_line, dtype=np.int)
+        self.load_to_subid = np.zeros(self.n_load, dtype=dt_int)
+        self.gen_to_subid = np.zeros(self.n_gen, dtype=dt_int)
+        self.line_or_to_subid = np.zeros(self.n_line, dtype=dt_int)
+        self.line_ex_to_subid = np.zeros(self.n_line, dtype=dt_int)
 
-        self.load_to_sub_pos = np.zeros(self.n_load, dtype=np.int)
-        self.gen_to_sub_pos = np.zeros(self.n_gen, dtype=np.int)
-        self.line_or_to_sub_pos = np.zeros(self.n_line, dtype=np.int)
-        self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=np.int)
+        self.load_to_sub_pos = np.zeros(self.n_load, dtype=dt_int)
+        self.gen_to_sub_pos = np.zeros(self.n_gen, dtype=dt_int)
+        self.line_or_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
+        self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
 
-        pos_already_used = np.zeros(self.n_sub, dtype=np.int)
+        pos_already_used = np.zeros(self.n_sub, dtype=dt_int)
         self._what_object_where = [[] for _ in range(self.n_sub)]
 
         # self._grid.line.sort_index(inplace=True)
@@ -351,19 +352,19 @@ class PandaPowerBackend(Backend):
         self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
 
-        self.p_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.q_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.v_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.a_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.p_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.q_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.v_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
-        self.a_ex = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+        self.p_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.v_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.a_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.p_ex = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_ex = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.v_ex = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.a_ex = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
         self._nb_bus_before = None
 
         # shunts data
         self.n_shunt = self._grid.shunt.shape[0]
-        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=np.int) - 1
+        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
         name_shunt = []
         for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
             bus = int(row["bus"])
@@ -591,7 +592,7 @@ class PandaPowerBackend(Backend):
 
         except pp.powerflow.LoadflowNotConverged:
             # of the powerflow has not converged, results are Nan
-            self.p_or = np.full(self.n_line, dtype=np.float, fill_value=np.NaN)
+            self.p_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
             self.q_or = self.p_or
             self.v_or = self.p_or
             self.a_or = self.p_or
@@ -631,7 +632,7 @@ class PandaPowerBackend(Backend):
         As all the functions related to powerline, pandapower split them into multiple dataframe (some for transformers,
         some for 3 winding transformers etc.). We make sure to get them all here.
         """
-        return np.concatenate((self._grid.line["in_service"].values, self._grid.trafo["in_service"].values)).astype(np.bool)
+        return np.concatenate((self._grid.line["in_service"].values, self._grid.trafo["in_service"].values)).astype(dt_bool)
 
     def get_line_flow(self):
         """
@@ -653,7 +654,7 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iloc[id - self._number_true_line] = True
 
     def get_topo_vect(self):
-        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
+        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
 
         line_status = self.get_line_status()
 
@@ -699,7 +700,7 @@ class PandaPowerBackend(Backend):
     def _get_topo_vect_old(self):
         # beg__ = time.time()
         # TODO refactor this, this takes a looong time
-        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=np.int)
+        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
 
         line_status = self.get_line_status()
 

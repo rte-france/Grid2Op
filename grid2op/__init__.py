@@ -1,6 +1,5 @@
 """
 Grid2Op
-Document will be made later on.
 
 """
 __version__ = '0.7.0'
@@ -17,9 +16,9 @@ __all__ = [
     "Rules",
     "Reward",
     "Runner",
-    "Utils",
     "Plot",
-    "EpisodeData",
+    "PlotGrid",
+    "Episode",
     "Download",
     "VoltageControler",
     "tests",
@@ -27,7 +26,8 @@ __all__ = [
     "command_line"
 ]
 
-from grid2op.MakeEnv import make, make2
+from grid2op.MakeEnv import make, make2, make_new
+from grid2op.MakeEnv import list_available_remote_env, list_available_local_env, get_current_local_dir, change_local_dir
 
 # TODO remove -- Export hardcoded datasets settings at top-level
 from grid2op.MakeEnv import CASE_14_FILE

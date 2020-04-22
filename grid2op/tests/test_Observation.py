@@ -6,29 +6,23 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
-import unittest
-import datetime
 import json
 import warnings
-from io import StringIO
-import numpy as np
 from numpy import dtype
 import pdb
 
 from grid2op.tests.helper_path_test import *
 
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
-from grid2op.Observation import ObservationSpace, CompleteObservation, _ObsEnv, BaseObservation
-from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts
-from grid2op.Action import ActionSpace
+from grid2op.Observation import ObservationSpace, CompleteObservation
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts
 from grid2op.Rules import RulesChecker
 from grid2op.Reward import L2RPNReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make_new
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -138,16 +132,19 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'name_shunt': ['shunt_8_0'],
                       'shunt_to_subid': [8]}
 
-        self.dtypes = np.array([dtype('int64'), dtype('int64'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('float64'), dtype('float64'),
-                                           dtype('float64'), dtype('bool'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('int64'),
-                                           dtype('int64'), dtype('int64'), dtype('float64'), dtype('float64')],
+        self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
+                                dt_int, dt_int, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_float, dt_float,
+                                dt_float, dt_bool, dt_int, dt_int,
+                                dt_int, dt_int, dt_int,
+                                dt_int, dt_int, dt_float, dt_float],
                                dtype=object)
+
+        self.dtypes = np.array([np.dtype(el) for el in self.dtypes])
+
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                             20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20, 20,
                                  5, 5])
@@ -344,7 +341,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "p" in dict_
         assert dict_["p"] == 0.0
         assert "q" in dict_
-        assert np.abs(dict_["q"] - 47.48313177017934) <= self.tol_one
+        assert np.abs(dict_["q"] - 47.48287) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 141.075) <= self.tol_one
         assert "bus" in dict_
@@ -357,11 +354,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         dict_both = obs.state_of(line_id=0)
         assert "origin" in dict_both
         dict_ = dict_both["origin"]
-
         assert "p" in dict_
-        assert np.abs(dict_["p"] - 109.77536682689008) <= self.tol_one
+        assert np.abs(dict_["p"] - 109.77537) <= self.tol_one
         assert "q" in dict_
-        assert np.abs(dict_["q"] - -8.7165023030358) <= self.tol_one
+        assert np.abs(dict_["q"] - -8.71631) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 143.1) <= self.tol_one
         assert "bus" in dict_
@@ -372,9 +368,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "extremity" in dict_both
         dict_ = dict_both["extremity"]
         assert "p" in dict_
-        assert np.abs(dict_["p"] - -107.69115512018216) <= self.tol_one
+        assert np.abs(dict_["p"] - -107.69115) <= self.tol_one
         assert "q" in dict_
-        assert np.abs(dict_["q"] - 9.230658220781127) <= self.tol_one
+        assert np.abs(dict_["q"] - 9.230471) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 141.075) <= self.tol_one
         assert "bus" in dict_
@@ -628,13 +624,13 @@ class TestUpdateEnvironement(unittest.TestCase):
         # Create env and obs in left hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.lenv = make("case5_example")
+            self.lenv = make_new("rte_case5_example", test=True)
             self.lobs = self.lenv.reset()
 
         # Create env and obs in right hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.renv = make("case5_example")
+            self.renv = make_new("rte_case5_example", test=True)
             # Step once to make it different
             self.robs, _, _, _ = self.renv.step(self.renv.action_space())
 
@@ -728,7 +724,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_realistic")
+            self.env = make_new("rte_case14_realistic", test=True)
 
         # Set forecasts to actual values so that simulate runs on the same numbers as step
         self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)

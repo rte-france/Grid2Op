@@ -6,19 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
-import unittest
-import numpy as np
 import pdb
 import warnings
 
 from grid2op.tests.helper_path_test import *
 
-from grid2op.MakeEnv import make
+from grid2op.MakeEnv import make_new
 from grid2op.Exceptions import *
-from grid2op.Chronics import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
 from grid2op.Backend import PandaPowerBackend
+
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
     def setUp(self):
@@ -540,8 +537,9 @@ class TestEnvChunk(HelperTests):
         self.max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_realistic")
+            self.env = make_new("rte_case14_realistic", test=True)
             self.env.chronics_handler.set_max_iter(self.max_iter)
+
     def tearDown(self):
         self.env.close()
 
@@ -570,8 +568,8 @@ class TestMissingData(HelperTests):
     def test_load_error(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with self.assertRaises(ChronicsError):
-                with make("case14_realistic", chronics_path="/answer/life/42"):
+            with self.assertRaises(EnvError):
+                with make_new("rte_case14_realistic", test=True, chronics_path="/answer/life/42"):
                     pass
 
     def run_env_till_over(self, env, max_iter):
@@ -588,8 +586,9 @@ class TestMissingData(HelperTests):
         max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("case5_example",
-                      chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) as env:
+            with make_new("rte_case5_example", test=True,
+                          chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) \
+                    as env:
                 # test a first time without chunks
                 env.set_id(0)
                 env.chronics_handler.set_max_iter(max_iter)

@@ -20,6 +20,8 @@ will save the information in a structured way. For each episode there will be a 
     - "chronics_path": the path where the temporal data (chronics) are located
     - "env_type": the name of the :class:`grid2op.Environment` class used.
     - "grid_path": the path where the powergrid has been loaded from
+    - "nb_timestep_played": number of time step the agent has succesfully managed
+    - "cumulative_reward": its total cumulative reward
 
   - "episode_times.json": gives some information about the total time spend in multiple part of the runner, mainly the
     :class:`grid2op.Agent.BaseAgent` (and especially its method :func:`grid2op.BaseAgent.act`) and amount of time
@@ -56,12 +58,10 @@ import time
 import numpy as np
 import pandas as pd
 
-try:
-    from .Exceptions import Grid2OpException, AmbiguousAction
-    from .Utils import ActionSpace, ObservationSpace
-except (ModuleNotFoundError, ImportError):
-    from Exceptions import Grid2OpException, AmbiguousAction
-    from Utils import ActionSpace, ObservationSpace
+
+from grid2op.Exceptions import Grid2OpException, AmbiguousAction
+from grid2op.Action import ActionSpace
+from grid2op.Observation import ObservationSpace
 
 
 class EpisodeData:
@@ -276,8 +276,8 @@ class EpisodeData:
                 env._time_powerflow)
             self.episode_times["Env"]["observation_computation"] = float(
                 env._time_extract_obs)
-            self.episode_times["BaseAgent"] = {}
-            self.episode_times["BaseAgent"]["total"] = float(time_act)
+            self.episode_times["Agent"] = {}
+            self.episode_times["Agent"]["total"] = float(time_act)
             self.episode_times["total"] = float(end_ - beg_)
 
     def to_disk(self):

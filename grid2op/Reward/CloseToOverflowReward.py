@@ -1,3 +1,10 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 
@@ -17,7 +24,8 @@ class CloseToOverflowReward(BaseReward):
     def initialize(self, env):
         pass
         
-    def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
+    def __call__(self,  action, env, has_error,
+                 is_done, is_illegal, is_ambiguous):
         thermal_limits = env.backend.get_thermal_limit()
         lineflow_ratio = env.current_obs.rho
 
@@ -27,6 +35,9 @@ class CloseToOverflowReward(BaseReward):
             if (limit < 400.00 and ratio > 0.90) or ratio >= 0.95:
                 close_to_overflow += 1.0
 
-        close_to_overflow = np.clip(close_to_overflow, 0.0, self.max_overflowed)
-        penalty = np.interp(close_to_overflow, [0.0, self.max_overflowed], [self.reward_min, self.reward_max])
-        return self.reward_max - penalty
+        close_to_overflow = np.clip(close_to_overflow,
+                                    0.0, self.max_overflowed)
+        reward = np.interp(close_to_overflow,
+                           [0.0, self.max_overflowed],
+                           [self.reward_max, self.reward_min])
+        return reward

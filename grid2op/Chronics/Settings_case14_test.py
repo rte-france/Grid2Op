@@ -18,7 +18,7 @@ file_dir = Path(__file__).parent.absolute()
 grid2op_root = file_dir.parent.absolute()
 grid2op_root = str(grid2op_root)
 dat_dir = os.path.abspath(os.path.join(grid2op_root, "data"))
-case_dir = "case14_test"
+case_dir = "rte_case14_test"
 grid_file = "case14_test.json"
 
 case14_test_CASEFILE = os.path.join(dat_dir, case_dir, grid_file)

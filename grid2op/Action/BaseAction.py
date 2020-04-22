@@ -12,6 +12,7 @@ import warnings
 
 import pdb
 
+from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
@@ -261,9 +262,9 @@ class BaseAction(GridObjects):
                 res = self._dict_inj[attr_name]
             else:
                 if attr_name == "prod_p" or attr_name == "prod_v":
-                    res = np.full(self.n_gen, fill_value=0., dtype=np.float)
+                    res = np.full(self.n_gen, fill_value=0., dtype=dt_float)
                 elif attr_name == "load_p" or attr_name == "load_q":
-                    res = np.full(self.n_load, fill_value=0., dtype=np.float)
+                    res = np.full(self.n_load, fill_value=0., dtype=dt_float)
                 else:
                     raise Grid2OpException("Impossible to find the attribute \"{}\" "
                                            "into the BaseAction of type \"{}\"".format(attr_name, type(self)))
@@ -315,12 +316,12 @@ class BaseAction(GridObjects):
 
         Returns
         -------
-        res: :class:`numpy.array`, dtype:np.int
+        res: :class:`numpy.array`, dtype:dt_int
             A vector that doesn't affect the grid, but can be used in :func:`BaseAction.__call__` with the keyword
             "set_status" if building an :class:`BaseAction`.
 
         """
-        return np.full(shape=self.n_line, fill_value=0, dtype=np.int)
+        return np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
 
     def get_change_line_status_vect(self):
         """
@@ -331,12 +332,12 @@ class BaseAction(GridObjects):
 
         Returns
         -------
-        res: :class:`numpy.array`, dtype:np.bool
+        res: :class:`numpy.array`, dtype:dt_bool
             A vector that doesn't affect the grid, but can be used in :func:`BaseAction.__call__` with the keyword
             "set_status" if building an :class:`BaseAction`.
 
         """
-        return np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        return np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
     def __eq__(self, other) -> bool:
         """
@@ -470,26 +471,26 @@ class BaseAction(GridObjects):
 
         Returns
         -------
-        lines_impacted: :class:`numpy.array`, dtype:np.bool
+        lines_impacted: :class:`numpy.array`, dtype:dt_bool
             A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for each
             component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._lines_impacted` for more information.
 
-        subs_impacted: :class:`numpy.array`, dtype:np.bool
+        subs_impacted: :class:`numpy.array`, dtype:dt_bool
             A vector with the same size as the number of substations in the grid with for each
             component ``True`` if the substation is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._subs_impacted` for more information.
 
         """
         if powerline_status is None:
-            powerline_status = np.full(self.n_line, fill_value=False, dtype=np.bool)
+            powerline_status = np.full(self.n_line, fill_value=False, dtype=dt_bool)
         not_powerline_status = ~(powerline_status)
 
         if self._lines_impacted is None:
             self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & not_powerline_status)
 
         if self._subs_impacted is None:
-            self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=np.bool)
+            self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
 
             # Mask of powerlines reconnected by set
             powerlines_set_reco = self._set_line_status == 1
@@ -552,22 +553,22 @@ class BaseAction(GridObjects):
 
         """
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=np.int)
-        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
+        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
         # injection change
         self._dict_inj = {}
 
         # topology changed
-        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=np.int)
-        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=np.bool)
+        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=dt_int)
+        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=dt_bool)
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
-        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=np.bool)
+        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
         # redispatching vector
-        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=np.float)
+        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
         self._vectorized = None
         self._lines_impacted = None
@@ -575,9 +576,9 @@ class BaseAction(GridObjects):
 
         # shunts
         if self.shunts_data_available:
-            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=np.float)
-            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=np.float)
-            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=np.int)
+            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
+            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
+            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=dt_int)
 
     def __iadd__(self, other):
         """
@@ -773,7 +774,7 @@ class BaseAction(GridObjects):
                 tmp_d = dict_["injection"]
                 for k in tmp_d:  # ["load_p", "prod_p", "load_q", "prod_v"]:
                     if k in self.vars_action_set:
-                        self._dict_inj[k] = np.array(tmp_d[k])
+                        self._dict_inj[k] = np.array(tmp_d[k]).astype(dt_float)
                     else:
                         warn = "The key {} is not recognized by BaseAction when trying to modify the injections.".format(k)
                         warnings.warn(warn)
@@ -894,7 +895,7 @@ class BaseAction(GridObjects):
                     sel_ = dict_["set_line_status"] != 0
 
                     # update the line status vector
-                    self._set_line_status[sel_] = dict_["set_line_status"][sel_].astype(np.int)
+                    self._set_line_status[sel_] = dict_["set_line_status"][sel_].astype(dt_int)
             else:
                 for l_id, status_ in dict_["set_line_status"]:
                     self._set_line_status[l_id] = status_
@@ -973,8 +974,8 @@ class BaseAction(GridObjects):
 
     def __convert_and_redispatch(self, kk, val):
         try:
-            kk = int(kk)
-            val = float(val)
+            kk = dt_int(kk)
+            val = dt_float(val)
         except Exception as e:
             raise AmbiguousAction("In redispatching, it's not possible to understand the key/value pair "
                                   "{}/{} provided in the dictionnary. Key must be an integer, value "
@@ -1193,7 +1194,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             sub_id = 5
-            target_topology = np.ones(env.sub_info[sub_id], dtype=np.int)
+            target_topology = np.ones(env.sub_info[sub_id], dtype=dt_int)
             target_topology[3:] = 2
             reconfig_sub = env.action_space({"set_bus": {"substations_id": [(sub_id, target_topology)] } })
             print(reconfig_sub)

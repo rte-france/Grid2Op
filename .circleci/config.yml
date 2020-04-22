@@ -3,7 +3,7 @@ version: 2.1
 executors:
   grid2op-executor:
     docker:
-      - image: bdonnot/grid2op:latest
+      - image: bdonnot/grid2op:test
     working_directory: /Grid2Op
 
 jobs:

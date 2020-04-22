@@ -6,11 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import os
-import sys
-import unittest
 import copy
-import numpy as np
 import pdb
 import warnings
 
@@ -21,12 +17,8 @@ from grid2op.Environment import Environment
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
-from grid2op.Reward import L2RPNReward
-from grid2op.MakeEnv import make
-from grid2op.Rules import RulesChecker, DefaultRules
+from grid2op.MakeEnv import make_new
 from grid2op.Action import BaseAction
-from grid2op.Agent import BaseAgent
-import time
 
 
 DEBUG = False
@@ -337,7 +329,7 @@ class TestRedispTooLowHigh(HelperTests):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_redisp")
+            self.env = make_new("rte_case14_redisp", test=True)
 
         # i don't want to be bother by ramps in these test (note that is NOT recommended to change that)
         self.env.gen_max_ramp_down[:] = 5000
@@ -405,7 +397,7 @@ class TestLoadingBackendPandaPower(HelperTests):
         # powergrid
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_test")
+            self.env = make_new("rte_case14_test", test=True)
 
     def tearDown(self):
         self.env.close()
@@ -562,7 +554,7 @@ class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests):
         # powergrid
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_test")
+            self.env = make_new("rte_case14_test", test=True)
 
     def tearDown(self):
         self.env.close()

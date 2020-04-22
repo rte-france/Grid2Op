@@ -21,7 +21,7 @@ class GreedyAgent(BaseAgent):
     This class is an abstract class (object of this class cannot be created). To create "GreedyAgent" one must
     override this class. Examples are provided with :class:`PowerLineSwitch` and :class:`TopologyGreedy`.
     """
-    def __init__(self, action_space, action_space_converter=None):
+    def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
         self.tested_action = None
 

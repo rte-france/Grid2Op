@@ -10,7 +10,7 @@ import sys
 import numpy as np
 from datetime import datetime
 
-from grid2op.EpisodeData import EpisodeData
+from grid2op.Episode import EpisodeData
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Plot.PlotPyGame import PlotPyGame
 from grid2op.Exceptions.PlotExceptions import PyGameQuit
@@ -29,9 +29,6 @@ try:
     import imageio_ffmpeg
     can_save_gif = True
 except:
-    import warnings
-    warnings.warn("The final video will not be saved as \"imageio\" and \"imageio_ffmpeg\" packages cannot be "
-                  "imported. Please try \"{} -m pip install imageio imageio-ffmpeg\"".format(sys.executable))
     can_save_gif = False
 
 
@@ -73,6 +70,11 @@ class EpisodeReplay(object):
             raise Grid2OpException("Nothing is found at \"{}\" where an agent path should have been.".format(agent_path))
         self.agent_path = agent_path
         self.episode_data = None
+
+        if not can_save_gif:
+            import warnings
+            warnings.warn("The final video will not be saved as \"imageio\" and \"imageio_ffmpeg\" packages cannot be "
+                          "imported. Please try \"{} -m pip install imageio imageio-ffmpeg\"".format(sys.executable))
 
     def replay_episode(self, episode_id, max_fps=10, video_name=None, display=True):
         """

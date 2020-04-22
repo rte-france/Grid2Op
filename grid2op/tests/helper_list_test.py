@@ -2,6 +2,7 @@
 import sys
 import unittest
 
+
 def print_suite(suite):
     if hasattr(suite, '__iter__'):
         for x in suite:
@@ -12,5 +13,6 @@ def print_suite(suite):
         testmethod = suite._testMethodName
         test_name = "{}.{}.{}".format(testmodule, testsuite, testmethod)
         print (test_name)
+
 
 print_suite(unittest.defaultTestLoader.discover('.'))

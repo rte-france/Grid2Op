@@ -12,8 +12,9 @@ import json
 import copy
 import pdb
 
-from grid2op.Exceptions import *
-from grid2op._utils import extract_from_dict, save_to_dict
+from grid2op.Exceptions import Grid2OpException
+from grid2op.Space.space_utils import extract_from_dict, save_to_dict
+
 from grid2op.Space.GridObjects import GridObjects
 from grid2op.Space.RandomObject import RandomObject
 

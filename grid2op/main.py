@@ -14,7 +14,7 @@ import os
 import pkg_resources
 import argparse
 
-from grid2op.Observation import ObservationHelper, CompleteObservation
+from grid2op.Observation import CompleteObservation
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import FlatReward
 from grid2op.Agent import DoNothingAgent
@@ -22,11 +22,11 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Rules import AlwaysLegal
 from grid2op.Runner import Runner
 
-DEFAULT_TEST_CASE = os.path.join(pkg_resources.resource_filename(__name__, 'data'),
-                                 "test_PandaPower", "test_case14.json")
+from grid2op import CHRONICS_MLUTIEPISODE, CASE_14_FILE
+DEFAULT_TEST_CASE = CASE_14_FILE
 
-DEFAULT_CHRONICS_DATA = os.path.join(pkg_resources.resource_filename(__name__, 'data'),
-                                     "test_multi_chronics")
+DEFAULT_CHRONICS_DATA = CHRONICS_MLUTIEPISODE
+
 
 def main_run(path_casefile=None,
              path_chronics=None,

@@ -21,7 +21,8 @@ class BridgeReward(BaseReward):
         self.reward_min = 0.0
         self.reward_max = 1.0
         
-    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+    def __call__(self, action, env, has_error,
+                 is_done, is_illegal, is_ambiguous):
         n_bus = 2
 
         # Get info from env

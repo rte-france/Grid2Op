@@ -9,7 +9,9 @@ import numpy as np
 import os
 import copy
 import pdb
+import collections
 
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
@@ -20,8 +22,6 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent
-from grid2op.Plot import PlotPyGame
-from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
@@ -212,9 +212,9 @@ class Environment(BaseEnv):
         self._has_been_initialized()  # really important to include this piece of code!
 
         if self._thermal_limit_a is None:
-            self._thermal_limit_a = self.backend.thermal_limit_a
+            self._thermal_limit_a = self.backend.thermal_limit_a.astype(dt_float)
         else:
-            self.backend.set_thermal_limit(self._thermal_limit_a)
+            self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         *_, tmp = self.backend.generators_info()
 
@@ -319,8 +319,9 @@ class Environment(BaseEnv):
         self.observation_space = self.helper_observation  # this return an observation.
         self.reward_range = self.reward_helper.range()
         self.viewer = None
+        self.viewer_fig = None
 
-        self.metadata = {'render.modes': ["human", "rgb_array"]}
+        self.metadata = {'render.modes': []}
         self.spec = None
 
         self.current_reward = self.reward_range[0]
@@ -434,17 +435,33 @@ class Environment(BaseEnv):
 
         Parameters
         ----------
-        graph_layout: ``dict`` or ``list``
+        graph_layout: ``dict``
             If ``None`` this class will use the default substations layout provided when the environment was created.
             Otherwise it will use the data provided.
 
         """
+        # Viewer already exists: skip
         if self.viewer is not None:
             return
 
-        self.viewer = PlotPyGame(observation_space=self.helper_observation,
-                                 substation_layout=graph_layout)
-        self.viewer.reset(self)
+        # Do we have the dependency
+        try:
+            from grid2op.PlotGrid import PlotMatplot
+        except ImportError:
+            err_msg = "Cannot attach renderer: missing dependency\n" \
+                      "Please install matplotlib or run pip install grid2op[optional]"
+            raise Grid2OpException(err_msg) from None
+
+        if graph_layout is None:
+            # Grid layout must be ordered by keys in order to display correctly
+            # Apparently sub stations indexes to grid_layout key is in alphabetical order
+            graph_layout = collections.OrderedDict(sorted(self.helper_observation.grid_layout.items()))
+
+        self.helper_observation.grid_layout = graph_layout
+        self.viewer = PlotMatplot(self.helper_observation)
+        self.viewer_fig = None
+        # Set renderer modes
+        self.metadata = {'render.modes': ["human", "silent"]}
 
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
@@ -465,7 +482,7 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:
-            self.backend.set_thermal_limit(self._thermal_limit_a)
+            self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
@@ -505,7 +522,7 @@ class Environment(BaseEnv):
 
         """
         try:
-            seed = np.array(seed).astype('int64')
+            seed = np.array(seed).astype(dt_int)
         except Exception as e:
             raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
                                    "numpy 64 integer.")
@@ -538,8 +555,9 @@ class Environment(BaseEnv):
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
         self.reset_grid()
-        if self.viewer is not None:
-            self.viewer.reset(self)
+        if self.viewer_fig is not None:
+            del self.viewer_fig
+            self.viewer_fig = None
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
         # TODO add test above: fake a cascading failure, do a reset, check that it can be loaded
@@ -547,42 +565,34 @@ class Environment(BaseEnv):
         self.oppSpace.reset()
         return self.get_obs()
 
-    def change_duration_timestep_display(self, new_timestep_duration_seconds):
-        """
-        Change the duration on which the screen is displayed.
-        """
-        self.attach_renderer()
-        self.viewer.new_timestep_duration_seconds(new_timestep_duration_seconds)
-
     def render(self, mode='human'):
         """
-        Render the state of the environment on the screen.
+        Render the state of the environment on the screen, using matplotlib
+        Also returns the Matplotlib figure
         """
-        err_msg = "Impossible to use the renderer, please set it up with  \"env.init_renderer(graph_layout)\", " \
-                  "graph_layout being the position of each substation of the powergrid that you must provide"
+        # Try to create a plotter instance
+        # Does nothing if viewer exists
+        # Raises if matplot is not installed
         self.attach_renderer()
-        if mode == "human":
-            if self.viewer is not None:
-                try:
-                    self.viewer.plot_obs(self.current_obs,
-                                         reward=self.current_reward,
-                                         timestamp=self.time_stamp,
-                                         done=self.done)
-                except PyGameQuit:
-                    self.close()
-                    raise
-            else:
-                raise Grid2OpException(err_msg)
-        elif mode == "rgb_array":
-            if self.viewer is not None:
-                return np.array(self.viewer.get_rgb(self.current_obs,
-                                                    reward=self.current_reward,
-                                                    timestamp=self.time_stamp,
-                                                    done=self.done))
-            else:
-                raise Grid2OpException(err_msg)
-        else:
-            raise Grid2OpException("Renderer mode \"{}\" not supported.".format(mode))
+        
+        # Check mode is correct
+        if mode not in self.metadata["render.modes"]:
+            err_msg = "Renderer mode \"{}\" not supported. Available modes are {}."
+            raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
+
+        # Render the current observation
+        fig = self.viewer.plot_obs(self.current_obs, figure=self.viewer_fig, redraw=True)
+
+        # First time show for human mode
+        if self.viewer_fig is None and mode == "human":
+            fig.show()
+        else: # Update the figure content
+            fig.canvas.draw()
+
+        # Store to re-use the figure
+        self.viewer_fig = fig
+        # Return the figure in case it needs to be saved/used
+        return self.viewer_fig
 
     def copy(self):
         """

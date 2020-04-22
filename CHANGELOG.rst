@@ -8,10 +8,9 @@ Change Log
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-
+- [???] refacto the backend and the actions, backend you get set only, env takes care of the rest
+- [???] refacto the dataset handling
 - [???] better explanation of the notebook 3 with action silently
-- [???] have something remembering the topology in the environment, and when an object is
-  reconnected, and no buses are specified, then it connects it to last buses.
 - [???] see if "simulate" performances can be improved, and performances in general.
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
@@ -21,6 +20,26 @@ Change Log
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
+
+
+[0.7.1] - 2020-04-xx
+----------------------
+- [FIXED] a bug in the chronics making it not start at the appropriate time step
+- [FIXED] a bug in "OneChangeThenNothing" agent that prevent it to be restarted properly.
+- [FIXED] a bug with the generated docker file that does not update to the last version of the package.
+- [FIXED] numpy, by default does not use the same datatype depending on the platform. We ensure that
+  floating value are always `np.float32` and integers are always `np.int32`
+- [ADDED] a method to extract only some part of a chronic.
+- [ADDED] a method to "fast forward" the chronics
+- [ADDED] class `grid2op.Reward.CombinedScaledReward`: A reward combiner with linear interpolation to stay within a given range.
+- [ADDED] `grid2op.Reward.BaseReward.set_range`: All rewards have a default setter for their `reward_min` and `reward_max` attributes.
+- [ADDED] `grid2op.PlotGrid`: Revamped plotting capabilities while keeping the interface we know from `grid2op.Plot`
+- [ADDED] `grid2op.replay` binary: This binary is installed with grid2op and allows to replay a runner log with visualization and gif export
+- [ADDED] a `LicensesInformation` file that put a link for all dependencies of the project.
+- [ADDED] make multiple dockers, one for testing, one for distribution with all extra, and one "light"
+- [UPDATED] test data and datasets are no longer included in the package distribution
+- [UPDATED] a new function `make_new` that will make obsolete the "grid2op.download" script in future versions
+- [UPDATED] the python "requests" package is now a dependency
 
 [0.7.0] - 2020-04-15
 --------------------

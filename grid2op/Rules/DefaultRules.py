@@ -9,8 +9,6 @@
 from grid2op.Rules.LookParam import LookParam
 from grid2op.Rules.PreventReconnection import PreventReconnection
 
-import pdb
-
 
 class DefaultRules(LookParam, PreventReconnection):
     """

@@ -87,13 +87,13 @@ class ObservationSpace(SerializableObservationSpace):
         self.backend_obs = env.backend.copy()
 
         self.obs_env = _ObsEnv(backend_instanciated=self.backend_obs, obsClass=self.observationClass,
-                              parameters=env.parameters,
-                              reward_helper=self.reward_helper,
-                              action_helper=self.action_helper_env,
-                              thermal_limit_a=env._thermal_limit_a,
-                              legalActClass=env.legalActClass,
-                              donothing_act=env.helper_action_player(),
-                              other_rewards=other_rewards)
+                               parameters=env.parameters,
+                               reward_helper=self.reward_helper,
+                               action_helper=self.action_helper_env,
+                               thermal_limit_a=env._thermal_limit_a,
+                               legalActClass=env.legalActClass,
+                               donothing_act=env.helper_action_player(),
+                               other_rewards=other_rewards)
 
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)

@@ -45,6 +45,9 @@ class CombinedReward(BaseReward):
             yield (k, r_dict)
 
     def initialize(self, env):
+        self.reward_min = 0.0
+        self.reward_max = 0.0
+
         for key, reward in self.rewards.items():
             reward_w = reward["weight"]
             reward_instance = reward["instance"]
