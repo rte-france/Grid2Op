@@ -179,7 +179,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = 2
 
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=dt_int)
 
@@ -196,7 +196,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         try:
             self.env.parameters.MAX_SUB_CHANGED = 2
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-            self.env.times_before_line_status_actionable[id_line] = 1
+            self.env.time_remaining_before_line_reconnection[id_line] = 1
             _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
                                                              "set_bus": {"substations_id": [(id_2, arr2)]},
                                                              "change_line_status": arr_line1,
@@ -207,12 +207,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         except IllegalAction:
             pass
 
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
         self.env.parameters.MAX_SUB_CHANGED = 2
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-        self.env.times_before_line_status_actionable[1] = 1
+        self.env.time_remaining_before_line_reconnection[1] = 1
         _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
                                                          "set_bus": {"substations_id": [(id_2, arr2)]},
                                                          "change_line_status": arr_line1,
@@ -236,7 +236,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -270,7 +270,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -303,7 +303,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_line_status_deactivated = 2
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -342,7 +342,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -376,7 +376,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 
@@ -409,7 +409,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_topology_deactivated = 2
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
+        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
                                                               fill_value=0,
                                                               dtype=np.int)
 

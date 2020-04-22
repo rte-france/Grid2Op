@@ -5,7 +5,6 @@ Change Log
 --------------------
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] make multiple dockers, one for testing, one for distribution with all extra, and one "light"
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
@@ -37,6 +36,7 @@ Change Log
 - [ADDED] `grid2op.PlotGrid`: Revamped plotting capabilities while keeping the interface we know from `grid2op.Plot`
 - [ADDED] `grid2op.replay` binary: This binary is installed with grid2op and allows to replay a runner log with visualization and gif export
 - [ADDED] a `LicensesInformation` file that put a link for all dependencies of the project.
+- [ADDED] make multiple dockers, one for testing, one for distribution with all extra, and one "light"
 - [UPDATED] test data and datasets are no longer included in the package distribution
 - [UPDATED] a new function `make_new` that will make obsolete the "grid2op.download" script in future versions
 - [UPDATED] the python "requests" package is now a dependency

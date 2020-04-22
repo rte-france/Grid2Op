@@ -124,7 +124,7 @@ def _extract_ds_name(dataset_path):
 # TODO add some kind of md5sum (or something else) in the remote json to check if version is locally updated (once in a while)
 # TODO: logger instead of print would be so much better.
 # TODO and an overall logger verbosity
-def make_new(dataset_path="rte_case14_realistic", test=False, **kwargs):
+def make_new(dataset="rte_case14_realistic", test=False, **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -136,7 +136,7 @@ def make_new(dataset_path="rte_case14_realistic", test=False, **kwargs):
     Parameters
     ----------
 
-    dataset_path: ``str``
+    dataset: ``str``
         Path to the dataset folder, defaults to "rte_case14_realistic"
 
     test: ``bool``
@@ -191,11 +191,11 @@ def make_new(dataset_path="rte_case14_realistic", test=False, **kwargs):
     env: :class:`grid2op.Environment.Environment`
         The created environment.
     """
-    if os.path.exists(dataset_path):
+    if os.path.exists(dataset):
         # first, if a path is provided, check if there is something there
-        res = make_from_dataset_path(dataset_path, **kwargs)
+        res = make_from_dataset_path(dataset, **kwargs)
         return res
-    dataset_name = _extract_ds_name(dataset_path)
+    dataset_name = _extract_ds_name(dataset)
     res = None
     if dataset_name in TEST_DEV_ENVS and test:
         warnings.warn("You are using a development environment. This is really not recommended for training agents.")
@@ -221,5 +221,5 @@ def make_new(dataset_path="rte_case14_realistic", test=False, **kwargs):
         real_ds_path = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)
         res = make_from_dataset_path(real_ds_path, **kwargs)
     else:
-        raise UnknownEnv("Impossible to load locally the environment named \"{}\".".format(dataset_path))
+        raise UnknownEnv("Impossible to load locally the environment named \"{}\".".format(dataset))
     return res

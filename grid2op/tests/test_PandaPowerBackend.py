@@ -1005,8 +1005,10 @@ class TestShuntAction(HelperTests):
     def test_shunt_effect(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal, action_class=CompleteAction)
-            env_change_q = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal, action_class=CompleteAction)
+            env_ref = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
+                               action_class=CompleteAction)
+            env_change_q = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
+                                    action_class=CompleteAction)
 
         obs_ref, *_ = env_ref.step(env_ref.action_space())
         obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, -30)]}}))

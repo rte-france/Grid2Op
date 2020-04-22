@@ -1090,7 +1090,7 @@ class BaseEnv(GridObjects, ABC):
     def _reset_maintenance(self):
         self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self.times_before_line_status_actionable = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
+        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
 
     def __enter__(self):
         """
@@ -1193,5 +1193,4 @@ class BaseEnv(GridObjects, ABC):
             Number of time step to "fast forward"
 
         """
-        for _ in range(nb_timestep):
-            self.chronics_handler.load_next()
+        self.chronics_handler.fast_forward_chronics(nb_timestep)

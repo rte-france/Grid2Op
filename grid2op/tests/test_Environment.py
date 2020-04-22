@@ -235,7 +235,8 @@ class TestOtherReward(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case5_example", test=True, reward_class=L2RPNReward, other_rewards={"test": L2RPNReward})
+            self.env = make_new("rte_case5_example", test=True, reward_class=L2RPNReward,
+                                other_rewards={"test": L2RPNReward})
 
     def tearDown(self):
         self.env.close()
