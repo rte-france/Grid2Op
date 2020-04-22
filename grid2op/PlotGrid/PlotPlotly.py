@@ -6,19 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import math
-from operator import itemgetter
 import numpy as np
 import plotly.graph_objects as go
 import plotly.colors as pc
-import seaborn as sns
 import imageio
 import warnings
 
 from grid2op.PlotGrid.BasePlot import BasePlot
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
-from grid2op.Exceptions import PlotError
+
 
 class PlotPlotly(BasePlot):
     def __init__(self,
