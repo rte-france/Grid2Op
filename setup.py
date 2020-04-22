@@ -20,9 +20,7 @@ pkgs = {
         "tqdm>=4.43.0",
         "pathlib>=1.0.1",
         "networkx>=2.4",
-        "requests>=2.23.0",
-        "imageio>=2.8.0",
-        "matplotlib>=3.2.1"
+        "requests>=2.23.0"
     ],
     "extras": {
         "test": [
@@ -32,8 +30,10 @@ pkgs = {
         ],
         "optional": [
             "numba>=0.48.0",
+            "matplotlib>=3.2.1",
             "plotly>=4.5.4",
             "seaborn>=0.10.0",
+            "imageio>=2.8.0",
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0"
         ],

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import warnings
+
 from grid2op.main import main_cli as mainEntryPoint
 from grid2op.Download.download import download_cli as downloadEntryPoint
-from grid2op.Episode.EpisodeReplay import replay_cli as replayEntryPoint
 
 def main():
     mainEntryPoint()
@@ -11,4 +12,10 @@ def download():
     downloadEntryPoint()
 
 def replay():
-    replayEntryPoint()
+    try:
+        from grid2op.Episode.EpisodeReplay import replay_cli as replayEntryPoint
+        replayEntryPoint()
+    except:
+        warn_msg = "Episode replay is missing an optional dependency" \
+                   "Please run pip3 install grid2op[optional]"
+        warnings.warn(warn_msg)

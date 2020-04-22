@@ -1,7 +1,13 @@
 __all__ = [
-    "EpisodeData", 
-    "EpisodeReplay"
+    "EpisodeData"
 ]
 
 from grid2op.Episode.EpisodeData import EpisodeData
-from grid2op.Episode.EpisodeReplay import EpisodeReplay
+
+# Try to import optional module
+try:
+    from grid2op.Episode.EpisodeReplay import EpisodeReplay
+    __all__.append("EpisodeReplay")
+except:
+    pass # Silent fail for optional dependencies
+

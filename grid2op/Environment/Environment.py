@@ -22,8 +22,6 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent
-from grid2op.PlotGrid import PlotMatplot
-from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
@@ -442,8 +440,17 @@ class Environment(BaseEnv):
             Otherwise it will use the data provided.
 
         """
+        # Viewer already exists: skip
         if self.viewer is not None:
             return
+
+        # Do we have the dependency
+        try:
+            from grid2op.PlotGrid import PlotMatplot
+        except:
+            err_msg = "Cannot attach renderer: missing dependency\n" \
+                      "Please install matplotlib or run pip install .[optional]"
+            raise Grid2OpException(err_msg) from None
 
         if graph_layout is None:
             # Grid layout must be ordered by keys in order to display correctly
@@ -566,8 +573,12 @@ class Environment(BaseEnv):
             err_msg = "Renderer mode \"{}\" not supported. Available modes are {}."
             raise Grid2OpException(err_msg.format(mode, self.metadata["render.modes"]))
 
+        # Try to create a plotter instance
+        # Does nothing if viewer exists
+        # Raises if matplot is not installed
+        self.attach_renderer()
+
         # Render the current observation
-        self.attach_renderer() # Does nothing if viewer exists
         fig = self.viewer.plot_obs(self.current_obs, figure=self.viewer_fig, redraw=True)
 
         # First time show for human mode
