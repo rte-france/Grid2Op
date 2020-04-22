@@ -197,11 +197,7 @@ def make_new(dataset_path="rte_case14_realistic", test=False, **kwargs):
         return res
     dataset_name = _extract_ds_name(dataset_path)
     res = None
-    if os.path.exists(os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)):
-        # second check in the DEFAULT_PATH_DATA if the environment is present (typically if env is given by name)
-        real_ds_path = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)
-        res = make_from_dataset_path(real_ds_path, **kwargs)
-    elif dataset_name in TEST_DEV_ENVS and test:
+    if dataset_name in TEST_DEV_ENVS and test:
         warnings.warn("You are using a development environment. This is really not recommended for training agents.")
         if not dataset_name.startswith("rte"):
             warnings.warn("The name \"{}\" has been deprecated and will be removed in future version. Please update "
@@ -211,7 +207,11 @@ def make_new(dataset_path="rte_case14_realistic", test=False, **kwargs):
             res = make(dataset_name, **kwargs)
         else:
             res = make_from_dataset_path(TEST_DEV_ENVS[dataset_name], **kwargs)
-    elif not local:
+    elif os.path.exists(os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)):
+        # second check in the DEFAULT_PATH_DATA if the environment is present (typically if env is given by name)
+        real_ds_path = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, dataset_name)
+        res = make_from_dataset_path(real_ds_path, **kwargs)
+    elif not test:
         # third try to download the environment
         print("It is the first time you use the environment \"{}\". We will attempt to download this environment from "
               "remote".format(dataset_name))
