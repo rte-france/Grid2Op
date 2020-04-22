@@ -1193,4 +1193,7 @@ class BaseEnv(GridObjects, ABC):
             Number of time step to "fast forward"
 
         """
-        self.chronics_handler.fast_forward_chronics(nb_timestep)
+        # TODO: Do not step with an empty action, but do a proper internal update
+        self.chronics_handler.fast_forward(nb_timestep)
+        # Apply fast forward state with a do nothing action
+        self.step(self.helper_action_player({}))
