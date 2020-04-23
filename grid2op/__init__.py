@@ -26,7 +26,7 @@ __all__ = [
     "command_line"
 ]
 
-from grid2op.MakeEnv import make, make2, make_new
+from grid2op.MakeEnv import make_old, make, make_from_dataset_path
 from grid2op.MakeEnv import list_available_remote_env, list_available_local_env, get_current_local_dir, change_local_dir
 
 # TODO remove -- Export hardcoded datasets settings at top-level

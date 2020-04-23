@@ -17,7 +17,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules import *
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 
 
 class TestLoadingBackendFunc(unittest.TestCase):
@@ -437,7 +437,7 @@ class TestCooldown(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case5_example", test=True, gamerules_class=DefaultRules)
+            self.env = make("rte_case5_example", test=True, gamerules_class=DefaultRules)
 
     def tearDown(self):
         self.env.close()
@@ -452,7 +452,7 @@ class TestReconnectionsLegality(unittest.TestCase):
     def test_reconnect_already_connected(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", test=True)
+            env_case2 = make("rte_case5_example", test=True)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         # powerline 5 is connected
@@ -469,7 +469,7 @@ class TestReconnectionsLegality(unittest.TestCase):
             params = Parameters()
             params.MAX_SUB_CHANGED = 0
             params.NO_OVERFLOW_DISCONNECTION = True
-            env_case2 = make_new("rte_case5_example", test=True, param=params)
+            env_case2 = make("rte_case5_example", test=True, param=params)
         obs = env_case2.reset()  # reset is good
         line_id = 5
         
@@ -497,7 +497,7 @@ class TestSubstationImpactLegality(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.params = Parameters()
-            self.env = make_new("rte_case5_example", test=True, param=self.params)
+            self.env = make("rte_case5_example", test=True, param=self.params)
 
     def tearDown(self):
         self.env.close()

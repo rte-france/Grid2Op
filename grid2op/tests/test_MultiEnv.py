@@ -10,7 +10,7 @@ import pdb
 import warnings
 from grid2op.tests.helper_path_test import *
 from grid2op.Environment import MultiEnvironment
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 
 
 class TestLoadingMultiEnv(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestLoadingMultiEnv(unittest.TestCase):
         nb_env = 1
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", test=True) as env:
+            with make("rte_case5_example", test=True) as env:
                 multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
         multi_envs.close()
 
