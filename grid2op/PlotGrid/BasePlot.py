@@ -364,7 +364,7 @@ class BasePlot(ABC):
         for load_idx, load_name in enumerate(observation.name_load):
             if load_name not in self._grid_layout:
                 continue
-            load_value = np.round(load_values[load_idx], 2)
+            load_value = np.round(float(load_values[load_idx]), 2)
             load_x = self._grid_layout[load_name][0]
             load_y = self._grid_layout[load_name][1]
             load_subid = observation.load_to_subid[load_idx]
@@ -388,7 +388,7 @@ class BasePlot(ABC):
         for gen_idx, gen_name in enumerate(observation.name_gen):
             if gen_name not in self._grid_layout:
                 continue
-            gen_value = np.round(gen_values[gen_idx], 2)
+            gen_value = np.round(float(gen_values[gen_idx]), 2)
             gen_x = self._grid_layout[gen_name][0]
             gen_y = self._grid_layout[gen_name][1]
             gen_subid = observation.gen_to_subid[gen_idx]
@@ -419,7 +419,7 @@ class BasePlot(ABC):
             line_name = "line_{}_{}".format(line_or_sub, line_ex_sub)
             line_status = True
             line_status = observation.line_status[line_idx]
-            line_value = np.round(line_values[line_idx], 2)
+            line_value = np.round(float(line_values[line_idx]), 2)
             line_or_bus = topo[line_or_pos[line_idx]]
             line_or_bus = line_or_bus if line_or_bus > 0 else 0
             line_or_x = self._grid_layout[line_or_sub_name][0]

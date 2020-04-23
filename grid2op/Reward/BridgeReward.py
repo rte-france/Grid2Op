@@ -23,6 +23,9 @@ class BridgeReward(BaseReward):
         
     def __call__(self, action, env, has_error,
                  is_done, is_illegal, is_ambiguous):
+        if has_error or is_illegal or is_ambiguous:
+            return self.reward_min
+
         n_bus = 2
 
         # Get info from env

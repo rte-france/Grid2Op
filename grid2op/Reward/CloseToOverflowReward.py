@@ -26,6 +26,9 @@ class CloseToOverflowReward(BaseReward):
         
     def __call__(self,  action, env, has_error,
                  is_done, is_illegal, is_ambiguous):
+        if has_error or is_illegal or is_ambiguous:
+            return self.reward_min
+
         thermal_limits = env.backend.get_thermal_limit()
         lineflow_ratio = env.current_obs.rho
 

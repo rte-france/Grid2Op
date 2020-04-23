@@ -39,6 +39,8 @@ class CombinedReward(BaseReward):
         return False
 
     def __iter__(self):
+        for k, v in super().__iter__():
+            yield (k, v)
         for k, v in self.rewards.items():
             r_dict = dict(v["instance"])
             r_dict["weight"] = v["weight"]
