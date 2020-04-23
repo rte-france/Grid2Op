@@ -53,7 +53,7 @@ class PlotPlotly(BasePlot):
                                  pc.sequential.Oranges[4:6] + \
                                  pc.sequential.Reds[-3: -1]
         self._line_bus_radius = 10
-        self._line_bus_colors = ["black", "red", "magenta"]
+        self._line_bus_colors = ["black", "red", "lime"]
         self._bus_prefix = "_bus_"
         self._or_prefix = "_or_"
         self._ex_prefix = "_ex_"

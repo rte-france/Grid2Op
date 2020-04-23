@@ -10,7 +10,6 @@ import networkx as nx
 import numpy as np
 import copy
 
-
 def layout_obs_sub_only(obs, scale=1000.0):
     n_sub = obs.n_sub
     n_line = obs.n_line
@@ -90,7 +89,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         G.add_edge(left_v, right_v, weight=gen_w)
 
     # Convert our layout to nx format
-    layout_keys = list(obs.grid_layout.keys())
+    layout_keys = list(obs.name_sub)
     if use_initial:
         initial_layout = {}
         for sub_idx, sub_name in enumerate(layout_keys):

@@ -53,8 +53,8 @@ class PlotMatplot(BasePlot):
         #self._line_color_scheme = cm.get_cmap("inferno")(cx)
         self._line_color_scheme = [ "blue", "orange", "red"]
         self._line_color_width = 1
-        self._line_bus_radius = 5
-        self._line_bus_face_colors = ["black", "red", "magenta"]
+        self._line_bus_radius = 6
+        self._line_bus_face_colors = ["black", "red", "lime"]
         self._line_arrow_len = 10
         self._line_arrow_width = 10.0
 

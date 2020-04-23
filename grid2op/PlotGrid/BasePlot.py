@@ -58,7 +58,6 @@ class BasePlot(ABC):
         self._gens_info = ["p", "v"]
 
         self._grid_layout = self.compute_grid_layout(observation_space, grid_layout)
-        self._layout_keys = list(self._grid_layout.keys())
 
         # Augment observation_space with dummy observation data
         # so we can use it as an observation for plotting just the layout or custom infos
@@ -350,7 +349,7 @@ class BasePlot(ABC):
             draw_fn = self.update_substation
 
         for sub_idx in range(observation.n_sub):
-            sub_name = self._layout_keys[sub_idx]
+            sub_name = observation.name_sub[sub_idx]
             sub_x = self._grid_layout[sub_name][0]
             sub_y = self._grid_layout[sub_name][1]
             draw_fn(figure, observation,
@@ -371,7 +370,7 @@ class BasePlot(ABC):
             load_x = self._grid_layout[load_name][0]
             load_y = self._grid_layout[load_name][1]
             load_subid = observation.load_to_subid[load_idx]
-            load_subname = self._layout_keys[load_subid]
+            load_subname = observation.name_sub[load_subid]
             load_bus = topo[topo_pos[load_idx]]
             load_bus = load_bus if load_bus > 0 else 0
             sub_x = self._grid_layout[load_subname][0]
@@ -395,7 +394,7 @@ class BasePlot(ABC):
             gen_x = self._grid_layout[gen_name][0]
             gen_y = self._grid_layout[gen_name][1]
             gen_subid = observation.gen_to_subid[gen_idx]
-            gen_subname = self._layout_keys[gen_subid]
+            gen_subname = observation.name_sub[gen_subid]
             gen_bus = topo[topo_pos[gen_idx]]
             gen_bus = gen_bus if gen_bus > 0 else 0
             sub_x = self._grid_layout[gen_subname][0]
@@ -416,9 +415,9 @@ class BasePlot(ABC):
 
         for line_idx in range(observation.n_line):
             line_or_sub = observation.line_or_to_subid[line_idx]
-            line_or_sub_name = self._layout_keys[line_or_sub]
+            line_or_sub_name = observation.name_sub[line_or_sub]
             line_ex_sub = observation.line_ex_to_subid[line_idx]
-            line_ex_sub_name = self._layout_keys[line_ex_sub]
+            line_ex_sub_name = observation.name_sub[line_ex_sub]
             line_name = "line_{}_{}".format(line_or_sub, line_ex_sub)
             line_status = True
             line_status = observation.line_status[line_idx]
@@ -428,7 +427,7 @@ class BasePlot(ABC):
             line_or_x = self._grid_layout[line_or_sub_name][0]
             line_or_y = self._grid_layout[line_or_sub_name][1]
             line_ex_bus = topo[line_ex_pos[line_idx]]
-            line_ex_bus = line_or_bus if line_or_bus > 0 else 0
+            line_ex_bus = line_ex_bus if line_ex_bus > 0 else 0
             line_ex_x = self._grid_layout[line_ex_sub_name][0]
             line_ex_y = self._grid_layout[line_ex_sub_name][1]
             draw_fn(figure, observation,
