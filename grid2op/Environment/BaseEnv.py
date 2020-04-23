@@ -259,10 +259,6 @@ class BaseEnv(GridObjects, ABC):
         self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
-        # for maintenance operation
-        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
-        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
-
         # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
         self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
@@ -276,7 +272,7 @@ class BaseEnv(GridObjects, ABC):
         self.last_bus_line_ex = np.full(shape=self.n_line, fill_value=1, dtype=dt_int)
 
         # initialize maintenance / hazards
-        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
+        self.time_next_maintenance = np.full(self.n_line, -1, dtype=dt_int)
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.times_before_line_status_actionable = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
 
@@ -1088,7 +1084,7 @@ class BaseEnv(GridObjects, ABC):
         self.done = False
 
     def _reset_maintenance(self):
-        self.time_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int) - 1
+        self.time_next_maintenance = np.full(self.n_line, -1, dtype=dt_int)
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
 
@@ -1193,4 +1189,20 @@ class BaseEnv(GridObjects, ABC):
             Number of time step to "fast forward"
 
         """
-        self.chronics_handler.fast_forward_chronics(nb_timestep)
+        # Go to the timestep requested minus one
+        nb_timestep = max(1, nb_timestep - 1)
+        self.chronics_handler.fast_forward(nb_timestep)
+        self.nb_time_step += nb_timestep
+
+        # Update the timing vectors
+        min_time_line_reco = np.zeros(self.n_line, dtype=dt_int)
+        min_time_topo = np.zeros(self.n_sub, dtype=dt_int)
+        ff_time_line_reco = self.time_remaining_before_line_reconnection - nb_timestep
+        ff_time_line_act = self.times_before_line_status_actionable - nb_timestep
+        ff_time_topo_act = self.times_before_topology_actionable - nb_timestep
+        self.time_remaining_before_line_reconnection = np.maximum(ff_time_line_reco, min_time_line_reco)
+        self.times_before_line_status_actionable = np.maximum(ff_time_line_act, min_time_line_reco)
+        self.times_before_topology_actionable = np.maximum(ff_time_topo_act, min_time_topo)
+
+        # Update to the fast forward state using a do nothing action
+        self.step(self.helper_action_player({}))
