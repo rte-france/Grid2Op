@@ -9,11 +9,9 @@
 import numpy as np
 import copy
 from abc import ABC, abstractmethod
-import collections
 
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import PlotError
-
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 
 class BasePlot(ABC):
@@ -124,7 +122,7 @@ class BasePlot(ABC):
         if grid_layout != None:
             use_grid_layout = grid_layout
         elif observation_space.grid_layout is not None:
-            use_grid_layout = collections.OrderedDict(sorted(observation_space.grid_layout.items()))
+            use_grid_layout = observation_space.grid_layout
         else:
             raise PlotError("No grid layout provided for plotting")
 
