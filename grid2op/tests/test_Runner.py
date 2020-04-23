@@ -18,8 +18,6 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make_new
 from grid2op.Runner import Runner
 
-DEBUG = True
-
 
 class TestRunner(HelperTests):
     def setUp(self):
