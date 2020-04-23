@@ -29,7 +29,8 @@ def start_subprocess_print(li, sleepbefore=2, cwd=None):
 def modify_and_push_docker(version,  # grid2op version
                            path,
                            templateDockerFile_to_use="templateDockerFile",
-                           docker_versions=[]):
+                           docker_versions=[],
+                           docker_tags=[]):
     # Dockerfile
     template_dockerfile = os.path.join(path, "utils", templateDockerFile_to_use)
     dockerfile = os.path.join(path, "Dockerfile")
@@ -43,7 +44,8 @@ def modify_and_push_docker(version,  # grid2op version
 
     # Create new docker containers
     for vers_ in docker_versions:
-        start_subprocess_print(["docker", "build", "-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
+        start_subprocess_print(
+            ["docker", "build"] + docker_tags + ["-t", "{}/grid2op:{}".format(dockeruser, vers_), "."], cwd=path)
         start_subprocess_print(["docker", "push", "{}/grid2op:{}".format(dockeruser, vers_)], cwd=path)
 
 
@@ -66,15 +68,19 @@ if __name__ == "__main__":
     try:
         maj_, min_, minmin_ = version.split(".")
     except:
-        raise RuntimeError("script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1). Please modify \"--version\" argument")
+        raise RuntimeError(
+            "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1). Please modify \"--version\" argument")
 
     if re.match('^[0-9]+\.[0-9]+\.[0-9]+$', version) is None:
-        raise RuntimeError("script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1) and not {}. Please modify \"--version\" argument".format(version))
+        raise RuntimeError(
+            "script \"update_version\": version should be formated as XX.YY.ZZ (eg 0.3.1) and not {}. Please modify \"--version\" argument".format(
+                version))
 
     # setup.py
     setup_path = os.path.join(path, "setup.py")
     if not os.path.exists(setup_path):
-        raise RuntimeError("script \"update_version\" cannot find the root path of Grid2op. Please provide a valid \"--path\" argument.")
+        raise RuntimeError(
+            "script \"update_version\" cannot find the root path of Grid2op. Please provide a valid \"--path\" argument.")
     with open(setup_path, "r") as f:
         new_setup = f.read()
     try:
@@ -97,7 +103,7 @@ if __name__ == "__main__":
     # Stage in git
     start_subprocess_print(["git", "add", setup_path])
 
-    #grid2op/__init__.py
+    # grid2op/__init__.py
     grid2op_init = os.path.join(path, "grid2op", "__init__.py")
     with open(grid2op_init, "r") as f:
         new_setup = f.read()
@@ -108,7 +114,7 @@ if __name__ == "__main__":
         f.write(new_setup)
     # Stage in git
     start_subprocess_print(["git", "add", grid2op_init])
-    
+
     # docs/conf.py
     docs_conf = os.path.join(path, "docs", "conf.py")
     with open(docs_conf, "r") as f:
@@ -137,7 +143,7 @@ if __name__ == "__main__":
 
     # Stage in git
     start_subprocess_print(["git", "add", dockerfile])
-        
+
     # Commit
     os.path.expanduser("~")
     start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])
@@ -153,11 +159,16 @@ if __name__ == "__main__":
     # that you can get with a python call
     modify_and_push_docker(version, path=path,
                            templateDockerFile_to_use="templateDockerFile_test",
-                           docker_versions=["test"])
+                           docker_versions=["test"],
+                           docker_tags=["--no-cache"])
     # update docker for "light"
     modify_and_push_docker(version, path=path,
                            templateDockerFile_to_use="templateDockerFile_light",
-                           docker_versions=[f"{version}-light"])
+                           docker_versions=[f"{version}-light"],
+                           docker_tags=["--no-cache"])
     # update version for competition and regular version
-    modify_and_push_docker(version, path=path, docker_versions=[version, "latest"])
+    modify_and_push_docker(version,
+                           path=path,
+                           docker_versions=[version, "latest"],
+                           docker_tags=["--no-cache"])
 
