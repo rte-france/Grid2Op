@@ -21,8 +21,13 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+  [0.8.0] - 2020-05-xx
+----------------------
+- [BREAKING] `grid2op.Runner` is now located into a submodule folder
+- [FIXED] `grid2op.PlotGrid` rounding error when casting from np.float32 to python.float
+- [FIXED] `grid2op.BaseEnv.fast_forward_chronics` Calls the correct methods and is now working properly
 
-[0.7.1] - 2020-04-xx
+[0.7.1] - 2020-04-22
 ----------------------
 - [FIXED] a bug in the chronics making it not start at the appropriate time step
 - [FIXED] a bug in "OneChangeThenNothing" agent that prevent it to be restarted properly.
