@@ -9,6 +9,7 @@
 import numpy as np
 import copy
 from abc import ABC, abstractmethod
+import collections
 
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import PlotError
@@ -38,11 +39,13 @@ class BasePlot(ABC):
                  observation_space,
                  width=800,
                  height=600,
+                 scale=2000.0,
                  grid_layout=None):
 
         self.observation_space = observation_space
         self.width = width
         self.height = height
+        self.scale = scale
 
         self._info_to_units = {
             "rho": "%",
@@ -121,14 +124,14 @@ class BasePlot(ABC):
         use_grid_layout = None
         if grid_layout != None:
             use_grid_layout = grid_layout
+        elif observation_space.grid_layout is not None:
+            use_grid_layout = collections.OrderedDict(sorted(observation_space.grid_layout.items()))
         else:
-            use_grid_layout = observation_space.grid_layout
-        if use_grid_layout is None:
             raise PlotError("No grid layout provided for plotting")
 
         # Compute loads and gens positions using a default implementation
-        observation_space.grid_layout = updated_grid_layout
-        return layout_obs_sub_load_and_gen(observation_space, use_initial=True)
+        observation_space.grid_layout = use_grid_layout
+        return layout_obs_sub_load_and_gen(observation_space, scale=self.scale, use_initial=True)
 
     @abstractmethod
     def draw_substation(self, figure, observation,

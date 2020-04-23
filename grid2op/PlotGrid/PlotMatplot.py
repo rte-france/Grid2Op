@@ -16,7 +16,6 @@ from grid2op.PlotGrid.BasePlot import BasePlot
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 
-
 class PlotMatplot(BasePlot):
     def __init__(self,
                  observation_space,
@@ -28,9 +27,8 @@ class PlotMatplot(BasePlot):
                  sub_radius = 15,
                  load_radius = 8,
                  gen_radius = 8):
-        self._scale = scale
         self.dpi = dpi
-        super().__init__(observation_space, width, height, grid_layout)
+        super().__init__(observation_space, width, height, scale, grid_layout)
 
         self._sub_radius = sub_radius
         self._sub_face_color = "w"
@@ -98,11 +96,6 @@ class PlotMatplot(BasePlot):
         buf = np.fromstring(figure.canvas.tostring_rgb(), dtype=np.uint8)
         buf = np.reshape(buf, (h, w, 3))
         return buf
-
-    def compute_grid_layout(self, obs_space, grid_layout = None):
-        # We overload to specify the scale
-        # Also we expect obs_space has a grid_layout
-        return layout_obs_sub_load_and_gen(obs_space, self._scale, True)
 
     def _draw_substation_txt(self, pos_x, pos_y, text):
         self.ax.text(pos_x, pos_y, text,
@@ -356,7 +349,8 @@ class PlotMatplot(BasePlot):
                        or_bus, pos_or_x, pos_or_y,
                        ex_bus, pos_ex_x, pos_ex_y):
         rho = observation.rho[line_id]
-        color_idx = int(rho * len(self._line_color_scheme[:-1]))
+        n_colors = len(self._line_color_scheme) - 1
+        color_idx = max(0, min(n_colors, int(rho * n_colors)))
         color = self._line_color_scheme[color_idx] if connected else "black"
         line_style = "-" if connected else "--"
         self._draw_powerline_line(pos_or_x, pos_or_y,

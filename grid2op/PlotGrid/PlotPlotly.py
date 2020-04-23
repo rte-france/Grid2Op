@@ -28,8 +28,7 @@ class PlotPlotly(BasePlot):
                  sub_radius = 30,
                  load_radius = 15,
                  gen_radius = 15):
-        self._scale = scale
-        super().__init__(observation_space, width, height, grid_layout)
+        super().__init__(observation_space, width, height, scale, grid_layout)
         self._responsive = responsive
         self._sub_radius = sub_radius
         self._sub_fill_color = "PaleTurquoise"
@@ -102,11 +101,6 @@ class PlotPlotly(BasePlot):
         except:
             warnings.warn("Plotly need additional dependencies for offline rendering")
             return np.full((self.height , self.width, 3), 255, dtype=np.unit8)
-
-    def compute_grid_layout(self, obs_space, grid_layout = None):
-        # We overload to specify the scale
-        # Also we expect obs_space has a grid_layout
-        return layout_obs_sub_load_and_gen(obs_space, self._scale, True)
 
     def _draw_substation_txt(self, name, pos_x, pos_y, text):
         return go.Scatter(x=[pos_x], y=[pos_y],
