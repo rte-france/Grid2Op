@@ -9,9 +9,8 @@ from grid2op.MakeEnv.MakeOld import make_old
 from grid2op.Exceptions import Grid2OpException, UnknownEnv
 import grid2op.MakeEnv.PathUtils
 from grid2op.MakeEnv.PathUtils import _create_path_folder
-
 from grid2op.Download.DownloadDataset import _aux_download
-import pdb
+
 
 DEV_DATA_FOLDER = pkg_resources.resource_filename("grid2op", "data")
 DEV_DATASET = os.path.join(DEV_DATA_FOLDER, "{}")
