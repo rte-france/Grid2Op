@@ -67,7 +67,7 @@ _LIST_REMOTE_INVALID_DATASETS_JSON_ERR = "Impossible to retrieve available datas
                                          "File could not be converted to json. " \
                                          "The error was \n\"{}\""
 def _list_available_remote_env_aux():
-    answer = _send_request_retry(_LIST_REMOTE_RUL)
+    answer = _send_request_retry(_LIST_REMOTE_URL)
     try:
         answer_json = answer.json()
     except Exception as e:
