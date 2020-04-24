@@ -22,7 +22,7 @@ from grid2op.Reward import L2RPNReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -624,13 +624,13 @@ class TestUpdateEnvironement(unittest.TestCase):
         # Create env and obs in left hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.lenv = make_new("rte_case5_example", test=True)
+            self.lenv = make("rte_case5_example", test=True)
             self.lobs = self.lenv.reset()
 
         # Create env and obs in right hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.renv = make_new("rte_case5_example", test=True)
+            self.renv = make("rte_case5_example", test=True)
             # Step once to make it different
             self.robs, _, _, _ = self.renv.step(self.renv.action_space())
 
@@ -724,7 +724,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create env
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_realistic", test=True)
+            self.env = make("rte_case14_realistic", test=True)
 
         # Set forecasts to actual values so that simulate runs on the same numbers as step
         self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)

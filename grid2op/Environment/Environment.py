@@ -452,12 +452,6 @@ class Environment(BaseEnv):
                       "Please install matplotlib or run pip install grid2op[optional]"
             raise Grid2OpException(err_msg) from None
 
-        if graph_layout is None:
-            # Grid layout must be ordered by keys in order to display correctly
-            # Apparently sub stations indexes to grid_layout key is in alphabetical order
-            graph_layout = collections.OrderedDict(sorted(self.helper_observation.grid_layout.items()))
-
-        self.helper_observation.grid_layout = graph_layout
         self.viewer = PlotMatplot(self.helper_observation)
         self.viewer_fig = None
         # Set renderer modes

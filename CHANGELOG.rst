@@ -23,6 +23,13 @@ Change Log
 
   [0.8.0] - 2020-05-xx
 ----------------------
+- [UPDATED] Notebooks are updated to reflect API improvements changes
+- [UPDATED] `grid2op.make` can now handle the download & caching of datasets
+- [UPDATED] Test/Sample datasets provide datetime related files .info
+- [UPDATED] Test/Sample datasets grid_layout.json
+- [UPDATED] `grid2op.PlotGrid` Color schemes and optional infos displaying
+- [UPDATED] `grid2op.Episode.EpisodeReplay` Improved gif output performance
+- [BREAKING] All previously deprecated features have been removed 
 - [BREAKING] `grid2op.Runner` is now located into a submodule folder
 - [FIXED] `grid2op.PlotGrid` rounding error when casting from np.float32 to python.float
 - [FIXED] `grid2op.BaseEnv.fast_forward_chronics` Calls the correct methods and is now working properly

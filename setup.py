@@ -70,7 +70,7 @@ pkgs = {
 # try to install numba, not compatible on every platform
 try:
     import numba
-except (ImportError, ModuleNotFoundError):
+except ImportError:
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "numba"])
     except subprocess.CalledProcessError:

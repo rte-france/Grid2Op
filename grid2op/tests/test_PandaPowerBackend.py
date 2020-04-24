@@ -22,7 +22,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.Environment import Environment
 from grid2op.Exceptions import *
 from grid2op.Rules import RulesChecker
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
@@ -898,7 +898,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_set_bus(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(test=True)
+            env = make(test=True)
         env.reset()
         # action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
@@ -909,7 +909,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_change_bus(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(test=True)
+            env = make(test=True)
         env.reset()
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -919,7 +919,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_change_bustwice(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(test=True)
+            env = make(test=True)
         env.reset()
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
@@ -930,7 +930,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_isolate_load(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = make_new(test=True)
+            env = make(test=True)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
         assert done, "an isolated laod has not lead to a game over"
@@ -938,7 +938,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case1 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
+            env_case1 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case1.reset()  # reset is good
         act = env_case1.action_space.disconnect_powerline(line_id=5)  # I disconnect a powerline
         obs, reward, done, info = env_case1.step(act)  # do the action, it's valid
@@ -951,7 +951,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus2(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
+            env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=2)  # reconnect powerline on bus 2 both ends
@@ -964,7 +964,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus3(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
+            env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=1, bus_ex=2)  # reconnect powerline on bus 2 both ends
@@ -975,7 +975,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus4(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
+            env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         obs, reward, done, info = env_case2.step(env_case2.action_space())  # do the action, it's valid
         act_case2 = env_case2.action_space.reconnect_powerline(line_id=5, bus_or=2, bus_ex=1)  # reconnect powerline on bus 2 both ends
@@ -986,7 +986,7 @@ class TestChangeBusAffectRightBus(unittest.TestCase):
     def test_reco_disco_bus5(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_case2 = make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
+            env_case2 = make("rte_case5_example", test=True, gamerules_class=AlwaysLegal)
         obs = env_case2.reset()  # reset is good
         act_case2 = env_case2.action_space({"set_bus": {"lines_or_id": [(5,2)], "lines_ex_id": [(5,2)]}})  # reconnect powerline on bus 2 both ends
         # this should not lead to a game over this time, the grid is connex!
@@ -998,16 +998,16 @@ class TestShuntAction(HelperTests):
     def test_shunt_ambiguous_id_incorrect(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", test=True, gamerules_class=AlwaysLegal, action_class=CompleteAction) as env_case2:
+            with make("rte_case5_example", test=True, gamerules_class=AlwaysLegal, action_class=CompleteAction) as env_case2:
                 with self.assertRaises(AmbiguousAction):
                     act = env_case2.action_space({"shunt": {"set_bus": [(0, 2)]}})
 
     def test_shunt_effect(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env_ref = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
+            env_ref = make("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
                                action_class=CompleteAction)
-            env_change_q = make_new("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
+            env_change_q = make("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
                                     action_class=CompleteAction)
 
         obs_ref, *_ = env_ref.step(env_ref.action_space())
@@ -1026,9 +1026,9 @@ class TestResetEqualsLoadGrid(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env1 = make_new("rte_case5_example", test=True, backend=PandaPowerBackend())
+            self.env1 = make("rte_case5_example", test=True, backend=PandaPowerBackend())
             self.backend1 = self.env1.backend
-            self.env2 = make_new("rte_case5_example", test=True, backend=PandaPowerBackend())
+            self.env2 = make("rte_case5_example", test=True, backend=PandaPowerBackend())
             self.backend2 = self.env2.backend
 
     def tearDown(self):

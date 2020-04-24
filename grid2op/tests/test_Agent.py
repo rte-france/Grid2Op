@@ -13,7 +13,7 @@ import pandapower as pp
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
 from grid2op.Parameters import Parameters
 
@@ -35,7 +35,7 @@ class TestAgent(HelperTests):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_redisp", test=True, param=param)
+            self.env = make("rte_case14_redisp", test=True, param=param)
 
     def tearDown(self):
         self.env.close()

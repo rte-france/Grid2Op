@@ -70,7 +70,7 @@ def _aux_download(url, dataset_name, path_data):
         str_ = "Downloading and extracting this data would create a folder \"{final_path}\" " \
               "but this folder already exists. Either you already downloaded the data, in this case " \
               "you can invoke the environment from a python script with:\n" \
-              "\t env = grid2op.make2(\"{final_path}\")\n" \
+              "\t env = grid2op.make(\"{final_path}\")\n" \
               "Alternatively you can also delete the folder \"{final_path}\" from your computer and run this command " \
               "again.\n" \
               "Finally, you can download the data in a different folder by specifying (in a command prompt):\n" \
@@ -102,8 +102,8 @@ def _aux_download(url, dataset_name, path_data):
     tar.extractall(path_data)
     tar.close()
     print("You may now use the environment \"{}\" with the available data by invoking:\n"
-          "\tenv = grid2op.make2(\"{}\")"
-          "".format(dataset_name, final_path))
+          "\tenv = grid2op.make(\"{}\")"
+          "".format(dataset_name, dataset_name))
 
 
 def main_download(dataset_name, path_data):

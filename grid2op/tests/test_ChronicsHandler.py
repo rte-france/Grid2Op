@@ -11,7 +11,7 @@ import warnings
 
 from grid2op.tests.helper_path_test import *
 
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 from grid2op.Exceptions import *
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
 from grid2op.Backend import PandaPowerBackend
@@ -537,7 +537,7 @@ class TestEnvChunk(HelperTests):
         self.max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_realistic", test=True)
+            self.env = make("rte_case14_realistic", test=True)
             self.env.chronics_handler.set_max_iter(self.max_iter)
 
     def tearDown(self):
@@ -569,7 +569,7 @@ class TestMissingData(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with self.assertRaises(EnvError):
-                with make_new("rte_case14_realistic", test=True, chronics_path="/answer/life/42"):
+                with make("rte_case14_realistic", test=True, chronics_path="/answer/life/42"):
                     pass
 
     def run_env_till_over(self, env, max_iter):
@@ -586,7 +586,7 @@ class TestMissingData(HelperTests):
         max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", test=True,
+            with make("rte_case5_example", test=True,
                           chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) \
                     as env:
                 # test a first time without chunks

@@ -1120,8 +1120,8 @@ class BaseEnv(GridObjects, ABC):
     def close(self):
         # todo there might be some side effect
         if self.viewer is not None:
-            self.viewer.close()
             self.viewer = None
+            self.viewer_fig = None
         self.backend.close()
 
     def attach_layout(self, grid_layout):

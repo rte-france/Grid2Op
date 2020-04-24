@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import io
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -15,7 +16,6 @@ from matplotlib.lines import Line2D
 from grid2op.PlotGrid.BasePlot import BasePlot
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
-
 
 class PlotMatplot(BasePlot):
     def __init__(self,
@@ -28,9 +28,8 @@ class PlotMatplot(BasePlot):
                  sub_radius = 15,
                  load_radius = 8,
                  gen_radius = 8):
-        self._scale = scale
         self.dpi = dpi
-        super().__init__(observation_space, width, height, grid_layout)
+        super().__init__(observation_space, width, height, scale, grid_layout)
 
         self._sub_radius = sub_radius
         self._sub_face_color = "w"
@@ -55,8 +54,8 @@ class PlotMatplot(BasePlot):
         #self._line_color_scheme = cm.get_cmap("inferno")(cx)
         self._line_color_scheme = [ "blue", "orange", "red"]
         self._line_color_width = 1
-        self._line_bus_radius = 5
-        self._line_bus_face_colors = ["black", "red", "magenta"]
+        self._line_bus_radius = 6
+        self._line_bus_face_colors = ["black", "red", "lime"]
         self._line_arrow_len = 10
         self._line_arrow_width = 10.0
 
@@ -93,16 +92,14 @@ class PlotMatplot(BasePlot):
         self.ax = figure.subplots()
 
     def convert_figure_to_numpy_HWC(self, figure):
-        figure.canvas.draw()
         w, h = figure.canvas.get_width_height()
-        buf = np.fromstring(figure.canvas.tostring_rgb(), dtype=np.uint8)
-        buf = np.reshape(buf, (h, w, 3))
-        return buf
-
-    def compute_grid_layout(self, obs_space, grid_layout = None):
-        # We overload to specify the scale
-        # Also we expect obs_space has a grid_layout
-        return layout_obs_sub_load_and_gen(obs_space, self._scale, True)
+        buf = io.BytesIO()
+        figure.canvas.print_raw(buf)
+        buf.seek(0)
+        img_arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+        buf.close()
+        img_arr = np.reshape(img_arr, (h, w, 4))
+        return img_arr
 
     def _draw_substation_txt(self, pos_x, pos_y, text):
         self.ax.text(pos_x, pos_y, text,
@@ -191,9 +188,10 @@ class PlotMatplot(BasePlot):
         self.ylim[1] = max(self.ylim[1], pos_y)
         self._draw_load_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_load_circle(pos_x, pos_y)
-        load_txt = load_name + ":\n"
-        load_txt += pltu.format_value_unit(load_value, load_unit)
-        self._draw_load_txt(pos_x, pos_y, sub_x, sub_y, load_txt)
+        if load_value is not None:
+            load_txt = load_name + ":\n"
+            load_txt += pltu.format_value_unit(load_value, load_unit)
+            self._draw_load_txt(pos_x, pos_y, sub_x, sub_y, load_txt)
         self._draw_load_name(pos_x, pos_y, str(load_id))
         load_dir_x, load_dir_y = pltu.norm_from_points(sub_x, sub_y, pos_x, pos_y)
         self._draw_load_bus(sub_x, sub_y, load_dir_x, load_dir_y, load_bus)
@@ -269,10 +267,11 @@ class PlotMatplot(BasePlot):
         self.ylim[1] = max(self.ylim[1], pos_y)
         self._draw_gen_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_gen_circle(pos_x, pos_y)
-        gen_txt = gen_name + ":\n"
-        gen_txt += pltu.format_value_unit(gen_value, gen_unit)
+        if gen_value is not None:
+            gen_txt = gen_name + ":\n"
+            gen_txt += pltu.format_value_unit(gen_value, gen_unit)
+            self._draw_gen_txt(pos_x, pos_y, sub_x, sub_y, gen_txt)
         self._draw_gen_name(pos_x, pos_y, str(gen_id))
-        self._draw_gen_txt(pos_x, pos_y, sub_x, sub_y, gen_txt)
         gen_dir_x, gen_dir_y = pltu.norm_from_points(sub_x, sub_y, pos_x, pos_y)
         self._draw_gen_bus(sub_x, sub_y, gen_dir_x, gen_dir_y, gen_bus)
 
@@ -356,16 +355,18 @@ class PlotMatplot(BasePlot):
                        or_bus, pos_or_x, pos_or_y,
                        ex_bus, pos_ex_x, pos_ex_y):
         rho = observation.rho[line_id]
-        color_idx = int(rho * len(self._line_color_scheme[:-1]))
-        color = self._line_color_scheme[color_idx] if connected else "black"
+        n_colors = len(self._line_color_scheme) - 1
+        color_idx = max(0, min(n_colors, int(rho * n_colors)))
+        color = self._line_color_scheme[color_idx] if connected and rho > 0.0 else "black"
         line_style = "-" if connected else "--"
         self._draw_powerline_line(pos_or_x, pos_or_y,
                                   pos_ex_x, pos_ex_y,
                                   color, line_style)
-        txt = pltu.format_value_unit(line_value, line_unit)
-        self._draw_powerline_txt(pos_or_x, pos_or_y,
-                                 pos_ex_x, pos_ex_y,
-                                 txt)
+        if line_value is not None:
+            txt = pltu.format_value_unit(line_value, line_unit)
+            self._draw_powerline_txt(pos_or_x, pos_or_y,
+                                     pos_ex_x, pos_ex_y,
+                                     txt)
 
         or_dir_x, or_dir_y = pltu.norm_from_points(pos_or_x, pos_or_y, pos_ex_x, pos_ex_y)
         self._draw_powerline_bus(pos_or_x, pos_or_y,

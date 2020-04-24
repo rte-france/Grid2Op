@@ -10,14 +10,14 @@ import pdb
 import warnings
 from grid2op.tests.helper_path_test import *
 from grid2op.Opponent import BaseOpponent
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 
 
 class TestLoadingOpp(unittest.TestCase):
     def test_creation_BaseOpponent(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", test=True) as env:
+            with make("rte_case5_example", test=True) as env:
                 my_opp = BaseOpponent(action_space=env.action_space)
 
 
