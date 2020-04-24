@@ -1,12 +1,12 @@
 __all__ = [
     "make",
+    "make_from_dataset_path",
     "list_available_remote_env",
     "list_available_local_env",
     "get_current_local_dir",
     "change_local_dir",
     # deprecated in v 0.8.0
-    "make",
-    "make_from_dataset_path",
+    "make_old",
     # super deprecated
     "CASE_14_FILE",
     "CHRONICS_FODLER",
