@@ -102,7 +102,7 @@ class EpisodeReplay(object):
             fig = plot_runner.plot_obs(observation=obs, figure=figure, redraw=True)
             if figure is None and display:
                 fig.show()
-            else:
+            elif display:
                 fig.canvas.draw()
 
             # Store figure for re-use
@@ -127,7 +127,7 @@ class EpisodeReplay(object):
             # Try to compress
             try:
                 from pygifsicle import optimize
-                optimize(gif_path)
+                optimize(gif_path, options=["-w", "--no-conserve-memory"])
             except:
                 warn_msg = "Failed to optimize .GIF size, but gif is still saved:\n" \
                            "Install dependencies to reduce size by ~3 folds\n" \
