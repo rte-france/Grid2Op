@@ -51,9 +51,9 @@ class BasePlot(ABC):
             "p": "MW",
             "v":"kV"
         }
-        self._lines_info = ["rho", "a", "p", "v"]
-        self._loads_info = ["p", "v"]
-        self._gens_info = ["p", "v"]
+        self._lines_info = ["rho", "a", "p", "v", None]
+        self._loads_info = ["p", "v", None]
+        self._gens_info = ["p", "v", None]
 
         self._grid_layout = self.compute_grid_layout(observation_space, grid_layout)
 
@@ -364,7 +364,9 @@ class BasePlot(ABC):
         for load_idx, load_name in enumerate(observation.name_load):
             if load_name not in self._grid_layout:
                 continue
-            load_value = np.round(float(load_values[load_idx]), 2)
+            load_value = None
+            if load_values is not None:
+                load_value = np.round(float(load_values[load_idx]), 2)
             load_x = self._grid_layout[load_name][0]
             load_y = self._grid_layout[load_name][1]
             load_subid = observation.load_to_subid[load_idx]
@@ -388,7 +390,9 @@ class BasePlot(ABC):
         for gen_idx, gen_name in enumerate(observation.name_gen):
             if gen_name not in self._grid_layout:
                 continue
-            gen_value = np.round(float(gen_values[gen_idx]), 2)
+            gen_value = None
+            if gen_values is not None:
+                gen_value = np.round(float(gen_values[gen_idx]), 2)
             gen_x = self._grid_layout[gen_name][0]
             gen_y = self._grid_layout[gen_name][1]
             gen_subid = observation.gen_to_subid[gen_idx]
@@ -419,7 +423,9 @@ class BasePlot(ABC):
             line_name = "line_{}_{}".format(line_or_sub, line_ex_sub)
             line_status = True
             line_status = observation.line_status[line_idx]
-            line_value = np.round(float(line_values[line_idx]), 2)
+            line_value = None
+            if line_values is not None:
+                line_value = np.round(float(line_values[line_idx]), 2)
             line_or_bus = topo[line_or_pos[line_idx]]
             line_or_bus = line_or_bus if line_or_bus > 0 else 0
             line_or_x = self._grid_layout[line_or_sub_name][0]
@@ -504,6 +510,7 @@ class BasePlot(ABC):
                       " Possible values are {}"
             raise PlotError(err_msg.format(gen_info, str(self.gens_info)))
 
+        line_values = None
         line_unit = self._info_to_units[line_info]
         if line_info == "rho":
             line_values = observation.rho
@@ -514,12 +521,14 @@ class BasePlot(ABC):
         if line_info == "v":
             line_values = observation.v_or
 
+        load_values = None
         load_unit = self._info_to_units[load_info]
         if load_info == "p":
             load_values = copy.copy(observation.load_p) * -1.0
         if load_info == "v":
             load_values = observation.load_v
 
+        gen_values = None
         gen_unit = self._info_to_units[gen_info]
         if gen_info == "p":
             gen_values = observation.prod_p
@@ -579,23 +588,14 @@ class BasePlot(ABC):
         res: ``object``
             The figure updated with the data from the new observation.
         """
-
-        # Cope with non provided values
-        if line_values is None:
-            line_values = list(range(self.observation_space.n_line))
-        if load_values is None:
-            load_values = list(range(self.observation_space.n_load))
-        if gen_values is None:
-            gen_values = list(range(self.observation_space.n_gen))
-
         # Check values are in the correct format
-        if len(line_values) != self.observation_space.n_line:
+        if line_values is not None and len(line_values) != self.observation_space.n_line:
             raise PlotError("Impossible to display these values on the powerlines: there are {} values"
                             "provided for {} powerlines in the grid".format(len(line_values), self.observation_space.n_line))
-        if len(load_values) != self.observation_space.n_load:
+        if load_values is not None and len(load_values) != self.observation_space.n_load:
             raise PlotError("Impossible to display these values on the loads: there are {} values"
                             "provided for {} loads in the grid".format(len(load_values), self.observation_space.n_load))
-        if len(gen_values) != self.observation_space.n_gen:
+        if gen_values is not None and len(gen_values) != self.observation_space.n_gen:
             raise PlotError("Impossible to display these values on the generators: there are {} values"
                             "provided for {} generators in the grid".format(len(gen_info), self.observation_space.n_gen))
 
