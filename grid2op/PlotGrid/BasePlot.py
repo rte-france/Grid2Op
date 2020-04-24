@@ -61,7 +61,7 @@ class BasePlot(ABC):
         # so we can use it as an observation for plotting just the layout or custom infos
         self.observation_space.topo_vect = np.ones(self.observation_space.dim_topo, dtype=np.int)
         self.observation_space.line_status = np.full(self.observation_space.n_line, True)
-        self.observation_space.rho = np.full(self.observation_space.n_line, 0.1)
+        self.observation_space.rho = np.full(self.observation_space.n_line, 0.0)
         self.observation_space.p_or = np.ones(self.observation_space.n_line)
 
     @abstractmethod

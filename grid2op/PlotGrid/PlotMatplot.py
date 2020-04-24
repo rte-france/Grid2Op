@@ -357,7 +357,7 @@ class PlotMatplot(BasePlot):
         rho = observation.rho[line_id]
         n_colors = len(self._line_color_scheme) - 1
         color_idx = max(0, min(n_colors, int(rho * n_colors)))
-        color = self._line_color_scheme[color_idx] if connected else "black"
+        color = self._line_color_scheme[color_idx] if connected and rho > 0.0 else "black"
         line_style = "-" if connected else "--"
         self._draw_powerline_line(pos_or_x, pos_or_y,
                                   pos_ex_x, pos_ex_y,
