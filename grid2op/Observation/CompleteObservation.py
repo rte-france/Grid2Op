@@ -154,9 +154,9 @@ class CompleteObservation(BaseObservation):
 
         # handles forecasts here
         self._forecasted_inj = env.chronics_handler.forecasts()
-        for i in range(len(self._forecasted_grid)):
+        for grid_act in self._forecasted_grid_act.values():
             # in the action, i assign the lat topology known, it's a choice here...
-            self._forecasted_grid[i]["setbus"] = self.topo_vect
+            grid_act["inj_action"]["setbus"] = self.topo_vect
 
         self._forecasted_grid = [None for _ in self._forecasted_inj]
         self.rho = env.backend.get_relative_flow().astype(dt_float)

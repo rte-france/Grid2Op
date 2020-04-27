@@ -139,7 +139,7 @@ class _ObsEnv(BaseEnv):
         self.backend = backend
         return res
 
-    def init(self, new_state_action, time_stamp, timestep_overflow):
+    def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect):
         """
         Initialize a "forecasted grid state" based on the new injections, possibly new topological modifications etc.
 
@@ -165,6 +165,7 @@ class _ObsEnv(BaseEnv):
         if self.is_init:
             return
 
+        self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
         self._action = BaseAction(gridobj=self)
         self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
@@ -177,7 +178,7 @@ class _ObsEnv(BaseEnv):
         self.is_init = True
         self.current_obs = None
         self.time_stamp = time_stamp
-        self.timestep_overflow = timestep_overflow
+        self.timestep_overflow[:] = timestep_overflow
 
     def simulate(self, action):
         """
