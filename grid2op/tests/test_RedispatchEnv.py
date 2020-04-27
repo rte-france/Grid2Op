@@ -535,6 +535,7 @@ class TestLoadingBackendPandaPower(HelperTests):
             assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
             assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
             assert len(info['exception']) == 0, "error at iteration {}".format(i)
+
             i += 1
             obs_init = obs
             if i >= max_iter:

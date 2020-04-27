@@ -266,17 +266,17 @@ class _ObsEnv(BaseEnv):
 
         # Make a copy of env state for simulation
         self._thermal_limit_a = env._thermal_limit_a.astype(dt_float)
-        self.gen_activeprod_t[:] = env.gen_activeprod_t[:].astype(dt_float)
-        self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp[:].astype(dt_float)
-        self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable[:].astype(dt_int)
-        self.times_before_topology_actionable[:]  = env.times_before_topology_actionable[:].astype(dt_int)
-        self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection[:].astype(dt_int)
-        self.time_next_maintenance[:] = env.time_next_maintenance[:].astype(dt_int)
-        self.duration_next_maintenance[:] = env.duration_next_maintenance[:].astype(dt_int)
-        self.target_dispatch[:] = env.target_dispatch[:].astype(dt_float)
-        self.actual_dispatch[:] = env.actual_dispatch[:].astype(dt_float)
-        self.last_bus_line_or = env.last_bus_line_or[:].astype(dt_int)
-        self.last_bus_line_ex = env.last_bus_line_ex[:].astype(dt_int)
+        self.gen_activeprod_t[:] = env.gen_activeprod_t
+        self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp
+        self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable
+        self.times_before_topology_actionable[:] = env.times_before_topology_actionable
+        # self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection
+        self.time_next_maintenance[:] = env.time_next_maintenance
+        self.duration_next_maintenance[:] = env.duration_next_maintenance
+        self.target_dispatch[:] = env.target_dispatch
+        self.actual_dispatch[:] = env.actual_dispatch
+        self.last_bus_line_or[:] = env.last_bus_line_or
+        self.last_bus_line_ex[:] = env.last_bus_line_ex
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!

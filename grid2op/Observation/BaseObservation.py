@@ -133,14 +133,6 @@ class BaseObservation(GridObjects):
         number of timesteps to wait before acting on this substation (see
         see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information).
 
-    time_before_line_reconnectable: :class:`numpy.ndarray`, dtype:int
-        For each powerline, it gives the number of timesteps before the powerline can be reconnected. This only
-        concerns the maintenance, outage (hazards) and disconnection due to cascading failures (including overflow). The
-        same convention as for :attr:`BaseObservation.time_before_cooldown_line` and
-        :attr:`BaseObservation.time_before_cooldown_sub` is adopted: 0 at position `i` means that the powerline can be
-        reconnected. It there is 2 (for example) it means that the powerline `i` is unavailable for 2 timesteps (we
-        will be able to re connect it not this time, not next time, but the following timestep)
-
     time_next_maintenance: :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the time of the next planned maintenance. For example if there is:
 
@@ -198,58 +190,63 @@ class BaseObservation(GridObjects):
         self._forecasted_grid = []
         self._forecasted_inj = []
 
-        self._obs_env = obs_env
-
-        self.timestep_overflow = None
+        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = None
+        self.line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         # topological vector
-        self.topo_vect = None
+        self.topo_vect = np.full(shape=self.dim_topo, dtype=dt_int, fill_value=0)
 
         # generators information
-        self.prod_p = None
-        self.prod_q = None
-        self.prod_v = None
+        self.prod_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.prod_q = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.prod_v = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
         # loads information
-        self.load_p = None
-        self.load_q = None
-        self.load_v = None
+        self.load_p = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
+        self.load_q = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
+        self.load_v = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
         # lines origin information
-        self.p_or = None
-        self.q_or = None
-        self.v_or = None
-        self.a_or = None
+        self.p_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.v_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.a_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
         # lines extremity information
-        self.p_ex = None
-        self.q_ex = None
-        self.v_ex = None
-        self.a_ex = None
+        self.p_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.v_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.a_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
         # lines relative flows
-        self.rho = None
+        self.rho = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = None
-        self.time_before_cooldown_sub = None
-        self.time_before_line_reconnectable = None
-        self.time_next_maintenance = None
-        self.duration_next_maintenance = None
+        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=dt_int, fill_value=-1)
+        self.time_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
 
-        # matrices
-        self.connectivity_matrix_ = None
-        self.bus_connectivity_matrix_ = None
-        self.vectorized = None
+        # calendar data
+        self.year = dt_int(1970)
+        self.month = dt_int(0)
+        self.day = dt_int(0)
+        self.hour_of_day = dt_int(0)
+        self.minute_of_hour = dt_int(0)
+        self.day_of_week = dt_int(0)
+
+        # forecasts
+        self._forecasted_inj = []
+        self._forecasted_grid = []
+        self._obs_env = obs_env
 
         # redispatching
-        self.target_dispatch = None
-        self.actual_dispatch = None
+        self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+
 
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
 
         self.attr_list_vect = None
-        self.reset()
 
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
@@ -398,9 +395,6 @@ class BaseObservation(GridObjects):
             # cooldown
             res["cooldown_time"] = self.time_before_cooldown_line[line_id]
 
-            # indisponibility
-            res["indisponibility"] = self.time_before_line_reconnectable[line_id]
-
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
@@ -427,41 +421,40 @@ class BaseObservation(GridObjects):
 
         """
         # vecorized _grid
-        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self.timestep_overflow[:] = 0
 
         # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = np.ones(shape=self.n_line, dtype=dt_bool)
+        self.line_status[:] = True
 
         # topological vector
-        self.topo_vect = np.full(shape=self.dim_topo, dtype=dt_int, fill_value=0)
+        self.topo_vect[:] = 0
 
         # generators information
-        self.prod_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.prod_q = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.prod_v = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.prod_p[:] = np.NaN
+        self.prod_q[:] = np.NaN
+        self.prod_v[:] = np.NaN
         # loads information
-        self.load_p = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
-        self.load_q = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
-        self.load_v = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
+        self.load_p[:] = np.NaN
+        self.load_q[:] = np.NaN
+        self.load_v[:] = np.NaN
         # lines origin information
-        self.p_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.q_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.v_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.a_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.p_or[:] = np.NaN
+        self.q_or[:] = np.NaN
+        self.v_or[:] = np.NaN
+        self.a_or[:] = np.NaN
         # lines extremity information
-        self.p_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.q_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.v_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.a_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.p_ex[:] = np.NaN
+        self.q_ex[:] = np.NaN
+        self.v_ex[:] = np.NaN
+        self.a_ex[:] = np.NaN
         # lines relative flows
-        self.rho = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.rho[:] = np.NaN
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
-        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=dt_int, fill_value=-1)
-        self.time_before_line_reconnectable = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
-        self.time_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
-        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.time_before_cooldown_line[:] = -1
+        self.time_before_cooldown_sub[:] = -1
+        self.time_next_maintenance[:] = -1
+        self.duration_next_maintenance[:] = -1
 
         # calendar data
         self.year = dt_int(1970)
@@ -476,8 +469,8 @@ class BaseObservation(GridObjects):
         self._forecasted_grid = []
 
         # redispatching
-        self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.target_dispatch[:] = np.NaN
+        self.actual_dispatch[:] = np.NaN
 
     def __compare_stats(self, other, name):
         if self.__dict__[name] is None and other.__dict__[name] is not None:
@@ -578,7 +571,6 @@ class BaseObservation(GridObjects):
                         "p_ex", "q_ex", "v_ex", "a_ex",
                         "time_before_cooldown_line",
                         "time_before_cooldown_sub",
-                        "time_before_line_reconnectable",
                         "time_next_maintenance",
                         "duration_next_maintenance",
                         "target_dispatch", "actual_dispatch"

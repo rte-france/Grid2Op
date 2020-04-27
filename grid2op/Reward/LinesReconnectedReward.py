@@ -33,12 +33,7 @@ class LinesReconnectedReward(BaseReward):
         # All lines ids
         lines_id = np.array(list(range(env.n_line)))
         # Only off cooldown lines
-        lines_off_cooldown = lines_id[
-            np.logical_and(
-                (obs.time_before_cooldown_line <= 0), # Can be acted on
-                (obs.time_before_line_reconnectable <= 0) # Can be reconnected
-            )
-        ]
+        lines_off_cooldown = lines_id[obs.time_before_cooldown_line <= 0 ]
 
         n_penalties = 0.0
         for line_id in lines_off_cooldown:

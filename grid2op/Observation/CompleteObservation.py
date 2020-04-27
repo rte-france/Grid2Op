@@ -70,16 +70,13 @@ class CompleteObservation(BaseObservation):
             [:attr:`grid2op.Space.GridObjects.n_line` elements]
         26. :attr:`BaseObservation.time_before_cooldown_sub` representation of the cooldown time on the substations
             [:attr:`grid2op.Space.GridObjects.n_sub` elements]
-        27. :attr:`BaseObservation.time_before_line_reconnectable` number of timestep to wait before a powerline
-            can be reconnected (it is disconnected due to maintenance, cascading failure or overflow)
-            [:attr:`grid2op.Space.GridObjects.n_line` elements]
-        28. :attr:`BaseObservation.time_next_maintenance` number of timestep before the next maintenance (-1 means
+        27. :attr:`BaseObservation.time_next_maintenance` number of timestep before the next maintenance (-1 means
             no maintenance are planned, 0 a maintenance is in operation) [:attr:`BaseObservation.n_line` elements]
-        29. :attr:`BaseObservation.duration_next_maintenance` duration of the next maintenance. If a maintenance
+        28. :attr:`BaseObservation.duration_next_maintenance` duration of the next maintenance. If a maintenance
             is taking place, this is the number of timestep before it ends. [:attr:`BaseObservation.n_line` elements]
-        30. :attr:`BaseObservation.target_dispatch` the target dispatch for each generator
+        29. :attr:`BaseObservation.target_dispatch` the target dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        31. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
+        30. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
 
     This behavior is specified in the :attr:`BaseObservation.attr_list_vect` vector.
@@ -112,7 +109,6 @@ class CompleteObservation(BaseObservation):
             "line_status", "timestep_overflow",
             "topo_vect",
             "time_before_cooldown_line", "time_before_cooldown_sub",
-            "time_before_line_reconnectable",
             "time_next_maintenance", "duration_next_maintenance",
             "target_dispatch", "actual_dispatch"
         ]
@@ -168,7 +164,6 @@ class CompleteObservation(BaseObservation):
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env.times_before_line_status_actionable
         self.time_before_cooldown_sub[:] = env.times_before_topology_actionable
-        self.time_before_line_reconnectable[:] = env.time_remaining_before_line_reconnection
         self.time_next_maintenance[:] = env.time_next_maintenance
         self.duration_next_maintenance[:] = env.duration_next_maintenance
 
@@ -234,7 +229,6 @@ class CompleteObservation(BaseObservation):
             self.dictionnarized["cooldown"] = {}
             self.dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
             self.dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
-            self.dictionnarized["time_before_line_reconnectable"] = self.time_before_line_reconnectable
             self.dictionnarized["redispatching"] = {}
             self.dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
             self.dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch

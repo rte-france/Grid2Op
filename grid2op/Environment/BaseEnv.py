@@ -158,7 +158,7 @@ class BaseEnv(GridObjects, ABC):
         # maintenance / hazards
         self.time_next_maintenance = None
         self.duration_next_maintenance = None
-        self.time_remaining_before_line_reconnection = None
+        # self.time_remaining_before_line_reconnection = None
 
         # store environment modifications
         self._injection = None
@@ -182,6 +182,8 @@ class BaseEnv(GridObjects, ABC):
         self.names_chronics_to_backend = None
         self.reward_helper = None
         self.reward_range = None, None
+        self.viewer = None
+        self.viewer_fig = None
 
         # other rewards
         self.other_rewards = {}
@@ -264,7 +266,7 @@ class BaseEnv(GridObjects, ABC):
 
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
+        # self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
         self.env_dc = self.parameters.ENV_DC
 
         # Remember lines last bus
@@ -275,6 +277,14 @@ class BaseEnv(GridObjects, ABC):
         self.time_next_maintenance = np.full(self.n_line, -1, dtype=dt_int)
         self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.times_before_line_status_actionable = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
+
+        # create the vector to the proper shape
+        self.target_dispatch = np.zeros(self.n_gen, dtype=dt_float)
+        self.actual_dispatch = np.zeros(self.n_gen, dtype=dt_float)
+        self.gen_uptime = np.zeros(self.n_gen, dtype=dt_int)
+        self.gen_downtime = np.zeros(self.n_gen, dtype=dt_int)
+        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
+        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
 
         self._reset_redispatching()
         self.__is_init = True
@@ -312,18 +322,12 @@ class BaseEnv(GridObjects, ABC):
 
     def _reset_redispatching(self):
         # redispatching
-        self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=0.)
-        self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=0.)
-        self.gen_uptime = np.full(shape=self.n_gen, dtype=dt_int, fill_value=0)
-        self.gen_downtime = np.full(shape=self.n_gen, dtype=dt_int, fill_value=0)
-        self.gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
-        self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
-        # if self.redispatching_unit_commitment_availble:
-        #     # pretend that all generator has been turned off for a suffcient number of timestep,
-        #     # otherwise when reconnecting them at first step it's complicated
-        #     self.gen_downtime = self.gen_min_downtime
-        # else:
-        #     self.gen_downtime = np.full(shape=self.n_gen, dtype=dt_int, fill_value=0)
+        self.target_dispatch[:] = 0.
+        self.actual_dispatch[:] = 0.
+        self.gen_uptime[:] = 0
+        self.gen_downtime[:] = 0
+        self.gen_activeprod_t[:] = 0.
+        self.gen_activeprod_t_redisp[:] = 0.
 
     @staticmethod
     def _get_poly(t, tmp_p, pmin, pmax):
@@ -637,6 +641,30 @@ class BaseEnv(GridObjects, ABC):
         return self.helper_action_env({"injection": self._injection, "maintenance": self._maintenance,
                                        "hazards": self._hazards}), prod_v
 
+    def _update_time_reconnection_hazards_maintenance(self):
+        """
+        This supposes that :attr:`Environment.time_remaining_before_line_reconnection` is already updated
+        with the cascading failure, soft overflow and hard overflow.
+        It also supposes that :func:`Environment._update_actions` has been called, so that the vectors
+        :attr:`Environment.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
+        :attr:`Environment._hazard_duration` are updated with the most recent values.
+        Finally the Environment supposes that this method is called before calling :func:`Environment.get_obs`
+        This function integrates the hazards and maintenance in the
+        :attr:`Environment.time_remaining_before_line_reconnection` vector.
+        For example, if a powerline `i` has no problem
+        of overflow, but is affected by a hazard, :attr:`Environment.time_remaining_before_line_reconnection`
+        should be updated with the duration of this hazard (stored in one of the three vector mentionned in the
+        above paragraph)
+        For this Environment, we suppose that the maximum of the 3 values are taken into account. The reality would
+        be more complicated.
+        Returns
+        -------
+        """
+        self.times_before_line_status_actionable[:] = np.maximum(self.times_before_line_status_actionable,
+                                                                  self.duration_next_maintenance)
+        self.times_before_line_status_actionable[:] = np.maximum(self.times_before_line_status_actionable,
+                                                                  self._hazard_duration)
+
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
@@ -909,7 +937,7 @@ class BaseEnv(GridObjects, ABC):
                 except_.append(e)
             action._redispatch[:] = init_disp
 
-            self.env_modification._redispatch = self.actual_dispatch
+            self.env_modification._redispatch[:] = self.actual_dispatch
             # action, for redispatching is composed of multiple actions, so basically i won't check
             # ramp_min and ramp_max
             self.env_modification._single_act = False
@@ -946,9 +974,9 @@ class BaseEnv(GridObjects, ABC):
                 # overflow_lines = np.full(self.n_line, fill_value=False, dtype=dt_bool)
 
                 # one timestep passed, i can maybe reconnect some lines
-                self.time_remaining_before_line_reconnection[self.time_remaining_before_line_reconnection > 0] -= 1
+                self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
                 # update the vector for lines that have been disconnected
-                self.time_remaining_before_line_reconnection[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                self.times_before_line_status_actionable[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
                 self._update_time_reconnection_hazards_maintenance()
 
                 # for the powerline that are on overflow, increase this time step
@@ -960,8 +988,12 @@ class BaseEnv(GridObjects, ABC):
                 # build the topological action "cooldown"
                 aff_lines, aff_subs = action.get_topological_impact()
                 if self.max_timestep_line_status_deactivated > 0:
-                    self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
-                    self.times_before_line_status_actionable[aff_lines] = self.max_timestep_line_status_deactivated
+                    # i update the cooldown only when this does not impact the line disconnected for the
+                    # opponent or by maitnenance for example
+                    cond = aff_lines  # powerlines i modified
+                    # powerlines that are not affected by any other "forced disconnection"
+                    cond &= self.times_before_line_status_actionable < self.max_timestep_line_status_deactivated
+                    self.times_before_line_status_actionable[cond] = self.max_timestep_line_status_deactivated
                 if self.max_timestep_topology_deactivated > 0:
                     self.times_before_topology_actionable[self.times_before_topology_actionable > 0] -= 1
                     self.times_before_topology_actionable[aff_subs] = self.max_timestep_topology_deactivated
@@ -971,12 +1003,11 @@ class BaseEnv(GridObjects, ABC):
                 self._time_extract_obs += time.time() - beg_
 
                 # extract production active value at this time step (should be independant of action class)
-                self.gen_activeprod_t, *_ = self.backend.generators_info()
+                self.gen_activeprod_t[:], *_ = self.backend.generators_info()
                 # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
                 # of the system. So basically, when it's too high (higher than the ramp) it can
                 # mess up the rest of the environment
-                self.gen_activeprod_t_redisp = new_p + self.actual_dispatch
-                # self.gen_activeprod_t_redisp = self.gen_activeprod_t
+                self.gen_activeprod_t_redisp[:] = new_p + self.actual_dispatch
 
                 has_error = False
             except Grid2OpException as e:
@@ -1018,36 +1049,6 @@ class BaseEnv(GridObjects, ABC):
         no_more_data = self.chronics_handler.done()
         return has_error or is_done or no_more_data
 
-    def _update_time_reconnection_hazards_maintenance(self):
-        """
-        This supposes that :attr:`Environment.time_remaining_before_line_reconnection` is already updated
-        with the cascading failure, soft overflow and hard overflow.
-
-        It also supposes that :func:`Environment._update_actions` has been called, so that the vectors
-        :attr:`Environment.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
-        :attr:`Environment._hazard_duration` are updated with the most recent values.
-
-        Finally the Environment supposes that this method is called before calling :func:`Environment.get_obs`
-
-        This function integrates the hazards and maintenance in the
-        :attr:`Environment.time_remaining_before_line_reconnection` vector.
-        For example, if a powerline `i` has no problem
-        of overflow, but is affected by a hazard, :attr:`Environment.time_remaining_before_line_reconnection`
-        should be updated with the duration of this hazard (stored in one of the three vector mentionned in the
-        above paragraph)
-
-        For this Environment, we suppose that the maximum of the 3 values are taken into account. The reality would
-        be more complicated.
-
-        Returns
-        -------
-
-        """
-        self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
-                                                                  self.duration_next_maintenance)
-        self.time_remaining_before_line_reconnection = np.maximum(self.time_remaining_before_line_reconnection,
-                                                                  self._hazard_duration)
-
     def _reset_vectors_and_timings(self):
         """
         Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
@@ -1057,21 +1058,20 @@ class BaseEnv(GridObjects, ABC):
 
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED,
-                                                    dtype=dt_int)
+        self.timestep_overflow[:] = 0
+        self.nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED
+
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.env_dc = self.parameters.ENV_DC
 
-        self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self.times_before_line_status_actionable[:] = 0
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
 
-        self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
+        self.times_before_topology_actionable[:] = 0
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
-        self.time_remaining_before_line_reconnection = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        # self.time_remaining_before_line_reconnection[:] = 0
 
         # reset timings
         self._time_apply_act = 0
@@ -1084,9 +1084,8 @@ class BaseEnv(GridObjects, ABC):
         self.done = False
 
     def _reset_maintenance(self):
-        self.time_next_maintenance = np.full(self.n_line, -1, dtype=dt_int)
-        self.duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
+        self.time_next_maintenance[:] = -1
+        self.duration_next_maintenance[:] = 0
 
     def __enter__(self):
         """
@@ -1140,8 +1139,8 @@ class BaseEnv(GridObjects, ABC):
         if isinstance(grid_layout, dict):
             pass
         elif isinstance(grid_layout, list):
-            grid_layout = {k:v for k,v in zip(self.name_sub, grid_layout)}
-        else :
+            grid_layout = {k: v for k, v in zip(self.name_sub, grid_layout)}
+        else:
             raise EnvError("Attempt to set a layout from something different than a dictionnary or a list. "
                            "This is for now not supported.")
 
@@ -1197,12 +1196,12 @@ class BaseEnv(GridObjects, ABC):
         # Update the timing vectors
         min_time_line_reco = np.zeros(self.n_line, dtype=dt_int)
         min_time_topo = np.zeros(self.n_sub, dtype=dt_int)
-        ff_time_line_reco = self.time_remaining_before_line_reconnection - nb_timestep
+        # ff_time_line_reco = self.time_remaining_before_line_reconnection - nb_timestep
         ff_time_line_act = self.times_before_line_status_actionable - nb_timestep
         ff_time_topo_act = self.times_before_topology_actionable - nb_timestep
-        self.time_remaining_before_line_reconnection = np.maximum(ff_time_line_reco, min_time_line_reco)
-        self.times_before_line_status_actionable = np.maximum(ff_time_line_act, min_time_line_reco)
-        self.times_before_topology_actionable = np.maximum(ff_time_topo_act, min_time_topo)
+        # self.time_remaining_before_line_reconnection[:] = np.maximum(ff_time_line_reco, min_time_line_reco)
+        self.times_before_line_status_actionable[:] = np.maximum(ff_time_line_act, min_time_line_reco)
+        self.times_before_topology_actionable[:] = np.maximum(ff_time_topo_act, min_time_topo)
 
         # Update to the fast forward state using a do nothing action
         self.step(self.helper_action_player({}))
