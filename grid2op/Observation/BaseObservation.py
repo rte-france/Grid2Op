@@ -195,7 +195,7 @@ class BaseObservation(GridObjects):
         self.seed = None
 
         # handles the forecasts here
-        self._forecasted_grid = []
+        self._forecasted_grid_act = {}
         self._forecasted_inj = []
 
         self._obs_env = obs_env
@@ -473,7 +473,7 @@ class BaseObservation(GridObjects):
 
         # forecasts
         self._forecasted_inj = []
-        self._forecasted_grid = []
+        self._forecasted_grid_act = {}
 
         # redispatching
         self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
@@ -696,16 +696,21 @@ class BaseObservation(GridObjects):
         if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
 
-        timestamp, inj_forecasted = self._forecasted_inj[time_step]
-        inj_action = self.action_helper(inj_forecasted)
-        # initialize the "simulation environment" with the proper injections
-        self._forecasted_grid[time_step] = self._obs_env.copy()
-        # TODO avoid un necessary copy above. Have one backend for all "simulate" and save instead the
-        # TODO obs_env._action that set the backend to the sate we want to simulate
-        self._forecasted_grid[time_step].init(inj_action, time_stamp=timestamp,
-                                              timestep_overflow=self.timestep_overflow)
+        if time_step not in self._forecasted_grid_act:
+            timestamp, inj_forecasted = self._forecasted_inj[time_step]
+            self._forecasted_grid_act[time_step] = {
+                "timestamp": timestamp,
+                "inj_action": self.action_helper(inj_forecasted)
+            }
 
-        return self._forecasted_grid[time_step].simulate(action)
+        timestamp = self._forecasted_grid_act[time_step]["timestamp"]
+        inj_action = self._forecasted_grid_act[time_step]["inj_action"]
+        self._obs_env.topo_vect = copy.copy(self.topo_vect)
+        self._obs_env.init(inj_action, time_stamp=timestamp,
+                           timestep_overflow=self.timestep_overflow)
+
+        sim_obs = self._obs_env.simulate(action)
+        return sim_obs
 
     def copy(self):
         """
