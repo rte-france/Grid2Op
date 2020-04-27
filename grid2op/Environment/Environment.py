@@ -346,10 +346,11 @@ class Environment(BaseEnv):
             The voltages that has been specified in the chronics
 
         """
-        self.env_modification += self.voltage_controler.fix_voltage(self.current_obs,
-                                                                    agent_action,
-                                                                    self.env_modification,
-                                                                    prod_v_chronics)
+        volt_control_act = self.voltage_controler.fix_voltage(self.current_obs,
+                                                              agent_action,
+                                                              self.env_modification,
+                                                              prod_v_chronics)
+        self.env_modification += volt_control_act
 
     def set_chunk_size(self, new_chunk_size):
         """

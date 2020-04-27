@@ -17,3 +17,4 @@ class CompleteAction(BaseAction):
     """
     def __init__(self, gridobj):
         BaseAction.__init__(self, gridobj)
+        # self._update_value_set()

@@ -351,7 +351,7 @@ class GridObjects:
 
     """
     attr_list_vect = None
-    attr_list_vect_set = {}
+    attr_list_set = {}
 
     def __init__(self):
         # name of the objects
@@ -426,7 +426,7 @@ class GridObjects:
         Update the class attribute `attr_list_vect_set` from  `attr_list_vect`
         """
 
-        cls.attr_list_vect_set = set(cls.attr_list_vect)
+        cls.attr_list_set = set(cls.attr_list_vect)
 
     def _raise_error_attr_list_none(self):
         """

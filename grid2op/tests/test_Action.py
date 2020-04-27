@@ -9,6 +9,8 @@
 import copy
 import json
 import re
+import warnings
+import pdb
 from abc import ABC, abstractmethod
 
 from grid2op.tests.helper_path_test import *
@@ -876,6 +878,252 @@ class TestDontAct(TestActionBase, unittest.TestCase):
     def _action_setup(self):
         return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
 
+
+class TestIADD:
+    """Test that act += act2 equals what we want and don't use data it is not allowed to"""
+
+    def _skipMissingKey(self, key, act):
+        if key not in act.attr_list_set:
+            unittest.TestCase.skipTest(self, "Skipped: Missing authorized_key {key}")
+
+    def setUp(self):
+        """
+        The case file is a representation of the case14 as found in the ieee14 powergrid.
+        :return:
+        """
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+        self.game_rules = RulesChecker()
+        self.gridobj = GridObjects()
+        self.gridobj.init_grid_vect(name_prod=["gen_{}".format(i) for i in range(5)],
+                                    name_load=["load_{}".format(i) for i in range(11)],
+                                    name_line=["line_{}".format(i) for i in range(20)],
+                                    name_sub=["sub_{}".format(i) for i in range(14)],
+                                    sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int),
+                                    load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
+                                    gen_to_subid=np.array([0, 1, 2, 5, 7]),
+                                    line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
+                                                                       5,  6,  6,  8,  8, 9, 11, 12]),
+                                    line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
+                                                                       12,  7,  8,  9, 13, 10, 12, 13]),
+                                    load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
+                                    gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
+                                    line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                                                        3, 0, 0, 1]),
+                                    line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
+                                                                 0, 0]),
+                                    load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
+                                    gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
+                                    line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27,
+                                                                     31, 32, 37, 38, 40, 46, 50]),
+                                    line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
+                                                                     33, 36, 42, 55, 43, 49, 53]))
+        # pdb.set_trace()
+        self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
+                    'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
+                                  'load_7', 'load_8', 'load_9', 'load_10'],
+                    'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
+                                  'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14',
+                                  'line_15', 'line_16', 'line_17', 'line_18', 'line_19'],
+                    'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
+                                 'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
+                    'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+                    'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
+                    'gen_to_subid': [0, 1, 2, 5, 7],
+                    'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+                    'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+                    'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
+                    'gen_to_sub_pos': [2, 5, 3, 5, 1],
+                    'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+                    'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+                    'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
+                    'gen_pos_topo_vect': [2, 8, 12, 29, 34],
+                    'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
+                    'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
+                    'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
+                    'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
+                    'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
+                    "grid_layout": None,
+                    "shunt_to_subid": None,
+                    "name_shunt": None
+                    }
+
+        # self.size_act = 229
+
+        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.action_space_1 = self.get_action_space_1()
+        self.action_space_2 = self.get_action_space_2()
+
+    def aux_get_act(self, helper_action):
+        template_act = helper_action()
+        dict_act = {}
+        tmp_inj = {}
+        np.random.seed(42)
+        if "load_p" in template_act.attr_list_set:
+            tmp_inj["load_p"] = np.random.randn(helper_action.n_load).astype(dt_float)
+        if "load_q" in template_act.attr_list_set:
+            tmp_inj["load_q"] = np.random.randn(helper_action.n_load).astype(dt_float)
+        if "prod_p" in template_act.attr_list_set:
+            tmp_inj["prod_p"] = np.random.randn(helper_action.n_gen).astype(dt_float)
+        if "prod_v" in template_act.attr_list_set:
+            tmp_inj["prod_v"] = np.random.randn(helper_action.n_gen).astype(dt_float)
+        if dict_act:
+            dict_act["injection"] = tmp_inj
+
+        if "_hazards" in template_act.attr_list_set:
+            dict_act["hazards"] = np.random.choice([True, False], helper_action.n_line).astype(dt_bool)
+        if "_maintenance" in template_act.attr_list_set:
+            dict_act["maintenance"] = np.random.choice([True, False], helper_action.n_line).astype(dt_bool)
+        if "_redispatch" in template_act.attr_list_set:
+            dict_act["redispatch"] = np.random.randn(helper_action.n_gen).astype(dt_float)
+            dict_act["redispatch"] -= np.mean(dict_act["redispatch"])
+        if "_set_line_status" in template_act.attr_list_set:
+            # i dont test the line reconnection...
+            dict_act["set_line_status"] = np.random.choice([-1, 0], helper_action.n_line).astype(dt_int)
+        if "_switch_line_status" in template_act.attr_list_set:
+            # i dont test the line reconnection...
+            dict_act["change_line_status"] = np.random.choice([True, False], helper_action.n_line).astype(dt_bool)
+        if "_set_topo_vect" in template_act.attr_list_set:
+            # i dont test the line reconnection...
+            dict_act["set_bus"] = np.random.choice([1,2], helper_action.dim_topo).astype(dt_int)
+        if "_change_bus_vect" in template_act.attr_list_set:
+            # i dont test the line reconnection...
+            dict_act["change_bus"] = np.random.choice([True, False], helper_action.dim_topo).astype(dt_bool)
+
+        return helper_action(dict_act)
+
+    def test_iadd_modify(self):
+
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            if act2.attr_list_set - act1.attr_list_set:
+                # it should raise a warning if i attempt to set an attribute it's not supposed to
+                with self.assertWarns(UserWarning):
+                    act1 += act2
+            else:
+                # i can add it i check it's properly added, without warnings
+                act1 += act2
+                # i now test all attributes have been modified for attributes in both
+                for attr_nm in act1.attr_list_set & act2.attr_list_set:
+                    assert np.any(act1.__dict__[attr_nm] != act1_init.__dict__[attr_nm]), \
+                           "error, attr {} has not been updated".format(attr_nm)
+
+                # for all in act1 not in act2, nothing should have changed
+                for attr_nm in act1.attr_list_set - act2.attr_list_set:
+                    if attr_nm == "_set_line_status" or attr_nm == "_set_topo_vect":
+                        # these vector can be changed if act2 allows for "change_line_status" or "change_bus"
+                        # TODO improve these tests
+                        continue
+                    if attr_nm == "_switch_line_status" or attr_nm == "_change_bus_vect":
+                        # these vector can be changed if act2 allows for "set_line_status" or "set_bus"
+                        # TODO improve these tests
+                        continue
+                    assert np.all(act1.__dict__[attr_nm] == act1_init.__dict__[attr_nm]), \
+                           "error, attr {} has been updated".format(attr_nm)
+
+    def test_iadd_change_set_status(self):
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+        self._skipMissingKey("_switch_line_status", act1)
+        self._skipMissingKey("_set_line_status", act2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            act1 += act2
+        assert np.sum(act1._switch_line_status[act2._set_line_status != 0]) == 0
+
+    def test_iadd_set_change_status(self):
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+        self._skipMissingKey("_set_line_status", act1)
+        self._skipMissingKey("_switch_line_status", act2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            act1 += act2
+        # if act1 set a line but act2 change it, then it's equivalent to act1 set to the other value
+        indx_change = (act1._set_line_status != 0) & (act2._switch_line_status)
+        assert np.all(act1._set_line_status[indx_change] != act1_init._set_line_status[indx_change])
+        # if act1 does not set, but act2 change, then act1 is not affected (for set)
+        indx_same = (act1._set_line_status == 0 ) &  (act2._switch_line_status)
+        assert np.all(act1._set_line_status[indx_same] == act1_init._set_line_status[indx_same])
+
+    def test_iadd_change_set_bus(self):
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+        self._skipMissingKey("_change_bus_vect", act1)
+        self._skipMissingKey("_set_topo_vect", act2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            act1 += act2
+        assert np.sum(act1._change_bus_vect[act2._set_topo_vect != 0]) == 0
+
+    def test_iadd_set_change_bus(self):
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+        self._skipMissingKey("_set_topo_vect", act1)
+        self._skipMissingKey("_change_bus_vect", act2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            act1 += act2
+        # if act1 set a line but act2 change it, then it's equivalent to act1 set to the other value
+        indx_change = (act1._set_topo_vect != 0) & (act2._change_bus_vect)
+        assert np.all(act1._set_topo_vect[indx_change] != act1_init._set_topo_vect[indx_change])
+        # if act1 does not set, but act2 change, then act1 is not affected (for set)
+        indx_same = (act1._set_topo_vect == 0) & (act2._change_bus_vect)
+        assert np.all(act1._set_topo_vect[indx_same] == act1_init._set_topo_vect[indx_same])
+
+
+# TODO a generic method to build them all maybe ?
+class TestDontAct_PowerlineChangeAndDispatchAction(TestIADD, unittest.TestCase):
+    """
+    Test suite using the DontAct class
+    """
+    def get_action_space_1(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
+
+    def get_action_space_2(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+                           actionClass=PowerlineChangeAndDispatchAction)
+
+
+class TestPowerlineChangeAndDispatchAction_PowerlineChangeAndDispatchAction(TestIADD, unittest.TestCase):
+    """
+    Test suite using the DontAct class
+    """
+    def get_action_space_1(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+                           actionClass=PowerlineChangeAndDispatchAction)
+
+    def get_action_space_2(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+                           actionClass=PowerlineChangeAndDispatchAction)
+
+
+class TestTopologyAndDispatchAction_PowerlineChangeAndDispatchAction(TestIADD, unittest.TestCase):
+    """
+    Test suite using the DontAct class
+    """
+    def get_action_space_1(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+                           actionClass=TopologyAndDispatchAction)
+
+    def get_action_space_2(self):
+        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+                           actionClass=PowerlineChangeAndDispatchAction)
 
 if __name__ == "__main__":
     unittest.main()

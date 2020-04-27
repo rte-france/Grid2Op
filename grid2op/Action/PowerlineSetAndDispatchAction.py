@@ -29,7 +29,7 @@ class PowerlineSetAndDispatchAction(PlayableAction):
         "_redispatch"
     ]
 
-    attr_list_vect_set = set(attr_list_vect)
+    attr_list_set = set(attr_list_vect)
 
     def __init__(self, gridobj):
         super().__init__(gridobj)

@@ -18,6 +18,8 @@ class DontAct(PlayableAction):
     modify it will fail.
 
     """
+    authorized_keys = set()
+    attr_list_vect = []
 
     def __init__(self, gridobj):
         """
@@ -26,9 +28,8 @@ class DontAct(PlayableAction):
 
         """
         PlayableAction.__init__(self, gridobj)
-
-        self.authorized_keys = set()
-        self.attr_list_vect = []
+        if DontAct.attr_list_set:
+            self._update_value_set()
 
     def update(self, dict_):
         """

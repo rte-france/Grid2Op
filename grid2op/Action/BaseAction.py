@@ -195,7 +195,7 @@ class BaseAction(GridObjects):
                       "_set_line_status", "_switch_line_status",
                       "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
                       ]
-    attr_list_vect_set = set(attr_list_vect)
+    attr_list_set = set(attr_list_vect)
     shunt_added = False
 
     def __init__(self, gridobj):
@@ -251,8 +251,7 @@ class BaseAction(GridObjects):
             BaseAction.shunt_added = True
             BaseAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
             BaseAction.authorized_keys.add("shunt")
-
-        self._update_value_set()
+            BaseAction._update_value_set()
 
         self._single_act = True
 
@@ -582,6 +581,14 @@ class BaseAction(GridObjects):
             self.shunt_q[:] = np.NaN
             self.shunt_bus[:] = 0
 
+    def _assign_iadd_or_warn(self, attr_name, new_value):
+        if attr_name not in self.attr_list_set:
+            if np.any(new_value != self.__dict__[attr_name]):
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format(attr_name))
+        else:
+            self.__dict__[attr_name][:] = new_value
+
     def __iadd__(self, other):
         """
         Add an action to this one.
@@ -612,13 +619,13 @@ class BaseAction(GridObjects):
                     self._dict_inj[el][ok_ind] = val[ok_ind]
         # warning if the action cannot be added
         for el in other._dict_inj:
-            if not el in self.attr_list_vect_set:
+            if not el in self.attr_list_set:
                 warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
                               "".format(el))
         # redispatching
         redispatching = other._redispatch
         if np.any(redispatching != 0.):
-            if "_redispatch" not in self.attr_list_vect_set:
+            if "_redispatch" not in self.attr_list_set:
                 warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
                               "".format("_redispatch"))
             else:
@@ -640,8 +647,8 @@ class BaseAction(GridObjects):
         me_change[other_change] = False
         # i change, but the other set, it's erased
         me_change[other_set != 0] = False
-        self._set_line_status = me_set
-        self._switch_line_status = me_change
+        self._assign_iadd_or_warn("_set_line_status", me_set)
+        self._assign_iadd_or_warn("_switch_line_status", me_change)
 
         # set and change bus
         other_set = other._set_topo_vect
@@ -661,22 +668,28 @@ class BaseAction(GridObjects):
         me_change[other_change] = False
         # i change, but the other set, it's erased
         me_change[other_set != 0] = False
-        self._set_topo_vect = me_set
-        self._change_bus_vect = me_change
+        self._assign_iadd_or_warn("_set_topo_vect", me_set)
+        self._assign_iadd_or_warn("_change_bus_vect", me_change)
 
         # shunts
         if self.shunts_data_available:
             val = other.shunt_p
             ok_ind = np.isfinite(val)
-            self.shunt_p[ok_ind] = val[ok_ind]
+            shunt_p = 1.0 * self.shunt_p
+            shunt_p[ok_ind] = val[ok_ind]
+            self._assign_iadd_or_warn("shunt_p", shunt_p)
 
             val = other.shunt_q
             ok_ind = np.isfinite(val)
-            self.shunt_q[ok_ind] = val[ok_ind]
+            shunt_q = 1.0 * self.shunt_q
+            shunt_q[ok_ind] = val[ok_ind]
+            self._assign_iadd_or_warn("shunt_q", shunt_q)
 
             val = other.shunt_bus
             ok_ind = val != 0
-            self.shunt_bus[ok_ind] = val[ok_ind]
+            shunt_bus = 1 * self.shunt_bus
+            shunt_bus[ok_ind] = val[ok_ind]
+            self._assign_iadd_or_warn("shunt_bus", shunt_bus)
 
         return self
 
@@ -783,7 +796,7 @@ class BaseAction(GridObjects):
             if dict_["injection"] is not None:
                 tmp_d = dict_["injection"]
                 for k in tmp_d:
-                    if k in self.attr_list_vect_set:
+                    if k in self.attr_list_set:
                         self._dict_inj[k] = np.array(tmp_d[k]).astype(dt_float)
                     else:
                         warn = "The key {} is not recognized by BaseAction when trying to modify the injections.".format(k)

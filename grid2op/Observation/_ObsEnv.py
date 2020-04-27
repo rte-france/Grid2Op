@@ -14,7 +14,7 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
-from grid2op.Action import BaseAction
+from grid2op.Action import CompleteAction, BaseAction
 from grid2op.Exceptions import Grid2OpException
 
 
@@ -167,7 +167,7 @@ class _ObsEnv(BaseEnv):
 
         self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
-        self._action = BaseAction(gridobj=self)
+        self._action = CompleteAction(gridobj=self)
         self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,

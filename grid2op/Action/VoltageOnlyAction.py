@@ -24,7 +24,8 @@ class VoltageOnlyAction(BaseAction):
 
     authorized_keys = {"injection"}
     attr_list_vect = ["prod_v"]
-    attr_list_vect_set = set(attr_list_vect)
+    attr_list_set = set(attr_list_vect)
+    shunt_added = False
 
     def __init__(self, gridobj):
         """
@@ -34,10 +35,10 @@ class VoltageOnlyAction(BaseAction):
         """
         BaseAction.__init__(self, gridobj)
 
-        if self.shunts_data_available:
+        if VoltageOnlyAction.shunt_added is False and self.shunts_data_available:
             VoltageOnlyAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
             VoltageOnlyAction.authorized_keys.add("shunt")
-        BaseAction._update_value_set()
+        self._update_value_set()
 
     def _check_dict(self):
         """
