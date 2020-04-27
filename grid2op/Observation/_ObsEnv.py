@@ -271,7 +271,6 @@ class _ObsEnv(BaseEnv):
         self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp
         self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable
         self.times_before_topology_actionable[:] = env.times_before_topology_actionable
-        # self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection
         self.time_next_maintenance[:] = env.time_next_maintenance
         self.duration_next_maintenance[:] = env.duration_next_maintenance
         self.target_dispatch[:] = env.target_dispatch
