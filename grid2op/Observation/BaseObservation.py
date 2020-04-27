@@ -705,9 +705,9 @@ class BaseObservation(GridObjects):
 
         timestamp = self._forecasted_grid_act[time_step]["timestamp"]
         inj_action = self._forecasted_grid_act[time_step]["inj_action"]
-        self._obs_env.topo_vect = copy.copy(self.topo_vect)
         self._obs_env.init(inj_action, time_stamp=timestamp,
-                           timestep_overflow=self.timestep_overflow)
+                           timestep_overflow=self.timestep_overflow,
+                           topo_vect=self.topo_vect)
 
         sim_obs = self._obs_env.simulate(action)
         return sim_obs
