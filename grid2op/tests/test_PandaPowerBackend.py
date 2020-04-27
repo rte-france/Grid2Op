@@ -1130,7 +1130,6 @@ class TestResetEqualsLoadGrid(unittest.TestCase):
         assert np.all(obs1.timestep_overflow == obs2.timestep_overflow)
         assert np.all(obs1.time_before_cooldown_line == obs2.time_before_cooldown_line)
         assert np.all(obs1.time_before_cooldown_sub == obs2.time_before_cooldown_sub)
-        assert np.all(obs1.time_before_line_reconnectable == obs2.time_before_line_reconnectable)
         assert np.all(obs1.time_next_maintenance == obs2.time_next_maintenance)
         assert np.all(obs1.duration_next_maintenance == obs2.duration_next_maintenance)
         assert np.all(obs1.target_dispatch == obs2.target_dispatch)

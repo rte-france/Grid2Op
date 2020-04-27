@@ -118,9 +118,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = 2
 
         self.helper_action.legal_action = RulesChecker(legalActClass=LookParam).legal_action
-        self.env.times_before_line_status_actionable[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
 
         self.env.parameters.MAX_SUB_CHANGED = 2
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
@@ -179,40 +176,34 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = 2
 
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=dt_int)
-
         self.env.parameters.MAX_SUB_CHANGED = 1
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
-        _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+        act = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                 "set_bus": {"substations_id": [(id_2, arr2)]},
                                 "change_line_status": arr_line1,
                                 "set_line_status": arr_line2},
                                env=self.env,
                                check_legal=True)
-
+        _ = self.env.step(act)
 
         try:
             self.env.parameters.MAX_SUB_CHANGED = 2
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-            self.env.time_remaining_before_line_reconnection[id_line] = 1
+            self.env.times_before_line_status_actionable[id_line] = 1
             _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                             "set_bus": {"substations_id": [(id_2, arr2)]},
-                                                             "change_line_status": arr_line1,
-                                                             "set_line_status": arr_line2},
-                                                            env=self.env,
-                                                            check_legal=True)
+                                    "set_bus": {"substations_id": [(id_2, arr2)]},
+                                    "change_line_status": arr_line1,
+                                    "set_line_status": arr_line2},
+                                   env=self.env,
+                                   check_legal=True)
             raise RuntimeError("This should have thrown an IllegalException")
         except IllegalAction:
             pass
 
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
+        self.env.times_before_line_status_actionable[:] = 0
         self.env.parameters.MAX_SUB_CHANGED = 2
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-        self.env.time_remaining_before_line_reconnection[1] = 1
+        self.env.times_before_line_status_actionable[1] = 1
         _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
                                                          "set_bus": {"substations_id": [(id_2, arr2)]},
                                                          "change_line_status": arr_line1,
@@ -236,9 +227,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
 
         # i act a first time on powerline 15
         act = self.helper_action({"set_line_status": arr_line2},
@@ -270,9 +258,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
 
         # i act a first time on powerline 15
         act = self.helper_action({"set_line_status": arr_line2},
@@ -302,18 +287,17 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env.max_timestep_line_status_deactivated = 2
+        self.env.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF = 2
+
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
 
         # i act a first time on powerline 15
         act = self.helper_action({"set_line_status": arr_line2},
-                               env=self.env,
-                               check_legal=True)
-        self.env.step(act)
+                                 env=self.env,
+                                 check_legal=True)
+        _ = self.env.step(act)
         # i compute another time step without doing anything
-        self.env.step(self.helper_action({}))
+        _ = self.env.step(self.helper_action({}))
 
         # i try to react on it, it should throw an IllegalAction exception because we ask the environment to wait
         # at least 2 time steps
@@ -342,9 +326,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
 
         # i act a first time on powerline 15
         act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
@@ -376,9 +357,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
 
         # i act a first time on powerline 15
         act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},
@@ -409,9 +387,6 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         self.env.max_timestep_topology_deactivated = 2
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.time_remaining_before_line_reconnection[:] = np.full(shape=(self.env.backend.n_line,),
-                                                              fill_value=0,
-                                                              dtype=np.int)
 
         # i act a first time on powerline 15
         act = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}},

@@ -23,16 +23,21 @@ Change Log
 
   [0.8.0] - 2020-05-xx
 ----------------------
+- [BREAKING] All previously deprecated features have been removed
+- [BREAKING] `grid2op.Runner` is now located into a submodule folder
+- [BREAKING]  merge of `env.time_before_line_reconnectable` into `env.times_before_line_status_actionable` which
+  referred to
+  the same idea: impossibility to reconnect a powerilne. **Side effect** observation have a different size now (
+  merging of `obs.time_before_line_reconnectable` into `obs.time_before_cooldown_line`). Size is now reduce of
+  the number of powerlines of the grid.
+- [FIXED] `grid2op.PlotGrid` rounding error when casting from np.float32 to python.float
+- [FIXED] `grid2op.BaseEnv.fast_forward_chronics` Calls the correct methods and is now working properly
 - [UPDATED] Notebooks are updated to reflect API improvements changes
 - [UPDATED] `grid2op.make` can now handle the download & caching of datasets
 - [UPDATED] Test/Sample datasets provide datetime related files .info
 - [UPDATED] Test/Sample datasets grid_layout.json
 - [UPDATED] `grid2op.PlotGrid` Color schemes and optional infos displaying
 - [UPDATED] `grid2op.Episode.EpisodeReplay` Improved gif output performance
-- [BREAKING] All previously deprecated features have been removed 
-- [BREAKING] `grid2op.Runner` is now located into a submodule folder
-- [FIXED] `grid2op.PlotGrid` rounding error when casting from np.float32 to python.float
-- [FIXED] `grid2op.BaseEnv.fast_forward_chronics` Calls the correct methods and is now working properly
 
 [0.7.1] - 2020-04-22
 ----------------------
@@ -43,10 +48,13 @@ Change Log
   floating value are always `np.float32` and integers are always `np.int32`
 - [ADDED] a method to extract only some part of a chronic.
 - [ADDED] a method to "fast forward" the chronics
-- [ADDED] class `grid2op.Reward.CombinedScaledReward`: A reward combiner with linear interpolation to stay within a given range.
-- [ADDED] `grid2op.Reward.BaseReward.set_range`: All rewards have a default setter for their `reward_min` and `reward_max` attributes.
+- [ADDED] class `grid2op.Reward.CombinedScaledReward`: A reward combiner with linear interpolation to stay within a
+  given range.
+- [ADDED] `grid2op.Reward.BaseReward.set_range`: All rewards have a default setter for their `reward_min` and
+  `reward_max` attributes.
 - [ADDED] `grid2op.PlotGrid`: Revamped plotting capabilities while keeping the interface we know from `grid2op.Plot`
-- [ADDED] `grid2op.replay` binary: This binary is installed with grid2op and allows to replay a runner log with visualization and gif export
+- [ADDED] `grid2op.replay` binary: This binary is installed with grid2op and allows to replay a runner log with
+  visualization and gif export
 - [ADDED] a `LicensesInformation` file that put a link for all dependencies of the project.
 - [ADDED] make multiple dockers, one for testing, one for distribution with all extra, and one "light"
 - [UPDATED] test data and datasets are no longer included in the package distribution
@@ -76,11 +84,13 @@ Change Log
   operations only
 - [ADDED] `grid2op.Action.PowerlineSetAndDispatchAction` A subset of actions to limit the agents scope to 'set line'
   and 'dispatch' operations only
-- [ADDED] `grid2op.Action.PowerlineSetAction` A subset of actions to limit the agents scope to 'set line' operations only
+- [ADDED] `grid2op.Action.PowerlineSetAction` A subset of actions to limit the agents scope to 'set line' operations
+  only
 - [ADDED] `grid2op.Action.TopologySetAction` A subset of actions to limit the agents scope to 'set' operations only
 - [ADDED] `grid2op.Action.TopologySetAndDispatchAction` A subset of actions to limit the agents scope to 'set' and
   'redisp' operations only
-- [ADDED] `grid2op.Action.TopologyChangeAction` A subset of actions to limit the agents scope to 'change' operations only
+- [ADDED] `grid2op.Action.TopologyChangeAction` A subset of actions to limit the agents scope to 'change' operations
+  only
 - [ADDED] `grid2op.Action.TopologyChangeAndDispatchAction` A subset of actions to limit the agents scope to 'change'
   and 'redisp' operations only
 - [ADDED] `grid2op.Action.DispatchAction` A subset of actions to limit the agents scope to 'redisp' operations only
@@ -116,7 +126,8 @@ Change Log
 - [ADDED] CombinedReward. A reward combiner to compute a weighted sum of other rewards.
 - [ADDED] CloseToOverflowReward. A reward that penalize agents when lines have almost reached max capacity.
 - [ADDED] DistanceReward. A reward based on how far way from the original topology the current grid is.
-- [ADDED] BridgeReward. A reward based on graph connectivity, see implementation in grid2op.Reward.BridgeReward for details
+- [ADDED] BridgeReward. A reward based on graph connectivity, see implementation in grid2op.Reward.BridgeReward for
+  details
 
 [0.6.0] - 2020-04-03
 ---------------------

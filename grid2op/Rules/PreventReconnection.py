@@ -28,12 +28,9 @@ class PreventReconnection(BaseRules):
 
         """
         aff_lines, aff_subs = action.get_topological_impact()
-        if np.any(env.time_remaining_before_line_reconnection[aff_lines] > 0):
-            # i tried to act on a powerline removed because an overflow
-            return False
-
         if np.any(env.times_before_line_status_actionable[aff_lines] > 0):
             # i tried to act on a powerline too shortly after a previous action
+            # or shut down due to an overflow or opponent or hazards or maintenance
             return False
 
         if np.any(env.times_before_topology_actionable[aff_subs] > 0):

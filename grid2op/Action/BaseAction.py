@@ -213,34 +213,36 @@ class BaseAction(GridObjects):
                                 "set_bus", "change_bus", "redispatch"}
 
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = None
-        self._switch_line_status = None
+        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
+        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
         # injection change
         self._dict_inj = {}
 
-        # redispatching
-        self._redispatch = None
-
         # topology changed
-        self._set_topo_vect = None
-        self._change_bus_vect = None
-
-        self._vectorized = None
-
-        self._subs_impacted = None
-        self._lines_impacted = None
+        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=dt_int)
+        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=dt_bool)
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = None
-        self._maintenance = None
+        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
-        # shunt data (not available in all backends)
-        self.shunt_p = None
-        self.shunt_q = None
-        self.shunt_bus = None
+        # redispatching vector
+        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
-        self.reset()
+        self._vectorized = None
+        self._lines_impacted = None
+        self._subs_impacted = None
+
+        # shunts
+        if self.shunts_data_available:
+            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
+            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
+            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=dt_int)
+        else:
+            self.shunt_p = None
+            self.shunt_q = None
+            self.shunt_bus = None
 
         # decomposition of the BaseAction into homogeneous sub-spaces
         self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
@@ -553,22 +555,22 @@ class BaseAction(GridObjects):
 
         """
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
-        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._set_line_status[:] = 0
+        self._switch_line_status[:] = False
 
         # injection change
         self._dict_inj = {}
 
         # topology changed
-        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=dt_int)
-        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=dt_bool)
+        self._set_topo_vect[:] = 0
+        self._change_bus_vect[:] = False
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
-        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._hazards[:] = False
+        self._maintenance[:] = False
 
         # redispatching vector
-        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
+        self._redispatch[:] = 0.
 
         self._vectorized = None
         self._lines_impacted = None
@@ -576,9 +578,9 @@ class BaseAction(GridObjects):
 
         # shunts
         if self.shunts_data_available:
-            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
-            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
-            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=dt_int)
+            self.shunt_p[:] = np.NaN
+            self.shunt_q[:] = np.NaN
+            self.shunt_bus[:] = 0
 
     def __iadd__(self, other):
         """

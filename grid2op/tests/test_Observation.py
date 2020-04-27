@@ -139,16 +139,16 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                 dt_float, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
                                 dt_float, dt_bool, dt_int, dt_int,
-                                dt_int, dt_int, dt_int,
+                                dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float],
                                dtype=object)
 
         self.dtypes = np.array([np.dtype(el) for el in self.dtypes])
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20, 20,
+                                            20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
                                  5, 5])
-        self.size_obs = 434
+        self.size_obs = 414
 
     def test_sum_shape_equal_size(self):
         obs = self.env.helper_observation(self.env)
@@ -520,14 +520,14 @@ class TestObservationHazard(unittest.TestCase):
     def test_1_generating_obs_withhazard(self):
         # test that helper_obs is abl to generate a valid observation
         obs = self.env.get_obs()
-        assert np.all(obs.time_before_line_reconnectable == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         action = self.env.helper_action_player({})
         _ = self.env.step(action)
         obs = self.env.get_obs()
-        assert np.all(obs.time_before_line_reconnectable == [0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         _ = self.env.step(action)
         obs = self.env.get_obs()
-        assert np.all(obs.time_before_line_reconnectable == [0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
 
 class TestObservationMaintenance(unittest.TestCase):
@@ -709,7 +709,7 @@ class TestUpdateEnvironement(unittest.TestCase):
         # Check left cooldowns are updated to the rhs CDs
         assert np.all(self.lobs.time_before_cooldown_line == self.robs.time_before_cooldown_line)
         assert np.all(self.lobs.time_before_cooldown_sub == self.robs.time_before_cooldown_sub)
-        assert np.all(self.lobs.time_before_line_reconnectable == self.robs.time_before_line_reconnectable)
+        assert np.all(self.lobs.time_before_cooldown_line == self.robs.time_before_cooldown_line)
         assert np.all(self.lobs.time_next_maintenance == self.robs.time_next_maintenance)
         assert np.all(self.lobs.duration_next_maintenance == self.robs.duration_next_maintenance)
 
