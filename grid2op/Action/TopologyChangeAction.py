@@ -18,15 +18,16 @@ class TopologyChangeAction(PlayableAction):
     Nothing else is supported and any attempt to use something else 
     will have no impact.
     """
+    authorized_keys = {
+        "change_line_status",
+        "change_bus"
+    }
+
+    attr_list_vect = [
+        "_change_bus_vect",
+        "_switch_line_status"
+    ]
+    attr_list_vect_set = set(attr_list_vect)
+
     def __init__(self, gridobj):
         super().__init__(gridobj)
-
-        self.authorized_keys = {
-            "change_line_status",
-            "change_bus"
-        }
-
-        self.attr_list_vect = [
-            "_change_bus_vect",
-            "_switch_line_status"
-        ]

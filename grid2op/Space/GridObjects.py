@@ -250,7 +250,7 @@ class GridObjects:
     name_sub: :class:`numpy.ndarray`, dtype:str
         ordered names of the substation in the grid
 
-    attr_list_vect: ``list``
+    attr_list_vect: ``list``, static
         List of string. It represents the attributes that will be stored to/from vector when the BaseObservation is converted
         to/from it. This parameter is also used to compute automatically :func:`GridObjects.dtype` and
         :func:`GridObjects.shape` as well as :func:`GridObjects.size`. If this class is derived, then it's really
@@ -350,6 +350,9 @@ class GridObjects:
         for each shunt (if supported), gives the id the substation to which it is connected
 
     """
+    attr_list_vect = None
+    attr_list_vect_set = {}
+
     def __init__(self):
         # name of the objects
         self.name_load = None
@@ -384,7 +387,6 @@ class GridObjects:
         self.line_ex_pos_topo_vect = None
 
         # list of attribute to convert it from/to a vector
-        self.attr_list_vect = None
         self._vectorized = None
 
         # for redispatching / unit commitment
@@ -417,6 +419,14 @@ class GridObjects:
         self.n_shunt = None
         self.name_shunt = None
         self.shunt_to_subid = None
+
+    @classmethod
+    def _update_value_set(cls):
+        """
+        Update the class attribute `attr_list_vect_set` from  `attr_list_vect`
+        """
+
+        cls.attr_list_vect_set = set(cls.attr_list_vect)
 
     def _raise_error_attr_list_none(self):
         """

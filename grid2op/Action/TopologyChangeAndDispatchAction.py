@@ -6,10 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from grid2op.Action import BaseAction
+from grid2op.Action.PlayableAction import PlayableAction
 
 
-class TopologyChangeAndDispatchAction(BaseAction):
+class TopologyChangeAndDispatchAction(PlayableAction):
     """
     This type of :class:`PlayableAction` implements the modifications 
     of the grid with "change" topological actions and allows for redispatching.
@@ -19,17 +19,19 @@ class TopologyChangeAndDispatchAction(BaseAction):
     Nothing else is supported and any attempt to use something else 
     will have no impact.
     """
+    authorized_keys = {
+        "change_line_status",
+        "change_bus",
+        "redispatch"
+    }
+
+    attr_list_vect = [
+        "_change_bus_vect",
+        "_switch_line_status",
+        "_redispatch",
+    ]
+
+    attr_list_vect_set = set(attr_list_vect)
+
     def __init__(self, gridobj):
         super().__init__(gridobj)
-
-        self.authorized_keys = {
-            "change_line_status",
-            "change_bus",
-            "redispatch"
-        }
-        
-        self.attr_list_vect = [
-            "_change_bus_vect",
-            "_switch_line_status",
-            "_redispatch",
-        ]

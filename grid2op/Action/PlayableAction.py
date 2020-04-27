@@ -19,24 +19,25 @@ class PlayableAction(BaseAction):
     From this class inherit all actions that the player will be allowed to do. This includes for example
     :class:`TopologyAndDispatchAction` or :class:`TopologyAction`
     """
+    authorized_keys = {
+        "set_line_status",
+        "change_line_status",
+        "set_bus",
+        "change_bus",
+        "redispatch"
+    }
+
+    attr_list_vect = [
+        "_set_line_status",
+        "_switch_line_status",
+        "_set_topo_vect",
+        "_change_bus_vect",
+        "_redispatch"
+    ]
+    attr_list_vect_set = set(attr_list_vect)
+
     def __init__(self, gridobj):
         super().__init__(gridobj)
-
-        self.authorized_keys = {
-            "set_line_status",
-            "change_line_status",
-            "set_bus",
-            "change_bus",
-            "redispatch"
-        }
-
-        self.attr_list_vect = [
-            "_set_line_status",
-            "_switch_line_status",
-            "_set_topo_vect",
-            "_change_bus_vect",
-            "_redispatch"
-        ]
 
         self.authorized_keys_to_digest = {
             "set_line_status": self._digest_set_status,
@@ -45,6 +46,7 @@ class PlayableAction(BaseAction):
             "change_bus": self._digest_change_bus,
             "redispatch": self._digest_redispatching
         }
+
 
     def __call__(self):
         """

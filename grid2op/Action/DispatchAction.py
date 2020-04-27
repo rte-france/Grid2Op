@@ -16,13 +16,15 @@ class DispatchAction(PlayableAction):
     Nothing else is supported and any attempt to use something else will have not impact.
 
     """
+
+    authorized_keys = {
+        "redispatch"
+    }
+
+    attr_list_vect = [
+        "_redispatch"
+    ]
+    attr_list_vect_set = set(attr_list_vect)
+
     def __init__(self, gridobj):
         super().__init__(gridobj)
-
-        self.authorized_keys = {
-            "redispatch"
-        }
-
-        self.attr_list_vect = [
-            "_redispatch"
-        ]
