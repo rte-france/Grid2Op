@@ -49,9 +49,9 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
-        self.init_grid(gridobj)
-        self.actionClass = self.subtype
-        self._template_act = self._template_obj
+
+        self.actionClass = actionClass.init_grid(gridobj)
+        self._template_act = self.actionClass()
 
     @staticmethod
     def from_dict(dict_):
@@ -87,7 +87,7 @@ class SerializableActionSpace(SerializableSpace):
             A random action sampled from the :attr:`ActionSpace.actionClass`
 
         """
-        res = self.actionClass()  # only the GridObjects part of "self" is actually used
+        res = self.actionClass(gridobj=self)  # only the GridObjects part of "self" is actually used
         res.sample()
         return res
 
@@ -107,7 +107,7 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         if previous_action is None:
-            res = self.actionClass()
+            res = self.actionClass(gridobj=self)
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "

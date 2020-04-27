@@ -54,7 +54,8 @@ class SerializableSpace(GridObjects, RandomObject):
         spaces they are made of.
 
     """
-    def __init__(self, gridobj,
+    def __init__(self,
+                 gridobj,
                  subtype=object):
         """
 
@@ -72,7 +73,9 @@ class SerializableSpace(GridObjects, RandomObject):
 
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+        self.init_grid(gridobj)
 
+        self._init_subtype = subtype  # do not use, use to save restore only !!!
         self.subtype = subtype.init_grid(gridobj)
         self._template_obj = self.subtype()
         self.n = self._template_obj.size()
@@ -118,10 +121,9 @@ class SerializableSpace(GridObjects, RandomObject):
 
         gridobj = GridObjects.from_dict(dict_)
 
-        actionClass_str = extract_from_dict(dict_, "subtype", str)
+        actionClass_str = extract_from_dict(dict_, "_init_subtype", str)
         actionClass_li = actionClass_str.split('.')
 
-        # pdb.set_trace()
         if actionClass_li[-1] in globals():
             subtype = globals()[actionClass_li[-1]]
         else:
@@ -176,8 +178,7 @@ class SerializableSpace(GridObjects, RandomObject):
         """
         res = super().to_dict()
 
-        save_to_dict(res, self, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
-
+        save_to_dict(res, self, "_init_subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
         return res
 
     def size(self):

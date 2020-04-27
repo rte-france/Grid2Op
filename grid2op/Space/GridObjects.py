@@ -1100,60 +1100,63 @@ class GridObjects:
             The representation of the powergrid
         """
         # nothing to do now that the value are class member
-        cls.name_gen = gridobj.name_gen
-        cls.name_load = gridobj.name_load
-        cls.name_line = gridobj.name_line
-        cls.name_sub = gridobj.name_sub
+        class res(cls):
+            pass
 
-        cls.n_gen = len(gridobj.name_gen)
-        cls.n_load = len(gridobj.name_load)
-        cls.n_line = len(gridobj.name_line)
-        cls.n_sub = len(gridobj.name_sub)
+        res.name_gen = gridobj.name_gen
+        res.name_load = gridobj.name_load
+        res.name_line = gridobj.name_line
+        res.name_sub = gridobj.name_sub
 
-        cls.sub_info = gridobj.sub_info
-        cls.dim_topo = np.sum(gridobj.sub_info)
+        res.n_gen = len(gridobj.name_gen)
+        res.n_load = len(gridobj.name_load)
+        res.n_line = len(gridobj.name_line)
+        res.n_sub = len(gridobj.name_sub)
+
+        res.sub_info = gridobj.sub_info
+        res.dim_topo = np.sum(gridobj.sub_info)
 
         # to which substation is connected each element
-        cls.load_to_subid = gridobj.load_to_subid
-        cls.gen_to_subid = gridobj.gen_to_subid
-        cls.line_or_to_subid = gridobj.line_or_to_subid
-        cls.line_ex_to_subid = gridobj.line_ex_to_subid
+        res.load_to_subid = gridobj.load_to_subid
+        res.gen_to_subid = gridobj.gen_to_subid
+        res.line_or_to_subid = gridobj.line_or_to_subid
+        res.line_ex_to_subid = gridobj.line_ex_to_subid
 
         # which index has this element in the substation vector
-        cls.load_to_sub_pos = gridobj.load_to_sub_pos
-        cls.gen_to_sub_pos = gridobj.gen_to_sub_pos
-        cls.line_or_to_sub_pos = gridobj.line_or_to_sub_pos
-        cls.line_ex_to_sub_pos = gridobj.line_ex_to_sub_pos
+        res.load_to_sub_pos = gridobj.load_to_sub_pos
+        res.gen_to_sub_pos = gridobj.gen_to_sub_pos
+        res.line_or_to_sub_pos = gridobj.line_or_to_sub_pos
+        res.line_ex_to_sub_pos = gridobj.line_ex_to_sub_pos
 
         # which index has this element in the topology vector
-        cls.load_pos_topo_vect = gridobj.load_pos_topo_vect
-        cls.gen_pos_topo_vect = gridobj.gen_pos_topo_vect
-        cls.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
-        cls.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
+        res.load_pos_topo_vect = gridobj.load_pos_topo_vect
+        res.gen_pos_topo_vect = gridobj.gen_pos_topo_vect
+        res.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
+        res.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
 
         # for redispatching / unit commitment (not available for all environment)
-        cls.gen_type = gridobj.gen_type
-        cls.gen_pmin = gridobj.gen_pmin
-        cls.gen_pmax = gridobj.gen_pmax
-        cls.gen_redispatchable = gridobj.gen_redispatchable
-        cls.gen_max_ramp_up = gridobj.gen_max_ramp_up
-        cls.gen_max_ramp_down = gridobj.gen_max_ramp_down
-        cls.gen_min_uptime = gridobj.gen_min_uptime
-        cls.gen_min_downtime = gridobj.gen_min_downtime
-        cls.gen_cost_per_MW = gridobj.gen_cost_per_MW
-        cls.gen_startup_cost = gridobj.gen_startup_cost
-        cls.gen_shutdown_cost = gridobj.gen_shutdown_cost
-        cls.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
+        res.gen_type = gridobj.gen_type
+        res.gen_pmin = gridobj.gen_pmin
+        res.gen_pmax = gridobj.gen_pmax
+        res.gen_redispatchable = gridobj.gen_redispatchable
+        res.gen_max_ramp_up = gridobj.gen_max_ramp_up
+        res.gen_max_ramp_down = gridobj.gen_max_ramp_down
+        res.gen_min_uptime = gridobj.gen_min_uptime
+        res.gen_min_downtime = gridobj.gen_min_downtime
+        res.gen_cost_per_MW = gridobj.gen_cost_per_MW
+        res.gen_startup_cost = gridobj.gen_startup_cost
+        res.gen_shutdown_cost = gridobj.gen_shutdown_cost
+        res.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
 
         # grid layout (not available for all environment
-        cls.grid_layout = gridobj.grid_layout
+        res.grid_layout = gridobj.grid_layout
 
         # shuunts data (not available for all backend)
-        cls.shunts_data_available = gridobj.shunts_data_available
-        cls.n_shunt = gridobj.n_shunt
-        cls.name_shunt = gridobj.name_shunt
-        cls.shunt_to_subid = gridobj.shunt_to_subid
-        return cls
+        res.shunts_data_available = gridobj.shunts_data_available
+        res.n_shunt = gridobj.n_shunt
+        res.name_shunt = gridobj.name_shunt
+        res.shunt_to_subid = gridobj.shunt_to_subid
+        return res
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
@@ -1371,9 +1374,8 @@ class GridObjects:
 
         return res
 
-    # @staticmethod
-    @classmethod
-    def from_dict(cls, dict_):
+    @staticmethod
+    def from_dict(dict_):
         """
         Create a valid GridObject (or one of its derived class if this method is overide) from a dictionnary (usually
         read from a json file)
@@ -1390,7 +1392,7 @@ class GridObjects:
 
         """
 
-        # cls = GridObjects
+        cls = GridObjects
         cls.name_gen = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
         cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))

@@ -253,19 +253,22 @@ class Environment(BaseEnv):
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent
-        self.helper_action_player = ActionSpace(gridobj=self.backend,
-                                                actionClass=actionClass,
-                                                legal_action=self.game_rules.legal_action)
+        self.helper_action_player_class = ActionSpace.init_grid(gridobj=self.backend)
+        self.helper_action_player = self.helper_action_player_class(gridobj=self.backend,
+                                                                    actionClass=actionClass,
+                                                                    legal_action=self.game_rules.legal_action)
 
         # action that affect the grid made by the environment.
-        self.helper_action_env = ActionSpace(gridobj=self.backend,
-                                             actionClass=CompleteAction,
-                                             legal_action=self.game_rules.legal_action)
+        self.helper_action_env_class = ActionSpace.init_grid(gridobj=self.backend)
+        self.helper_action_env = self.helper_action_env_class(gridobj=self.backend,
+                                                              actionClass=CompleteAction,
+                                                              legal_action=self.game_rules.legal_action)
 
-        self.helper_observation = ObservationSpace(gridobj=self.backend,
-                                                   observationClass=observationClass,
-                                                   rewardClass=rewardClass,
-                                                   env=self)
+        self.helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
+        self.helper_observation = self.helper_observation_class(gridobj=self.backend,
+                                                                observationClass=observationClass,
+                                                                rewardClass=rewardClass,
+                                                                env=self)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):

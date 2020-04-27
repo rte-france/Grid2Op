@@ -976,8 +976,6 @@ class TestIADD:
                     }
 
         # self.size_act = 229
-
-        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
         self.action_space_1 = self.get_action_space_1()
         self.action_space_2 = self.get_action_space_2()
 
