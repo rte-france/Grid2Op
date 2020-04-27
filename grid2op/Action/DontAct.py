@@ -21,13 +21,13 @@ class DontAct(PlayableAction):
     authorized_keys = set()
     attr_list_vect = []
 
-    def __init__(self, gridobj):
+    def __init__(self):
         """
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing
         more is done in this constructor.
 
         """
-        PlayableAction.__init__(self, gridobj)
+        PlayableAction.__init__(self)
         if DontAct.attr_list_set:
             self._update_value_set()
 

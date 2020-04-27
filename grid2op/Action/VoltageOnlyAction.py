@@ -27,13 +27,13 @@ class VoltageOnlyAction(BaseAction):
     attr_list_set = set(attr_list_vect)
     shunt_added = False
 
-    def __init__(self, gridobj):
+    def __init__(self):
         """
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing more is done
         in this constructor.
 
         """
-        BaseAction.__init__(self, gridobj)
+        BaseAction.__init__(self)
 
         if VoltageOnlyAction.shunt_added is False and self.shunts_data_available:
             VoltageOnlyAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]

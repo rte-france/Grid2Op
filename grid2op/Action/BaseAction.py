@@ -198,7 +198,7 @@ class BaseAction(GridObjects):
     attr_list_set = set(attr_list_vect)
     shunt_added = False
 
-    def __init__(self, gridobj):
+    def __init__(self):
         """
         This is used to create an BaseAction instance. Preferably, :class:`BaseAction` should be created with
         :class:`ActionSpace`.
@@ -213,7 +213,6 @@ class BaseAction(GridObjects):
 
         """
         GridObjects.__init__(self)
-        self.init_grid(gridobj)
 
         # False(line is disconnected) / True(line is connected)
         self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)

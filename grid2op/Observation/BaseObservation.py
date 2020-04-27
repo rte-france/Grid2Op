@@ -166,12 +166,11 @@ class BaseObservation(GridObjects):
         dispatchable.
 
     """
-    def __init__(self, gridobj,
+    def __init__(self,
                  obs_env=None,
                  action_helper=None,
                  seed=None):
         GridObjects.__init__(self)
-        self.init_grid(gridobj)
 
         self.action_helper = action_helper
 

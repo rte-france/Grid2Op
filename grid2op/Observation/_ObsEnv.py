@@ -45,7 +45,6 @@ class _ObsEnv(BaseEnv):
         self.reward_helper = reward_helper
         self.obsClass = None
         self._action = None
-        self.init_grid(backend_instanciated)
         self.init_backend(init_grid_path=None,
                           chronics_handler=_ObsCH(),
                           backend=backend_instanciated,
@@ -89,7 +88,6 @@ class _ObsEnv(BaseEnv):
         self.env_dc = self.parameters.FORECAST_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
-        self.init_grid(self.backend)
         self._has_been_initialized()
         self.obsClass = observationClass
 
@@ -167,7 +165,7 @@ class _ObsEnv(BaseEnv):
 
         self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
-        self._action = CompleteAction(gridobj=self)
+        self._action = CompleteAction()
         self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
@@ -232,8 +230,7 @@ class _ObsEnv(BaseEnv):
             The observation available.
         """
 
-        self.current_obs = self.obsClass(gridobj=self.backend,
-                                         seed=None,
+        self.current_obs = self.obsClass(seed=None,
                                          obs_env=None,
                                          action_helper=None)
 

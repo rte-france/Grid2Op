@@ -150,6 +150,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                  5, 5])
         self.size_obs = 414
 
+    def tearDown(self):
+        self.env.close()
+
     def test_sum_shape_equal_size(self):
         obs = self.env.helper_observation(self.env)
         assert obs.size() == np.sum(obs.shape())
@@ -517,6 +520,9 @@ class TestObservationHazard(unittest.TestCase):
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass)
 
+    def tearDown(self) -> None:
+        self.env.close()
+
     def test_1_generating_obs_withhazard(self):
         # test that helper_obs is abl to generate a valid observation
         obs = self.env.get_obs()
@@ -596,6 +602,9 @@ class TestObservationMaintenance(unittest.TestCase):
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass)
 
+    def tearDown(self) -> None:
+        self.env.close()
+
     def test_1_generating_obs_withmaintenance(self):
         # test that helper_obs is abl to generate a valid observation
         obs = self.env.get_obs()
@@ -620,7 +629,6 @@ class TestObservationMaintenance(unittest.TestCase):
 
 class TestUpdateEnvironement(unittest.TestCase):
     def setUp(self):
-
         # Create env and obs in left hand
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

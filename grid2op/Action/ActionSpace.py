@@ -103,7 +103,7 @@ class ActionSpace(SerializableActionSpace):
 
         """
 
-        res = self.actionClass(gridobj=self)
+        res = self.actionClass()
         # update the action
         res.update(dict_)
         if check_legal:

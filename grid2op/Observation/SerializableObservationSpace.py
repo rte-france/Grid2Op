@@ -40,7 +40,7 @@ class SerializableObservationSpace(SerializableSpace):
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=observationClass)
-
+        self.init_grid(gridobj)
         self.observationClass = self.subtype
         self._empty_obs = self._template_obj
 

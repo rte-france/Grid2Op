@@ -73,10 +73,8 @@ class SerializableSpace(GridObjects, RandomObject):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
 
-        self.init_grid(gridobj)
-
-        self.subtype = subtype
-        self._template_obj = self.subtype(gridobj=self)
+        self.subtype = subtype.init_grid(gridobj)
+        self._template_obj = self.subtype()
         self.n = self._template_obj.size()
 
         self.global_vars = None

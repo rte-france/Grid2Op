@@ -41,30 +41,55 @@ class TestActionBase(ABC):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
+
+        GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
+        GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
+        GridObjects.name_line = ["line_{}".format(i) for i in range(20)]
+        GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
+        GridObjects.sub_info = np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
+        GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
+        GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
+        GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
+                                     5, 6, 6, 8, 8, 9, 11, 12])
+        GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
+                                     12, 7, 8, 9, 13, 10, 12, 13])
+        GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
+        GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
+        GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                       3, 0, 0, 1])
+        GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
+                                       0, 0])
+        GridObjects.load_pos_topo_vect = np.array([7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54])
+        GridObjects.gen_pos_topo_vect = np.array([2, 8, 12, 29, 34])
+        GridObjects.line_or_pos_topo_vect = np.array([0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27,
+                                          31, 32, 37, 38, 40, 46, 50])
+        GridObjects.line_ex_pos_topo_vect = np.array([3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
+                                          33, 36, 42, 55, 43, 49, 53])
+
         self.gridobj = GridObjects()
-        self.gridobj.init_grid_vect(name_prod=["gen_{}".format(i) for i in range(5)],
-                                    name_load=["load_{}".format(i) for i in range(11)],
-                                    name_line=["line_{}".format(i) for i in range(20)],
-                                    name_sub=["sub_{}".format(i) for i in range(14)],
-                                    sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int),
-                                    load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
-                                    gen_to_subid=np.array([0, 1, 2, 5, 7]),
-                                    line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
-                                                                       5,  6,  6,  8,  8, 9, 11, 12]),
-                                    line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
-                                                                       12,  7,  8,  9, 13, 10, 12, 13]),
-                                    load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
-                                    gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
-                                    line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
-                                                                        3, 0, 0, 1]),
-                                    line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
-                                                                 0, 0]),
-                                    load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
-                                    gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
-                                    line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27,
-                                                                     31, 32, 37, 38, 40, 46, 50]),
-                                    line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
-                                                                     33, 36, 42, 55, 43, 49, 53]))
+        # self.gridobj.init_grid_vect(name_prod=["gen_{}".format(i) for i in range(5)],
+        #                             name_load=["load_{}".format(i) for i in range(11)],
+        #                             name_line=["line_{}".format(i) for i in range(20)],
+        #                             name_sub=["sub_{}".format(i) for i in range(14)],
+        #                             sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int),
+        #                             load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
+        #                             gen_to_subid=np.array([0, 1, 2, 5, 7]),
+        #                             line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
+        #                                                                5,  6,  6,  8,  8, 9, 11, 12]),
+        #                             line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
+        #                                                                12,  7,  8,  9, 13, 10, 12, 13]),
+        #                             load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
+        #                             gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
+        #                             line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+        #                                                                 3, 0, 0, 1]),
+        #                             line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
+        #                                                          0, 0]),
+        #                             load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
+        #                             gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
+        #                             line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27,
+        #                                                              31, 32, 37, 38, 40, 46, 50]),
+        #                             line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
+        #                                                              33, 36, 42, 55, 43, 49, 53]))
         # pdb.set_trace()
         self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
                     'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
@@ -894,30 +919,32 @@ class TestIADD:
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
+        GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
+        GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
+        GridObjects.name_line = ["line_{}".format(i) for i in range(20)]
+        GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
+        GridObjects.sub_info = np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
+        GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
+        GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
+        GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
+                                     5, 6, 6, 8, 8, 9, 11, 12])
+        GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
+                                     12, 7, 8, 9, 13, 10, 12, 13])
+        GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
+        GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
+        GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
+                                       3, 0, 0, 1])
+        GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
+                                       0, 0])
+        GridObjects.load_pos_topo_vect = np.array([7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54])
+        GridObjects.gen_pos_topo_vect = np.array([2, 8, 12, 29, 34])
+        GridObjects.line_or_pos_topo_vect = np.array([0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27,
+                                          31, 32, 37, 38, 40, 46, 50])
+        GridObjects.line_ex_pos_topo_vect = np.array([3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
+                                          33, 36, 42, 55, 43, 49, 53])
+
         self.gridobj = GridObjects()
-        self.gridobj.init_grid_vect(name_prod=["gen_{}".format(i) for i in range(5)],
-                                    name_load=["load_{}".format(i) for i in range(11)],
-                                    name_line=["line_{}".format(i) for i in range(20)],
-                                    name_sub=["sub_{}".format(i) for i in range(14)],
-                                    sub_info=np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int),
-                                    load_to_subid=np.array([1,  2,  3,  4,  5,  8,  9, 10, 11, 12, 13]),
-                                    gen_to_subid=np.array([0, 1, 2, 5, 7]),
-                                    line_or_to_subid=np.array([ 0,  0,  1,  1,  1,  2,  3,  3,  3,  4,  5,  5,
-                                                                       5,  6,  6,  8,  8, 9, 11, 12]),
-                                    line_ex_to_subid=np.array([ 1,  4,  2,  3,  4,  3,  4,  6,  8,  5, 10, 11,
-                                                                       12,  7,  8,  9, 13, 10, 12, 13]),
-                                    load_to_sub_pos=np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1]),
-                                    gen_to_sub_pos=np.array([2, 5, 3, 5, 1]),
-                                    line_or_to_sub_pos=np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
-                                                                        3, 0, 0, 1]),
-                                    line_ex_to_sub_pos=np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
-                                                                 0, 0]),
-                                    load_pos_topo_vect=np.array([ 7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54]),
-                                    gen_pos_topo_vect=np.array([ 2,  8, 12, 29, 34]),
-                                    line_or_pos_topo_vect=np.array([ 0,  1,  4,  5,  6, 10, 15, 16, 17, 22, 25, 26, 27,
-                                                                     31, 32, 37, 38, 40, 46, 50]),
-                                    line_ex_pos_topo_vect=np.array([ 3, 19,  9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
-                                                                     33, 36, 42, 55, 43, 49, 53]))
+
         # pdb.set_trace()
         self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
                     'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',

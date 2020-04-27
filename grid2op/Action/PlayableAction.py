@@ -36,8 +36,8 @@ class PlayableAction(BaseAction):
     ]
     attr_list_set = set(attr_list_vect)
 
-    def __init__(self, gridobj):
-        super().__init__(gridobj)
+    def __init__(self):
+        super().__init__()
 
         self.authorized_keys_to_digest = {
             "set_line_status": self._digest_set_status,
