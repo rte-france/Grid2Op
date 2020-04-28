@@ -590,13 +590,17 @@ class Runner(object):
             else:
                 observations = np.concatenate((observations, obs.to_vect().reshape(1, -1)))
 
-        episode = EpisodeData(actions=actions, env_actions=env_actions,
+        episode = EpisodeData(actions=actions,
+                              env_actions=env_actions,
                               observations=observations,
-                              rewards=rewards, disc_lines=disc_lines, times=times,
+                              rewards=rewards,
+                              disc_lines=disc_lines,
+                              times=times,
                               observation_space=env.observation_space,
                               action_space=env.action_space,
                               helper_action_env=env.helper_action_env,
-                              path_save=path_save, disc_lines_templ=disc_lines_templ,
+                              path_save=path_save,
+                              disc_lines_templ=disc_lines_templ,
                               logger=logger, name=env.chronics_handler.get_name(),
                               other_rewards=[])
 

@@ -8,6 +8,7 @@
 
 from grid2op.Exceptions import Grid2OpException
 
+
 def extract_from_dict(dict_, key, converter):
     if not key in dict_:
         raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
@@ -17,11 +18,12 @@ def extract_from_dict(dict_, key, converter):
         raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
     return res
 
+
 def save_to_dict(res_dict, me, key, converter):
-    if not key in me.__dict__:
+    if not hasattr(me, key):
         raise Grid2OpException("Impossible to find key \"{}\" while loading the dictionnary.".format(key))
     try:
-        res = converter(me.__dict__[key])
+        res = converter(getattr(me, key))
     except:
         raise Grid2OpException("Impossible to convert \"{}\" into class {}".format(key, converter))
 

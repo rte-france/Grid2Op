@@ -66,7 +66,6 @@ class BaseEnv(GridObjects, ABC):
     time_next_maintenance
     duration_next_maintenance
     hard_overflow_threshold
-    time_remaining_before_line_reconnection
 
     # redispacthing
     target_dispatch
@@ -109,6 +108,9 @@ class BaseEnv(GridObjects, ABC):
         # define logger
         self.logger = None
 
+        # class used for the action spaces
+        self.helper_action_class = None
+
         # and calendar data
         self.time_stamp = None
         self.nb_time_step = dt_int(0)
@@ -133,12 +135,11 @@ class BaseEnv(GridObjects, ABC):
         self.time_next_maintenance = None
         self.duration_next_maintenance = None
 
-        # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
+        # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
         self._hazard_duration = None
 
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self.time_remaining_before_line_reconnection = None
         self.env_dc = self.parameters.ENV_DC
 
         # Remember last line buses
@@ -158,7 +159,6 @@ class BaseEnv(GridObjects, ABC):
         # maintenance / hazards
         self.time_next_maintenance = None
         self.duration_next_maintenance = None
-        # self.time_remaining_before_line_reconnection = None
 
         # store environment modifications
         self._injection = None
@@ -234,9 +234,9 @@ class BaseEnv(GridObjects, ABC):
         if not issubclass(self.opponent_class, BaseOpponent):
             raise EnvError("Impossible to make an opponent with a type that does not inherit from BaseOpponent.")
 
-        self.opponent_action_space = ActionSpace(gridobj=self.backend,
-                                                 legal_action=AlwaysLegal,
-                                                 actionClass=self.opponent_action_class)
+        self.opponent_action_space = self.helper_action_class(gridobj=self.backend,
+                                                              legal_action=AlwaysLegal,
+                                                              actionClass=self.opponent_action_class)
         self.compute_opp_budg = UnlimitedBudget(self.opponent_action_space)
         self.opponent = self.opponent_class(self.opponent_action_space)
         self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budg,
@@ -249,6 +249,10 @@ class BaseEnv(GridObjects, ABC):
     def _has_been_initialized(self):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
+        self.__class__ = self.init_grid(self.backend)  # create the proper environment class for this specific environment
+        if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
+            raise EnvironmentError("Environment has not been initialized properly")
+
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
@@ -261,12 +265,11 @@ class BaseEnv(GridObjects, ABC):
         self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
-        # hazard (not used outside of this class, information is given in `time_remaining_before_line_reconnection`
+        # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
         self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # hard overflow part
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        # self.time_remaining_before_line_reconnection = np.full(shape=(self.n_line,), fill_value=0, dtype=dt_int)
         self.env_dc = self.parameters.ENV_DC
 
         # Remember lines last bus
@@ -643,16 +646,16 @@ class BaseEnv(GridObjects, ABC):
 
     def _update_time_reconnection_hazards_maintenance(self):
         """
-        This supposes that :attr:`Environment.time_remaining_before_line_reconnection` is already updated
+        This supposes that :attr:`Environment.times_before_line_status_actionable` is already updated
         with the cascading failure, soft overflow and hard overflow.
         It also supposes that :func:`Environment._update_actions` has been called, so that the vectors
         :attr:`Environment.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
         :attr:`Environment._hazard_duration` are updated with the most recent values.
         Finally the Environment supposes that this method is called before calling :func:`Environment.get_obs`
         This function integrates the hazards and maintenance in the
-        :attr:`Environment.time_remaining_before_line_reconnection` vector.
+        :attr:`Environment.times_before_line_status_actionable` vector.
         For example, if a powerline `i` has no problem
-        of overflow, but is affected by a hazard, :attr:`Environment.time_remaining_before_line_reconnection`
+        of overflow, but is affected by a hazard, :attr:`Environment.times_before_line_status_actionable`
         should be updated with the duration of this hazard (stored in one of the three vector mentionned in the
         above paragraph)
         For this Environment, we suppose that the maximum of the 3 values are taken into account. The reality would
@@ -1071,8 +1074,6 @@ class BaseEnv(GridObjects, ABC):
         self.times_before_topology_actionable[:] = 0
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
 
-        # self.time_remaining_before_line_reconnection[:] = 0
-
         # reset timings
         self._time_apply_act = 0
         self._time_powerflow = 0
@@ -1196,10 +1197,8 @@ class BaseEnv(GridObjects, ABC):
         # Update the timing vectors
         min_time_line_reco = np.zeros(self.n_line, dtype=dt_int)
         min_time_topo = np.zeros(self.n_sub, dtype=dt_int)
-        # ff_time_line_reco = self.time_remaining_before_line_reconnection - nb_timestep
         ff_time_line_act = self.times_before_line_status_actionable - nb_timestep
         ff_time_topo_act = self.times_before_topology_actionable - nb_timestep
-        # self.time_remaining_before_line_reconnection[:] = np.maximum(ff_time_line_reco, min_time_line_reco)
         self.times_before_line_status_actionable[:] = np.maximum(ff_time_line_act, min_time_line_reco)
         self.times_before_topology_actionable[:] = np.maximum(ff_time_topo_act, min_time_topo)
 

@@ -123,8 +123,8 @@ class PandaPowerBackend(Backend):
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
         self.dim_topo = -1
-        self._vars_action = BaseAction.vars_action
-        self._vars_action_set = BaseAction.vars_action_set
+        self._vars_action = BaseAction.attr_list_vect
+        self._vars_action_set = BaseAction.attr_list_vect
         # self._time_topo_vect = 0.
 
     def get_nb_active_bus(self):

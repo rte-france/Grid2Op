@@ -22,18 +22,23 @@ class VoltageOnlyAction(BaseAction):
     Only action of type "injection" are supported, and only setting "prod_v" keyword.
     """
 
-    def __init__(self, gridobj):
+    authorized_keys = {"injection"}
+    attr_list_vect = ["prod_v"]
+    attr_list_set = set(attr_list_vect)
+    shunt_added = False
+
+    def __init__(self):
         """
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing more is done
         in this constructor.
 
         """
-        BaseAction.__init__(self, gridobj)
-        self.authorized_keys = {"injection"}
-        self.attr_list_vect = ["prod_v"]
-        if self.shunts_data_available:
-            self.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
-            self.authorized_keys.add("shunt")
+        BaseAction.__init__(self)
+
+        if VoltageOnlyAction.shunt_added is False and self.shunts_data_available:
+            VoltageOnlyAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            VoltageOnlyAction.authorized_keys.add("shunt")
+        self._update_value_set()
 
     def _check_dict(self):
         """

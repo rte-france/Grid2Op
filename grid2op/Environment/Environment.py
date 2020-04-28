@@ -22,6 +22,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent
+from grid2op.Space import GridObjects
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
@@ -185,10 +186,8 @@ class Environment(BaseEnv):
                                    "and not an object (an instance of a class). "
                                    "It is currently \"{}\"".format(type(rewardClass)))
         if not issubclass(rewardClass, BaseReward):
-            raise Grid2OpException(
-                "Parameter \"rewardClass\" used to build the Environment should derived form the grid2op.BaseReward class, "
-                "type provided is \"{}\"".format(
-                    type(rewardClass)))
+            raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
+                                   "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
         self.rewardClass = rewardClass
         self.actionClass = actionClass
         self.observationClass = observationClass
@@ -197,10 +196,8 @@ class Environment(BaseEnv):
         self.init_grid_path = os.path.abspath(init_grid_path)
 
         if not isinstance(backend, Backend):
-            raise Grid2OpException(
-                "Parameter \"backend\" used to build the Environment should derived form the grid2op.Backend class, "
-                "type provided is \"{}\"".format(
-                    type(backend)))
+            raise Grid2OpException( "Parameter \"backend\" used to build the Environment should derived form the "
+                                    "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
         self.backend = backend
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
 
@@ -208,7 +205,6 @@ class Environment(BaseEnv):
         self.backend.load_grid_layout(os.path.split(self.init_grid_path)[0])
 
         self.backend.assert_grid_correct()
-        self.init_grid(backend)
         self._has_been_initialized()  # really important to include this piece of code!
 
         if self._thermal_limit_a is None:
@@ -253,19 +249,21 @@ class Environment(BaseEnv):
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent
-        self.helper_action_player = ActionSpace(gridobj=self.backend,
-                                                actionClass=actionClass,
-                                                legal_action=self.game_rules.legal_action)
+        self.helper_action_class = ActionSpace.init_grid(gridobj=self.backend)
+        self.helper_action_player = self.helper_action_class(gridobj=self.backend,
+                                                             actionClass=actionClass,
+                                                             legal_action=self.game_rules.legal_action)
 
         # action that affect the grid made by the environment.
-        self.helper_action_env = ActionSpace(gridobj=self.backend,
-                                             actionClass=CompleteAction,
-                                             legal_action=self.game_rules.legal_action)
+        self.helper_action_env = self.helper_action_class(gridobj=self.backend,
+                                                          actionClass=CompleteAction,
+                                                          legal_action=self.game_rules.legal_action)
 
-        self.helper_observation = ObservationSpace(gridobj=self.backend,
-                                                   observationClass=observationClass,
-                                                   rewardClass=rewardClass,
-                                                   env=self)
+        self.helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
+        self.helper_observation = self.helper_observation_class(gridobj=self.backend,
+                                                                observationClass=observationClass,
+                                                                rewardClass=rewardClass,
+                                                                env=self)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
@@ -346,10 +344,11 @@ class Environment(BaseEnv):
             The voltages that has been specified in the chronics
 
         """
-        self.env_modification += self.voltage_controler.fix_voltage(self.current_obs,
-                                                                    agent_action,
-                                                                    self.env_modification,
-                                                                    prod_v_chronics)
+        volt_control_act = self.voltage_controler.fix_voltage(self.current_obs,
+                                                              agent_action,
+                                                              self.env_modification,
+                                                              prod_v_chronics)
+        self.env_modification += volt_control_act
 
     def set_chunk_size(self, new_chunk_size):
         """

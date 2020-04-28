@@ -18,15 +18,16 @@ class PowerlineChangeAndDispatchAction(PlayableAction):
     Nothing else is supported and any attempt to use something else 
     will have no impact.
     """
-    def __init__(self, gridobj):
-        super().__init__(gridobj)
+    authorized_keys = {
+        "change_line_status",
+        "redispatch"
+    }
 
-        self.authorized_keys = {
-            "change_line_status",
-            "redispatch"
-        }
+    attr_list_vect = [
+        "_switch_line_status",
+        "_redispatch"
+    ]
+    attr_list_set = set(attr_list_vect)
 
-        self.attr_list_vect = [
-            "_switch_line_status",
-            "_redispatch"
-        ]
+    def __init__(self):
+        super().__init__()

@@ -14,7 +14,7 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
-from grid2op.Action import BaseAction
+from grid2op.Action import CompleteAction, BaseAction
 from grid2op.Exceptions import Grid2OpException
 
 
@@ -37,15 +37,25 @@ class _ObsEnv(BaseEnv):
 
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
-    def __init__(self, backend_instanciated, parameters, reward_helper, obsClass,
-                 action_helper, thermal_limit_a, legalActClass, donothing_act,
+    def __init__(self,
+                 backend_instanciated,
+                 completeActionClass,
+                 parameters,
+                 reward_helper,
+                 obsClass,
+                 action_helper,
+                 thermal_limit_a,
+                 legalActClass,
+                 donothing_act,
+                 helper_action_class,
                  other_rewards={}):
         BaseEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
+        self.helper_action_class = helper_action_class
         self.donothing_act = donothing_act
         self.reward_helper = reward_helper
         self.obsClass = None
         self._action = None
-        self.init_grid(backend_instanciated)
+        self.CompleteActionClass = completeActionClass
         self.init_backend(init_grid_path=None,
                           chronics_handler=_ObsCH(),
                           backend=backend_instanciated,
@@ -65,8 +75,12 @@ class _ObsEnv(BaseEnv):
         self.is_init = False
 
     def init_backend(self,
-                     init_grid_path, chronics_handler, backend,
-                     names_chronics_to_backend, actionClass, observationClass,
+                     init_grid_path,
+                     chronics_handler,
+                     backend,
+                     names_chronics_to_backend,
+                     actionClass,
+                     observationClass,
                      rewardClass, legalActClass):
         """
         backend should not be the backend of the environment!!!
@@ -89,7 +103,6 @@ class _ObsEnv(BaseEnv):
         self.env_dc = self.parameters.FORECAST_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
-        self.init_grid(self.backend)
         self._has_been_initialized()
         self.obsClass = observationClass
 
@@ -167,7 +180,7 @@ class _ObsEnv(BaseEnv):
 
         self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
-        self._action = BaseAction(gridobj=self)
+        self._action = self.CompleteActionClass()
         self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
@@ -232,8 +245,7 @@ class _ObsEnv(BaseEnv):
             The observation available.
         """
 
-        self.current_obs = self.obsClass(gridobj=self.backend,
-                                         seed=None,
+        self.current_obs = self.obsClass(seed=None,
                                          obs_env=None,
                                          action_helper=None)
 
@@ -271,7 +283,6 @@ class _ObsEnv(BaseEnv):
         self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp
         self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable
         self.times_before_topology_actionable[:] = env.times_before_topology_actionable
-        # self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection
         self.time_next_maintenance[:] = env.time_next_maintenance
         self.duration_next_maintenance[:] = env.duration_next_maintenance
         self.target_dispatch[:] = env.target_dispatch
