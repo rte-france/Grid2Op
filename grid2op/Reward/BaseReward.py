@@ -135,5 +135,5 @@ class BaseReward(ABC):
         Can be overloaded by subclass, default implementation gives name, reward_min, reward_max
         """
         yield ("name", self.__class__.__name__)
-        yield ("reward_min", self.reward_min)
-        yield ("reward_max", self.reward_max)
+        yield ("reward_min", float(self.reward_min))
+        yield ("reward_max", float(self.reward_max))

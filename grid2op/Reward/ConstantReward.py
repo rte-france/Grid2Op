@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class ConstantReward(BaseReward):
     """
@@ -21,4 +21,4 @@ class ConstantReward(BaseReward):
         BaseReward.__init__(self)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        return 0.0
+        return dt_float(0.0)

@@ -9,7 +9,7 @@
 import networkx as nx
 
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class BridgeReward(BaseReward):
     """
@@ -18,8 +18,8 @@ class BridgeReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = 0.0
-        self.reward_max = 1.0
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(1.0)
         
     def __call__(self, action, env, has_error,
                  is_done, is_illegal, is_ambiguous):
@@ -70,6 +70,6 @@ class BridgeReward(BaseReward):
         if n_bridges == 0:
             return self.reward_max
         elif n_bridges == 1:
-            return (self.reward_max + self.reward_min) / 2.0
+            return (self.reward_max + self.reward_min) / dt_float(2.0)
         else:
             return self.reward_min

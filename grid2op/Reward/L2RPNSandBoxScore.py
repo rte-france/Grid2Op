@@ -9,7 +9,7 @@
 import numpy as np
 
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class L2RPNSandBoxScore(BaseReward):
     """
@@ -21,26 +21,26 @@ class L2RPNSandBoxScore(BaseReward):
     """
     def __init__(self, alpha_redisph=1.0):
         BaseReward.__init__(self)
-        self.reward_min = 1.  # carefull here between min and max...
-        self.reward_max = 300 * 70.
-        self.alpha_redisph = alpha_redisph
+        self.reward_min = dt_float(1.0)  # carefull here between min and max...
+        self.reward_max = dt_float(300.0 * 70.0)
+        self.alpha_redisph = dt_float(alpha_redisph)
 
     def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
         # compute the losses
         gen_p, *_ = env.backend.generators_info()
         load_p, *_ = env.backend.loads_info()
-        losses = np.sum(gen_p) - np.sum(load_p)
+        losses = np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)
 
         # compute the marginal cost
-        p_t = np.max(env.gen_cost_per_MW[env.gen_activeprod_t > 0.])
+        p_t = np.max(env.gen_cost_per_MW[env.gen_activeprod_t > 0.], dtype=dt_float)
 
         # redispatching amount
-        c_redispatching = 2 * self.alpha_redisph * np.sum(np.abs(env.actual_dispatch)) * p_t
+        c_redispatching = dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(env.actual_dispatch)) * p_t
 
         # cost of losses
         c_loss = losses * p_t
 
         # total "operationnal cost"
-        c_operations = c_loss + c_redispatching
+        c_operations = dt_float(c_loss + c_redispatching)
 
         return c_operations

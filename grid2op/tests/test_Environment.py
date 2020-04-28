@@ -22,6 +22,7 @@ from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Action import *
+from grid2op.dtypes import dt_float
 
 DEBUG = False
 PROFILE_CODE = False
@@ -40,8 +41,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         self.path_chron = os.path.join(PATH_CHRONICS, "chronics")
         self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
 
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
 
         # force the verbose backend
@@ -80,7 +81,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         pass
 
     def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        return dt_float(np.max(np.abs(pred- true))) <= self.tolvect
 
     def test_step_doesnt_change_action(self):
         act = self.env.action_space()

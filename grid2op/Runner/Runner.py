@@ -29,6 +29,7 @@ from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
+from grid2op.dtypes import dt_float
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -524,7 +525,7 @@ class Runner(object):
 
         Returns
         -------
-        cum_reward: ``float``
+        cum_reward: ``np.float32``
             The cumulative reward obtained by the agent during this episode
 
         time_step: ``int``
@@ -542,7 +543,7 @@ class Runner(object):
         time_step = int(0)
         dict_ = {}
         time_act = 0.
-        cum_reward = 0.
+        cum_reward = dt_float(0.0)
 
         # reset the environment
         env.chronics_handler.tell_id(indx-1)
@@ -620,7 +621,7 @@ class Runner(object):
                 pbar_.update(1)
 
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   reward, env.env_modification, act, obs, info)
+                                   float(reward), env.env_modification, act, obs, info)
             end_ = time.time()
 
         episode.set_meta(env, time_step, cum_reward)

@@ -8,7 +8,7 @@
 
 import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class L2RPNReward(BaseReward):
     """
@@ -21,8 +21,8 @@ class L2RPNReward(BaseReward):
         BaseReward.__init__(self)
 
     def initialize(self, env):
-        self.reward_min = 0.
-        self.reward_max = env.backend.n_line
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(env.backend.n_line)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not is_done and not has_error:
@@ -35,10 +35,10 @@ class L2RPNReward(BaseReward):
 
     @staticmethod
     def __get_lines_capacity_usage(env):
-        ampere_flows = np.abs(env.backend.get_line_flow())
-        thermal_limits = np.abs(env.backend.get_thermal_limit())
-        relative_flow = np.divide(ampere_flows, thermal_limits)
+        ampere_flows = np.abs(env.backend.get_line_flow(), dtype=dt_float)
+        thermal_limits = np.abs(env.backend.get_thermal_limit(), dtype=dt_float)
+        relative_flow = np.divide(ampere_flows, thermal_limits, dtype=dt_float)
 
-        x = np.minimum(relative_flow, 1)
-        lines_capacity_usage_score = np.maximum(1 - x ** 2, 0.)
-        return lines_capacity_usage_score
+        x = np.minimum(relative_flow, dt_float(1.0))
+        lines_capacity_usage_score = np.maximum(dt_float(1.0) - x ** 2, dt_float(0.0))
+        return dt_float(lines_capacity_usage_score)

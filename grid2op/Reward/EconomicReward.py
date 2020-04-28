@@ -10,7 +10,7 @@ import numpy as np
 
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class EconomicReward(BaseReward):
     """
@@ -23,26 +23,26 @@ class EconomicReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = -1.0
-        self.reward_max = 1.0
+        self.reward_min = dt_float(-1.0)
+        self.reward_max = dt_float(1.0)
         self.worst_cost = None
 
     def initialize(self, env):
         if not env.redispatching_unit_commitment_availble:
             raise Grid2OpException("Impossible to use the EconomicReward reward with an environment without generators"
                                    "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
-        self.worst_cost = np.sum(env.gen_cost_per_MW *env.gen_pmax)
-        self.reward_min = -1.0
-        self.reward_max = float(self.worst_cost)
+        self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW *env.gen_pmax))
+        self.reward_min = dt_float(-1.0)
+        self.reward_max = dt_float(self.worst_cost)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
             res = self.reward_min
         else:
             # compute the cost of the grid
-            res = np.sum(env.current_obs.prod_p * env.gen_cost_per_MW)
+            res = dt_float(np.sum(env.current_obs.prod_p * env.gen_cost_per_MW))
             # we want to minimize the cost by maximizing the reward so let's take the opposite
-            res *= -1
+            res *= dt_float(-1.0)
             # to be sure it's positive, add the highest possible cost
             res += self.worst_cost
         return res

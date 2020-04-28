@@ -16,6 +16,8 @@ import unittest
 import numpy as np
 from pathlib import Path
 
+from grid2op.dtypes import dt_float
+
 test_dir = Path(__file__).parent.absolute()
 grid2op_dir = os.fspath(test_dir.parent.absolute())
 data_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
@@ -33,8 +35,8 @@ EXAMPLE_CASEFILE = os.path.abspath(os.path.join(data_dir, "5bus_example", "5bus_
 class HelperTests(unittest.TestCase):
     def __init__(self, methodName='runTest'):
         unittest.TestCase.__init__(self, methodName=methodName)
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
 
     def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        return dt_float(np.max(np.abs(pred - true))) <= self.tolvect
