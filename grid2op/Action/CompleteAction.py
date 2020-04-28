@@ -15,5 +15,5 @@ class CompleteAction(BaseAction):
     It cannot (and should not) be used by an Agent. Indeed, Agent actions are limited to :class:`PlayableAction`. This
     class is used by the chronics, the environment the opponent or the voltage controler for example.
     """
-    def __init__(self, gridobj):
-        BaseAction.__init__(self, gridobj)
+    def __init__(self):
+        BaseAction.__init__(self)

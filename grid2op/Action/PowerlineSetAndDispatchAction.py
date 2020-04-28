@@ -18,16 +18,18 @@ class PowerlineSetAndDispatchAction(PlayableAction):
     Nothing else is supported and any attempt to use something else 
     will have no impact.
     """
-    def __init__(self, gridobj):
-        super().__init__(gridobj)
+    authorized_keys = {
+        "set_line_status",
+        "set_bus",
+        "redispatch"
+    }
 
-        self.authorized_keys = {
-            "set_line_status",
-            "set_bus",
-            "redispatch"
-        }
+    attr_list_vect = [
+        "_set_line_status",
+        "_redispatch"
+    ]
 
-        self.attr_list_vect = [
-            "_set_line_status",
-            "_redispatch"
-        ]
+    attr_list_set = set(attr_list_vect)
+
+    def __init__(self):
+        super().__init__()

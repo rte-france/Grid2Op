@@ -50,13 +50,10 @@ All of the above should allow to read back, and better understand the behaviour 
 :class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
 """
 
-import datetime as dt
 import json
 import os
-import time
 
 import numpy as np
-import pandas as pd
 
 
 from grid2op.Exceptions import Grid2OpException, AmbiguousAction
@@ -95,7 +92,6 @@ class EpisodeData:
                                              "env_actions")
         self.other_rewards = other_rewards
         self.observation_space = observation_space
-        self.helper_action_env = helper_action_env
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
@@ -163,7 +159,6 @@ class EpisodeData:
         if agent_path is None:
             # TODO: proper exception
             raise Grid2OpException("A path to an episode should be provided")
-
         episode_path = os.path.abspath(os.path.join(agent_path, name))
 
         try:

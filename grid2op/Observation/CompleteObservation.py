@@ -88,12 +88,12 @@ class CompleteObservation(BaseObservation):
         :func:`CompleteObservation.to_dict` for a description of this dictionnary.
 
     """
-    def __init__(self, gridobj,
+    def __init__(self,
                  obs_env=None,
                  action_helper=None,
                  seed=None):
 
-        BaseObservation.__init__(self, gridobj,
+        BaseObservation.__init__(self,
                                  obs_env=obs_env,
                                  action_helper=action_helper,
                                  seed=seed)

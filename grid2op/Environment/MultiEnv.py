@@ -188,7 +188,6 @@ class MultiEnvironment(GridObjects):
     """
     def __init__(self, nb_env, env):
         GridObjects.__init__(self)
-        # self.init_grid(env)
         self.imported_env = env
         self.nb_env = nb_env
 
