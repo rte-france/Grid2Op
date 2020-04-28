@@ -466,7 +466,7 @@ class GridObjects:
             The attribute corresponding the name, flatten as a 1d vector.
 
         """
-        return np.array(self.__dict__[attr_name]).flatten()
+        return np.array(getattr(self, attr_name)).flatten()
 
     def to_vect(self):
         """
@@ -557,7 +557,11 @@ class GridObjects:
         -------
         ``None``
         """
-        self.__dict__[attr_nm] = vect
+        tmp = getattr(self, attr_nm)
+        if isinstance(tmp, (dt_bool, dt_int, dt_float)):
+            setattr(self, attr_nm, vect)
+        else:
+            tmp[:] = vect
 
     def check_space_legit(self):
         pass

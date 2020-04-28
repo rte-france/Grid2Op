@@ -37,14 +37,25 @@ class _ObsEnv(BaseEnv):
 
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
-    def __init__(self, backend_instanciated, parameters, reward_helper, obsClass,
-                 action_helper, thermal_limit_a, legalActClass, donothing_act,
+    def __init__(self,
+                 backend_instanciated,
+                 completeActionClass,
+                 parameters,
+                 reward_helper,
+                 obsClass,
+                 action_helper,
+                 thermal_limit_a,
+                 legalActClass,
+                 donothing_act,
+                 helper_action_class,
                  other_rewards={}):
         BaseEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
+        self.helper_action_class = helper_action_class
         self.donothing_act = donothing_act
         self.reward_helper = reward_helper
         self.obsClass = None
         self._action = None
+        self.CompleteActionClass = completeActionClass
         self.init_backend(init_grid_path=None,
                           chronics_handler=_ObsCH(),
                           backend=backend_instanciated,
@@ -64,8 +75,12 @@ class _ObsEnv(BaseEnv):
         self.is_init = False
 
     def init_backend(self,
-                     init_grid_path, chronics_handler, backend,
-                     names_chronics_to_backend, actionClass, observationClass,
+                     init_grid_path,
+                     chronics_handler,
+                     backend,
+                     names_chronics_to_backend,
+                     actionClass,
+                     observationClass,
                      rewardClass, legalActClass):
         """
         backend should not be the backend of the environment!!!
@@ -165,7 +180,7 @@ class _ObsEnv(BaseEnv):
 
         self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
-        self._action = CompleteAction()
+        self._action = self.CompleteActionClass()
         self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,

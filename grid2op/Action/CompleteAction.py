@@ -17,4 +17,3 @@ class CompleteAction(BaseAction):
     """
     def __init__(self):
         BaseAction.__init__(self)
-        # BaseAction.__init__(self, gridobj)

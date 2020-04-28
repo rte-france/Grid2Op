@@ -94,6 +94,7 @@ class Backend(GridObjects, ABC):
         :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.
         """
         # test the results gives the proper size
+        self.__class__ = self.init_grid(self)
         tmp = self.get_line_status()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
@@ -838,7 +839,8 @@ class Backend(GridObjects, ABC):
         topo_vect = self.get_topo_vect()
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()
-        set_me = CompleteAction(self)
+        complete_action_class = CompleteAction.init_grid(self)
+        set_me = complete_action_class(self)
         set_me.update({"set_line_status": line_status,
                        "set_bus": topo_vect})
 

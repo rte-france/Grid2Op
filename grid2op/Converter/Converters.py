@@ -18,6 +18,7 @@ class Converter(ActionSpace):
     """
     def __init__(self, action_space):
         ActionSpace.__init__(self, action_space, action_space.legal_action, action_space.subtype)
+        # self.__class__ = Converter.init_grid(action_space)
         self.space_prng = action_space.space_prng
         self.seed_used = action_space.seed_used
 

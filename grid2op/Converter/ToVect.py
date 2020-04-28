@@ -21,6 +21,7 @@ class ToVect(Converter):
     """
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
+        self.__class__ = ToVect.init_grid(action_space)
         self.do_nothing_vect = action_space({}).to_vect()
 
     def convert_obs(self, obs):

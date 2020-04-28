@@ -472,22 +472,24 @@ class BaseObservation(GridObjects):
         self.actual_dispatch[:] = np.NaN
 
     def __compare_stats(self, other, name):
-        if self.__dict__[name] is None and other.__dict__[name] is not None:
+        attr_me = getattr(self, name)
+        attr_other = getattr(other, name)
+        if attr_me is None and attr_other is not None:
             return False
-        if self.__dict__[name] is not None and other.__dict__[name] is None:
+        if attr_me is not None and attr_other is None:
             return False
-        if self.__dict__[name] is not None:
-            if self.__dict__[name].shape != other.__dict__[name].shape:
+        if attr_me is not None:
+            if attr_me.shape != attr_other.shape:
                 return False
 
-            if self.__dict__[name].dtype != other.__dict__[name].dtype:
+            if attr_me.dtype != attr_other.dtype:
                 return False
-            if np.issubdtype(self.__dict__[name].dtype, np.dtype(dt_float).type):
+            if np.issubdtype(attr_me.dtype, np.dtype(dt_float).type):
                 # special case of floating points, otherwise vector are never equal
-                if not np.all(np.abs(self.__dict__[name] - other.__dict__[name]) <= self._tol_equal):
+                if not np.all(np.abs(attr_me - attr_other) <= self._tol_equal):
                     return False
             else:
-                if not np.all(self.__dict__[name] == other.__dict__[name]):
+                if not np.all(attr_me == attr_other):
                     return False
         return True
 

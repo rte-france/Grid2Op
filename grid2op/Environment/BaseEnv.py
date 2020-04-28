@@ -108,6 +108,9 @@ class BaseEnv(GridObjects, ABC):
         # define logger
         self.logger = None
 
+        # class used for the action spaces
+        self.helper_action_class = None
+
         # and calendar data
         self.time_stamp = None
         self.nb_time_step = dt_int(0)
@@ -231,9 +234,9 @@ class BaseEnv(GridObjects, ABC):
         if not issubclass(self.opponent_class, BaseOpponent):
             raise EnvError("Impossible to make an opponent with a type that does not inherit from BaseOpponent.")
 
-        self.opponent_action_space = ActionSpace(gridobj=self.backend,
-                                                 legal_action=AlwaysLegal,
-                                                 actionClass=self.opponent_action_class)
+        self.opponent_action_space = self.helper_action_class(gridobj=self.backend,
+                                                              legal_action=AlwaysLegal,
+                                                              actionClass=self.opponent_action_class)
         self.compute_opp_budg = UnlimitedBudget(self.opponent_action_space)
         self.opponent = self.opponent_class(self.opponent_action_space)
         self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budg,
@@ -246,6 +249,10 @@ class BaseEnv(GridObjects, ABC):
     def _has_been_initialized(self):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
+        self.__class__ = self.init_grid(self.backend)  # create the proper environment class for this specific environment
+        if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
+            raise EnvironmentError("Environment has not been initialized properly")
+
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),

@@ -178,7 +178,8 @@ class SerializableSpace(GridObjects, RandomObject):
         """
         res = super().to_dict()
 
-        save_to_dict(res, self, "_init_subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+        save_to_dict(res, self, "_init_subtype",
+                     lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
         return res
 
     def size(self):

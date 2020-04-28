@@ -127,7 +127,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'gen_cost_per_MW': [0.0, 0.0, 0.0, 0.0, 10.0],
                       'gen_startup_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'gen_shutdown_cost': [0.0, 0.0, 0.0, 0.0, 0.0],
-                      'subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation',
+                      '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation',
                       "grid_layout": None,
                       'name_shunt': ['shunt_8_0'],
                       'shunt_to_subid': [8]}
@@ -424,7 +424,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.gen_pos_topo_vect == self.env.helper_observation.gen_pos_topo_vect)
         assert np.all(res.line_or_pos_topo_vect == self.env.helper_observation.line_or_pos_topo_vect)
         assert np.all(res.line_ex_pos_topo_vect == self.env.helper_observation.line_ex_pos_topo_vect)
-        assert np.all(res.observationClass == self.env.helper_observation.observationClass)
+        assert issubclass(res.observationClass, self.env.helper_observation._init_subtype)
 
     def test_json_serializable(self):
         dict_ = self.env.helper_observation.to_dict()
@@ -451,7 +451,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.gen_pos_topo_vect == self.env.helper_observation.gen_pos_topo_vect)
         assert np.all(res.line_or_pos_topo_vect == self.env.helper_observation.line_or_pos_topo_vect)
         assert np.all(res.line_ex_pos_topo_vect == self.env.helper_observation.line_ex_pos_topo_vect)
-        assert np.all(res.observationClass == self.env.helper_observation.observationClass)
+        assert issubclass(res.observationClass, self.env.helper_observation._init_subtype)
 
 
 class TestObservationHazard(unittest.TestCase):
@@ -752,7 +752,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         donothing_act = self.env.action_space()
         # Simulate & Step
         self.sim_obs, _, _, _ = self.obs.simulate(donothing_act)
-        self.step_obs, _, _, _ = self.env.step(donothing_act)        
+        self.step_obs, _, _, _ = self.env.step(donothing_act)
         # Test observations are the same
         assert self.sim_obs == self.step_obs
 

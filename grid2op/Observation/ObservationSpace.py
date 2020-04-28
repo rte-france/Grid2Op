@@ -95,7 +95,9 @@ class ObservationSpace(SerializableObservationSpace):
                                      thermal_limit_a=env._thermal_limit_a,
                                      legalActClass=env.legalActClass,
                                      donothing_act=env.helper_action_player(),
-                                     other_rewards=other_rewards)
+                                     other_rewards=other_rewards,
+                                     completeActionClass=env.helper_action_env.actionClass,
+                                     helper_action_class=env.helper_action_class)
 
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)

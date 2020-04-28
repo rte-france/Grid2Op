@@ -121,11 +121,13 @@ class TestActionBase(ABC):
                     }
 
         # self.size_act = 229
-
+        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
         # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
         self.helper_action = self._action_setup()
-        save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
-        # print(self.res["subtype"])
+        # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+        save_to_dict(self.res, self.helper_action,
+                     "_init_subtype",
+                     lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
         self.authorized_keys = self.helper_action().authorized_keys
         self.size_act = self.helper_action.size()
 
@@ -671,7 +673,8 @@ class TestActionBase(ABC):
 
     def test_to_dict(self):
         dict_ = self.helper_action.to_dict()
-        assert dict_ == self.res
+        self.maxDiff = None
+        self.assertDictEqual(dict_, self.res)
 
     def test_from_dict(self):
         res = ActionSpace.from_dict(self.res)
@@ -692,7 +695,7 @@ class TestActionBase(ABC):
         assert np.all(res.line_or_pos_topo_vect == self.helper_action.line_or_pos_topo_vect)
         assert np.all(res.line_ex_pos_topo_vect == self.helper_action.line_ex_pos_topo_vect)
         # pdb.set_trace()
-        assert np.all(res.actionClass == self.helper_action.actionClass)
+        assert issubclass(res.actionClass, self.helper_action._init_subtype)
 
     def test_json_serializable(self):
         dict_ = self.helper_action.to_dict()
@@ -719,7 +722,7 @@ class TestActionBase(ABC):
         assert np.all(res.gen_pos_topo_vect == self.helper_action.gen_pos_topo_vect)
         assert np.all(res.line_or_pos_topo_vect == self.helper_action.line_or_pos_topo_vect)
         assert np.all(res.line_ex_pos_topo_vect == self.helper_action.line_ex_pos_topo_vect)
-        assert np.all(res.actionClass == self.helper_action.actionClass)
+        assert issubclass(res.actionClass, self.helper_action._init_subtype)
 
     def test_as_dict(self):
         act = self.helper_action({})
@@ -793,7 +796,7 @@ class TestAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=BaseAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=BaseAction)
 
 
 class TestTopologyAction(TestActionBase, unittest.TestCase):
@@ -802,7 +805,7 @@ class TestTopologyAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAction)
 
 
 class TestDispatchAction(TestActionBase, unittest.TestCase):
@@ -811,7 +814,7 @@ class TestDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DispatchAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DispatchAction)
 
 
 class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -820,7 +823,7 @@ class TestTopologyAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyAndDispatchAction)
 
 
 class TestTopologySetAction(TestActionBase, unittest.TestCase):
@@ -829,7 +832,7 @@ class TestTopologySetAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAction)
 
 
 class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -838,7 +841,7 @@ class TestTopologySetAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAndDispatchAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologySetAndDispatchAction)
 
 
 class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
@@ -847,7 +850,7 @@ class TestTopologyChangeAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAction)
 
 
 class TestTopologyChangeAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -856,7 +859,7 @@ class TestTopologyChangeAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAndDispatchAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=TopologyChangeAndDispatchAction)
 
 
 class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
@@ -865,7 +868,7 @@ class TestPowerlineSetAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAction)
 
 
 class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
@@ -874,7 +877,7 @@ class TestPowerlineChangeAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAction)
 
 
 class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -883,7 +886,7 @@ class TestPowerlineSetAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAndDispatchAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineSetAndDispatchAction)
 
 
 class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
@@ -892,7 +895,7 @@ class TestPowerlineChangeAndDispatchAction(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAndDispatchAction)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=PowerlineChangeAndDispatchAction)
 
 
 class TestDontAct(TestActionBase, unittest.TestCase):
@@ -901,7 +904,7 @@ class TestDontAct(TestActionBase, unittest.TestCase):
     """
 
     def _action_setup(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
 
 
 class TestIADD:
@@ -975,6 +978,7 @@ class TestIADD:
                     "name_shunt": None
                     }
 
+        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
         # self.size_act = 229
         self.action_space_1 = self.get_action_space_1()
         self.action_space_2 = self.get_action_space_2()
@@ -1118,10 +1122,10 @@ class TestDontAct_PowerlineChangeAndDispatchAction(TestIADD, unittest.TestCase):
     Test suite using the DontAct class
     """
     def get_action_space_1(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action, actionClass=DontAct)
 
     def get_action_space_2(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
                            actionClass=PowerlineChangeAndDispatchAction)
 
 
@@ -1130,11 +1134,11 @@ class TestPowerlineChangeAndDispatchAction_PowerlineChangeAndDispatchAction(Test
     Test suite using the DontAct class
     """
     def get_action_space_1(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
                            actionClass=PowerlineChangeAndDispatchAction)
 
     def get_action_space_2(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
                            actionClass=PowerlineChangeAndDispatchAction)
 
 
@@ -1143,12 +1147,13 @@ class TestTopologyAndDispatchAction_PowerlineChangeAndDispatchAction(TestIADD, u
     Test suite using the DontAct class
     """
     def get_action_space_1(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
                            actionClass=TopologyAndDispatchAction)
 
     def get_action_space_2(self):
-        return ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action,
+        return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
                            actionClass=PowerlineChangeAndDispatchAction)
+
 
 if __name__ == "__main__":
     unittest.main()

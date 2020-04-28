@@ -442,5 +442,31 @@ class TestCascadingFailure(unittest.TestCase):
         assert not done
 
 
+class TestLoading2envDontCrash(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = make("rte_case14_test", test=True)
+            self.env2 = make("rte_case5_example", test=True)
+
+    def tearDown(self) -> None:
+        self.env1.close()
+        self.env2.close()
+
+    def test_loading(self):
+
+        donotghing1 = self.env1.action_space()
+        donotghing2 = self.env2.action_space()
+
+        assert donotghing1.n_sub == 14
+        assert donotghing2.n_sub == 5
+
+        obs1, *_ = self.env1.step(donotghing1)
+        obs2, *_ = self.env2.step(donotghing2)
+
+        assert obs1.n_sub == 14
+        assert obs2.n_sub == 5
+
+
 if __name__ == "__main__":
     unittest.main()

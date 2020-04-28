@@ -87,7 +87,7 @@ class SerializableActionSpace(SerializableSpace):
             A random action sampled from the :attr:`ActionSpace.actionClass`
 
         """
-        res = self.actionClass(gridobj=self)  # only the GridObjects part of "self" is actually used
+        res = self.actionClass()  # only the GridObjects part of "self" is actually used
         res.sample()
         return res
 
@@ -107,7 +107,7 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         if previous_action is None:
-            res = self.actionClass(gridobj=self)
+            res = self.actionClass()
         else:
             if not isinstance(previous_action, self.actionClass):
                 raise AmbiguousAction("The action to update using `ActionSpace` is of type \"{}\" "

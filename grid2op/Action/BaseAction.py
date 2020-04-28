@@ -255,7 +255,7 @@ class BaseAction(GridObjects):
         self._single_act = True
 
     def _get_array_from_attr_name(self, attr_name):
-        if attr_name in self.__dict__:
+        if hasattr(self, attr_name):
             res = super()._get_array_from_attr_name(attr_name)
         else:
             if attr_name in self._dict_inj:
@@ -271,7 +271,7 @@ class BaseAction(GridObjects):
         return res
 
     def _assign_attr_from_name(self, attr_nm, vect):
-        if attr_nm in self.__dict__:
+        if hasattr(self, attr_nm):
             super()._assign_attr_from_name(attr_nm, vect)
         else:
             if np.any(np.isfinite(vect)):
@@ -582,11 +582,11 @@ class BaseAction(GridObjects):
 
     def _assign_iadd_or_warn(self, attr_name, new_value):
         if attr_name not in self.attr_list_set:
-            if np.any(new_value != self.__dict__[attr_name]):
+            if np.any(new_value != getattr(self, attr_name)):
                 warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
                               "".format(attr_name))
         else:
-            self.__dict__[attr_name][:] = new_value
+            getattr(self, attr_name)[:] = new_value
 
     def __iadd__(self, other):
         """

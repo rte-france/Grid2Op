@@ -28,4 +28,3 @@ class DispatchAction(PlayableAction):
 
     def __init__(self):
         super().__init__()
-        # super().__init__(gridobj)
