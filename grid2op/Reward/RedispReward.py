@@ -40,11 +40,11 @@ class RedispReward(BaseReward):
         least_redisp = 0.  # lower_bound is 0
         base_marginal_cost = np.min(env.gen_cost_per_MW[env.gen_cost_per_MW > 0.])
         min_regret = (least_losses + least_redisp) * base_marginal_cost
-        self.reward_max = (self.max_regret - min_regret) / least_loads
+        self.reward_max = float((self.max_regret - min_regret) / least_loads)
 
     def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
-            res = self.reward_min * 0.5
+            res = self.reward_min
         else:
             # compute the losses
             gen_p, *_ = env.backend.generators_info()

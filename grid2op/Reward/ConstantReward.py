@@ -21,4 +21,4 @@ class ConstantReward(BaseReward):
         BaseReward.__init__(self)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        return 0
+        return 0.0
