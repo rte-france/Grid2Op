@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class GameplayReward(BaseReward):
     """
@@ -18,8 +18,8 @@ class GameplayReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = -1.0
-        self.reward_max = 1.0
+        self.reward_min = dt_float(-1.0)
+        self.reward_max = dt_float(1.0)
 
     def __call__(self, action, env, has_error,
                  is_done, is_illegal, is_ambiguous):

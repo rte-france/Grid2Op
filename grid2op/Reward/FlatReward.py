@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class FlatReward(BaseReward):
     """
@@ -16,10 +16,9 @@ class FlatReward(BaseReward):
     """
     def __init__(self, per_timestep=1):
         BaseReward.__init__(self)
-        self.per_timestep = per_timestep
-        self.total_reward = 0
-        self.reward_min = 0
-        self.reward_max = per_timestep
+        self.per_timestep = dt_float(per_timestep)
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(per_timestep)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not has_error:
