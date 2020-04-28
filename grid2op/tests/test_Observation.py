@@ -404,7 +404,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_to_dict(self):
         dict_ = self.env.helper_observation.to_dict()
-        assert dict_ == self.dict_
+        self.assertDictEqual(dict_, self.dict_)
 
     def test_from_dict(self):
         res = ObservationSpace.from_dict(self.dict_)
