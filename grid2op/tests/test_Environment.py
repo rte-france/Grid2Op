@@ -160,7 +160,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp = cProfile.Profile()
             cp.enable()
         beg_ = time.time()
-        cum_reward = 0
+        cum_reward = dt_float(0.0)
         while not done:
             do_nothing = self.env.helper_action_player({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
@@ -176,7 +176,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.disable()
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
-        assert np.abs(cum_reward - 5739.92911) <= self.tol_one, "Wrong reward"
+        expected_reward = dt_float(5739.9336)
+        assert dt_float(np.abs(cum_reward - expected_reward)) <= self.tol_one, "Wrong reward"
 
 
 class TestIllegalAmbiguous(unittest.TestCase):

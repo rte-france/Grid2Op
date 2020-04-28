@@ -604,7 +604,7 @@ class Runner(object):
 
         beg_ = time.time()
 
-        reward = env.reward_range[0]
+        reward = float(env.reward_range[0])
         done = False
 
         next_pbar = [False]
@@ -624,7 +624,7 @@ class Runner(object):
                                    float(reward), env.env_modification, act, obs, info)
             end_ = time.time()
 
-        episode.set_meta(env, time_step, cum_reward)
+        episode.set_meta(env, time_step, float(cum_reward))
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
                    "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
@@ -723,7 +723,7 @@ class Runner(object):
                 name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i, pbar=next_pbar[0])
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
-                res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
                 pbar_.update(1)
         return res
 
@@ -744,7 +744,7 @@ class Runner(object):
                 env, agent, runner.logger, p_id, path_save)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
-            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+            res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
         return res
 
     def run_parrallel(self, nb_episode, nb_process=1, path_save=None):
