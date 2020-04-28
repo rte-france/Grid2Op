@@ -27,7 +27,10 @@ from grid2op.MakeEnv import make
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
 # copied]
-
+file = "/tmp/tests_run"
+if os.path.exists(file):
+    with open(file, "r") as f:
+        print(f.readlines())
 
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = True
@@ -404,6 +407,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_to_dict(self):
         dict_ = self.env.helper_observation.to_dict()
+        self.maxDiff = None
         self.assertDictEqual(dict_, self.dict_)
 
     def test_from_dict(self):
