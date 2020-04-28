@@ -17,7 +17,7 @@ from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
-
+from grid2op.dtypes import dt_float
 
 class TestRunner(HelperTests):
     def setUp(self):
@@ -29,7 +29,7 @@ class TestRunner(HelperTests):
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
         self.max_iter = 10
-        self.real_reward = 199.99800
+        self.real_reward = dt_float(199.99800)
         self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
                                                     "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
                                                     "5_C201.84": 'load_4_4',

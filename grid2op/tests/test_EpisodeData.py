@@ -17,6 +17,7 @@ from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Runner import Runner
 from grid2op.Episode import EpisodeData
+from grid2op.dtypes import dt_float
 
 DEBUG = True
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
@@ -28,10 +29,10 @@ class TestEpisodeData(unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
         self.max_iter = 10
-        self.real_reward = 199.99800
+        self.real_reward = dt_float(199.99800)
 
         self.init_grid_path = os.path.join(
             PATH_DATA_TEST_PP, "test_case14.json")
@@ -75,8 +76,8 @@ class TestEpisodeData(unittest.TestCase):
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.other_rewards) == self.max_iter
         for other, real in zip(episode_data.other_rewards, episode_data.rewards):
-            assert np.abs(other["test"] - real) <= self.tol_one
-        assert np.abs(float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
+            assert dt_float(np.abs(other["test"] - real)) <= self.tol_one
+        assert np.abs(dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
 
     def test_3_episode_with_saving(self):
         f = tempfile.mkdtemp()
@@ -85,7 +86,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
             assert np.abs(
-                float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
+                dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
 
     def test_3_episode_3process_with_saving(self):
         f = tempfile.mkdtemp()
@@ -95,7 +96,7 @@ class TestEpisodeData(unittest.TestCase):
             episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
             assert np.abs(
-                float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
+                dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
 
 
 if __name__ == "__main__":

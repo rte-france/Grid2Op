@@ -9,7 +9,7 @@
 import numpy as np
 
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class LinesReconnectedReward(BaseReward):
     """
@@ -18,9 +18,9 @@ class LinesReconnectedReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = 0.0
-        self.reward_max = 1.0
-        self.penalty_max_at_n_lines = 2.0
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(1.0)
+        self.penalty_max_at_n_lines = dt_float(2.0)
 
     def __call__(self, action, env, has_error,
                  is_done, is_illegal, is_ambiguous):
@@ -35,14 +35,14 @@ class LinesReconnectedReward(BaseReward):
         # Only off cooldown lines
         lines_off_cooldown = lines_id[obs.time_before_cooldown_line <= 0 ]
 
-        n_penalties = 0.0
+        n_penalties = dt_float(0.0)
         for line_id in lines_off_cooldown:
             # Line could be reconnected but isn't
             if obs.line_status[line_id] == False:
-                n_penalties += 1.0
+                n_penalties += dt_float(1.0)
 
         max_p = self.penalty_max_at_n_lines
-        n_penalties = max(max_p, n_penalties)
-        r = np.interp(n_penalties, [0.0, max_p],
+        n_penalties = dt_float(max(max_p, n_penalties))
+        r = np.interp(n_penalties, [dt_float(0.0), max_p],
                       [self.reward_min, self.reward_max])
-        return r
+        return dt_float(r)

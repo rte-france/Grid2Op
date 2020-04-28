@@ -22,6 +22,7 @@ from grid2op.Reward import L2RPNReward
 from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Action import *
+from grid2op.dtypes import dt_float
 
 DEBUG = False
 PROFILE_CODE = False
@@ -40,8 +41,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         self.path_chron = os.path.join(PATH_CHRONICS, "chronics")
         self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
 
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
 
         # force the verbose backend
@@ -80,7 +81,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         pass
 
     def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        return dt_float(np.max(np.abs(pred- true))) <= self.tolvect
 
     def test_step_doesnt_change_action(self):
         act = self.env.action_space()
@@ -159,7 +160,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp = cProfile.Profile()
             cp.enable()
         beg_ = time.time()
-        cum_reward = 0
+        cum_reward = dt_float(0.0)
         while not done:
             do_nothing = self.env.helper_action_player({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
@@ -175,7 +176,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.disable()
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
-        assert np.abs(cum_reward - 5739.92911) <= self.tol_one, "Wrong reward"
+        expected_reward = dt_float(5739.9336)
+        assert dt_float(np.abs(cum_reward - expected_reward)) <= self.tol_one, "Wrong reward"
 
 
 class TestIllegalAmbiguous(unittest.TestCase):

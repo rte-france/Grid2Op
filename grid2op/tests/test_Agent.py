@@ -16,6 +16,7 @@ from grid2op.Exceptions import *
 from grid2op.MakeEnv import make
 from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
 from grid2op.Parameters import Parameters
+from grid2op.dtypes import dt_float
 
 import pdb
 
@@ -44,7 +45,7 @@ class TestAgent(HelperTests):
         done = False
         i = 0
         beg_ = time.time()
-        cum_reward = 0.
+        cum_reward = dt_float(0.0)
         act = self.env.helper_action_player({})
         time_act = 0.
         while not done:
@@ -83,19 +84,22 @@ class TestAgent(HelperTests):
         agent = DoNothingAgent(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for do nothing"
-        assert np.abs(cum_reward - 35140.02903) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(35140.027)
+        assert np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one, "The reward has not been properly computed"
 
     def test_1_powerlineswitch(self):
         agent = PowerLineSwitch(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-        assert np.abs(cum_reward - 35147.56210) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(35147.56)
+        assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.helper_action_player)
         i, cum_reward = self._aux_test_agent(agent, i_max=10)
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
-        assert np.abs(cum_reward - 12075.38803) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(12075.389)
+        assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
 
 
 if __name__ == "__main__":

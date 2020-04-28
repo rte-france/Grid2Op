@@ -9,7 +9,6 @@
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.Reward.ConstantReward import ConstantReward
 
-
 class RewardHelper:
     """
     This class aims at making the creation of rewards class more automatic by the :class:`grid2op.Environment`.

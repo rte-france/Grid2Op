@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from grid2op.Reward.BaseReward import BaseReward
-
+from grid2op.dtypes import dt_float
 
 class CombinedReward(BaseReward):
     """
@@ -15,14 +15,14 @@ class CombinedReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = 0.0
-        self.reward_max = 0.0
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(0.0)
         self.rewards = {}
 
     def addReward(self, reward_name, reward_instance, reward_weight = 1.0):
         self.rewards[reward_name] = {
             "instance": reward_instance,
-            "weight": reward_weight
+            "weight": dt_float(reward_weight)
         }
         return True
 
@@ -43,29 +43,29 @@ class CombinedReward(BaseReward):
             yield (k, v)
         for k, v in self.rewards.items():
             r_dict = dict(v["instance"])
-            r_dict["weight"] = v["weight"]
+            r_dict["weight"] = float(v["weight"])
             yield (k, r_dict)
 
     def initialize(self, env):
-        self.reward_min = 0.0
-        self.reward_max = 0.0
+        self.reward_min = dt_float(0.0)
+        self.reward_max = dt_float(0.0)
 
         for key, reward in self.rewards.items():
             reward_w = reward["weight"]
             reward_instance = reward["instance"]
             reward_instance.initialize(env)
-            self.reward_max += reward_instance.reward_max * reward_w
-            self.reward_min += reward_instance.reward_min * reward_w
+            self.reward_max += dt_float(reward_instance.reward_max * reward_w)
+            self.reward_min += dt_float(reward_instance.reward_min * reward_w)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
-        res = 0.0
+        res = dt_float(0.0)
         # Loop over registered rewards
         for key, reward in self.rewards.items():
             r_instance = reward["instance"]
             # Call individual reward
             r = r_instance(action, env, has_error, is_done, is_illegal, is_ambiguous)
             # Sum by weighted result
-            w = reward["weight"]
-            res += r * w
+            w = dt_float(reward["weight"])
+            res += dt_float(r) * w
         # Return total sum
         return res

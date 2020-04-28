@@ -9,6 +9,7 @@
 import numpy as np
 
 from grid2op.Reward.CombinedReward import CombinedReward
+from grid2op.dtypes import dt_float
 
 class CombinedScaledReward(CombinedReward):
     """
@@ -23,10 +24,10 @@ class CombinedScaledReward(CombinedReward):
 
     def __init__(self):
         super().__init__()
-        self.reward_min = -0.5
-        self.reward_max = 0.5
-        self._sum_max = float('inf')
-        self._sum_min = float('-inf')
+        self.reward_min = dt_float(-0.5)
+        self.reward_max = dt_float(0.5)
+        self._sum_max = dt_float(0.0)
+        self._sum_min = dt_float(0.0)
         self.rewards = {}
 
     def initialize(self, env):
@@ -34,18 +35,18 @@ class CombinedScaledReward(CombinedReward):
         Overloaded initialze from `Reward.CombinedReward`.
         This is because it needs to store the ranges internaly
         """
-        self._sum_max = 0.0
-        self._sum_min = 0.0
+        self._sum_max = dt_float(0.0)
+        self._sum_min = dt_float(0.0)
         for key, reward in self.rewards.items():
-            reward_w = reward["weight"]
+            reward_w = dt_float(reward["weight"])
             reward_instance = reward["instance"]
             reward_instance.initialize(env)
-            self._sum_max += reward_instance.reward_max * reward_w
-            self._sum_min += reward_instance.reward_min * reward_w
+            self._sum_max += dt_float(reward_instance.reward_max * reward_w)
+            self._sum_min += dt_float(reward_instance.reward_min * reward_w)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         # Get weighted sum from parent
         ws = super().__call__(action, env, has_error, is_done, is_illegal, is_ambiguous)
         # Scale to range
         res = np.interp(ws, [self._sum_min, self._sum_max], [self.reward_min, self.reward_max])
-        return res
+        return dt_float(res)

@@ -29,6 +29,7 @@ from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
+from grid2op.dtypes import dt_float
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -524,7 +525,7 @@ class Runner(object):
 
         Returns
         -------
-        cum_reward: ``float``
+        cum_reward: ``np.float32``
             The cumulative reward obtained by the agent during this episode
 
         time_step: ``int``
@@ -542,7 +543,7 @@ class Runner(object):
         time_step = int(0)
         dict_ = {}
         time_act = 0.
-        cum_reward = 0.
+        cum_reward = dt_float(0.0)
 
         # reset the environment
         env.chronics_handler.tell_id(indx-1)
@@ -607,7 +608,7 @@ class Runner(object):
 
         beg_ = time.time()
 
-        reward = env.reward_range[0]
+        reward = float(env.reward_range[0])
         done = False
 
         next_pbar = [False]
@@ -624,10 +625,10 @@ class Runner(object):
                 pbar_.update(1)
 
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   reward, env.env_modification, act, obs, info)
+                                   float(reward), env.env_modification, act, obs, info)
             end_ = time.time()
 
-        episode.set_meta(env, time_step, cum_reward)
+        episode.set_meta(env, time_step, float(cum_reward))
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
                    "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
@@ -726,7 +727,7 @@ class Runner(object):
                 name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i, pbar=next_pbar[0])
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
-                res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
                 pbar_.update(1)
         return res
 
@@ -747,7 +748,7 @@ class Runner(object):
                 env, agent, runner.logger, p_id, path_save)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
-            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+            res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
         return res
 
     def run_parrallel(self, nb_episode, nb_process=1, path_save=None):
