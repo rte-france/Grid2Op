@@ -192,6 +192,7 @@ class PlotMatplot(BasePlot):
         self.ax.text(txt_x, txt_y, text,
                      color=self._load_txt_color,
                      horizontalalignment=ha,
+                     fontsize='small',
                      verticalalignment=va)
     
     def _draw_load_name(self, pos_x, pos_y, txt):
@@ -270,6 +271,7 @@ class PlotMatplot(BasePlot):
         self.ax.text(txt_x, txt_y, text,
                      color=self._gen_txt_color,
                      wrap=True,
+                     fontsize='small',
                      horizontalalignment=ha,
                      verticalalignment=va)
 
@@ -351,6 +353,7 @@ class PlotMatplot(BasePlot):
         va = self._v_textpos_from_dir(off_x, off_y)
         self.ax.text(txt_x, txt_y, text,
                      color=self._gen_txt_color,
+                     fontsize='small',
                      horizontalalignment=ha,
                      verticalalignment=va)
     

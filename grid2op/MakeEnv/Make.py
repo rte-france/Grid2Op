@@ -20,6 +20,7 @@ TEST_DEV_ENVS = {
     "rte_case14_redisp": DEV_DATASET.format("rte_case14_redisp"),
     "rte_case14_test": DEV_DATASET.format("rte_case14_test"),
     "rte_case5_example": DEV_DATASET.format("rte_case5_example"),
+    "rte_case118_example": DEV_DATASET.format("rte_case118_example"),
     # keep the old names for now
     "case14_realistic": DEV_DATASET.format("rte_case14_realistic"),
     "case14_redisp": DEV_DATASET.format("rte_case14_redisp"),
