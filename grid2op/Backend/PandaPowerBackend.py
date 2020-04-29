@@ -239,7 +239,7 @@ class PandaPowerBackend(Backend):
             self.name_line += [name_traf for name_traf in self._grid.trafo["name"]]
         else:
             transfo = [('{hv_bus}'.format(**row), '{lv_bus}'.format(**row))
-                    for i, (_, row) in enumerate(self._grid.trafo.iterrows())]
+                       for i, (_, row) in enumerate(self._grid.trafo.iterrows())]
             transfo = [sorted(el) for el in transfo]
             self.name_line += ['{}_{}_{}'.format(*el, i + self._grid.line.shape[0]) for i, el in enumerate(transfo)]
         self.name_line = np.array(self.name_line)
