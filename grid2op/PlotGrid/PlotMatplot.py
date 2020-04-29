@@ -477,3 +477,4 @@ class PlotMatplot(BasePlot):
     def plot_postprocess(self, figure, observation, update):
         self.ax.set_xlim(self.xlim[0] - self.xpad, self.xlim[1] + self.xpad)
         self.ax.set_ylim(self.ylim[0] - self.ypad, self.ylim[1] + self.ypad)
+        figure.tight_layout()
