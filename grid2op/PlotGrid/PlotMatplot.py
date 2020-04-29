@@ -117,9 +117,9 @@ class PlotMatplot(BasePlot):
         self._line_arrow_width = 10.0
 
         self.xlim = [0, 0]
-        self.xpad = 50
+        self.xpad = 20
         self.ylim = [0, 0]
-        self.ypad = 50
+        self.ypad = 20
 
     def _v_textpos_from_dir(self, dirx, diry):
         if diry > 0:
