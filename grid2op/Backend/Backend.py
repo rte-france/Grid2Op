@@ -611,6 +611,16 @@ class Backend(GridObjects, ABC):
 
         """
         infos = []
+        # print("\t\t gen p_mw {}".format(np.sum(self._grid.gen["p_mw"])))  # OK
+        # print("\t\t gen vm_pu {}".format(np.sum(self._grid.gen["vm_pu"])))  # OK
+        # print("\t\t load p_mw {}".format(np.sum(self._grid.load["p_mw"])))  # OK
+        # print("\t\t line in_service {}".format(np.sum(self._grid.line["in_service"])))  # OK
+        # print("\t\t shunt in_service {}".format(np.sum(self._grid.shunt["in_service"])))  # OK
+        # print("\t\t shunt q {}".format(np.sum(self._grid.shunt["q_mvar"])))  # OK
+        # print("\t\t load q_mvar {}".format(np.sum(self._grid.load["q_mvar"])))  # OK
+        # print("slack bus {}".format(self._grid["ext_grid"]))  # OK
+        # print("slack p {}".format(self._grid._ppc["gen"][self._iref_slack, 1]))
+        # self._nb_bus_before = None
         self._runpf_with_diverging_exception(is_dc)
 
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)

@@ -21,6 +21,7 @@ from grid2op.Opponent import OpponentSpace, UnlimitedBudget
 from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
+from grid2op.Action._BackendAction import _BackendAction
 from grid2op.Action import ActionSpace
 import pdb
 
@@ -213,6 +214,10 @@ class BaseEnv(GridObjects, ABC):
         # backend
         self.init_grid_path = None
 
+        # backend action
+        self._backend_action_class = None
+        self._backend_action = None
+
         # specific to Basic Env, do not change
         self.backend = None
         self.__is_init = False
@@ -252,6 +257,8 @@ class BaseEnv(GridObjects, ABC):
         self.__class__ = self.init_grid(self.backend)  # create the proper environment class for this specific environment
         if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
             raise EnvironmentError("Environment has not been initialized properly")
+        self._backend_action_class = _BackendAction.init_grid(self.backend)
+        self._backend_action = self._backend_action_class()
 
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
@@ -684,8 +691,10 @@ class BaseEnv(GridObjects, ABC):
             The voltages that has been specified in the chronics
 
         """
+        res = self.helper_action_env()
         if prod_v_chronics is not None:
-            self.env_modification.update({"injection": {"prod_v": prod_v_chronics}})
+            res.update({"injection": {"prod_v": prod_v_chronics}})
+        return res
 
     def _handle_updown_times(self, gen_up_before, redisp_act):
         # get the generators that are not connected after the action
@@ -869,6 +878,7 @@ class BaseEnv(GridObjects, ABC):
 
         previous_disp = 1.0 * self.actual_dispatch
         previous_target_disp = 1.0 * self.target_dispatch
+        self._backend_action.reset()
         try:
             # "smart" reconnecting
             action = self._restore_missing_reconnecting_lines_buses(action)
@@ -928,6 +938,9 @@ class BaseEnv(GridObjects, ABC):
                     action = self.helper_action_player({})
                     except_.append(except_tmp)
 
+            self._backend_action += action
+            self._backend_action += self.env_modification
+
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
             action._redispatch[:] = 0.
@@ -946,7 +959,9 @@ class BaseEnv(GridObjects, ABC):
             self.env_modification._single_act = False
 
             # now get the new generator voltage setpoint
-            self._voltage_control(action, prod_v_chronics)
+            voltage_control_act = self._voltage_control(action, prod_v_chronics)
+            self.env_modification += voltage_control_act
+            self._backend_action += voltage_control_act
 
             # have the opponent here
             # TODO code the opponent part here and split more the timings! here "opponent time" is
@@ -955,6 +970,7 @@ class BaseEnv(GridObjects, ABC):
             attack = self.oppSpace.attack(observation=self.current_obs,
                                           agent_action=action,
                                           env_action=self.env_modification)
+            self._backend_action += attack
             try:
                 self.backend.apply_action(attack)
             except Exception as e:
@@ -968,13 +984,14 @@ class BaseEnv(GridObjects, ABC):
             try:
                 # compute the next _grid state
                 beg_ = time.time()
+                # print("line status: {}".format(np.sum(self.backend.get_line_status())))
                 disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
                 self._time_powerflow += time.time() - beg_
 
                 beg_ = time.time()
                 self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                 overflow_lines = self.backend.get_line_overflow()
-                # overflow_lines = np.full(self.n_line, fill_value=False, dtype=dt_bool)
+                self._backend_action.update_state(disc_lines)
 
                 # one timestep passed, i can maybe reconnect some lines
                 self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1

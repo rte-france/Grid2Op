@@ -97,7 +97,8 @@ class ObservationSpace(SerializableObservationSpace):
                                      donothing_act=env.helper_action_player(),
                                      other_rewards=other_rewards,
                                      completeActionClass=env.helper_action_env.actionClass,
-                                     helper_action_class=env.helper_action_class)
+                                     helper_action_class=env.helper_action_class,
+                                     helper_action_env=env.helper_action_env)
 
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)

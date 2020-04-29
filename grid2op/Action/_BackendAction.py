@@ -25,12 +25,12 @@ class ValueStore:
     def _set_val_float(self, newvals):
         changed_ = np.isfinite(newvals)
         self.changed[changed_] = True
-        self.values[changed_] = newvals
+        self.values[changed_] = newvals[changed_]
 
     def _set_val_int(self, newvals):
         changed_ = newvals != 0
         self.changed[changed_] = True
-        self.values[changed_] = newvals
+        self.values[changed_] = newvals[changed_]
 
     def _change_val_int(self, newvals):
         changed_ = newvals & self.values > 0
@@ -48,6 +48,8 @@ class ValueStore:
 
     def change_status(self, switch, lineor_id, lineex_id, old_vect):
         for i, el in enumerate(switch):
+            if not el:
+                continue
             id_or = lineor_id[i]
             id_ex = lineex_id[i]
             self.changed[id_or] = True
@@ -60,21 +62,61 @@ class ValueStore:
                 self.values[id_ex] = -1
             else:
                 # i need to reconnect it
-                self.values[id_or] = old_vect.values[id_or]
-                self.values[id_ex] = old_vect.values[id_ex]
+                self.values[id_or] = old_vect[id_or]
+                self.values[id_ex] = old_vect[id_ex]
 
-    def set_status(self, set, lineor_id, lineex_id):
+    def set_status(self, set, lineor_id, lineex_id, old_vect):
         # TODO
-    
+        for i, el in enumerate(set):
+            id_or = lineor_id[i]
+            id_ex = lineex_id[i]
+            if el == -1:
+                if self.values[id_or] != -1:
+                    self.values[id_or] = -1
+                    self.changed[id_or] = True
+
+                if self.values[id_ex] != -1:
+                    self.values[id_ex] = -1
+                    self.changed[id_ex] = True
+            elif el == 1:
+                if self.values[id_or] == -1:
+                    self.values[id_or] = old_vect[id_or]
+                    self.changed[id_or] = True
+
+                if self.values[id_ex] == -1:
+                    self.values[id_ex] = old_vect[id_ex]
+                    self.changed[id_ex] = True
+
+    def update_connected(self, current_values):
+        indx_conn = current_values.values > 0
+        self.values[indx_conn] = current_values.values[indx_conn]
+
+    def all_changed(self):
+        self.reset()
+        self.changed[:] = True
+
+    def __getitem__(self, item):
+        return self.values[item]
+
+    def __setitem__(self, key, value):
+        self.values[key] = value
+        self.changed[key] = value
+
     def __iter__(self):
         return self
 
     def __next__(self):
+        res = None
         while self.last_index < self.values.shape[0]:
             if self.changed[self.last_index]:
-                return self.values[self.last_index]
+                res = (self.last_index, self.values[self.last_index])
             self.last_index += 1
-        raise StopIteration
+            if res is not None:
+                break
+        if res is not None:
+            return res
+        else:
+            raise StopIteration
 
 
 class _BackendAction(GridObjects):
@@ -90,7 +132,7 @@ class _BackendAction(GridObjects):
         self.last_topo_registered = ValueStore(self.dim_topo, dtype=dt_int)
 
         # topo at time t
-        self.curent_topo = ValueStore(self.dim_topo, dtype=dt_int)
+        self.current_topo = ValueStore(self.dim_topo, dtype=dt_int)
 
         # injection at time t
         self.prod_p = ValueStore(self.n_gen, dtype=dt_float)
@@ -109,7 +151,7 @@ class _BackendAction(GridObjects):
         self.last_topo_registered.reset()
 
         # topo at time t
-        self.curent_topo.reset()
+        self.current_topo.reset()
 
         # injection at time t
         self.prod_p.reset()
@@ -122,6 +164,25 @@ class _BackendAction(GridObjects):
             self.shunt_p.reset()
             self.shunt_q.reset()
             self.shunt_bus.reset()
+
+    def all_changed(self):
+        # last topo
+        self.last_topo_registered.all_changed()
+
+        # topo at time t
+        self.current_topo.all_changed()
+
+        # injection at time t
+        self.prod_p.all_changed()
+        self.prod_v.all_changed()
+        self.load_p.all_changed()
+        self.load_q.all_changed()
+
+        # shunts
+        # if self.shunts_data_available:
+        #     self.shunt_p.all_changed()
+        #     self.shunt_q.all_changed()
+        #     self.shunt_bus.all_changed()
 
     def __iadd__(self, other):
         """
@@ -137,8 +198,8 @@ class _BackendAction(GridObjects):
         """
         dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = other()
 
-        # deal with injections
-        ## set the injection
+        # I deal with injections
+        # Ia set the injection
         if "load_p" in dict_injection:
             tmp = dict_injection["load_p"]
             self.load_p.set_val(tmp)
@@ -151,12 +212,11 @@ class _BackendAction(GridObjects):
         if "prod_v" in dict_injection:
             tmp = dict_injection["prod_v"]
             self.prod_v.set_val(tmp)
+        # Ib change the injection aka redispatching
+        self.prod_p.change_val(redispatching)
 
-        ## change the injection aka redispatching
-        self.prod_p.set_val(redispatching)
-
-        # shunts
-        if self.shunts_data_available:
+        # II shunts
+        if self.shunts_data_available and shunts:
             arr_ = shunts["shunt_p"]
             self.shunt_p.set_val(arr_)
             arr_ = shunts["shunt_q"]
@@ -164,18 +224,27 @@ class _BackendAction(GridObjects):
             arr_ = shunts["shunt_bus"]
             self.shunt_bus.set_val(arr_)
 
-        # line status
-        # TODO
-        self.line_or_pos_topo_vect
-        self.line_ex_pos_topo_vect
+        # III line status
+        # this need to be done BEFORE the topology, as a connected powerline will be connected to their old bus.
+        # regardless if the status is changed in the action or not.
+        self.current_topo.change_status(switch_status,
+                                        self.line_or_pos_topo_vect,
+                                        self.line_ex_pos_topo_vect,
+                                        self.last_topo_registered)
+        self.current_topo.set_status(set_status,
+                                    self.line_or_pos_topo_vect,
+                                    self.line_ex_pos_topo_vect,
+                                    self.last_topo_registered)
 
-        # topo
-        self.curent_topo.change_val(switcth_topo_vect)
-        self.curent_topo.set_val(set_topo_vect)
+        # IV topo
+        self.current_topo.change_val(switcth_topo_vect)
+        self.current_topo.set_val(set_topo_vect)
+
+        return self
 
     def __call__(self):
         injections = self.prod_p, self.prod_v, self.load_p, self.load_q
-        topo = self.curent_topo
+        topo = self.current_topo
         shunts = None
         if self.shunts_data_available:
             shunts = self.shunt_p, self.shunt_q, self.shunt_bus
@@ -183,4 +252,15 @@ class _BackendAction(GridObjects):
         return injections, topo, shunts
 
     def update_state(self, powerline_disconnected):
-        # TODO update the last_topo_registered, and disconnect the proper powerlines
+        """
+        Update the internal state. Should be called after the cascading failures
+
+        """
+        arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
+        arr_[powerline_disconnected] = -1
+        self.current_topo.set_status(arr_,
+                                    self.line_or_pos_topo_vect,
+                                    self.line_ex_pos_topo_vect,
+                                    self.last_topo_registered)
+        self.last_topo_registered.update_connected(self.current_topo)
+        self.current_topo.reset()
