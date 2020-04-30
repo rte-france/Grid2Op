@@ -412,6 +412,7 @@ class TestActionBase(ABC):
             pass
 
     def test_ambiguity_line_reconnected_without_bus(self):
+        self.skipTest("deprecated with backend action")
         self._skipMissingKey('set_line_status')
         arr = np.zeros(self.helper_action.n_line)
         arr[1] = 1

@@ -11,7 +11,9 @@ from grid2op.Space import GridObjects
 # TODO see if it can be done in c++ easily
 class ValueStore:
     def __init__(self, size, dtype):
-        self.values = np.zeros(size, dtype=dtype)
+        ## TODO at the init it's mandatory to have everything at "1" here
+        # if topo is not "fully connected" it will not work
+        self.values = np.ones(size, dtype=dtype)
         self.changed = np.full(size, dtype=dt_bool, fill_value=False)
         self.last_index = 0
 
@@ -140,6 +142,9 @@ class _BackendAction(GridObjects):
         self.load_p = ValueStore(self.n_load, dtype=dt_float)
         self.load_q = ValueStore(self.n_load, dtype=dt_float)
 
+        self.activated_bus = np.full((self.n_sub, 2), dtype=dt_bool, fill_value=False)
+        self.big_topo_to_subid = np.repeat(list(range(self.n_sub)), repeats=self.sub_info)
+
         # shunts
         if self.shunts_data_available:
             self.shunt_p = ValueStore(self.n_shunt, dtype=dt_float)
@@ -232,9 +237,9 @@ class _BackendAction(GridObjects):
                                         self.line_ex_pos_topo_vect,
                                         self.last_topo_registered)
         self.current_topo.set_status(set_status,
-                                    self.line_or_pos_topo_vect,
-                                    self.line_ex_pos_topo_vect,
-                                    self.last_topo_registered)
+                                     self.line_or_pos_topo_vect,
+                                     self.line_ex_pos_topo_vect,
+                                     self.last_topo_registered)
 
         # IV topo
         self.current_topo.change_val(switcth_topo_vect)
@@ -248,8 +253,13 @@ class _BackendAction(GridObjects):
         shunts = None
         if self.shunts_data_available:
             shunts = self.shunt_p, self.shunt_q, self.shunt_bus
+        self._get_active_bus()
+        return self.activated_bus, injections, topo, shunts
 
-        return injections, topo, shunts
+    def _get_active_bus(self):
+        self.activated_bus[:] = False
+        tmp = self.current_topo.values-1
+        self.activated_bus[self.big_topo_to_subid, tmp] = True
 
     def update_state(self, powerline_disconnected):
         """

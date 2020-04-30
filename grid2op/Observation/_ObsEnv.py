@@ -204,7 +204,7 @@ class _ObsEnv(BaseEnv):
 
         self._action += new_state_action
 
-
+        # TODO set the shunts here
         self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
         self._backend_action_set += self.helper_action_env({"set_line_status": np.array(self._line_status, dtype=dt_int),
@@ -232,9 +232,20 @@ class _ObsEnv(BaseEnv):
         self.actual_dispatch[:] = self.actual_dispatch_init
         self.last_bus_line_or[:] = self.last_bus_line_or_init
         self.last_bus_line_ex[:] = self.last_bus_line_ex_init
-        self._backend_action_set.all_changed()
-        self.backend.apply_action(self._do_nothing_act, self._backend_action_set)
-        # self.backend.apply_action(self._action)
+        new = True
+        save = False
+        if new:
+            self._backend_action_set.all_changed()
+            # self.backend.apply_action(None, self._backend_action_set)
+            self._backend_action = copy.deepcopy(self._backend_action_set)
+            if save:
+                import pandapower as pp
+                pp.to_json(self.backend._grid, "test_action2.json")
+        else:
+            self.backend.apply_action(self._action)
+            if save:
+                import pandapower as pp
+                pp.to_json(self.backend._grid, "test_action1.json")
         # print("load after applying act: {}".format(self.backend._grid.load["p_mw"].values[0]))
 
     def simulate(self, action):
@@ -275,18 +286,18 @@ class _ObsEnv(BaseEnv):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
-        print("-----")
+        # print("-----")
         self._reset_to_orig_state()
-        print("\t before {}".format(np.sum(self.backend._grid.gen["p_mw"])))
-        self.backend._pf_init = "dc"
+        # print("\t before {}".format(np.sum(self.backend._grid.gen["p_mw"])))
+        # self.backend._pf_init = "dc"
         # TODO set back the "change" to True
         obs, reward, done, info = self.step(action)
-        print("\t {}".format(reward))
+        # print("\t {}".format(reward))
         # print("\t after {}".format(np.sum(self.backend._grid.res_gen["p_mw"])))
         # print("\t after {}".format(np.sum(self.backend._grid.res_bus["vm_pu"])))
-        print("\t after {}".format(np.sum(self.backend._grid.res_shunt["vm_pu"])))
-        print("\t after {}".format(np.sum(self.backend._grid.shunt["q_mvar"])))
-        print("\t\t{}".format(np.sum(obs.prod_p)))
+        # print("\t after {}".format(np.sum(self.backend._grid.res_shunt["vm_pu"])))
+        # print("\t after {}".format(np.sum(self.backend._grid.shunt["q_mvar"])))
+        # print("\t\t{}".format(np.sum(obs.prod_p)))
         # print("p {}".format(self.backend._grid.res_gen.iloc[0]["vm_pu"]))
         # print("p {}".format(self.backend._grid.res_gen.iloc[1]["vm_pu"]))
         # print("p {}".format(self.backend._grid.res_gen.iloc[2]["vm_pu"]))

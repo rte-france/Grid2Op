@@ -878,10 +878,11 @@ class BaseEnv(GridObjects, ABC):
 
         previous_disp = 1.0 * self.actual_dispatch
         previous_target_disp = 1.0 * self.target_dispatch
-        self._backend_action.reset()
+        old = False
         try:
             # "smart" reconnecting
-            action = self._restore_missing_reconnecting_lines_buses(action)
+            if old:
+                action = self._restore_missing_reconnecting_lines_buses(action)
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:
@@ -938,30 +939,35 @@ class BaseEnv(GridObjects, ABC):
                     action = self.helper_action_player({})
                     except_.append(except_tmp)
 
-            self._backend_action += action
-            self._backend_action += self.env_modification
-
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
             action._redispatch[:] = 0.
-            try:
-                self.backend.apply_action(action)
-            except AmbiguousAction as e:
-                # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
-                # "do nothing"
-                is_ambiguous = True
-                except_.append(e)
+            if old:
+                try:
+                    self.backend.apply_action(action)
+                except AmbiguousAction as e:
+                    # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
+                    # "do nothing"
+                    is_ambiguous = True
+                    except_.append(e)
+            else:
+                self._backend_action += action
             action._redispatch[:] = init_disp
 
             self.env_modification._redispatch[:] = self.actual_dispatch
+            if not old:
+                self._backend_action += self.env_modification
+
             # action, for redispatching is composed of multiple actions, so basically i won't check
             # ramp_min and ramp_max
             self.env_modification._single_act = False
 
             # now get the new generator voltage setpoint
             voltage_control_act = self._voltage_control(action, prod_v_chronics)
-            self.env_modification += voltage_control_act
-            self._backend_action += voltage_control_act
+            if old:
+                self.env_modification += voltage_control_act
+            else:
+                self._backend_action += voltage_control_act
 
             # have the opponent here
             # TODO code the opponent part here and split more the timings! here "opponent time" is
@@ -970,14 +976,21 @@ class BaseEnv(GridObjects, ABC):
             attack = self.oppSpace.attack(observation=self.current_obs,
                                           agent_action=action,
                                           env_action=self.env_modification)
-            self._backend_action += attack
-            try:
-                self.backend.apply_action(attack)
-            except Exception as e:
-                self.oppSpace.has_failed()
+            if old:
+                try:
+                    self.backend.apply_action(attack)
+                except Exception as e:
+                    self.oppSpace.has_failed()
+            else:
+                self._backend_action += attack
+
             self._time_opponent += time.time() - tick
 
-            self.backend.apply_action(self.env_modification)
+            if old:
+                self.backend.apply_action(self.env_modification)
+            else:
+                self.backend.apply_action(None, self._backend_action)
+
             self._time_apply_act += time.time() - beg_
 
             self.nb_time_step += 1
@@ -1039,6 +1052,7 @@ class BaseEnv(GridObjects, ABC):
             # episode is over
             is_done = True
 
+        self._backend_action.reset()
         # Save the lines buses for later reconnecting
         self._save_connected_lines_buses()
 

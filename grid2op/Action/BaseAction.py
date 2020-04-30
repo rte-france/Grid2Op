@@ -1403,14 +1403,17 @@ class BaseAction(GridObjects):
                                    "2). A number higher than 2 has been found: substations with more than 2 busbars"
                                    "are not supported by grid2op.")
 
-        for q_id, status in enumerate(self._set_line_status):
-            if status == 1:
-                # i reconnect a powerline, i need to check that it's connected on both ends
-                if self._set_topo_vect[self.line_or_pos_topo_vect[q_id]] == 0 or \
-                        self._set_topo_vect[self.line_ex_pos_topo_vect[q_id]] == 0:
+        if False:
+            # TODO find an elegant way to disable that
+            # now it's possible.
+            for q_id, status in enumerate(self._set_line_status):
+                if status == 1:
+                    # i reconnect a powerline, i need to check that it's connected on both ends
+                    if self._set_topo_vect[self.line_or_pos_topo_vect[q_id]] == 0 or \
+                            self._set_topo_vect[self.line_ex_pos_topo_vect[q_id]] == 0:
 
-                    raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
-                                            " which bus.".format(q_id))
+                        raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
+                                                " which bus.".format(q_id))
 
         # if i disconnected of a line, but i modify also the bus where it's connected
         idx = self._set_line_status == -1
