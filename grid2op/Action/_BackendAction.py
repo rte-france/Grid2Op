@@ -35,7 +35,7 @@ class ValueStore:
         self.values[changed_] = newvals[changed_]
 
     def _change_val_int(self, newvals):
-        changed_ = newvals & self.values > 0
+        changed_ = newvals & (self.values > 0)
         self.changed[changed_] = True
         self.values[changed_] = (1 - self.values[changed_]) + 2
 
@@ -202,7 +202,6 @@ class _BackendAction(GridObjects):
 
         """
         dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = other()
-
         # I deal with injections
         # Ia set the injection
         if "load_p" in dict_injection:

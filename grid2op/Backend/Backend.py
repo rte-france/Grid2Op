@@ -683,7 +683,6 @@ class Backend(GridObjects, ABC):
         p_ex, q_ex, v_ex, *_ = self.lines_ex_info()
         p_gen, q_gen, v_gen = self.generators_info()
         p_load, q_load, v_load = self.loads_info()
-        p_s, q_s, v_s, bus_s = self.shunt_info()
 
         # fist check the "substation law" : nothing is created at any substation
         p_subs = np.zeros(self.n_sub)
@@ -728,14 +727,15 @@ class Backend(GridObjects, ABC):
             q_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += q_load[i]
 
         if self.shunts_data_available:
-            for i in range(len(p_s)):
-                tmp_bus = bus_s[i]
-                sub_id = self.sub_from_bus_id(tmp_bus)
-                p_subs[sub_id] += p_s[i]
-                q_subs[sub_id] += q_s[i]
+            p_s, q_s, v_s, bus_s = self.shunt_info()
+            for i in range(self.n_shunt):
+                # for substations
+                p_subs[self.shunt_to_subid[i]] += p_s[i]
+                q_subs[self.shunt_to_subid[i]] += q_s[i]
 
-                p_bus[sub_id, 1*(tmp_bus!=sub_id)] += p_s[i]
-                q_bus[sub_id, 1*(tmp_bus!=sub_id)] += q_s[i]
+                # for buses
+                p_bus[self.shunt_to_subid[i], bus_s[i] - 1] += p_s[i]
+                q_bus[self.shunt_to_subid[i], bus_s[i] - 1] += q_s[i]
         else:
             warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                           "incorrect.")

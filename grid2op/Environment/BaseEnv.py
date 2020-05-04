@@ -900,6 +900,7 @@ class BaseEnv(GridObjects, ABC):
 
             # get the modification of generator active setpoint from the environment
             self.env_modification, prod_v_chronics = self._update_actions()
+            self.env_modification._single_act = False  # because it absorbs all redispatching actions
             new_p = self._get_new_prod_setpoint(action)
 
             if self.redispatching_unit_commitment_availble:

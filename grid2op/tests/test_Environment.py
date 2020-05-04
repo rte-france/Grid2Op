@@ -201,6 +201,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_ambiguous_detected(self):
+        self.skipTest("deprecated test as the reconnection is handled by backend action")
         act = self.env.helper_action_player({"set_line_status": [(1, 1)]})
         obs, reward, done, info = self.env.step(act)
         assert info['is_ambiguous']
