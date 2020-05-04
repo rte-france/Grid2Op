@@ -69,7 +69,7 @@ pip3 install grid2op
 git clone https://github.com/rte-france/Grid2Op.git
 cd Grid2Op
 pip3 install -e .
-pip3 install -e .[test]
+pip3 install -e .[optional]
 pip3 install -e .[docs]
 ```
 
@@ -162,7 +162,7 @@ Provided that Grid2Op is installed *from source*:
 
 ## Install additional dependencies
 ```commandline
-pip3 install -U grid2op[test]
+pip3 install -U grid2op[optional]
 ```
 ## Launch tests
 ```commandline

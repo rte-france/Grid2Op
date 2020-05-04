@@ -23,12 +23,10 @@ pkgs = {
         "requests>=2.23.0"
     ],
     "extras": {
-        "test": [
+        "optional": [
             "nbformat>=5.0.4",
             "jupyter-client>=6.1.0",
-            "jyquickhelper>=0.3.128"
-        ],
-        "optional": [
+            "jyquickhelper>=0.3.128",
             "numba>=0.48.0",
             "matplotlib>=3.2.1",
             "plotly>=4.5.4",
@@ -36,10 +34,6 @@ pkgs = {
             "imageio>=2.8.0",
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0"
-        ],
-        "deprecated": [
-            "pygame>=1.9.6",
-            "imageio-ffmpeg>=0.4.1"
         ],
         "challenge": [
             "numpy==1.18.3",
