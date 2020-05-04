@@ -476,6 +476,7 @@ class Environment(BaseEnv):
         if self._thermal_limit_a is not None:
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
+        self._backend_action = self._backend_action_class()
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
