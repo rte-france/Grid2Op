@@ -23,7 +23,7 @@ class EconomicReward(BaseReward):
     """
     def __init__(self):
         BaseReward.__init__(self)
-        self.reward_min = dt_float(-1.0)
+        self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
         self.worst_cost = None
 
@@ -32,8 +32,6 @@ class EconomicReward(BaseReward):
             raise Grid2OpException("Impossible to use the EconomicReward reward with an environment without generators"
                                    "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
         self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW *env.gen_pmax))
-        self.reward_min = dt_float(-1.0)
-        self.reward_max = dt_float(self.worst_cost)
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
@@ -45,4 +43,6 @@ class EconomicReward(BaseReward):
             res *= dt_float(-1.0)
             # to be sure it's positive, add the highest possible cost
             res += self.worst_cost
-        return res
+
+        res = np.interp(res, [dt_float(0.0), self.worst_cost], [self.reward_min, self.reward_max])
+        return dt_float(res)

@@ -53,8 +53,8 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
     G = nx.Graph()
 
     sub_w = 0 if use_initial else 100
-    load_w = 20 if use_initial else 15
-    gen_w = 20 if use_initial else 25
+    load_w = 25 if use_initial else 15
+    gen_w = 25 if use_initial else 25
 
     # Set lines edges
     for line_idx in range(obs.n_line):
@@ -116,7 +116,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         fix = list(range(obs.n_sub))
         seed = np.random.RandomState(0)
         # Use Fruchterman-Reingold algorithm
-        kkl = nx.spring_layout(G, scale=scale, fixed=fix, pos=initial_layout, seed=seed, iterations=500)
+        kkl = nx.spring_layout(G, scale=scale, fixed=fix, pos=initial_layout, seed=seed, iterations=1000)
     else:
         # Use kamada_kawai algorithm
         kkl = nx.kamada_kawai_layout(G, scale=scale)

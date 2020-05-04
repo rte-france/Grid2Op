@@ -451,7 +451,7 @@ class PlotPlotly(BasePlot):
             color = "black"
         line_style = dict(dash=None if connected else "dash",
                           color=color)
-        if live_value is not None:
+        if line_value is not None:
             line_text = pltu.format_value_unit(line_value, line_unit)
             trace1 = self._draw_powerline_txt(line_name,
                                               pos_or_x, pos_or_y,
