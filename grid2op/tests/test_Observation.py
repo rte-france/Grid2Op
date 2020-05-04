@@ -298,7 +298,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "p" in dict_
         assert np.abs(dict_["p"] - 93.6) <= self.tol_one
         assert "q" in dict_
-        assert np.abs(dict_["q"] - 65.496956) <= self.tol_one
+        assert np.abs(dict_["q"] - 65.49697) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 142.1) <= self.tol_one
         assert "bus" in dict_

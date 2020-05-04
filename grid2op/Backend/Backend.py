@@ -611,6 +611,16 @@ class Backend(GridObjects, ABC):
 
         """
         infos = []
+        # print("\t\t gen p_mw {}".format(np.sum(self._grid.gen["p_mw"])))  # OK
+        # print("\t\t gen vm_pu {}".format(np.sum(self._grid.gen["vm_pu"])))  # OK
+        # print("\t\t load p_mw {}".format(np.sum(self._grid.load["p_mw"])))  # OK
+        # print("\t\t line in_service {}".format(np.sum(self._grid.line["in_service"])))  # OK
+        # print("\t\t shunt in_service {}".format(np.sum(self._grid.shunt["in_service"])))  # OK
+        # print("\t\t shunt q {}".format(np.sum(self._grid.shunt["q_mvar"])))  # OK
+        # print("\t\t load q_mvar {}".format(np.sum(self._grid.load["q_mvar"])))  # OK
+        # print("slack bus {}".format(self._grid["ext_grid"]))  # OK
+        # print("slack p {}".format(self._grid._ppc["gen"][self._iref_slack, 1]))
+        # self._nb_bus_before = None
         self._runpf_with_diverging_exception(is_dc)
 
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
@@ -673,7 +683,6 @@ class Backend(GridObjects, ABC):
         p_ex, q_ex, v_ex, *_ = self.lines_ex_info()
         p_gen, q_gen, v_gen = self.generators_info()
         p_load, q_load, v_load = self.loads_info()
-        p_s, q_s, v_s, bus_s = self.shunt_info()
 
         # fist check the "substation law" : nothing is created at any substation
         p_subs = np.zeros(self.n_sub)
@@ -718,14 +727,15 @@ class Backend(GridObjects, ABC):
             q_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += q_load[i]
 
         if self.shunts_data_available:
-            for i in range(len(p_s)):
-                tmp_bus = bus_s[i]
-                sub_id = self.sub_from_bus_id(tmp_bus)
-                p_subs[sub_id] += p_s[i]
-                q_subs[sub_id] += q_s[i]
+            p_s, q_s, v_s, bus_s = self.shunt_info()
+            for i in range(self.n_shunt):
+                # for substations
+                p_subs[self.shunt_to_subid[i]] += p_s[i]
+                q_subs[self.shunt_to_subid[i]] += q_s[i]
 
-                p_bus[sub_id, 1*(tmp_bus!=sub_id)] += p_s[i]
-                q_bus[sub_id, 1*(tmp_bus!=sub_id)] += q_s[i]
+                # for buses
+                p_bus[self.shunt_to_subid[i], bus_s[i] - 1] += p_s[i]
+                q_bus[self.shunt_to_subid[i], bus_s[i] - 1] += q_s[i]
         else:
             warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                           "incorrect.")
