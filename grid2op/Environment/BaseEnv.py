@@ -518,8 +518,6 @@ class BaseEnv(GridObjects, ABC):
                                                        0.)
             if except_ is not None:
                 pass
-                # import pdb
-                # pdb.set_trace()
 
             return new_redisp, except_
         return self.actual_dispatch, except_
@@ -741,74 +739,6 @@ class BaseEnv(GridObjects, ABC):
         self.gen_downtime[gen_still_disconnected] += 1
         return except_
 
-    def _save_connected_lines_buses(self):
-        # No updated observation: skip
-        if self.current_obs is None:
-            return
-        # All lines indexes
-        connected_lines = np.array(range(self.n_line))
-        # Only the connected lines indexes
-        connected_lines = connected_lines[self.backend.get_line_status()]
-
-        # Get lines buses from topo
-        topo = self.current_obs.topo_vect
-        or_pos = self.line_or_pos_topo_vect
-        ex_pos = self.line_ex_pos_topo_vect
-
-        # Save each connected line buses
-        for line_idx in connected_lines:
-            # Find & save bus of line origin
-            line_bus_or = topo[or_pos[line_idx]]
-            self.last_bus_line_or[line_idx] = line_bus_or
-            # Find & save bus of line extermity
-            line_bus_ex = topo[ex_pos[line_idx]]
-            self.last_bus_line_ex[line_idx] = line_bus_ex
-
-    def _restore_missing_reconnecting_lines_buses(self, action):
-        """
-        Set the line buses of the line reconnect action if not already defined in the action
-        Set to previous bus for lines that will be reconnected without a specified bus
-        """
-        # Get lines buses in the action
-        target_topo = action._set_topo_vect
-        or_pos = self.line_or_pos_topo_vect
-        ex_pos = self.line_ex_pos_topo_vect
-
-        # All lines indexes
-        reconnected_lines = np.array(range(self.n_line))
-        # Keep only the indexes of lines reconnected by the action
-        inv_lines_status = np.logical_not(self.backend.get_line_status())
-        reconnected_lines = reconnected_lines[
-            np.logical_or(
-                # Reconnected using 'set_line_status' and actually disconnected in the backend
-                np.logical_and((action._set_line_status == 1), inv_lines_status),
-                # Reconnected using 'switch_line_status' and actually disconnected in the backend
-                np.logical_and(action._switch_line_status, inv_lines_status)
-            )]
-
-        # Check each line to be reconnected
-        for line_idx in reconnected_lines:
-            # Update line origin bus if not provided
-            line_or_target_bus = target_topo[or_pos[line_idx]]
-            if line_or_target_bus == 0:
-                restored_or = (line_idx, self.last_bus_line_or[line_idx])
-                action._digest_setbus({
-                    "set_bus": {
-                        "lines_or_id": [restored_or]
-                    }
-                })
-            # Update line extremity bus if not provided
-            line_ex_target_bus = target_topo[ex_pos[line_idx]]
-            if line_ex_target_bus == 0:
-                restored_ex = (line_idx, self.last_bus_line_ex[line_idx])
-                action._digest_setbus({
-                    "set_bus": {
-                        "lines_ex_id": [restored_ex]
-                    }
-                })
-
-        return action
-
     def get_obs(self):
         """
         Return the observations of the current environment made by the :class:`grid2op.BaseAgent.BaseAgent`.
@@ -878,11 +808,8 @@ class BaseEnv(GridObjects, ABC):
 
         previous_disp = 1.0 * self.actual_dispatch
         previous_target_disp = 1.0 * self.target_dispatch
-        old = False
         try:
             # "smart" reconnecting
-            if old:
-                action = self._restore_missing_reconnecting_lines_buses(action)
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:
@@ -943,21 +870,11 @@ class BaseEnv(GridObjects, ABC):
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
             action._redispatch[:] = 0.
-            if old:
-                try:
-                    self.backend.apply_action(action)
-                except AmbiguousAction as e:
-                    # action has not been implemented on the powergrid because it's ambiguous, it's equivalent to
-                    # "do nothing"
-                    is_ambiguous = True
-                    except_.append(e)
-            else:
-                self._backend_action += action
+            self._backend_action += action
             action._redispatch[:] = init_disp
 
             self.env_modification._redispatch[:] = self.actual_dispatch
-            if not old:
-                self._backend_action += self.env_modification
+            self._backend_action += self.env_modification
 
             # action, for redispatching is composed of multiple actions, so basically i won't check
             # ramp_min and ramp_max
@@ -965,10 +882,7 @@ class BaseEnv(GridObjects, ABC):
 
             # now get the new generator voltage setpoint
             voltage_control_act = self._voltage_control(action, prod_v_chronics)
-            if old:
-                self.env_modification += voltage_control_act
-            else:
-                self._backend_action += voltage_control_act
+            self._backend_action += voltage_control_act
 
             # have the opponent here
             # TODO code the opponent part here and split more the timings! here "opponent time" is
@@ -977,20 +891,9 @@ class BaseEnv(GridObjects, ABC):
             attack = self.oppSpace.attack(observation=self.current_obs,
                                           agent_action=action,
                                           env_action=self.env_modification)
-            if old:
-                try:
-                    self.backend.apply_action(attack)
-                except Exception as e:
-                    self.oppSpace.has_failed()
-            else:
-                self._backend_action += attack
-
+            self._backend_action += attack
             self._time_opponent += time.time() - tick
-
-            if old:
-                self.backend.apply_action(self.env_modification)
-            else:
-                self.backend.apply_action(None, self._backend_action)
+            self.backend.apply_action(self._backend_action)
 
             self._time_apply_act += time.time() - beg_
 
@@ -1054,8 +957,6 @@ class BaseEnv(GridObjects, ABC):
             is_done = True
 
         self._backend_action.reset()
-        # Save the lines buses for later reconnecting
-        self._save_connected_lines_buses()
 
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,

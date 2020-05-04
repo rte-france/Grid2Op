@@ -275,7 +275,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.action_env({})  # update the action
         bk_action = self.bkact_class()
         bk_action += action
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         after_lp, *_ = self.backend.loads_info()
         after_gp, *_ = self.backend.generators_info()
         after_ls = self.backend.get_line_status()
@@ -305,7 +305,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                                 "prod_p": new_pp}})  # update the action
         bk_action = self.bkact_class()
         bk_action += action
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         conv = self.backend.runpf(is_dc=True)
         assert conv, "Cannot perform a powerflow after doing nothing"
 
@@ -334,7 +334,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.action_env({"injection": {"prod_v": ratio*prod_v_init}})  # update the action
         bk_action = self.bkact_class()
         bk_action += action
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         conv = self.backend.runpf(is_dc=False)
         assert conv, "Cannot perform a powerflow aftermodifying the powergrid"
 
@@ -355,7 +355,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         bk_action += action
 
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
 
         # compute a load flow an performs more tests
         conv = self.backend.runpf()
@@ -385,7 +385,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         bk_action = self.bkact_class()
         bk_action += action
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
 
         # compute a load flow an performs more tests
         conv = self.backend.runpf()
@@ -417,7 +417,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         bk_action = self.bkact_class()
         bk_action += action
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
 
         # compute a load flow an performs more tests
         conv = self.backend.runpf()
@@ -471,7 +471,7 @@ class TestTopoAction(unittest.TestCase):
         bk_action += action
 
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         conv = self.backend.runpf()
         assert conv
         after_amps_flow = self.backend.get_line_flow()
@@ -493,7 +493,7 @@ class TestTopoAction(unittest.TestCase):
         bk_action += action
 
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         conv = self.backend.runpf()
         assert conv
         after_amps_flow = self.backend.get_line_flow()
@@ -548,7 +548,7 @@ class TestTopoAction(unittest.TestCase):
         bk_action += action
 
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
 
         # run the powerflow
         conv = self.backend.runpf()
@@ -600,7 +600,7 @@ class TestTopoAction(unittest.TestCase):
         bk_action += action
 
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         conv = self.backend.runpf()
         bk_action.reset()
         assert conv
@@ -643,7 +643,7 @@ class TestTopoAction(unittest.TestCase):
         bk_action += action
 
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         conv = self.backend.runpf()
         assert conv
 
@@ -674,7 +674,7 @@ class TestTopoAction(unittest.TestCase):
         bk_action = self.bkact_class()
         bk_action += action
         # apply the action here
-        self.backend.apply_action(None, bk_action)
+        self.backend.apply_action( bk_action)
         conv = self.backend.runpf()
         assert conv
 

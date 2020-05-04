@@ -423,229 +423,85 @@ class PandaPowerBackend(Backend):
         """
         return self._big_topo_to_obj[id_big_topo]
 
-    def apply_action(self, action: BaseAction, backendAction=None):
+    def apply_action(self, backendAction=None):
         """
         Specific implementation of the method to apply an action modifying a powergrid in the pandapower format.
         """
+        active_bus, (prod_p, prod_v, load_p, load_q), topo__, shunts__ = backendAction()
+        k = "prod_p"
+        tmp = self._get_vector_inj[k](self._grid)
+        for gen_id, new_p in prod_p:
+            tmp.iloc[gen_id] = new_p
 
-        if backendAction is None:
-            raise RuntimeError("I use dirty code beurk")
-            if not isinstance(action, BaseAction):
-                raise UnrecognizedAction("BaseAction given to PandaPowerBackend should be of class BaseAction and not "
-                                         "\"{}\"".format(action.__class__))
+        k = "prod_v"
+        tmp = self._get_vector_inj[k](self._grid)
+        for gen_id, new_v in prod_v:
+            tmp.iloc[gen_id] = new_v / self.prod_pu_to_kv[gen_id]
+            # convert values back to pu
+            if self._id_bus_added is not None:
+                # in this case the slack bus where not modeled as an independant generator in the
+                # original data
+                if gen_id == self._id_bus_added:
+                    # handling of the slack bus, where "2" generators are present.
+                    self._grid["ext_grid"]["vm_pu"] = tmp[gen_id]
 
-            # change the _injection if needed
-            dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
+        k = "load_p"
+        tmp = self._get_vector_inj[k](self._grid)
+        for gen_id, new_p in load_p:
+            tmp.iloc[gen_id] = new_p
 
-            for k in dict_injection:
-                if k in self._vars_action_set:
-                    tmp = self._get_vector_inj[k](self._grid)
-                    val = 1. * dict_injection[k]
-                    ok_ind = np.isfinite(val)
-                    if k == "prod_v":
-                        pass
-                        # convert values back to pu
-                        val /= self.prod_pu_to_kv  # self._grid.bus["vn_kv"][self._grid.gen["bus"]].values
-                        if self._id_bus_added is not None:
-                            # in this case the slack bus where not modeled as an independant generator in the
-                            # original data
-                            if np.isfinite(val[self._id_bus_added]):
-                                # handling of the slack bus, where "2" generators are present.
-                                pass
-                                self._grid["ext_grid"]["vm_pu"] = val[self._id_bus_added]
-                    tmp[ok_ind] = val[ok_ind]
+        k = "load_q"
+        tmp = self._get_vector_inj[k](self._grid)
+        for gen_id, new_q in load_q:
+            tmp.iloc[gen_id] = new_q
+
+        if self.shunts_data_available:
+            shunt_p, shunt_q, shunt_bus = shunts__
+            for sh_id, new_p in shunt_p:
+                self._grid.shunt["p_mw"].iloc[sh_id] = new_p
+            for sh_id, new_q in shunt_q:
+                self._grid.shunt["q_mvar"].iloc[sh_id] = new_q
+
+            for sh_id, new_bus in shunt_bus:
+                if new_bus == -1:
+                    self._grid.shunt["in_service"].iloc[sh_id] = False
+                elif new_bus == 1:
+                    self._grid.shunt["in_service"].iloc[sh_id] = True
+                    self._grid.shunt["bus"] = self.shunt_to_subid[sh_id]
+                elif new_bus == 2:
+                    self._grid.shunt["in_service"].iloc[sh_id] = True
+                    self._grid.shunt["bus"] = self.shunt_to_subid[sh_id] + self.__nb_bus_before
+
+        # i made at least a real change, so i implement it in the backend
+        for id_el, new_bus in topo__:
+            id_el_backend, type_obj = self._convert_id_topo(id_el)
+            if type_obj == "load":
+                new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_load[id_el_backend])
+                self._grid.load["bus"].iloc[id_el_backend] = new_bus_backend
+            elif type_obj == "gen":
+                new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_gen[id_el_backend])
+                self._grid.gen["bus"].iloc[id_el_backend] = new_bus_backend
+            elif type_obj == "lineor":
+                new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lor[id_el_backend])
+                if id_el_backend < self.__nb_powerline:
+                    # it's a powerline
+                    self.change_bus_powerline_or(id_el_backend, new_bus_backend)
                 else:
-                    warn = "The key {} is not recognized by PandaPowerBackend when setting injections value.".format(k)
-                    warnings.warn(warn)
-
-            if np.any(redispatching != 0.):
-                # print('before tmp[ok_ind]: {}'.format(self._get_vector_inj["prod_p"](self._grid)))
-                tmp = self._get_vector_inj["prod_p"](self._grid)
-                ok_ind = np.isfinite(redispatching)
-                tmp[ok_ind] += redispatching[ok_ind]
-                # print('after tmp[ok_ind]: {}'.format(self._get_vector_inj["prod_p"](self._grid)))
-
-            # shunts
-            if shunts:
-                arr_ = shunts["shunt_p"]
-                is_ok = np.isfinite(arr_)
-                self._grid.shunt["p_mw"][is_ok] = arr_[is_ok]
-                arr_ = shunts["shunt_q"]
-                is_ok = np.isfinite(arr_)
-                self._grid.shunt["q_mvar"][is_ok] = arr_[is_ok]
-
-                arr_ = shunts["shunt_bus"]
-                ## turn off turned off shunt
-                turned_off = arr_ == -1
-                self._grid.shunt["in_service"][turned_off] = False
-                ## turn on turned on shunt
-                turned_on = arr_ >= 1
-                self._grid.shunt["in_service"][turned_on] = True
-
-                ## assign proper buses (1 = subid, 2 = subid + n_sub)
-                is_ok = arr_ > 0
-                bus_shunt = self.shunt_to_subid[is_ok]
-                bus_shunt[(arr_ == 2)[is_ok]] += self.n_sub
-                self._grid.shunt["bus"][is_ok] = bus_shunt
-
-            # topology
-            # run through all substations, find the topology. If it has changed, then update it.
-            beg_ = 0
-            end_ = 0
-            possiblechange = set_topo_vect != 0
-            if np.any(possiblechange) or np.any(switcth_topo_vect):
-                actual_topo_full = self.get_topo_vect()
-                if np.any(set_topo_vect[possiblechange] != actual_topo_full[possiblechange]) or np.any(switcth_topo_vect):
-                    for sub_id, nb_obj in enumerate(self.sub_info):
-                        nb_obj = int(nb_obj)
-                        end_ += nb_obj
-                        # extract all sub information
-                        this_topo_set = set_topo_vect[beg_:end_]
-                        this_topo_switch = switcth_topo_vect[beg_:end_]
-                        actual_topo = copy.deepcopy(actual_topo_full[beg_:end_])
-                        origin_topo = copy.deepcopy(actual_topo_full[beg_:end_])
-
-                        # compute topology after action
-                        if np.any(this_topo_switch):
-                            # i need to switch some element
-                            st = actual_topo[this_topo_switch]  # st is between 1 and 2
-                            st -= 1  # st is between 0 and 1
-                            st *= -1  # st is 0 or -1
-                            st += 2  # st is 2 or 1 (i switched 1 <-> 2 compared to the original values)
-                            actual_topo[this_topo_switch] = st
-                        if np.any(this_topo_set != 0):
-                            # some buses have been set
-                            sel_ = (this_topo_set != 0)
-                            actual_topo[sel_] = this_topo_set[sel_]
-
-                        # in case the topo vector is 2,2,2 etc. i convert it back to 1,1,1 etc.
-                        actual_topo = actual_topo - np.min(actual_topo[actual_topo > 0.]) + 1
-                        # implement in on the _grid
-                        # change the topology in case it doesn't match the original one
-                        if np.any(actual_topo != origin_topo):
-                            nb_bus_before = len(np.unique(origin_topo[origin_topo > 0.]))  # only count activated bus
-                            nb_bus_now = len(np.unique(actual_topo[actual_topo > 0.]))  # only count activated bus
-                            if nb_bus_before > nb_bus_now:
-                                # i must deactivate the unused bus
-                                self._grid.bus["in_service"][sub_id + self.n_sub] = False
-                            elif nb_bus_before < nb_bus_now:
-                                # i must activate the new bus
-                                self._grid.bus["in_service"][sub_id + self.n_sub] = True
-
-                            # now assign the proper bus to each element
-                            for i, (table, col_name, row_id) in enumerate(self._what_object_where[sub_id]):
-                                self._grid[table][col_name].iloc[row_id] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
-                                # if actual_topo[i] <0:
-                                #     pdb.set_trace()
-                                # self._grid[table][col_name].iloc[i] = sub_id if actual_topo[i] == 1 else sub_id + self.n_sub
-
-                        beg_ += nb_obj
-
-            # change line status if needed
-            # note that it is a specification that lines status must override buses reconfiguration.
-            if np.any(set_status != 0.):
-                for i, el in enumerate(set_status):
-                    # TODO performance optim here, it can be vectorized
-                    if el == -1:
-                        self._disconnect_line(i)
-                    elif el == 1:
-                        self._reconnect_line(i)
-
-            # switch line status if needed
-            if np.any(switch_status):
-                for i, el in enumerate(switch_status):
-                    # TODO performance optim here, it can be vectorized
-                    df = self._grid.line if i < self._number_true_line else self._grid.trafo
-                    tmp = i if i < self._number_true_line else i - self._number_true_line
-
-                    if el:
-                        connected = df["in_service"].iloc[tmp]
-                        if connected:
-                            df["in_service"].iloc[tmp] = False
-                        else:
-                            bus_or = set_topo_vect[self.line_or_pos_topo_vect[i]]
-                            bus_ex = set_topo_vect[self.line_ex_pos_topo_vect[i]]
-                            if bus_ex == 0 or bus_or == 0:
-                                raise InvalidLineStatus("Line {} was disconnected. The action switched its status, "
-                                                        "without providing buses to connect it on both ends.".format(i))
-                            # reconnection has then be handled in the topology
-                            df["in_service"].iloc[tmp] = True
-        else:
-            active_bus, (prod_p, prod_v, load_p, load_q), topo__, shunts__ = backendAction()
-            k = "prod_p"
-            tmp = self._get_vector_inj[k](self._grid)
-            for gen_id, new_p in prod_p:
-                tmp.iloc[gen_id] = new_p
-
-            k = "prod_v"
-            tmp = self._get_vector_inj[k](self._grid)
-            for gen_id, new_v in prod_v:
-                tmp.iloc[gen_id] = new_v / self.prod_pu_to_kv[gen_id]
-                # convert values back to pu
-                if self._id_bus_added is not None:
-                    # in this case the slack bus where not modeled as an independant generator in the
-                    # original data
-                    if gen_id == self._id_bus_added:
-                        # handling of the slack bus, where "2" generators are present.
-                        self._grid["ext_grid"]["vm_pu"] = tmp[gen_id]
-
-            k = "load_p"
-            tmp = self._get_vector_inj[k](self._grid)
-            for gen_id, new_p in load_p:
-                tmp.iloc[gen_id] = new_p
-
-            k = "load_q"
-            tmp = self._get_vector_inj[k](self._grid)
-            for gen_id, new_q in load_q:
-                tmp.iloc[gen_id] = new_q
-
-            if self.shunts_data_available:
-                shunt_p, shunt_q, shunt_bus = shunts__
-                for sh_id, new_p in shunt_p:
-                    self._grid.shunt["p_mw"].iloc[sh_id] = new_p
-                for sh_id, new_q in shunt_q:
-                    self._grid.shunt["q_mvar"].iloc[sh_id] = new_q
-
-                for sh_id, new_bus in shunt_bus:
-                    if new_bus == -1:
-                        self._grid.shunt["in_service"].iloc[sh_id] = False
-                    elif new_bus == 1:
-                        self._grid.shunt["in_service"].iloc[sh_id] = True
-                        self._grid.shunt["bus"] = self.shunt_to_subid[sh_id]
-                    elif new_bus == 2:
-                        self._grid.shunt["in_service"].iloc[sh_id] = True
-                        self._grid.shunt["bus"] = self.shunt_to_subid[sh_id] + self.__nb_bus_before
-
-            # i made at least a real change, so i implement it in the backend
-            for id_el, new_bus in topo__:
-                id_el_backend, type_obj = self._convert_id_topo(id_el)
-                if type_obj == "load":
-                    new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_load[id_el_backend])
-                    self._grid.load["bus"].iloc[id_el_backend] = new_bus_backend
-                elif type_obj == "gen":
-                    new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_gen[id_el_backend])
-                    self._grid.gen["bus"].iloc[id_el_backend] = new_bus_backend
-                elif type_obj == "lineor":
-                    new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lor[id_el_backend])
-                    if id_el_backend < self.__nb_powerline:
-                        # it's a powerline
-                        self.change_bus_powerline_or(id_el_backend, new_bus_backend)
-                    else:
-                        # it's a trafo
-                        self.change_bus_trafo_hv(id_el_backend - self.__nb_powerline, new_bus_backend)
-                elif type_obj == "lineex":
-                    new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lex[id_el_backend])
-                    # if id_el_backend == 0: pdb.set_trace()
-                    if id_el_backend < self.__nb_powerline:
-                        # it's a powerline
-                        self.change_bus_powerline_ex(id_el_backend, new_bus_backend)
-                    else:
-                        # it's a trafo
-                        self.change_bus_trafo_lv(id_el_backend - self.__nb_powerline, new_bus_backend)
-            bus_is = self._grid.bus["in_service"]
-            for i, (bus1_status, bus2_status) in enumerate(active_bus):
-                bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
-                bus_is[i + self.__nb_bus_before] = bus2_status
+                    # it's a trafo
+                    self.change_bus_trafo_hv(id_el_backend - self.__nb_powerline, new_bus_backend)
+            elif type_obj == "lineex":
+                new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lex[id_el_backend])
+                # if id_el_backend == 0: pdb.set_trace()
+                if id_el_backend < self.__nb_powerline:
+                    # it's a powerline
+                    self.change_bus_powerline_ex(id_el_backend, new_bus_backend)
+                else:
+                    # it's a trafo
+                    self.change_bus_trafo_lv(id_el_backend - self.__nb_powerline, new_bus_backend)
+        bus_is = self._grid.bus["in_service"]
+        for i, (bus1_status, bus2_status) in enumerate(active_bus):
+            bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
+            bus_is[i + self.__nb_bus_before] = bus2_status
 
     def change_bus_powerline_or(self, id_powerline_backend, new_bus_backend):
         if new_bus_backend < 0:
