@@ -448,7 +448,9 @@ class TestTopoAction(unittest.TestCase):
         self.tol_one = 1e-5
 
         self.game_rules = RulesChecker()
-        self.helper_action = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
+        self.backend.set_env_name("TestTopoAction_env")
+        as_class = ActionSpace.init_grid(self.backend)
+        self.helper_action = as_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
 
     # Cette méthode sera appelée après chaque test.
