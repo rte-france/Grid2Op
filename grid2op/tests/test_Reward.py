@@ -74,6 +74,11 @@ class TestLoadingBridgeReward(TestLoadingReward, unittest.TestCase):
         return BridgeReward
 
 
+class TestLoadingL2RPNSandBoxScore(TestLoadingReward, unittest.TestCase):
+    def _reward_type(self):
+        return L2RPNSandBoxScore
+
+
 class TestDistanceReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
         return DistanceReward

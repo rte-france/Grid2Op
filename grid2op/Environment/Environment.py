@@ -8,8 +8,8 @@
 import numpy as np
 import os
 import copy
+import warnings
 import pdb
-import collections
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
@@ -22,7 +22,6 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent
-from grid2op.Space import GridObjects
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
@@ -115,6 +114,7 @@ class Environment(BaseEnv):
                  chronics_handler,
                  backend,
                  parameters,
+                 name="unknown",
                  names_chronics_to_backend=None,
                  actionClass=TopologyAction,
                  observationClass=CompleteObservation,
@@ -135,6 +135,10 @@ class Environment(BaseEnv):
                            epsilon_poly=epsilon_poly,
                            tol_poly=tol_poly,
                            other_rewards=other_rewards)
+        if name == "unknown":
+            warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
+                          "to use an environment without a name")
+        self.name = name
 
         # the voltage controler
         self.voltagecontrolerClass = voltagecontrolerClass
@@ -203,8 +207,10 @@ class Environment(BaseEnv):
 
         self.backend.load_redispacthing_data(os.path.split(self.init_grid_path)[0])
         self.backend.load_grid_layout(os.path.split(self.init_grid_path)[0])
+        self.backend.set_env_name(self.name)
 
         self.backend.assert_grid_correct()
+
         self._has_been_initialized()  # really important to include this piece of code!
 
         if self._thermal_limit_a is None:
@@ -648,6 +654,7 @@ class Environment(BaseEnv):
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
+        res["name"] = self.name
         return res
 
     def get_params_for_runner(self):
@@ -697,5 +704,6 @@ class Environment(BaseEnv):
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
         res["grid_layout"] = self.grid_layout
+        res["name_env"] = self.name
         # TODO make a test for that
         return res

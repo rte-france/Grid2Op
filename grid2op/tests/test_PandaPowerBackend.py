@@ -39,6 +39,7 @@ class TestLoadingCase(unittest.TestCase):
         path_matpower = PATH_DATA_TEST
         case_file = "test_case14.json"
         backend.load_grid(path_matpower, case_file)
+        backend.set_env_name("TestLoadingCase_env")
 
         assert backend.n_line == 20
         assert backend.n_gen == 5
@@ -83,6 +84,7 @@ class TestLoadingCase(unittest.TestCase):
         path_matpower = PATH_DATA_TEST
         case_file = "test_case14.json"
         backend.load_grid(path_matpower, case_file)
+        backend.set_env_name("TestLoadingCase_env2")
         backend.assert_grid_correct()
         backend.runpf()
         backend.assert_grid_correct_after_powerflow()
@@ -98,6 +100,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
+        self.backend.set_env_name("TestLoadingBackendFunc_env")
         self.action_env_class = ActionSpace.init_grid(self.backend)
         self.action_env = self.action_env_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
@@ -448,7 +451,9 @@ class TestTopoAction(unittest.TestCase):
         self.tol_one = 1e-5
 
         self.game_rules = RulesChecker()
-        self.helper_action = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
+        self.backend.set_env_name("TestTopoAction_env")
+        as_class = ActionSpace.init_grid(self.backend)
+        self.helper_action = as_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
 
     # Cette méthode sera appelée après chaque test.
@@ -737,6 +742,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.path_matpower = PATH_DATA_TEST
         self.case_file = "test_case14.json"
         self.backend.load_grid(self.path_matpower, self.case_file)
+        self.backend.set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
@@ -760,7 +766,8 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
-                          parameters=self.env_params)
+                          parameters=self.env_params,
+                          name="test_pp_env1")
 
         disco, infos = self.backend.next_grid_state(env, is_dc=False)
         assert not infos
@@ -773,7 +780,8 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
-                          parameters=env_params)
+                          parameters=env_params,
+                          name="test_pp_env2")
         self.backend.load_grid(self.path_matpower, case_file)
 
         thermal_limit = 10*self.lines_flows_init
@@ -794,7 +802,8 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
-                          parameters=self.env_params)
+                          parameters=self.env_params,
+                          name="test_pp_env3")
         self.backend.load_grid(self.path_matpower, case_file)
 
         thermal_limit = 10*self.lines_flows_init
@@ -817,7 +826,8 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
-                          parameters=env_params)
+                          parameters=env_params,
+                          name="test_pp_env4")
         self.backend.load_grid(self.path_matpower, case_file)
 
         thermal_limit = 10*self.lines_flows_init
@@ -846,7 +856,8 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
-                          parameters=env_params)
+                          parameters=env_params,
+                          name="test_pp_env5")
         self.backend.load_grid(self.path_matpower, case_file)
 
         env.timestep_overflow[self.id_2nd_line_disco] = 0
@@ -874,7 +885,8 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
-                          parameters=env_params)
+                          parameters=env_params,
+                          name="test_pp_env6")
         self.backend.load_grid(self.path_matpower, case_file)
 
         env.timestep_overflow[self.id_2nd_line_disco] = 1
@@ -903,7 +915,8 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
-                          parameters=env_params)
+                          parameters=env_params,
+                          name="test_pp_env7")
         self.backend.load_grid(self.path_matpower, case_file)
 
         env.timestep_overflow[self.id_2nd_line_disco] = 2

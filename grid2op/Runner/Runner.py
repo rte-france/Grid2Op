@@ -203,6 +203,7 @@ class Runner(object):
                  # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
+                 name_env="unknown",
                  parameters_path=None,
                  names_chronics_to_backend=None,
                  actionClass=TopologyAction,
@@ -282,6 +283,8 @@ class Runner(object):
             The controler that will change the voltage setpoints of the generators.
 
         """
+
+        self.name_env = name_env
 
         if not isinstance(envClass, type):
             raise Grid2OpException(
@@ -466,7 +469,8 @@ class Runner(object):
                             other_rewards=self._other_rewards,
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
-                            opponent_init_budget=self.opponent_init_budget)
+                            opponent_init_budget=self.opponent_init_budget,
+                            name=self.name_env)
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
@@ -601,7 +605,8 @@ class Runner(object):
                               helper_action_env=env.helper_action_env,
                               path_save=path_save,
                               disc_lines_templ=disc_lines_templ,
-                              logger=logger, name=env.chronics_handler.get_name(),
+                              logger=logger,
+                              name=env.chronics_handler.get_name(),
                               other_rewards=[])
 
         episode.set_parameters(env)

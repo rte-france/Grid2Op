@@ -16,6 +16,7 @@ from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
 from grid2op.PlotGrid import *
 
+
 class BaseTestPlot(ABC):
     def setUp(self):
         with warnings.catch_warnings():
@@ -32,13 +33,19 @@ class BaseTestPlot(ABC):
         pass
     
     def test_plot_layout(self):
-        self.plot.plot_layout()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_layout()
 
     def test_plot_info_line(self):
-        self.plot.plot_info(line_values=self.obs.rho, gen_values=None, load_values=None)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_info(line_values=self.obs.rho, gen_values=None, load_values=None)
 
     def test_plot_info_gen(self):
-        self.plot.plot_info(line_values=None, gen_values=self.obs.prod_q, load_values=None)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_info(line_values=None, gen_values=self.obs.prod_q, load_values=None)
 
     def test_plot_info_load(self):
         self.plot.plot_info(line_values=None, gen_values=None, load_values=self.obs.load_q)
@@ -47,46 +54,68 @@ class BaseTestPlot(ABC):
         self.plot.plot_obs(self.obs)
 
     def test_plot_obs_volts(self):
-        self.plot.plot_obs(self.obs, line_info="v", gen_info="v", load_info="v")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_obs(self.obs, line_info="v", gen_info="v", load_info="v")
 
     def test_plot_obs_invalid_line(self):
         with self.assertRaises(PlotError):
-            self.plot.plot_obs(self.obs, line_info="error", gen_info="v", load_info="v")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.plot.plot_obs(self.obs, line_info="error", gen_info="v", load_info="v")
 
     def test_plot_obs_no_line(self):
-        self.plot.plot_obs(self.obs, line_info=None, gen_info="p", load_info="p")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_obs(self.obs, line_info=None, gen_info="p", load_info="p")
 
     def test_plot_obs_invalid_gen(self):
         with self.assertRaises(PlotError):
-            self.plot.plot_obs(self.obs, line_info="v", gen_info="error", load_info="v")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.plot.plot_obs(self.obs, line_info="v", gen_info="error", load_info="v")
 
     def test_plot_obs_no_gen(self):
-        self.plot.plot_obs(self.obs, line_info="rho", gen_info=None, load_info="p")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_obs(self.obs, line_info="rho", gen_info=None, load_info="p")
 
     def test_plot_obs_invalid_load(self):
         with self.assertRaises(PlotError):
-            self.plot.plot_obs(self.obs, line_info="rho", gen_info="v", load_info="error")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.plot.plot_obs(self.obs, line_info="rho", gen_info="v", load_info="error")
 
     def test_plot_obs_no_load(self):
-        self.plot.plot_obs(self.obs, line_info="v", gen_info="v", load_info=None)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_obs(self.obs, line_info="v", gen_info="v", load_info=None)
 
     def test_plot_obs_line(self):
-        self.plot.plot_obs(self.obs, line_info="a", gen_info=None, load_info=None)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_obs(self.obs, line_info="a", gen_info=None, load_info=None)
 
     def test_plot_obs_gen(self):
-        self.plot.plot_obs(self.obs, line_info=None, gen_info="p", load_info=None)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_obs(self.obs, line_info=None, gen_info="p", load_info=None)
 
     def test_plot_obs_load(self):
-        self.plot.plot_obs(self.obs, line_info=None, gen_info=None, load_info="p")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.plot.plot_obs(self.obs, line_info=None, gen_info=None, load_info="p")
         
 
 class TestPlotMatplot(BaseTestPlot, unittest.TestCase):
     def _plotter(self, obs_space):
         return PlotMatplot(obs_space)
 
+
 class TestPlotPlotly(BaseTestPlot, unittest.TestCase):
     def _plotter(self, obs_space):
         return PlotPlotly(obs_space)
+
 
 if __name__ == "__main__":
     unittest.main()
