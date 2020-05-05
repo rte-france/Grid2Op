@@ -31,6 +31,7 @@ Change Log
   merging of `obs.time_before_line_reconnectable` into `obs.time_before_cooldown_line`). Size is now reduce of
   the number of powerlines of the grid.
 - [BREAKING]  merge of `act.vars_action` into `env.attr_list_vect` which implemented the same concepts.
+- [BREAKING] the runner now save numpy compressed array to lower disk usage. Previous saved runner are not compatible.
 - [FIXED] `grid2op.PlotGrid` rounding error when casting from np.float32 to python.float
 - [FIXED] `grid2op.BaseEnv.fast_forward_chronics` Calls the correct methods and is now working properly
 - [FIXED] `__iadd__` is now properly implemented for the action with proper care given to action types.
