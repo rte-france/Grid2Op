@@ -39,6 +39,7 @@ class TestLoadingCase(unittest.TestCase):
         path_matpower = PATH_DATA_TEST
         case_file = "test_case14.json"
         backend.load_grid(path_matpower, case_file)
+        backend.set_env_name("TestLoadingCase_env")
 
         assert backend.n_line == 20
         assert backend.n_gen == 5
@@ -83,6 +84,7 @@ class TestLoadingCase(unittest.TestCase):
         path_matpower = PATH_DATA_TEST
         case_file = "test_case14.json"
         backend.load_grid(path_matpower, case_file)
+        backend.set_env_name("TestLoadingCase_env2")
         backend.assert_grid_correct()
         backend.runpf()
         backend.assert_grid_correct_after_powerflow()
@@ -98,6 +100,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
+        self.backend.set_env_name("TestLoadingBackendFunc_env")
         self.action_env_class = ActionSpace.init_grid(self.backend)
         self.action_env = self.action_env_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
@@ -739,6 +742,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         self.path_matpower = PATH_DATA_TEST
         self.case_file = "test_case14.json"
         self.backend.load_grid(self.path_matpower, self.case_file)
+        self.backend.set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
