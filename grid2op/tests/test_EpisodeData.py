@@ -79,6 +79,12 @@ class TestEpisodeData(unittest.TestCase):
             assert dt_float(np.abs(other["test"] - real)) <= self.tol_one
         assert np.abs(dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
 
+    def test_len(self):
+        f = tempfile.mkdtemp()
+        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+        len(episode_data)
+
     def test_3_episode_with_saving(self):
         f = tempfile.mkdtemp()
         res = self.runner.run_sequential(nb_episode=3, path_save=f)
