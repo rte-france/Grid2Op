@@ -136,7 +136,7 @@ class Environment(BaseEnv):
                            tol_poly=tol_poly,
                            other_rewards=other_rewards)
         if name == "unknown":
-            warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS"
+            warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
         self.name = name
 

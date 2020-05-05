@@ -16,6 +16,7 @@ from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
 from grid2op.PlotGrid import *
 
+
 class BaseTestPlot(ABC):
     def setUp(self):
         with warnings.catch_warnings():

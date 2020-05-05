@@ -42,6 +42,7 @@ class TestActionBase(ABC):
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
 
+        GridObjects.env_name = "test_action_env"
         GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
         GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
         GridObjects.name_line = ["line_{}".format(i) for i in range(20)]

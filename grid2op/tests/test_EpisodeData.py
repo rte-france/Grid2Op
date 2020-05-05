@@ -67,7 +67,8 @@ class TestEpisodeData(unittest.TestCase):
                              backendClass=self.backendClass,
                              rewardClass=L2RPNReward,
                              other_rewards={"test": L2RPNReward},
-                             max_iter=self.max_iter)
+                             max_iter=self.max_iter,
+                             name_env="test_episodedata_env")
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()

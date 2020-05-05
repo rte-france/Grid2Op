@@ -60,7 +60,8 @@ class TestRunner(HelperTests):
                              gridStateclass=self.gridStateclass,
                              backendClass=self.backendClass,
                              rewardClass=L2RPNReward,
-                             max_iter=self.max_iter)
+                             max_iter=self.max_iter,
+                             name_env="test_runner_env")
 
     def test_one_episode(self):
         _, cum_reward, timestep = self.runner.run_one_episode()

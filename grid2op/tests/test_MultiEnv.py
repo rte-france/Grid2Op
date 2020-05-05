@@ -13,6 +13,7 @@ from grid2op.Environment import MultiEnvironment
 from grid2op.MakeEnv import make
 from grid2op.Observation import CompleteObservation
 
+
 class TestLoadingMultiEnv(unittest.TestCase):
     def test_creation_multienv(self):
         nb_env = 2

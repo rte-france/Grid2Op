@@ -68,7 +68,7 @@ class TestRedispatch(HelperTests):
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                actionClass=BaseAction,
-                               name="env_test1")
+                               name="test_redisp_env1")
         self.array_double_dispatch = np.array([0.,  10.,  20.,   0., -30.])
 
     def tearDown(self):
@@ -300,7 +300,7 @@ class TestRedispatchChangeNothingEnvironment(HelperTests):
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                actionClass=BaseAction,
-                               name="env_test2")
+                               name="test_redisp_env2")
 
     def tearDown(self):
         self.env.close()
