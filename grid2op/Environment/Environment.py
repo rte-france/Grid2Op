@@ -258,7 +258,6 @@ class Environment(BaseEnv):
         self.helper_action_env = self.helper_action_class(gridobj=self.backend,
                                                           actionClass=CompleteAction,
                                                           legal_action=self.game_rules.legal_action)
-
         self.helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
         self.helper_observation = self.helper_observation_class(gridobj=self.backend,
                                                                 observationClass=observationClass,
@@ -348,7 +347,7 @@ class Environment(BaseEnv):
                                                               agent_action,
                                                               self.env_modification,
                                                               prod_v_chronics)
-        self.env_modification += volt_control_act
+        return volt_control_act
 
     def set_chunk_size(self, new_chunk_size):
         """
@@ -477,6 +476,7 @@ class Environment(BaseEnv):
         if self._thermal_limit_a is not None:
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
+        self._backend_action = self._backend_action_class()
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:

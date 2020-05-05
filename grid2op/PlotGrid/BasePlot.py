@@ -500,18 +500,20 @@ class BasePlot(ABC):
         if line_info not in self._lines_info:
             err_msg = "Impossible to plot line info \"{}\" for line." \
                       " Possible values are {}"
-            raise PlotError(err_msg.format(line_info, str(self.lines_info)))
+            raise PlotError(err_msg.format(line_info, str(self._lines_info)))
         if load_info not in self._loads_info:
             err_msg = "Impossible to plot load info \"{}\" for line." \
                       " Possible values are {}"
-            raise PlotError(err_msg.format(load_info, str(self.loads_info)))
+            raise PlotError(err_msg.format(load_info, str(self._loads_info)))
         if gen_info not in self._gens_info:
             err_msg = "Impossible to plot gen info \"{}\" for line." \
                       " Possible values are {}"
-            raise PlotError(err_msg.format(gen_info, str(self.gens_info)))
+            raise PlotError(err_msg.format(gen_info, str(self._gens_info)))
 
         line_values = None
-        line_unit = self._info_to_units[line_info]
+        line_unit = ""
+        if line_info is not None:
+            line_unit = self._info_to_units[line_info]
         if line_info == "rho":
             line_values = observation.rho
         if line_info == "p":
@@ -522,14 +524,18 @@ class BasePlot(ABC):
             line_values = observation.v_or
 
         load_values = None
-        load_unit = self._info_to_units[load_info]
+        load_unit = ""
+        if load_info is not None:
+            load_unit = self._info_to_units[load_info]
         if load_info == "p":
             load_values = copy.copy(observation.load_p) * -1.0
         if load_info == "v":
             load_values = observation.load_v
 
         gen_values = None
-        gen_unit = self._info_to_units[gen_info]
+        gen_unit = ""
+        if gen_info is not None:
+            gen_unit = self._info_to_units[gen_info]
         if gen_info == "p":
             gen_values = observation.prod_p
         if gen_info == "v":

@@ -77,11 +77,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'gen_cost_per_MW': [5.0, 10.0, 0.0, 0.0, 10.0],
                       'gen_startup_cost': [20.0, 2.0, 0.0, 0.0, 2.0],
                       'gen_shutdown_cost': [10.0, 1.0, 0.0, 0.0, 1.0],
-                      'grid_layout': {'sub_0': [-280.0, -81.0], 'sub_1': [-100.0, -270.0], 'sub_10': [79.0, 162.0],
-                                      'sub_11': [-170.0, 270.0], 'sub_12': [-64.0, 270.0], 'sub_13': [222.0, 216.0],
-                                      'sub_2': [366.0, -270.0], 'sub_3': [366.0, -54.0], 'sub_4': [-64.0, -54.0],
-                                      'sub_5': [-64.0, 54.0], 'sub_6': [450.0, 0.0], 'sub_7': [550.0, 0.0],
-                                      'sub_8': [326.0, 54.0], 'sub_9': [222.0, 108.0]},
+                      'grid_layout': { "sub_0": [-280.0, -81.0], "sub_1": [-100.0,-270.0], "sub_10": [366.0,-270.0],
+                                       "sub_11": [366.0, -54.0], "sub_12": [-64.0,-54.0], "sub_13": [-64.0, 54.0],
+                                       "sub_2": [450.0,0.0], "sub_3": [550.0,0.0], "sub_4": [326.0,54.0],
+                                       "sub_5": [222.0,108.0], "sub_6": [79.0,162.0],"sub_7": [-170.0,270.0],
+                                       "sub_8": [-64.0,270.0], "sub_9": [222.0,216.0]},
                       'name_shunt': ['shunt_8_0'], 'shunt_to_subid': [8],
                       '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
@@ -298,7 +298,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert "p" in dict_
         assert np.abs(dict_["p"] - 93.6) <= self.tol_one
         assert "q" in dict_
-        assert np.abs(dict_["q"] - 65.496956) <= self.tol_one
+        assert np.abs(dict_["q"] - 65.49697) <= self.tol_one
         assert "v" in dict_
         assert np.abs(dict_["v"] - 142.1) <= self.tol_one
         assert "bus" in dict_

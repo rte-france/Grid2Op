@@ -201,6 +201,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_ambiguous_detected(self):
+        self.skipTest("deprecated test as the reconnection is handled by backend action")
         act = self.env.helper_action_player({"set_line_status": [(1, 1)]})
         obs, reward, done, info = self.env.step(act)
         assert info['is_ambiguous']
@@ -256,6 +257,48 @@ class TestOtherReward(unittest.TestCase):
         assert "rewards" in info_simu
         assert "test" in info_simu["rewards"]
         assert np.abs(info_simu["rewards"]["test"] - reward_simu) <= self.tol_one
+
+
+class TestResetOk(unittest.TestCase):
+    """
+    This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
+    or illegal
+
+    """
+
+    def setUp(self):
+        # powergrid
+        self.tolvect = 1e-2
+        self.tol_one = 1e-4
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+                            other_rewards={"test": L2RPNReward})
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_reset_after_blackout(self):
+        # make the grid in bad shape
+        act = self.env.action_space({"set_bus": {"substations_id": [(2, [1, 2, 1, 2])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space({"set_bus": {"substations_id": [(0, [1, 1, 2, 2, 1, 2])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space({"set_bus": {"substations_id": [(3, [1, 1, 2, 2, 1])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space.disconnect_powerline(3)
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space.disconnect_powerline(4)
+        obs, reward, done, info = self.env.step(act)
+        assert len(info["exception"])
+        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        # reset the grid
+        obs = self.env.reset()
+        assert np.all(obs.topo_vect == 1)
+
+        # check that i can simulate
+        simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
+        assert np.all(simobs.topo_vect == 1)
 
 
 class TestAttachLayout(unittest.TestCase):

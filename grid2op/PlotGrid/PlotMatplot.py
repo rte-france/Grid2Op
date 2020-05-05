@@ -117,9 +117,9 @@ class PlotMatplot(BasePlot):
         self._line_arrow_width = 10.0
 
         self.xlim = [0, 0]
-        self.xpad = 50
+        self.xpad = 20
         self.ylim = [0, 0]
-        self.ypad = 50
+        self.ypad = 20
 
     def _v_textpos_from_dir(self, dirx, diry):
         if diry > 0:
@@ -192,6 +192,7 @@ class PlotMatplot(BasePlot):
         self.ax.text(txt_x, txt_y, text,
                      color=self._load_txt_color,
                      horizontalalignment=ha,
+                     fontsize='small',
                      verticalalignment=va)
     
     def _draw_load_name(self, pos_x, pos_y, txt):
@@ -270,6 +271,7 @@ class PlotMatplot(BasePlot):
         self.ax.text(txt_x, txt_y, text,
                      color=self._gen_txt_color,
                      wrap=True,
+                     fontsize='small',
                      horizontalalignment=ha,
                      verticalalignment=va)
 
@@ -351,6 +353,7 @@ class PlotMatplot(BasePlot):
         va = self._v_textpos_from_dir(off_x, off_y)
         self.ax.text(txt_x, txt_y, text,
                      color=self._gen_txt_color,
+                     fontsize='small',
                      horizontalalignment=ha,
                      verticalalignment=va)
     
@@ -474,3 +477,4 @@ class PlotMatplot(BasePlot):
     def plot_postprocess(self, figure, observation, update):
         self.ax.set_xlim(self.xlim[0] - self.xpad, self.xlim[1] + self.xpad)
         self.ax.set_ylim(self.ylim[0] - self.ypad, self.ylim[1] + self.ypad)
+        figure.tight_layout()
