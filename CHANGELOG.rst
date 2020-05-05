@@ -21,7 +21,7 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-  [0.8.0] - 2020-05-xx
+  [0.8.0] - 2020-05-04
 ----------------------
 - [BREAKING] All previously deprecated features have been removed
 - [BREAKING] `grid2op.Runner` is now located into a submodule folder
@@ -31,9 +31,11 @@ Change Log
   merging of `obs.time_before_line_reconnectable` into `obs.time_before_cooldown_line`). Size is now reduce of
   the number of powerlines of the grid.
 - [BREAKING]  merge of `act.vars_action` into `env.attr_list_vect` which implemented the same concepts.
+- [BREAKING] the runner now save numpy compressed array to lower disk usage. Previous saved runner are not compatible.
 - [FIXED] `grid2op.PlotGrid` rounding error when casting from np.float32 to python.float
 - [FIXED] `grid2op.BaseEnv.fast_forward_chronics` Calls the correct methods and is now working properly
 - [FIXED] `__iadd__` is now properly implemented for the action with proper care given to action types.
+- [UPDATED] MultiEnv now exchange only numpy arrays and not class objects.
 - [UPDATED] Notebooks are updated to reflect API improvements changes
 - [UPDATED] `grid2op.make` can now handle the download & caching of datasets
 - [UPDATED] Test/Sample datasets provide datetime related files .info
