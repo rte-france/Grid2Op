@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import numpy as np
 import networkx as nx
 
 from grid2op.Reward.BaseReward import BaseReward
@@ -16,11 +17,13 @@ class BridgeReward(BaseReward):
     This reward computes a penalty based on how many bridges are present in the grid netwrok.
     In graph theory, a bridge is an edge that if removed will cause the graph to be disconnected.
     """
-    def __init__(self):
+    def __init__(self, min_pen_lte=0.0, max_pen_gte=1.0):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
-        
+        self.min_pen_lte = dt_float(min_pen_lte)
+        self.max_pen_gte = dt_float(max_pen_gte)
+
     def __call__(self, action, env, has_error,
                  is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:
@@ -58,18 +61,20 @@ class BridgeReward(BaseReward):
                 continue
 
             # Compute edge vertices indices for current graph
-            left_v = (lor_bus - 1) * n_bus + lor_sub
-            right_v = (lex_bus - 1) * n_bus + lex_sub
+            left_v =  lor_sub + (lor_bus - 1) * n_sub
+            right_v = lex_sub + (lex_bus - 1) * n_sub
 
             # Register edge in graph
             G.add_edge(left_v, right_v)
             
         # Find the bridges
-        n_bridges = len(list(nx.bridges(G)))
+        n_bridges = dt_float(len(list(nx.bridges(G))))
 
-        if n_bridges == 0:
-            return self.reward_max
-        elif n_bridges == 1:
-            return (self.reward_max + self.reward_min) / dt_float(2.0)
-        else:
-            return self.reward_min
+        # Clip to min penalty
+        n_bridges = max(n_bridges, self.min_pen_lte)
+        # Clip to max penalty
+        n_bridges = min(n_bridges, self.max_pen_gte)
+        r = np.interp(n_bridges,
+                      [self.min_pen_lte, self.max_pen_gte],
+                      [self.reward_max, self.reward_min])
+        return dt_float(r)
