@@ -32,9 +32,9 @@ WORKDIR /Grid2Op
 RUN git pull
 RUN git remote update
 RUN git fetch --all --tags
-RUN git checkout "tags/v0.7.1" -b "v0.7.1-branch"
+RUN git checkout "tags/v0.8.0" -b "v0.8.0-branch"
 # Install Dependencies
-RUN pip3 install .[optional,test,challenge]
+RUN pip3 install .[optional,challenge]
 WORKDIR /
 
 # Make port 80 available to the world outside this container
