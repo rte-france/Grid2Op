@@ -8,8 +8,8 @@
 import numpy as np
 import os
 import copy
+import warnings
 import pdb
-import collections
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
@@ -22,7 +22,6 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent
-from grid2op.Space import GridObjects
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
@@ -136,7 +135,9 @@ class Environment(BaseEnv):
                            epsilon_poly=epsilon_poly,
                            tol_poly=tol_poly,
                            other_rewards=other_rewards)
-
+        if name == "unknown":
+            warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS"
+                          "to use an environment without a name")
         self.name = name
 
         # the voltage controler

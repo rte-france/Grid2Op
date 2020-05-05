@@ -82,17 +82,21 @@ class TestRunner(HelperTests):
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_complex_agent(self):
+        nb_episode = 4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("rte_case14_realistic", test=True) as env:
+            with make("rte_case5_example", test=True) as env:
                 f = tempfile.mkdtemp()
                 runner_params = env.get_params_for_runner()
                 runner = Runner(**runner_params)
                 res = runner.run(path_save=f,
                                  nb_episode=4,
                                  nb_process=4,
-                                 max_iter=-1,
-                                 pbar=True)
+                                 max_iter=10)
+        test_ = set()
+        for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res:
+            test_.add(name_chron)
+        assert len(test_) == nb_episode
 
     def test_init_from_env(self):
         with warnings.catch_warnings():

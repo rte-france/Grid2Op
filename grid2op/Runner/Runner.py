@@ -203,7 +203,7 @@ class Runner(object):
                  # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
-                 name_env="unknonwn",
+                 name_env="unknown",
                  parameters_path=None,
                  names_chronics_to_backend=None,
                  actionClass=TopologyAction,
@@ -605,7 +605,8 @@ class Runner(object):
                               helper_action_env=env.helper_action_env,
                               path_save=path_save,
                               disc_lines_templ=disc_lines_templ,
-                              logger=logger, name=env.chronics_handler.get_name(),
+                              logger=logger,
+                              name=env.chronics_handler.get_name(),
                               other_rewards=[])
 
         episode.set_parameters(env)

@@ -64,7 +64,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                backend=self.adn_backend,
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend)
+                               names_chronics_to_backend=self.names_chronics_to_backend,
+                               name="test_env1")
 
         self.helper_action = self.env.helper_action_env
 
