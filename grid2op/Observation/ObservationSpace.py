@@ -86,28 +86,35 @@ class ObservationSpace(SerializableObservationSpace):
         # TODO here: have another backend maybe
         self.backend_obs = env.backend.copy()
 
-        self.obs_env = _ObsEnv(backend_instanciated=self.backend_obs, obsClass=self.observationClass,
-                               parameters=env.parameters,
-                               reward_helper=self.reward_helper,
-                               action_helper=self.action_helper_env,
-                               thermal_limit_a=env._thermal_limit_a,
-                               legalActClass=env.legalActClass,
-                               donothing_act=env.helper_action_player(),
-                               other_rewards=other_rewards)
+        _ObsEnv_class = _ObsEnv.init_grid(self.backend_obs)
+        self.obs_env = _ObsEnv_class(backend_instanciated=self.backend_obs,
+                                     obsClass=self.observationClass,
+                                     parameters=env.parameters,
+                                     reward_helper=self.reward_helper,
+                                     action_helper=self.action_helper_env,
+                                     thermal_limit_a=env._thermal_limit_a,
+                                     legalActClass=env.legalActClass,
+                                     donothing_act=env.helper_action_player(),
+                                     other_rewards=other_rewards,
+                                     completeActionClass=env.helper_action_env.actionClass,
+                                     helper_action_class=env.helper_action_class,
+                                     helper_action_env=env.helper_action_env)
 
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
 
-        self._empty_obs = self.observationClass(gridobj=self,
-                                                obs_env=self.obs_env,
+        self._empty_obs = self.observationClass(obs_env=self.obs_env,
                                                 action_helper=self.action_helper_env)
         self._update_env_time = 0.
+
+    def reset_space(self):
+        self.obs_env.reset_space()
+        self.action_helper_env.actionClass.reset_space()
 
     def __call__(self, env):
         self.obs_env.update_grid(env)
 
-        res = self.observationClass(gridobj=self,
-                                    obs_env=self.obs_env,
+        res = self.observationClass(obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)
 
         # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations

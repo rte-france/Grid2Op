@@ -171,10 +171,10 @@ class BaseAction(GridObjects):
         by the action (in this case :attr:`BaseAction._lines_impacted`\[line_id\] is ``True``) or not
         (in this case :attr:`BaseAction._subs_impacted`\[line_id\] is ``False``)
 
-    vars_action: ``list``, static
+    attr_list_vect: ``list``, static
         The authorized key that are processed by :func:`BaseAction.__call__` to modify the injections
 
-    vars_action_set: ``set``, static
+    attr_list_vect_set: ``set``, static
         The authorized key that is processed by :func:`BaseAction.__call__` to modify the injections
 
     _redispatch: :class:`numpy.ndarray`, dtype:float
@@ -187,11 +187,18 @@ class BaseAction(GridObjects):
         will try to implement is +20MW.
 
     """
+    authorized_keys = {"injection",
+                       "hazards", "maintenance", "set_line_status", "change_line_status",
+                       "set_bus", "change_bus", "redispatch"}
 
-    vars_action = ["load_p", "load_q", "prod_p", "prod_v"]
-    vars_action_set = set(vars_action)
+    attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
+                      "_set_line_status", "_switch_line_status",
+                      "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
+                      ]
+    attr_list_set = set(attr_list_vect)
+    shunt_added = False
 
-    def __init__(self, gridobj):
+    def __init__(self):
         """
         This is used to create an BaseAction instance. Preferably, :class:`BaseAction` should be created with
         :class:`ActionSpace`.
@@ -206,56 +213,49 @@ class BaseAction(GridObjects):
 
         """
         GridObjects.__init__(self)
-        self.init_grid(gridobj)
-
-        self.authorized_keys = {"injection",
-                                "hazards", "maintenance", "set_line_status", "change_line_status",
-                                "set_bus", "change_bus", "redispatch"}
 
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = None
-        self._switch_line_status = None
+        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
+        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
         # injection change
         self._dict_inj = {}
 
-        # redispatching
-        self._redispatch = None
-
         # topology changed
-        self._set_topo_vect = None
-        self._change_bus_vect = None
-
-        self._vectorized = None
-
-        self._subs_impacted = None
-        self._lines_impacted = None
+        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=dt_int)
+        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=dt_bool)
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = None
-        self._maintenance = None
+        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
 
-        # shunt data (not available in all backends)
-        self.shunt_p = None
-        self.shunt_q = None
-        self.shunt_bus = None
+        # redispatching vector
+        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
-        self.reset()
+        self._vectorized = None
+        self._lines_impacted = None
+        self._subs_impacted = None
 
-        # decomposition of the BaseAction into homogeneous sub-spaces
-        self.attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
-                               "_set_line_status", "_switch_line_status",
-                               "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
-                               ]
-
+        # shunts
         if self.shunts_data_available:
-            self.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
-            self.authorized_keys.add("shunt")
+            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
+            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
+            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=dt_int)
+        else:
+            self.shunt_p = None
+            self.shunt_q = None
+            self.shunt_bus = None
+
+        if BaseAction.shunt_added is False and self.shunts_data_available:
+            BaseAction.shunt_added = True
+            BaseAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            BaseAction.authorized_keys.add("shunt")
+            BaseAction._update_value_set()
 
         self._single_act = True
 
     def _get_array_from_attr_name(self, attr_name):
-        if attr_name in self.__dict__:
+        if hasattr(self, attr_name):
             res = super()._get_array_from_attr_name(attr_name)
         else:
             if attr_name in self._dict_inj:
@@ -271,7 +271,7 @@ class BaseAction(GridObjects):
         return res
 
     def _assign_attr_from_name(self, attr_nm, vect):
-        if attr_nm in self.__dict__:
+        if hasattr(self, attr_nm):
             super()._assign_attr_from_name(attr_nm, vect)
         else:
             if np.any(np.isfinite(vect)):
@@ -553,22 +553,22 @@ class BaseAction(GridObjects):
 
         """
         # False(line is disconnected) / True(line is connected)
-        self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
-        self._switch_line_status = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._set_line_status[:] = 0
+        self._switch_line_status[:] = False
 
         # injection change
         self._dict_inj = {}
 
         # topology changed
-        self._set_topo_vect = np.full(shape=self.dim_topo, fill_value=0, dtype=dt_int)
-        self._change_bus_vect = np.full(shape=self.dim_topo, fill_value=False, dtype=dt_bool)
+        self._set_topo_vect[:] = 0
+        self._change_bus_vect[:] = False
 
         # add the hazards and maintenance usefull for saving.
-        self._hazards = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
-        self._maintenance = np.full(shape=self.n_line, fill_value=False, dtype=dt_bool)
+        self._hazards[:] = False
+        self._maintenance[:] = False
 
         # redispatching vector
-        self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
+        self._redispatch[:] = 0.
 
         self._vectorized = None
         self._lines_impacted = None
@@ -576,9 +576,17 @@ class BaseAction(GridObjects):
 
         # shunts
         if self.shunts_data_available:
-            self.shunt_p = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
-            self.shunt_q = np.full(shape=self.n_shunt, fill_value=np.NaN, dtype=dt_float)
-            self.shunt_bus = np.full(shape=self.n_shunt, fill_value=0, dtype=dt_int)
+            self.shunt_p[:] = np.NaN
+            self.shunt_q[:] = np.NaN
+            self.shunt_bus[:] = 0
+
+    def _assign_iadd_or_warn(self, attr_name, new_value):
+        if attr_name not in self.attr_list_set:
+            if np.any(new_value != getattr(self, attr_name)):
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format(attr_name))
+        else:
+            getattr(self, attr_name)[:] = new_value
 
     def __iadd__(self, other):
         """
@@ -600,7 +608,7 @@ class BaseAction(GridObjects):
         """
 
         # deal with injections
-        for el in self.vars_action:
+        for el in self.attr_list_vect:
             if el in other._dict_inj:
                 if el not in self._dict_inj:
                     self._dict_inj[el] = other._dict_inj[el]
@@ -608,12 +616,20 @@ class BaseAction(GridObjects):
                     val = other._dict_inj[el]
                     ok_ind = np.isfinite(val)
                     self._dict_inj[el][ok_ind] = val[ok_ind]
-
+        # warning if the action cannot be added
+        for el in other._dict_inj:
+            if not el in self.attr_list_set:
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format(el))
         # redispatching
         redispatching = other._redispatch
         if np.any(redispatching != 0.):
-            ok_ind = np.isfinite(redispatching)
-            self._redispatch[ok_ind] += redispatching[ok_ind]
+            if "_redispatch" not in self.attr_list_set:
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format("_redispatch"))
+            else:
+                ok_ind = np.isfinite(redispatching)
+                self._redispatch[ok_ind] += redispatching[ok_ind]
 
         # set and change status
         other_set = other._set_line_status
@@ -630,8 +646,8 @@ class BaseAction(GridObjects):
         me_change[other_change] = False
         # i change, but the other set, it's erased
         me_change[other_set != 0] = False
-        self._set_line_status = me_set
-        self._switch_line_status = me_change
+        self._assign_iadd_or_warn("_set_line_status", me_set)
+        self._assign_iadd_or_warn("_switch_line_status", me_change)
 
         # set and change bus
         other_set = other._set_topo_vect
@@ -651,22 +667,28 @@ class BaseAction(GridObjects):
         me_change[other_change] = False
         # i change, but the other set, it's erased
         me_change[other_set != 0] = False
-        self._set_topo_vect = me_set
-        self._change_bus_vect = me_change
+        self._assign_iadd_or_warn("_set_topo_vect", me_set)
+        self._assign_iadd_or_warn("_change_bus_vect", me_change)
 
         # shunts
         if self.shunts_data_available:
             val = other.shunt_p
             ok_ind = np.isfinite(val)
-            self.shunt_p[ok_ind] = val[ok_ind]
+            shunt_p = 1.0 * self.shunt_p
+            shunt_p[ok_ind] = val[ok_ind]
+            self._assign_iadd_or_warn("shunt_p", shunt_p)
 
             val = other.shunt_q
             ok_ind = np.isfinite(val)
-            self.shunt_q[ok_ind] = val[ok_ind]
+            shunt_q = 1.0 * self.shunt_q
+            shunt_q[ok_ind] = val[ok_ind]
+            self._assign_iadd_or_warn("shunt_q", shunt_q)
 
             val = other.shunt_bus
             ok_ind = val != 0
-            self.shunt_bus[ok_ind] = val[ok_ind]
+            shunt_bus = 1 * self.shunt_bus
+            shunt_bus[ok_ind] = val[ok_ind]
+            self._assign_iadd_or_warn("shunt_bus", shunt_bus)
 
         return self
 
@@ -772,8 +794,8 @@ class BaseAction(GridObjects):
         if "injection" in dict_:
             if dict_["injection"] is not None:
                 tmp_d = dict_["injection"]
-                for k in tmp_d:  # ["load_p", "prod_p", "load_q", "prod_v"]:
-                    if k in self.vars_action_set:
+                for k in tmp_d:
+                    if k in self.attr_list_set:
                         self._dict_inj[k] = np.array(tmp_d[k]).astype(dt_float)
                     else:
                         warn = "The key {} is not recognized by BaseAction when trying to modify the injections.".format(k)
@@ -1381,14 +1403,17 @@ class BaseAction(GridObjects):
                                    "2). A number higher than 2 has been found: substations with more than 2 busbars"
                                    "are not supported by grid2op.")
 
-        for q_id, status in enumerate(self._set_line_status):
-            if status == 1:
-                # i reconnect a powerline, i need to check that it's connected on both ends
-                if self._set_topo_vect[self.line_or_pos_topo_vect[q_id]] == 0 or \
-                        self._set_topo_vect[self.line_ex_pos_topo_vect[q_id]] == 0:
+        if False:
+            # TODO find an elegant way to disable that
+            # now it's possible.
+            for q_id, status in enumerate(self._set_line_status):
+                if status == 1:
+                    # i reconnect a powerline, i need to check that it's connected on both ends
+                    if self._set_topo_vect[self.line_or_pos_topo_vect[q_id]] == 0 or \
+                            self._set_topo_vect[self.line_ex_pos_topo_vect[q_id]] == 0:
 
-                    raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
-                                            " which bus.".format(q_id))
+                        raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
+                                                " which bus.".format(q_id))
 
         # if i disconnected of a line, but i modify also the bus where it's connected
         idx = self._set_line_status == -1

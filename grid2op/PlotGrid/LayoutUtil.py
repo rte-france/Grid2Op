@@ -10,7 +10,6 @@ import networkx as nx
 import numpy as np
 import copy
 
-
 def layout_obs_sub_only(obs, scale=1000.0):
     n_sub = obs.n_sub
     n_line = obs.n_line
@@ -54,8 +53,8 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
     G = nx.Graph()
 
     sub_w = 0 if use_initial else 100
-    load_w = 20 if use_initial else 15
-    gen_w = 20 if use_initial else 25
+    load_w = 25 if use_initial else 15
+    gen_w = 25 if use_initial else 25
 
     # Set lines edges
     for line_idx in range(obs.n_line):
@@ -90,7 +89,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         G.add_edge(left_v, right_v, weight=gen_w)
 
     # Convert our layout to nx format
-    layout_keys = list(obs.grid_layout.keys())
+    layout_keys = list(obs.name_sub)
     if use_initial:
         initial_layout = {}
         for sub_idx, sub_name in enumerate(layout_keys):
@@ -117,7 +116,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         fix = list(range(obs.n_sub))
         seed = np.random.RandomState(0)
         # Use Fruchterman-Reingold algorithm
-        kkl = nx.spring_layout(G, scale=scale, fixed=fix, pos=initial_layout, seed=seed, iterations=500)
+        kkl = nx.spring_layout(G, scale=scale, fixed=fix, pos=initial_layout, seed=seed, iterations=1000)
     else:
         # Use kamada_kawai algorithm
         kkl = nx.kamada_kawai_layout(G, scale=scale)

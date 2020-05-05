@@ -88,17 +88,18 @@ class RemoteEnv(Process):
                 self.remote.send((self.env.observation_space, self.env.action_space))
             elif cmd == 's':
                 # perform a step
+                data = self.env.action_space.from_vect(data)
                 obs, reward, done, info = self.env.step(data)
                 if done:
                     # if done do a reset
                     obs = self.get_obs_ifnotconv()
                 self._clean_observation(obs)
-                self.remote.send((obs, reward, done, info))
+                self.remote.send((obs.to_vect(), reward, done, info))
             elif cmd == 'r':
                 # perfom a reset
                 obs = self.get_obs_ifnotconv()
                 self._clean_observation(obs)
-                self.remote.send(obs)
+                self.remote.send(obs.to_vect())
             elif cmd == 'c':
                 # close everything
                 self.env.close()
@@ -188,7 +189,6 @@ class MultiEnvironment(GridObjects):
     """
     def __init__(self, nb_env, env):
         GridObjects.__init__(self)
-        # self.init_grid(env)
         self.imported_env = env
         self.nb_env = nb_env
 
@@ -214,13 +214,14 @@ class MultiEnvironment(GridObjects):
 
     def _send_act(self, actions):
         for remote, action in zip(self._remotes, actions):
-            remote.send(('s', action))
+            remote.send(('s', action.to_vect()))
         self._waiting = True
 
     def _wait_for_obs(self):
         results = [remote.recv() for remote in self._remotes]
         self._waiting = False
         obs, rews, dones, infos = zip(*results)
+        obs = [self.imported_env.observation_space.from_vect(ob) for ob in obs]
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
     def step(self, actions):
@@ -279,7 +280,7 @@ class MultiEnvironment(GridObjects):
         """
         for remote in self._remotes:
             remote.send(('r', None))
-        res = [remote.recv() for remote in self._remotes]
+        res = [self.imported_env.observation_space.from_vect(remote.recv()) for remote in self._remotes]
         return np.stack(res)
 
     def close(self):

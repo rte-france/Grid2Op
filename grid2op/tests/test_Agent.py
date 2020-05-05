@@ -13,9 +13,10 @@ import pandapower as pp
 from grid2op.tests.helper_path_test import *
 
 from grid2op.Exceptions import *
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
 from grid2op.Parameters import Parameters
+from grid2op.dtypes import dt_float
 
 import pdb
 
@@ -35,7 +36,7 @@ class TestAgent(HelperTests):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case14_redisp", test=True, param=param)
+            self.env = make("rte_case14_redisp", test=True, param=param)
 
     def tearDown(self):
         self.env.close()
@@ -44,13 +45,17 @@ class TestAgent(HelperTests):
         done = False
         i = 0
         beg_ = time.time()
-        cum_reward = 0.
+        cum_reward = dt_float(0.0)
         act = self.env.helper_action_player({})
         time_act = 0.
         while not done:
+            # print("---------")
             obs, reward, done, info = self.env.step(act)  # should load the first time stamp
             beg__ = time.time()
             act = agent.act(obs, reward, done)
+            # print(act._set_line_status)
+            # print("change status of {}".format(np.where(act._switch_line_status)[0]))
+            # print("reward {}".format(reward))
             end__ = time.time()
             time_act += end__ - beg__
             cum_reward += reward
@@ -81,21 +86,30 @@ class TestAgent(HelperTests):
 
     def test_0_donothing(self):
         agent = DoNothingAgent(self.env.helper_action_player)
-        i, cum_reward = self._aux_test_agent(agent)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for do nothing"
-        assert np.abs(cum_reward - 35140.02903) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(35140.027)
+        assert np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one, "The reward has not been properly computed"
 
     def test_1_powerlineswitch(self):
         agent = PowerLineSwitch(self.env.helper_action_player)
-        i, cum_reward = self._aux_test_agent(agent)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            i, cum_reward = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-        assert np.abs(cum_reward - 35147.56210) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(35147.55859375)
+        assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
 
     def test_2_busswitch(self):
         agent = TopologyGreedy(self.env.helper_action_player)
-        i, cum_reward = self._aux_test_agent(agent, i_max=10)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            i, cum_reward = self._aux_test_agent(agent, i_max=10)
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
-        assert np.abs(cum_reward - 12075.38803) <= self.tol_one, "The reward has not been properly computed"
+        expected_reward = dt_float(12075.389)
+        assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
 
 
 if __name__ == "__main__":

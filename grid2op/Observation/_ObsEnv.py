@@ -14,7 +14,7 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
-from grid2op.Action import BaseAction
+from grid2op.Action import CompleteAction, BaseAction
 from grid2op.Exceptions import Grid2OpException
 
 
@@ -37,15 +37,25 @@ class _ObsEnv(BaseEnv):
 
     This class is reserved for internal use. Do not attempt to do anything with it.
     """
-    def __init__(self, backend_instanciated, parameters, reward_helper, obsClass,
-                 action_helper, thermal_limit_a, legalActClass, donothing_act,
+    def __init__(self,
+                 backend_instanciated,
+                 completeActionClass,
+                 parameters,
+                 reward_helper,
+                 obsClass,
+                 action_helper,
+                 thermal_limit_a,
+                 legalActClass,
+                 donothing_act,
+                 helper_action_class,
+                 helper_action_env,
                  other_rewards={}):
         BaseEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
-        self.donothing_act = donothing_act
+        self.helper_action_class = helper_action_class
         self.reward_helper = reward_helper
         self.obsClass = None
-        self._action = None
-        self.init_grid(backend_instanciated)
+        # self._action = None
+        self.CompleteActionClass = completeActionClass
         self.init_backend(init_grid_path=None,
                           chronics_handler=_ObsCH(),
                           backend=backend_instanciated,
@@ -63,10 +73,18 @@ class _ObsEnv(BaseEnv):
         # convert line status to -1 / 1 instead of false / true
         self._line_status = None
         self.is_init = False
+        self.helper_action_env = helper_action_env
+        self.env_modification = self.helper_action_env()
+        self._do_nothing_act = self.helper_action_env()
+        self._backend_action_set = self._backend_action_class()
 
     def init_backend(self,
-                     init_grid_path, chronics_handler, backend,
-                     names_chronics_to_backend, actionClass, observationClass,
+                     init_grid_path,
+                     chronics_handler,
+                     backend,
+                     names_chronics_to_backend,
+                     actionClass,
+                     observationClass,
                      rewardClass, legalActClass):
         """
         backend should not be the backend of the environment!!!
@@ -89,7 +107,6 @@ class _ObsEnv(BaseEnv):
         self.env_dc = self.parameters.FORECAST_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
-        self.init_grid(self.backend)
         self._has_been_initialized()
         self.obsClass = observationClass
 
@@ -104,8 +121,19 @@ class _ObsEnv(BaseEnv):
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self._create_opponent()
 
+        self.gen_activeprod_t_init = np.zeros(self.n_gen, dtype=dt_float)
+        self.gen_activeprod_t_redisp_init = np.zeros(self.n_gen, dtype=dt_float)
+        self.times_before_line_status_actionable_init = np.zeros(self.n_line, dtype=dt_int)
+        self.times_before_topology_actionable_init = np.zeros(self.n_sub, dtype=dt_int)
+        self.time_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
+        self.duration_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
+        self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
+        self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
+        self.last_bus_line_or_init = np.zeros(self.n_line, dtype=dt_int)
+        self.last_bus_line_ex_init = np.zeros(self.n_line, dtype=dt_int)
+
     def _do_nothing(self, x):
-        return self.donothing_act
+        return self._do_nothing_act
 
     def _update_actions(self):
         """
@@ -121,7 +149,7 @@ class _ObsEnv(BaseEnv):
         """
         # TODO consider disconnecting maintenance forecasted :-)
         # This "environment" doesn't modify anything
-        return self.donothing_act, None
+        return self._do_nothing_act, None
 
     def copy(self):
         """
@@ -139,7 +167,7 @@ class _ObsEnv(BaseEnv):
         self.backend = backend
         return res
 
-    def init(self, new_state_action, time_stamp, timestep_overflow):
+    def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect):
         """
         Initialize a "forecasted grid state" based on the new injections, possibly new topological modifications etc.
 
@@ -165,8 +193,10 @@ class _ObsEnv(BaseEnv):
         if self.is_init:
             return
 
+
+        self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
-        self._action = BaseAction(gridobj=self)
+        self._action = self.CompleteActionClass()
         self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
                              "set_bus": self._topo_vect,
                              "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
@@ -174,10 +204,49 @@ class _ObsEnv(BaseEnv):
 
         self._action += new_state_action
 
+        # TODO set the shunts here
+        self._topo_vect[:] = topo_vect
+        # update the action that set the grid to the real value
+        self._backend_action_set += self.helper_action_env({"set_line_status": np.array(self._line_status, dtype=dt_int),
+                                                            "set_bus": self._topo_vect,
+                                                            "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
+                                                                          "load_p": self._load_p, "load_q": self._load_q}})
+        self._backend_action_set += self._action
         self.is_init = True
         self.current_obs = None
         self.time_stamp = time_stamp
-        self.timestep_overflow = timestep_overflow
+        self.timestep_overflow[:] = timestep_overflow
+
+    def _reset_to_orig_state(self):
+        """
+        reset this "environment" to the state it should be
+        """
+        self.backend.set_thermal_limit(self._thermal_limit_a)
+        self.gen_activeprod_t[:] = self.gen_activeprod_t_init
+        self.gen_activeprod_t_redisp[:] = self.gen_activeprod_t_redisp_init
+        self.times_before_line_status_actionable[:] = self.times_before_line_status_actionable_init
+        self.times_before_topology_actionable[:] = self.times_before_topology_actionable_init
+        self.time_next_maintenance[:] = self.time_next_maintenance_init
+        self.duration_next_maintenance[:] = self.duration_next_maintenance_init
+        self.target_dispatch[:] = self.target_dispatch_init
+        self.actual_dispatch[:] = self.actual_dispatch_init
+        self.last_bus_line_or[:] = self.last_bus_line_or_init
+        self.last_bus_line_ex[:] = self.last_bus_line_ex_init
+        new = True
+        save = False
+        if new:
+            self._backend_action_set.all_changed()
+            # self.backend.apply_action(None, self._backend_action_set)
+            self._backend_action = copy.deepcopy(self._backend_action_set)
+            if save:
+                import pandapower as pp
+                pp.to_json(self.backend._grid, "test_action2.json")
+        else:
+            self.backend.apply_action(self._action)
+            if save:
+                import pandapower as pp
+                pp.to_json(self.backend._grid, "test_action1.json")
+        # print("load after applying act: {}".format(self.backend._grid.load["p_mw"].values[0]))
 
     def simulate(self, action):
         """
@@ -209,7 +278,7 @@ class _ObsEnv(BaseEnv):
 
         info: ``dict``
             contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). It is a
-            dictionnary with keys:
+            dictionary with keys:
 
                 - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
                     due to overflow
@@ -217,9 +286,26 @@ class _ObsEnv(BaseEnv):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
-        self.backend.set_thermal_limit(self._thermal_limit_a)
-        self.backend.apply_action(self._action)
-        return self.step(action)
+        # print("-----")
+        self._reset_to_orig_state()
+        # print("\t before {}".format(np.sum(self.backend._grid.gen["p_mw"])))
+        # self.backend._pf_init = "dc"
+        # TODO set back the "change" to True
+        obs, reward, done, info = self.step(action)
+        # print("\t {}".format(reward))
+        # print("\t after {}".format(np.sum(self.backend._grid.res_gen["p_mw"])))
+        # print("\t after {}".format(np.sum(self.backend._grid.res_bus["vm_pu"])))
+        # print("\t after {}".format(np.sum(self.backend._grid.res_shunt["vm_pu"])))
+        # print("\t after {}".format(np.sum(self.backend._grid.shunt["q_mvar"])))
+        # print("\t\t{}".format(np.sum(obs.prod_p)))
+        # print("p {}".format(self.backend._grid.res_gen.iloc[0]["vm_pu"]))
+        # print("p {}".format(self.backend._grid.res_gen.iloc[1]["vm_pu"]))
+        # print("p {}".format(self.backend._grid.res_gen.iloc[2]["vm_pu"]))
+        # print("p {}".format(self.backend._grid.res_gen.iloc[3]["vm_pu"]))
+        # print("slack p {}".format(self.backend._grid.res_gen.iloc[4]["vm_pu"]))
+        # print("\t\t{}".format(np.sum(obs.prod_v)))
+        # print("\t\t{}".format(np.sum(obs.prod_v)))
+        return obs, reward, done, info
 
     def get_obs(self):
         """
@@ -231,8 +317,7 @@ class _ObsEnv(BaseEnv):
             The observation available.
         """
 
-        self.current_obs = self.obsClass(gridobj=self.backend,
-                                         seed=None,
+        self.current_obs = self.obsClass(seed=None,
                                          obs_env=None,
                                          action_helper=None)
 
@@ -265,18 +350,18 @@ class _ObsEnv(BaseEnv):
         self.is_init = False
 
         # Make a copy of env state for simulation
+        # TODO this depends on the datetime simulated, so find a way to have it independant of that !!!
         self._thermal_limit_a = env._thermal_limit_a.astype(dt_float)
-        self.gen_activeprod_t[:] = env.gen_activeprod_t[:].astype(dt_float)
-        self.gen_activeprod_t_redisp[:] = env.gen_activeprod_t_redisp[:].astype(dt_float)
-        self.times_before_line_status_actionable[:] = env.times_before_line_status_actionable[:].astype(dt_int)
-        self.times_before_topology_actionable[:]  = env.times_before_topology_actionable[:].astype(dt_int)
-        self.time_remaining_before_line_reconnection[:] = env.time_remaining_before_line_reconnection[:].astype(dt_int)
-        self.time_next_maintenance[:] = env.time_next_maintenance[:].astype(dt_int)
-        self.duration_next_maintenance[:] = env.duration_next_maintenance[:].astype(dt_int)
-        self.target_dispatch[:] = env.target_dispatch[:].astype(dt_float)
-        self.actual_dispatch[:] = env.actual_dispatch[:].astype(dt_float)
-        self.last_bus_line_or = env.last_bus_line_or[:].astype(dt_int)
-        self.last_bus_line_ex = env.last_bus_line_ex[:].astype(dt_int)
+        self.gen_activeprod_t_init[:] = env.gen_activeprod_t
+        self.gen_activeprod_t_redisp_init[:] = env.gen_activeprod_t_redisp
+        self.times_before_line_status_actionable_init[:] = env.times_before_line_status_actionable
+        self.times_before_topology_actionable_init[:] = env.times_before_topology_actionable
+        self.time_next_maintenance_init[:] = env.time_next_maintenance
+        self.duration_next_maintenance_init[:] = env.duration_next_maintenance
+        self.target_dispatch_init[:] = env.target_dispatch
+        self.actual_dispatch_init[:] = env.actual_dispatch
+        self.last_bus_line_or_init[:] = env.last_bus_line_or
+        self.last_bus_line_ex_init[:] = env.last_bus_line_ex
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!

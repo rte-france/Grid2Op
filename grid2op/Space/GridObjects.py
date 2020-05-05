@@ -250,7 +250,7 @@ class GridObjects:
     name_sub: :class:`numpy.ndarray`, dtype:str
         ordered names of the substation in the grid
 
-    attr_list_vect: ``list``
+    attr_list_vect: ``list``, static
         List of string. It represents the attributes that will be stored to/from vector when the BaseObservation is converted
         to/from it. This parameter is also used to compute automatically :func:`GridObjects.dtype` and
         :func:`GridObjects.shape` as well as :func:`GridObjects.size`. If this class is derived, then it's really
@@ -350,73 +350,88 @@ class GridObjects:
         for each shunt (if supported), gives the id the substation to which it is connected
 
     """
+    attr_list_vect = None
+    attr_list_set = {}
+
+    # class been init
+    # __is_init = False
+
+    # name of the objects
+    name_load = None
+    name_gen = None
+    name_line = None
+    name_sub = None
+
+    n_gen = -1
+    n_load = -1
+    n_line = -1
+    n_sub = -1
+
+    sub_info = None
+    dim_topo = -1
+
+    # to which substation is connected each element
+    load_to_subid = None
+    gen_to_subid = None
+    line_or_to_subid = None
+    line_ex_to_subid = None
+
+    # which index has this element in the substation vector
+    load_to_sub_pos = None
+    gen_to_sub_pos = None
+    line_or_to_sub_pos = None
+    line_ex_to_sub_pos = None
+
+    # which index has this element in the topology vector
+    load_pos_topo_vect = None
+    gen_pos_topo_vect = None
+    line_or_pos_topo_vect = None
+    line_ex_pos_topo_vect = None
+
+    # list of attribute to convert it from/to a vector
+    _vectorized = None
+
+    # for redispatching / unit commitment
+    # TODO = "TODO COMPLETE THAT BELLOW!!! AND UPDATE THE init methods"
+    _li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
+                          "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
+                          "gen_startup_cost", "gen_shutdown_cost"]
+
+    _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
+
+    # redispatch data, not available in all environment
+    redispatching_unit_commitment_availble = False
+    gen_type = None
+    gen_pmin = None
+    gen_pmax = None
+    gen_redispatchable = None
+    gen_max_ramp_up = None
+    gen_max_ramp_down = None
+    gen_min_uptime = None
+    gen_min_downtime = None
+    gen_cost_per_MW = None  # marginal cost
+    gen_startup_cost = None  # start cost
+    gen_shutdown_cost = None  # shutdown cost
+
+    # grid layout
+    grid_layout = None
+
+    # shunt data, not available in every bakend
+    shunts_data_available = False
+    n_shunt = None
+    name_shunt = None
+    shunt_to_subid = None
+
     def __init__(self):
-        # name of the objects
-        self.name_load = None
-        self.name_gen = None
-        self.name_line = None
-        self.name_sub = None
+        pass
 
-        self.n_gen = -1
-        self.n_load = -1
-        self.n_line = -1
-        self.n_sub = -1
+    @classmethod
+    def _update_value_set(cls):
+        """
+        Update the class attribute `attr_list_vect_set` from  `attr_list_vect`
+        """
 
-        self.sub_info = None
-        self.dim_topo = -1
-
-        # to which substation is connected each element
-        self.load_to_subid = None
-        self.gen_to_subid = None
-        self.line_or_to_subid = None
-        self.line_ex_to_subid = None
-
-        # which index has this element in the substation vector
-        self.load_to_sub_pos = None
-        self.gen_to_sub_pos = None
-        self.line_or_to_sub_pos = None
-        self.line_ex_to_sub_pos = None
-
-        # which index has this element in the topology vector
-        self.load_pos_topo_vect = None
-        self.gen_pos_topo_vect = None
-        self.line_or_pos_topo_vect = None
-        self.line_ex_pos_topo_vect = None
-
-        # list of attribute to convert it from/to a vector
-        self.attr_list_vect = None
-        self._vectorized = None
-
-        # for redispatching / unit commitment
-        TODO = "TODO COMPLETE THAT BELLOW!!! AND UPDATE THE init methods"
-        self._li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
-                              "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                              "gen_startup_cost", "gen_shutdown_cost"]
-
-        self._type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
-
-        # redispatch data, not available in all environment
-        self.redispatching_unit_commitment_availble = False
-        self.gen_type = None
-        self.gen_pmin = None
-        self.gen_pmax = None
-        self.gen_redispatchable = None
-        self.gen_max_ramp_up = None
-        self.gen_max_ramp_down = None
-        self.gen_min_uptime = None
-        self.gen_min_downtime = None
-        self.gen_cost_per_MW = None  # marginal cost
-        self.gen_startup_cost = None  # start cost
-        self.gen_shutdown_cost = None  # shutdown cost
-
-        # grid layout
-        self.grid_layout = None
-
-        # shunt data, not available in every bakend
-        self.shunts_data_available = False
-        self.n_shunt = None
-        self.name_shunt = None
-        self.shunt_to_subid = None
+        cls.attr_list_set = set(cls.attr_list_vect)
 
     def _raise_error_attr_list_none(self):
         """
@@ -451,7 +466,7 @@ class GridObjects:
             The attribute corresponding the name, flatten as a 1d vector.
 
         """
-        return np.array(self.__dict__[attr_name]).flatten()
+        return np.array(getattr(self, attr_name)).flatten()
 
     def to_vect(self):
         """
@@ -542,7 +557,11 @@ class GridObjects:
         -------
         ``None``
         """
-        self.__dict__[attr_nm] = vect
+        tmp = getattr(self, attr_nm)
+        if isinstance(tmp, (dt_bool, dt_int, dt_float)):
+            setattr(self, attr_nm, vect)
+        else:
+            tmp[:] = vect
 
     def check_space_legit(self):
         pass
@@ -602,98 +621,6 @@ class GridObjects:
         """
         res = np.sum(self.shape())
         return res
-
-    def init_grid_vect(self, name_prod, name_load, name_line, name_sub, sub_info,
-                       load_to_subid, gen_to_subid, line_or_to_subid, line_ex_to_subid,
-                       load_to_sub_pos, gen_to_sub_pos, line_or_to_sub_pos, line_ex_to_sub_pos,
-                       load_pos_topo_vect, gen_pos_topo_vect, line_or_pos_topo_vect, line_ex_pos_topo_vect):
-        """
-        Initialize the object from the vectors representing the grid.
-
-        Parameters
-        ----------
-        name_prod: :class:`numpy.ndarray`, dtype:str
-            Used to initialized :attr:`GridObjects.name_gen`
-
-        name_load: :class:`numpy.ndarray`, dtype:str
-            Used to initialized :attr:`GridObjects.name_load`
-
-        name_line: :class:`numpy.ndarray`, dtype:str
-            Used to initialized :attr:`GridObjects.name_line`
-
-        name_sub: :class:`numpy.ndarray`, dtype:str
-            Used to initialized :attr:`GridObjects.name_sub`
-
-        sub_info: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.sub_info`
-
-        load_to_subid: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.load_to_subid`
-
-        gen_to_subid: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.gen_to_subid`
-
-        line_or_to_subid: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.line_or_to_subid`
-
-        line_ex_to_subid: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.line_ex_to_subid`
-
-        load_to_sub_pos: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.load_to_sub_pos`
-
-        gen_to_sub_pos: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.gen_to_sub_pos`
-
-        line_or_to_sub_pos: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.line_or_to_sub_pos`
-
-        line_ex_to_sub_pos: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.line_ex_to_sub_pos`
-
-        load_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.load_pos_topo_vect`
-
-        gen_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.gen_pos_topo_vect`
-
-        line_or_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.line_or_pos_topo_vect`
-
-        line_ex_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
-            Used to initialized :attr:`GridObjects.line_ex_pos_topo_vect`
-        """
-
-        self.name_gen = name_prod
-        self.name_load = name_load
-        self.name_line = name_line
-        self.name_sub = name_sub
-
-        self.n_gen = len(name_prod)
-        self.n_load = len(name_load)
-        self.n_line = len(name_line)
-        self.n_sub = len(name_sub)
-
-        self.sub_info = sub_info
-        self.dim_topo = np.sum(sub_info)
-
-        # to which substation is connected each element
-        self.load_to_subid = load_to_subid
-        self.gen_to_subid = gen_to_subid
-        self.line_or_to_subid = line_or_to_subid
-        self.line_ex_to_subid = line_ex_to_subid
-
-        # which index has this element in the substation vector
-        self.load_to_sub_pos = load_to_sub_pos
-        self.gen_to_sub_pos = gen_to_sub_pos
-        self.line_or_to_sub_pos = line_or_to_sub_pos
-        self.line_ex_to_sub_pos = line_ex_to_sub_pos
-
-        # which index has this element in the topology vector
-        self.load_pos_topo_vect = load_pos_topo_vect
-        self.gen_pos_topo_vect = gen_pos_topo_vect
-        self.line_or_pos_topo_vect = line_or_pos_topo_vect
-        self.line_ex_pos_topo_vect = line_ex_pos_topo_vect
 
     def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
         """
@@ -1099,14 +1026,14 @@ class GridObjects:
                                  [str, dt_float, dt_float, dt_bool, dt_float,
                                  dt_float, dt_int, dt_int, dt_float,
                                  dt_float, dt_float]):
-                if not isinstance(self.__dict__[el], np.ndarray):
+                if not isinstance(getattr(self, el), np.ndarray):
                     try:
-                        self.__dict__[el] = np.array(self.__dict__[el])
+                        setattr(self, el, getattr(self, el).astype(type_))
                     except Exception as e:
                         raise InvalidRedispatching("{} should be convertible to a numpy array".format(el))
-                if not np.issubdtype(self.__dict__[el].dtype, np.dtype(type_).type):
+                if not np.issubdtype(getattr(self, el).dtype, np.dtype(type_).type):
                     try:
-                        self.__dict__[el] = self.__dict__[el].astype(type_)
+                        setattr(self, el, getattr(self, el).astype(type_))
                     except Exception as e:
                         raise InvalidRedispatching("{} should be convertible data should be convertible to "
                                                    "{}".format(el, type_))
@@ -1161,9 +1088,10 @@ class GridObjects:
             See definition of :attr:`GridObjects.grid_layout` for more information.
 
         """
-        self.grid_layout = grid_layout
+        GridObjects.grid_layout = grid_layout
 
-    def init_grid(self, gridobj):
+    @classmethod
+    def init_grid(cls, gridobj):
         """
         Initialize this :class:`GridObjects` instance with a provided instance.
 
@@ -1175,59 +1103,64 @@ class GridObjects:
         gridobj: :class:`GridObjects`
             The representation of the powergrid
         """
-        self.name_gen = gridobj.name_gen
-        self.name_load = gridobj.name_load
-        self.name_line = gridobj.name_line
-        self.name_sub = gridobj.name_sub
+        # nothing to do now that the value are class member
+        class res(cls):
+            pass
 
-        self.n_gen = len(gridobj.name_gen)
-        self.n_load = len(gridobj.name_load)
-        self.n_line = len(gridobj.name_line)
-        self.n_sub = len(gridobj.name_sub)
+        res.name_gen = gridobj.name_gen
+        res.name_load = gridobj.name_load
+        res.name_line = gridobj.name_line
+        res.name_sub = gridobj.name_sub
 
-        self.sub_info = gridobj.sub_info
-        self.dim_topo = np.sum(gridobj.sub_info)
+        res.n_gen = len(gridobj.name_gen)
+        res.n_load = len(gridobj.name_load)
+        res.n_line = len(gridobj.name_line)
+        res.n_sub = len(gridobj.name_sub)
+
+        res.sub_info = gridobj.sub_info
+        res.dim_topo = np.sum(gridobj.sub_info)
 
         # to which substation is connected each element
-        self.load_to_subid = gridobj.load_to_subid
-        self.gen_to_subid = gridobj.gen_to_subid
-        self.line_or_to_subid = gridobj.line_or_to_subid
-        self.line_ex_to_subid = gridobj.line_ex_to_subid
+        res.load_to_subid = gridobj.load_to_subid
+        res.gen_to_subid = gridobj.gen_to_subid
+        res.line_or_to_subid = gridobj.line_or_to_subid
+        res.line_ex_to_subid = gridobj.line_ex_to_subid
 
         # which index has this element in the substation vector
-        self.load_to_sub_pos = gridobj.load_to_sub_pos
-        self.gen_to_sub_pos = gridobj.gen_to_sub_pos
-        self.line_or_to_sub_pos = gridobj.line_or_to_sub_pos
-        self.line_ex_to_sub_pos = gridobj.line_ex_to_sub_pos
+        res.load_to_sub_pos = gridobj.load_to_sub_pos
+        res.gen_to_sub_pos = gridobj.gen_to_sub_pos
+        res.line_or_to_sub_pos = gridobj.line_or_to_sub_pos
+        res.line_ex_to_sub_pos = gridobj.line_ex_to_sub_pos
 
         # which index has this element in the topology vector
-        self.load_pos_topo_vect = gridobj.load_pos_topo_vect
-        self.gen_pos_topo_vect = gridobj.gen_pos_topo_vect
-        self.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
-        self.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
+        res.load_pos_topo_vect = gridobj.load_pos_topo_vect
+        res.gen_pos_topo_vect = gridobj.gen_pos_topo_vect
+        res.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
+        res.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
 
         # for redispatching / unit commitment (not available for all environment)
-        self.gen_type = gridobj.gen_type
-        self.gen_pmin = gridobj.gen_pmin
-        self.gen_pmax = gridobj.gen_pmax
-        self.gen_redispatchable = gridobj.gen_redispatchable
-        self.gen_max_ramp_up = gridobj.gen_max_ramp_up
-        self.gen_max_ramp_down = gridobj.gen_max_ramp_down
-        self.gen_min_uptime = gridobj.gen_min_uptime
-        self.gen_min_downtime = gridobj.gen_min_downtime
-        self.gen_cost_per_MW = gridobj.gen_cost_per_MW
-        self.gen_startup_cost = gridobj.gen_startup_cost
-        self.gen_shutdown_cost = gridobj.gen_shutdown_cost
-        self.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
+        res.gen_type = gridobj.gen_type
+        res.gen_pmin = gridobj.gen_pmin
+        res.gen_pmax = gridobj.gen_pmax
+        res.gen_redispatchable = gridobj.gen_redispatchable
+        res.gen_max_ramp_up = gridobj.gen_max_ramp_up
+        res.gen_max_ramp_down = gridobj.gen_max_ramp_down
+        res.gen_min_uptime = gridobj.gen_min_uptime
+        res.gen_min_downtime = gridobj.gen_min_downtime
+        res.gen_cost_per_MW = gridobj.gen_cost_per_MW
+        res.gen_startup_cost = gridobj.gen_startup_cost
+        res.gen_shutdown_cost = gridobj.gen_shutdown_cost
+        res.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
 
         # grid layout (not available for all environment
-        self.grid_layout = gridobj.grid_layout
+        res.grid_layout = gridobj.grid_layout
 
         # shuunts data (not available for all backend)
-        self.shunts_data_available = gridobj.shunts_data_available
-        self.n_shunt = gridobj.n_shunt
-        self.name_shunt = gridobj.name_shunt
-        self.shunt_to_subid = gridobj.shunt_to_subid
+        res.shunts_data_available = gridobj.shunts_data_available
+        res.n_shunt = gridobj.n_shunt
+        res.name_shunt = gridobj.name_shunt
+        res.shunt_to_subid = gridobj.shunt_to_subid
+        return res
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
@@ -1387,7 +1320,8 @@ class GridObjects:
 
         return res
 
-    def to_dict(self):
+    @classmethod
+    def to_dict(cls):
         """
         Convert the object as a dictionnary.
         Note that unless this method is overidden, a call to it will only output the
@@ -1398,46 +1332,46 @@ class GridObjects:
             The representation of the object as a dictionary that can be json serializable.
         """
         res = {}
-        save_to_dict(res, self, "name_gen", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_load", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_line", lambda li: [str(el) for el in li])
-        save_to_dict(res, self, "name_sub", lambda li: [str(el) for el in li])
+        save_to_dict(res, cls, "name_gen", lambda li: [str(el) for el in li])
+        save_to_dict(res, cls, "name_load", lambda li: [str(el) for el in li])
+        save_to_dict(res, cls, "name_line", lambda li: [str(el) for el in li])
+        save_to_dict(res, cls, "name_sub", lambda li: [str(el) for el in li])
 
-        save_to_dict(res, self, "sub_info", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "sub_info", lambda li: [int(el) for el in li])
 
-        save_to_dict(res, self, "load_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_or_to_subid", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_ex_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "load_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "gen_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "line_or_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "line_ex_to_subid", lambda li: [int(el) for el in li])
 
-        save_to_dict(res, self, "load_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_or_to_sub_pos", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_ex_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "load_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "gen_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "line_or_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "line_ex_to_sub_pos", lambda li: [int(el) for el in li])
 
-        save_to_dict(res, self, "load_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_or_pos_topo_vect", lambda li: [int(el) for el in li])
-        save_to_dict(res, self, "line_ex_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "load_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "line_or_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "line_ex_pos_topo_vect", lambda li: [int(el) for el in li])
 
         # redispatching
-        if self.redispatching_unit_commitment_availble:
-            for nm_attr, type_attr in zip(self._li_attr_disp, self._type_attr_disp):
-                save_to_dict(res, self, nm_attr, lambda li: [type_attr(el) for el in li])
+        if cls.redispatching_unit_commitment_availble:
+            for nm_attr, type_attr in zip(cls._li_attr_disp, cls._type_attr_disp):
+                save_to_dict(res, cls, nm_attr, lambda li: [type_attr(el) for el in li])
         else:
-            for nm_attr in self._li_attr_disp:
+            for nm_attr in cls._li_attr_disp:
                 res[nm_attr] = None
 
         # shunts
-        if self.grid_layout is not None:
-            save_to_dict(res, self, "grid_layout", lambda gl: {str(k): [float(x), float(y)] for k, (x,y) in gl.items()})
+        if cls.grid_layout is not None:
+            save_to_dict(res, cls, "grid_layout", lambda gl: {str(k): [float(x), float(y)] for k, (x,y) in gl.items()})
         else:
             res["grid_layout"] = None
 
         # shunts
-        if self.shunts_data_available:
-            save_to_dict(res, self, "name_shunt", lambda li: [str(el) for el in li])
-            save_to_dict(res, self, "shunt_to_subid", lambda li: [int(el) for el in li])
+        if cls.shunts_data_available:
+            save_to_dict(res, cls, "name_shunt", lambda li: [str(el) for el in li])
+            save_to_dict(res, cls, "shunt_to_subid", lambda li: [int(el) for el in li])
         else:
             res["name_shunt"] = None
             res["shunt_to_subid"] = None
@@ -1461,51 +1395,52 @@ class GridObjects:
             The object of the proper class that were initially represented as a dictionary.
 
         """
-        res = GridObjects()
-        res.name_gen = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
-        res.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
-        res.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
-        res.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
 
-        res.sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(dt_int))
-        res.load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(dt_int))
-        res.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(dt_int))
-        res.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(dt_int))
-        res.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int))
+        cls = GridObjects
+        cls.name_gen = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
+        cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
+        cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
+        cls.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
 
-        res.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-        res.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-        res.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-        res.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        cls.sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(dt_int))
+        cls.load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(dt_int))
+        cls.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(dt_int))
+        cls.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(dt_int))
+        cls.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int))
 
-        res.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        res.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        res.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        res.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        cls.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        cls.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        cls.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        cls.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int))
 
-        res.n_gen = len(res.name_gen)
-        res.n_load = len(res.name_load)
-        res.n_line = len(res.name_line)
-        res.n_sub = len(res.name_sub)
-        res.dim_topo = np.sum(res.sub_info)
+        cls.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        cls.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        cls.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        cls.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+
+        cls.n_gen = len(cls.name_gen)
+        cls.n_load = len(cls.name_load)
+        cls.n_line = len(cls.name_line)
+        cls.n_sub = len(cls.name_sub)
+        cls.dim_topo = np.sum(cls.sub_info)
 
         if dict_["gen_type"] is None:
-            res.redispatching_unit_commitment_availble = False
+            cls.redispatching_unit_commitment_availble = False
             # and no need to make anything else, because everything is already initialized at None
         else:
-            res.redispatching_unit_commitment_availble = True
+            cls.redispatching_unit_commitment_availble = True
             type_attr_disp = [str, dt_float, dt_float, dt_bool, dt_float, dt_float,
                               dt_int, dt_int, dt_float, dt_float, dt_float]
-            for nm_attr, type_attr in zip(res._li_attr_disp, type_attr_disp):
-                res.__dict__[nm_attr] = extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr))
+            for nm_attr, type_attr in zip(cls._li_attr_disp, type_attr_disp):
+                setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr)))
 
-        res.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
+        cls.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
 
-        res.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)
-        if res.name_shunt is not None:
-            res.shunts_data_available = True
-            res.n_shunt = len(res.name_shunt)
-            res.name_shunt = np.array(res.name_shunt).astype(str)
-            res.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int))
+        cls.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)
+        if cls.name_shunt is not None:
+            cls.shunts_data_available = True
+            cls.n_shunt = len(cls.name_shunt)
+            cls.name_shunt = np.array(cls.name_shunt).astype(str)
+            cls.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int))
 
-        return res
+        return cls()

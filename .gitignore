@@ -192,4 +192,8 @@ getting_started/path_agents/
 baselines/
 test_saving_chron_proper_format/
 test_split_and_save.py
-
+getting_started/saved_agent_DDDQN_100/
+getting_started/tf_logs_DDDQN/
+getting_started/logs-train/
+getting_started/saved_agent_DDDQN_1000/
+grid2op/tests.npz

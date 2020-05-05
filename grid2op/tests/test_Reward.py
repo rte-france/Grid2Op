@@ -16,14 +16,14 @@ import numbers
 from abc import ABC, abstractmethod
 from grid2op.tests.helper_path_test import *
 from grid2op.Reward import *
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 
 
 class TestLoadingReward(ABC):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case5_example", test=True, reward_class=self._reward_type())
+            self.env = make("rte_case5_example", test=True, reward_class=self._reward_type())
 
         self.action = self.env.action_space()
         self.has_error = False

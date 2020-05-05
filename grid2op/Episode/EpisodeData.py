@@ -50,13 +50,10 @@ All of the above should allow to read back, and better understand the behaviour 
 :class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
 """
 
-import datetime as dt
 import json
 import os
-import time
 
 import numpy as np
-import pandas as pd
 
 
 from grid2op.Exceptions import Grid2OpException, AmbiguousAction
@@ -73,12 +70,12 @@ class EpisodeData:
     TIMES = "episode_times.json"
     OTHER_REWARDS = "other_rewards.json"
 
-    AG_EXEC_TIMES = "agent_exec_times.npy"
-    ACTIONS = "actions.npy"
-    ENV_ACTIONS = "env_modifications.npy"
-    OBSERVATIONS = "observations.npy"
-    LINES_FAILURES = "disc_lines_cascading_failure.npy"
-    REWARDS = "rewards.npy"
+    AG_EXEC_TIMES = "agent_exec_times.npz"
+    ACTIONS = "actions.npz"
+    ENV_ACTIONS = "env_modifications.npz"
+    OBSERVATIONS = "observations.npz"
+    LINES_FAILURES = "disc_lines_cascading_failure.npz"
+    REWARDS = "rewards.npz"
 
     def __init__(self, actions=None, env_actions=None, observations=None, rewards=None,
                  disc_lines=None, times=None,
@@ -95,7 +92,6 @@ class EpisodeData:
                                              "env_actions")
         self.other_rewards = other_rewards
         self.observation_space = observation_space
-        self.helper_action_env = helper_action_env
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
@@ -154,6 +150,12 @@ class EpisodeData:
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.name))
 
+    def get_actions(self):
+        return self.actions.collection
+
+    def get_observations(self):
+        return self.observations.collection
+
     def __len__(self):
         return self.meta["chronics_max_timestep"]
 
@@ -163,7 +165,6 @@ class EpisodeData:
         if agent_path is None:
             # TODO: proper exception
             raise Grid2OpException("A path to an episode should be provided")
-
         episode_path = os.path.abspath(os.path.join(agent_path, name))
 
         try:
@@ -177,15 +178,15 @@ class EpisodeData:
                 other_rewards = json.load(fp=f)
 
             times = np.load(os.path.join(
-                episode_path, EpisodeData.AG_EXEC_TIMES))
-            actions = np.load(os.path.join(episode_path, EpisodeData.ACTIONS))
+                episode_path, EpisodeData.AG_EXEC_TIMES))["data"]
+            actions = np.load(os.path.join(episode_path, EpisodeData.ACTIONS))["data"]
             env_actions = np.load(os.path.join(
-                episode_path, EpisodeData.ENV_ACTIONS))
+                episode_path,EpisodeData.ENV_ACTIONS))["data"]
             observations = np.load(os.path.join(
-                episode_path, EpisodeData.OBSERVATIONS))
+                episode_path, EpisodeData.OBSERVATIONS))["data"]
             disc_lines = np.load(os.path.join(
-                episode_path, EpisodeData.LINES_FAILURES))
-            rewards = np.load(os.path.join(episode_path, EpisodeData.REWARDS))
+                episode_path, EpisodeData.LINES_FAILURES))["data"]
+            rewards = np.load(os.path.join(episode_path, EpisodeData.REWARDS))["data"]
 
         except FileNotFoundError as ex:
             raise Grid2OpException(f"EpisodeData file not found \n {str(ex)}")
@@ -303,18 +304,18 @@ class EpisodeData:
                 json.dump(obj=self.other_rewards, fp=f,
                           indent=4, sort_keys=True)
 
-            np.save(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES),
-                    self.times)
+            np.savez_compressed(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES),
+                    data=self.times)
             self.actions.save(
                 os.path.join(self.episode_path, EpisodeData.ACTIONS))
             self.env_actions.save(
                 os.path.join(self.episode_path, EpisodeData.ENV_ACTIONS))
             self.observations.save(
                 os.path.join(self.episode_path, EpisodeData.OBSERVATIONS))
-            np.save(os.path.join(
-                self.episode_path, EpisodeData.LINES_FAILURES), self.disc_lines)
-            np.save(os.path.join(self.episode_path,
-                                 EpisodeData.REWARDS), self.rewards)
+            np.savez_compressed(os.path.join(
+                self.episode_path, EpisodeData.LINES_FAILURES), data=self.disc_lines)
+            np.savez_compressed(os.path.join(self.episode_path,
+                                 EpisodeData.REWARDS), data=self.rewards)
 
 
 class CollectionWrapper:
@@ -414,4 +415,4 @@ class CollectionWrapper:
             self.collection = np.concatenate((self.collection, values.reshape(1, -1)))
 
     def save(self, path):
-        np.save(path, self.collection)
+        np.savez_compressed(path, data=self.collection)  # do not change keyword arguments

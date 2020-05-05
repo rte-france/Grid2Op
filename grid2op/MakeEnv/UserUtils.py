@@ -1,7 +1,7 @@
 import os
 import json
 
-from grid2op.MakeEnv.MakeNew import _list_available_remove_env_aux
+from grid2op.MakeEnv.Make import _list_available_remote_env_aux
 import grid2op.MakeEnv.PathUtils
 from grid2op.MakeEnv.PathUtils import DEFAULT_PATH_CONFIG, KEY_DATA_PATH
 from grid2op.Exceptions import Grid2OpException
@@ -18,7 +18,7 @@ def list_available_remote_env():
         a sorted list of available to environments that can be downloaded.
 
     """
-    avail_datasets_json = _list_available_remove_env_aux()
+    avail_datasets_json = _list_available_remote_env_aux()
     return sorted(avail_datasets_json.keys())
 
 

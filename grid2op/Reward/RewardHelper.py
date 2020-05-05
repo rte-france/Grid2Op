@@ -9,7 +9,6 @@
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.Reward.ConstantReward import ConstantReward
 
-
 class RewardHelper:
     """
     This class aims at making the creation of rewards class more automatic by the :class:`grid2op.Environment`.
@@ -88,10 +87,8 @@ class RewardHelper:
         -------
 
         """
-        if not is_done and not has_error:
+        if not has_error:
             res = self.template_reward(action, env, has_error, is_done, is_illegal, is_ambiguous)
-        elif is_done and not has_error:
-            res = self.template_reward.reward_max
         else:
             # no more data to consider, no powerflow has been run, reward is what it is
             res = self.template_reward.reward_min

@@ -18,17 +18,18 @@ class DontAct(PlayableAction):
     modify it will fail.
 
     """
+    authorized_keys = set()
+    attr_list_vect = []
 
-    def __init__(self, gridobj):
+    def __init__(self):
         """
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing
         more is done in this constructor.
 
         """
-        PlayableAction.__init__(self, gridobj)
-
-        self.authorized_keys = set()
-        self.attr_list_vect = []
+        PlayableAction.__init__(self)
+        if DontAct.attr_list_set:
+            self._update_value_set()
 
     def update(self, dict_):
         """

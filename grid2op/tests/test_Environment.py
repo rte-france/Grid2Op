@@ -19,9 +19,10 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
 from grid2op.Reward import L2RPNReward
-from grid2op.MakeEnv import make_new
+from grid2op.MakeEnv import make
 from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Action import *
+from grid2op.dtypes import dt_float
 
 DEBUG = False
 PROFILE_CODE = False
@@ -40,8 +41,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         self.path_chron = os.path.join(PATH_CHRONICS, "chronics")
         self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
 
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
 
         # force the verbose backend
@@ -80,7 +81,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         pass
 
     def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        return dt_float(np.max(np.abs(pred- true))) <= self.tolvect
 
     def test_step_doesnt_change_action(self):
         act = self.env.action_space()
@@ -159,7 +160,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp = cProfile.Profile()
             cp.enable()
         beg_ = time.time()
-        cum_reward = 0
+        cum_reward = dt_float(0.0)
         while not done:
             do_nothing = self.env.helper_action_player({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
@@ -175,7 +176,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.disable()
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
-        assert np.abs(cum_reward - 5739.92911) <= self.tol_one, "Wrong reward"
+        expected_reward = dt_float(5739.9336)
+        assert dt_float(np.abs(cum_reward - expected_reward)) <= self.tol_one, "Wrong reward"
 
 
 class TestIllegalAmbiguous(unittest.TestCase):
@@ -190,7 +192,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case5_example", test=True)
+            self.env = make("rte_case5_example", test=True)
 
     def tearDown(self):
         self.env.close()
@@ -199,6 +201,7 @@ class TestIllegalAmbiguous(unittest.TestCase):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_ambiguous_detected(self):
+        self.skipTest("deprecated test as the reconnection is handled by backend action")
         act = self.env.helper_action_player({"set_line_status": [(1, 1)]})
         obs, reward, done, info = self.env.step(act)
         assert info['is_ambiguous']
@@ -235,7 +238,7 @@ class TestOtherReward(unittest.TestCase):
         self.tol_one = 1e-4
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make_new("rte_case5_example", test=True, reward_class=L2RPNReward,
+            self.env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
                                 other_rewards={"test": L2RPNReward})
 
     def tearDown(self):
@@ -256,13 +259,55 @@ class TestOtherReward(unittest.TestCase):
         assert np.abs(info_simu["rewards"]["test"] - reward_simu) <= self.tol_one
 
 
+class TestResetOk(unittest.TestCase):
+    """
+    This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
+    or illegal
+
+    """
+
+    def setUp(self):
+        # powergrid
+        self.tolvect = 1e-2
+        self.tol_one = 1e-4
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+                            other_rewards={"test": L2RPNReward})
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_reset_after_blackout(self):
+        # make the grid in bad shape
+        act = self.env.action_space({"set_bus": {"substations_id": [(2, [1, 2, 1, 2])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space({"set_bus": {"substations_id": [(0, [1, 1, 2, 2, 1, 2])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space({"set_bus": {"substations_id": [(3, [1, 1, 2, 2, 1])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space.disconnect_powerline(3)
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space.disconnect_powerline(4)
+        obs, reward, done, info = self.env.step(act)
+        assert len(info["exception"])
+        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        # reset the grid
+        obs = self.env.reset()
+        assert np.all(obs.topo_vect == 1)
+
+        # check that i can simulate
+        simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
+        assert np.all(simobs.topo_vect == 1)
+
+
 class TestAttachLayout(unittest.TestCase):
     def test_attach(self):
         my_layout = [(0, 0), (0, 400), (200, 400), (400, 400), (400, 0)]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make_new("rte_case5_example", test=True, reward_class=L2RPNReward, other_rewards={"test": L2RPNReward}) \
+            with make("rte_case5_example", test=True, reward_class=L2RPNReward, other_rewards={"test": L2RPNReward}) \
                     as env:
                 env.attach_layout(my_layout)
                 act = env.action_space()
@@ -297,7 +342,7 @@ class TestLineChangeLastBus(unittest.TestCase):
 
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=self.params)
+                self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=self.params)
 
     def tearDown(self):
         self.env.close()
@@ -375,7 +420,7 @@ class TestResetAfterCascadingFailure(unittest.TestCase):
             warnings.filterwarnings("ignore")
             params = Parameters()
             params.MAX_SUB_CHANGED = 2
-            self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params)
+            self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params)
 
     def tearDown(self):
         self.env.close()
@@ -415,7 +460,7 @@ class TestCascadingFailure(unittest.TestCase):
             params.MAX_SUB_CHANGED = 0
             params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
             rules = DefaultRules
-            self.env = make_new("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params,
+            self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params,
                                 gamerules_class=rules)
 
     def tearDown(self):
@@ -440,6 +485,32 @@ class TestCascadingFailure(unittest.TestCase):
         obs_new = self.env.reset()
         obs1, reward, done, info = self.env.step(self.env.action_space())
         assert not done
+
+
+class TestLoading2envDontCrash(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = make("rte_case14_test", test=True)
+            self.env2 = make("rte_case5_example", test=True)
+
+    def tearDown(self) -> None:
+        self.env1.close()
+        self.env2.close()
+
+    def test_loading(self):
+
+        donotghing1 = self.env1.action_space()
+        donotghing2 = self.env2.action_space()
+
+        assert donotghing1.n_sub == 14
+        assert donotghing2.n_sub == 5
+
+        obs1, *_ = self.env1.step(donotghing1)
+        obs2, *_ = self.env2.step(donotghing2)
+
+        assert obs1.n_sub == 14
+        assert obs2.n_sub == 5
 
 
 if __name__ == "__main__":

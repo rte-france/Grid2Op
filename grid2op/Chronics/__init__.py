@@ -5,12 +5,7 @@ __all__ = [
     "GridStateFromFile",
     "GridStateFromFileWithForecasts",
     "MultiFolder",
-    "ReadPypowNetData",
-    "Settings_5busExample", 
-    "Settings_case14_realistic", 
-    "Settings_case14_redisp", 
-    "Settings_case14_test", 
-    "Settings_L2RPN2019"
+    "ReadPypowNetData"
 ]
 
 from grid2op.Chronics.ChronicsHandler import ChronicsHandler
