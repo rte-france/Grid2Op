@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import tempfile
 import pdb
 
 from grid2op.tests.helper_path_test import *
@@ -18,6 +19,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
+
 
 class TestRunner(HelperTests):
     def setUp(self):
@@ -78,6 +80,19 @@ class TestRunner(HelperTests):
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
+
+    def test_complex_agent(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_realistic", test=True) as env:
+                f = tempfile.mkdtemp()
+                runner_params = env.get_params_for_runner()
+                runner = Runner(**runner_params)
+                res = runner.run(path_save=f,
+                                 nb_episode=4,
+                                 nb_process=4,
+                                 max_iter=-1,
+                                 pbar=True)
 
     def test_init_from_env(self):
         with warnings.catch_warnings():

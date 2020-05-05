@@ -67,7 +67,8 @@ class TestRedispatch(HelperTests):
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
-                               actionClass=BaseAction)
+                               actionClass=BaseAction,
+                               name="env_test1")
         self.array_double_dispatch = np.array([0.,  10.,  20.,   0., -30.])
 
     def tearDown(self):
@@ -298,14 +299,14 @@ class TestRedispatchChangeNothingEnvironment(HelperTests):
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
-                               actionClass=BaseAction)
+                               actionClass=BaseAction,
+                               name="env_test2")
 
     def tearDown(self):
         self.env.close()
 
     def test_redispatch_generator_off(self):
         """ Redispatch a turned off generator is illegal """
-
         # Step into simulation once
         nothing_act = self.env.action_space()
         obs, reward, done, info = self.env.step(nothing_act)
