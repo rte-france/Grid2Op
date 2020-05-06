@@ -8,7 +8,6 @@
 import os
 import json
 import warnings
-import re
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 
