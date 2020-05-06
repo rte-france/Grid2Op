@@ -473,7 +473,8 @@ class TestObservationHazard(unittest.TestCase):
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
-                               rewardClass=self.rewardClass)
+                               rewardClass=self.rewardClass,
+                               name="test_obs_env1")
 
     def tearDown(self) -> None:
         self.env.close()
@@ -555,7 +556,8 @@ class TestObservationMaintenance(unittest.TestCase):
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
-                               rewardClass=self.rewardClass)
+                               rewardClass=self.rewardClass,
+                               name="test_obs_env2")
 
     def tearDown(self) -> None:
         self.env.close()

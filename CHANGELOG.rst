@@ -21,6 +21,15 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+  [0.8.1] - 2020-05-05
+----------------------
+- [FIXED] `Issue #65 <https://github.com/rte-france/Grid2Op/issues/65>`_: now the length of the Episode Data is properly
+  computed
+- [FIXED] `Issue #66 <https://github.com/rte-france/Grid2Op/issues/66>`_: runner is now compatible with multiprocessing
+  again
+- [FIXED] `Issue #67 <https://github.com/rte-france/Grid2Op/issues/67>`_: L2RPNSandBoxReward is now properly computed
+- [FIXED] Serialization / de serialization of Parameters as json is now fixed
+
   [0.8.0] - 2020-05-04
 ----------------------
 - [BREAKING] All previously deprecated features have been removed

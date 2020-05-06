@@ -75,7 +75,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                backend=self.backend,
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend)
+                               names_chronics_to_backend=self.names_chronics_to_backend,
+                               name="test_env_env1")
 
     def tearDown(self):
         pass
@@ -155,7 +156,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
                                rewardClass=L2RPNReward,
-                               names_chronics_to_backend=self.names_chronics_to_backend)
+                               names_chronics_to_backend=self.names_chronics_to_backend,
+                               name="test_env_env2")
         if PROFILE_CODE:
             cp = cProfile.Profile()
             cp.enable()

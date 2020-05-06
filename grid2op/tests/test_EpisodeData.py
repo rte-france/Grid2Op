@@ -67,7 +67,8 @@ class TestEpisodeData(unittest.TestCase):
                              backendClass=self.backendClass,
                              rewardClass=L2RPNReward,
                              other_rewards={"test": L2RPNReward},
-                             max_iter=self.max_iter)
+                             max_iter=self.max_iter,
+                             name_env="test_episodedata_env")
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()
@@ -78,6 +79,12 @@ class TestEpisodeData(unittest.TestCase):
         for other, real in zip(episode_data.other_rewards, episode_data.rewards):
             assert dt_float(np.abs(other["test"] - real)) <= self.tol_one
         assert np.abs(dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
+
+    def test_len(self):
+        f = tempfile.mkdtemp()
+        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+        len(episode_data)
 
     def test_3_episode_with_saving(self):
         f = tempfile.mkdtemp()

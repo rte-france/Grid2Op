@@ -8,7 +8,6 @@
 import os
 import json
 import warnings
-import re
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 
@@ -120,15 +119,7 @@ class Parameters:
 
         if parameters_path is not None:
             if os.path.isfile(parameters_path):
-                if re.search(".*\.json$", parameters_path) is not None:
-                    with open(parameters_path) as f:
-                        dict_ = json.load(f)
-                    self._init_from_json(dict_)
-                else:
-                    warn_msg = "Parameters: the file {} is not a supported file for loading " \
-                               "parameters. Continuing with default _parameters."
-                    warnings.warn(warn_msg.format(parameters_path))
-
+                self.init_from_json(parameters_path)
             else:
                 warn_msg = "Parameters: the file {} is not found. Continuing with default parameters."
                 warnings.warn(warn_msg.format(parameters_path))
@@ -222,10 +213,28 @@ class Parameters:
         res["NB_TIMESTEP_LINE_STATUS_REMODIF"] = int(self.NB_TIMESTEP_LINE_STATUS_REMODIF)
         return res
 
-    @staticmethod
-    def init_from_json(json_path):
+    def init_from_json(self, json_path):
         """
-        Initializes the _parameters from a json path.
+        Set member attributes from a json file
+
+        Parameters
+        ----------
+        json_path: ``str``
+            The complete (*ie.* path + filename) where the json file is located.
+        """
+        try:
+            with open(json_path) as f:
+                dict_ = json.load(f)
+            self.init_from_dict(dict_)
+        except:
+            warn_msg = "Could not load from {}\n" \
+                       "Continuing with default parameters"
+            warnings.warn(warn_msg.format(json_path))
+        
+    @staticmethod
+    def from_json(json_path):
+        """
+        Create instance from a json path.
 
         Parameters
         ----------
@@ -238,8 +247,5 @@ class Parameters:
             The _parameters initialized
 
         """
-        with open(json_path) as f:
-            dict_ = json.load(f)
-        res = Parameters()
-        res.init_from_dict(dict_)
+        res = Parameters(json_path)
         return res
