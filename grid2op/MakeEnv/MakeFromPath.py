@@ -331,6 +331,7 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                       chronics_handler=data_feeding,
                       backend=backend,
                       parameters=param,
+                      name=name_env,
                       names_chronics_to_backend=names_chronics_to_backend,
                       actionClass=action_class,
                       observationClass=observation_class,

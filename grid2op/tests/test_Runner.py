@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+import tempfile
 import pdb
 
 from grid2op.tests.helper_path_test import *
@@ -18,6 +19,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
+
 
 class TestRunner(HelperTests):
     def setUp(self):
@@ -58,7 +60,8 @@ class TestRunner(HelperTests):
                              gridStateclass=self.gridStateclass,
                              backendClass=self.backendClass,
                              rewardClass=L2RPNReward,
-                             max_iter=self.max_iter)
+                             max_iter=self.max_iter,
+                             name_env="test_runner_env")
 
     def test_one_episode(self):
         _, cum_reward, timestep = self.runner.run_one_episode()
@@ -78,6 +81,23 @@ class TestRunner(HelperTests):
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
+
+    def test_complex_agent(self):
+        nb_episode = 4
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env:
+                f = tempfile.mkdtemp()
+                runner_params = env.get_params_for_runner()
+                runner = Runner(**runner_params)
+                res = runner.run(path_save=f,
+                                 nb_episode=4,
+                                 nb_process=4,
+                                 max_iter=10)
+        test_ = set()
+        for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res:
+            test_.add(name_chron)
+        assert len(test_) == nb_episode
 
     def test_init_from_env(self):
         with warnings.catch_warnings():

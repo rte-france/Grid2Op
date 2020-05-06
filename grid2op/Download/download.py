@@ -35,8 +35,11 @@ def download_cli():
         print("Argument \"--path_save\" should be a valid path (directory) on your machine.")
         sys.exit(1)
 
-    main_download(dataset_name, path_data)
-    
+    try:
+        main_download(dataset_name, path_data)
+    except Exception as e:
+        sys.exit("Aborted")
+
 
 if __name__ == "__main__":
     download_cli()

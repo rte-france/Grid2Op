@@ -357,6 +357,7 @@ class GridObjects:
     # __is_init = False
 
     # name of the objects
+    env_name = "unknown"
     name_load = None
     name_gen = None
     name_line = None
@@ -1091,9 +1092,13 @@ class GridObjects:
         GridObjects.grid_layout = grid_layout
 
     @classmethod
+    def set_env_name(cls, name):
+        cls.env_name = name
+
+    @classmethod
     def init_grid(cls, gridobj):
         """
-        Initialize this :class:`GridObjects` instance with a provided instance.
+        Initialize this :class:`GridObjects` subclass with a provided class.
 
         It does not perform any check on the validity of the `gridobj` parameters, but it guarantees that  if `gridobj`
         is a valid grid, then the initialization will lead to a valid grid too.
@@ -1104,6 +1109,10 @@ class GridObjects:
             The representation of the powergrid
         """
         # nothing to do now that the value are class member
+        name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
+        if name_res in globals():
+            return globals()[name_res]
+
         class res(cls):
             pass
 
@@ -1160,6 +1169,10 @@ class GridObjects:
         res.n_shunt = gridobj.n_shunt
         res.name_shunt = gridobj.name_shunt
         res.shunt_to_subid = gridobj.shunt_to_subid
+
+        res.__name__ = name_res
+        res.__qualname__ = "{}_{}".format(cls.__qualname__, gridobj.env_name)
+        globals()[name_res] = res
         return res
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):

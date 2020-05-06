@@ -84,11 +84,14 @@ class EpisodeData:
                  helper_action_env=None, path_save=None, disc_lines_templ=None,
                  logger=None, name=str(1), get_dataframes=None, other_rewards=[]):
 
-        self.actions = CollectionWrapper(actions, action_space, "actions")
-        self.observations = CollectionWrapper(observations, observation_space,
+        self.actions = CollectionWrapper(actions,
+                                         action_space,
+                                         "actions")
+        self.observations = CollectionWrapper(observations,
+                                              observation_space,
                                               "observations")
-
-        self.env_actions = CollectionWrapper(env_actions, helper_action_env,
+        self.env_actions = CollectionWrapper(env_actions,
+                                             helper_action_env,
                                              "env_actions")
         self.other_rewards = other_rewards
         self.observation_space = observation_space
@@ -157,7 +160,7 @@ class EpisodeData:
         return self.observations.collection
 
     def __len__(self):
-        return self.meta["chronics_max_timestep"]
+        return int(self.meta["chronics_max_timestep"])
 
     @classmethod
     def from_disk(cls, agent_path, name=str(1)):

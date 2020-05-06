@@ -1,4 +1,5 @@
 import os
+import warnings
 import pkg_resources
 
 from grid2op.Environment import Environment
@@ -51,6 +52,35 @@ ALLOWED_KWARGS_MAKE = {"param", "backend", "observation_class", "gamerules_class
                        "action_class", "grid_path", "names_chronics_to_backend", "data_feeding_kwargs",
                        "chronics_class", "volagecontroler_class", "other_rewards",
                        'opponent_action_class', "opponent_class", "opponent_init_budget"}
+
+ERR_MSG_KWARGS = {
+    "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
+    "observation_class": "The type of observation of the environment (keyword \"observation_class\")" \
+    " must be a subclass of grid2op.BaseObservation",
+    "param": "The parameters of the environment (keyword \"param\") must be an instance of grid2op.Parameters",
+    "gamerules_class": "The type of rules of the environment (keyword \"gamerules_class\")" \
+    " must be a subclass of grid2op.BaseRules",
+    "reward_class": "The type of reward in the environment (keyword \"reward_class\") must be a subclass of grid2op.BaseReward",
+    "action_class": "The type of action of the environment (keyword \"action_class\") must be a subclass of grid2op.BaseAction",
+    "data_feeding_kwargs": "The argument to build the data generation process [chronics]" \
+    "  (keyword \"data_feeding_kwargs\") should be a dictionnary.",
+    "chronics_class": "The argument to build the data generation process [chronics] (keyword \"chronics_class\")" \
+    " should be a class that inherit grid2op.Chronics.GridValue.",
+    "chronics_handler": "The argument to build the data generation process [chronics] (keyword \"data_feeding\")" \
+    " should be a class that inherit grid2op.ChronicsHandler.ChronicsHandler.",
+    "voltagecontroler_class": "The argument to build the online controler for chronics (keyword \"volagecontroler_class\")" \
+    " should be a class that inherit grid2op.VoltageControler.ControlVoltageFromFile.",
+    "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
+    "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
+                     "should be dictionnary.",
+    "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
+                             "inherit from \"BaseAction\"",
+    "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
+                             "inherit from \"BaseOpponent\"",
+    "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float",
+    "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
+    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string."
+}
 
 
 def make_old(name_env="case14_realistic", **kwargs):
@@ -375,7 +405,8 @@ def make_old(name_env="case14_realistic", **kwargs):
                       other_rewards=other_rewards,
                       opponent_action_class=opponent_action_class,
                       opponent_class=opponent_class,
-                      opponent_init_budget=opponent_init_budget
+                      opponent_init_budget=opponent_init_budget,
+                      name=name_env
                       )
 
     # update the thermal limit if any

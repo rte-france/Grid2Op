@@ -11,6 +11,7 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class L2RPNSandBoxScore(BaseReward):
     """
     This score represent the L2RPN score.
@@ -32,7 +33,7 @@ class L2RPNSandBoxScore(BaseReward):
         losses = np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)
 
         # compute the marginal cost
-        p_t = np.max(env.gen_cost_per_MW[env.gen_activeprod_t > 0.], dtype=dt_float)
+        p_t = np.max(env.gen_cost_per_MW[env.gen_activeprod_t > 0.]).astype(dt_float)
 
         # redispatching amount
         c_redispatching = dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(env.actual_dispatch)) * p_t
