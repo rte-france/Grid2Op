@@ -44,7 +44,7 @@ pkgs = {
             "pathlib==1.0.1",
             "networkx==2.4",
             "requests==2.23.0",
-            "tensorflow==2.1.0",
+            "tensorflow==2.2.0",
             "Keras==2.3.1",
             "torch==1.4.0",
             "statsmodels==0.11.1",
