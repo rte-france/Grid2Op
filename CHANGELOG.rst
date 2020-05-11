@@ -26,6 +26,7 @@ Change Log
 - [FIXED] `Issue #75 <https://github.com/rte-france/Grid2Op/issues/75>`_: PlotGrid displays double powerlines correctly.
 - [FIXED] Action `+=` operator (aka. `__iadd__`) doesn't create warnings when manipulating identical arrays containing `NaN` values.
 - [UPDATED] Challenge tensorflow dependency to `tensorflow==2.2.0`
+- [UPDATED] `make` documentation to reflect API changes of 0.8.0
 
   [0.8.1] - 2020-05-05
 ----------------------

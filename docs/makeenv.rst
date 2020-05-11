@@ -13,7 +13,7 @@ To get started with such an environment, you can simply do:
 ..code-block:: python
 
     import grid2op
-    env = grid2op.make()
+    env = grid2op.make("rte_case14_realistic")
 
 
 You can consult the different notebooks in the `getting_stared` directory of this package for more information on
@@ -29,9 +29,7 @@ with a Grid2Op environment. An example of such modifications is exposed in the g
 
 Important notes
 ---------------
-As of version 0.7.1 a new function called ":func:`make_new`" has been developed in grid2op. This function, which will
-replace the current implementation of :func:`make` in future versions, merges the behaviour of "grid2op.download"
-script and "make" function.
+As of version 0.8.0 a ":func:`make`" has been updated in grid2op. This function, replace the current implementation of renamed :func:`make_old`, merges the behaviour of "grid2op.download" script and "make_old" function.
 
 It has the following behavior:
 
@@ -40,17 +38,19 @@ It has the following behavior:
 2) if you specify the name of an environmnet that you have already downloaded, it will use this environment (NB
    currently no checks are implemented if the environment has been updated remotely, which can happen if
    we realize there were some issues with it.)
-3) if the flag `local` is set to ``False`` (default behaviour) and none of the above conditions are met, the
-   :func:`make_new` will download the data of this environment locally the first time it is called. If you don't want
-   do download anything then you can pass the flag ``local=True``
-4) if ``local=True`` (NON default behaviour) nothing will be loaded, and the :func:`make_new` will attempt to use a
+3) if the flag `test` is set to ``False`` (default behaviour) and none of the above conditions are met, the
+   :func:`make` will download the data of this environment locally the first time it is called. If you don't want
+   to download anything then you can pass the flag ``test=True``
+4) if ``test=True`` (NON default behaviour) nothing will be loaded, and the :func:`make` will attempt to use a
    pre defined environment provided with the python package. We want to emphasize that because the environments provided
    with this package contains only little data, they are not suitable for leaning a consistent agent / controler. That
-   is why a warning is sent in this case. Also, keep in mind that if you don't pass ``local=True`` then you will not
+   is why a warning is sent in this case. Also, keep in mind that if you don't pass ``test=True`` then you will not
    have the possibility to search for these environments provided in the package.
-5) if nothing is found, :func:`make_new` throws a EnvError.
+5) if nothing is found, :func:`make` throws a EnvError.
 
-TODO: explain behaviour of ".grid2opconfig.json"
+Changing cache location
+-------------------------------
+Editing the file ``~/.grid2opconfig.json`` allows you to change the data cache location. 
 
 
 Detailed Documentation by class
