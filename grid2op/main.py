@@ -11,8 +11,6 @@ TODO documentation of this function!
 
 """
 import os
-import pkg_resources
-import argparse
 
 from grid2op.Observation import CompleteObservation
 from grid2op.Chronics import Multifolder
@@ -21,6 +19,7 @@ from grid2op.Agent import DoNothingAgent
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Rules import AlwaysLegal
 from grid2op.Runner import Runner
+
 
 def main_run(path_casefile=None,
              path_chronics=None,
@@ -58,23 +57,7 @@ def main_run(path_casefile=None,
     return res
 
 
-def main_cli():
-    parser = argparse.ArgumentParser(description='Launch the evaluation of the Grid2Op ("Grid To Operate") code.')
-    parser.add_argument('--path_save', default=None,
-                        help='The path where the log of the experience will be stored (default: None -> nothing stored)')
-    parser.add_argument('--nb_process', type=int, default=1,
-                        help='The number of process used for each evaluation (note that if nb_process > nb_episode then nb_episode is used.')
-    parser.add_argument('--nb_episode', type=int, default=3,
-                        help='The number of episode to play (default 3)')
-    parser.add_argument('--path_casefile', type=str, required=True,
-                        help='Path where the case file is located (casefile is the file describing the powergrid)')
-    parser.add_argument('--path_chronics', type=str, required=True,
-                        help='Path where the chronics (temporal variation of loads and production usually are located)')
-    parser.add_argument('--path_parameters', default=None,
-                        help='Path where the _parameters of the game are stored')
-
-    args = parser.parse_args()
-
+def main_cli(args):
     if args.path_save is not None:
         path_save = str(args.path_save)
     else:
@@ -109,5 +92,23 @@ def main_cli():
         msg_tmp += "\t\t - number of time steps completed: {:.0f} / {:.0f}".format(nb_time_step, max_ts)
         print(msg_tmp)
 
+
 if __name__ == "__main__":
-    main_cli()
+    import argparse
+    parser = argparse.ArgumentParser(description='Launch the evaluation of the Grid2Op ("Grid To Operate") code.')
+    parser.add_argument('--path_save', default=None,
+                        help='The path where the log of the experience will be stored (default: None -> nothing stored)')
+    parser.add_argument('--nb_process', type=int, default=1,
+                        help='The number of process used for each evaluation (note that if nb_process > nb_episode then nb_episode is used.')
+    parser.add_argument('--nb_episode', type=int, default=3,
+                        help='The number of episode to play (default 3)')
+    parser.add_argument('--path_casefile', type=str, required=True,
+                        help='Path where the case file is located (casefile is the file describing the powergrid)')
+    parser.add_argument('--path_chronics', type=str, required=True,
+                        help='Path where the chronics (temporal variation of loads and production usually are located)')
+    parser.add_argument('--path_parameters', default=None,
+                        help='Path where the _parameters of the game are stored')
+
+    args = parser.parse_args()
+
+    main_cli(args)

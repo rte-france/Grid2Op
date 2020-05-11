@@ -241,7 +241,6 @@ class BaseObservation(GridObjects):
         self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
         self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
 
-
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
 

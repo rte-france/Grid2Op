@@ -183,6 +183,7 @@ class _BackendAction(GridObjects):
         self.load_p.all_changed()
         self.load_q.all_changed()
 
+        # TODO handle shunts
         # shunts
         # if self.shunts_data_available:
         #     self.shunt_p.all_changed()

@@ -7,13 +7,15 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-import plotly.graph_objects as go
-import plotly.colors as pc
 import imageio
 import warnings
 
+# lazy loading of plotting utilities, to save loading time
+import plotly.graph_objects as go
+import plotly.colors as pc
+
+
 from grid2op.PlotGrid.BasePlot import BasePlot
-from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 
 
