@@ -649,6 +649,33 @@ class BaseObservation(GridObjects):
         """
         raise NotImplementedError("This method is not implemented. ")
 
+    def get_forecasted_inj(self, time_step=0):
+        if time_step >= len(self._forecasted_inj):
+            raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
+        a = self._forecasted_grid_act[time_step]["inj_action"]
+        prod_p_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
+        prod_v_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
+        load_p_f = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+        load_q_f = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+
+        if "prod_p" in a._dict_inj:
+            prod_p_f = a._dict_inj["prod_p"]
+        if "prod_v" in a._dict_inj:
+            prod_v_f = a._dict_inj["prod_v"]
+        if "load_p" in a._dict_inj:
+            load_p_f = a._dict_inj["load_p"]
+        if "load_q" in a._dict_inj:
+            load_q_f = a._dict_inj["load_q"]
+        tmp_arg = ~np.isfinite(prod_p_f)
+        prod_p_f[tmp_arg] = self.prod_p[tmp_arg]
+        tmp_arg = ~np.isfinite(prod_v_f)
+        prod_v_f[tmp_arg] = self.prod_v[tmp_arg]
+        tmp_arg = ~np.isfinite(load_p_f)
+        load_p_f[tmp_arg] = self.load_p[tmp_arg]
+        tmp_arg = ~np.isfinite(load_q_f)
+        load_q_f[tmp_arg] = self.load_q[tmp_arg]
+        return prod_p_f, prod_v_f, load_p_f, load_q_f
+
     def simulate(self, action, time_step=0):
         """
         This method is used to simulate the effect of an action on a forecasted powergrid state. It has the same return

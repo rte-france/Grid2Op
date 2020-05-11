@@ -203,10 +203,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert self.compare_vect(p_or_orig, p_or)
 
     def test_get_line_status(self):
-        assert np.all(self.backend.get_line_status())
+        assert np.all(self.backend._get_line_status())
         self.backend._disconnect_line(3)
-        assert np.sum(~self.backend.get_line_status()) == 1
-        assert not self.backend.get_line_status()[3]
+        assert np.sum(~self.backend._get_line_status()) == 1
+        assert not self.backend._get_line_status()[3]
 
     def test_get_line_flow(self):
         self.backend.runpf(is_dc=False)
