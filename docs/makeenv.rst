@@ -38,15 +38,16 @@ It has the following behavior:
 2) if you specify the name of an environmnet that you have already downloaded, it will use this environment (NB
    currently no checks are implemented if the environment has been updated remotely, which can happen if
    we realize there were some issues with it.)
-3) if the flag `test` is set to ``False`` (default behaviour) and none of the above conditions are met, the
+3) if you provided no arguments a default environment will be used: ``rte_case14_realistic`` 
+4) if the flag `test` is set to ``False`` (default behaviour) and none of the above conditions are met, the
    :func:`make` will download the data of this environment locally the first time it is called. If you don't want
    to download anything then you can pass the flag ``test=True``
-4) if ``test=True`` (NON default behaviour) nothing will be loaded, and the :func:`make` will attempt to use a
+5) if ``test=True`` (NON default behaviour) nothing will be loaded, and the :func:`make` will attempt to use a
    pre defined environment provided with the python package. We want to emphasize that because the environments provided
    with this package contains only little data, they are not suitable for leaning a consistent agent / controler. That
    is why a warning is sent in this case. Also, keep in mind that if you don't pass ``test=True`` then you will not
    have the possibility to search for these environments provided in the package.
-5) if nothing is found, :func:`make` throws a EnvError.
+6) if no valid environment is found, :func:`make` throws a EnvError.
 
 Changing cache location
 -------------------------------
