@@ -650,6 +650,25 @@ class BaseObservation(GridObjects):
         raise NotImplementedError("This method is not implemented. ")
 
     def get_forecasted_inj(self, time_step=0):
+        """
+        This function allows you to retrieve directly the "planned" injections for the timestep `time_step`
+
+        Parameters
+        ----------
+        time_step: ``int``
+            The horizon of the forecast;
+
+        Returns
+        -------
+        prod_p_f: ``numpy.ndarray``
+            The forecasted generators active values
+        prod_v_f: ``numpy.ndarray``
+            The forecasted generators voltage setpoins
+        load_p_f: ``numpy.ndarray``
+            The forecasted load active consumption
+        load_q_f: ``numpy.ndarray``
+            The forecasted load reactive consumption
+        """
         if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
         a = self._forecasted_grid_act[time_step]["inj_action"]

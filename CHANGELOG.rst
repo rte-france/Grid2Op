@@ -29,6 +29,12 @@ Change Log
   again
 - [FIXED] `Issue #67 <https://github.com/rte-france/Grid2Op/issues/67>`_: L2RPNSandBoxReward is now properly computed
 - [FIXED] Serialization / de serialization of Parameters as json is now fixed
+- [FIXED] `Issue #70 <https://github.com/rte-france/Grid2Op/issues/70>`_: for powerline disconnected, now the voltage
+  is properly set to `0.0`
+- [UPDATED] `Issue #40 <https://github.com/rte-france/Grid2Op/issues/40>`_: now it is possible to retrieve the forecast
+  of the injections without running an expensive "simulate" thanks to the `obs.get_forecasted_inj` method.
+- [UPDATED] `Issue #78 <https://github.com/rte-france/Grid2Op/issues/78>`_: parameters can be put as json in the
+  folder of the environment.
 
   [0.8.0] - 2020-05-04
 ----------------------
