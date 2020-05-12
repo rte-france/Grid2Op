@@ -537,7 +537,7 @@ class BasePlot(ABC):
         if line_info is not None:
             line_unit = self._info_to_units[line_info]
         if line_info == "rho":
-            line_values = observation.rho
+            line_values = observation.rho * 100.0
         if line_info == "p":
             line_values = observation.p_or
         if line_info == "a":
