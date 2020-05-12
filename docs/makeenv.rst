@@ -49,10 +49,13 @@ It has the following behavior:
    have the possibility to search for these environments provided in the package.
 6) if no valid environment is found, :func:`make` throws a EnvError.
 
-Changing cache location
+Cache manipulation
 -------------------------------
-Editing the file ``~/.grid2opconfig.json`` allows you to change the data cache location. 
+Editing the file ``~/.grid2opconfig.json`` allows you to change the data cache location. Programatically, it can be done with :func:`change_local_dir`.
 
+Call :func:`get_current_local_dir` to get the local cache directory location.
+
+You can list the environments in the local cache directory by calling :func:`list_available_local_env` and list all available environments with :func:`list_available_remote_env`.
 
 Detailed Documentation by class
 --------------------------------
