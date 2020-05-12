@@ -582,7 +582,12 @@ class BaseAction(GridObjects):
 
     def _assign_iadd_or_warn(self, attr_name, new_value):
         if attr_name not in self.attr_list_set:
-            if np.any(new_value != getattr(self, attr_name)):
+            old_value = getattr(self, attr_name)
+            new_is_finite = np.isfinite(new_value)
+            old_is_finite = np.isfinite(old_value)
+            new_finite = new_value[new_is_finite | old_is_finite]
+            old_finite = old_value[new_is_finite | old_is_finite]
+            if np.any(new_finite != old_finite):
                 warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
                               "".format(attr_name))
         else:
