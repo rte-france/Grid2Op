@@ -9,6 +9,7 @@
 import networkx as nx
 import numpy as np
 import copy
+import math
 
 
 def layout_obs_sub_only(obs, scale=1000.0):
@@ -54,8 +55,8 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
     G = nx.Graph()
 
     sub_w = 0 if use_initial else 100
-    load_w = 25 if use_initial else 15
-    gen_w = 25 if use_initial else 25
+    load_w = 25
+    gen_w = 25
 
     # Set lines edges
     for line_idx in range(obs.n_line):
@@ -100,15 +101,21 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
             initial_layout[sub_idx] = sub_pos
         for load_idx, load_subid in enumerate(obs.load_to_subid):
             sub_name = layout_keys[load_subid]
+            load_sub_pos = obs.load_to_sub_pos[load_idx]
+            load_sub_pos /= obs.sub_info[load_subid]
+            load_sub_pos *= (2.0 * math.pi)
             load_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
-            load_pos[0] -= (load_idx + 1)
-            load_pos[1] += (load_idx + 1)
+            load_pos[0] += math.cos(load_sub_pos) * load_w
+            load_pos[1] += math.sin(load_sub_pos) * load_w
             initial_layout[load_offset + load_idx] = load_pos
         for gen_idx, gen_subid in enumerate(obs.gen_to_subid):
             sub_name = layout_keys[gen_subid]
+            gen_sub_pos = obs.gen_to_sub_pos[gen_idx]
+            gen_sub_pos /= obs.sub_info[gen_subid]
+            gen_sub_pos *= (2.0 * math.pi)
             gen_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
-            gen_pos[0] += (gen_idx + 1)
-            gen_pos[1] -= (gen_idx + 1)
+            gen_pos[0] += math.cos(gen_sub_pos) * gen_w
+            gen_pos[1] += math.sin(gen_sub_pos) * gen_w
             initial_layout[gen_offset + gen_idx] = gen_pos        
     else:
         initial_layout = None

@@ -349,8 +349,8 @@ class PlotMatplot(BasePlot):
                             text):
         pos_x, pos_y = pltu.middle_from_points(pos_or_x, pos_or_y, pos_ex_x, pos_ex_y)
         off_x, off_y = pltu.orth_norm_from_points(pos_or_x, pos_or_y, pos_ex_x, pos_ex_y)
-        txt_x = pos_x + off_x * self._load_radius
-        txt_y = pos_y + off_y * self._load_radius
+        txt_x = pos_x + off_x * (self._load_radius / 2)
+        txt_y = pos_y + off_y * (self._load_radius / 2)
         ha = self._h_textpos_from_dir(off_x, off_y)
         va = self._v_textpos_from_dir(off_x, off_y)
         self.ax.text(txt_x, txt_y, text,
