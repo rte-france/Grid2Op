@@ -85,7 +85,7 @@ ERR_MSG_KWARGS = {
 
 def make_old(name_env="case14_realistic", **kwargs):
     """
-    This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
+    (DEPRECATED) This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
     For now, only the environment corresponding to the IEEE "case14" powergrid, with some pre defined chronics
     is available.
@@ -152,6 +152,7 @@ def make_old(name_env="case14_realistic", **kwargs):
         The created environment.
     """
 
+    warnings.warn("make_old is deprecated. Please consider using make instead")
     for el in kwargs:
         if not el in ALLOWED_KWARGS_MAKE:
             raise EnvError("Unknown keyword argument \"{}\" used to create an Environement. "
