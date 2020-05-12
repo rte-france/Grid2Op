@@ -446,6 +446,7 @@ class PlotPlotly(BasePlot):
 
         color_scheme = self.line_color_scheme
         capacity = observation.rho[line_id]
+        capacity = np.clip(capacity, 0.0, 1.0)
         color = color_scheme[int(capacity  * float(len(color_scheme) - 1))]
         if capacity == 0.0:
             color = "black"
