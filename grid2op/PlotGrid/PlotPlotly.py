@@ -179,8 +179,8 @@ class PlotPlotly(BasePlot):
             color = self._line_bus_colors[bus],
             showscale = False
         )
-        center_x = pos_x + (dir_x * self._sub_radius / 2)
-        center_y = pos_y + (dir_y * self._sub_radius / 2)
+        center_x = pos_x + dir_x * (self._sub_radius / 2)
+        center_y = pos_y + dir_y * (self._sub_radius / 2)
         trace_name = self._load_prefix + self._bus_prefix + load_name
         return go.Scatter(x=[center_x], y=[center_y],
                           marker=marker_dict,
@@ -272,8 +272,8 @@ class PlotPlotly(BasePlot):
             color = self._line_bus_colors[bus],
             showscale = False
         )
-        center_x = pos_x + (dir_x * self._sub_radius / 2)
-        center_y = pos_y + (dir_y * self._sub_radius / 2)
+        center_x = pos_x + dir_x * (self._sub_radius / 2)
+        center_y = pos_y + dir_y * (self._sub_radius / 2)
         trace_name = self._gen_prefix + self._bus_prefix + gen_name
         return go.Scatter(x=[center_x], y=[center_y],
                           marker=marker_dict,
@@ -362,8 +362,8 @@ class PlotPlotly(BasePlot):
             color = self._line_bus_colors[bus],
             showscale = False
         )
-        center_x = pos_x + (dir_x * self._sub_radius / 2)
-        center_y = pos_y + (dir_y * self._sub_radius / 2)
+        center_x = pos_x + dir_x * (self._sub_radius / 2)
+        center_y = pos_y + dir_y * (self._sub_radius / 2)
         trace_name = self._line_prefix + self._bus_prefix + side_prefix + line_name
         return go.Scatter(x=[center_x], y=[center_y],
                           marker=marker_dict,
