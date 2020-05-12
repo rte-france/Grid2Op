@@ -21,7 +21,7 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-  [0.8.1] - 2020-05-05
+  [0.8.2] - 2020-05-05
 ----------------------
 - [FIXED] `Issue #65 <https://github.com/rte-france/Grid2Op/issues/65>`_: now the length of the Episode Data is properly
   computed
@@ -35,6 +35,7 @@ Change Log
   of the injections without running an expensive "simulate" thanks to the `obs.get_forecasted_inj` method.
 - [UPDATED] `Issue #78 <https://github.com/rte-france/Grid2Op/issues/78>`_: parameters can be put as json in the
   folder of the environment.
+- [UPDATED] minor fix for `env.make`
 
   [0.8.0] - 2020-05-04
 ----------------------
