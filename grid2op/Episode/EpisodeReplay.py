@@ -10,6 +10,8 @@ import warnings
 import time
 import imageio
 
+import argparse
+
 from grid2op.Exceptions import Grid2OpException
 from grid2op.PlotGrid.PlotMatplot import PlotMatplot
 from grid2op.Episode.EpisodeData import EpisodeData
@@ -46,7 +48,7 @@ class EpisodeReplay(object):
         to save tha log of the agent.
 
     episode_data: :class:`grid2op.EpisodeData.EpisodeData`, optional
-        The last data of the episode inspected.
+        The last data of the episode inspected.replay_cli
     """
     def __init__(self, agent_path):
         if not os.path.exists(agent_path):
@@ -133,7 +135,20 @@ class EpisodeReplay(object):
                 warnings.warn(warn_msg)
 
 
-def main(args):
+def episode_replay_cli():
+    parser = argparse.ArgumentParser(description="EpisodeReplay")
+    parser.add_argument("--agent_path", required=True, type=str)
+    parser.add_argument("--episode_id", required=True, type=str)
+    parser.add_argument("--display", required=False, default=False, action="store_true")
+    parser.add_argument("--fps", required=False, default=2.0, type=float)
+    parser.add_argument("--gif_name", required=False, default=None, type=str)
+    args = parser.parse_args()
+    return args
+
+
+def main(args=None):
+    if args is None:
+        args = episode_replay_cli()
     er = EpisodeReplay(args.agent_path)
     er.replay_episode(args.episode_id,
                       fps=args.fps,
@@ -143,13 +158,5 @@ def main(args):
 
 # Dev / Test by running this file
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="EpisodeReplay")
-    parser.add_argument("--agent_path", required=True, type=str)
-    parser.add_argument("--episode_id", required=True, type=str)
-    parser.add_argument("--display", required=False, default=False, action="store_true")
-    parser.add_argument("--fps", required=False, default=2.0, type=float)
-    parser.add_argument("--gif_name", required=False, default=None, type=str)
-    args = parser.parse_args()
-
+    args = episode_replay_cli()
     main(args)
