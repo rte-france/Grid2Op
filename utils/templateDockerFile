@@ -20,8 +20,7 @@ RUN apt-get update && \
     git \
     ssh \
     tar \
-    gzip \
-    ca-certificates
+    gzip
 
 # Retrieve Grid2Op
 RUN git clone https://github.com/rte-france/Grid2Op

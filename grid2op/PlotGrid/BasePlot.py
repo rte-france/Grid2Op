@@ -15,6 +15,7 @@ from grid2op.Exceptions import PlotError
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 
+
 class BasePlot(ABC):
     """
     Abstract interface to plot the state of the powergrid

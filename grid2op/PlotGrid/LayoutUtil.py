@@ -11,6 +11,7 @@ import numpy as np
 import copy
 import math
 
+
 def layout_obs_sub_only(obs, scale=1000.0):
     n_sub = obs.n_sub
     n_line = obs.n_line

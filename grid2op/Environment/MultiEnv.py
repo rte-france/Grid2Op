@@ -56,6 +56,8 @@ class RemoteEnv(Process):
         self.space_prng.seed(seed=self.seed_used)
         self.backend = self.env_params["backendClass"]()
         del self.env_params["backendClass"]
+        chronics_handler = self.env_params["chronics_handler"]
+
         self.env = Environment(**self.env_params, backend=self.backend)
         self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x), replace=False)])
 
@@ -69,14 +71,18 @@ class RemoteEnv(Process):
         # TODO dirty hack because of wrong chronics
         # need to check!!!
         conv = False
-        obs = None
+        obs_v = None
         while not conv:
             try:
                 obs = self.env.reset()
-                conv = True
+                obs_v = obs.to_vect()
+                if np.all(np.isfinite(obs_v)):
+                    # i make sure that everything is not Nan
+                    # other i consider it's "divergence" so "game over"
+                    conv = True
             except:
                 pass
-        return obs
+        return obs_v
 
     def run(self):
         if self.env is None:
@@ -90,16 +96,16 @@ class RemoteEnv(Process):
                 # perform a step
                 data = self.env.action_space.from_vect(data)
                 obs, reward, done, info = self.env.step(data)
-                if done:
+                obs_v = obs.to_vect()
+                if done or np.any(~np.isfinite(obs_v)):
                     # if done do a reset
-                    obs = self.get_obs_ifnotconv()
-                self._clean_observation(obs)
-                self.remote.send((obs.to_vect(), reward, done, info))
+                    obs_v = self.get_obs_ifnotconv()
+                self.remote.send((obs_v, reward, done, info))
             elif cmd == 'r':
                 # perfom a reset
-                obs = self.get_obs_ifnotconv()
-                self._clean_observation(obs)
-                self.remote.send(obs.to_vect())
+                obs_v = self.get_obs_ifnotconv()
+                # self._clean_observation(obs)
+                self.remote.send(obs_v)
             elif cmd == 'c':
                 # close everything
                 self.env.close()
