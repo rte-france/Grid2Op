@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 # Use an official Python runtime as a parent image
-FROM ubuntu:18.04
+FROM python:3.6-stretch
 
 MAINTAINER Benjamin DONNOT <benjamin.donnot@rte-france.com>
 
@@ -17,29 +17,10 @@ RUN apt-get update && \
     apt-get install -y \
     less \
     apt-transport-https \
-    apt-utils \
     git \
     ssh \
     tar \
-    gzip \
-    ca-certificates \
-    python3 \
-    python3-pip \
-    software-properties-common  # for add-apt-repository command
-
-# install julia 1.4
-RUN add-apt-repository ppa:jonathonf/julialang
-RUN apt-get update
-RUN apt-get install -y julia
-
-# weird 'hack' for julia in some ubuntu
-RUN ln /usr/lib/x86_64-linux-gnu/libjulia.so.1 /usr/lib/x86_64-linux-gnu/libjulia.so
-
-# install python in julia
-RUN julia -e 'ENV["PYTHON"]="/usr/bin/python3"; using Pkg;  Pkg.add("Ipopt"); Pkg.add("PowerModels"); Pkg.add("PyCall"); Pkg.add("Juniper"); Pkg.add("Cbc"); Pkg.add("JSON")'
-
-# install julia from python
-RUN pip3 install julia  # install julia in python
+    gzip
 
 # Retrieve Grid2Op
 RUN git clone https://github.com/rte-france/Grid2Op
@@ -50,9 +31,9 @@ WORKDIR /Grid2Op
 RUN git pull
 RUN git remote update
 RUN git fetch --all --tags
-RUN git checkout "tags/v0.8.1" -b "v0.8.1-branch"
+RUN git checkout "tags/v0.8.2" -b "v0.8.2-branch"
 # Install Dependencies
-RUN pip3 install .  #[optional,challenge]
+RUN pip3 install .[optional,challenge]
 WORKDIR /
 
 # Make port 80 available to the world outside this container
