@@ -21,57 +21,58 @@ class PlotMatplot(BasePlot):
     """
     Attributes
     ----------
-    width: `int`
+
+    width: ``int``
         Width of the figure in pixels
-    height: `int`
+    height: ``int``
         Height of the figure in pixel
-    dpi: `int`
+    dpi: ``int``
         Dots per inch, to convert pixels dimensions into inches
-    _scale: `float`
+    _scale: ``float``
         Scale of the drawing in arbitrary units
-    _sub_radius: `int`
+    _sub_radius: ``int``
         Substation circle size 
-    _sub_face_color: `str`
+    _sub_face_color: ``str``
         Substation circle fill color
-    _sub_edge_color: `str`
+    _sub_edge_color: ``str``
         Substation circle edge color
-    _sub_txt_color: `str`
+    _sub_txt_color: ``str``
         Substation info text color
-    _load_radius: `int`
+    _load_radius: ``int``
         Load circle size
-    _load_face_color: `str`
+    _load_face_color: ``str``
         Load circle fill color
-    _load_edge_color: `str`
+    _load_edge_color: ``str``
         Load circle edge color
-    _load_txt_color: `str`
+    _load_txt_color: ``str``
         Load info text color
-    _load_line_color: `str`
+    _load_line_color: ``str``
         Color of the line from load to substation
-    _load_line_width: `int`
+    _load_line_width: ``int``
         Width of the line from load to substation
-     _gen_radius: `int`
+    _gen_radius: ``int``
         Generators circle size
-     _gen_face_color: `str`
+    _gen_face_color: ``str``
         Generators circle fill color
-     _gen_edge_color: `str`
+    _gen_edge_color: ``str``
         Generators circle edge color
-     _gen_txt_color: `str`
+    _gen_txt_color: ``str``
         Generators info txt color
-     _gen_line_color: `str`
+    _gen_line_color: ``str``
         Color of the line form generator to substation
-     _gen_line_width: `str`
+    _gen_line_width: ``str``
         Width of the line from generator to substation
-     _line_color_scheme: `list`
+    _line_color_scheme: ``list``
         List of color strings to color powerlines based on rho values
-     _line_color_width: `int`
+    _line_color_width: ``int``
         Width of the powerlines lines
-     _line_bus_radius: `int`
+    _line_bus_radius: ``int``
         Size of the bus display circle
-     _line_bus_face_colors: `list`
+    _line_bus_face_colors: ``list``
         List of 3 colors strings, each corresponding to the fill color of the bus circle
-     _line_arrow_len: `int`
+    _line_arrow_len: ``int``
         Length of the arrow on the powerlines
-     _line_arrow_width: `int`
+    _line_arrow_width: ``int``
        Width of the arrow on the powerlines
     """
 
