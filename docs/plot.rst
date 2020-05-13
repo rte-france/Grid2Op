@@ -33,7 +33,7 @@ the agent pretty easily, and allows easy saving into gif format.
     path_agents = "agent_pseudo_random"
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        env = grid2op.make("case14_realistic")
+        env = grid2op.make("rte_case14_realistic")
 
     class CustomRandom(RandomAgent):
         """
