@@ -21,14 +21,22 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-  [0.8.2] - 2020-05-??
+[0.8.2] - 2020-05-xx
 ----------------------
 - [FIXED] `Issue #75 <https://github.com/rte-france/Grid2Op/issues/75>`_: PlotGrid displays double powerlines correctly.
-- [FIXED] Action `+=` operator (aka. `__iadd__`) doesn't create warnings when manipulating identical arrays containing `NaN` values.
+- [FIXED] Action `+=` operator (aka. `__iadd__`) doesn't create warnings when manipulating identical arrays
+  containing `NaN` values.
+- [FIXED] `Issue #70 <https://github.com/rte-france/Grid2Op/issues/70>`_: for powerline disconnected, now the voltage
+  is properly set to `0.0`
+- [UPDATED] `Issue #40 <https://github.com/rte-france/Grid2Op/issues/40>`_: now it is possible to retrieve the forecast
+  of the injections without running an expensive "simulate" thanks to the `obs.get_forecasted_inj` method.
+- [UPDATED] `Issue #78 <https://github.com/rte-france/Grid2Op/issues/78>`_: parameters can be put as json in the
+  folder of the environment.
+- [UPDATED] minor fix for `env.make`
 - [UPDATED] Challenge tensorflow dependency to `tensorflow==2.2.0`
 - [UPDATED] `make` documentation to reflect API changes of 0.8.0
 
-  [0.8.1] - 2020-05-05
+[0.8.1] - 2020-05-05
 ----------------------
 - [FIXED] `Issue #65 <https://github.com/rte-france/Grid2Op/issues/65>`_: now the length of the Episode Data is properly
   computed
@@ -37,7 +45,7 @@ Change Log
 - [FIXED] `Issue #67 <https://github.com/rte-france/Grid2Op/issues/67>`_: L2RPNSandBoxReward is now properly computed
 - [FIXED] Serialization / de serialization of Parameters as json is now fixed
 
-  [0.8.0] - 2020-05-04
+[0.8.0] - 2020-05-04
 ----------------------
 - [BREAKING] All previously deprecated features have been removed
 - [BREAKING] `grid2op.Runner` is now located into a submodule folder

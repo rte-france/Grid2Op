@@ -8,14 +8,14 @@
 
 import io
 import numpy as np
-import matplotlib.pyplot as plt
+
 from matplotlib.path import Path
+
+from grid2op.PlotGrid.BasePlot import BasePlot
+from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 import matplotlib.patches as patches
 from matplotlib.lines import Line2D
 
-from grid2op.PlotGrid.BasePlot import BasePlot
-from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
-from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 
 class PlotMatplot(BasePlot):
     """
@@ -136,6 +136,8 @@ class PlotMatplot(BasePlot):
             return "right"
         
     def create_figure(self):
+        # lazy loading of graphics library (reduce loading time) [and mainly because matplolib has weird impact on argparse)
+        import matplotlib.pyplot as plt
         w_inch = self.width / self.dpi
         h_inch = self.height / self.dpi
         f = plt.figure(figsize=(w_inch, h_inch), dpi=self.dpi)

@@ -490,7 +490,7 @@ class Environment(BaseEnv):
                                    "Available information are: {}".format(info))
 
         # test the backend returns object of the proper size
-        self.backend.assert_grid_correct_after_powerflow()
+        # self.backend.assert_grid_correct_after_powerflow()
 
     def add_text_logger(self, logger=None):
         """

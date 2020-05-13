@@ -419,3 +419,7 @@ class CollectionWrapper:
 
     def save(self, path):
         np.savez_compressed(path, data=self.collection)  # do not change keyword arguments
+
+
+if __name__ == "__main__":
+    pass

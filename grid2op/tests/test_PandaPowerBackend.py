@@ -203,10 +203,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert self.compare_vect(p_or_orig, p_or)
 
     def test_get_line_status(self):
-        assert np.all(self.backend.get_line_status())
+        assert np.all(self.backend._get_line_status())
         self.backend._disconnect_line(3)
-        assert np.sum(~self.backend.get_line_status()) == 1
-        assert not self.backend.get_line_status()[3]
+        assert np.sum(~self.backend._get_line_status()) == 1
+        assert not self.backend._get_line_status()[3]
 
     def test_get_line_flow(self):
         self.backend.runpf(is_dc=False)
@@ -1185,6 +1185,18 @@ class TestResetEqualsLoadGrid(unittest.TestCase):
         assert np.all(obs1.duration_next_maintenance == obs2.duration_next_maintenance)
         assert np.all(obs1.target_dispatch == obs2.target_dispatch)
         assert np.all(obs1.actual_dispatch == obs2.actual_dispatch)
-    
+
+
+class TestVoltageOWhenDisco(unittest.TestCase):
+    def test_this(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_realistic", test=True) as env:
+                line_id = 1
+                act = env.action_space({"set_line_status": [(line_id, -1)]})
+                obs, *_ = env.step(act)
+                assert obs.v_or[line_id] == 0.  # is not 0 however line is not connected
+
+
 if __name__ == "__main__":
     unittest.main()

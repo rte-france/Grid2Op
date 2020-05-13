@@ -221,8 +221,15 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
 
     ## Create the parameters of the game, thermal limits threshold,
     # simulate cascading failure, powerflow mode etc. (the gamification of the game)
-    param = _get_default_aux('param', kwargs, defaultClass=Parameters,
-                             defaultClassApp=Parameters, msg_error=ERR_MSG_KWARGS["param"])
+    if "param" in kwargs:
+        param = _get_default_aux('param', kwargs, defaultClass=Parameters,
+                                 defaultClassApp=Parameters, msg_error=ERR_MSG_KWARGS["param"])
+    else:
+        # param is not in kwargs
+        param = Parameters()
+        json_path = os.path.join(dataset_path_abs, "parameters.json")
+        if os.path.exists(json_path):
+            param.init_from_json(json_path)
 
     # Get default rules class
     rules_class_cfg = DefaultRules

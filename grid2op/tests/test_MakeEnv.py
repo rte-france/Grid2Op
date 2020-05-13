@@ -14,7 +14,7 @@ import time
 import numpy as np
 import pdb
 
-from grid2op.tests.helper_path_test import PATH_CHRONICS_Make2
+from grid2op.tests.helper_path_test import PATH_CHRONICS_Make2, PATH_DATA_TEST
 from grid2op.tests.helper_path_test import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
 from grid2op.tests.helper_data_test import case14_redisp_TH_LIM, case14_test_TH_LIM, case14_real_TH_LIM
 
@@ -512,6 +512,15 @@ class TestMakeFromPathConfigOverride(unittest.TestCase):
         }
         with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
             assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+
+class TestMakeFromPathParameters(unittest.TestCase):
+    def test_case5_some_missing(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_some_missing")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                assert env.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF == 19
 
 
 if __name__ == "__main__":

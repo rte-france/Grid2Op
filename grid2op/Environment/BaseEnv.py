@@ -1137,3 +1137,4 @@ class BaseEnv(GridObjects, ABC):
 
         # Update to the fast forward state using a do nothing action
         self.step(self.helper_action_player({}))
+        # return self.current_obs
