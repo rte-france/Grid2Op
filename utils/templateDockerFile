@@ -20,18 +20,7 @@ RUN apt-get update && \
     git \
     ssh \
     tar \
-    gzip \
-    ca-certificates \
-    julia
-
-# weird 'hack' for julia in some ubuntu
-RUN ln /usr/lib/x86_64-linux-gnu/libjulia.so.1 /usr/lib/x86_64-linux-gnu/libjulia.so
-
-# install python in julia
-RUN julia -e 'ENV["PYTHON"]="/usr/bin/python3"; using Pkg;  Pkg.add("Ipopt"); Pkg.add("PowerModels"); Pkg.add("PyCall"); Pkg.add("Juniper"); Pkg.add("Cbc")'  # install python and all other stuff in julia
-
-# install julia from python
-RUN pip3 install julia  # install julia in python
+    gzip
 
 # Retrieve Grid2Op
 RUN git clone https://github.com/rte-france/Grid2Op
