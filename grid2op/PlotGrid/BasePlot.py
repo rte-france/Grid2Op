@@ -13,6 +13,8 @@ from abc import ABC, abstractmethod
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import PlotError
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
+from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
+
 
 class BasePlot(ABC):
     """
@@ -38,12 +40,14 @@ class BasePlot(ABC):
                  width=800,
                  height=600,
                  scale=2000.0,
-                 grid_layout=None):
+                 grid_layout=None,
+                 parallel_spacing=3.0):
 
         self.observation_space = observation_space
         self.width = width
         self.height = height
         self.scale = scale
+        self._parallel_spacing = parallel_spacing
 
         self._info_to_units = {
             "rho": "%",
@@ -95,27 +99,33 @@ class BasePlot(ABC):
 
         This should return a native python ``dict`` 
         in the same format as observation_space.grid_layout :
-        ```
+
+        .. code-block:: python
+
             {
               "substation1_name": [x_coord, y_coord],
               "substation2_name": [x_coord, y_coord],
-               ...
+              [...],
               "load1_name": [x_coord, y_coord],
-              ...
+              [...], 
               "gen1_name": [x_coord, y_coord],
-              ...
+              [...]
             }
-        ```
+        
         Note that is must contain at least the positions for the substations.
         The loads and generators will be skipped if missing. 
 
-        By default, if :grid_layout: is provided this is returned, 
+        By default, if `grid_layout` is provided this is returned, 
         otherwise returns observation_space.grid_layout
+
         Parameters
         ----------
-        observation_space: ``grid2op.Observation.ObservationSpace`
+
+        observation_space: ``grid2op.Observation.ObservationSpace``
+             The observation space of the environment
 
         grid_layout: ``dict`` or ``None``
+             A dictionary containing the coordinates for each substation.
         """
         # We need an intial layout to work with
         use_grid_layout = None
@@ -426,6 +436,7 @@ class BasePlot(ABC):
             line_value = None
             if line_values is not None:
                 line_value = np.round(float(line_values[line_idx]), 2)
+                
             line_or_bus = topo[line_or_pos[line_idx]]
             line_or_bus = line_or_bus if line_or_bus > 0 else 0
             line_or_x = self._grid_layout[line_or_sub_name][0]
@@ -434,6 +445,24 @@ class BasePlot(ABC):
             line_ex_bus = line_ex_bus if line_ex_bus > 0 else 0
             line_ex_x = self._grid_layout[line_ex_sub_name][0]
             line_ex_y = self._grid_layout[line_ex_sub_name][1]
+
+            # Special case for parralel lines
+            tmp = self.observation_space.get_lines_id(from_=line_or_sub,
+                                                      to_=line_ex_sub)
+            if len(tmp) > 1:
+                ox, oy = pltu.orth_norm_from_points(line_or_x, line_or_y,
+                                                    line_ex_x, line_ex_y)
+                if line_idx == tmp[0]:
+                    line_or_x += ox * self._parallel_spacing
+                    line_or_y += oy * self._parallel_spacing
+                    line_ex_x += ox * self._parallel_spacing
+                    line_ex_y += oy * self._parallel_spacing
+                else:
+                    line_or_x -= ox * self._parallel_spacing
+                    line_or_y -= oy * self._parallel_spacing
+                    line_ex_x -= ox * self._parallel_spacing
+                    line_ex_y -= oy * self._parallel_spacing
+
             draw_fn(figure, observation,
                     line_idx, line_name, line_status,
                     line_value, line_unit,
@@ -515,7 +544,7 @@ class BasePlot(ABC):
         if line_info is not None:
             line_unit = self._info_to_units[line_info]
         if line_info == "rho":
-            line_values = observation.rho
+            line_values = observation.rho * 100.0
         if line_info == "p":
             line_values = observation.p_or
         if line_info == "a":

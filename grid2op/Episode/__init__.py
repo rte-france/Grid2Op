@@ -9,5 +9,4 @@ try:
     from grid2op.Episode.EpisodeReplay import EpisodeReplay
     __all__.append("EpisodeReplay")
 except ImportError:
-    pass # Silent fail for optional dependencies
-
+    pass  # Silent fail for optional dependencies

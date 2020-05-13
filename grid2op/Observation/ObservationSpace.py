@@ -29,9 +29,6 @@ class ObservationSpace(SerializableObservationSpace):
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
 
-    _empty_obs: :class:`grid2op.Observation.BaseObservation`
-        An empty observation with the proper dimensions.
-
     parameters: :class:`grid2op.Parameters.Parameters`
         Type of Parameters used to compute powerflow for the forecast.
 
@@ -50,7 +47,7 @@ class ObservationSpace(SerializableObservationSpace):
         Instance of the environment used by the BaseObservation Helper to provide forcecast of the grid state.
 
     _empty_obs: :class:`BaseObservation`
-        An instance of the observation that is updated and will be sent to he BaseAgent.
+        An instance of the observation with appropriate dimensions. It is updated and will be sent to he BaseAgent.
 
     """
     def __init__(self,

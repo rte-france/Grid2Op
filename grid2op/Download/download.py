@@ -18,16 +18,10 @@ from grid2op.Download.DownloadDataset import main_download
 from grid2op.Download.DownloadDataset import LI_VALID_ENV
 
 
-def download_cli():
-    parser = argparse.ArgumentParser(description='Download some datasets compatible with grid2op.')
-    parser.add_argument('--path_save', default=DEFAULT_PATH_DATA, type=str,
-                        help='The path where the data will be downloaded.')
-    parser.add_argument('--name', default="rte_case14_redisp", type=str,
-                        help='The name of the dataset (one of {} ).'
-                             ''.format(",".join(LI_VALID_ENV))
-                        )
+def main(args=None):
+    if args is None:
+        args = download_cli()
 
-    args = parser.parse_args()
     dataset_name = args.name
     try:
         path_data = os.path.abspath(args.path_save)
@@ -41,5 +35,18 @@ def download_cli():
         sys.exit("Aborted")
 
 
+def download_cli():
+    parser = argparse.ArgumentParser(description='Download some datasets compatible with grid2op.')
+    parser.add_argument('--path_save', default=DEFAULT_PATH_DATA, type=str,
+                        help='The path where the data will be downloaded.')
+    parser.add_argument('--name', default="rte_case14_redisp", type=str,
+                        help='The name of the dataset (one of {} ).'
+                             ''.format(",".join(LI_VALID_ENV))
+                        )
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == "__main__":
-    download_cli()
+    args = download_cli()
+    main(args)
