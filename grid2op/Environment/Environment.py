@@ -127,18 +127,14 @@ class Environment(BaseEnv):
                  tol_poly=1e-6,
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_init_budget=0,
-                 ignore_min_up_down_times=True,
-                 forbid_dispatch_off=False,
+                 opponent_init_budget=0
                  ):
         BaseEnv.__init__(self,
                            parameters=parameters,
                            thermal_limit_a=thermal_limit_a,
                            epsilon_poly=epsilon_poly,
                            tol_poly=tol_poly,
-                           other_rewards=other_rewards,
-                         ignore_min_up_down_times=ignore_min_up_down_times,
-                         forbid_dispatch_off=forbid_dispatch_off)
+                           other_rewards=other_rewards)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
@@ -660,8 +656,6 @@ class Environment(BaseEnv):
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
-        res["ignore_min_up_down_times"] = self.ignore_min_up_down_times
-        res["forbid_dispatch_off"] = self.forbid_dispatch_off
         res["name"] = self.name
         return res
 
@@ -713,7 +707,5 @@ class Environment(BaseEnv):
         res["opponent_init_budget"] = self.opponent_init_budget
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
-        res["ignore_min_up_down_times"] = self.ignore_min_up_down_times
-        res["forbid_dispatch_off"] = self.forbid_dispatch_off
         # TODO make a test for that
         return res

@@ -86,9 +86,7 @@ class BaseEnv(GridObjects, ABC):
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
-                 other_rewards={},
-                 ignore_min_up_down_times=True,
-                 forbid_dispatch_off=False
+                 other_rewards={}
                  ):
         GridObjects.__init__(self)
 
@@ -107,8 +105,6 @@ class BaseEnv(GridObjects, ABC):
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
         self._tol_poly = dt_float(tol_poly)
-        self.ignore_min_up_down_times = ignore_min_up_down_times
-        self.forbid_dispatch_off = forbid_dispatch_off
 
         # define logger
         self.logger = None
@@ -123,6 +119,10 @@ class BaseEnv(GridObjects, ABC):
         # observation
         self.current_obs = None
 
+
+        self.ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
+        self.forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
@@ -131,10 +131,10 @@ class BaseEnv(GridObjects, ABC):
 
         # store actions "cooldown"
         self.times_before_line_status_actionable = None
-        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self.times_before_topology_actionable = None
-        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # for maintenance operation
         self.time_next_maintenance = None
@@ -267,14 +267,14 @@ class BaseEnv(GridObjects, ABC):
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED,
+                                                    fill_value=self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
                                                     dtype=dt_int)
         # store actions "cooldown"
         self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
-        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
         self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
@@ -999,17 +999,17 @@ class BaseEnv(GridObjects, ABC):
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow[:] = 0
-        self.nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED
+        self.nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.env_dc = self.parameters.ENV_DC
 
         self.times_before_line_status_actionable[:] = 0
-        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self.times_before_topology_actionable[:] = 0
-        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # reset timings
         self._time_apply_act = 0

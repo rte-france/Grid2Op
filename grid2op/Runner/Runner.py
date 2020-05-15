@@ -294,8 +294,6 @@ class Runner(object):
         """
 
         self.name_env = name_env
-        self.ignore_min_up_down_times = ignore_min_up_down_times
-        self.forbid_dispatch_off = forbid_dispatch_off
         if not isinstance(envClass, type):
             raise Grid2OpException(
                 "Parameter \"envClass\" used to build the Runner should be a type (a class) and not an object "
@@ -418,7 +416,7 @@ class Runner(object):
             self.parameters_path = parameters_path
             self.parameters = Parameters()
         else:
-            raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either"
+            raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either "
                                "be a string or a dictionary.")
 
         # chronics of grid state
@@ -480,9 +478,7 @@ class Runner(object):
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
                             opponent_init_budget=self.opponent_init_budget,
-                            name=self.name_env,
-                            ignore_min_up_down_times=self.ignore_min_up_down_times,
-                            forbid_dispatch_off=self.forbid_dispatch_off)
+                            name=self.name_env)
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
