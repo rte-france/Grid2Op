@@ -178,8 +178,9 @@ class TestRedispatch(HelperTests):
 
     def test_count_turned_on(self):
         act = self.env.action_space()
-        obs, reward, done, info = self.env.step(act)
-        # pdb.set_trace()
+
+        # recoded it: it's the normal behavior to call "env.reset()" to get the first time step
+        obs = self.env.reset()
         assert np.all(self.env.gen_uptime == np.array([0, 1, 1, 0, 1]))
         assert np.all(self.env.gen_downtime == np.array([1, 0, 0, 1, 0]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
@@ -191,19 +192,19 @@ class TestRedispatch(HelperTests):
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
-        for i in range(63):
+        for i in range(64):
             obs, reward, done, info = self.env.step(act)
             assert np.all(obs.prod_p <= self.env.gen_pmax)
             assert np.all(obs.prod_p >= self.env.gen_pmin)
 
         obs, reward, done, info = self.env.step(act)
-        assert np.all(self.env.gen_uptime == np.array([0, 66, 66,  1, 66]))
-        assert np.all(self.env.gen_downtime == np.array([66, 0, 0, 0, 0]))
+        assert np.all(self.env.gen_uptime == np.array([0, 67, 67,  1, 67]))
+        assert np.all(self.env.gen_downtime == np.array([67, 0, 0, 0, 0]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
         obs, reward, done, info = self.env.step(act)
-        assert np.all(self.env.gen_uptime == np.array([1, 67, 67,  2, 67]))
+        assert np.all(self.env.gen_uptime == np.array([1, 68, 68,  2, 68]))
         assert np.all(self.env.gen_downtime == np.array([0, 0, 0, 0, 0]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
@@ -378,8 +379,7 @@ class TestRedispTooLowHigh(HelperTests):
         assert info["exception"][0].__str__()[:140] == self.msg_
 
     def test_error_message_notzerosum_threesteps(self):
-
-        act = self.env.action_space({"redispatch": [(0, 4.9999784936326535)]}) #, (1, 4.78524395611872), (4, -9.999591852954794)]})
+        act = self.env.action_space({"redispatch": [(0, 4.9999784936326535)]})
         obs, reward, done, info = self.env.step(act)
         assert info["is_dispatching_illegal"] is False
 

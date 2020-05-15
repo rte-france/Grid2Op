@@ -105,7 +105,8 @@ class TestAgent(HelperTests):
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent)
         assert i == 31, "The powerflow diverged before step 30 for powerline switch agent"
-        expected_reward = dt_float(35147.55859375)
+        expected_reward = dt_float(35147.55859375)  # switch to using df_float in the reward, change then the results
+        expected_reward = dt_float(35147.76)
         assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
 
     def test_2_busswitch(self):
@@ -117,7 +118,6 @@ class TestAgent(HelperTests):
         expected_reward = dt_float(12075.389)  # i have more actions now, so this is not correct (though it should be..
         # yet a proof that https://github.com/rte-france/Grid2Op/issues/86 is grounded
         expected_reward = dt_float(12277.632)
-        pdb.set_trace()
         # 12076.356
         # 12076.191
         expected_reward = dt_float(12076.356)

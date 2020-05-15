@@ -20,13 +20,21 @@ Change Log
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
+- [???] move `ignore_min_up_down_times` and `forbid_dispatch_off` into the parameters
 
 [0.9.0] - 2020-05-??
 ----------------------
 - [FIXED] `Issue #84 <https://github.com/rte-france/Grid2Op/issues/84>`_: it is now possible to load multiple
   environments in the same python script and perform random action on each.
+- [FIXED] `Issue #86 <https://github.com/rte-france/Grid2Op/issues/86>`_: the proper symmetries are used to generate
+  all the actions that can "change" the buses (`SerializationActionSpace.get_all_unitary_topologies_change`).
+- [FIXED] `Issue #88 <https://github.com/rte-france/Grid2Op/issues/88>`_: two flags are now used to tell the environment
+  whether or not to activate the possibility to dispatch a turned on generator (`forbid_dispatch_off`) and whether
+  or not to ignore the gen_min_uptimes and gen_min_downtime propertiers (`ignore_min_up_down_times`)
 - [FIXED] `Issue #89 <https://github.com/rte-france/Grid2Op/issues/89>`_: pandapower backend should not be compatible
   with changing the bus of the generator representing the slack bus.
+- [FIXED] Greedy agents now uses the proper data types `dt_float` for the simulated reward (previously it was platform
+  dependant)
 
 
 [0.8.2] - 2020-05-13

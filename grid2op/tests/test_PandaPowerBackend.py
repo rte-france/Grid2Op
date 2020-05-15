@@ -295,20 +295,39 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # test that i can modify only the load / prod active values of the powergrid
         # to do that i modify the productions and load all of a factor 0.5 and compare that the DC flows are
         # also multiply by 2
+
+        # i set up the stuff to have exactly 0 losses
         conv = self.backend.runpf(is_dc=True)
+        assert conv
         init_flow, *_ = self.backend.lines_or_info()
         init_lp, init_l_q, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
         init_ls = self.backend.get_line_status()
-
-        ratio = 0.5
+        ratio = 1.0
         new_cp = ratio * init_lp
         new_pp = ratio * init_gp*np.sum(init_lp)/np.sum(init_gp)
         action = self.action_env({"injection": {"load_p": new_cp,
                                                 "prod_p": new_pp}})  # update the action
         bk_action = self.bkact_class()
         bk_action += action
-        self.backend.apply_action( bk_action)
+        self.backend.apply_action(bk_action)
+        conv = self.backend.runpf(is_dc=True)
+        # now the system has exactly 0 losses (ie sum load = sum gen)
+
+        # i check that if i divide by 2, then everything is divided by 2
+        assert conv
+        init_flow, *_ = self.backend.lines_or_info()
+        init_lp, init_l_q, *_ = self.backend.loads_info()
+        init_gp, *_ = self.backend.generators_info()
+        init_ls = self.backend.get_line_status()
+        ratio = 0.5
+        new_cp = ratio * init_lp
+        new_pp = ratio * init_gp
+        action = self.action_env({"injection": {"load_p": new_cp,
+                                                "prod_p": new_pp}})  # update the action
+        bk_action = self.bkact_class()
+        bk_action += action
+        self.backend.apply_action(bk_action)
         conv = self.backend.runpf(is_dc=True)
         assert conv, "Cannot perform a powerflow after doing nothing"
 
@@ -328,7 +347,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(init_ls == after_ls)  # check i didn't disconnect any powerlines
 
         after_flow, *_ = self.backend.lines_or_info()
-        assert self.compare_vect(ratio*init_flow, after_flow) # probably an error with the DC approx
+        assert self.compare_vect(ratio*init_flow, after_flow)  # probably an error with the DC approx
 
     def test_apply_action_prod_v(self):
         conv = self.backend.runpf(is_dc=False)
@@ -337,7 +356,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.action_env({"injection": {"prod_v": ratio*prod_v_init}})  # update the action
         bk_action = self.bkact_class()
         bk_action += action
-        self.backend.apply_action( bk_action)
+        self.backend.apply_action(bk_action)
         conv = self.backend.runpf(is_dc=False)
         assert conv, "Cannot perform a powerflow aftermodifying the powergrid"
 

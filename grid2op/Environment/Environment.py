@@ -129,6 +129,7 @@ class Environment(BaseEnv):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0,
                  ignore_min_up_down_times=True,
+                 forbid_dispatch_off=False,
                  ):
         BaseEnv.__init__(self,
                            parameters=parameters,
@@ -136,7 +137,8 @@ class Environment(BaseEnv):
                            epsilon_poly=epsilon_poly,
                            tol_poly=tol_poly,
                            other_rewards=other_rewards,
-                         ignore_min_up_down_times=ignore_min_up_down_times)
+                         ignore_min_up_down_times=ignore_min_up_down_times,
+                         forbid_dispatch_off=forbid_dispatch_off)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
@@ -310,6 +312,7 @@ class Environment(BaseEnv):
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
         self._reset_maintenance()
+        self._reset_redispatching()
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
@@ -334,6 +337,7 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
+        # self._reset_redispatching()
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
@@ -657,6 +661,7 @@ class Environment(BaseEnv):
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
         res["ignore_min_up_down_times"] = self.ignore_min_up_down_times
+        res["forbid_dispatch_off"] = self.forbid_dispatch_off
         res["name"] = self.name
         return res
 
@@ -708,5 +713,7 @@ class Environment(BaseEnv):
         res["opponent_init_budget"] = self.opponent_init_budget
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
+        res["ignore_min_up_down_times"] = self.ignore_min_up_down_times
+        res["forbid_dispatch_off"] = self.forbid_dispatch_off
         # TODO make a test for that
         return res

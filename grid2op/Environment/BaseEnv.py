@@ -87,7 +87,8 @@ class BaseEnv(GridObjects, ABC):
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
                  other_rewards={},
-                 ignore_min_up_down_times=True
+                 ignore_min_up_down_times=True,
+                 forbid_dispatch_off=False
                  ):
         GridObjects.__init__(self)
 
@@ -107,6 +108,7 @@ class BaseEnv(GridObjects, ABC):
         self._epsilon_poly = dt_float(epsilon_poly)
         self._tol_poly = dt_float(tol_poly)
         self.ignore_min_up_down_times = ignore_min_up_down_times
+        self.forbid_dispatch_off = forbid_dispatch_off
 
         # define logger
         self.logger = None
@@ -454,7 +456,6 @@ class BaseEnv(GridObjects, ABC):
         avail_gen = avail_gen & (redisp_this_act == 0.)  # generator on which I act this time step cannot be redispatched again
         avail_gen = avail_gen & self.gen_redispatchable  # i can only redispatched dispatchable generators
         avail_gen = avail_gen & (new_p > 0.)
-
         if (np.abs(np.sum(redisp_act)) >= self._tol_poly) and (np.sum(avail_gen) == 0):
             except_ = NotEnoughGenerators("Attempt to use a redispatch action that does not sum to 0., but all "
                                           "turned on dispatchable generators that could 'compensate' are modified in"
@@ -593,9 +594,9 @@ class BaseEnv(GridObjects, ABC):
             return except_
 
         # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
-        if np.any(redisp_act_orig[new_p == 0.]):
+        if np.any(redisp_act_orig[new_p == 0.]) and self.forbid_dispatch_off:
             # action is invalid, a generator has been redispatched, but it's turned off
-            except_ = InvalidRedispatching("Impossible to dispatched a turned off generator")
+            except_ = InvalidRedispatching("Impossible to dispatch a turned off generator")
             self.target_dispatch -= redisp_act_orig
             return except_
 

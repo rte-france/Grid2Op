@@ -796,8 +796,9 @@ class PandaPowerBackend(Backend):
             # slack bus and added generator are on same bus. I need to add power of slack bus to this one.
 
             # if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
-            prod_p[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 1]
-            prod_q[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 2]
+            if "gen" in self._grid._ppc["internal"]:
+                prod_p[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 1]
+                prod_q[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
 
     def generators_info(self):
