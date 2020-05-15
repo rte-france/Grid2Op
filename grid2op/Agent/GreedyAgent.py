@@ -9,6 +9,8 @@
 from abc import abstractmethod
 import numpy as np
 from grid2op.Agent.BaseAgent import BaseAgent
+from grid2op.dtypes import dt_float
+import pdb
 
 
 class GreedyAgent(BaseAgent):
@@ -52,14 +54,12 @@ class GreedyAgent(BaseAgent):
         """
         self.tested_action = self._get_tested_action(observation)
         if len(self.tested_action) > 1:
-            all_rewards = np.full(shape=len(self.tested_action), fill_value=np.NaN, dtype=np.float)
+            all_rewards = np.full(shape=len(self.tested_action), fill_value=np.NaN, dtype=dt_float)
             for i, action in enumerate(self.tested_action):
                 simul_obs, simul_reward, simul_has_error, simul_info = observation.simulate(action)
                 all_rewards[i] = simul_reward
-
-            reward_idx = np.argmax(all_rewards)  # rewards.index(max(rewards))
+            reward_idx = int(np.argmax(all_rewards))  # rewards.index(max(rewards))
             best_action = self.tested_action[reward_idx]
-            # print("reward_idx: {}".format(reward_idx))
         else:
             best_action = self.tested_action[0]
         return best_action

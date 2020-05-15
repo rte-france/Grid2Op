@@ -28,6 +28,7 @@ class TopologyGreedy(GreedyAgent):
     def _get_tested_action(self, observation):
         if self.li_actions is None:
             res = [self.action_space({})]  # add the do nothing
+            # better change are still "bugged" for now
             # res += self.action_space.get_all_unitary_topologies_set(self.action_space)
             res += self.action_space.get_all_unitary_topologies_change(self.action_space)
             self.li_actions = res

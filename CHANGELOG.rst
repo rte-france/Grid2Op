@@ -21,6 +21,14 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+[0.9.0] - 2020-05-??
+----------------------
+- [FIXED] `Issue #84 <https://github.com/rte-france/Grid2Op/issues/84>`_: it is now possible to load multiple
+  environments in the same python script and perform random action on each.
+- [FIXED] `Issue #89 <https://github.com/rte-france/Grid2Op/issues/89>`_: pandapower backend should not be compatible
+  with changing the bus of the generator representing the slack bus.
+
+
 [0.8.2] - 2020-05-13
 ----------------------
 - [FIXED] `Issue #75 <https://github.com/rte-france/Grid2Op/issues/75>`_: PlotGrid displays double powerlines correctly.

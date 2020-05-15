@@ -48,18 +48,23 @@ class TestAgent(HelperTests):
         i = 0
         beg_ = time.time()
         cum_reward = dt_float(0.0)
-        act = self.env.helper_action_player({})
+        obs = self.env.get_obs()
+        reward = 0.
         time_act = 0.
         all_acts = []
         while not done:
-            # print("---------")
-            obs, reward, done, info = self.env.step(act)  # should load the first time stamp
+            # print("_______________")
             beg__ = time.time()
             act = agent.act(obs, reward, done)
             all_acts.append(act)
             end__ = time.time()
+            obs, reward, done, info = self.env.step(act)  # should load the first time stamp
             time_act += end__ - beg__
             cum_reward += reward
+            # print("reward: {}".format(reward))
+            # print("_______________")
+            # if reward <= 0 or np.any(obs.prod_p < 0):
+            #     pdb.set_trace()
             i += 1
             if i > i_max:
                 break
@@ -112,6 +117,10 @@ class TestAgent(HelperTests):
         expected_reward = dt_float(12075.389)  # i have more actions now, so this is not correct (though it should be..
         # yet a proof that https://github.com/rte-france/Grid2Op/issues/86 is grounded
         expected_reward = dt_float(12277.632)
+        pdb.set_trace()
+        # 12076.356
+        # 12076.191
+        expected_reward = dt_float(12076.356)
         assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
 
 

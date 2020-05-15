@@ -398,18 +398,19 @@ class SerializableActionSpace(SerializableSpace):
         res = []
         S = [0, 1]
         for sub_id, num_el in enumerate(action_space.sub_info):
-            if num_el < 4:
-                pass
-
-            for tup in itertools.product(S, repeat=num_el - 1):
-                indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
-                tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
-                indx[tup] = True
-                # TODO this need to be checked
-                # if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
-                # i need 2 elements on each bus at least
-                action = action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
-                res.append(action)
+            already_set = set()
+            for tup_ in itertools.product(S, repeat=num_el):
+                if tup_ not in already_set:
+                    indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
+                    # tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
+                    tup = np.array(tup_).astype(dt_bool)  # add a zero to first element -> break symmetry
+                    indx[tup] = True
+                    action = action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
+                    already_set.add(tup_)
+                    already_set.add(tuple([1-el for el in tup_]))
+                    res.append(action)
+                # otherwise, the change has already beend added (NB by symmetry , if there are A, B, C and D in
+                # a substation, changing A,B or changing C,D always has the same effect.
         return res
 
     @staticmethod
@@ -451,7 +452,8 @@ class SerializableActionSpace(SerializableSpace):
                 tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
                 indx[tup] = True
                 if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
-                    # i need 2 elements on each bus at least
+                    # i need 2 elements on each bus at least (almost all the times, except when a powerline
+                    # is alone on its bus)
                     new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
                     new_topo[~indx] = 2
 
@@ -461,6 +463,13 @@ class SerializableActionSpace(SerializableSpace):
 
                     action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
                     tmp.append(action)
+                else:
+                    # i need to take into account the case where 1 powerline is alone on a bus too
+                    if np.sum(indx[powerlines_id]) >= 1 and np.sum(~indx[powerlines_id]) >= 1:
+                        new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
+                        new_topo[~indx] = 2
+                        action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
+                        tmp.append(action)
 
             if len(tmp) >= 2:
                 # if i have only one single topology on this substation, it doesn't make any action

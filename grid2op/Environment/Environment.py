@@ -127,14 +127,16 @@ class Environment(BaseEnv):
                  tol_poly=1e-6,
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_init_budget=0
+                 opponent_init_budget=0,
+                 ignore_min_up_down_times=True,
                  ):
         BaseEnv.__init__(self,
                            parameters=parameters,
                            thermal_limit_a=thermal_limit_a,
                            epsilon_poly=epsilon_poly,
                            tol_poly=tol_poly,
-                           other_rewards=other_rewards)
+                           other_rewards=other_rewards,
+                         ignore_min_up_down_times=ignore_min_up_down_times)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
@@ -654,6 +656,7 @@ class Environment(BaseEnv):
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
+        res["ignore_min_up_down_times"] = self.ignore_min_up_down_times
         res["name"] = self.name
         return res
 

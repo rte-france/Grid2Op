@@ -13,8 +13,8 @@ import copy
 import pdb
 import warnings
 
+import grid2op
 from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP
-
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
@@ -1196,6 +1196,25 @@ class TestVoltageOWhenDisco(unittest.TestCase):
                 act = env.action_space({"set_line_status": [(line_id, -1)]})
                 obs, *_ = env.step(act)
                 assert obs.v_or[line_id] == 0.  # is not 0 however line is not connected
+
+
+class TestChangeBusSlack(unittest.TestCase):
+    def setUp(self):
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+
+    def test_change_slack_case14(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic", test=True)
+        action = env.action_space({"set_bus": {"generators_id": [(-1, 2)], "lines_or_id": [(0, 2)]}})
+        obs, reward, am_i_done, info = env.step(action)
+        assert am_i_done is False
+        assert np.all(obs.prod_p >= 0.)
+        assert np.sum(obs.prod_p) >= np.sum(obs.load_p)
+        p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
+        assert np.all(np.abs(p_subs) <= self.tol_one)
+        assert np.all(np.abs(p_bus) <= self.tol_one)
 
 
 if __name__ == "__main__":

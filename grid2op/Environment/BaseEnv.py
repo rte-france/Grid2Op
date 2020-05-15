@@ -86,7 +86,8 @@ class BaseEnv(GridObjects, ABC):
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
-                 other_rewards={}
+                 other_rewards={},
+                 ignore_min_up_down_times=True
                  ):
         GridObjects.__init__(self)
 
@@ -105,6 +106,7 @@ class BaseEnv(GridObjects, ABC):
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
         self._tol_poly = dt_float(tol_poly)
+        self.ignore_min_up_down_times = ignore_min_up_down_times
 
         # define logger
         self.logger = None
@@ -713,7 +715,8 @@ class BaseEnv(GridObjects, ABC):
         gen_still_connected = gen_up_before & gen_up_after
         gen_still_disconnected = (~gen_up_before) & (~gen_up_after)
 
-        if np.any(self.gen_downtime[gen_connected_this_timestep] < self.gen_min_downtime[gen_connected_this_timestep]):
+        if np.any(self.gen_downtime[gen_connected_this_timestep] < self.gen_min_downtime[gen_connected_this_timestep]) \
+                and not self.ignore_min_up_down_times:
             # i reconnected a generator before the minimum time allowed
             id_gen = self.gen_downtime[gen_connected_this_timestep] < self.gen_min_downtime[gen_connected_this_timestep]
             id_gen = np.where(id_gen)[0]
@@ -724,7 +727,8 @@ class BaseEnv(GridObjects, ABC):
             self.gen_downtime[gen_connected_this_timestep] = -1
             self.gen_uptime[gen_connected_this_timestep] = 1
 
-        if np.any(self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]):
+        if np.any(self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]) and \
+                not self.ignore_min_up_down_times:
             # i disconnected a generator before the minimum time allowed
             id_gen = self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]
             id_gen = np.where(id_gen)[0]
@@ -901,7 +905,6 @@ class BaseEnv(GridObjects, ABC):
             try:
                 # compute the next _grid state
                 beg_ = time.time()
-                # print("line status: {}".format(np.sum(self.backend.get_line_status())))
                 disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
                 self._time_powerflow += time.time() - beg_
 
@@ -945,7 +948,6 @@ class BaseEnv(GridObjects, ABC):
                 # of the system. So basically, when it's too high (higher than the ramp) it can
                 # mess up the rest of the environment
                 self.gen_activeprod_t_redisp[:] = new_p + self.actual_dispatch
-
                 has_error = False
             except Grid2OpException as e:
                 except_.append(e)
@@ -972,6 +974,7 @@ class BaseEnv(GridObjects, ABC):
                                                              is_ambiguous)
         infos["rewards"] = other_reward
         # TODO documentation on all the possible way to be illegal now
+
         return self.current_obs, self.current_reward, self.done, infos
 
     def _get_reward(self, action, has_error, is_done, is_illegal, is_ambiguous):
