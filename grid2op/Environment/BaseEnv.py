@@ -455,7 +455,8 @@ class BaseEnv(GridObjects, ABC):
         avail_gen = self.target_dispatch == 0.  # generators with a redispatching target cannot be redispatched again
         avail_gen = avail_gen & (redisp_this_act == 0.)  # generator on which I act this time step cannot be redispatched again
         avail_gen = avail_gen & self.gen_redispatchable  # i can only redispatched dispatchable generators
-        avail_gen = avail_gen & (new_p > 0.)
+        avail_gen = avail_gen & (new_p> 0.)
+        # pdb.set_trace()
         if (np.abs(np.sum(redisp_act)) >= self._tol_poly) and (np.sum(avail_gen) == 0):
             except_ = NotEnoughGenerators("Attempt to use a redispatch action that does not sum to 0., but all "
                                           "turned on dispatchable generators that could 'compensate' are modified in"
@@ -568,7 +569,6 @@ class BaseEnv(GridObjects, ABC):
 
         if np.all(redisp_act_orig == 0.) and np.all(self.target_dispatch == 0.) and np.all(self.actual_dispatch == 0.):
             return except_
-
         self.target_dispatch += redisp_act_orig
         # check that everything is consistent with pmin, pmax:
         if np.any(self.target_dispatch > self.gen_pmax - self.gen_pmin):
@@ -581,7 +581,6 @@ class BaseEnv(GridObjects, ABC):
                                            "{}".format(np.where(cond_invalid)[0]))
             self.target_dispatch -= redisp_act_orig
             return except_
-
         if np.any(self.target_dispatch < self.gen_pmin - self.gen_pmax):
             # action is invalid, the target redispatching would be below pmin for at least a generator
             cond_invalid = self.target_dispatch < self.gen_pmin - self.gen_pmax
@@ -600,7 +599,8 @@ class BaseEnv(GridObjects, ABC):
             self.target_dispatch -= redisp_act_orig
             return except_
 
-        redisp_act_orig[new_p == 0.] = 0.
+        redisp_act_orig_cut = 1.0 * redisp_act_orig
+        redisp_act_orig_cut[new_p == 0.] = 0.
         # TODO add a flag here too, like before (the action has been "cut")
 
         # get the target redispatching (cumulation starting from the first element of the scenario)test_
@@ -610,7 +610,7 @@ class BaseEnv(GridObjects, ABC):
             # make sure the redispatching action is zero sum
             new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch,
                                                             self.gen_activeprod_t_redisp,
-                                                            redisp_act_orig)
+                                                            redisp_act_orig_cut)
             if except_ is not None:
                 # if there is an error, then remove the above "action" and propagate it
                 self.actual_dispatch = previous_redisp

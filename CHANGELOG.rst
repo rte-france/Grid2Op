@@ -35,7 +35,8 @@ Change Log
   with changing the bus of the generator representing the slack bus.
 - [FIXED] Greedy agents now uses the proper data types `dt_float` for the simulated reward (previously it was platform
   dependant)
-
+- [FIXED] a bug in the redispatching that lead to modification of the setpoint for redispatching even if the
+  action was illegal in certain cases.
 
 [0.8.2] - 2020-05-13
 ----------------------
