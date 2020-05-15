@@ -841,7 +841,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 0
+        env_params.NB_TIMESTEP_OVERFLOW_ALLOWED = 0
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
@@ -930,7 +930,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
+        env_params.NB_TIMESTEP_OVERFLOW_ALLOWED = 2
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,

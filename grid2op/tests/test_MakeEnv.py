@@ -520,7 +520,7 @@ class TestMakeFromPathParameters(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make_from_dataset_path(dataset_path) as env:
-                assert env.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF == 19
+                assert env.parameters.NB_TIMESTEP_COOLDOWN_SUB == 19
 
 
 if __name__ == "__main__":
