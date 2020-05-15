@@ -199,3 +199,5 @@ getting_started/saved_agent_DDDQN_1000/
 grid2op/tests.npz
 my_runner_output_dir/
 test_episode_data.py
+agent_logs.txt
+result.txt

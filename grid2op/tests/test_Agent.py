@@ -12,11 +12,13 @@ import pandapower as pp
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make
 from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
 from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
+from grid2op.Agent import RandomAgent
 
 import pdb
 
@@ -110,6 +112,25 @@ class TestAgent(HelperTests):
         assert i == 11, "The powerflow diverged before step 10 for greedy agent"
         expected_reward = dt_float(12075.389)
         assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
+
+
+class TestMake2Agents(HelperTests):
+    def test_2random(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case5_example", test=True)
+            env2 = grid2op.make("rte_case14_realistic", test=True)
+        agent = RandomAgent(env.action_space)
+        agent2 = RandomAgent(env2.action_space)
+        # test i can reset the env
+        obs = env.reset()
+        obs2 = env2.reset()
+        # test the agent can act
+        act = agent.act(obs, 0., False)
+        act2 = agent2.act(obs2, 0., False)
+        # test the env can step
+        _ = env.step(act)
+        _ = env2.step(act2)
 
 
 if __name__ == "__main__":

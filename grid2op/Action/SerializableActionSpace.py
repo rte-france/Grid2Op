@@ -405,10 +405,11 @@ class SerializableActionSpace(SerializableSpace):
                 indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
                 tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
                 indx[tup] = True
-                if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
-                    # i need 2 elements on each bus at least
-                    action = action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
-                    res.append(action)
+                # TODO this need to be checked
+                # if np.sum(indx) >= 2 and np.sum(~indx) >= 2:
+                # i need 2 elements on each bus at least
+                action = action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
+                res.append(action)
         return res
 
     @staticmethod
