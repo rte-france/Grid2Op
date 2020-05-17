@@ -8,6 +8,8 @@
 
 import time
 import numpy as np
+from scipy.optimize import minimize
+from scipy.optimize import LinearConstraint
 import copy
 from abc import ABC, abstractmethod
 
@@ -543,7 +545,126 @@ class BaseEnv(GridObjects, ABC):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _make_redisp_0sum(self, action, new_p):
+    def _make_redisp(self, action, new_p):
+        # trying with an optimization method
+        except_ = None
+
+        # get the redispatching action (if any)
+        redisp_act_orig = 1. * action._redispatch
+        previous_redisp = 1. * self.actual_dispatch
+
+        if np.all(redisp_act_orig == 0.) and np.all(self.target_dispatch == 0.) and np.all(self.actual_dispatch == 0.):
+            return except_
+
+        # added the "untouch_gen" part
+        already_modified_gen = self.target_dispatch != 0.
+        self.target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
+        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
+        self.target_dispatch[first_modified] = self.actual_dispatch[first_modified] + redisp_act_orig[first_modified]
+        already_modified_gen |= first_modified
+
+        self.target_dispatch += redisp_act_orig
+        # check that everything is consistent with pmin, pmax:
+        if np.any(self.target_dispatch > self.gen_pmax - self.gen_pmin):
+            # action is invalid, the target redispatching would be above pmax for at least a generator
+            cond_invalid = self.target_dispatch > self.gen_pmax - self.gen_pmin
+            except_ = InvalidRedispatching("You cannot ask for a dispatch higher than pmax - pmin  [it would be always "
+                                           "invalid because, even if the sepoint is pmin, this dispatch would set it "
+                                           "to a number higher than pmax, which is impossible]. Invalid dispatch for "
+                                           "generator(s): "
+                                           "{}".format(np.where(cond_invalid)[0]))
+            self.target_dispatch -= redisp_act_orig
+            return except_
+        if np.any(self.target_dispatch < self.gen_pmin - self.gen_pmax):
+            # action is invalid, the target redispatching would be below pmin for at least a generator
+            cond_invalid = self.target_dispatch < self.gen_pmin - self.gen_pmax
+            except_ = InvalidRedispatching("You cannot ask for a dispatch lower than pmin - pmax  [it would be always "
+                                           "invalid because, even if the sepoint is pmax, this dispatch would set it "
+                                           "to a number bellow pmin, which is impossible]. Invalid dispatch for "
+                                           "generator(s): "
+                                           "{}".format(np.where(cond_invalid)[0]))
+            self.target_dispatch -= redisp_act_orig
+            return except_
+
+        # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
+        if np.any(redisp_act_orig[new_p == 0.]) and self.forbid_dispatch_off:
+            # action is invalid, a generator has been redispatched, but it's turned off
+            except_ = InvalidRedispatching("Impossible to dispatch a turned off generator")
+            self.target_dispatch -= redisp_act_orig
+            return except_
+
+        if self.forbid_dispatch_off is True:
+            redisp_act_orig_cut = 1.0 * redisp_act_orig
+            redisp_act_orig_cut[new_p == 0.] = 0.
+            # TODO add a flag here too, like before (the action has been "cut")
+            if np.any(redisp_act_orig_cut != redisp_act_orig):
+                info_ = [{"redispatching cut because generator will be turned_off":
+                              np.where(redisp_act_orig_cut != redisp_act_orig)[0]}]
+        else:
+            redisp_act_orig_cut = redisp_act_orig
+
+        mismatch = self.actual_dispatch[already_modified_gen] - self.target_dispatch[already_modified_gen]
+        mismatch = np.abs(mismatch)
+        if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
+                   np.sum(mismatch) >= self._tol_poly:
+
+            target_vals = self.target_dispatch[self.gen_redispatchable]
+            already_modified_gen_me = already_modified_gen[self.gen_redispatchable]
+            nb_dispatchable = np.sum(self.gen_redispatchable)
+
+            # todo add weight here (and don't forget to update the jacobian in this case)
+            def target(actual_dispatchable):
+                return np.sum((actual_dispatchable[already_modified_gen_me] - target_vals[already_modified_gen_me])**2)
+
+            tmp_zeros = np.zeros((1, nb_dispatchable))
+            def jac(actual_dispatchable):
+                res = 1.0 * tmp_zeros
+                res[0, already_modified_gen_me] = 2.0 * (actual_dispatchable[already_modified_gen_me] -
+                                                         target_vals[already_modified_gen_me])
+                return res
+
+            # it must sum to 0.
+            eq_cons = {'type': 'eq',
+                       'fun': lambda x: np.sum(x),
+                       'jac': lambda x: np.ones(target_vals.shape)}
+
+            # gen increase in the chronics
+            incr_in_chronics = new_p - (self.gen_activeprod_t_redisp - self.actual_dispatch)
+
+            # minmum value available for disp
+            ## first limit delta because of pmin
+            p_min_const = self.gen_pmin[self.gen_redispatchable] - new_p[self.gen_redispatchable]
+            ## second limit delta because of ramps
+            ramp_down_const = incr_in_chronics[self.gen_redispatchable] - self.gen_max_ramp_down[self.gen_redispatchable]
+            min_disp = np.maximum(p_min_const, ramp_down_const)
+
+            # maximum value available for disp
+            ## first limit delta because of pmin
+            p_max_const = self.gen_pmax[self.gen_redispatchable] - new_p[self.gen_redispatchable]
+            ## second limit delta because of ramps
+            ramp_up_const = self.gen_max_ramp_up[self.gen_redispatchable] - incr_in_chronics[self.gen_redispatchable]
+            max_disp = np.minimum(p_max_const, ramp_up_const)
+
+            linear_constraint = LinearConstraint(np.eye(target_vals.shape[0]),
+                                                 min_disp + self._epsilon_poly,
+                                                 max_disp - self._epsilon_poly)
+            print(self.target_dispatch)
+            # if np.abs(self.actual_dispatch[0] - 16.4) <= 1e-1:
+            #     pdb.set_trace()
+            x0 = self.actual_dispatch[self.gen_redispatchable]
+            res = minimize(target,
+                           x0,
+                           method='SLSQP',
+                           constraints=[eq_cons, linear_constraint],
+                           options={'ftol': self._tol_poly, 'disp': False},
+                           jac=jac)
+            if res.success is False:
+                except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n{}".format(res.message))
+            else:
+                self.actual_dispatch[self.gen_redispatchable] += res.x
+        return except_
+
+    def _make_redisp_0sum_old(self, action, new_p):
         """
         Test the redispatching is valid, then make it a 0 sum action.
 
@@ -840,30 +961,31 @@ class BaseEnv(GridObjects, ABC):
                 gen_up_before = self.gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                except_tmp = self._make_redisp_0sum(action, new_p)
+                # except_tmp = self._make_redisp_0sum(action, new_p)
+                except_tmp = self._make_redisp(action, new_p)
                 if except_tmp is not None:
                     action = self.helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
 
-                # and now compute the actual dispatch that is consistent with pmin, pmax, ramp min, ramp max
-                # this emulates the "frequency control" that is automatic.
-                new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
-                if except_tmp is not None:
-                    action = self.helper_action_player({})
-                    is_illegal_redisp = True
-                    except_.append(except_tmp)
-                    self.actual_dispatch = previous_disp
-                    self.target_dispatch = previous_target_disp
-                    new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
-                    if except_tmp is None:
-                        self.actual_dispatch = new_dispatch
-                    else:
-                        pass
-                        # TODO what can i do if do nothing cannot be performed.
-                        # probably a game over !
-                else:
-                    self.actual_dispatch = new_dispatch
+                # # and now compute the actual dispatch that is consistent with pmin, pmax, ramp min, ramp max
+                # # this emulates the "frequency control" that is automatic.
+                # new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
+                # if except_tmp is not None:
+                #     action = self.helper_action_player({})
+                #     is_illegal_redisp = True
+                #     except_.append(except_tmp)
+                #     self.actual_dispatch = previous_disp
+                #     self.target_dispatch = previous_target_disp
+                #     new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
+                #     if except_tmp is None:
+                #         self.actual_dispatch = new_dispatch
+                #     else:
+                #         pass
+                #         # TODO what can i do if do nothing cannot be performed.
+                #         # probably a game over !
+                # else:
+                #     self.actual_dispatch = new_dispatch
 
                 # check the validity of min downtime and max uptime
                 except_tmp = self._handle_updown_times(gen_up_before, self.actual_dispatch)

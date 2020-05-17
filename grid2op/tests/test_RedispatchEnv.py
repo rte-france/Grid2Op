@@ -529,13 +529,16 @@ class TestLoadingBackendPandaPower(HelperTests):
         act = env.action_space({"redispatch": [(0, obs_init.gen_max_ramp_up[0])]})
         while not done:
             obs, reward, done, info = env.step(act)
+            if len(info['exception']):
+                pdb.set_trace()
             # print("act._redisp {}".format(act._redispatch))
-            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-            assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
-            assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
-            assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
             assert len(info['exception']) == 0, "error at iteration {}".format(i)
+            # NB: only gen 0 and 1 are included because gen 2,3 are renewables and gen 4 is slack bus
+            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2]), "above max_ramp for ts {}".format(i)
+            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2]), "below max_ramp for ts {}".format(i)
+            assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2]), "above pmax for ts {}".format(i)
+            assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2]), "below pmin for ts {}".format(i)
+            assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
 
             i += 1
             obs_init = obs
