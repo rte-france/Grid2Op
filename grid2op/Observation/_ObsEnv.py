@@ -221,6 +221,7 @@ class _ObsEnv(BaseEnv):
         """
         reset this "environment" to the state it should be
         """
+        self.reset()  # reset the "BaseEnv"
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self.gen_activeprod_t[:] = self.gen_activeprod_t_init
         self.gen_activeprod_t_redisp[:] = self.gen_activeprod_t_redisp_init

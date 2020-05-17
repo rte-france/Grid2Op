@@ -62,6 +62,7 @@ class TestRedispatch(HelperTests):
 
         # _parameters for the environment
         self.env_params = Parameters()
+        self.env_params.ALLOW_DISPATCH_GEN_SWITCH_OFF = False
         self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
                                backend=self.backend,
                                chronics_handler=self.chronics_handler,
@@ -105,7 +106,7 @@ class TestRedispatch(HelperTests):
         act = self.env.action_space({"redispatch": [2, 5]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0., -1.44301856,  5.,  0., -3.55698144])
+        th_dispatch = np.array([ 0. , -2.5,  5. ,  0. , -2.5])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
         target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
@@ -122,7 +123,7 @@ class TestRedispatch(HelperTests):
         act = self.env.action_space({"redispatch": [2, 60]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0., -10.57042905,  50.89066718,   0., -40.32023813])
+        th_dispatch = np.array([0.0000000e+00, -2.3289999e+01,  5.0890003e+01,  9.9999998e-03, -2.7610004e+01])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
         target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
@@ -131,15 +132,17 @@ class TestRedispatch(HelperTests):
 
     def test_two_redispatch_act(self):
         act = self.env.action_space({"redispatch": [2, 20]})
-        obs, reward, done, info = self.env.step(act)
+        obs_first, reward, done, info = self.env.step(act)
         act = self.env.action_space({"redispatch": [1, 10]})
         obs, reward, done, info = self.env.step(act)
         th_dispatch = np.array([0., 10, 20., 0., 0.])
+        th_dispatch[1] += obs_first.actual_dispatch[1]
         assert self.compare_vect(self.env.target_dispatch, th_dispatch)
         # check that the redispatching is apply in the right direction
         indx_ok = self.env.target_dispatch != 0.
         assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
         th_dispatch = np.array([0.,  10.,  20.,   0., -30.])
+        th_dispatch = np.array([ 0.0000000e+00, -5.0001135e-03, 2.0000000e+01,  9.9999998e-03, -2.0005001e+01])
         assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
 
         target_val = self.chronics_handler.real_data.prod_p[2, :] + self.env.actual_dispatch
@@ -151,6 +154,7 @@ class TestRedispatch(HelperTests):
     def test_redispacth_two_gen(self):
         act = self.env.action_space({"redispatch": [(2, 20), (1, 10)]})
         obs, reward, done, info = self.env.step(act)
+        assert not done
         th_dispatch = np.array([0., 10, 20., 0., 0.])
         assert self.compare_vect(self.env.target_dispatch, th_dispatch)
         assert self.compare_vect(self.env.actual_dispatch, self.array_double_dispatch)
@@ -215,7 +219,8 @@ class TestRedispatch(HelperTests):
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([ 0.,  0., 5.,  0.,  0.]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert self.compare_vect(obs.actual_dispatch, np.array([ 0., -1.44301856,  5.,  0., -3.55698144]))
+        th_disp = np.array([ 0. , -2.5,  5. ,  0. , -2.5])
+        assert self.compare_vect(obs.actual_dispatch, th_disp)
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -223,7 +228,8 @@ class TestRedispatch(HelperTests):
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([ 0.,  0., 10.,  0.,  0.]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert self.compare_vect(obs.actual_dispatch, np.array([0., -2.81339987, 10.,  0., -7.18660013]))
+        th_disp = np.array([ 0., -5., 10.,  0., -5.])
+        assert self.compare_vect(obs.actual_dispatch, th_disp)
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -232,14 +238,16 @@ class TestRedispatch(HelperTests):
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([0.,  0., 20.,  0.,  0.]))
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        assert self.compare_vect(obs.actual_dispatch, np.array([0., -5.36765536,  20., 0., -14.63234464]))
+        th_disp = np.array([  0., -10.,  20.,   0., -10.])
+        assert self.compare_vect(obs.actual_dispatch, th_disp)
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
         act = self.env.action_space({"redispatch": [(2, 40.)]})
         obs, reward, done, info = self.env.step(act)
         assert np.all(obs.target_dispatch == np.array([0.,  0., 60.,  0.,  0.]))
-        assert self.compare_vect(obs.actual_dispatch, np.array([0., -10.3814061, 50.39070301, 0., -40.00929691]))
+        th_disp = np.array([0., -23.49, 50.39, 0., -26.900002])
+        assert self.compare_vect(obs.actual_dispatch, th_disp)
         assert np.all(obs.prod_p[:-1] <= self.env.gen_pmax[:-1])
         assert np.all(obs.prod_p[:-1] >= self.env.gen_pmin[:-1])
 
@@ -295,6 +303,7 @@ class TestRedispatchChangeNothingEnvironment(HelperTests):
 
         # _parameters for the environment
         self.env_params = Parameters()
+        self.env_params.ALLOW_DISPATCH_GEN_SWITCH_OFF = False
         self.env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
                                backend=self.backend,
                                chronics_handler=self.chronics_handler,
@@ -376,6 +385,7 @@ class TestRedispTooLowHigh(HelperTests):
         assert np.all(self.env.target_dispatch == [-1., 0., 0., 0. ,0.])
 
     def test_error_message_notzerosum_oneshot(self):
+        self.skipTest("Ok with new redispatching implementation")
         act = self.env.action_space(
             {"redispatch": [(0, 4.9999784936326535), (1, 4.78524395611872), (4, -9.999591852954794)]})
         obs, reward, done, info = self.env.step(act)
@@ -383,6 +393,7 @@ class TestRedispTooLowHigh(HelperTests):
         assert info["exception"][0].__str__()[:140] == self.msg_
 
     def test_error_message_notzerosum_threesteps(self):
+        self.skipTest("Ok with new redispatching implementation")
         act = self.env.action_space({"redispatch": [(0, 4.9999784936326535)]})
         obs, reward, done, info = self.env.step(act)
         assert info["is_dispatching_illegal"] is False
@@ -578,6 +589,7 @@ class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests):
         self.env.close()
 
     def test_accept_almost_zerozum_too_high(self):
+        self.skipTest("it is possible now to accept pretty much everything")
         redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 + 1e-7)]})
         obs, reward, done, info = self.env.step(redisp_act)
         assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
@@ -586,6 +598,7 @@ class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests):
         assert len(info['exception']) == 0
 
     def test_accept_almost_zerozum_too_low(self):
+        self.skipTest("it is possible now to accept pretty much everything")
         redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 - 1e-7)]})
         obs, reward, done, info = self.env.step(redisp_act)
         assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
@@ -594,6 +607,7 @@ class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests):
         assert len(info['exception']) == 0
 
     def test_accept_almost_zerozum_shouldnotbepossible_low(self):
+        self.skipTest("it is possible now to accept pretty much everything")
         redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 - 1e-1)]})
         obs, reward, done, info = self.env.step(redisp_act)
         assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
@@ -602,6 +616,7 @@ class TestLoadingAcceptAlmostZeroSumRedisp(HelperTests):
         assert len(info['exception'])
 
     def test_accept_almost_zerozum_shouldnotbepossible_high(self):
+        self.skipTest("it is possible now to accept pretty much everything")
         redisp_act = self.env.action_space({"redispatch": [(0, 3), (1, -1), (-1, -2 + 1e-1)]})
         obs, reward, done, info = self.env.step(redisp_act)
         assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
