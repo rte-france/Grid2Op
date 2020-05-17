@@ -429,6 +429,8 @@ class TestLoadingBackendPandaPower(HelperTests):
         # only look at dispatchable generator, remove slack bus (last generator)
         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
+        assert np.all(obs.prod_p[0:2] >= obs.gen_pmin[0:2])
+        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
 
     def test_redispatch_noneedtocurtaildispact(self):
          # test that the redispatch value is always above the ramp min and below the ramp max
@@ -440,6 +442,8 @@ class TestLoadingBackendPandaPower(HelperTests):
              assert len(infoinit["exception"]) == 0
          act = self.env.action_space({"redispatch": [(0, +5)]})
          obs, reward, done, info = self.env.step(act)
+         assert not done
+         assert np.all(self.env.target_dispatch == [5., 0., 0., 0., 0.])
          target_p = self.env.chronics_handler.real_data.data.prod_p[3, :]
          target_p_t = self.env.chronics_handler.real_data.data.prod_p[2, :]
          assert self.compare_vect(obsinit.prod_p[:-1], target_p_t[:-1])
@@ -502,23 +506,24 @@ class TestLoadingBackendPandaPower(HelperTests):
          # "cancel" action
         act = env.action_space({"redispatch": [(0, -5)]})
         obs, reward, done, info = env.step(act)
+        assert not done
         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
         assert len(info['exception']) == 0
          # wait for setpoint to be reached
         obsfinal, reward, done, info = env.step(donothing)
+        assert not done
         assert np.all(obsfinal.prod_p[0:2] - obs.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
         assert np.all(obsfinal.prod_p[0:2] - obs.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.abs(np.sum(obsfinal.actual_dispatch)) <= self.tol_one
-        # pdb.set_trace()
+        assert np.abs(np.sum(obsfinal.actual_dispatch)) <= self.tol_one  # redispatching should sum at 0.
         assert np.sum(np.abs(obsfinal.actual_dispatch)) <= self.tol_one  # redispatching should be canceled by now
         assert len(info['exception']) == 0
 
     def test_dispatch_still_not_zero(self):
         env = self.env
 
-        max_iter = 27
+        max_iter = 40
         # agent = GreedyEconomic(env.action_space)
         done = False
         # reward = env.reward_range[0]
@@ -529,14 +534,16 @@ class TestLoadingBackendPandaPower(HelperTests):
         act = env.action_space({"redispatch": [(0, obs_init.gen_max_ramp_up[0])]})
         while not done:
             obs, reward, done, info = env.step(act)
-            if len(info['exception']):
-                pdb.set_trace()
             # print("act._redisp {}".format(act._redispatch))
+            assert not done, "game over at iteration {}".format(i)
             assert len(info['exception']) == 0, "error at iteration {}".format(i)
             # NB: only gen 0 and 1 are included because gen 2,3 are renewables and gen 4 is slack bus
             assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2]), "above max_ramp for ts {}".format(i)
-            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2]), "below max_ramp for ts {}".format(i)
-            assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2]), "above pmax for ts {}".format(i)
+            assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2]), "below min_ramp for ts {}".format(i)
+            try:
+                assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2]), "above pmax for ts {}".format(i)
+            except:
+                pdb.set_trace()
             assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2]), "below pmin for ts {}".format(i)
             assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
 
@@ -546,11 +553,13 @@ class TestLoadingBackendPandaPower(HelperTests):
                 break
 
         obs, reward, done, info = env.step(act)
-        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
-        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2])
-        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2])
-        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
+        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2]), "above max_ramp at the end"
+        assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2]), "above min_ramp at the end"
+        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2]), "above pmax at the end"
+        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2]), "below pmin at the end"
+        assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one, "redisp not 0 at the end"
+        # this redispatching is impossible because we ask to increase the value of the generator of 210
+        # which is higher than pmax
         assert len(info['exception']), "this redispatching should not be possible"
 
 
