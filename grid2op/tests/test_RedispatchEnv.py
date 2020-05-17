@@ -352,22 +352,26 @@ class TestRedispTooLowHigh(HelperTests):
         # this dispatch (though legal) broke everything
         act = self.env.action_space({"redispatch": [0, -1]})
         obs, reward, done, info = self.env.step(act)
+        assert not done
         assert info["is_dispatching_illegal"] is False
         assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
         act = self.env.action_space({"redispatch": [0, 0]})
         obs, reward, done, info = self.env.step(act)
+        assert not done
         assert info["is_dispatching_illegal"] is False
         assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
 
         # this one is not correct: too high decrease
         act = self.env.action_space({"redispatch": [0, self.env.gen_pmin[0] - self.env.gen_pmax[0]]})
         obs, reward, done, info = self.env.step(act)
+        assert not done
         assert info["is_dispatching_illegal"]
         assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
 
         # this one is not correct: too high increase
         act = self.env.action_space({"redispatch": [0, self.env.gen_pmax[0] - self.env.gen_pmin[0] +2 ]})
         obs, reward, done, info = self.env.step(act)
+        assert not done
         assert info["is_dispatching_illegal"]
         assert np.all(self.env.target_dispatch == [-1., 0., 0., 0. ,0.])
 

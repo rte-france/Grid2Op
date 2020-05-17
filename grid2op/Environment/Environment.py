@@ -552,6 +552,7 @@ class Environment(BaseEnv):
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
         self.env_modification = None
+        super().reset()
         self._reset_maintenance()
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been

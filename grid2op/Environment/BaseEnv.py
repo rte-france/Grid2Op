@@ -305,6 +305,9 @@ class BaseEnv(GridObjects, ABC):
         self._reset_redispatching()
         self.__is_init = True
 
+    def reset(self):
+        self.__is_init = True
+
     @abstractmethod
     def init_backend(self, init_grid_path, chronics_handler, backend,
                      names_chronics_to_backend, actionClass, observationClass,
@@ -423,61 +426,69 @@ class BaseEnv(GridObjects, ABC):
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
                    np.sum(mismatch) >= self._tol_poly:
+            except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
+        return except_
 
-            target_vals = self.target_dispatch[self.gen_redispatchable] - self.actual_dispatch[self.gen_redispatchable]
-            already_modified_gen_me = already_modified_gen[self.gen_redispatchable]
+    def _compute_dispatch_vect(self, already_modified_gen, new_p):
+        except_ = None
+        target_vals = self.target_dispatch[self.gen_redispatchable] - self.actual_dispatch[self.gen_redispatchable]
+        already_modified_gen_me = already_modified_gen[self.gen_redispatchable]
+        target_vals_me = target_vals[already_modified_gen_me]
+        nb_dispatchable = np.sum(self.gen_redispatchable)
+        tmp_zeros = np.zeros((1, nb_dispatchable))
+        coeffs = 1.0 / (self.gen_max_ramp_up + self.gen_max_ramp_down + self._epsilon_poly)
+        weights = np.ones(nb_dispatchable) * coeffs[self.gen_redispatchable]
+
+        if target_vals_me.shape[0] == 0:
+            # no dispatch means all dispatchable, otherwise i will never get to 0
+            already_modified_gen_me[:] = True
             target_vals_me = target_vals[already_modified_gen_me]
-            nb_dispatchable = np.sum(self.gen_redispatchable)
-            tmp_zeros = np.zeros((1, nb_dispatchable))
 
-            if target_vals_me.shape[0] == 0:
-                # no dispatch means all dispatchable, otherwise i will never get to 0
-                already_modified_gen_me[:] = True
-                target_vals_me = target_vals[already_modified_gen_me]
+        def target(actual_dispatchable):
+            return np.sum(weights[already_modified_gen_me] * (actual_dispatchable[already_modified_gen_me] - target_vals_me) ** 2)
 
-            # todo add weight here (and don't forget to update the jacobian in this case)
-            def target(actual_dispatchable):
-                return np.sum((actual_dispatchable[already_modified_gen_me] - target_vals_me)**2)
+        def jac(actual_dispatchable):
+            res = 1.0 * tmp_zeros
+            res[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
+                                              (actual_dispatchable[already_modified_gen_me] - target_vals_me)
+            return res
+        # TODO add the hessian!!!
 
-            def jac(actual_dispatchable):
-                res = 1.0 * tmp_zeros
-                res[0, already_modified_gen_me] = 2.0 * (actual_dispatchable[already_modified_gen_me] -
-                                                         target_vals_me)
-                return res
+        # it must sum to 0.
+        equality_const = LinearConstraint(np.ones((1, nb_dispatchable)), 0., 0.)
 
-            # it must sum to 0.
-            equality_const = LinearConstraint(np.ones((1, nb_dispatchable)), 0., 0.)
+        # gen increase in the chronics
+        incr_in_chronics = new_p - (self.gen_activeprod_t_redisp - self.actual_dispatch)
 
-            # gen increase in the chronics
-            incr_in_chronics = new_p - (self.gen_activeprod_t_redisp - self.actual_dispatch)
+        # minmum value available for disp
+        ## first limit delta because of pmin
+        p_min_const = self.gen_pmin[self.gen_redispatchable] - new_p[self.gen_redispatchable] - self.actual_dispatch[
+            self.gen_redispatchable]
+        ## second limit delta because of ramps
+        ramp_down_const = -self.gen_max_ramp_down[self.gen_redispatchable] - incr_in_chronics[self.gen_redispatchable]
+        min_disp = np.maximum(p_min_const, ramp_down_const)
+        # maximum value available for disp
+        ## first limit delta because of pmin
+        p_max_const = self.gen_pmax[self.gen_redispatchable] - new_p[self.gen_redispatchable] - self.actual_dispatch[
+            self.gen_redispatchable]
+        ## second limit delta because of ramps
+        ramp_up_const = self.gen_max_ramp_up[self.gen_redispatchable] - incr_in_chronics[self.gen_redispatchable]
+        max_disp = np.minimum(p_max_const, ramp_up_const)
 
-            # minmum value available for disp
-            ## first limit delta because of pmin
-            p_min_const = self.gen_pmin[self.gen_redispatchable] - new_p[self.gen_redispatchable] - self.actual_dispatch[self.gen_redispatchable]
-            ## second limit delta because of ramps
-            ramp_down_const = -self.gen_max_ramp_down[self.gen_redispatchable] - incr_in_chronics[self.gen_redispatchable]
-            min_disp = np.maximum(p_min_const, ramp_down_const)
-            # maximum value available for disp
-            ## first limit delta because of pmin
-            p_max_const = self.gen_pmax[self.gen_redispatchable] - new_p[self.gen_redispatchable] - self.actual_dispatch[self.gen_redispatchable]
-            ## second limit delta because of ramps
-            ramp_up_const = self.gen_max_ramp_up[self.gen_redispatchable] - incr_in_chronics[self.gen_redispatchable]
-            max_disp = np.minimum(p_max_const, ramp_up_const)
-
-            # add everything into a linear constraint object
-            linear_constraint = LinearConstraint(np.eye(nb_dispatchable),
-                                                 min_disp + self._epsilon_poly,
-                                                 max_disp - self._epsilon_poly)
-            x0 = tmp_zeros.reshape(-1)
-            res = minimize(target,
-                           x0,
-                           constraints=[equality_const, linear_constraint],
-                           options={'ftol': self._tol_poly, 'disp': False},
-                           jac=jac)
-            if res.success is False:
-                except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n{}".format(res.message))
-            else:
-                self.actual_dispatch[self.gen_redispatchable] += res.x
+        # add everything into a linear constraint object
+        linear_constraint = LinearConstraint(np.eye(nb_dispatchable),
+                                             min_disp + self._epsilon_poly,
+                                             max_disp - self._epsilon_poly)
+        x0 = tmp_zeros.reshape(-1)
+        res = minimize(target,
+                       x0,
+                       constraints=[equality_const, linear_constraint],
+                       options={'ftol': self._tol_poly, 'disp': False},
+                       jac=jac)
+        if res.success:
+            self.actual_dispatch[self.gen_redispatchable] += res.x
+        else:
+            except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n{}".format(res.message))
         return except_
 
     def _update_actions(self):
@@ -659,7 +670,8 @@ class BaseEnv(GridObjects, ABC):
         # TODO update the documentation
 
         if not self.__is_init:
-            raise Grid2OpException("Impossible to make a step with a non initialized backend")
+            raise Grid2OpException("Impossible to make a step with a non initialized backend. Have you called "
+                                   "\"env.reset()\" after the last game over ?")
 
         has_error = True
         is_done = False
@@ -686,7 +698,6 @@ class BaseEnv(GridObjects, ABC):
             if ambiguous:
                 # action is replace by do nothing
                 action = self.helper_action_player({})
-                has_error = True
                 is_ambiguous = True
                 except_.append(except_tmp)
 
@@ -706,7 +717,7 @@ class BaseEnv(GridObjects, ABC):
                     action = self.helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
-                    has_error = True
+                    is_done = True
                     except_.append("Game over due to infeasible redispatching state. A generator would "
                                                "\"behave abnormally\" in a real system.")
 
@@ -820,7 +831,8 @@ class BaseEnv(GridObjects, ABC):
                                                              is_ambiguous)
         infos["rewards"] = other_reward
         # TODO documentation on all the possible way to be illegal now
-
+        if self.done:
+            self.__is_init = False
         return self.current_obs, self.current_reward, self.done, infos
 
     def _get_reward(self, action, has_error, is_done, is_illegal, is_ambiguous):
