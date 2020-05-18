@@ -546,13 +546,13 @@ class Environment(BaseEnv):
 
         This method should be called only at the end of an episode.
         """
+        super().reset()
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
                                          self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
         self.env_modification = None
-        super().reset()
         self._reset_maintenance()
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been

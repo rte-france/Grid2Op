@@ -26,7 +26,7 @@ class Parameters:
         thermal
         limit. Default is ``False``
 
-    DNB_TIMESTEP_OVERFLOW_ALLOWED: ``int``
+    NB_TIMESTEP_POWERFLOW_ALLOWED: ``int``
         Number of timesteps for which a soft overflow is allowed, default 2. This means that a powerline will be
         disconnected (if :attr:`.NO_OVERFLOW_DISCONNECTION` is set to ``False``) after 2 time steps above its thermal
         limit. This is called a "soft overflow".
