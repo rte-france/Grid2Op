@@ -30,6 +30,7 @@ class TestConverter(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = make("rte_case14_redisp", test=True, param=param)
+        np.random.seed(0)
 
     def tearDown(self):
         self.env.close()
@@ -37,10 +38,52 @@ class TestConverter(HelperTests):
     def test_ConnectivityConverter(self):
         converter = ConnectivityConverter(self.env.action_space)
         converter.init_converter()
-        assert np.all(converter.subs_ids == np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3,
-                                                      3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
-                                                      5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]))
+        converter.seed(0)
+        assert np.all(converter.subs_ids == np.array([ 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,
+                                                       2,  2,  2,  2,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,
+                                                       3,  3,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  5,  5,  5,  5,  5,
+                                                       5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  8,  8,  8,  8,  8,  8,  8,
+                                                       8,  8,  8, 12, 12, 12, 12, 12, 12]))
         assert len(converter.obj_type) == converter.n
-
-        pdb.set_trace()
         assert len(set(converter.obj_type)) == converter.n
+        assert converter.pos_topo.shape[0] == converter.n
+        assert len(set([tuple(sorted(el)) for el in converter.pos_topo])) == converter.n
+
+        coded_act = np.random.rand(converter.n)
+        pred = converter._compute_disagreement(coded_act, np.ones(converter.n))
+        assert np.abs( (converter.n - coded_act.sum())/converter.n - pred) <= self.tol_one
+        pred = converter._compute_disagreement(coded_act, np.arange(converter.n))
+        assert np.abs(coded_act.sum()/converter.n - pred) <= self.tol_one
+
+        # and not test i can produce an action that can be implemented
+        act = converter.convert_act(encoded_act=coded_act)
+        obs, reward, done, info = self.env.step(act)
+
+        # test sample
+        obs = self.env.reset()
+        act = converter.sample()
+        obs, reward, done, info = self.env.step(act)
+
+    def test_max_sub_changed(self):
+        for ms_sub in [1, 2, 3]:
+            converter = ConnectivityConverter(self.env.action_space)
+            converter.init_converter(max_sub_changed=ms_sub)
+            converter.seed(0)
+
+            coded_act = np.random.rand(converter.n)
+
+            # and not test i can produce an action that can be implemented
+            act = converter.convert_act(encoded_act=coded_act)
+            lines_impacted, subs_impacted = act.get_topological_impact()
+            assert np.sum(subs_impacted) == ms_sub, "wrong number of substations affected. It should be {}".format(ms_sub)
+            obs, reward, done, info = self.env.step(act)
+
+            # test sample
+            obs = self.env.reset()
+            act = converter.sample()
+            lines_impacted, subs_impacted = act.get_topological_impact()
+            assert np.sum(subs_impacted) == ms_sub, "wrong number of substations affected. It should be {}".format(ms_sub)
+            obs, reward, done, info = self.env.step(act)
+
+if __name__ == "__main__":
+    unittest.main()

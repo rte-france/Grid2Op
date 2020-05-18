@@ -12,7 +12,7 @@ from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
 from grid2op.dtypes import dt_float, dt_int
 import pdb
-
+import time
 
 class ConnectivityConverter(Converter):
     """
@@ -36,16 +36,21 @@ class ConnectivityConverter(Converter):
         self.__class__ = ConnectivityConverter.init_grid(action_space)
         self.subs_ids = np.array([], dtype=dt_int)
         self.obj_type = []
+        self.pos_topo = np.array([], dtype=dt_int)
         self.n = 1
         self.last_obs = None
+        self.max_sub_changed = self.n_sub
+        self.last_disagreement = None
 
     def init_converter(self, all_actions=None, **kwargs):
         # compute all pairs of elements that can be connected together
+        self.pos_topo = []
+        self.subs_ids = []
         for sub_id, nb_element in enumerate(self.sub_info):
-            if nb_element <= 4:
+            if nb_element < 4:
                 continue
+
             nb_pairs = int(nb_element * (nb_element - 1)/2)
-            self.subs_ids = np.concatenate((self.subs_ids, sub_id * np.ones(nb_pairs, dtype=dt_int)))
 
             c_id = np.where(self.load_to_subid == sub_id)[0]
             g_id = np.where(self.gen_to_subid == sub_id)[0]
@@ -58,6 +63,7 @@ class ConnectivityConverter(Converter):
             lex_pos = self.line_ex_to_sub_pos[self.line_ex_to_subid == sub_id]
 
             my_types = []
+            pos_topo = []
             next_load_ = 0
             next_gen_ = 0
             next_lor_ = 0
@@ -83,12 +89,24 @@ class ConnectivityConverter(Converter):
                     next_lex_ += 1
                     next_lex = lex_id[next_lex_] if lex_id.shape[0] > next_lex_ else None
                 my_types.append((type_i, id_obj_i))
+                pos_topo.append(self._get_pos_topo(type_i, id_obj_i))
+
             for id_i in range(nb_element):
                 id_i_ = my_types[id_i]
+                pos_topo_i = pos_topo[id_i]
                 for id_j in range(id_i+1, nb_element):
                     id_j_ = my_types[id_j]
+                    pos_topo_j = pos_topo[id_j]
                     self.obj_type.append((sub_id, id_i_, id_j_))
+                    self.pos_topo.append((pos_topo_i, pos_topo_j))
+                    self.subs_ids.append(sub_id)
+
+        self.pos_topo = np.array(self.pos_topo)
+        self.subs_ids = np.array(self.subs_ids)
         self.n = self.subs_ids.shape[0]
+
+        if "max_sub_changed" in kwargs:
+            self.max_sub_changed = int(kwargs["max_sub_changed"])
 
     def _get_id_from_obj(self, id_,
                          c_pos, g_pos, lor_pos, lex_pos,
@@ -108,6 +126,19 @@ class ConnectivityConverter(Converter):
         else:
             raise RuntimeError("Invalid grid")
         return type_, id_obj_
+
+    def _get_pos_topo(self, type_, id_obj):
+        if type_ == "load":
+            res = self.load_pos_topo_vect[id_obj]
+        elif type_ == "gen":
+            res = self.gen_pos_topo_vect[id_obj]
+        elif type_ == "line_or":
+            res = self.line_or_pos_topo_vect[id_obj]
+        elif type_ == "line_ex":
+            res = self.line_ex_pos_topo_vect[id_obj]
+        else:
+            raise RuntimeError("Invalid grid")
+        return res
 
     def convert_obs(self, obs):
         """
@@ -138,13 +169,69 @@ class ConnectivityConverter(Converter):
         For this converter, encoded_act is a vector, with the same size as there are possible ways to reconfigure
         the grid. And it find a consistent state that does not break too much the connectivity asked.
 
+        NOTE: there might be better ways to do it...
         Parameters
         ----------
-        encoded_act
+        encoded_act: ``numpy.ndarray``
+            This action should have the same size as the number of pairs of element connectable.
 
         Returns
         -------
 
         """
-        return super().__call__()
+        argsort = np.argsort(np.minimum(encoded_act, 1-encoded_act))
+        topo_vect = np.zeros(self.n, dtype=dt_int)
+        subs_added = np.full(self.n_sub, fill_value=False)
+        sub_changed = 0
+        for el in argsort:
+            my_sub = self.subs_ids[el]
+            if not subs_added[my_sub]:
+                subs_added[my_sub] = True
+                topo_vect[self.pos_topo[el, 0]] = 1   # todo with self.last_obs !
+                sub_changed += 1
+                if sub_changed >= self.max_sub_changed:
+                    break
+
+        for el in argsort:
+            bus_1_id = self.pos_topo[el, 0]
+            bus_2_id = self.pos_topo[el, 1]
+            need_1 = topo_vect[bus_1_id] <= 0
+            need_2 = topo_vect[bus_2_id] <= 0
+            val = encoded_act[el]
+            if need_2 and not need_1:
+                if val > 0.5:
+                    # they are on same bus
+                    topo_vect[bus_2_id] = topo_vect[bus_1_id]
+                else:
+                    # they are on different bus
+                    topo_vect[bus_2_id] = 1 - topo_vect[bus_1_id] + 2
+            elif need_1 and not need_2:
+                if val > 0.5:
+                    # they are on same bus
+                    topo_vect[bus_1_id] = topo_vect[bus_2_id]
+                else:
+                    # they are on different bus
+                    topo_vect[bus_1_id] = 1 - topo_vect[bus_2_id] + 2
+        act = super().__call__({"set_bus": topo_vect})
+        self.last_disagreement = self._compute_disagreement(encoded_act, topo_vect)
+        return act
+
+    def _compute_disagreement(self, encoded_act, topo_vect):
+        """
+        computes the disagreement between the encoded act and the proposed topo_vect
+
+        **NB** if encoded act is random uniform, and topo_vect is full of 1, then disagreement is, on average 0.5.
+        Lower disagreement is better.
+        """
+        bus_1 = topo_vect[self.pos_topo[:, 0]]
+        bus_2 = topo_vect[self.pos_topo[:, 1]]
+        together = 1. - encoded_act[bus_1 == bus_2]
+        split = encoded_act[bus_1 != bus_2]
+        raw_disag = together.sum() + split.sum()
+        scaled_disag = raw_disag / self.n  # to have something between 0 and 1
+        return scaled_disag
+
+    def sample(self):
+        coded_act = self.space_prng.rand(self.n)
+        return self.convert_act(coded_act)
 
