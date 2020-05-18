@@ -8,6 +8,8 @@
 
 import time
 import numpy as np
+from scipy.optimize import minimize
+from scipy.optimize import LinearConstraint
 import copy
 from abc import ABC, abstractmethod
 
@@ -119,6 +121,10 @@ class BaseEnv(GridObjects, ABC):
         # observation
         self.current_obs = None
 
+
+        self.ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
+        self.forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
@@ -127,10 +133,10 @@ class BaseEnv(GridObjects, ABC):
 
         # store actions "cooldown"
         self.times_before_line_status_actionable = None
-        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self.times_before_topology_actionable = None
-        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # for maintenance operation
         self.time_next_maintenance = None
@@ -263,14 +269,14 @@ class BaseEnv(GridObjects, ABC):
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self.nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED,
+                                                    fill_value=self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
                                                     dtype=dt_int)
         # store actions "cooldown"
         self.times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self.times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
-        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
         self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
@@ -297,6 +303,9 @@ class BaseEnv(GridObjects, ABC):
         self.gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
 
         self._reset_redispatching()
+        self.__is_init = True
+
+    def reset(self):
         self.__is_init = True
 
     @abstractmethod
@@ -339,189 +348,6 @@ class BaseEnv(GridObjects, ABC):
         self.gen_activeprod_t[:] = 0.
         self.gen_activeprod_t_redisp[:] = 0.
 
-    @staticmethod
-    def _get_poly(t, tmp_p, pmin, pmax):
-        return tmp_p + 0.5 * (pmax - pmin) * t + 0.5 * (pmax + pmin - 2 * tmp_p) * t ** 2
-
-    @staticmethod
-    def _get_poly_coeff(tmp_p, pmin, pmax):
-        p_s = tmp_p.sum()
-        p_min_s = pmin.sum()
-        p_max_s = pmax.sum()
-
-        p_0 = p_s
-        p_1 = 0.5 * (p_max_s - p_min_s)
-        p_2 = 0.5 * (p_max_s + p_min_s - 2 * p_s)
-        return p_0, p_1, p_2
-
-    @staticmethod
-    def _get_t(tmp_p, pmin, pmax, total_dispatch):
-        # to_dispatch = too_much.sum() + not_enough.sum()
-        p_0, p_1, p_2 = BaseEnv._get_poly_coeff(tmp_p, pmin, pmax)
-
-        res = np.roots((p_2, p_1, p_0-(total_dispatch)))
-        res = res[np.isreal(res)]
-        res = res[(res <= 1) & (res >= -1)]
-        if res.shape[0] == 0:
-            raise Grid2OpException("Impossible to solve for this equilibrium, not enough production")
-        else:
-            res = res[0]
-        return res
-
-    def _aux_redisp(self, redisp_act, target_p, avail_gen, previous_redisp):
-        # delta_gen_min = np.maximum(-self.gen_max_ramp_down+previous_redisp, self.gen_pmin-target_p)
-        # delta_gen_max = np.minimum(self.gen_max_ramp_up+previous_redisp, self.gen_pmax-target_p)
-        delta_gen_min = np.maximum(-self.gen_max_ramp_down+previous_redisp,
-                                   self.gen_pmin - (target_p - previous_redisp))
-        delta_gen_max = np.minimum(self.gen_max_ramp_up+previous_redisp,
-                                   self.gen_pmax - (target_p - previous_redisp))
-
-        min_disp = np.sum(delta_gen_min[avail_gen])
-        max_disp = np.sum(delta_gen_max[avail_gen])
-        new_redisp = None
-        except_ = None
-        val_sum = +np.sum(redisp_act[avail_gen])-np.sum(redisp_act)
-        if val_sum < min_disp - self._tol_poly:
-            except_ = InvalidRedispatching("Impossible to perform this redispatching. Minimum ramp (or pmin) for "
-                                           "available generators is not enough to absord "
-                                           "{}MW. min possible is {}MW".format(val_sum, min_disp))
-        elif val_sum > max_disp + self._tol_poly:
-            except_ = InvalidRedispatching("Impossible to perform this redispatching. Maximum ramp (or pmax) for "
-                                           "available generators is not enough to absord "
-                                           "{}MW, max possible is {}MW".format(val_sum, max_disp))
-        elif np.abs(val_sum) <= self._tol_poly:
-            # i don't need to modify anything so i should be good
-            new_redisp = 0.0 * redisp_act
-        else:
-            new_redisp, except_ = self._aux_aux_redisp(delta_gen_min,
-                                                       delta_gen_max,
-                                                       avail_gen,
-                                                       redisp_act,
-                                                       val_sum)
-
-        return new_redisp, except_
-
-    def _aux_aux_redisp(self, delta_gen_min, delta_gen_max, avail_gen, redisp_act, sum_value):
-        except_ = None
-        new_redisp = 0.*redisp_act
-        if not np.sum(avail_gen):
-            # there are no available generators
-            except_ = NotEnoughGenerators("Sum of available generator is too low to meet the demand.")
-            return None, except_
-
-        try:
-            t_zerosum = self._get_t(redisp_act[avail_gen],
-                                    pmin=delta_gen_min[avail_gen],
-                                    pmax=delta_gen_max[avail_gen],
-                                    total_dispatch=sum_value)
-        except Exception as e:
-            # i can't implement redispatching due to impossibility to dispatch on the other generator
-            # it's a non valid action
-            except_ = e
-            return None, except_
-
-        new_redisp_tmp = self._get_poly(t=t_zerosum,
-                                    pmax=delta_gen_max[avail_gen],
-                                    pmin=delta_gen_min[avail_gen],
-                                    tmp_p=redisp_act[avail_gen])
-        new_redisp[avail_gen] = new_redisp_tmp
-        # self.actual_dispatch[avail_gen] = actual_dispatch_tmp
-        return new_redisp, except_
-
-    def _get_redisp_zero_sum(self, redisp_act, new_p, redisp_this_act):
-        """
-
-        Parameters
-        ----------
-        action
-
-        redisp_act:
-            the redispatching part of the action
-
-        new_p:
-            the new target generation for each generator
-
-        Returns
-        -------
-
-        """
-
-        # make the target dispatch a 0-sum vector (using only dispatchable unit, not dispatched)
-        # dispatch only the generator that are at zero
-        avail_gen = self.target_dispatch == 0.  # generators with a redispatching target cannot be redispatched again
-        avail_gen = avail_gen & (redisp_this_act == 0.)  # generator on which I act this time step cannot be redispatched again
-        avail_gen = avail_gen & self.gen_redispatchable  # i can only redispatched dispatchable generators
-        avail_gen = avail_gen & (new_p > 0.)
-
-        if (np.abs(np.sum(redisp_act)) >= self._tol_poly) and (np.sum(avail_gen) == 0):
-            except_ = NotEnoughGenerators("Attempt to use a redispatch action that does not sum to 0., but all "
-                                          "turned on dispatchable generators that could 'compensate' are modified in"
-                                          "this action or in previous actions.")
-            return None, except_
-
-        # get back the previous value for the dispatchable generators
-        target_disp = 1.0 * redisp_act
-        # target_disp[avail_gen] = self.actual_dispatch[avail_gen]
-        new_redisp, except_ = self._aux_redisp(target_disp, new_p, avail_gen, self.actual_dispatch)
-        if except_ is None:
-            new_redisp += redisp_act
-        return new_redisp, except_
-
-    def _compute_actual_dispatch(self, new_p):
-        # this automated conrol only affect turned-on generators that are dispatchable
-        except_ = None
-        turned_on_gen = new_p > 0.
-        gen_redispatchable = self.gen_redispatchable & turned_on_gen
-
-        # make sure that rampmin and max are met
-        new_p_if_redisp_ok = new_p + self.actual_dispatch
-        gen_min = np.maximum(self.gen_pmin, self.gen_activeprod_t_redisp - self.gen_max_ramp_down)
-        gen_max = np.minimum(self.gen_pmax, self.gen_activeprod_t_redisp + self.gen_max_ramp_up)
-
-        if np.any((gen_min[gen_redispatchable] > new_p_if_redisp_ok[gen_redispatchable]) |
-                   (new_p_if_redisp_ok[gen_redispatchable] > gen_max[gen_redispatchable])) and \
-            np.any(self.gen_activeprod_t_redisp != 0.):
-
-            # i am in a case where the target redispatching is not possible, due to the new values
-            # i need to come up with a solution to fix that
-            # note that the condition "np.any(self.gen_activeprod_t_redisp != 0.)" is added because at the first time
-            # step there is no need to check all that.
-            # but take into account pmin and pmax
-            curtail_generation = 1. * new_p_if_redisp_ok
-            mask_min = (new_p_if_redisp_ok < gen_min + self._epsilon_poly) & gen_redispatchable
-            mask_max = (new_p_if_redisp_ok > gen_max - self._epsilon_poly) & gen_redispatchable
-
-            minimum_redisp = gen_min - new_p
-            maximum_redisp = gen_max - new_p
-            new_dispatch = 1. * self.actual_dispatch
-
-            if np.any(mask_min) or np.any(mask_max):
-                # modify the implemented redispatching to take into account this "curtailement"
-                # due to physical limitation
-
-                curtail_generation[mask_min] = gen_min[mask_min]  # + self._epsilon_poly
-                curtail_generation[mask_max] = gen_max[mask_max]  # - self._epsilon_poly
-
-                diff_th_imp = curtail_generation - new_p_if_redisp_ok
-                new_dispatch[mask_min] += diff_th_imp[mask_min] + self._epsilon_poly
-                new_dispatch[mask_max] += diff_th_imp[mask_max] - self._epsilon_poly
-
-                # current dispatch doesn't respect pmin/pmax / ramp_min / ramp_max
-                # for polynomial stability
-                minimum_redisp[mask_max] = new_dispatch[mask_max] - self._epsilon_poly
-                maximum_redisp[mask_min] = new_dispatch[mask_min] + self._epsilon_poly
-
-            new_redisp, except_ = self._aux_aux_redisp(minimum_redisp,
-                                                       maximum_redisp,
-                                                       gen_redispatchable,
-                                                       new_dispatch,
-                                                       0.)
-            if except_ is not None:
-                pass
-
-            return new_redisp, except_
-        return self.actual_dispatch, except_
-
     def _get_new_prod_setpoint(self, action):
         # get the modification of generator active setpoint from the action
         new_p = 1. * self.gen_activeprod_t
@@ -539,34 +365,26 @@ class BaseEnv(GridObjects, ABC):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _make_redisp_0sum(self, action, new_p):
-        """
-        Test the redispatching is valid, then make it a 0 sum action.
-
-        This method updates actual_dispatch and target_dispatch
-
-        Parameters
-        ----------
-        action
-        new_p
-
-        Returns
-        -------
-
-        """
-        # Redispatching process the redispatching actions here, get a redispatching vector with 0-sum
-        # from the environment.
-
+    def _make_redisp(self, action, new_p):
+        # trying with an optimization method
         except_ = None
+        info_ = []
+        valid = True
 
         # get the redispatching action (if any)
         redisp_act_orig = 1. * action._redispatch
         previous_redisp = 1. * self.actual_dispatch
 
         if np.all(redisp_act_orig == 0.) and np.all(self.target_dispatch == 0.) and np.all(self.actual_dispatch == 0.):
-            return except_
+            return valid, except_, info_
 
-        self.target_dispatch += redisp_act_orig
+        # I update the target dispatch of generator i have never modified
+        already_modified_gen = self.target_dispatch != 0.
+        self.target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
+        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
+        self.target_dispatch[first_modified] = self.actual_dispatch[first_modified] + redisp_act_orig[first_modified]
+        already_modified_gen |= first_modified
+
         # check that everything is consistent with pmin, pmax:
         if np.any(self.target_dispatch > self.gen_pmax - self.gen_pmin):
             # action is invalid, the target redispatching would be above pmax for at least a generator
@@ -577,8 +395,7 @@ class BaseEnv(GridObjects, ABC):
                                            "generator(s): "
                                            "{}".format(np.where(cond_invalid)[0]))
             self.target_dispatch -= redisp_act_orig
-            return except_
-
+            return valid, except_, info_
         if np.any(self.target_dispatch < self.gen_pmin - self.gen_pmax):
             # action is invalid, the target redispatching would be below pmin for at least a generator
             cond_invalid = self.target_dispatch < self.gen_pmin - self.gen_pmax
@@ -588,33 +405,120 @@ class BaseEnv(GridObjects, ABC):
                                            "generator(s): "
                                            "{}".format(np.where(cond_invalid)[0]))
             self.target_dispatch -= redisp_act_orig
-            return except_
+            return valid, except_, info_
 
         # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
-        if np.any(redisp_act_orig[new_p == 0.]):
+        if np.any(redisp_act_orig[new_p == 0.]) and self.forbid_dispatch_off:
             # action is invalid, a generator has been redispatched, but it's turned off
-            except_ = InvalidRedispatching("Impossible to dispatched a turned off generator")
+            except_ = InvalidRedispatching("Impossible to dispatch a turned off generator")
             self.target_dispatch -= redisp_act_orig
-            return except_
+            return valid, except_, info_
 
-        redisp_act_orig[new_p == 0.] = 0.
-        # TODO add a flag here too, like before (the action has been "cut")
+        if self.forbid_dispatch_off is True:
+            redisp_act_orig_cut = 1.0 * redisp_act_orig
+            redisp_act_orig_cut[new_p == 0.] = 0.
+            # TODO add a flag here too, like before (the action has been "cut")
+            if np.any(redisp_act_orig_cut != redisp_act_orig):
+                info_.append({"INFO: redispatching cut because generator will be turned_off":
+                              np.where(redisp_act_orig_cut != redisp_act_orig)[0]})
+        else:
+            redisp_act_orig_cut = redisp_act_orig
 
-        # get the target redispatching (cumulation starting from the first element of the scenario)test_
-        # redispatch_act_above_pmax
+        mismatch = self.actual_dispatch - self.target_dispatch
+        mismatch = np.abs(mismatch)
         if np.abs(np.sum(self.actual_dispatch)) >= self._tol_poly or \
-                np.sum(np.abs(self.actual_dispatch - self.target_dispatch)) >= self._tol_poly:
-            # make sure the redispatching action is zero sum
-            new_redisp, except_ = self._get_redisp_zero_sum(self.target_dispatch,
-                                                            self.gen_activeprod_t_redisp,
-                                                            redisp_act_orig)
-            if except_ is not None:
-                # if there is an error, then remove the above "action" and propagate it
-                self.actual_dispatch = previous_redisp
-                self.target_dispatch -= redisp_act_orig
-                return except_
-            else:
-                self.actual_dispatch = new_redisp
+                   np.sum(mismatch) >= self._tol_poly:
+            except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
+            valid = except_ is None
+        return valid, except_, info_
+
+    def _compute_dispatch_vect(self, already_modified_gen, new_p):
+        except_ = None
+        # first i define the participating generator
+        gen_participating = (new_p > 0.) | (self.actual_dispatch != 0.) | (self.target_dispatch != self.actual_dispatch)
+        gen_participating[~self.gen_redispatchable] = False
+
+        # define the objective value
+        target_vals = self.target_dispatch[gen_participating] - self.actual_dispatch[gen_participating]
+        already_modified_gen_me = already_modified_gen[gen_participating]
+        target_vals_me = target_vals[already_modified_gen_me]
+        nb_dispatchable = np.sum(gen_participating)
+        tmp_zeros = np.zeros((1, nb_dispatchable))
+        coeffs = 1.0 / (self.gen_max_ramp_up + self.gen_max_ramp_down + self._epsilon_poly)
+        weights = np.ones(nb_dispatchable) * coeffs[gen_participating]
+        weights /= weights.sum()
+
+        if target_vals_me.shape[0] == 0:
+            # no dispatch means all dispatchable, otherwise i will never get to 0
+            already_modified_gen_me[:] = True
+            target_vals_me = target_vals[already_modified_gen_me]
+
+        def target(actual_dispatchable):
+            # define my real objective
+            quad_ = (actual_dispatchable[already_modified_gen_me] - target_vals_me) ** 2
+            coeffs_quads = weights[already_modified_gen_me] * quad_
+            coeffs_quads_const = coeffs_quads.sum()
+            return coeffs_quads_const
+
+        def jac(actual_dispatchable):
+            res = 1.0 * tmp_zeros
+            res[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
+                                              (actual_dispatchable[already_modified_gen_me] - target_vals_me)
+            return res
+
+        # hessian is not used for the optimization method
+        # hess_mat = np.zeros((nb_dispatchable, nb_dispatchable))
+        # hess_mat[already_modified_gen_me, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me]
+        # def hess(actual_dispatchable):
+        #     return hess_mat
+
+        mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable))
+        const_sum_O_no_turn_on = np.zeros(1)
+        equality_const = LinearConstraint(mat_sum_0_no_turn_on,
+                                          const_sum_O_no_turn_on,
+                                          const_sum_O_no_turn_on)
+        # gen increase in the chronics
+        incr_in_chronics = new_p - (self.gen_activeprod_t_redisp - self.actual_dispatch)
+
+        # minmum value available for disp
+        ## first limit delta because of pmin
+        p_min_const = self.gen_pmin[gen_participating] - new_p[gen_participating] - self.actual_dispatch[
+            gen_participating]
+        ## second limit delta because of ramps
+        ramp_down_const = -self.gen_max_ramp_down[gen_participating] - incr_in_chronics[gen_participating]
+        min_disp = np.maximum(p_min_const, ramp_down_const)
+        # maximum value available for disp
+        ## first limit delta because of pmin
+        p_max_const = self.gen_pmax[gen_participating] - new_p[gen_participating] - self.actual_dispatch[
+            gen_participating]
+        ## second limit delta because of ramps
+        ramp_up_const = self.gen_max_ramp_up[gen_participating] - incr_in_chronics[gen_participating]
+        max_disp = np.minimum(p_max_const, ramp_up_const)
+
+        # add everything into a linear constraint object
+        mat_pmin_max_ramps = np.eye(nb_dispatchable)
+        lower_pmin_max_ramps = min_disp + self._epsilon_poly
+        upper_pmin_max_ramps = max_disp - self._epsilon_poly
+        linear_constraint = LinearConstraint(mat_pmin_max_ramps,
+                                             lower_pmin_max_ramps,
+                                             upper_pmin_max_ramps)
+
+        x0 = np.zeros(nb_dispatchable)
+        def f(init):
+            res = minimize(target,
+                           init,
+                           method="SLSQP",
+                           constraints=[equality_const, linear_constraint],
+                           options={'eps': self._tol_poly, "ftol": self._tol_poly, 'disp': False},
+                           jac=jac
+                           # hess=hess  # not used for SLSQP
+                           )
+            return res
+        res = f(x0)
+        if res.success:
+            self.actual_dispatch[gen_participating] += res.x
+        else:
+            except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n{}".format(res.message))
         return except_
 
     def _update_actions(self):
@@ -713,7 +617,8 @@ class BaseEnv(GridObjects, ABC):
         gen_still_connected = gen_up_before & gen_up_after
         gen_still_disconnected = (~gen_up_before) & (~gen_up_after)
 
-        if np.any(self.gen_downtime[gen_connected_this_timestep] < self.gen_min_downtime[gen_connected_this_timestep]):
+        if np.any(self.gen_downtime[gen_connected_this_timestep] < self.gen_min_downtime[gen_connected_this_timestep]) \
+                and not self.ignore_min_up_down_times:
             # i reconnected a generator before the minimum time allowed
             id_gen = self.gen_downtime[gen_connected_this_timestep] < self.gen_min_downtime[gen_connected_this_timestep]
             id_gen = np.where(id_gen)[0]
@@ -724,7 +629,8 @@ class BaseEnv(GridObjects, ABC):
             self.gen_downtime[gen_connected_this_timestep] = -1
             self.gen_uptime[gen_connected_this_timestep] = 1
 
-        if np.any(self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]):
+        if np.any(self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]) and \
+                not self.ignore_min_up_down_times:
             # i disconnected a generator before the minimum time allowed
             id_gen = self.gen_uptime[gen_disconnected_this] < self.gen_min_uptime[gen_disconnected_this]
             id_gen = np.where(id_gen)[0]
@@ -794,7 +700,8 @@ class BaseEnv(GridObjects, ABC):
         # TODO update the documentation
 
         if not self.__is_init:
-            raise Grid2OpException("Impossible to make a step with a non initialized backend")
+            raise Grid2OpException("Impossible to make a step with a non initialized backend. Have you called "
+                                   "\"env.reset()\" after the last game over ?")
 
         has_error = True
         is_done = False
@@ -821,7 +728,6 @@ class BaseEnv(GridObjects, ABC):
             if ambiguous:
                 # action is replace by do nothing
                 action = self.helper_action_player({})
-                has_error = True
                 is_ambiguous = True
                 except_.append(except_tmp)
 
@@ -835,30 +741,19 @@ class BaseEnv(GridObjects, ABC):
                 gen_up_before = self.gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                except_tmp = self._make_redisp_0sum(action, new_p)
+                valid_disp, except_tmp, info_ = self._make_redisp(action, new_p)
+                if not valid_disp:
+                    # game over case
+                    action = self.helper_action_player({})
+                    is_illegal_redisp = True
+                    except_.append(except_tmp)
+                    is_done = True
+                    except_.append("Game over due to infeasible redispatching state. A generator would "
+                                               "\"behave abnormally\" in a real system.")
                 if except_tmp is not None:
                     action = self.helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
-
-                # and now compute the actual dispatch that is consistent with pmin, pmax, ramp min, ramp max
-                # this emulates the "frequency control" that is automatic.
-                new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
-                if except_tmp is not None:
-                    action = self.helper_action_player({})
-                    is_illegal_redisp = True
-                    except_.append(except_tmp)
-                    self.actual_dispatch = previous_disp
-                    self.target_dispatch = previous_target_disp
-                    new_dispatch, except_tmp = self._compute_actual_dispatch(new_p)
-                    if except_tmp is None:
-                        self.actual_dispatch = new_dispatch
-                    else:
-                        pass
-                        # TODO what can i do if do nothing cannot be performed.
-                        # probably a game over !
-                else:
-                    self.actual_dispatch = new_dispatch
 
                 # check the validity of min downtime and max uptime
                 except_tmp = self._handle_updown_times(gen_up_before, self.actual_dispatch)
@@ -901,7 +796,6 @@ class BaseEnv(GridObjects, ABC):
             try:
                 # compute the next _grid state
                 beg_ = time.time()
-                # print("line status: {}".format(np.sum(self.backend.get_line_status())))
                 disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
                 self._time_powerflow += time.time() - beg_
 
@@ -945,7 +839,6 @@ class BaseEnv(GridObjects, ABC):
                 # of the system. So basically, when it's too high (higher than the ramp) it can
                 # mess up the rest of the environment
                 self.gen_activeprod_t_redisp[:] = new_p + self.actual_dispatch
-
                 has_error = False
             except Grid2OpException as e:
                 except_.append(e)
@@ -972,6 +865,8 @@ class BaseEnv(GridObjects, ABC):
                                                              is_ambiguous)
         infos["rewards"] = other_reward
         # TODO documentation on all the possible way to be illegal now
+        if self.done:
+            self.__is_init = False
         return self.current_obs, self.current_reward, self.done, infos
 
     def _get_reward(self, action, has_error, is_done, is_illegal, is_ambiguous):
@@ -995,17 +890,17 @@ class BaseEnv(GridObjects, ABC):
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow[:] = 0
-        self.nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_POWERFLOW_ALLOWED
+        self.nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
         self.nb_time_step = 0
         self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self.env_dc = self.parameters.ENV_DC
 
         self.times_before_line_status_actionable[:] = 0
-        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF
+        self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self.times_before_topology_actionable[:] = 0
-        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF
+        self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # reset timings
         self._time_apply_act = 0

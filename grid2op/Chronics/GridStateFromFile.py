@@ -118,6 +118,8 @@ class GridStateFromFile(GridValue):
         # for the two following vector, the convention is the following: False(line is disconnected) / True(line is connected)
         self.hazards = None   # numpy array representing the outage (unplanned), same size as the number of powerlines on the _grid.
         self.maintenance = None  # numpy array representing the _maintenance (planned withdrawal of a powerline), same size as the number of powerlines on the _grid.
+        self.maintenance_time = None
+        self.maintenance_duration = None
 
         self.current_index = -1
         self.sep = sep
