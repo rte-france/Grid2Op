@@ -38,6 +38,9 @@ class TestConverter(HelperTests):
         converter = ConnectivityConverter(self.env.action_space)
         converter.init_converter()
         assert np.all(converter.subs_ids == np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3,
-       3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
-       5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]))
+                                                      3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+                                                      5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]))
+        assert len(converter.obj_type) == converter.n
+
         pdb.set_trace()
+        assert len(set(converter.obj_type)) == converter.n
