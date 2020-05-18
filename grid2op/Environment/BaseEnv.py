@@ -657,6 +657,12 @@ class BaseEnv(GridObjects, ABC):
         res = self.helper_observation(env=self)
         return res
 
+    def get_thermal_limit(self):
+        """
+        get the current thermal limit in amps
+        """
+        return 1.0 * self._thermal_limit_a
+
     def step(self, action):
         """
         Run one timestep of the environment's dynamics. When end of
@@ -713,8 +719,6 @@ class BaseEnv(GridObjects, ABC):
         except_ = []
         init_disp = 1.0 * action._redispatch
 
-        previous_disp = 1.0 * self.actual_dispatch
-        previous_target_disp = 1.0 * self.target_dispatch
         try:
             # "smart" reconnecting
             beg_ = time.time()
