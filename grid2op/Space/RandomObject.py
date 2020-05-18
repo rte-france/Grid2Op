@@ -39,4 +39,5 @@ class RandomObject(object):
         if self.seed_used is not None:
             # in this case i have specific seed set. So i force the seed to be deterministic.
             self.space_prng.seed(seed=self.seed_used)
+        return self.seed_used
 
