@@ -439,7 +439,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                 #for line in self.line_to_maintenance:
                 are_lines_in_maintenance=np.random.choice([0, 1], p=[(1-maintenance_daily_proba), maintenance_daily_proba], size=(n_lines_maintenance))
                     
-                linesInMaintenance=[self.line_to_maintenance[i] for in in range(n_lines_maintenance) if are_lines_in_maintenance[i]==1]
+                linesInMaintenance=[self.line_to_maintenance[i] for i in range(n_lines_maintenance) if are_lines_in_maintenance[i]==1]
                 
                 n_Generated_Maintenance=np.sum(are_lines_in_maintenance)
                 #check if the number of maintenance is not above the max allowed. otherwise randomly pick up the right number
