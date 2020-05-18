@@ -20,8 +20,7 @@ RUN apt-get update && \
     git \
     ssh \
     tar \
-    gzip \
-    ca-certificates
+    gzip
 
 # Retrieve Grid2Op
 RUN git clone https://github.com/rte-france/Grid2Op
@@ -32,7 +31,7 @@ WORKDIR /Grid2Op
 RUN git pull
 RUN git remote update
 RUN git fetch --all --tags
-RUN git checkout "tags/v0.8.1" -b "v0.8.1-branch"
+RUN git checkout "tags/v0.8.2" -b "v0.8.2-branch"
 # Install Dependencies
 RUN pip3 install .[optional,challenge]
 WORKDIR /

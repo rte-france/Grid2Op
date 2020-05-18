@@ -1006,6 +1006,15 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Test observations are the same
         assert self.sim_obs == self.step_obs
 
+    def test_forecasted_inj(self):
+        sim_obs, _, _, _ = self.obs.simulate(self.env.action_space())
+        prod_p_f, prod_v_f, load_p_f, load_q_f = self.obs.get_forecasted_inj()
+        assert np.sum(np.abs(prod_v_f - sim_obs.prod_v)) < 1e-5
+        assert np.sum(np.abs(load_p_f - sim_obs.load_p)) < 1e-5
+        assert np.sum(np.abs(load_q_f - sim_obs.load_q)) < 1e-5
+        # test all prod p are equal, of course we remove the slack bus...
+        assert np.sum(np.abs(prod_p_f[:-1] - sim_obs.prod_p[:-1])) < 1e-5
+
 ## TODO test -- Add test to cover simulation vs step when there is a planned maintenance operation
 
         

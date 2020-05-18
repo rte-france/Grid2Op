@@ -15,6 +15,7 @@ from grid2op.Exceptions import PlotError
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 
+
 class BasePlot(ABC):
     """
     Abstract interface to plot the state of the powergrid
@@ -98,27 +99,33 @@ class BasePlot(ABC):
 
         This should return a native python ``dict`` 
         in the same format as observation_space.grid_layout :
-        ```
+
+        .. code-block:: python
+
             {
               "substation1_name": [x_coord, y_coord],
               "substation2_name": [x_coord, y_coord],
-               ...
+              [...],
               "load1_name": [x_coord, y_coord],
-              ...
+              [...], 
               "gen1_name": [x_coord, y_coord],
-              ...
+              [...]
             }
-        ```
+        
         Note that is must contain at least the positions for the substations.
         The loads and generators will be skipped if missing. 
 
-        By default, if :grid_layout: is provided this is returned, 
+        By default, if `grid_layout` is provided this is returned, 
         otherwise returns observation_space.grid_layout
+
         Parameters
         ----------
-        observation_space: ``grid2op.Observation.ObservationSpace`
+
+        observation_space: ``grid2op.Observation.ObservationSpace``
+             The observation space of the environment
 
         grid_layout: ``dict`` or ``None``
+             A dictionary containing the coordinates for each substation.
         """
         # We need an intial layout to work with
         use_grid_layout = None

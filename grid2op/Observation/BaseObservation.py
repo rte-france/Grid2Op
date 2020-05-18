@@ -241,7 +241,6 @@ class BaseObservation(GridObjects):
         self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
         self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
 
-
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
 
@@ -649,6 +648,52 @@ class BaseObservation(GridObjects):
             The bus connectivity matrix
         """
         raise NotImplementedError("This method is not implemented. ")
+
+    def get_forecasted_inj(self, time_step=0):
+        """
+        This function allows you to retrieve directly the "planned" injections for the timestep `time_step`
+
+        Parameters
+        ----------
+        time_step: ``int``
+            The horizon of the forecast;
+
+        Returns
+        -------
+        prod_p_f: ``numpy.ndarray``
+            The forecasted generators active values
+        prod_v_f: ``numpy.ndarray``
+            The forecasted generators voltage setpoins
+        load_p_f: ``numpy.ndarray``
+            The forecasted load active consumption
+        load_q_f: ``numpy.ndarray``
+            The forecasted load reactive consumption
+        """
+        if time_step >= len(self._forecasted_inj):
+            raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
+        a = self._forecasted_grid_act[time_step]["inj_action"]
+        prod_p_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
+        prod_v_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
+        load_p_f = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+        load_q_f = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+
+        if "prod_p" in a._dict_inj:
+            prod_p_f = a._dict_inj["prod_p"]
+        if "prod_v" in a._dict_inj:
+            prod_v_f = a._dict_inj["prod_v"]
+        if "load_p" in a._dict_inj:
+            load_p_f = a._dict_inj["load_p"]
+        if "load_q" in a._dict_inj:
+            load_q_f = a._dict_inj["load_q"]
+        tmp_arg = ~np.isfinite(prod_p_f)
+        prod_p_f[tmp_arg] = self.prod_p[tmp_arg]
+        tmp_arg = ~np.isfinite(prod_v_f)
+        prod_v_f[tmp_arg] = self.prod_v[tmp_arg]
+        tmp_arg = ~np.isfinite(load_p_f)
+        load_p_f[tmp_arg] = self.load_p[tmp_arg]
+        tmp_arg = ~np.isfinite(load_q_f)
+        load_q_f[tmp_arg] = self.load_q[tmp_arg]
+        return prod_p_f, prod_v_f, load_p_f, load_q_f
 
     def simulate(self, action, time_step=0):
         """

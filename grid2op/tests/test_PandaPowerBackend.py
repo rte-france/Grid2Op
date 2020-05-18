@@ -13,8 +13,8 @@ import copy
 import pdb
 import warnings
 
+import grid2op
 from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP
-
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
@@ -203,10 +203,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert self.compare_vect(p_or_orig, p_or)
 
     def test_get_line_status(self):
-        assert np.all(self.backend.get_line_status())
+        assert np.all(self.backend._get_line_status())
         self.backend._disconnect_line(3)
-        assert np.sum(~self.backend.get_line_status()) == 1
-        assert not self.backend.get_line_status()[3]
+        assert np.sum(~self.backend._get_line_status()) == 1
+        assert not self.backend._get_line_status()[3]
 
     def test_get_line_flow(self):
         self.backend.runpf(is_dc=False)
@@ -295,20 +295,39 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # test that i can modify only the load / prod active values of the powergrid
         # to do that i modify the productions and load all of a factor 0.5 and compare that the DC flows are
         # also multiply by 2
+
+        # i set up the stuff to have exactly 0 losses
         conv = self.backend.runpf(is_dc=True)
+        assert conv
         init_flow, *_ = self.backend.lines_or_info()
         init_lp, init_l_q, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
         init_ls = self.backend.get_line_status()
-
-        ratio = 0.5
+        ratio = 1.0
         new_cp = ratio * init_lp
         new_pp = ratio * init_gp*np.sum(init_lp)/np.sum(init_gp)
         action = self.action_env({"injection": {"load_p": new_cp,
                                                 "prod_p": new_pp}})  # update the action
         bk_action = self.bkact_class()
         bk_action += action
-        self.backend.apply_action( bk_action)
+        self.backend.apply_action(bk_action)
+        conv = self.backend.runpf(is_dc=True)
+        # now the system has exactly 0 losses (ie sum load = sum gen)
+
+        # i check that if i divide by 2, then everything is divided by 2
+        assert conv
+        init_flow, *_ = self.backend.lines_or_info()
+        init_lp, init_l_q, *_ = self.backend.loads_info()
+        init_gp, *_ = self.backend.generators_info()
+        init_ls = self.backend.get_line_status()
+        ratio = 0.5
+        new_cp = ratio * init_lp
+        new_pp = ratio * init_gp
+        action = self.action_env({"injection": {"load_p": new_cp,
+                                                "prod_p": new_pp}})  # update the action
+        bk_action = self.bkact_class()
+        bk_action += action
+        self.backend.apply_action(bk_action)
         conv = self.backend.runpf(is_dc=True)
         assert conv, "Cannot perform a powerflow after doing nothing"
 
@@ -328,7 +347,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(init_ls == after_ls)  # check i didn't disconnect any powerlines
 
         after_flow, *_ = self.backend.lines_or_info()
-        assert self.compare_vect(ratio*init_flow, after_flow) # probably an error with the DC approx
+        assert self.compare_vect(ratio*init_flow, after_flow)  # probably an error with the DC approx
 
     def test_apply_action_prod_v(self):
         conv = self.backend.runpf(is_dc=False)
@@ -337,7 +356,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         action = self.action_env({"injection": {"prod_v": ratio*prod_v_init}})  # update the action
         bk_action = self.bkact_class()
         bk_action += action
-        self.backend.apply_action( bk_action)
+        self.backend.apply_action(bk_action)
         conv = self.backend.runpf(is_dc=False)
         assert conv, "Cannot perform a powerflow aftermodifying the powergrid"
 
@@ -822,7 +841,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 0
+        env_params.NB_TIMESTEP_OVERFLOW_ALLOWED = 0
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
@@ -911,7 +930,7 @@ class TestEnvPerformsCorrectCascadingFailures(unittest.TestCase):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env_params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
+        env_params.NB_TIMESTEP_OVERFLOW_ALLOWED = 2
         env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
                           backend=self.backend,
                           chronics_handler=self.chronics_handler,
@@ -1185,6 +1204,37 @@ class TestResetEqualsLoadGrid(unittest.TestCase):
         assert np.all(obs1.duration_next_maintenance == obs2.duration_next_maintenance)
         assert np.all(obs1.target_dispatch == obs2.target_dispatch)
         assert np.all(obs1.actual_dispatch == obs2.actual_dispatch)
-    
+
+
+class TestVoltageOWhenDisco(unittest.TestCase):
+    def test_this(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_realistic", test=True) as env:
+                line_id = 1
+                act = env.action_space({"set_line_status": [(line_id, -1)]})
+                obs, *_ = env.step(act)
+                assert obs.v_or[line_id] == 0.  # is not 0 however line is not connected
+
+
+class TestChangeBusSlack(unittest.TestCase):
+    def setUp(self):
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+
+    def test_change_slack_case14(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic", test=True)
+        action = env.action_space({"set_bus": {"generators_id": [(-1, 2)], "lines_or_id": [(0, 2)]}})
+        obs, reward, am_i_done, info = env.step(action)
+        assert am_i_done is False
+        assert np.all(obs.prod_p >= 0.)
+        assert np.sum(obs.prod_p) >= np.sum(obs.load_p)
+        p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
+        assert np.all(np.abs(p_subs) <= self.tol_one)
+        assert np.all(np.abs(p_bus) <= self.tol_one)
+
+
 if __name__ == "__main__":
     unittest.main()

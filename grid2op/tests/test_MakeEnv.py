@@ -14,7 +14,7 @@ import time
 import numpy as np
 import pdb
 
-from grid2op.tests.helper_path_test import PATH_CHRONICS_Make2
+from grid2op.tests.helper_path_test import PATH_CHRONICS_Make2, PATH_DATA_TEST
 from grid2op.tests.helper_path_test import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
 from grid2op.tests.helper_data_test import case14_redisp_TH_LIM, case14_test_TH_LIM, case14_real_TH_LIM
 
@@ -512,6 +512,46 @@ class TestMakeFromPathConfigOverride(unittest.TestCase):
         }
         with make_from_dataset_path(dataset_path, data_feeding_kwargs=dfk) as env:
             assert isinstance(env.chronics_handler.real_data, ChangeNothing)
+
+
+class TestMakeFromPathParameters(unittest.TestCase):
+    def test_case5_some_missing(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_some_missing")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                assert env.parameters.NB_TIMESTEP_COOLDOWN_SUB == 19
+
+    def test_case5_parameters_loading_competition(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                assert env.parameters.NB_TIMESTEP_RECONNECTION == 12
+
+    def test_case5_changedparameters(self):
+        param = Parameters()
+        param.NB_TIMESTEP_RECONNECTION = 128
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, param=param) as env:
+                assert env.parameters.NB_TIMESTEP_RECONNECTION == 128
+
+    def test_case5_changedifficulty(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, difficulty="2") as env:
+                assert env.parameters.NB_TIMESTEP_RECONNECTION == 6
+
+    def test_case5_changedifficulty_raiseerror(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with self.assertRaises(EnvError):
+                with make_from_dataset_path(dataset_path, difficulty="3") as env:
+                    assert False, "this should have raised an exception"
 
 
 if __name__ == "__main__":

@@ -21,14 +21,52 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-  [0.8.2] - 2020-05-??
+[0.9.0] - 2020-05-??
+----------------------
+- [BREAKING] `Issue #83 <https://github.com/rte-france/Grid2Op/issues/83>`_: attributes name of the Parameters class
+  are now more consistent with the rest of the package. Use `NB_TIMESTEP_OVERFLOW_ALLOWED`
+  instead of `NB_TIMESTEP_POWERFLOW_ALLOWED`, `NB_TIMESTEP_COOLDOWN_LINE` instead of `NB_TIMESTEP_LINE_STATUS_REMODIF`
+  and `NB_TIMESTEP_COOLDOWN_SUB` instead of `NB_TIMESTEP_TOPOLOGY_REMODIF`
+- [BREAKING] `Issue #87 <https://github.com/rte-france/Grid2Op/issues/87>`_: algorithm of the environment that solves
+  the redispatching to make sure the environment meet the phyiscal constraints is now cast into an optimization
+  routine that uses `scipy.minimize` to be solved. This has a few consequences: more dispatch actions are tolerated,
+  computation time can be increased in some cases, when the optimization problem cannot be solved, a game
+  over is thrown, `scipy` is now a direct dependency of `grid2op`, code base of `grid2op` is simpler.
+- [BREAKING] any attempt to use an un intialized environment (*eg* after a game over but before calling `env.reset`
+  will now raise a `Grid2OpException`)
+- [FIXED] `Issue #84 <https://github.com/rte-france/Grid2Op/issues/84>`_: it is now possible to load multiple
+  environments in the same python script and perform random action on each.
+- [FIXED] `Issue #86 <https://github.com/rte-france/Grid2Op/issues/86>`_: the proper symmetries are used to generate
+  all the actions that can "change" the buses (`SerializationActionSpace.get_all_unitary_topologies_change`).
+- [FIXED] `Issue #88 <https://github.com/rte-france/Grid2Op/issues/88>`_: two flags are now used to tell the environment
+  whether or not to activate the possibility to dispatch a turned on generator (`forbid_dispatch_off`) and whether
+  or not to ignore the gen_min_uptimes and gen_min_downtime propertiers (`ignore_min_up_down_times`) that
+  are initialized from the Parameters of the grid now.
+- [FIXED] `Issue #89 <https://github.com/rte-france/Grid2Op/issues/89>`_: pandapower backend should not be compatible
+  with changing the bus of the generator representing the slack bus.
+- [FIXED] Greedy agents now uses the proper data types `dt_float` for the simulated reward (previously it was platform
+  dependant)
+- [ADDED] more flexibilities in `IdToAct` converter not to generate every action for both set and change for example.
+  This class can also serialize and de serialize the list of all actions with the save method (to serialize) and the
+  `init_converter` method (to read back the data).
+- [ADDED] a feature to have multiple difficulty levels per dataset.
+
+[0.8.2] - 2020-05-13
 ----------------------
 - [FIXED] `Issue #75 <https://github.com/rte-france/Grid2Op/issues/75>`_: PlotGrid displays double powerlines correctly.
-- [FIXED] Action `+=` operator (aka. `__iadd__`) doesn't create warnings when manipulating identical arrays containing `NaN` values.
+- [FIXED] Action `+=` operator (aka. `__iadd__`) doesn't create warnings when manipulating identical arrays
+  containing `NaN` values.
+- [FIXED] `Issue #70 <https://github.com/rte-france/Grid2Op/issues/70>`_: for powerline disconnected, now the voltage
+  is properly set to `0.0`
+- [UPDATED] `Issue #40 <https://github.com/rte-france/Grid2Op/issues/40>`_: now it is possible to retrieve the forecast
+  of the injections without running an expensive "simulate" thanks to the `obs.get_forecasted_inj` method.
+- [UPDATED] `Issue #78 <https://github.com/rte-france/Grid2Op/issues/78>`_: parameters can be put as json in the
+  folder of the environment.
+- [UPDATED] minor fix for `env.make`
 - [UPDATED] Challenge tensorflow dependency to `tensorflow==2.2.0`
 - [UPDATED] `make` documentation to reflect API changes of 0.8.0
 
-  [0.8.1] - 2020-05-05
+[0.8.1] - 2020-05-05
 ----------------------
 - [FIXED] `Issue #65 <https://github.com/rte-france/Grid2Op/issues/65>`_: now the length of the Episode Data is properly
   computed
@@ -37,7 +75,7 @@ Change Log
 - [FIXED] `Issue #67 <https://github.com/rte-france/Grid2Op/issues/67>`_: L2RPNSandBoxReward is now properly computed
 - [FIXED] Serialization / de serialization of Parameters as json is now fixed
 
-  [0.8.0] - 2020-05-04
+[0.8.0] - 2020-05-04
 ----------------------
 - [BREAKING] All previously deprecated features have been removed
 - [BREAKING] `grid2op.Runner` is now located into a submodule folder

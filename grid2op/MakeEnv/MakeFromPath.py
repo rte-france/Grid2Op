@@ -10,6 +10,7 @@ import os
 import importlib.util
 import pkg_resources
 import warnings
+import numpy as np
 import json
 
 from grid2op.Environment import Environment
@@ -27,6 +28,8 @@ from grid2op.Opponent import BaseOpponent
 
 from grid2op.MakeEnv.get_default_aux import _get_default_aux
 
+DIFFICULTY_NAME = "difficulty"
+CHALLENGE_NAME = "competition"
 ERR_MSG_KWARGS = {
     "backend": "The backend of the environment (keyword \"backend\") must be an instance of grid2op.Backend",
     "observation_class": "The type of observation of the environment (keyword \"observation_class\")" \
@@ -53,13 +56,15 @@ ERR_MSG_KWARGS = {
                              "inherit from \"BaseOpponent\"",
     "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float",
     "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
-    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string."
+    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string.",
+    DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are {difficulties}"
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
 NAME_GRID_FILE = "grid.json"
 NAME_GRID_LAYOUT_FILE = "grid_layout.json"
 NAME_CONFIG_FILE = "config.py"
+
 
 def _check_kwargs(kwargs):
     for el in kwargs:
@@ -127,6 +132,12 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
     grid_path: ``str``, optional
         The path where the powergrid is located.
         If provided it must be a string, and point to a valid file present on the hard drive.
+
+    difficulty: ``str``, optional
+        the difficulty level. If present it starts from "0" the "easiest" but least realistic mode. In the case of the
+        dataset being used in the l2rpn competition, the level used for the competition is "competition" ("hardest" and
+        most realistic mode). If multiple difficulty levels are available, the most realistic one
+        (the "hardest") is the default choice.
 
     Returns
     -------
@@ -221,8 +232,50 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
 
     ## Create the parameters of the game, thermal limits threshold,
     # simulate cascading failure, powerflow mode etc. (the gamification of the game)
-    param = _get_default_aux('param', kwargs, defaultClass=Parameters,
-                             defaultClassApp=Parameters, msg_error=ERR_MSG_KWARGS["param"])
+    if "param" in kwargs:
+        param = _get_default_aux('param', kwargs, defaultClass=Parameters,
+                                 defaultClassApp=Parameters, msg_error=ERR_MSG_KWARGS["param"])
+    else:
+        # param is not in kwargs
+        param = Parameters()
+        json_path = os.path.join(dataset_path_abs, "difficulty_levels.json")
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as f:
+                dict_ = json.load(f)
+            available_parameters = sorted(dict_.keys())
+            if DIFFICULTY_NAME in kwargs:
+                # player enters a difficulty levels
+                my_difficulty = kwargs[DIFFICULTY_NAME]
+                try:
+                    my_difficulty = str(my_difficulty)
+                except:
+                    raise EnvError("Impossible to convert your difficulty into a valid string. Please make sure to "
+                                   "pass a string (eg \"2\") and not something else (eg. int(2)) as a difficulty")
+                if my_difficulty in dict_:
+                    param.init_from_dict(dict_[my_difficulty])
+                else:
+                    raise EnvError(ERR_MSG_KWARGS[DIFFICULTY_NAME].format(difficulty=my_difficulty,
+                                                                          difficulties=available_parameters))
+            else:
+                # no difficulty name provided, i need to chose the most suited one
+                if CHALLENGE_NAME in dict_:
+                    param.init_from_dict(dict_[CHALLENGE_NAME])
+                else:
+                    # i chose the most difficult one
+                    available_parameters_int = {}
+                    for el in available_parameters:
+                        try:
+                            int_ = int(el)
+                            available_parameters_int[int_] = el
+                        except:
+                            pass
+                    max_ = np.max(list(available_parameters_int.keys()))
+                    keys_ = available_parameters_int[max_]
+                    param.init_from_dict(dict_[keys_])
+        else:
+            json_path = os.path.join(dataset_path_abs, "parameters.json")
+            if os.path.exists(json_path):
+                param.init_from_json(json_path)
 
     # Get default rules class
     rules_class_cfg = DefaultRules

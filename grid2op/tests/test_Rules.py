@@ -133,11 +133,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
             self.env.parameters.MAX_SUB_CHANGED = 1
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
             _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
-                                                             "set_bus": {"substations_id": [(id_2, arr2)]},
-                                                             "change_line_status": arr_line1,
-                                                             "set_line_status": arr_line2},
-                                                            env=self.env,
-                                                            check_legal=True)
+                                    "set_bus": {"substations_id": [(id_2, arr2)]},
+                                    "change_line_status": arr_line1,
+                                    "set_line_status": arr_line2},
+                                   env=self.env,
+                                   check_legal=True)
             raise RuntimeError("This should have thrown an IllegalException")
         except IllegalAction:
             pass
@@ -146,11 +146,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
             self.env.parameters.MAX_SUB_CHANGED = 2
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
             _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
-                                                             "set_bus": {"substations_id": [(id_2, arr2)]},
-                                                             "change_line_status": arr_line1,
-                                                             "set_line_status": arr_line2},
-                                                            env=self.env,
-                                                            check_legal=True)
+                                    "set_bus": {"substations_id": [(id_2, arr2)]},
+                                    "change_line_status": arr_line1,
+                                    "set_line_status": arr_line2},
+                                   env=self.env,
+                                   check_legal=True)
             raise RuntimeError("This should have thrown an IllegalException")
         except IllegalAction:
             pass
@@ -411,17 +411,39 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
 class TestCooldown(unittest.TestCase):
     def setUp(self):
+        params = Parameters()
+        params.NB_TIMESTEP_COOLDOWN_LINE = 5
+        params.NB_TIMESTEP_COOLDOWN_SUB = 15
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case5_example", test=True, gamerules_class=DefaultRules)
+            self.env = make("rte_case5_example", test=True, gamerules_class=DefaultRules, param=params)
 
     def tearDown(self):
         self.env.close()
 
     def test_cooldown_sub(self):
-        act = self.env.action_space({"set_bus": {"substations_id": [(2, [1,1,2,2])]} })
-        obs, *_ = self.env.step(act)
-        # TODO do these kind of test with modified parameters !!!
+        sub_id = 2
+        act = self.env.action_space({"set_bus": {"substations_id": [(sub_id, [1,1,2,2])]} })
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        assert obs.time_before_cooldown_sub[sub_id] == 15
+        act = self.env.action_space({"set_bus": {"substations_id": [(sub_id, [1,1,1,1])]} })
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        assert info["is_illegal"]
+        assert obs.time_before_cooldown_sub[sub_id] == 14
+
+    def test_cooldown_line(self):
+        line_id = 1
+        act = self.env.action_space({"set_line_status": [(line_id, -1)] })
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        assert obs.time_before_cooldown_line[line_id] == 5
+        act = self.env.action_space({"set_line_status": [(line_id, +1)] })
+        obs, reward, done, info = self.env.step(act)
+        assert not done
+        assert info["is_illegal"]
+        assert obs.time_before_cooldown_line[line_id] == 4
 
 
 class TestReconnectionsLegality(unittest.TestCase):

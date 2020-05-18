@@ -108,6 +108,7 @@ class PandaPowerBackend(Backend):
         self.prod_p = None
         self.prod_q = None
         self.prod_v = None
+        self.line_status = None
 
         self._pf_init = "flat"
         self._pf_init = "results"
@@ -207,7 +208,7 @@ class PandaPowerBackend(Backend):
                         raise RuntimeError("Impossible to recognize the powergrid")
                     bus_gen_added = ppc2pd[int(el)]
                     i_ref = i
-
+                    break
             self._iref_slack = i_ref
             self._id_bus_added = self._grid.gen.shape[0]
             # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
@@ -385,6 +386,7 @@ class PandaPowerBackend(Backend):
         self.q_ex = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
         self.v_ex = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
         self.a_ex = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.line_status = np.full(self.n_line, dtype=dt_bool, fill_value=np.NaN)
         self.load_p = np.full(self.n_load, dtype=dt_float, fill_value=np.NaN)
         self.load_q = np.full(self.n_load, dtype=dt_float, fill_value=np.NaN)
         self.load_v = np.full(self.n_load, dtype=dt_float, fill_value=np.NaN)
@@ -492,6 +494,10 @@ class PandaPowerBackend(Backend):
             elif type_obj == "gen":
                 new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_gen[id_el_backend])
                 self._grid.gen["bus"].iloc[id_el_backend] = new_bus_backend
+                if self._iref_slack is not None:
+                    # remember in this case slack bus is actually 2 generators for pandapower !
+                    if id_el_backend == self._grid.gen.shape[0] -1:
+                        self._grid.ext_grid["bus"].iloc[0] = new_bus_backend
             elif type_obj == "lineor":
                 new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lor[id_el_backend])
                 if id_el_backend < self.__nb_powerline:
@@ -596,6 +602,7 @@ class PandaPowerBackend(Backend):
                         # some loads are disconnected: it's a game over case!
                         raise pp.powerflow.LoadflowNotConverged
 
+                self.line_status[:] = self._get_line_status()
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
                 self.p_or[:] = self._aux_get_line_info("p_from_mw", "p_hv_mw")
                 self.q_or[:] = self._aux_get_line_info("q_from_mvar", "q_hv_mvar")
@@ -603,6 +610,10 @@ class PandaPowerBackend(Backend):
                 self.a_or[:] = self._aux_get_line_info("i_from_ka", "i_hv_ka") * 1000
                 self.a_or[~np.isfinite(self.a_or)] = 0.
                 self.v_or[~np.isfinite(self.v_or)] = 0.
+
+                # it seems that pandapower does not take into account disconencted powerline for their voltage
+                self.v_or[~self.line_status] = 0.
+                self.v_ex[~self.line_status] = 0.
 
                 self.p_ex[:] = self._aux_get_line_info("p_to_mw", "p_lv_mw")
                 self.q_ex[:] = self._aux_get_line_info("q_to_mvar", "q_lv_mvar")
@@ -672,6 +683,9 @@ class PandaPowerBackend(Backend):
         As all the functions related to powerline, pandapower split them into multiple dataframe (some for transformers,
         some for 3 winding transformers etc.). We make sure to get them all here.
         """
+        return self.line_status
+
+    def _get_line_status(self):
         return np.concatenate((self._grid.line["in_service"].values, self._grid.trafo["in_service"].values)).astype(dt_bool)
 
     def get_line_flow(self):
@@ -780,9 +794,11 @@ class PandaPowerBackend(Backend):
         prod_v = self.cst_1 * self._grid.res_gen["vm_pu"].values.astype(dt_float) * self.prod_pu_to_kv
         if self._iref_slack is not None:
             # slack bus and added generator are on same bus. I need to add power of slack bus to this one.
-            if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
-                prod_p[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 1]
-                prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
+
+            # if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
+            if "gen" in self._grid._ppc["internal"]:
+                prod_p[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 1]
+                prod_q[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
 
     def generators_info(self):

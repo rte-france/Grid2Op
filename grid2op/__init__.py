@@ -2,7 +2,7 @@
 Grid2Op
 
 """
-__version__ = '0.8.1'
+__version__ = '0.8.2'
 
 __all__ = [
     "Action",
@@ -23,7 +23,12 @@ __all__ = [
     "VoltageControler",
     "tests",
     "main",
-    "command_line"
+    "command_line",
+    # utility functions
+    "list_available_remote_env",
+    "list_available_local_env",
+    "get_current_local_dir",
+    "change_local_dir"
 ]
 
 from grid2op.MakeEnv import make_old, make, make_from_dataset_path

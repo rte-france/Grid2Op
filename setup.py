@@ -20,6 +20,7 @@ pkgs = {
         "tqdm>=4.45.0",
         "pathlib>=1.0.1",
         "networkx>=2.4",
+        "scipy>=1.4.1",
         "requests>=2.23.0"
     ],
     "extras": {
@@ -49,7 +50,8 @@ pkgs = {
             "torch==1.4.0",
             "statsmodels==0.11.1",
             "scikit-learn==0.22.2.post1",
-            "gym==0.17.1"
+            "gym==0.17.1",
+            "scipy==1.4.1",
         ],
         "docs": [
             "numpydoc>=0.9.2",
@@ -78,7 +80,7 @@ except Exception as e:
     warnings.warn("Numba is not available for your platform. You could gain massive speed up if you could install it.")
 
 setup(name='Grid2Op',
-      version='0.8.1',
+      version='0.8.2',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations '
                        'independently of the software used to compute powerflow or method to generate grid '
