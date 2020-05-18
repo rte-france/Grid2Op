@@ -1169,6 +1169,7 @@ class GridObjects:
         res.n_shunt = gridobj.n_shunt
         res.name_shunt = gridobj.name_shunt
         res.shunt_to_subid = gridobj.shunt_to_subid
+        res.env_name = gridobj.env_name
 
         res.__name__ = name_res
         res.__qualname__ = "{}_{}".format(cls.__qualname__, gridobj.env_name)

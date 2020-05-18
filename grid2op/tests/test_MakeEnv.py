@@ -520,7 +520,38 @@ class TestMakeFromPathParameters(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make_from_dataset_path(dataset_path) as env:
-                assert env.parameters.NB_TIMESTEP_TOPOLOGY_REMODIF == 19
+                assert env.parameters.NB_TIMESTEP_COOLDOWN_SUB == 19
+
+    def test_case5_parameters_loading_competition(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path) as env:
+                assert env.parameters.NB_TIMESTEP_RECONNECTION == 12
+
+    def test_case5_changedparameters(self):
+        param = Parameters()
+        param.NB_TIMESTEP_RECONNECTION = 128
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, param=param) as env:
+                assert env.parameters.NB_TIMESTEP_RECONNECTION == 128
+
+    def test_case5_changedifficulty(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make_from_dataset_path(dataset_path, difficulty="2") as env:
+                assert env.parameters.NB_TIMESTEP_RECONNECTION == 6
+
+    def test_case5_changedifficulty_raiseerror(self):
+        dataset_path = os.path.join(PATH_DATA_TEST, "5bus_example_with_params")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with self.assertRaises(EnvError):
+                with make_from_dataset_path(dataset_path, difficulty="3") as env:
+                    assert False, "this should have raised an exception"
 
 
 if __name__ == "__main__":
