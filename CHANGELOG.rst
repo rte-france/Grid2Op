@@ -29,12 +29,12 @@ Change Log
   and `NB_TIMESTEP_COOLDOWN_SUB` instead of `NB_TIMESTEP_TOPOLOGY_REMODIF`
 - [BREAKING] `Issue #87 <https://github.com/rte-france/Grid2Op/issues/87>`_: algorithm of the environment that solves
   the redispatching to make sure the environment meet the phyiscal constraints is now cast into an optimization
-  routine that uses scipy.minimize to be solved. This has a few consequences: more dispatch actions are tolerated,
+  routine that uses `scipy.minimize` to be solved. This has a few consequences: more dispatch actions are tolerated,
   computation time can be increased in some cases, when the optimization problem cannot be solved, a game
-  over is thrown, `scipy` is now a direct dependency of grid2op, code base of grid2op is simpler.
+  over is thrown, `scipy` is now a direct dependency of `grid2op`, code base of `grid2op` is simpler.
 - [BREAKING] any attempt to use an un intialized environment (*eg* after a game over but before calling `env.reset`
   will now raise a `Grid2OpException`)
-- [FIXED] `Issue #87 <https://github.com/rte-france/Grid2Op/issues/84>`_: it is now possible to load multiple
+- [FIXED] `Issue #84 <https://github.com/rte-france/Grid2Op/issues/84>`_: it is now possible to load multiple
   environments in the same python script and perform random action on each.
 - [FIXED] `Issue #86 <https://github.com/rte-france/Grid2Op/issues/86>`_: the proper symmetries are used to generate
   all the actions that can "change" the buses (`SerializationActionSpace.get_all_unitary_topologies_change`).
@@ -49,6 +49,7 @@ Change Log
 - [ADDED] more flexibilities in `IdToAct` converter not to generate every action for both set and change for example.
   This class can also serialize and de serialize the list of all actions with the save method (to serialize) and the
   `init_converter` method (to read back the data).
+- [ADDED] a feature to have multiple difficulty levels per dataset.
 
 [0.8.2] - 2020-05-13
 ----------------------
