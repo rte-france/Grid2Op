@@ -67,7 +67,8 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                            names_chronics_to_backend)
 
     def _init_attrs(self, load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None):
-        super()._init_attrs(load_p, load_q, prod_p, prod_v, hazards=None, maintenance=None)
+        super()._init_attrs(load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=None)
+        # ignore the maitenance but keep hazards
 
         ########
         # new method to introduce generated maintenance
@@ -88,10 +89,9 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         self.maintenance = self.maintenance.astype(dt_bool)
 
     def _generate_maintenance(self):
-
         # define maintenance dataframe with size (nbtimesteps,nlines)
         columnsNames = self.name_line
-        nbTimesteps = self.load_p.shape[0]  # TODO change that !
+        nbTimesteps = self.n_  #  TODO change that !
         idx_line_maintenance = np.array([el in self.line_to_maintenance for el in columnsNames])
         nb_line_maint = np.sum(idx_line_maintenance)
         # identify the timestamps of the chronics to find out the month and day of the week
@@ -136,9 +136,9 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                 if (n_Generated_Maintenance > maxDailyMaintenance):
                     # we pick up only maxDailyMaintenance elements
                     not_chosen = self.space_prng.choice(n_Generated_Maintenance,
-                                                    replace=False,
-                                                    size=n_Generated_Maintenance - maxDailyMaintenance)
-                    are_lines_in_maintenance[not_chosen] = False
+                                                        replace=False,
+                                                        size=n_Generated_Maintenance - maxDailyMaintenance)
+                    are_lines_in_maintenance[np.where(are_lines_in_maintenance)[0][not_chosen]] = False
                 maintenance_me[selected_rows_beg:selected_rows_end, are_lines_in_maintenance] = 1.0
 
                 # handle last iteration

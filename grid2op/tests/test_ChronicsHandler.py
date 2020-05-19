@@ -625,7 +625,8 @@ class TestCFFWFWM(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
-                env.seed(0)
+                env.seed(123456)  # for reproducible tests !
+                obs = env.reset()
                 #get input data, to check they were correctly applied in
                 linesPossiblyInMaintenance = env.chronics_handler.real_data.data.line_to_maintenance
                 assert np.all(np.array(sorted(linesPossiblyInMaintenance)) ==
@@ -656,7 +657,7 @@ class TestCFFWFWM(HelperTests):
 
                 assert (maintenanceChronic[linesPossiblyInMaintenance].sum().sum() >= 1)
 
-                nb_mainteance_timestep=maintenanceChronic.sum(axis=1)
+                nb_mainteance_timestep = maintenanceChronic.sum(axis=1)
                 assert np.all(nb_mainteance_timestep <= maxMaintenancePerDay)
 
     def test_maintenance_multiple_timesteps(self):
@@ -767,6 +768,22 @@ class TestCFFWFWM(HelperTests):
                     nb_maintenance1[i, :] = np.sum(env.chronics_handler.real_data.data.maintenance, axis=0)
                 assert np.all(nb_maintenance == nb_maintenance)
 
+    def test_chunk_size(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+                      param=param) as env:
+                env.seed(0)
+                obs = env.reset()
+                maint = env.chronics_handler.real_data.data.maintenance
+                
+                env.seed(0)
+                env.set_chunk_size(10)
+                obs = env.reset()
+                maint2 = env.chronics_handler.real_data.data.maintenance
+                assert np.all(maint == maint2)
 
 if __name__ == "__main__":
     unittest.main()
