@@ -130,9 +130,10 @@ interesting part of this framework:
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-* [5_RedispathingAgent](getting_started/5_RedispathingAgent.ipynb) explains what is the "redispatching" from a
-  company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to manipulate
-  this concept in grid2op. Redispatching allows you to perform **continuous** action on the powergrid problem.
+* [5_RedispathingAgent](getting_started/5_RedispathingAgent.ipynb) explains what is the "redispatching" from the point 
+  of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
+  manipulate this concept in grid2op. Redispatching allows you to perform **continuous** actions on the powergrid 
+  problem.
 * [6_MultiEnv](getting_started/6-MultiEnv.ipynb) details how grid2op natively support a single agent interacting
   with multiple environments at the same time. This is particularly handy to train "asynchronous" agent in the 
   Reinforcement Learning community for example.
