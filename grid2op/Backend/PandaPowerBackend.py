@@ -208,7 +208,7 @@ class PandaPowerBackend(Backend):
                         raise RuntimeError("Impossible to recognize the powergrid")
                     bus_gen_added = ppc2pd[int(el)]
                     i_ref = i
-
+                    break
             self._iref_slack = i_ref
             self._id_bus_added = self._grid.gen.shape[0]
             # see https://matpower.org/docs/ref/matpower5.0/idx_gen.html for details on the comprehension of self._grid._ppc
@@ -494,6 +494,10 @@ class PandaPowerBackend(Backend):
             elif type_obj == "gen":
                 new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_gen[id_el_backend])
                 self._grid.gen["bus"].iloc[id_el_backend] = new_bus_backend
+                if self._iref_slack is not None:
+                    # remember in this case slack bus is actually 2 generators for pandapower !
+                    if id_el_backend == self._grid.gen.shape[0] -1:
+                        self._grid.ext_grid["bus"].iloc[0] = new_bus_backend
             elif type_obj == "lineor":
                 new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lor[id_el_backend])
                 if id_el_backend < self.__nb_powerline:
@@ -790,9 +794,11 @@ class PandaPowerBackend(Backend):
         prod_v = self.cst_1 * self._grid.res_gen["vm_pu"].values.astype(dt_float) * self.prod_pu_to_kv
         if self._iref_slack is not None:
             # slack bus and added generator are on same bus. I need to add power of slack bus to this one.
-            if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
-                prod_p[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 1]
-                prod_q[self._id_bus_added] += self._grid._ppc["gen"][self._iref_slack, 2]
+
+            # if self._grid.gen["bus"].iloc[self._id_bus_added] == self.gen_to_subid[self._id_bus_added]:
+            if "gen" in self._grid._ppc["internal"]:
+                prod_p[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 1]
+                prod_q[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
 
     def generators_info(self):

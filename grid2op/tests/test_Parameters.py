@@ -14,6 +14,7 @@ import json
 
 from grid2op.Parameters import Parameters
 
+
 class TestParameters(unittest.TestCase):
     def test_default_builds(self):
         p = Parameters()
@@ -27,36 +28,36 @@ class TestParameters(unittest.TestCase):
         p = Parameters()
         p_dict = p.to_dict()
 
-        p_dict["NB_TIMESTEP_POWERFLOW_ALLOWED"] = 42
+        p_dict["NB_TIMESTEP_OVERFLOW_ALLOWED"] = 42
 
         p.init_from_dict(p_dict)
-        assert p.NB_TIMESTEP_POWERFLOW_ALLOWED == 42
+        assert p.NB_TIMESTEP_OVERFLOW_ALLOWED == 42
 
     def test_from_json(self):
         p = Parameters()
         p_dict = p.to_dict()
-        p_dict["NB_TIMESTEP_POWERFLOW_ALLOWED"] = 42
+        p_dict["NB_TIMESTEP_OVERFLOW_ALLOWED"] = 42
         p_json = json.dumps(p_dict, indent=2)
         tf = tempfile.NamedTemporaryFile(delete=False)
         tf.write(bytes(p_json, "utf-8"))
         tf.close()
 
         p2 = Parameters.from_json(tf.name)
-        assert p2.NB_TIMESTEP_POWERFLOW_ALLOWED == 42
+        assert p2.NB_TIMESTEP_OVERFLOW_ALLOWED == 42
 
         os.remove(tf.name)
 
     def test_init_from_json(self):
         p = Parameters()
         p_dict = p.to_dict()
-        p_dict["NB_TIMESTEP_POWERFLOW_ALLOWED"] = 42
+        p_dict["NB_TIMESTEP_OVERFLOW_ALLOWED"] = 42
         p_json = json.dumps(p_dict, indent=2)
         tf = tempfile.NamedTemporaryFile(delete=False)
         tf.write(bytes(p_json, "utf-8"))
         tf.close()
 
         p.init_from_json(tf.name)
-        assert p.NB_TIMESTEP_POWERFLOW_ALLOWED == 42
+        assert p.NB_TIMESTEP_OVERFLOW_ALLOWED == 42
 
         os.remove(tf.name)
         
