@@ -420,13 +420,11 @@ class GridStateFromFile(GridValue):
         self._order_hazards = np.argsort(order_backend_hazards)
         self._order_maintenance = np.argsort(order_backend_maintenance)
 
-        self._init_attrs(load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance)
-
-        self.curr_iter = 0
-        if self.maintenance is not None:
-            n_ = self.maintenance.shape[0]
-        elif self.hazards is not None:
-            n_ = self.hazards.shape[0]
+        # retrieve total number of rows
+        if maintenance is not None:
+            n_ = maintenance.shape[0]
+        elif hazards is not None:
+            n_ = hazards.shape[0]
         else:
             n_ = None
             for fn in ["prod_p", "load_p", "prod_v", "load_q"]:
@@ -446,6 +444,10 @@ class GridStateFromFile(GridValue):
             # the -1 is present because the initial grid state doesn't count as a "time step" but is read
             # from these data.
             self.max_iter = self.n_ -1
+
+        self._init_attrs(load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance)
+
+        self.curr_iter = 0
 
     @staticmethod
     def _file_len(fname, ext_):
