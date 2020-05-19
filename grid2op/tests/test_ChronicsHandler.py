@@ -778,7 +778,7 @@ class TestCFFWFWM(HelperTests):
                 env.seed(0)
                 obs = env.reset()
                 maint = env.chronics_handler.real_data.data.maintenance
-                
+
                 env.seed(0)
                 env.set_chunk_size(10)
                 obs = env.reset()
