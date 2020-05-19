@@ -56,7 +56,8 @@ class EpisodeReplay(object):
         self.agent_path = agent_path
         self.episode_data = None
 
-    def replay_episode(self, episode_id, fps=2.0, gif_name=None, display=True):
+    def replay_episode(self, episode_id, fps=2.0, gif_name=None,
+                       display=True, start_step=0, end_step=-1):
         """
         When called, this function will start the display of the episode in a "mini movie" format.
 
@@ -72,6 +73,13 @@ class EpisodeReplay(object):
         gif_name: ``str``
             If provided, a .gif file is saved in the episode folder with the name :gif_name:. 
             The .gif extension is appened by this function
+
+        start_step: ``int``
+            Default to 0. The step at which to start generating the gif
+
+        end_step: ``int``
+            Default to -1. The step at which to stop generating the gif.
+            Set to -1 to specify no limit
         """
         # Check args
         path_ep = os.path.join(self.agent_path, episode_id)
@@ -94,7 +102,13 @@ class EpisodeReplay(object):
         # Render loop
         figure = None
         time_per_frame = 1.0 / fps
-        for obs in all_obs:
+        for step, obs in enumerate(all_obs):
+            # Skip up to start_step
+            if step < start_step:
+                continue
+            # Terminate if reached end_step
+            if end_step > 0 and step >= end_step:
+                break
             # Get a timestamp for current frame
             start_time = time.time()
 
