@@ -251,6 +251,5 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     warnings.warn(_MAKE_FIRST_TIME_WARN.format(dataset_name))
     _create_path_folder(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
     url, ds_name_dl = _fecth_environments(dataset_name)
-    print("URL : {}".format(url))
     _aux_download(url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, ds_name_dl)
     return make_from_dataset_path(real_ds_path, **kwargs)
