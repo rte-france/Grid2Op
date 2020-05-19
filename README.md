@@ -130,14 +130,26 @@ interesting part of this framework:
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-
+* [5_RedispathingAgent](getting_started/5_RedispathingAgent.ipynb) explains what is the "redispatching" from the point 
+  of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
+  manipulate this concept in grid2op. Redispatching allows you to perform **continuous** actions on the powergrid 
+  problem.
+* [6_MultiEnv](getting_started/6-MultiEnv.ipynb) details how grid2op natively support a single agent interacting
+  with multiple environments at the same time. This is particularly handy to train "asynchronous" agent in the 
+  Reinforcement Learning community for example.
+* [7_PlottingCapabilities](getting_started/7_PlottingCapabilities.ipynb) shows you the different ways with which you 
+  can represent (visually) the grid your agent interact with. A renderer is available like in many open AI gym 
+  environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
+  developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
+  to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines. 
+  
 Try them out in your own browser without installing 
 anything with the help of mybinder: 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
 
 # Documentation
 
-Official documentation: the official documentation is available at 
+The official documentation is available at 
 [https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
 ## Build the documentation
@@ -148,7 +160,7 @@ you will need Sphinx, a Documentation building tool, and a nice-looking custom
 pip3 install -U grid2op[docs]
 ```
 This installs both the Sphinx package and the custom template. Then, the documentation can be built with the command:
-```
+```commandline
 make html
 ```
 This will create a "documentation" subdirectory and the main entry point of the document will be located at 
