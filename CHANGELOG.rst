@@ -8,15 +8,10 @@ Change Log
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-- [???] refacto the backend and the actions, backend you get set only, env takes care of the rest
-- [???] refacto the dataset handling
 - [???] better explanation of the notebook 3 with action silently
-- [???] see if "simulate" performances can be improved, and performances in general.
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
-- [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
-  (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
@@ -50,6 +45,10 @@ Change Log
   This class can also serialize and de serialize the list of all actions with the save method (to serialize) and the
   `init_converter` method (to read back the data).
 - [ADDED] a feature to have multiple difficulty levels per dataset.
+- [ADDED] a converter to transform prediction in connectivity of element into valid grid2op action. See
+  `Converter.ConnectivitiyConverter` for more information.
+- [ADDED] a better control for the seeding strategy in `Environment` and `MultiEnvironment` to improve the
+  reproducibility of the experiments.
 
 [0.8.2] - 2020-05-13
 ----------------------

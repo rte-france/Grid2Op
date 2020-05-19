@@ -10,6 +10,7 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class L2RPNReward(BaseReward):
     """
     This is the historical :class:`BaseReward` used for the Learning To Run a Power Network competition.
@@ -36,9 +37,10 @@ class L2RPNReward(BaseReward):
     @staticmethod
     def __get_lines_capacity_usage(env):
         ampere_flows = np.abs(env.backend.get_line_flow(), dtype=dt_float)
-        thermal_limits = np.abs(env.backend.get_thermal_limit(), dtype=dt_float)
+        thermal_limits = np.abs(env.get_thermal_limit(), dtype=dt_float)
+        thermal_limits += 1e-1  # for numerical stability
         relative_flow = np.divide(ampere_flows, thermal_limits, dtype=dt_float)
 
         x = np.minimum(relative_flow, dt_float(1.0))
-        lines_capacity_usage_score = np.maximum(dt_float(1.0) - x ** 2, dt_float(0.0))
-        return dt_float(lines_capacity_usage_score)
+        lines_capacity_usage_score = np.maximum(dt_float(1.0) - x ** 2, np.zeros(x.shape, dtype=dt_float))
+        return lines_capacity_usage_score

@@ -37,6 +37,8 @@ class RemoteEnv(Process):
         self.parent_remote = parent_remote
         self.seed_used = seed
         self.space_prng = None
+        self.fast_forward = 0
+        self.all_seeds = []
 
     def init_env(self):
         """
@@ -57,8 +59,9 @@ class RemoteEnv(Process):
         self.backend = self.env_params["backendClass"]()
         del self.env_params["backendClass"]
         chronics_handler = self.env_params["chronics_handler"]
-
         self.env = Environment(**self.env_params, backend=self.backend)
+        env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
+        self.all_seeds = self.env.seed(env_seed)
         self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x), replace=False)])
 
     def _clean_observation(self, obs):
@@ -75,6 +78,9 @@ class RemoteEnv(Process):
         while not conv:
             try:
                 obs = self.env.reset()
+                if self.fast_forward > 0:
+                    self.env.fast_forward_chronics(self.space_prng.randint(0, self.fast_forward))
+                obs = self.env.get_obs()
                 obs_v = obs.to_vect()
                 if np.all(np.isfinite(obs_v)):
                     # i make sure that everything is not Nan
@@ -114,6 +120,11 @@ class RemoteEnv(Process):
             elif cmd == 'z':
                 # adapt the chunk size
                 self.env.set_chunk_size(data)
+            elif cmd == "f":
+                # fast forward the chronics when restart
+                self.fast_forward = int(data)
+            elif cmd == "seed":
+                self.remote.send((self.seed_used, self.all_seeds))
             else:
                 raise NotImplementedError
 
@@ -197,7 +208,7 @@ class MultiEnvironment(GridObjects):
         GridObjects.__init__(self)
         self.imported_env = env
         self.nb_env = nb_env
-
+        max_int = np.iinfo(dt_int).max
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
         env_params = [env.get_kwargs() for _ in range(self.nb_env)]
@@ -207,7 +218,7 @@ class MultiEnvironment(GridObjects):
                               remote=work_remote,
                               parent_remote=remote,
                               name="env: {}".format(i),
-                              seed=np.random.randint(np.iinfo(dt_int).max))
+                              seed=env.space_prng.randint(max_int))
                     for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
 
         for p in self._ps:
@@ -321,6 +332,28 @@ class MultiEnvironment(GridObjects):
 
         for remote in self._remotes:
             remote.send(('z', new_chunk_size))
+
+    def set_ff(self, ff_max=7*24*60/5):
+        """
+        This method is primarily used for training.
+
+        The problem this method aims at solving is the following: most of grid2op environments starts a Monday at
+        00:00. This method will "fast forward" an environment for a random number of timestep between 0 and ``ff_max``
+        """
+        try:
+            ff_max = int(ff_max)
+        except:
+            raise RuntimeError("ff_max parameters should be convertible to an integer.")
+
+        for remote in self._remotes:
+            remote.send(('f', ff_max))
+
+    def get_seeds(self):
+        for remote in self._remotes:
+            remote.send(('seed', None))
+        res = [remote.recv() for remote in self._remotes]
+        return np.stack(res)
+
 
 
 if __name__ == "__main__":

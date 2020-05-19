@@ -14,7 +14,7 @@ import copy
 from abc import ABC, abstractmethod
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Space import GridObjects
+from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
@@ -28,7 +28,7 @@ from grid2op.Action import ActionSpace
 import pdb
 
 
-class BaseEnv(GridObjects, ABC):
+class BaseEnv(GridObjects, RandomObject, ABC):
     """
     Internal class, do not use.
 
@@ -91,6 +91,7 @@ class BaseEnv(GridObjects, ABC):
                  other_rewards={}
                  ):
         GridObjects.__init__(self)
+        RandomObject.__init__(self)
 
         # specific to power system
         if not isinstance(parameters, Parameters):
@@ -307,6 +308,58 @@ class BaseEnv(GridObjects, ABC):
 
     def reset(self):
         self.__is_init = True
+
+    def seed(self, seed=None):
+        """
+        Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
+
+        Parameters
+        ----------
+            seed: ``int``
+               The seed to set.
+
+        Returns
+        ---------
+        seed: ``int``
+            The seed used to set the prng (pseudo random number generator) for the environment
+        seed_chron: ``int``
+            The seed used to set the prng for the chronics_handler (if any), otherwise ``None``
+        seed_obs: ``int``
+            The seed used to set the prng for the observation space (if any), otherwise ``None``
+        seed_action_space: ``int``
+            The seed used to set the prng for the action space (if any), otherwise ``None``
+        seed_env_modif: ``int``
+            The seed used to set the prng for the modification of th environment (if any otherwise ``None``)
+
+        """
+        try:
+            seed = np.array(seed).astype(dt_int)
+        except Exception as e:
+            raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
+                                   "numpy 64 integer.")
+        # example from gym
+        # self.np_random, seed = seeding.np_random(seed)
+        # TODO make that more clean, see example of seeding @ https://github.com/openai/gym/tree/master/gym/utils
+
+        super().seed(seed)
+        seed_chron = None
+        seed_obs = None
+        seed_action_space = None
+        seed_env_modif = None
+        max_int = np.iinfo(dt_int).max
+        if self.chronics_handler is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_chron = self.chronics_handler.seed(seed)
+        if self.helper_observation is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_obs = self.helper_observation.seed(seed)
+        if self.helper_action_player is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_action_space = self.helper_action_player.seed(seed)
+        if self.helper_action_env is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_env_modif = self.helper_action_env.seed(seed)
+        return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif)
 
     @abstractmethod
     def init_backend(self, init_grid_path, chronics_handler, backend,
@@ -657,6 +710,12 @@ class BaseEnv(GridObjects, ABC):
         res = self.helper_observation(env=self)
         return res
 
+    def get_thermal_limit(self):
+        """
+        get the current thermal limit in amps
+        """
+        return 1.0 * self._thermal_limit_a
+
     def step(self, action):
         """
         Run one timestep of the environment's dynamics. When end of
@@ -713,8 +772,6 @@ class BaseEnv(GridObjects, ABC):
         except_ = []
         init_disp = 1.0 * action._redispatch
 
-        previous_disp = 1.0 * self.actual_dispatch
-        previous_target_disp = 1.0 * self.target_dispatch
         try:
             # "smart" reconnecting
             beg_ = time.time()
