@@ -7,8 +7,10 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
+import numpy as np
 from datetime import timedelta
 
+from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, ChronicsError
 from grid2op.Space import RandomObject
 from grid2op.Chronics.GridValue import GridValue
@@ -243,3 +245,27 @@ class ChronicsHandler(RandomObject):
         """
         for _ in range(nb_timestep):
             self.real_data.load_next()
+
+    def seed(self, seed):
+        """
+        Seed the chronics handler and the :class:`GridValue` that is used to generate the chronics.
+
+        Parameters
+        ----------
+        seed: ``int``
+            Set the seed for this instance and for the data it holds
+
+        Returns
+        -------
+        seed: ``int``
+            The seed used for this object
+
+        seed_chronics: ``int``
+            The seed used for the real data
+
+        """
+        super().seed(seed)
+        max_int = np.iinfo(dt_int).max
+        seed_chronics = self.space_prng.randint(max_int)
+        self.real_data.seed(seed_chronics)
+        return seed, seed_chronics

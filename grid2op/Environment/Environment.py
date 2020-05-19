@@ -308,6 +308,7 @@ class Environment(BaseEnv):
         # performs one step to load the environment properly (first action need to be taken at first time step after
         # first injections given)
         self._reset_maintenance()
+        self._reset_redispatching()
         do_nothing = self.helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
@@ -332,6 +333,7 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
+        # self._reset_redispatching()
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
@@ -508,32 +510,6 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
-    def seed(self, seed=None):
-        """
-        Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
-
-        This is not supported yet.
-
-        Parameters
-        ----------
-            seed: ``int``
-               The seed to set.
-
-        """
-        try:
-            seed = np.array(seed).astype(dt_int)
-        except Exception as e:
-            raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
-                                   "numpy 64 integer.")
-        # example from gym
-        # self.np_random, seed = seeding.np_random(seed)
-        # TODO make that more clean, see example of seeding @ https://github.com/openai/gym/tree/master/gym/utils
-        self.chronics_handler.seed(seed)
-        self.helper_observation.seed(seed)
-        self.helper_action_player.seed(seed)
-        self.helper_action_env.seed(seed)
-        return [seed]
-
     def reset(self):
         """
         Reset the environment to a clean state.
@@ -544,6 +520,7 @@ class Environment(BaseEnv):
 
         This method should be called only at the end of an episode.
         """
+        super().reset()
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(self.backend.name_load, self.backend.name_gen,
                                          self.backend.name_line, self.backend.name_sub,

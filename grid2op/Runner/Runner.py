@@ -225,7 +225,9 @@ class Runner(object):
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0,
-                 grid_layout=None):
+                 grid_layout=None,
+                 forbid_dispatch_off=False,
+                 ignore_min_up_down_times=True):
         """
         Initialize the Runner.
 
@@ -282,10 +284,16 @@ class Runner(object):
         voltagecontrolerClass: :class:`grid2op.VoltageControler.ControlVoltageFromFile`, optional
             The controler that will change the voltage setpoints of the generators.
 
+        forbid_dispatch_off: ``bool``
+            Whether or not you forbid to apply dispacthing action on turned off generator (default False)
+
+        ignore_min_up_down_times: ``bool``
+            Whether or not to ignore gen_min_uptime and gen_min_downtime when applying redispatching actions.
+            (default True)
+
         """
 
         self.name_env = name_env
-
         if not isinstance(envClass, type):
             raise Grid2OpException(
                 "Parameter \"envClass\" used to build the Runner should be a type (a class) and not an object "
@@ -408,7 +416,7 @@ class Runner(object):
             self.parameters_path = parameters_path
             self.parameters = Parameters()
         else:
-            raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either"
+            raise RuntimeError("Impossible to build the parameters. The argument \"parameters_path\" should either "
                                "be a string or a dictionary.")
 
         # chronics of grid state

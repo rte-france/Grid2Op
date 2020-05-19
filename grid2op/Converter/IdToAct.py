@@ -5,9 +5,12 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+import os
+import numpy as np
 
+from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
-
+from grid2op.dtypes import dt_float
 import pdb
 
 
@@ -54,6 +57,12 @@ class IdToAct(Converter):
     - `encoded_act` are positive integer, representing the index of the actions.
     - `transformed_obs` are regular observations.
 
+
+    **NB** The number of actions in this converter can be especially big. For example, if a substation counts N elements
+    there are roughly 2^(N-1) possible actions in this substation. This means if there are a single substation with
+    more than N = 15 or 16 elements, the amount of actions (for this substation alone) will be higher than 16.000
+    which makes it rather difficult to handle for most machine learning algorithm. Be carefull with that !
+
     """
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
@@ -78,35 +87,151 @@ class IdToAct(Converter):
             the environment. Be careful, computing all these actions might take some time.
 
         kwargs:
-            other keyword arguments
+            other keyword arguments (all considered to be ``True`` by default) that can be:
+
+            set_line_status: ``bool``
+                Whether you want to include the set line status in your action
+                (in case the original action space allows it)
+
+            change_line_status: ``bool``
+                Whether you want to include the "change line status" in your action space
+                (in case the original action space allows it)
+
+            change_line_status: ``bool``
+                Whether you want to include the "change line status" in your action space
+                (in case the original action space allows it)
+
+            set_topo_vect: ``bool``
+                Whether you want to include the "set_bus" in your action space
+                (in case the original action space allows it)
+
+            change_bus_vect: ``bool``
+                Whether you want to include the "change_bus" in your action space
+                (in case the original action space allows it)
+
+            redispatch: ``bool``
+                Whether you want to include the "redispatch" in your action space
+                (in case the original action space allows it)
 
         """
         if all_actions is None:
             self.all_actions = []
-            # add the do nothing action
+            # add the do nothing action, always
             self.all_actions.append(super().__call__())
-
             if "_set_line_status" in self._template_act.attr_list_vect:
                 # lines 'set'
-                self.all_actions += self.get_all_unitary_line_set(self)
+                include_ = True
+                if "set_line_status" in kwargs:
+                    include_ = kwargs["set_line_status"]
+                if include_:
+                    self.all_actions += self.get_all_unitary_line_set(self)
 
             if "_switch_line_status" in self._template_act.attr_list_vect:
                 # lines 'change'
-                self.all_actions += self.get_all_unitary_line_change(self)
+                include_ = True
+                if "change_line_status" in kwargs:
+                    include_ = kwargs["change_line_status"]
+                if include_:
+                    self.all_actions += self.get_all_unitary_line_change(self)
 
             if "_set_topo_vect" in self._template_act.attr_list_vect:
                 # topologies 'set'
-                self.all_actions += self.get_all_unitary_topologies_set(self)
+                include_ = True
+                if "set_topo_vect" in kwargs:
+                    include_ = kwargs["set_topo_vect"]
+                if include_:
+                    self.all_actions += self.get_all_unitary_topologies_set(self)
 
             if "_change_bus_vect" in self._template_act.attr_list_vect:
                 # topologies 'change'
-                self.all_actions += self.get_all_unitary_topologies_change(self)
+                include_ = True
+                if "change_bus_vect" in kwargs:
+                    include_ = kwargs["change_bus_vect"]
+                if include_:
+                    self.all_actions += self.get_all_unitary_topologies_change(self)
 
             if "_redispatch" in self._template_act.attr_list_vect:
-                self.all_actions += self.get_all_unitary_redispatch(self)
+                # redispatch (transformed to discrete variables)
+                include_ = True
+                if "redispatch" in kwargs:
+                    include_ = kwargs["redispatch"]
+                if include_:
+                    self.all_actions += self.get_all_unitary_redispatch(self)
+        elif isinstance(all_actions, str):
+            # load the path from the path provided
+            if not os.path.exists(all_actions):
+                raise FileNotFoundError("No file located at \"{}\" where the actions should have been stored."
+                                        "".format(all_actions))
+            try:
+                all_act = np.load(all_actions)
+            except Exception as e:
+                raise RuntimeError("Impossible to load the data located at \"{}\" with error\n{}."
+                                   "".format(all_actions, e))
+            try:
+                self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_act])
+            except Exception as e:
+                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action."
+                                   "The error was:\n{}".format(all_actions, e))
+        elif isinstance(all_actions, (list, np.ndarray)):
+            # assign the action to my actions
+            possible_act = all_actions[0]
+            if isinstance(possible_act, BaseAction):
+                self.all_actions = np.array(all_actions)
+            else:
+                try:
+                    self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_actions])
+                except Exception as e:
+                    raise RuntimeError("Impossible to convert the data provided in \"all_actions\" into valid "
+                                       "grid2op action. The error was:\n{}".format(e))
         else:
-            self.all_actions = all_actions
+            raise RuntimeError("Impossible to load the action provided.")
         self.n = len(self.all_actions)
+
+    def filter_action(self, filtering_fun):
+        """
+        This function allows you to "easily" filter generated actions.
+
+        **NB** the action space will change after a call to this function, especially its size. It is NOT recommended
+        to apply it once training has started.
+
+        Parameters
+        ----------
+        filtering_fun: ``function``
+            This takes an action as input and should retrieve ``True`` meaning "this action will be kept" or
+            ``False`` meaning "this action will be dropped.
+
+        """
+        self.all_actions = np.array([el for el in self.all_actions if filtering_fun(el)])
+        self.n = len(self.all_actions)
+
+    def save(self, path, name="action_space_vect.npy"):
+        """
+        Save the action space as a numpy array that can be reloaded afterwards with the :func:`IdToAct.init_converter`
+        function by setting argument `all_actions` to `os.path.join(path, name)`
+
+        The resulting object will be a numpy array of float. Each row of this array will be an action of the
+        action space.
+
+        Parameters
+        ----------
+        path: ``str``
+            The path were to save the action space
+
+        name: ``str``, optional
+            The name of the numpy array stored on disk. By default its "action_space_vect.npy"
+
+        Returns
+        -------
+
+        """
+        if not os.path.exists(path):
+            raise FileNotFoundError("Impossible to save the action space as the directory \"{}\" does not exist."
+                                    "".format(path))
+        if not os.path.isdir(path):
+            raise NotADirectoryError("The path to save the action space provided \"{}\" is not a directory."
+                                     "".format(path))
+        saved_npy = np.array([el.to_vect() for el in self.all_actions]).astype(dtype=dt_float).reshape(self.n, -1)
+        np.save(file=os.path.join(path, name), arr=saved_npy)
 
     def sample(self):
         """

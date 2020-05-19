@@ -412,8 +412,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 class TestCooldown(unittest.TestCase):
     def setUp(self):
         params = Parameters()
-        params.NB_TIMESTEP_LINE_STATUS_REMODIF = 5
-        params.NB_TIMESTEP_TOPOLOGY_REMODIF = 15
+        params.NB_TIMESTEP_COOLDOWN_LINE = 5
+        params.NB_TIMESTEP_COOLDOWN_SUB = 15
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = make("rte_case5_example", test=True, gamerules_class=DefaultRules, param=params)

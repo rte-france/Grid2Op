@@ -8,18 +8,51 @@ Change Log
 - [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-- [???] refacto the backend and the actions, backend you get set only, env takes care of the rest
-- [???] refacto the dataset handling
 - [???] better explanation of the notebook 3 with action silently
-- [???] see if "simulate" performances can be improved, and performances in general.
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
-- [???] fix notebook 3 to include code of new agents, and especially to work consistently with runner and env
-  (for now if you change default env, it doesn't affect the runner, so it crashes)
 - [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
+
+[0.9.0] - 2020-05-19
+----------------------
+- [BREAKING] `Issue #83 <https://github.com/rte-france/Grid2Op/issues/83>`_: attributes name of the Parameters class
+  are now more consistent with the rest of the package. Use `NB_TIMESTEP_OVERFLOW_ALLOWED`
+  instead of `NB_TIMESTEP_POWERFLOW_ALLOWED`, `NB_TIMESTEP_COOLDOWN_LINE` instead of `NB_TIMESTEP_LINE_STATUS_REMODIF`
+  and `NB_TIMESTEP_COOLDOWN_SUB` instead of `NB_TIMESTEP_TOPOLOGY_REMODIF`
+- [BREAKING] `Issue #87 <https://github.com/rte-france/Grid2Op/issues/87>`_: algorithm of the environment that solves
+  the redispatching to make sure the environment meet the phyiscal constraints is now cast into an optimization
+  routine that uses `scipy.minimize` to be solved. This has a few consequences: more dispatch actions are tolerated,
+  computation time can be increased in some cases, when the optimization problem cannot be solved, a game
+  over is thrown, `scipy` is now a direct dependency of `grid2op`, code base of `grid2op` is simpler.
+- [BREAKING] any attempt to use an un intialized environment (*eg* after a game over but before calling `env.reset`
+  will now raise a `Grid2OpException`)
+- [FIXED] `Issue #84 <https://github.com/rte-france/Grid2Op/issues/84>`_: it is now possible to load multiple
+  environments in the same python script and perform random action on each.
+- [FIXED] `Issue #86 <https://github.com/rte-france/Grid2Op/issues/86>`_: the proper symmetries are used to generate
+  all the actions that can "change" the buses (`SerializationActionSpace.get_all_unitary_topologies_change`).
+- [FIXED] `Issue #88 <https://github.com/rte-france/Grid2Op/issues/88>`_: two flags are now used to tell the environment
+  whether or not to activate the possibility to dispatch a turned on generator (`forbid_dispatch_off`) and whether
+  or not to ignore the gen_min_uptimes and gen_min_downtime propertiers (`ignore_min_up_down_times`) that
+  are initialized from the Parameters of the grid now.
+- [FIXED] `Issue #89 <https://github.com/rte-france/Grid2Op/issues/89>`_: pandapower backend should not be compatible
+  with changing the bus of the generator representing the slack bus.
+- [FIXED] Greedy agents now uses the proper data types `dt_float` for the simulated reward (previously it was platform
+  dependant)
+- [ADDED] A way to limit `EpisodeReplay` to a specific part of the episode. Two arguments have been added, namely:
+  `start_step` and `end_step` that default to the full episode duration.
+- [ADDED] more flexibilities in `IdToAct` converter not to generate every action for both set and change for example.
+  This class can also serialize and de serialize the list of all actions with the save method (to serialize) and the
+  `init_converter` method (to read back the data).
+- [ADDED] a feature to have multiple difficulty levels per dataset.
+- [ADDED] a converter to transform prediction in connectivity of element into valid grid2op action. See
+  `Converter.ConnectivitiyConverter` for more information.
+- [ADDED] a better control for the seeding strategy in `Environment` and `MultiEnvironment` to improve the
+  reproducibility of the experiments.
+- [ADDED] a chronics class that is able to generate maintenance data "on the fly" instead of reading the from a file.
+  This class is particularly handy to train agents with different kind of maintenance schedule.
 
 [0.8.2] - 2020-05-13
 ----------------------

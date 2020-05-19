@@ -118,13 +118,15 @@ class AgentWithConverter(BaseAgent):
         else:
             if isinstance(action_space_converter, type):
                 if issubclass(action_space_converter, Converter):
-                    BaseAgent.__init__(self, action_space_converter(action_space))
+                    action_space_converter_this_env_class = action_space_converter.init_grid(action_space)
+                    this_action_space = action_space_converter_this_env_class(action_space)
+                    BaseAgent.__init__(self, this_action_space)
                 else:
                     raise Grid2OpException("Impossible to make an BaseAgent with a converter of type {}. "
                                            "Please use a converter deriving from grid2op.ActionSpaceConverter.Converter."
                                            "".format(action_space_converter))
             elif isinstance(action_space_converter, Converter):
-                if isinstance(action_space_converter._template_act, self.init_action_space.template_act):
+                if isinstance(action_space_converter._template_act, self.init_action_space.actionClass):
                     BaseAgent.__init__(self, action_space_converter)
                 else:
                     raise Grid2OpException("Impossible to make an BaseAgent with the provided converter of type {}. "
@@ -135,6 +137,7 @@ class AgentWithConverter(BaseAgent):
                                        "either be a type deriving from \"Converter\", or an instance of a class"
                                        "deriving from it."
                                        "".format(action_space_converter))
+
             self.action_space.init_converter(**kwargs_converter)
 
     def convert_obs(self, observation):

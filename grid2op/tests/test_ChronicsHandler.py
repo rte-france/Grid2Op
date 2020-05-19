@@ -8,6 +8,7 @@
 
 import pdb
 import warnings
+import pandas as pd
 
 from grid2op.tests.helper_path_test import *
 
@@ -15,6 +16,7 @@ from grid2op.MakeEnv import make
 from grid2op.Exceptions import *
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
 from grid2op.Backend import PandaPowerBackend
+from grid2op.Parameters import Parameters
 
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
@@ -615,6 +617,173 @@ class TestMissingData(HelperTests):
                 assert nb_it == max_iter
                 pass
 
+
+class TestCFFWFWM(HelperTests):
+    def test_load(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+                env.seed(123456)  # for reproducible tests !
+                obs = env.reset()
+                #get input data, to check they were correctly applied in
+                linesPossiblyInMaintenance = env.chronics_handler.real_data.data.line_to_maintenance
+                assert np.all(np.array(sorted(linesPossiblyInMaintenance)) ==
+                              ['11_12_13', '12_13_14', '16_18_23', '16_21_27', '22_26_39', '26_30_56',
+                               '2_3_0', '30_31_45', '7_9_9', '9_16_18'])
+                ChronicMonth = env.chronics_handler.real_data.data.start_datetime.month
+                assert ChronicMonth == 8
+                maxMaintenancePerDay = env.chronics_handler.real_data.data.max_daily_number_per_month_maintenance[(ChronicMonth-1)]
+                assert maxMaintenancePerDay == 2
+
+                envLines = env.name_line
+                idx_linesPossiblyInMaintenance = [i for i in range(len(envLines)) if envLines[i] in linesPossiblyInMaintenance]
+                idx_linesNotInMaintenance = [i for i in range(len(envLines)) if envLines[i] not in linesPossiblyInMaintenance]
+                
+                 
+                #maintenance dataFrame
+                maintenanceChronic = maintenances_df = pd.DataFrame(env.chronics_handler.real_data.data.maintenance,
+                                                                    columns=envLines)
+                nb_timesteps = maintenanceChronic.shape[0]
+                # identify the timestamps of the chronics to find out the month and day of the week
+                freq = str(int(env.chronics_handler.real_data.data.time_interval.total_seconds())) + "s"  # should be in the timedelta frequency format in pandas
+                datelist = pd.date_range(env.chronics_handler.real_data.data.start_datetime,
+                                         periods=nb_timesteps,
+                                         freq=freq)
+               
+                maintenances_df.index = datelist
+                assert (maintenanceChronic[envLines[idx_linesNotInMaintenance]].sum().sum() == 0)
+
+                assert (maintenanceChronic[linesPossiblyInMaintenance].sum().sum() >= 1)
+
+                nb_mainteance_timestep = maintenanceChronic.sum(axis=1)
+                assert np.all(nb_mainteance_timestep <= maxMaintenancePerDay)
+
+    def test_maintenance_multiple_timesteps(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+                      param=param) as env:
+                env.seed(0)
+                envLines = env.name_line
+                linesPossiblyInMaintenance = np.array(['11_12_13', '12_13_14', '16_18_23', '16_21_27', '22_26_39',
+                                                       '26_30_56', '2_3_0', '30_31_45', '7_9_9', '9_16_18'])
+                idx_linesPossiblyInMaintenance=[i for i in range(len(envLines))
+                                                if envLines[i] in linesPossiblyInMaintenance]
+                idx_linesNotInMaintenance = [i for i in range(len(envLines)) if
+                                             envLines[i] not in linesPossiblyInMaintenance]
+                maxMaintenancePerDay = 2
+
+                obs = env.reset()
+                ####check that at least one line that can go in maintenance actuamlly goes in maintenance
+                assert (np.sum(obs.duration_next_maintenance[idx_linesPossiblyInMaintenance]) >= 1)
+                ####check that at no line that can not go in maintenance actually goes in maintenance
+                assert (np.sum(obs.duration_next_maintenance[idx_linesNotInMaintenance]) == 0)
+
+                done = False
+                max_it = 10
+                it_num = 0
+                while not done:
+                    if np.any(obs.time_next_maintenance > 0):
+                        timestep_nextMaintenance = np.min(obs.time_next_maintenance[obs.time_next_maintenance!=-1])
+                    else:
+                        break
+                    env.fast_forward_chronics(timestep_nextMaintenance)
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert np.sum(obs.time_next_maintenance == 0) <= maxMaintenancePerDay
+                    assert np.all(np.abs(obs.a_or[obs.time_next_maintenance == 0] - 0.) <= self.tol_one)
+                    assert np.all(~obs.line_status[obs.time_next_maintenance == 0])
+                    it_num += 1
+                    if it_num >= max_it:
+                        break
+
+    def test_proba(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_2"),
+                      param=param) as env:
+                env.seed(0)
+                # input data
+                nb_scenario = 30   # if too low then i don't have 1e-3 beteween theory and practice
+                nb_line_in_maintenance = 10
+                assert len(env.chronics_handler.real_data.data.line_to_maintenance) == nb_line_in_maintenance
+                proba = 0.06
+
+                nb_th = proba * 5/7  # for day of week
+                nb_th *= 8/24  # maintenance only between 9 and 17
+
+                nb_maintenance = np.zeros(env.n_line, dtype=dt_float)
+                nb_ts_ = 0
+                for i in range(nb_scenario):
+                    obs = env.reset()
+                    nb_maintenance += np.sum(env.chronics_handler.real_data.data.maintenance, axis=0)
+                    nb_ts_ += env.chronics_handler.real_data.data.maintenance.shape[0]
+                total_maintenance = np.sum(nb_maintenance)
+                total_maintenance /= nb_ts_ * nb_line_in_maintenance
+                assert np.abs(total_maintenance - nb_th) <= 1e-3
+
+    def test_load_fake_january(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+                      param=param) as env:
+                env.seed(0)
+                # get input data, to check they were correctly applied in
+                linesPossiblyInMaintenance = env.chronics_handler.real_data.data.line_to_maintenance
+                assert np.all(np.array(sorted(linesPossiblyInMaintenance)) ==
+                              ['11_12_13', '12_13_14', '16_18_23', '16_21_27', '22_26_39', '26_30_56',
+                               '2_3_0', '30_31_45', '7_9_9', '9_16_18'])
+                ChronicMonth = env.chronics_handler.real_data.data.start_datetime.month
+                assert ChronicMonth == 1
+                maxMaintenancePerDay = env.chronics_handler.real_data.data.max_daily_number_per_month_maintenance[
+                    (ChronicMonth - 1)]
+                assert maxMaintenancePerDay == 0
+                assert np.sum(env.chronics_handler.real_data.data.maintenance) == 0
+
+    def test_seed(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+                nb_scenario = 10
+                nb_maintenance = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
+                nb_maintenance1 = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
+
+                env.seed(0)
+                for i in range(nb_scenario):
+                    obs = env.reset()
+                    nb_maintenance[i, :] = np.sum(env.chronics_handler.real_data.data.maintenance, axis=0)
+
+                env.seed(0)
+                for i in range(nb_scenario):
+                    obs = env.reset()
+                    nb_maintenance1[i, :] = np.sum(env.chronics_handler.real_data.data.maintenance, axis=0)
+                assert np.all(nb_maintenance == nb_maintenance)
+
+    def test_chunk_size(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+                      param=param) as env:
+                env.seed(0)
+                obs = env.reset()
+                maint = env.chronics_handler.real_data.data.maintenance
+
+                env.seed(0)
+                env.set_chunk_size(10)
+                obs = env.reset()
+                maint2 = env.chronics_handler.real_data.data.maintenance
+                assert np.all(maint == maint2)
 
 if __name__ == "__main__":
     unittest.main()
