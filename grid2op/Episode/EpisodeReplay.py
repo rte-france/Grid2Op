@@ -57,7 +57,8 @@ class EpisodeReplay(object):
         self.episode_data = None
 
     def replay_episode(self, episode_id, fps=2.0, gif_name=None,
-                       display=True, start_step=0, end_step=-1):
+                       display=True, start_step=0, end_step=-1,
+                       resolution=(1280, 720)):
         """
         When called, this function will start the display of the episode in a "mini movie" format.
 
@@ -80,6 +81,9 @@ class EpisodeReplay(object):
         end_step: ``int``
             Default to -1. The step at which to stop generating the gif.
             Set to -1 to specify no limit
+
+        resolution: ``tuple``
+            Defaults to (1280, 720). The resolution to use for the gif.
         """
         # Check args
         path_ep = os.path.join(self.agent_path, episode_id)
@@ -91,7 +95,8 @@ class EpisodeReplay(object):
         all_obs = [el for el in self.episode_data.observations]
 
         # Create a plotter
-        plot_runner = PlotMatplot(self.episode_data.observation_space)
+        width, height = resolution
+        plot_runner = PlotMatplot(self.episode_data.observation_space, width=width, height=height)
 
         # Some vars for gif export if enabled
         frames = []
