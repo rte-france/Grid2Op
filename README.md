@@ -111,33 +111,37 @@ Some Jupyter notebook are provided as tutorials for the Grid2Op package. They ar
 These notebooks will help you in understanding how this framework is used and cover the most
 interesting part of this framework:
 
-* [0_basic_functionalities](getting_started/0_basic_functionalities.ipynb) covers the basics 
-  of reinforcement learning (only the main concepts), how they are implemented in the
+* [0_Introduction](getting_started/0_Introduction.ipynb) and [0_SmallExample](getting_started/0_SmallExample.ipynb) 
+  describe what is 
+  adressed by the grid2op framework (with a tiny introductions to both power systems and reinforcement learning) 
+  and give and introductory example to a small powergrid manipulation.
+* [1_Grid2opFramework](getting_started/1_Grid2opFramework.ipynb) covers the basics 
+  of the
   Grid2Op framework. It also covers how to create a valid environment and how to use the 
-  `grid2op.main` function to assess how well an agent is performing.
-* [1_Observation_Agents](getting_started/1_Observation_Agents.ipynb) details how to create 
+  `Runner` class to assess how well an agent is performing rapidly.
+* [2_Observation_Agents](getting_started/2_Observation_Agents.ipynb) details how to create 
   an "expert agent" that will take pre defined actions based on the observation it gets from 
   the environment. This Notebook also covers the functioning of the BaseObservation class.
-* [2_Action_GridManipulation](getting_started/2_Action_GridManipulation.ipynb) demonstrates 
+* [3_Action_GridManipulation](getting_started/3_Action_GridManipulation.ipynb) demonstrates 
   how to use the BaseAction class and how to manipulate the powergrid.
-* [3_TrainingAnAgent](getting_started/3_TrainingAnAgent.ipynb) shows how to get started with 
+* [4_TrainingAnAgent](getting_started/4_TrainingAnAgent.ipynb) shows how to get started with 
   reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
   available on [his blog](https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368) 
   or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
   be adapted (only minor changes, most of them to fit the shape of the data) 
   and a (D)DQN will be trained on this problem.
-* [4_StudyYourAgent](getting_started/4_StudyYourAgent.ipynb) shows how to study an BaseAgent, for example
+* [5_StudyYourAgent](getting_started/5_StudyYourAgent.ipynb) shows how to study an BaseAgent, for example
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-* [5_RedispathingAgent](getting_started/5_RedispathingAgent.ipynb) explains what is the "redispatching" from the point 
+* [6_RedispathingAgent](getting_started/6_RedispathingAgent.ipynb) explains what is the "redispatching" from the point 
   of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
   manipulate this concept in grid2op. Redispatching allows you to perform **continuous** actions on the powergrid 
   problem.
-* [6_MultiEnv](getting_started/6-MultiEnv.ipynb) details how grid2op natively support a single agent interacting
+* [7_MultiEnv](getting_started/7_MultiEnv.ipynb) details how grid2op natively support a single agent interacting
   with multiple environments at the same time. This is particularly handy to train "asynchronous" agent in the 
   Reinforcement Learning community for example.
-* [7_PlottingCapabilities](getting_started/7_PlottingCapabilities.ipynb) shows you the different ways with which you 
+* [8_PlottingCapabilities](getting_started/8_PlottingCapabilities.ipynb) shows you the different ways with which you 
   can represent (visually) the grid your agent interact with. A renderer is available like in many open AI gym 
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
