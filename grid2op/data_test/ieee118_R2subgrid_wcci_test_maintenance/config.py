@@ -2,7 +2,7 @@ from grid2op.Action import TopologyAndDispatchAction
 from grid2op.Reward import RedispReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
-from grid2op.Chronics import GridStateFromFileWithForecasts
+from grid2op.Chronics import GridStateFromFileWithForecastsWithMaintenance
 from grid2op.Backend import PandaPowerBackend
 
 config = {
@@ -12,7 +12,7 @@ config = {
     "reward_class": RedispReward,
     "gamerules_class": DefaultRules,
     "chronics_class": Multifolder,
-    "grid_value_class": GridStateFromFileWithForecasts,
+    "grid_value_class": GridStateFromFileWithForecastsWithMaintenance,
     "volagecontroler_class": None,
     "names_chronics_to_grid": None,
     "thermal_limits":[  44.9,  205.2,  341.2,  205.8,  601.4,  347.1,  319.6,  302.8,
