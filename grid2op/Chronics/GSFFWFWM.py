@@ -6,17 +6,21 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import os
+import json
 import numpy as np
 import pandas as pd
-import random
+from datetime import datetime, timedelta
+
 
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Chronics.GridStateFromFileWithForecasts import GridStateFromFileWithForecasts
+import pdb
 
 
 class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecasts):
     """
-    An extension of :class:`GridStateFromFileWithForecasts` that implements the maintenance chronic generator.
+    An extension of :class:`GridStateFromFileWithForecasts` that implements the maintenance chronic generator
+    on the fly (maintenance are not read from files, but are rather generated when the chronics is created).
 
     Attributes
     ----------
@@ -45,19 +49,19 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         # properties of maintenance
         # self.maintenance_duration= 8*(self.time_interval.total_seconds()*60*60)#8h, 9am to 5pm
         # 8h furation, 9am to 5pm
-        self.maintenance_starting_hour = 9
-        # self.maintenance_duration= 8*(self.time_interval.total_seconds()*60*60) # not used for now, could be used later
-        self.maintenance_ending_hour = 17
+        with open(os.path.join(self.path, "maintenance_meta.json"), "r", encoding="utf-8") as f:
+            dict_ = json.load(f)
 
-        self.line_to_maintenance = list(
-            pd.read_csv(os.path.join(self.path, 'lines_in_maintenance.csv'), squeeze=True,header=None).values)
+        self.maintenance_starting_hour = dict_["maintenance_starting_hour"]
+        # self.maintenance_duration= 8*(self.time_interval.total_seconds()*60*60) # not used for now, could be used later
+        self.maintenance_ending_hour = dict_["maintenance_ending_hour"]
+
+        self.line_to_maintenance = set(dict_["line_to_maintenance"])
 
         # frequencies of maintenance
-        self.daily_proba_per_month_maintenance = list(
-            pd.read_csv(os.path.join(self.path, 'maintenance_daily_proba_per_month.csv'), squeeze=True,header=None).values)
+        self.daily_proba_per_month_maintenance = dict_["daily_proba_per_month_maintenance"]
 
-        self.max_daily_number_per_month_maintenance = list(
-            pd.read_csv(os.path.join(self.path, 'max_daily_Number_of_Mainteance_per_month.csv'), squeeze=True,header=None).values)
+        self.max_daily_number_per_month_maintenance = dict_["max_daily_number_per_month_maintenance"]
 
         super().initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                            names_chronics_to_backend)
@@ -86,53 +90,59 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
     def _generate_maintenance(self):
 
         # define maintenance dataframe with size (nbtimesteps,nlines)
-        columnsNames = self.name_line  # [i for i in range(self.n_line)]
-        nbTimesteps = self.load_p.shape[0]
-
-        zero_data = np.zeros(shape=(nbTimesteps, len(columnsNames)))
-        maintenances_df = pd.DataFrame(zero_data, columns=columnsNames)
-
+        columnsNames = self.name_line
+        nbTimesteps = self.load_p.shape[0]  # TODO change that !
+        idx_line_maintenance = np.array([el in self.line_to_maintenance for el in columnsNames])
+        nb_line_maint = np.sum(idx_line_maintenance)
         # identify the timestamps of the chronics to find out the month and day of the week
         freq = str(
             int(self.time_interval.total_seconds())) + "s"  # should be in the timedelta frequency format in pandas
         datelist = pd.date_range(self.start_datetime, periods=nbTimesteps, freq=freq)
-        maintenances_df.index = datelist
 
-        # we consider here that a chronic is not more than a year and we loop over days given 'dayofyear'
-        daysOfYear = datelist.dayofyear.unique()
+        datelist = np.unique(np.array([el.date() for el in datelist]))
+        datelist = datelist[:-1]
+
         n_lines_maintenance = len(self.line_to_maintenance)
 
-        for idx, day_maintenances in maintenances_df.groupby(maintenances_df.index.date):
+        _24_h = timedelta(seconds=86400)
+        nb_rows = int(86400 / self.time_interval.total_seconds())
+        selected_rows_beg = int(self.maintenance_starting_hour * 3600 / self.time_interval.total_seconds())
+        selected_rows_end = int(self.maintenance_ending_hour * 3600 / self.time_interval.total_seconds())
 
-            day_datetime = pd.to_datetime(idx)
-            dayOfWeek = day_datetime.dayofweek
-            month = day_datetime.month
+        res = np.zeros((nbTimesteps, len(self.name_line)))
 
-            linesInMaintenance = []
+        # TODO this is INSANELY slow for now. find a way to make it faster
+        # HINT: vectorize everything into one single numpy array, everything can be vectorized there...
+        for nb_day_since_beg, this_day in enumerate(datelist):
+            dayOfWeek = this_day.weekday()
+            if dayOfWeek < 5:  # only maintenance starting on working days
+                month = this_day.month
 
-            if (dayOfWeek in range(5)):  # only maintenance starting on working days
-                maintenance_daily_proba = self.daily_proba_per_month_maintenance[(month-1)] #Careful: month start at 1 but inidces start at 0 in python
-                maxDailyMaintenance = self.max_daily_number_per_month_maintenance[(month-1)]
-                
+                maintenance_me = np.zeros((nb_rows, nb_line_maint))
+                # Careful: month start at 1 but inidces start at 0 in python
+                maintenance_daily_proba = self.daily_proba_per_month_maintenance[(month - 1)]
+                maxDailyMaintenance = self.max_daily_number_per_month_maintenance[(month - 1)]
+
                 # now for each line in self.line_to_maintenance, sample to know if we generate a maintenance
                 # for line in self.line_to_maintenance:
-                are_lines_in_maintenance = np.random.choice([0, 1],
-                                                            p=[(1 - maintenance_daily_proba), maintenance_daily_proba],
-                                                            size=(n_lines_maintenance))
-                
-                linesInMaintenance = [self.line_to_maintenance[i] for i in range(n_lines_maintenance) if
-                                      are_lines_in_maintenance[i] == 1]
+                are_lines_in_maintenance = self.space_prng.choice([False, True],
+                                                                  p=[(1. - maintenance_daily_proba),
+                                                                     maintenance_daily_proba],
+                                                                  size=n_lines_maintenance)
 
                 n_Generated_Maintenance = np.sum(are_lines_in_maintenance)
-                # check if the number of maintenance is not above the max allowed. otherwise randomly pick up the right number
+                # check if the number of maintenance is not above the max allowed. otherwise randomly pick up the right
+                # number
                 if (n_Generated_Maintenance > maxDailyMaintenance):
                     # we pick up only maxDailyMaintenance elements
-                    #linesInMaintenance = self.space_prng.choices(linesCurrentlyInMaintenance, k=maxDailyMaintenance)
-                    linesInMaintenance = random.choices(linesInMaintenance, k=maxDailyMaintenance)
+                    not_chosen = self.space_prng.choice(n_Generated_Maintenance,
+                                                    replace=False,
+                                                    size=n_Generated_Maintenance - maxDailyMaintenance)
+                    are_lines_in_maintenance[not_chosen] = False
+                maintenance_me[selected_rows_beg:selected_rows_end, are_lines_in_maintenance] = 1.0
 
-                # update maintenance for line in mainteance
-                timeIndex = day_maintenances.index[day_maintenances.index.hour.isin(
-                    list(range(self.maintenance_starting_hour, self.maintenance_ending_hour)))]
-                maintenances_df.at[timeIndex.values, linesInMaintenance] = 1
-
-        return maintenances_df.values
+                # handle last iteration
+                n_max = int( min(res.shape[0], (nb_day_since_beg + 1) * nb_rows) / (nb_day_since_beg + 1))
+                res[(nb_day_since_beg*nb_rows):((nb_day_since_beg+1) * nb_rows), idx_line_maintenance] = \
+                    maintenance_me[:n_max, :]
+        return res

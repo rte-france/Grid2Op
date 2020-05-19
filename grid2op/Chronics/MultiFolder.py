@@ -11,6 +11,7 @@ import numpy as np
 from datetime import timedelta
 import pdb
 
+from grid2op.dtypes import dt_int
 from grid2op.Exceptions import *
 from grid2op.Chronics.GridValue import GridValue
 from grid2op.Chronics.GridStateFromFile import GridStateFromFile
@@ -101,6 +102,11 @@ class Multifolder(GridValue):
                                         path=self.subpaths[self.id_chron_folder_current],
                                         max_iter=self.max_iter,
                                         chunk_size=self.chunk_size)
+        if self.seed is not None:
+            max_int = np.iinfo(dt_int).max
+            seed_chronics = self.space_prng.randint(max_int)
+            self.data.seed(seed_chronics)
+
         self.data.initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                              names_chronics_to_backend=names_chronics_to_backend)
 
