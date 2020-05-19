@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 import pdb
 
 from grid2op.dtypes import dt_int
+from grid2op.Space import RandomObject
 from grid2op.Exceptions import EnvError
 
 # TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number
@@ -24,7 +25,7 @@ from grid2op.Exceptions import EnvError
 # TODO add a method 'skip' that can skip a given number of timestep or a until a specific date.
 
 
-class GridValue(ABC):
+class GridValue(RandomObject, ABC):
     """
     This is the base class for every kind of data for the _grid.
 
