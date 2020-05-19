@@ -616,5 +616,13 @@ class TestMissingData(HelperTests):
                 pass
 
 
+class TestCFFWFWM(HelperTests):
+    def test_load(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance")) as env:
+                obs = env.reset()
+
+
 if __name__ == "__main__":
     unittest.main()
