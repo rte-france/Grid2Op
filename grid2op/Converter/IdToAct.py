@@ -57,6 +57,12 @@ class IdToAct(Converter):
     - `encoded_act` are positive integer, representing the index of the actions.
     - `transformed_obs` are regular observations.
 
+
+    **NB** The number of actions in this converter can be especially big. For example, if a substation counts N elements
+    there are roughly 2^(N-1) possible actions in this substation. This means if there are a single substation with
+    more than N = 15 or 16 elements, the amount of actions (for this substation alone) will be higher than 16.000
+    which makes it rather difficult to handle for most machine learning algorithm. Be carefull with that !
+
     """
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
