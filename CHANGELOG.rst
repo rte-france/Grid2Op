@@ -16,7 +16,7 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-[0.9.0] - 2020-05-??
+[0.9.0] - 2020-05-19
 ----------------------
 - [BREAKING] `Issue #83 <https://github.com/rte-france/Grid2Op/issues/83>`_: attributes name of the Parameters class
   are now more consistent with the rest of the package. Use `NB_TIMESTEP_OVERFLOW_ALLOWED`
@@ -41,7 +41,8 @@ Change Log
   with changing the bus of the generator representing the slack bus.
 - [FIXED] Greedy agents now uses the proper data types `dt_float` for the simulated reward (previously it was platform
   dependant)
-- [ADDED] A way to limit `EpisodeReplay` to a specific part of the episode. Two arguments have been added, namely: `start_step` and `end_step` that default to the full episode duration.
+- [ADDED] A way to limit `EpisodeReplay` to a specific part of the episode. Two arguments have been added, namely:
+  `start_step` and `end_step` that default to the full episode duration.
 - [ADDED] more flexibilities in `IdToAct` converter not to generate every action for both set and change for example.
   This class can also serialize and de serialize the list of all actions with the save method (to serialize) and the
   `init_converter` method (to read back the data).
@@ -50,6 +51,8 @@ Change Log
   `Converter.ConnectivitiyConverter` for more information.
 - [ADDED] a better control for the seeding strategy in `Environment` and `MultiEnvironment` to improve the
   reproducibility of the experiments.
+- [ADDED] a chronics class that is able to generate maintenance data "on the fly" instead of reading the from a file.
+  This class is particularly handy to train agents with different kind of maintenance schedule.
 
 [0.8.2] - 2020-05-13
 ----------------------
