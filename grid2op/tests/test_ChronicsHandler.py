@@ -8,6 +8,7 @@
 
 import pdb
 import warnings
+import pandas as pd
 
 from grid2op.tests.helper_path_test import *
 
@@ -621,7 +622,70 @@ class TestCFFWFWM(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance")) as env:
+                
+                #get input data, to check they were correctly applied in 
+                linesPossiblyInMaintenance=env.chronics_handler.real_data.data.line_to_maintenance
+                ChronicMonth=env.chronics_handler.real_data.data.start_datetime.month
+                maxMaintenancePerDay=env.chronics_handler.real_data.data.max_daily_number_per_month_maintenance[(ChronicMonth-1)]
+                proba=env.chronics_handler.real_data.data.daily_proba_per_month_maintenance[(ChronicMonth-1)]
+                
+                envLines=env.name_line
+                idx_linesPossiblyInMaintenance=[i for i in range(len(envLines)) if envLines[i] in linesPossiblyInMaintenance]
+                idx_linesNotInMaintenance=[i for i in range(len(envLines)) if envLines[i] not in linesPossiblyInMaintenance]
+                
+                 
+                #maintenance dataFrame
+                maintenanceChronic=maintenances_df = pd.DataFrame(env.chronics_handler.real_data.data.maintenance, columns=envLines) 
+                nb_timesteps=maintenanceChronic.shape[0]
+                # identify the timestamps of the chronics to find out the month and day of the week
+                freq = str(int(env.chronics_handler.real_data.data.time_interval.total_seconds())) + "s"  # should be in the timedelta frequency format in pandas
+                datelist = pd.date_range(env.chronics_handler.real_data.data.start_datetime, periods=nb_timesteps, freq=freq)
+               
+                maintenances_df.index = datelist
+                
+                nb_timesteps_Maintenance_linesNotMaintenance=maintenanceChronic[envLines[idx_linesNotInMaintenance]].sum().sum()
+                #print('nMaintenance on non lines:'+str(nb_timesteps_Maintenance_linesNotMaintenance))
+                assert (nb_timesteps_Maintenance_linesNotMaintenance==0)
+ 
+                nb_timesteps_Maintenance_linesForMaintenance=maintenanceChronic[linesPossiblyInMaintenance].sum().sum()
+                #print('nMaintenance on non lines:'+str(nb_timesteps_Maintenance_linesForMaintenance))
+                assert (nb_timesteps_Maintenance_linesForMaintenance>=1)
+        
+                nb_mainteance_timestep=maintenanceChronic.sum(axis=1)
+                #print(nb_mainteance_timestep.max())
+                assert np.all(nb_mainteance_timestep <= maxMaintenancePerDay)
+                #print('len(maintenanceChronic):'+str(len(maintenanceChronic[0])))
+                
+                max_iter=10
+                
+                env.chronics_handler.set_max_iter(max_iter)
+                print(linesPossiblyInMaintenance)
+                print('month: '+str(ChronicMonth))
+                
                 obs = env.reset()
+                
+                ####check that at least one line that can go in maintenance actuamlly goes in maintenance
+                print(obs.duration_next_maintenance[idx_linesPossiblyInMaintenance])
+                assert (np.sum(obs.duration_next_maintenance[idx_linesPossiblyInMaintenance])>=1)
+                
+                ####check that at no line that can not go in maintenance actually goes in maintenance
+                print(obs.duration_next_maintenance[idx_linesNotInMaintenance])
+                assert (np.sum(obs.duration_next_maintenance[idx_linesNotInMaintenance])==0)
+                
+                print(obs.time_next_maintenance)
+                done=False
+                while not done:
+                    timestep_nextMaintenance=np.min(obs.time_next_maintenance[obs.time_next_maintenance!=-1])
+                    nb_maintenance_timestep=len([ts for ts in obs.time_next_maintenance if ts==timestep_nextMaintenance])
+                    print(timestep_nextMaintenance)
+                    print(nb_maintenance_timestep)
+                    assert (nb_maintenance_timestep <= maxMaintenancePerDay)
+                    
+                    env.fast_forward_chronics(timestep_nextMaintenance)
+                    obs, reward, done, info = env.step(env.action_space())
+                
+                #nombre de maintenance dans un épisode infini = 5/7 (jours ouvres) * proba * nombreLignePotentiellementEnMaintenance * nombre de jours episodes
+                #    nb_it += 1
 
 
 if __name__ == "__main__":

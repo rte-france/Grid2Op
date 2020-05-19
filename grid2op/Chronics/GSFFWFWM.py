@@ -8,6 +8,7 @@
 import os
 import numpy as np
 import pandas as pd
+import random
 
 from grid2op.dtypes import dt_bool, dt_int
 from grid2op.Chronics.GridStateFromFileWithForecasts import GridStateFromFileWithForecasts
@@ -49,13 +50,14 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         self.maintenance_ending_hour = 17
 
         self.line_to_maintenance = list(
-            pd.read_csv(os.path.join(self.path, 'lines_in_maintenance.csv'), squeeze=True).values)
+            pd.read_csv(os.path.join(self.path, 'lines_in_maintenance.csv'), squeeze=True,header=None).values)
 
         # frequencies of maintenance
         self.daily_proba_per_month_maintenance = list(
-            pd.read_csv(os.path.join(self.path, 'maintenance_daily_proba_per_month.csv'), squeeze=True).values)
+            pd.read_csv(os.path.join(self.path, 'maintenance_daily_proba_per_month.csv'), squeeze=True,header=None).values)
+
         self.max_daily_number_per_month_maintenance = list(
-            pd.read_csv(os.path.join(self.path, 'max_daily_Number_of_Mainteance_per_month.csv'), squeeze=True).values)
+            pd.read_csv(os.path.join(self.path, 'max_daily_Number_of_Mainteance_per_month.csv'), squeeze=True,header=None).values)
 
         super().initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                            names_chronics_to_backend)
@@ -85,7 +87,8 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
 
         # define maintenance dataframe with size (nbtimesteps,nlines)
         columnsNames = self.name_line  # [i for i in range(self.n_line)]
-        nbTimesteps = len(self.load_p.shape[0])
+        nbTimesteps = self.load_p.shape[0]
+
         zero_data = np.zeros(shape=(nbTimesteps, len(columnsNames)))
         maintenances_df = pd.DataFrame(zero_data, columns=columnsNames)
 
@@ -108,15 +111,15 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
             linesInMaintenance = []
 
             if (dayOfWeek in range(5)):  # only maintenance starting on working days
-                maintenance_daily_proba = self.daily_proba_per_month_maintenance[month]
-                maxDailyMaintenance = self.max_daily_number_per_month_maintenance[month]
-
+                maintenance_daily_proba = self.daily_proba_per_month_maintenance[(month-1)] #Careful: month start at 1 but inidces start at 0 in python
+                maxDailyMaintenance = self.max_daily_number_per_month_maintenance[(month-1)]
+                
                 # now for each line in self.line_to_maintenance, sample to know if we generate a maintenance
                 # for line in self.line_to_maintenance:
                 are_lines_in_maintenance = np.random.choice([0, 1],
                                                             p=[(1 - maintenance_daily_proba), maintenance_daily_proba],
                                                             size=(n_lines_maintenance))
-
+                
                 linesInMaintenance = [self.line_to_maintenance[i] for i in range(n_lines_maintenance) if
                                       are_lines_in_maintenance[i] == 1]
 
@@ -124,7 +127,8 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                 # check if the number of maintenance is not above the max allowed. otherwise randomly pick up the right number
                 if (n_Generated_Maintenance > maxDailyMaintenance):
                     # we pick up only maxDailyMaintenance elements
-                    linesInMaintenance = self.space_prng.choices(linesCurrentlyInMaintenance, k=maxDailyMaintenance)
+                    #linesInMaintenance = self.space_prng.choices(linesCurrentlyInMaintenance, k=maxDailyMaintenance)
+                    linesInMaintenance = random.choices(linesInMaintenance, k=maxDailyMaintenance)
 
                 # update maintenance for line in mainteance
                 timeIndex = day_maintenances.index[day_maintenances.index.hour.isin(
