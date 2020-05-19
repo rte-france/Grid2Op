@@ -41,6 +41,7 @@ Change Log
   with changing the bus of the generator representing the slack bus.
 - [FIXED] Greedy agents now uses the proper data types `dt_float` for the simulated reward (previously it was platform
   dependant)
+- [ADDED] A way to limit `EpisodeReplay` to a specific part of the episode. Two arguments have been added, namely: `start_step` and `end_step` that default to the full episode duration.
 - [ADDED] more flexibilities in `IdToAct` converter not to generate every action for both set and change for example.
   This class can also serialize and de serialize the list of all actions with the save method (to serialize) and the
   `init_converter` method (to read back the data).
