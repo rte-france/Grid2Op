@@ -141,7 +141,7 @@ class EpisodeReplay(object):
                     time.sleep(wait_time)
 
         # Export all frames as gif if enabled
-        if gif_name is not None:
+        if gif_name is not None and len(frames) > 0:
             imageio.mimwrite(gif_path, frames, fps=fps)
             # Try to compress
             try:
