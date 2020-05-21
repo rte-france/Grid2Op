@@ -560,7 +560,6 @@ class Runner(object):
     def _run_one_episode(env, agent, logger, indx, path_save=None, pbar=False, seed=None, max_iter=None):
         done = False
         time_step = int(0)
-        dict_ = {}
         time_act = 0.
         cum_reward = dt_float(0.0)
 
@@ -568,15 +567,17 @@ class Runner(object):
         env.chronics_handler.tell_id(indx-1)
         # the "-1" above is because the environment will be reset. So it will increase id of 1.
 
+        # set the seed
+        if seed is not None:
+            env.seed(seed)
+
         # handle max_iter
         if max_iter is not None:
             env.chronics_handler.set_max_iter(max_iter)
 
-        # set the seed
-        if seed is not None:
-            env.seed(seed)
         # reset it
         obs = env.reset()
+
         # reset the agent
         agent.reset(obs)
 
@@ -936,7 +937,7 @@ class Runner(object):
 
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
-                res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar, seeds=seeds)
+                res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar, seeds=seeds, max_iter=max_iter)
             else:
                 self.logger.info("Parallel runner used.")
                 res = self.run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save, seeds=seeds,
