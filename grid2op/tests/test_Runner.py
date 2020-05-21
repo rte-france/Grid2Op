@@ -23,10 +23,6 @@ from grid2op.dtypes import dt_float
 
 class TestRunner(HelperTests):
     def setUp(self):
-        """
-        The case file is a representation of the case14 as found in the ieee14 powergrid.
-        :return:
-        """
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
@@ -93,7 +89,7 @@ class TestRunner(HelperTests):
                 res = runner.run(path_save=f,
                                  nb_episode=4,
                                  nb_process=4,
-                                 max_iter=10)
+                                 max_iter=self.max_iter)
         test_ = set()
         for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res:
             test_.add(name_chron)
@@ -104,7 +100,7 @@ class TestRunner(HelperTests):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
-        runner.run(nb_episode=1, max_iter=self.max_iter )
+        runner.run(nb_episode=1, max_iter=self.max_iter)
 
     def test_init_from_env_with_other_reward(self):
         with warnings.catch_warnings():
@@ -112,6 +108,20 @@ class TestRunner(HelperTests):
             with make("rte_case14_test", test=True, other_rewards={"test": L2RPNReward}) as env:
                 runner = Runner(**env.get_params_for_runner())
         runner.run(nb_episode=1, max_iter=self.max_iter)
+
+    def test_seed_seq(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_test", test=True) as env:
+                runner = Runner(**env.get_params_for_runner())
+        runner.run(nb_episode=1, max_iter=self.max_iter, seeds=[1])
+
+    def test_seed_par(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_test", test=True) as env:
+                runner = Runner(**env.get_params_for_runner())
+        runner.run(nb_episode=2, nb_process=2, max_iter=self.max_iter, seeds=[1,2])
 
 
 if __name__ == "__main__":

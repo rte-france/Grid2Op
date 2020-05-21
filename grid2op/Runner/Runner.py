@@ -30,6 +30,8 @@ from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
 from grid2op.dtypes import dt_float
+from grid2op.Space import RandomObject
+
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -197,6 +199,11 @@ class Runner(object):
 
     thermal_limit_a: ``numpy.ndarray``
         The thermal limit for the environment (if any).
+
+    seed: ``int``
+        The seed used, for reproducible experiments (**NB** to ensure reproducible experiments even in the case of
+        parallel evaluation, there are absolutely not warrantee the seed used by any of the envrionment generated
+        will be the seed passed in this parameter.)
     """
 
     def __init__(self,
@@ -225,9 +232,7 @@ class Runner(object):
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0,
-                 grid_layout=None,
-                 forbid_dispatch_off=False,
-                 ignore_min_up_down_times=True):
+                 grid_layout=None):
         """
         Initialize the Runner.
 
@@ -291,8 +296,9 @@ class Runner(object):
             Whether or not to ignore gen_min_uptime and gen_min_downtime when applying redispatching actions.
             (default True)
 
+        seed: ``int``
+            Seed used (default ``None``)
         """
-
         self.name_env = name_env
         if not isinstance(envClass, type):
             raise Grid2OpException(
@@ -522,7 +528,7 @@ class Runner(object):
         else:
             self.env.reset()
 
-    def run_one_episode(self, indx=0, path_save=None, pbar=False):
+    def run_one_episode(self, indx=0, path_save=None, pbar=False, seed=None, max_iter=None):
         """
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
 
@@ -546,11 +552,12 @@ class Runner(object):
 
         """
         self.reset()
-        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save, pbar=pbar)
+        res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save,
+                                    pbar=pbar, seed=seed, max_iter=max_iter)
         return res
 
     @staticmethod
-    def _run_one_episode(env, agent, logger, indx, path_save=None, pbar=False):
+    def _run_one_episode(env, agent, logger, indx, path_save=None, pbar=False, seed=None, max_iter=None):
         done = False
         time_step = int(0)
         dict_ = {}
@@ -560,6 +567,15 @@ class Runner(object):
         # reset the environment
         env.chronics_handler.tell_id(indx-1)
         # the "-1" above is because the environment will be reset. So it will increase id of 1.
+
+        # handle max_iter
+        if max_iter is not None:
+            env.chronics_handler.set_max_iter(max_iter)
+
+        # set the seed
+        if seed is not None:
+            env.seed(seed)
+        # reset it
         obs = env.reset()
         # reset the agent
         agent.reset(obs)
@@ -641,7 +657,7 @@ class Runner(object):
                                    float(reward), env.env_modification, act, obs, info)
             end_ = time.time()
 
-        episode.set_meta(env, time_step, float(cum_reward))
+        episode.set_meta(env, time_step, float(cum_reward), seed)
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
                    "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
@@ -675,7 +691,7 @@ class Runner(object):
               and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
               and "desc" when being built, and the closing is ensured by this method.
             - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
-              (episode) but not at lower levels (setp during the episode)
+              (episode) but not at lower levels (step during the episode)
         """
         pbar_ = _FakePbar()
         next_pbar[0] = False
@@ -695,7 +711,7 @@ class Runner(object):
             pbar_ = pbar
         return pbar_
 
-    def run_sequential(self, nb_episode, path_save=None, pbar=False):
+    def run_sequential(self, nb_episode, path_save=None, pbar=False, seeds=None, max_iter=None):
         """
         This method is called to see how well an agent performed on a sequence of episode.
 
@@ -720,6 +736,10 @@ class Runner(object):
             - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
               (episode) but not at lower levels (setp during the episode)
 
+        seeds: ``list``
+            An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
+            its size should match ``nb_episode``.
+
         Returns
         -------
         res: ``list``
@@ -737,7 +757,14 @@ class Runner(object):
         next_pbar = [False]
         with self._make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
             for i in range(nb_episode):
-                name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save, indx=i, pbar=next_pbar[0])
+                seed = None
+                if seeds is not None:
+                    seed = seeds[i]
+                name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save,
+                                                                            indx=i,
+                                                                            pbar=next_pbar[0],
+                                                                            seed=seed,
+                                                                            max_iter=max_iter)
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
                 res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
@@ -745,7 +772,7 @@ class Runner(object):
         return res
 
     @staticmethod
-    def _one_process_parrallel(runner, episode_this_process, process_id, path_save=None):
+    def _one_process_parrallel(runner, episode_this_process, process_id, path_save=None, seeds=None, max_iter=None):
         chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass,
                                            path=runner.path_chron,
                                            **runner.gridStateclass_kwargs)
@@ -757,14 +784,17 @@ class Runner(object):
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)
+            seed = None
+            if seeds is not None:
+                seed = seeds[i]
             name_chron, cum_reward, nb_time_step = Runner._run_one_episode(
-                env, agent, runner.logger, p_id, path_save)
+                env, agent, runner.logger, p_id, path_save, seed=seed, max_iter=max_iter)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
             res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
         return res
 
-    def run_parrallel(self, nb_episode, nb_process=1, path_save=None):
+    def run_parrallel(self, nb_episode, nb_process=1, path_save=None, seeds=None, max_iter=None):
         """
         This method will run in parrallel, independantly the nb_episode over nb_process.
 
@@ -791,6 +821,10 @@ class Runner(object):
             If not None, it specifies where to store the data. See the description of this module :mod:`Runner` for
             more information
 
+        seeds: ``list``
+            An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
+            its size should match ``nb_episode``.
+
         Returns
         -------
         res: ``list``
@@ -809,7 +843,7 @@ class Runner(object):
         if nb_process == 1 or self.__can_copy_agent is False:
             warnings.warn(
                 "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return [self.run_sequential(nb_episode, path_save=path_save)]
+            return [self.run_sequential(nb_episode, path_save=path_save, seeds=seeds)]
         else:
             if self.env is not None:
                 self.env.close()
@@ -821,15 +855,23 @@ class Runner(object):
             for i in range(nb_episode):
                 process_ids[i % nb_process].append(i)
 
+            if seeds is None:
+                seeds_res = [None for _ in range(nb_process)]
+            else:
+                # split the seeds according to the process
+                seeds_res = [[] for i in range(nb_process)]
+                for i in range(nb_episode):
+                    seeds_res[i % nb_process].append(seeds[i])
+
             res = []
             with Pool(nb_process) as p:
                 tmp = p.starmap(Runner._one_process_parrallel,
-                                [(self, pn, i, path_save) for i, pn in enumerate(process_ids)])
+                                [(self, pn, i, path_save, seeds_res[i], max_iter) for i, pn in enumerate(process_ids)])
             for el in tmp:
                 res += el
         return res
 
-    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False):
+    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, seeds=None):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
         1 or :func:`Runner.run_parrallel` if nb_process >= 2.
@@ -846,6 +888,25 @@ class Runner(object):
             If not None, it specifies where to store the data. See the description of this module :mod:`Runner` for
             more information
 
+        max_iter: ``int``
+            Maximum number of iteration you want the runner to perform.
+
+        pbar: ``bool`` or ``type`` or ``object``
+            How to display the progress bar, understood as follow:
+
+            - if pbar is ``None`` nothing is done.
+            - if pbar is a boolean, tqdm pbar are used, if tqdm package is available and installed on the system
+              [if ``true``]. If it's false it's equivalent to pbar being ``None``
+            - if pbar is a ``type`` ( a class), it is used to build a progress bar at the highest level (episode) and
+              and the lower levels (step during the episode). If it's a type it muyst accept the argument "total"
+              and "desc" when being built, and the closing is ensured by this method.
+            - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
+              (episode) but not at lower levels (setp during the episode)
+
+        seeds: ``list``
+            An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
+            its size should match ``nb_episode``.
+
         Returns
         -------
         res: ``list``
@@ -860,18 +921,24 @@ class Runner(object):
         if nb_episode < 0:
             raise RuntimeError("Impossible to run a negative number of scenarios.")
 
+        if seeds is not None:
+            if len(seeds) != nb_episode:
+                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds."
+                                   "".format(nb_episode, len(seeds)))
+
+        max_iter = int(max_iter)
+
         if nb_episode == 0:
             res = []
         else:
             if nb_process <= 0:
                 raise RuntimeError("Impossible to run using less than 1 process.")
-            if max_iter is not None:
-                self.chronics_handler.set_max_iter(max_iter)
 
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
-                res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar)
+                res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar, seeds=seeds)
             else:
                 self.logger.info("Parallel runner used.")
-                res = self.run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save)
+                res = self.run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save, seeds=seeds,
+                                         max_iter=max_iter)
         return res
