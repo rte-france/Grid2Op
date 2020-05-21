@@ -211,7 +211,7 @@ class EpisodeData:
         if self.serialize:
             self.parameters = env.parameters.to_dict()
 
-    def set_meta(self, env, time_step, cum_reward):
+    def set_meta(self, env, time_step, cum_reward, seed):
         if self.serialize:
             self.meta = {}
             self.meta["chronics_path"] = "{}".format(
@@ -224,6 +224,10 @@ class EpisodeData:
             self.meta["env_type"] = "{}".format(type(env).__name__)
             self.meta["nb_timestep_played"] = time_step
             self.meta["cumulative_reward"] = cum_reward
+            if seed is None:
+                self.meta["env_seed"] = seed
+            else:
+                self.meta["env_seed"] = int(seed)
 
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, info):
