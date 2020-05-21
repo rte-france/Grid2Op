@@ -672,7 +672,6 @@ class Runner(object):
         episode.set_episode_times(env, time_act, beg_, end_)
 
         episode.to_disk()
-
         name_chron = env.chronics_handler.get_name()
 
         return name_chron, cum_reward, int(time_step)
@@ -927,7 +926,8 @@ class Runner(object):
                 raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds."
                                    "".format(nb_episode, len(seeds)))
 
-        max_iter = int(max_iter)
+        if max_iter is not None:
+            max_iter = int(max_iter)
 
         if nb_episode == 0:
             res = []

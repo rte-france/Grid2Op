@@ -131,6 +131,25 @@ class TestRunner(HelperTests):
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
 
+    def test_nomaxiter(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_test", test=True) as env:
+                runner = Runner(**env.get_params_for_runner())
+        runner.chronics_handler.set_max_iter(2*self.max_iter)
+        res = runner.run(nb_episode=1)
+        for i, _, cum_reward, timestep, total_ts in res:
+            assert int(timestep) == 2*self.max_iter
+
+    def test_nomaxiter_par(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_test", test=True) as env:
+                runner = Runner(**env.get_params_for_runner())
+        runner.gridStateclass_kwargs["max_iter"] = 2*self.max_iter
+        res = runner.run(nb_episode=2, nb_process=2)
+        for i, _, cum_reward, timestep, total_ts in res:
+            assert int(timestep) == 2*self.max_iter
 
 if __name__ == "__main__":
     unittest.main()
