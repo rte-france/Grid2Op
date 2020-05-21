@@ -16,6 +16,11 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+[0.9.1] - 2020-05-20
+---------------------
+- [FIXED] a bug preventing to save gif with episode replay when there has been a game over before starting time step
+- [FIXED] the issue of the random seed used in the environment for the runner.
+
 [0.9.0] - 2020-05-19
 ----------------------
 - [BREAKING] `Issue #83 <https://github.com/rte-france/Grid2Op/issues/83>`_: attributes name of the Parameters class
