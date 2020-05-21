@@ -145,7 +145,6 @@ if __name__ == "__main__":
     # Stage in git
     start_subprocess_print(["git", "add", dockerfile])
 
-    vetguilhetghotuin
     # Commit
     start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])
     # Create a new git tag
