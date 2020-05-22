@@ -178,10 +178,10 @@ class PlotMatplot(BasePlot):
     def draw_substation(self, figure, observation,
                         sub_id, sub_name,
                         pos_x, pos_y):
-        self.xlim[0] = min(self.xlim[0], pos_x)
-        self.xlim[1] = max(self.xlim[1], pos_x)
-        self.ylim[0] = min(self.ylim[0], pos_y)
-        self.ylim[1] = max(self.ylim[1], pos_y)
+        self.xlim[0] = min(self.xlim[0], pos_x - self._sub_radius)
+        self.xlim[1] = max(self.xlim[1], pos_x + self._sub_radius)
+        self.ylim[0] = min(self.ylim[0], pos_y - self._sub_radius)
+        self.ylim[1] = max(self.ylim[1], pos_y + self._sub_radius)
 
         self._draw_substation_circle(pos_x, pos_y)
         self._draw_substation_txt(pos_x, pos_y, str(sub_id))
@@ -251,7 +251,8 @@ class PlotMatplot(BasePlot):
         self._draw_load_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_load_circle(pos_x, pos_y)
         if load_value is not None:
-            load_txt = load_name + ":\n"
+            load_txt = ""
+            #load_txt += load_name + ":\n"
             load_txt += pltu.format_value_unit(load_value, load_unit)
             self._draw_load_txt(pos_x, pos_y, sub_x, sub_y, load_txt)
         self._draw_load_name(pos_x, pos_y, str(load_id))
@@ -331,7 +332,8 @@ class PlotMatplot(BasePlot):
         self._draw_gen_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_gen_circle(pos_x, pos_y)
         if gen_value is not None:
-            gen_txt = gen_name + ":\n"
+            gen_txt = ""
+            #gen_txt += gen_name + ":\n"
             gen_txt += pltu.format_value_unit(gen_value, gen_unit)
             self._draw_gen_txt(pos_x, pos_y, sub_x, sub_y, gen_txt)
         self._draw_gen_name(pos_x, pos_y, str(gen_id))
