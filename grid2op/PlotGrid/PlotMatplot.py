@@ -118,9 +118,9 @@ class PlotMatplot(BasePlot):
         self._line_arrow_width = 10.0
 
         self.xlim = [0, 0]
-        self.xpad = 20
+        self.xpad = 5
         self.ylim = [0, 0]
-        self.ypad = 20
+        self.ypad = 5
 
     def _v_textpos_from_dir(self, dirx, diry):
         if diry > 0:
@@ -143,6 +143,7 @@ class PlotMatplot(BasePlot):
         h_inch = self.height / self.dpi
         f = plt.figure(figsize=(w_inch, h_inch), dpi=self.dpi)
         self.ax = f.subplots()
+        f.canvas.draw()
         return f
     
     def clear_figure(self, figure):
@@ -243,10 +244,10 @@ class PlotMatplot(BasePlot):
                   load_value, load_unit,
                   pos_x, pos_y,
                   sub_x, sub_y):
-        self.xlim[0] = min(self.xlim[0], pos_x)
-        self.xlim[1] = max(self.xlim[1], pos_x)
-        self.ylim[0] = min(self.ylim[0], pos_y)
-        self.ylim[1] = max(self.ylim[1], pos_y)
+        self.xlim[0] = min(self.xlim[0], pos_x - self._load_radius)
+        self.xlim[1] = max(self.xlim[1], pos_x + self._load_radius)
+        self.ylim[0] = min(self.ylim[0], pos_y - self._load_radius)
+        self.ylim[1] = max(self.ylim[1], pos_y + self._load_radius)
         self._draw_load_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_load_circle(pos_x, pos_y)
         if load_value is not None:
@@ -323,10 +324,10 @@ class PlotMatplot(BasePlot):
                  gen_value, gen_unit,
                  pos_x, pos_y,
                  sub_x, sub_y):
-        self.xlim[0] = min(self.xlim[0], pos_x)
-        self.xlim[1] = max(self.xlim[1], pos_x)
-        self.ylim[0] = min(self.ylim[0], pos_y)
-        self.ylim[1] = max(self.ylim[1], pos_y)
+        self.xlim[0] = min(self.xlim[0], pos_x - self._gen_radius)
+        self.xlim[1] = max(self.xlim[1], pos_x + self._gen_radius)
+        self.ylim[0] = min(self.ylim[0], pos_y - self._gen_radius)
+        self.ylim[1] = max(self.ylim[1], pos_y + self._gen_radius)
         self._draw_gen_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_gen_circle(pos_x, pos_y)
         if gen_value is not None:
@@ -453,6 +454,13 @@ class PlotMatplot(BasePlot):
         pass
 
     def draw_legend(self, figure, observation):
+        title_str = observation.env_name
+        if hasattr(observation, 'month'):
+            title_str = "{:02d}/{:02d} {:02d}:{:02d}".format(
+                observation.day,
+                observation.month,
+                observation.hour_of_day,
+                observation.minute_of_hour)
         legend_help = [
             Line2D([0], [0], color="black", lw=1),
             Line2D([0], [0], color=self._sub_edge_color, lw=3),
@@ -470,7 +478,7 @@ class PlotMatplot(BasePlot):
             "no bus",
             "bus 1",
             "bus 2"
-        ])
+        ], title=title_str)
         # Hide axis
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
@@ -478,6 +486,13 @@ class PlotMatplot(BasePlot):
         self.ax.set(frame_on=False)
 
     def plot_postprocess(self, figure, observation, update):
-        self.ax.set_xlim(self.xlim[0] - self.xpad, self.xlim[1] + self.xpad)
-        self.ax.set_ylim(self.ylim[0] - self.ypad, self.ylim[1] + self.ypad)
-        figure.tight_layout()
+        if not update:
+            xmin = self.xlim[0] - self.xpad
+            xmax = self.xlim[1] + self.xpad
+            self.ax.set_xlim(xmin, xmax)
+            ymin = self.ylim[0] - self.ypad
+            ymax = self.ylim[1] + self.ypad
+            self.ax.set_ylim(ymin, ymax)
+            #self.ax.autoscale(enable=False, tight=True)
+            #self.ax.autoscale_view(scalex=False, scaley=False, tight=True)
+            figure.tight_layout()
