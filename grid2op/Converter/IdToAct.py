@@ -167,10 +167,11 @@ class IdToAct(Converter):
             except Exception as e:
                 raise RuntimeError("Impossible to load the data located at \"{}\" with error\n{}."
                                    "".format(all_actions, e))
+
             try:
                 self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_act])
             except Exception as e:
-                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action."
+                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action. "
                                    "The error was:\n{}".format(all_actions, e))
         elif isinstance(all_actions, (list, np.ndarray)):
             # assign the action to my actions

@@ -6,16 +6,13 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import time
 import warnings
-import pandapower as pp
-
 from grid2op.tests.helper_path_test import *
 
-import grid2op
 from grid2op.MakeEnv import make
 from grid2op.Parameters import Parameters
-from grid2op.Converter import ConnectivityConverter
+from grid2op.Converter import ConnectivityConverter, IdToAct
+import tempfile
 import pdb
 
 
@@ -84,6 +81,43 @@ class TestConverter(HelperTests):
             lines_impacted, subs_impacted = act.get_topological_impact()
             assert np.sum(subs_impacted) == ms_sub, "wrong number of substations affected. It should be {}".format(ms_sub)
             obs, reward, done, info = self.env.step(act)
+
+
+class TestIdToAct(HelperTests):
+    def setUp(self):
+        """
+        The case file is a representation of the case14 as found in the ieee14 powergrid.
+        :return:
+        """
+        param = Parameters()
+        param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case14_redisp", test=True, param=param)
+        np.random.seed(0)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_save(self):
+        path_ = tempfile.mkdtemp()
+        converter = IdToAct(self.env.action_space)
+        converter.init_converter(set_line_status=False, change_bus_vect=False)
+        converter.save(path_, "tmp_convert.npy")
+        init_size = converter.size()
+        array = np.load(os.path.join(path_, "tmp_convert.npy"))
+        act = converter.convert_act(27)
+        act_ = converter.convert_act(-1)
+        assert array.shape[1] == self.env.action_space.size()
+        converter2 = IdToAct(self.env.action_space)
+        converter2.init_converter(all_actions=os.path.join(path_, "tmp_convert.npy"))
+        assert init_size == converter2.size()
+        act2 = converter2.convert_act(27)
+        act2_ = converter2.convert_act(-1)
+        assert act == act2
+        assert act_ == act2_
+
+
 
 if __name__ == "__main__":
     unittest.main()
