@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import os
+import json
 import numpy as np
 
 from grid2op.Action import BaseAction
@@ -71,6 +72,8 @@ class IdToAct(Converter):
         # add the do nothing topology
         self.all_actions.append(super().__call__())
         self.n = 1
+        self._init_size = action_space.size()
+        self.kwargs_init = {}
 
     def init_converter(self, all_actions=None, **kwargs):
         """
@@ -114,6 +117,7 @@ class IdToAct(Converter):
                 (in case the original action space allows it)
 
         """
+        self.kwargs_init = kwargs
         if all_actions is None:
             self.all_actions = []
             # add the do nothing action, always
@@ -167,7 +171,6 @@ class IdToAct(Converter):
             except Exception as e:
                 raise RuntimeError("Impossible to load the data located at \"{}\" with error\n{}."
                                    "".format(all_actions, e))
-
             try:
                 self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_act])
             except Exception as e:
