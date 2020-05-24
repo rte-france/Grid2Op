@@ -113,10 +113,14 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         prod_v_iter = self._get_data("prod_v_forecasted")
         hazards = None  # no hazards in forecast
 
+        nrows = None
+        if self.max_iter > 0:
+            nrows = self.max_iter + 2  # don't really know why, but it works with +2
         read_compressed = self._get_fileext("maintenance_forecasted")
         if read_compressed is not None:
             maintenance = pd.read_csv(os.path.join(self.path, "maintenance_forecasted{}".format(read_compressed)),
-                                      sep=self.sep)
+                                      sep=self.sep,
+                                      nrows=nrows)
         else:
             maintenance = None
 

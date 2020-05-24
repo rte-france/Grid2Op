@@ -482,14 +482,15 @@ class BaseAction(GridObjects):
             :attr:`BaseAction._subs_impacted` for more information.
 
         """
+        recompute = powerline_status is not None
         if powerline_status is None:
             powerline_status = np.full(self.n_line, fill_value=False, dtype=dt_bool)
         not_powerline_status = ~(powerline_status)
 
-        if self._lines_impacted is None:
+        if self._lines_impacted is None or recompute:
             self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & not_powerline_status)
 
-        if self._subs_impacted is None:
+        if self._subs_impacted is None or recompute:
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
 
             # Mask of powerlines reconnected by set
@@ -1860,6 +1861,50 @@ class BaseAction(GridObjects):
             res["redispatch"] = self._redispatch
 
         return res
+
+    def get_types(self):
+        """
+        Shorthand to get the type of an action. The type of an action is among:
+        - "injection": does this action modifies load or generator active values
+        - "voltage": does this action modifies the generator voltage setpoint or the shunts
+        - "topology": does this action modifies the topology of the grid (*ie* set or switch some buses)
+        - "line": does this action modifies the line status
+        - "redispatching" does this action modifies the
+
+        A single action can be of multiple types.
+
+        Do nothing has no types at all.
+
+        **NB** if a line only set / change the status of a powerline then it does not count as a topological
+        modification.
+
+        Returns
+        -------
+        injection: ``bool``
+            Does it affect load or generator active value
+        voltage: ``bool``
+            Does it affect the voltage
+        topology: ``bool``
+            Does it affect the topology (line status change / switch are **NOT** counted as topology)
+        line: ``bool``
+            Does it affect the line status (line status change / switch are **NOT** counted as topology)
+        redispatching: ``bool``
+            Does it performs any redispatching
+        """
+        injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
+        voltage = "prod_v" in self._dict_inj
+        if self.shunts_data_available:
+            voltage = voltage or np.any(np.isfinite(self.shunt_p))
+            voltage = voltage or np.any(np.isfinite(self.shunt_q))
+            voltage = voltage or np.any(self.shunt_bus != 0)
+
+        lines_impacted, subs_impacted = self.get_topological_impact()
+        # topology = np.any(self._set_topo_vect != 0) or np.any(self._change_bus_vect)
+        # line = np.any(self._set_line_status != 0) or np.any(self._switch_line_status)
+        topology = np.any(subs_impacted)
+        line = np.any(lines_impacted)
+        redispatching = np.any(self._redispatch != 0.)
+        return injection, voltage, topology, line, redispatching
 
     def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """

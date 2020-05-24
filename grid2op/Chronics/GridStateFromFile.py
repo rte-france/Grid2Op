@@ -214,9 +214,14 @@ class GridStateFromFile(GridValue):
 
     def _get_data(self, data_name):
         file_ext = self._get_fileext(data_name)
+        nrows = None
+        if self.max_iter > 0:
+            nrows = self.max_iter + 2  # don't really know why, but it works with +2
         if file_ext is not None:
             res = pd.read_csv(os.path.join(self.path, "{}{}".format(data_name, file_ext)),
-                              sep=self.sep, chunksize=self.chunk_size)
+                              sep=self.sep,
+                              chunksize=self.chunk_size,
+                              nrows=nrows)
         else:
             res = None
         return res
@@ -362,16 +367,22 @@ class GridStateFromFile(GridValue):
         prod_p_iter = self._get_data("prod_p")
         prod_v_iter = self._get_data("prod_v")
         read_compressed = self._get_fileext("hazards")
+        nrows = None
+        if self.max_iter > 0:
+            nrows = self.max_iter + 2  # don't really know why, but it works with +2
+
         if read_compressed is not None:
             hazards = pd.read_csv(os.path.join(self.path, "hazards{}".format(read_compressed)),
-                                  sep=self.sep)
+                                  sep=self.sep,
+                                  nrows=nrows)
         else:
             hazards = None
 
         read_compressed = self._get_fileext("maintenance")
         if read_compressed is not None:
             maintenance = pd.read_csv(os.path.join(self.path, "maintenance{}".format(read_compressed)),
-                                      sep=self.sep)
+                                      sep=self.sep,
+                                      nrows=nrows)
         else:
             maintenance = None
 
@@ -438,12 +449,14 @@ class GridStateFromFile(GridValue):
                                     "".format(self.path, type(self)))
         self.n_ = n_  # the -1 is present because the initial grid state doesn't count as a "time step"
 
-        if self.max_iter == -1:
+        if self.max_iter > 0:
+            self.n_ = self.max_iter + 1
+        else:
             # if the number of maximum time step is not set yet, we set it to be the number of
             # data in the chronics (number of rows of the files) -1.
             # the -1 is present because the initial grid state doesn't count as a "time step" but is read
             # from these data.
-            self.max_iter = self.n_ -1
+            self.max_iter = self.n_ - 1
 
         self._init_attrs(load_p, load_q, prod_p, prod_v, hazards=hazards, maintenance=maintenance)
 
@@ -562,6 +575,7 @@ class GridStateFromFile(GridValue):
 
         if self.current_index >= self.tmp_max_index:
             raise StopIteration
+
         if self.max_iter > 0:
             if self.curr_iter > self.max_iter:
                 raise StopIteration
