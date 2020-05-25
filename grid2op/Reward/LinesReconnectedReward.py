@@ -37,7 +37,7 @@ class LinesReconnectedReward(BaseReward):
                 # Only off cooldown lines
                 obs.time_before_cooldown_line <= 0,
                 # Only off maintenances lines
-                obs.duration_next_maintenance == 0
+                obs.time_next_maintenance != 0
             )]
 
         n_penalties = dt_float(0.0)
