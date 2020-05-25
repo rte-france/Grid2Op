@@ -216,7 +216,7 @@ class GridStateFromFile(GridValue):
         file_ext = self._get_fileext(data_name)
         nrows = None
         if self.max_iter > 0:
-            nrows = self.max_iter + 2  # don't really know why, but it works with +2
+            nrows = self.max_iter + 1
         if file_ext is not None:
             res = pd.read_csv(os.path.join(self.path, "{}{}".format(data_name, file_ext)),
                               sep=self.sep,
@@ -369,7 +369,7 @@ class GridStateFromFile(GridValue):
         read_compressed = self._get_fileext("hazards")
         nrows = None
         if self.max_iter > 0:
-            nrows = self.max_iter + 2  # don't really know why, but it works with +2
+            nrows = self.max_iter + 1
 
         if read_compressed is not None:
             hazards = pd.read_csv(os.path.join(self.path, "hazards{}".format(read_compressed)),
@@ -698,7 +698,9 @@ class GridStateFromFile(GridValue):
             if arr is not None:
                 if self.chunk_size is None:
                     if arr.shape[0] != self.n_:
-                        msg_err = "Array {} has not the same number of rows of load_p. The chronics cannot be loaded properly."
+                        pdb.set_trace()
+                        msg_err = "Array {} has not the same number of rows tahn load_p. " \
+                                  "The chronics cannot be loaded properly."
                         raise EnvError(msg_err.format(name_arr))
 
         if self.max_iter > 0:

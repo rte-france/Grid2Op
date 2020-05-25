@@ -163,14 +163,15 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.enable()
         beg_ = time.time()
         cum_reward = dt_float(0.0)
+        do_nothing = self.env.helper_action_player({})
         while not done:
-            do_nothing = self.env.helper_action_player({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
             cum_reward += reward
             i += 1
         end_ = time.time()
         if DEBUG:
-            msg_ = "\nEnv: {:.2f}s\n\t - apply act {:.2f}s\n\t - run pf: {:.2f}s\n\t - env update + observation: {:.2f}s\nTotal time: {:.2f}\nCumulative reward: {:1f}"
+            msg_ = "\nEnv: {:.2f}s\n\t - apply act {:.2f}s\n\t - run pf: {:.2f}s\n" \
+                   "\t - env update + observation: {:.2f}s\nTotal time: {:.2f}\nCumulative reward: {:1f}"
             print(msg_.format(
                 self.env._time_apply_act+self.env._time_powerflow+self.env._time_extract_obs,
                 self.env._time_apply_act, self.env._time_powerflow, self.env._time_extract_obs, end_-beg_, cum_reward))

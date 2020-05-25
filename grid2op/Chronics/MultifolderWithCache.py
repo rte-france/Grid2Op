@@ -156,5 +156,7 @@ class MultifolderWithCache(Multifolder):
             self.reset_cache()
 
         self.data = self._cached_data[self._prev_cache_id]
-        self.data.current_index = 0
+        # self.data.current_index = 0
+        # self.data.curr_iter = 0
+        self.data.next_chronics()
         # print("data updated, self._prev_cache_id: {}".format(os.path.split(self.data.path)[-1]))
