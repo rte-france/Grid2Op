@@ -21,6 +21,7 @@ Change Log
 - [ADDED] a function that returns the types of the action see `action.get_types()`
 - [ADDED] a class to "cache" the data in memory instead of reading it over an over again from disk (see
   `grid2op.chronics.MultifolderWithCache`
+- [ADDED] improve the documentation of the observation class.
 
 [0.9.1] - 2020-05-20
 ---------------------
@@ -404,32 +405,32 @@ Change Log
 - [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
-====================  =======================  =======================
-Class Name            Old Attribute Name       New Attribute Name
-====================  =======================  =======================
-Backend               n_lines                  n_line
-Backend               n_generators             n_gen
-Backend               n_loads                  n_load
-Backend               n_substations            n_sub
-Backend               subs_elements            sub_info
-Backend               name_loads               name_load
-Backend               name_prods               name_gen
-Backend               name_lines               name_line
-Backend               name_subs                name_sub
-Backend               lines_or_to_subid        line_or_to_subid
-Backend               lines_ex_to_subid        line_ex_to_subid
-Backend               lines_or_to_sub_pos      line_or_to_sub_pos
-Backend               lines_ex_to_sub_pos      line_ex_to_sub_pos
-Backend               lines_or_pos_topo_vect   line_or_pos_topo_vect
-Backend               lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
-BaseAction / BaseObservation  _lines_or_to_subid       line_or_to_subid
-BaseAction / BaseObservation  _lines_ex_to_subid       line_ex_to_subid
-BaseAction / BaseObservation  _lines_or_to_sub_pos     line_or_to_sub_pos
-BaseAction / BaseObservation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
-BaseAction / BaseObservation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
-BaseAction / BaseObservation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
-GridValue             n_lines                  n_line
-====================  =======================  =======================
+=============================    =======================  =======================
+Class Name                       Old Attribute Name       New Attribute Name
+=============================    =======================  =======================
+Backend                           n_lines                  n_line
+Backend                           n_generators             n_gen
+Backend                           n_loads                  n_load
+Backend                           n_substations            n_sub
+Backend                           subs_elements            sub_info
+Backend                           name_loads               name_load
+Backend                           name_prods               name_gen
+Backend                           name_lines               name_line
+Backend                           name_subs                name_sub
+Backend                           lines_or_to_subid        line_or_to_subid
+Backend                           lines_ex_to_subid        line_ex_to_subid
+Backend                           lines_or_to_sub_pos      line_or_to_sub_pos
+Backend                           lines_ex_to_sub_pos      line_ex_to_sub_pos
+Backend                           lines_or_pos_topo_vect   line_or_pos_topo_vect
+Backend                           lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
+BaseAction / BaseObservation     _lines_or_to_subid       line_or_to_subid
+BaseAction / BaseObservation     _lines_ex_to_subid       line_ex_to_subid
+BaseAction / BaseObservation     _lines_or_to_sub_pos     line_or_to_sub_pos
+BaseAction / BaseObservation     _lines_ex_to_sub_pos     line_ex_to_sub_pos
+BaseAction / BaseObservation     _lines_or_pos_topo_vect  line_or_pos_topo_vect
+BaseAction / BaseObservation     _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+GridValue                        n_lines                  n_line
+=============================    =======================  =======================
 
 - [FIXED] Runner cannot save properly action and observation (sizes are not computed properly)
   **now fixed and unit test added**

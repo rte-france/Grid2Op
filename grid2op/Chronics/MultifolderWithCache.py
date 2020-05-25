@@ -38,6 +38,7 @@ class MultifolderWithCache(Multifolder):
     This is how this class can be used:
 
     .. code-block:: python
+
         import re
         from grid2op import make
         from grid2op.Chronics import MultifolderWithCache
