@@ -141,17 +141,20 @@ class EpisodeReplay(object):
                     time.sleep(wait_time)
 
         # Export all frames as gif if enabled
-        if gif_name is not None:
-            imageio.mimwrite(gif_path, frames, fps=fps)
-            # Try to compress
+        if gif_name is not None and len(frames) > 0:
             try:
-                from pygifsicle import optimize
-                optimize(gif_path, options=["-w", "--no-conserve-memory"])
-            except:
-                warn_msg = "Failed to optimize .GIF size, but gif is still saved:\n" \
-                           "Install dependencies to reduce size by ~3 folds\n" \
-                           "apt-get install gifsicle && pip3 install pygifsicle"
-                warnings.warn(warn_msg)
+                imageio.mimwrite(gif_path, frames, fps=fps)
+                # Try to compress
+                try:
+                    from pygifsicle import optimize
+                    optimize(gif_path, options=["-w", "--no-conserve-memory"])
+                except:
+                    warn_msg = "Failed to optimize .GIF size, but gif is still saved:\n" \
+                               "Install dependencies to reduce size by ~3 folds\n" \
+                               "apt-get install gifsicle && pip3 install pygifsicle"
+                    warnings.warn(warn_msg)
+            except Exception as e:
+                warnings.warn("Impossible to save gif with error :\n{}".format(e))
 
 
 def episode_replay_cli():

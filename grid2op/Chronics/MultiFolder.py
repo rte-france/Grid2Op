@@ -70,7 +70,6 @@ class Multifolder(GridValue):
         except FileNotFoundError:
             raise ChronicsError("Path \"{}\" doesn't exists.".format(self.path)) from None
 
-
         if len(self.subpaths) == 0:
             raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "
                                         "1 chronics folder there.".format(self.path))
