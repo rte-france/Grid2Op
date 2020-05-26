@@ -560,7 +560,10 @@ class GridObjects:
         """
         tmp = getattr(self, attr_nm)
         if isinstance(tmp, (dt_bool, dt_int, dt_float)):
-            setattr(self, attr_nm, vect)
+            if isinstance(vect, np.ndarray):
+                setattr(self, attr_nm, vect[0])
+            else:
+                setattr(self, attr_nm, vect)
         else:
             tmp[:] = vect
 

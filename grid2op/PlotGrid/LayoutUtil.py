@@ -124,7 +124,9 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         fix = list(range(obs.n_sub))
         seed = np.random.RandomState(0)
         # Use Fruchterman-Reingold algorithm
-        kkl = nx.spring_layout(G, scale=scale, fixed=fix, pos=initial_layout, seed=seed, iterations=1000)
+        kkl = nx.spring_layout(G, scale=scale, fixed=fix,
+                               pos=initial_layout, seed=seed,
+                               iterations=1000)
     else:
         # Use kamada_kawai algorithm
         kkl = nx.kamada_kawai_layout(G, scale=scale)
