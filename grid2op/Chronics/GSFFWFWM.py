@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 
 
 from grid2op.dtypes import dt_bool, dt_int
+from grid2op.Exceptions import Grid2OpException
 from grid2op.Chronics.GridStateFromFileWithForecasts import GridStateFromFileWithForecasts
 import pdb
 
@@ -91,9 +92,21 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
     def _generate_maintenance(self):
         # define maintenance dataframe with size (nbtimesteps,nlines)
         columnsNames = self.name_line
-        nbTimesteps = self.n_  #  TODO change that !
+        nbTimesteps = self.n_
+        res = np.zeros((nbTimesteps, len(self.name_line)))
+
+        # read the maintenance line
         idx_line_maintenance = np.array([el in self.line_to_maintenance for el in columnsNames])
         nb_line_maint = np.sum(idx_line_maintenance)
+        if nb_line_maint == 0:
+            # TODO log something there !
+            return res
+
+        if nb_line_maint != len(self.line_to_maintenance):
+            raise Grid2OpException("Lines that are suppose to be in maintenance are:\n{}\nand lines in the grid "
+                                   "are\n{}\nCheck that all lines in maintenance are in the grid."
+                                   "".format(self.line_to_maintenance, self.name_line))
+
         # identify the timestamps of the chronics to find out the month and day of the week
         freq = str(
             int(self.time_interval.total_seconds())) + "s"  # should be in the timedelta frequency format in pandas
@@ -108,8 +121,6 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         nb_rows = int(86400 / self.time_interval.total_seconds())
         selected_rows_beg = int(self.maintenance_starting_hour * 3600 / self.time_interval.total_seconds())
         selected_rows_end = int(self.maintenance_ending_hour * 3600 / self.time_interval.total_seconds())
-
-        res = np.zeros((nbTimesteps, len(self.name_line)))
 
         # TODO this is INSANELY slow for now. find a way to make it faster
         # HINT: vectorize everything into one single numpy array, everything can be vectorized there...
@@ -142,7 +153,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                 maintenance_me[selected_rows_beg:selected_rows_end, are_lines_in_maintenance] = 1.0
 
                 # handle last iteration
-                n_max = int( min(res.shape[0], (nb_day_since_beg + 1) * nb_rows) / (nb_day_since_beg + 1))
+                n_max = res[(nb_day_since_beg*nb_rows):((nb_day_since_beg+1) * nb_rows), idx_line_maintenance].shape[0]
                 res[(nb_day_since_beg*nb_rows):((nb_day_since_beg+1) * nb_rows), idx_line_maintenance] = \
                     maintenance_me[:n_max, :]
         return res
