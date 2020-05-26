@@ -18,6 +18,7 @@ Change Log
 
 [0.9.2] - 2020-05-??
 ---------------------
+- [FIXED] a problem on the grid name import on some version of pandas
 - [ADDED] a function that returns the types of the action see `action.get_types()`
 - [ADDED] a class to "cache" the data in memory instead of reading it over an over again from disk (see
   `grid2op.chronics.MultifolderWithCache`

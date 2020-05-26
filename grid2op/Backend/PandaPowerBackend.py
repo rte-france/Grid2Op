@@ -245,12 +245,12 @@ class PandaPowerBackend(Backend):
 
         # now extract the powergrid
         self.n_line = copy.deepcopy(self._grid.line.shape[0]) + copy.deepcopy(self._grid.trafo.shape[0])
-        if "name" in self._grid.line.columns and self._grid.line["name"].isnull().values.any() is False:
+        if "name" in self._grid.line.columns and not self._grid.line["name"].isnull().values.any():
             self.name_line = [name for name in self._grid.line["name"]]
         else:
             self.name_line = ['{from_bus}_{to_bus}_{id_powerline_me}'.format(**row, id_powerline_me=i)
                               for i, (_, row) in enumerate(self._grid.line.iterrows())]
-        if "name" in self._grid.trafo.columns and self._grid.trafo["name"].isnull().values.any() is False:
+        if "name" in self._grid.trafo.columns and not self._grid.trafo["name"].isnull().values.any():
             self.name_line += [name_traf for name_traf in self._grid.trafo["name"]]
         else:
             transfo = [('{hv_bus}'.format(**row), '{lv_bus}'.format(**row))
@@ -260,7 +260,7 @@ class PandaPowerBackend(Backend):
         self.name_line = np.array(self.name_line)
 
         self.n_gen = copy.deepcopy(self._grid.gen.shape[0])
-        if "name" in self._grid.gen.columns and self._grid.gen["name"].isnull().values.any() is False:
+        if "name" in self._grid.gen.columns and not self._grid.gen["name"].isnull().values.any():
             self.name_gen = [name_g for name_g in self._grid.gen["name"]]
         else:
             self.name_gen = ["gen_{bus}_{index_gen}".format(**row, index_gen=i)
@@ -268,13 +268,12 @@ class PandaPowerBackend(Backend):
         self.name_gen = np.array(self.name_gen)
 
         self.n_load = copy.deepcopy(self._grid.load.shape[0])
-        if "name" in self._grid.load.columns and self._grid.load["name"].isnull().values.any() is False:
+        if "name" in self._grid.load.columns and not self._grid.load["name"].isnull().values.any():
             self.name_load = [nl for nl in self._grid.load["name"]]
         else:
             self.name_load = ["load_{bus}_{index_gen}".format(**row, index_gen=i)
                               for i, (_, row) in enumerate(self._grid.load.iterrows())]
         self.name_load = np.array(self.name_load)
-
         self.n_sub = copy.deepcopy(self._grid.bus.shape[0])
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)

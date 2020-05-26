@@ -1,0 +1,3 @@
+Pmax,Pmin,name,type,bus,max_ramp_up,max_ramp_down,min_up_time,min_down_time,marginal_cost,shut_down_cost,start_cost,x,y,V
+15,0.0,gen_0_0,wind,5,0,0,0,0,0,0,0,0,0,102.
+35,0.0,gen_1_1,thermal,0,15,15,4,4,70,1,2,0,400,102.
