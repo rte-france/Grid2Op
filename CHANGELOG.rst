@@ -16,6 +16,13 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+[0.9.2] - 2020-??-??
+---------------------
+- [FIXED] `GridObject` loading from file does initialize single values (`bool`, `int`, `float`) correctly instead of creating a `np.array` of size one. 
+- [FIXED] `IdToAct` loading actions from file .npy
+- [UPDATED] Reward `LinesReconnectedReward` to take into account maintenances downtimes
+- [UPDATED] Adds an option to disable plotting load and generators names when using `PlotMatplot`
+  
 [0.9.1] - 2020-05-20
 ---------------------
 - [FIXED] a bug preventing to save gif with episode replay when there has been a game over before starting time step
