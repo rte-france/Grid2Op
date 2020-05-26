@@ -10,10 +10,9 @@ import time
 import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
-import copy
 from abc import ABC, abstractmethod
 
-from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
@@ -24,8 +23,6 @@ from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 from grid2op.Action._BackendAction import _BackendAction
-from grid2op.Action import ActionSpace
-import pdb
 
 
 class BaseEnv(GridObjects, RandomObject, ABC):

@@ -8,8 +8,6 @@
 
 import warnings
 
-import pdb
-
 from grid2op.Exceptions import AmbiguousAction
 from grid2op.Action.BaseAction import BaseAction
 

@@ -20,8 +20,6 @@ import numpy as np
 import warnings
 import copy
 
-import pdb
-
 from grid2op.Space import GridObjects
 from grid2op.Exceptions import PlotError
 

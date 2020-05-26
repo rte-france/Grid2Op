@@ -11,7 +11,6 @@ import numpy as np
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
 from grid2op.dtypes import dt_float
-import pdb
 
 
 class IdToAct(Converter):
@@ -71,6 +70,8 @@ class IdToAct(Converter):
         # add the do nothing topology
         self.all_actions.append(super().__call__())
         self.n = 1
+        self._init_size = action_space.size()
+        self.kwargs_init = {}
 
     def init_converter(self, all_actions=None, **kwargs):
         """
@@ -114,6 +115,7 @@ class IdToAct(Converter):
                 (in case the original action space allows it)
 
         """
+        self.kwargs_init = kwargs
         if all_actions is None:
             self.all_actions = []
             # add the do nothing action, always
@@ -168,9 +170,11 @@ class IdToAct(Converter):
                 raise RuntimeError("Impossible to load the data located at \"{}\" with error\n{}."
                                    "".format(all_actions, e))
             try:
-                self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_act])
+                self.all_actions = np.array([self.__call__() for _ in all_act])
+                for i, el in enumerate(all_act):
+                    self.all_actions[i].from_vect(el)
             except Exception as e:
-                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action."
+                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action. "
                                    "The error was:\n{}".format(all_actions, e))
         elif isinstance(all_actions, (list, np.ndarray)):
             # assign the action to my actions
@@ -179,7 +183,9 @@ class IdToAct(Converter):
                 self.all_actions = np.array(all_actions)
             else:
                 try:
-                    self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_actions])
+                    self.all_actions = np.array([self.__call__() for _ in all_actions])
+                    for i, el in enumerate(all_actions):
+                        self.all_actions[i].from_vect(el)
                 except Exception as e:
                     raise RuntimeError("Impossible to convert the data provided in \"all_actions\" into valid "
                                        "grid2op action. The error was:\n{}".format(e))

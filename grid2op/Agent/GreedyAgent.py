@@ -10,7 +10,6 @@ from abc import abstractmethod
 import numpy as np
 from grid2op.Agent.BaseAgent import BaseAgent
 from grid2op.dtypes import dt_float
-import pdb
 
 
 class GreedyAgent(BaseAgent):

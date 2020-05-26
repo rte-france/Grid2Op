@@ -8,7 +8,6 @@
 import copy
 import numpy as np
 from abc import abstractmethod
-import pdb
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
@@ -136,11 +135,14 @@ class BaseObservation(GridObjects):
     time_next_maintenance: :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the time of the next planned maintenance. For example if there is:
 
-            - `1` at position `i` it means that the powerline `i` will be disconnected for maintenance operation at the next time step. A
+            - `1` at position `i` it means that the powerline `i` will be disconnected for maintenance operation at
+              the next time step.
             - `0` at position `i` means that powerline `i` is disconnected from the powergrid for maintenance operation
               at the current time step.
             - `-1` at position `i` means that powerline `i` will not be disconnected for maintenance reason for this
               episode.
+            - `k` > 1 at position `i` it means that the powerline `i` will be disconnected for maintenance operation at
+              in `k` time steps
 
     duration_next_maintenance: :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the number of time step that the maintenance will last (if any). This means that,

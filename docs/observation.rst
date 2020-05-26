@@ -1,6 +1,42 @@
 .. currentmodule:: grid2op.Observation
 
-Observation Module
+.. _n_gen: ./space.html#grid2op.Space.GridObjects.n_gen
+.. _n_load: ./space.html#grid2op.Space.GridObjects.n_load
+.. _n_line: ./space.html#grid2op.Space.GridObjects.n_line
+.. _n_sub: ./space.html#grid2op.Space.GridObjects.n_sub
+.. _dim_topo: ./space.html#grid2op.Space.GridObjects.dim_topo
+.. _year: ./observation.html#grid2op.Observation.BaseObservation.year
+.. _month: ./observation.html#grid2op.Observation.BaseObservation.month
+.. _day: ./observation.html#grid2op.Observation.BaseObservation.day
+.. _hour_of_day: ./observation.html#grid2op.Observation.BaseObservation.hour_of_day
+.. _minute_of_hour: ./observation.html#grid2op.Observation.BaseObservation.minute_of_hour
+.. _day_of_week: ./observation.html#grid2op.Observation.BaseObservation.day_of_week
+.. _prod_p: ./observation.html#grid2op.Observation.BaseObservation.prod_p
+.. _prod_q: ./observation.html#grid2op.Observation.BaseObservation.prod_q
+.. _prod_v: ./observation.html#grid2op.Observation.BaseObservation.prod_v
+.. _load_p: ./observation.html#grid2op.Observation.BaseObservation.load_p
+.. _load_q: ./observation.html#grid2op.Observation.BaseObservation.load_q
+.. _load_v: ./observation.html#grid2op.Observation.BaseObservation.load_v
+.. _p_or: ./observation.html#grid2op.Observation.BaseObservation.p_or
+.. _q_or: ./observation.html#grid2op.Observation.BaseObservation.q_or
+.. _v_or: ./observation.html#grid2op.Observation.BaseObservation.v_or
+.. _a_or: ./observation.html#grid2op.Observation.BaseObservation.a_or
+.. _p_ex: ./observation.html#grid2op.Observation.BaseObservation.p_ex
+.. _q_ex: ./observation.html#grid2op.Observation.BaseObservation.q_ex
+.. _v_ex: ./observation.html#grid2op.Observation.BaseObservation.v_ex
+.. _a_ex: ./observation.html#grid2op.Observation.BaseObservation.a_ex
+.. _rho: ./observation.html#grid2op.Observation.BaseObservation.rho
+.. _topo_vect: ./observation.html#grid2op.Observation.BaseObservation.topo_vect
+.. _line_status: ./observation.html#grid2op.Observation.BaseObservation.line_status
+.. _timestep_overflow: ./observation.html#grid2op.Observation.BaseObservation.timestep_overflow
+.. _time_before_cooldown_line: ./observation.html#grid2op.Observation.BaseObservation.time_before_cooldown_line
+.. _time_before_cooldown_sub: ./observation.html#grid2op.Observation.BaseObservation.time_before_cooldown_sub
+.. _time_next_maintenance: ./observation.html#grid2op.Observation.BaseObservation.time_next_maintenance
+.. _duration_next_maintenance: ./observation.html#grid2op.Observation.BaseObservation.duration_next_maintenance
+.. _target_dispatch: ./observation.html#grid2op.Observation.BaseObservation.target_dispatch
+.. _actual_dispatch: ./observation.html#grid2op.Observation.BaseObservation.actual_dispatch
+
+Observation
 ===================================
 
 Objectives
@@ -40,6 +76,35 @@ on this unique time step. We wanted in this recoding to change that:
 
 The :class:`BaseObservation` class implement the two above principles and is more flexible to other kind of forecasts,
 or other methods to build a power grid based on the forecasts of injections.
+
+Main observation attributes
+---------------------------
+In general, observations have the following attributes (if an attributes has name XXX [*eg* rho]  it can be accessed
+with `obs.XXX` [*eg* `obs.rho`])
+
+=============================================================================    ========= ===========
+Name(s)                                                                          Type      Size (each)
+=============================================================================    ========= ===========
+`year`_, `month`_, `day`_, `hour_of_day`_, `minute_of_hour`_, `day_of_week`_     int       1
+`prod_p`_, `prod_q`_, `prod_v`_                                                  float     `n_gen`_
+`load_p`_, `load_q`_, `load_v`_                                                  float     `n_load`_
+`p_or`_, `q_or`_, `v_or`_, `a_or`_                                               float     `n_line`_
+`p_ex`_, `q_ex`_, `v_ex`_, `a_ex`_                                               float     `n_line`_
+`rho`_                                                                           float     `n_line`_
+`topo_vect`_                                                                     int       `dim_topo`_
+`line_status`_                                                                   bool      `n_line`_
+`timestep_overflow`_                                                             int       `n_line`_
+`time_before_cooldown_line`_                                                     int       `n_line`_
+`time_before_cooldown_sub`_                                                      int       `n_sub`_
+`time_next_maintenance`_                                                         int       `n_line`_
+`duration_next_maintenance`_                                                     int       `n_line`_
+`target_dispatch`_                                                               float     `n_gen`_
+`actual_dispatch`_                                                               float     `n_gen`_
+=============================================================================    ========= ===========
+
+(*NB* for concision, if a coma ("*,*") is present in the "Name(s)" part of the column, it means multiple attributes
+are present. If we take the example of the first row, it means that `obs.year`, `obs.month`, etc. are all valid
+attributes of the observation, they are all integers and each is of size 1.)
 
 Detailed Documentation by class
 --------------------------------
