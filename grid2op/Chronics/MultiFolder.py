@@ -9,7 +9,6 @@
 import os
 import numpy as np
 from datetime import timedelta, datetime
-import pdb
 
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import *

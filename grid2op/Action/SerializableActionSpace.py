@@ -9,8 +9,6 @@
 import numpy as np
 import itertools
 
-import pdb
-
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import AmbiguousAction, Grid2OpException
 from grid2op.Space import SerializableSpace

@@ -8,13 +8,10 @@
 
 import copy
 import numpy as np
-import pdb
-
-from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
-from grid2op.Action import CompleteAction, BaseAction
 from grid2op.Exceptions import Grid2OpException
 
 

@@ -33,9 +33,6 @@ TODO
 
 """
 
-import numpy as np
-import pdb
-
 from grid2op.Exceptions import PlotError
 from grid2op.Plot.BasePlot import BasePlot
 try:

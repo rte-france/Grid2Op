@@ -6,13 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import numpy as np
-import os
 from datetime import timedelta, datetime
 
 from grid2op.dtypes import dt_int
 from grid2op.Chronics.MultiFolder import Multifolder
 from grid2op.Chronics.GridStateFromFile import GridStateFromFile
-import pdb
 
 
 #TODO tests for this class

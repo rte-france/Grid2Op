@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 import warnings
 from datetime import datetime, timedelta
-import pdb
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import IncorrectNumberOfElements, ChronicsError, ChronicsNotFoundError
@@ -698,7 +697,6 @@ class GridStateFromFile(GridValue):
             if arr is not None:
                 if self.chunk_size is None:
                     if arr.shape[0] != self.n_:
-                        pdb.set_trace()
                         msg_err = "Array {} has not the same number of rows tahn load_p. " \
                                   "The chronics cannot be loaded properly."
                         raise EnvError(msg_err.format(name_arr))

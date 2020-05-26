@@ -6,13 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import os
-import json
 import numpy as np
 
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
 from grid2op.dtypes import dt_float
-import pdb
 
 
 class IdToAct(Converter):

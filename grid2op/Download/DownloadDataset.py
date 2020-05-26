@@ -21,7 +21,6 @@ import re
 import tarfile
 
 from grid2op.Exceptions import Grid2OpException
-import pdb
 
 try:
     import urllib.request

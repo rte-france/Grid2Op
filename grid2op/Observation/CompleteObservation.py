@@ -9,7 +9,7 @@
 import numpy as np
 import copy
 
-from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.Observation.BaseObservation import BaseObservation
 
 

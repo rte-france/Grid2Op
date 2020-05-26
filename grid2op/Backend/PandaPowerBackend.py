@@ -37,7 +37,6 @@ except (ImportError, ModuleNotFoundError):
     numba_ = False
     warnings.warn("Numba cannot be loaded. You will gain possibly massive speed if installing it by "
                   "\n\t{} -m pip install numba\n".format(sys.executable))
-import pdb
 
 
 class PandaPowerBackend(Backend):

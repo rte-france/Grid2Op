@@ -11,7 +11,6 @@ import copy
 import numpy as np
 import pandas as pd
 from datetime import timedelta
-import random
 
 from grid2op.dtypes import dt_float, dt_bool
 from grid2op.Exceptions import EnvError, IncorrectNumberOfLoads, IncorrectNumberOfLines, IncorrectNumberOfGenerators
