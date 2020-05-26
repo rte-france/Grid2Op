@@ -1,7 +1,7 @@
 .. currentmodule:: grid2op.MakeEnv
 
-Using pre defined Environments
-===================================
+Make: Using pre defined Environments
+====================================
 
 Objectives
 -----------
@@ -29,7 +29,8 @@ with a Grid2Op environment. An example of such modifications is exposed in the g
 
 Important notes
 ---------------
-As of version 0.8.0 a ":func:`make`" has been updated in grid2op. This function, replace the current implementation of renamed :func:`make_old`, merges the behaviour of "grid2op.download" script and "make_old" function.
+As of version 0.8.0 a ":func:`make`" has been updated in grid2op. This function, replace the current implementation of
+renamed :func:`make_old`, merges the behaviour of "grid2op.download" script and "make_old" function.
 
 It has the following behavior:
 
@@ -51,11 +52,13 @@ It has the following behavior:
 
 Cache manipulation
 -------------------------------
-Editing the file ``~/.grid2opconfig.json`` allows you to change the data cache location. Programatically, it can be done with :func:`change_local_dir`.
+Editing the file ``~/.grid2opconfig.json`` allows you to change the data cache location. Programatically, it can be
+done with :func:`change_local_dir`.
 
 Call :func:`get_current_local_dir` to get the local cache directory location.
 
-You can list the environments in the local cache directory by calling :func:`list_available_local_env` and list all available environments with :func:`list_available_remote_env`.
+You can list the environments in the local cache directory by calling :func:`list_available_local_env` and list all
+available environments with :func:`list_available_remote_env`.
 
 Detailed Documentation by class
 --------------------------------

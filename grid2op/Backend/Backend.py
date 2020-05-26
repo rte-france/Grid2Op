@@ -20,9 +20,6 @@ from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction
 
-import pdb
-
-
 # TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 

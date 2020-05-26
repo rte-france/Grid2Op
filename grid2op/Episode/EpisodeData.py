@@ -55,7 +55,6 @@ import os
 
 import numpy as np
 
-
 from grid2op.Exceptions import Grid2OpException, AmbiguousAction
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace

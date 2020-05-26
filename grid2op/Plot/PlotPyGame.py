@@ -20,7 +20,6 @@ import cmath
 import math
 import os
 import time
-import copy
 
 from grid2op.Plot.BasePlot import BasePlot
 from grid2op.Exceptions.PlotExceptions import PyGameQuit, PlotError

@@ -12,6 +12,7 @@ import networkx as nx
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class BridgeReward(BaseReward):
     """
     This reward computes a penalty based on how many bridges are present in the grid netwrok.

@@ -8,13 +8,11 @@
 from multiprocessing import Process, Pipe
 import numpy as np
 
-from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
-
-import pdb
 
 # TODO test this class.
 
@@ -125,6 +123,8 @@ class RemoteEnv(Process):
                 self.fast_forward = int(data)
             elif cmd == "seed":
                 self.remote.send((self.seed_used, self.all_seeds))
+            elif cmd == "params":
+                self.remote.send(self.env.parameters)
             else:
                 raise NotImplementedError
 
@@ -349,11 +349,22 @@ class MultiEnvironment(GridObjects):
             remote.send(('f', ff_max))
 
     def get_seeds(self):
+        """
+        Get the seeds used to initialize each sub environments.
+        """
         for remote in self._remotes:
             remote.send(('seed', None))
         res = [remote.recv() for remote in self._remotes]
         return np.stack(res)
 
+    def get_parameters(self):
+        """
+        Get the parameters of each sub environments
+        """
+        for remote in self._remotes:
+            remote.send(('params', None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
 
 
 if __name__ == "__main__":
