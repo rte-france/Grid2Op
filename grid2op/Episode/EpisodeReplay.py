@@ -96,7 +96,9 @@ class EpisodeReplay(object):
 
         # Create a plotter
         width, height = resolution
-        plot_runner = PlotMatplot(self.episode_data.observation_space, width=width, height=height)
+        plot_runner = PlotMatplot(self.episode_data.observation_space,
+                                  width=width, height=height,
+                                  load_name=False, gen_name=False)
 
         # Some vars for gif export if enabled
         frames = []

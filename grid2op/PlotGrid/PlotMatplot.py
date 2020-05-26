@@ -40,6 +40,8 @@ class PlotMatplot(BasePlot):
         Substation info text color
     _load_radius: ``int``
         Load circle size
+    _load_name: ``bool``
+        Show load names (default True)
     _load_face_color: ``str``
         Load circle fill color
     _load_edge_color: ``str``
@@ -52,6 +54,8 @@ class PlotMatplot(BasePlot):
         Width of the line from load to substation
     _gen_radius: ``int``
         Generators circle size
+    _gen_name: ``bool``
+        Show generators names (default True)
     _gen_face_color: ``str``
         Generators circle fill color
     _gen_edge_color: ``str``
@@ -85,7 +89,9 @@ class PlotMatplot(BasePlot):
                  scale=2000.0,
                  sub_radius = 15,
                  load_radius = 8,
-                 gen_radius = 8):
+                 load_name=True,
+                 gen_radius = 8,
+                 gen_name=True):
         self.dpi = dpi
         super().__init__(observation_space, width, height, scale, grid_layout)
 
@@ -95,6 +101,7 @@ class PlotMatplot(BasePlot):
         self._sub_txt_color = "black"
         
         self._load_radius = load_radius
+        self._load_name = load_name
         self._load_face_color = "w"
         self._load_edge_color = "orange"
         self._load_txt_color = "black"
@@ -102,6 +109,7 @@ class PlotMatplot(BasePlot):
         self._load_line_width = 1
         
         self._gen_radius = gen_radius
+        self._gen_name = gen_name
         self._gen_face_color = "w"
         self._gen_edge_color = "green"
         self._gen_txt_color = "black"
@@ -118,9 +126,9 @@ class PlotMatplot(BasePlot):
         self._line_arrow_width = 10.0
 
         self.xlim = [0, 0]
-        self.xpad = 20
+        self.xpad = 5
         self.ylim = [0, 0]
-        self.ypad = 20
+        self.ypad = 5
 
     def _v_textpos_from_dir(self, dirx, diry):
         if diry > 0:
@@ -143,6 +151,7 @@ class PlotMatplot(BasePlot):
         h_inch = self.height / self.dpi
         f = plt.figure(figsize=(w_inch, h_inch), dpi=self.dpi)
         self.ax = f.subplots()
+        f.canvas.draw()
         return f
     
     def clear_figure(self, figure):
@@ -177,10 +186,10 @@ class PlotMatplot(BasePlot):
     def draw_substation(self, figure, observation,
                         sub_id, sub_name,
                         pos_x, pos_y):
-        self.xlim[0] = min(self.xlim[0], pos_x)
-        self.xlim[1] = max(self.xlim[1], pos_x)
-        self.ylim[0] = min(self.ylim[0], pos_y)
-        self.ylim[1] = max(self.ylim[1], pos_y)
+        self.xlim[0] = min(self.xlim[0], pos_x - self._sub_radius)
+        self.xlim[1] = max(self.xlim[1], pos_x + self._sub_radius)
+        self.ylim[0] = min(self.ylim[0], pos_y - self._sub_radius)
+        self.ylim[1] = max(self.ylim[1], pos_y + self._sub_radius)
 
         self._draw_substation_circle(pos_x, pos_y)
         self._draw_substation_txt(pos_x, pos_y, str(sub_id))
@@ -243,14 +252,16 @@ class PlotMatplot(BasePlot):
                   load_value, load_unit,
                   pos_x, pos_y,
                   sub_x, sub_y):
-        self.xlim[0] = min(self.xlim[0], pos_x)
-        self.xlim[1] = max(self.xlim[1], pos_x)
-        self.ylim[0] = min(self.ylim[0], pos_y)
-        self.ylim[1] = max(self.ylim[1], pos_y)
+        self.xlim[0] = min(self.xlim[0], pos_x - self._load_radius)
+        self.xlim[1] = max(self.xlim[1], pos_x + self._load_radius)
+        self.ylim[0] = min(self.ylim[0], pos_y - self._load_radius)
+        self.ylim[1] = max(self.ylim[1], pos_y + self._load_radius)
         self._draw_load_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_load_circle(pos_x, pos_y)
         if load_value is not None:
-            load_txt = load_name + ":\n"
+            load_txt = ""
+            if self._load_name:
+                load_txt += load_name + ":\n"
             load_txt += pltu.format_value_unit(load_value, load_unit)
             self._draw_load_txt(pos_x, pos_y, sub_x, sub_y, load_txt)
         self._draw_load_name(pos_x, pos_y, str(load_id))
@@ -323,14 +334,16 @@ class PlotMatplot(BasePlot):
                  gen_value, gen_unit,
                  pos_x, pos_y,
                  sub_x, sub_y):
-        self.xlim[0] = min(self.xlim[0], pos_x)
-        self.xlim[1] = max(self.xlim[1], pos_x)
-        self.ylim[0] = min(self.ylim[0], pos_y)
-        self.ylim[1] = max(self.ylim[1], pos_y)
+        self.xlim[0] = min(self.xlim[0], pos_x - self._gen_radius)
+        self.xlim[1] = max(self.xlim[1], pos_x + self._gen_radius)
+        self.ylim[0] = min(self.ylim[0], pos_y - self._gen_radius)
+        self.ylim[1] = max(self.ylim[1], pos_y + self._gen_radius)
         self._draw_gen_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_gen_circle(pos_x, pos_y)
         if gen_value is not None:
-            gen_txt = gen_name + ":\n"
+            gen_txt = ""
+            if self._gen_name:
+                gen_txt += gen_name + ":\n"
             gen_txt += pltu.format_value_unit(gen_value, gen_unit)
             self._draw_gen_txt(pos_x, pos_y, sub_x, sub_y, gen_txt)
         self._draw_gen_name(pos_x, pos_y, str(gen_id))
@@ -453,6 +466,13 @@ class PlotMatplot(BasePlot):
         pass
 
     def draw_legend(self, figure, observation):
+        title_str = observation.env_name
+        if hasattr(observation, 'month'):
+            title_str = "{:02d}/{:02d} {:02d}:{:02d}".format(
+                observation.day,
+                observation.month,
+                observation.hour_of_day,
+                observation.minute_of_hour)
         legend_help = [
             Line2D([0], [0], color="black", lw=1),
             Line2D([0], [0], color=self._sub_edge_color, lw=3),
@@ -470,7 +490,7 @@ class PlotMatplot(BasePlot):
             "no bus",
             "bus 1",
             "bus 2"
-        ])
+        ], title=title_str)
         # Hide axis
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
@@ -478,6 +498,13 @@ class PlotMatplot(BasePlot):
         self.ax.set(frame_on=False)
 
     def plot_postprocess(self, figure, observation, update):
-        self.ax.set_xlim(self.xlim[0] - self.xpad, self.xlim[1] + self.xpad)
-        self.ax.set_ylim(self.ylim[0] - self.ypad, self.ylim[1] + self.ypad)
-        figure.tight_layout()
+        if not update:
+            xmin = self.xlim[0] - self.xpad
+            xmax = self.xlim[1] + self.xpad
+            self.ax.set_xlim(xmin, xmax)
+            ymin = self.ylim[0] - self.ypad
+            ymax = self.ylim[1] + self.ypad
+            self.ax.set_ylim(ymin, ymax)
+            #self.ax.autoscale(enable=False, tight=True)
+            #self.ax.autoscale_view(scalex=False, scaley=False, tight=True)
+            figure.tight_layout()
