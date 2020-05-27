@@ -21,6 +21,10 @@ Change Log
 - [FIXED] `Issued #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows
   based OS.
 - [UPDATED] the first introductory notebook.
+- [UPDATED] possibility to reconnect / disconnect powerline giving its name when using `reconnect_powerline` and
+  `disconnect_powerline` methods of the action space.
+- [UPDATED] `Issued #105 <https://github.com/rte-france/Grid2Op/issues/105>`_ problem solved for notebook 4.
+  based OS.
 
 [0.9.2] - 2020-05-26
 ---------------------
