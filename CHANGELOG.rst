@@ -20,6 +20,7 @@ Change Log
 ---------------------
 - [FIXED] `Issued #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows
   based OS.
+- [UPDATED] the first introductory notebook.
 
 [0.9.2] - 2020-05-26
 ---------------------
