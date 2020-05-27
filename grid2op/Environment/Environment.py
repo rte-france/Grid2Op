@@ -125,7 +125,8 @@ class Environment(BaseEnv):
                  tol_poly=1e-6,
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_init_budget=0
+                 opponent_init_budget=0,
+                 _raw_backend_class=None
                  ):
         BaseEnv.__init__(self,
                            parameters=parameters,
@@ -155,6 +156,10 @@ class Environment(BaseEnv):
         self.opponent_class = opponent_class
         self.opponent_init_budget = opponent_init_budget
 
+        if _raw_backend_class is None:
+            self._raw_backend_class = type(backend)
+        else:
+            _raw_backend_class = _raw_backend_class
         # for plotting
         self.init_backend(init_grid_path, chronics_handler, backend,
                           names_chronics_to_backend, actionClass, observationClass,
@@ -630,6 +635,7 @@ class Environment(BaseEnv):
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
         res["name"] = self.name
+        res["_raw_backend_class"] = self._raw_backend_class
         return res
 
     def get_params_for_runner(self):
