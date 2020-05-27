@@ -671,7 +671,7 @@ class Environment(BaseEnv):
         res["legalActClass"] = self.legalActClass
         res["envClass"] = Environment
         res["gridStateclass"] = self.chronics_handler.chronicsClass
-        res["backendClass"] = type(self.backend)  # TODO
+        res["backendClass"] = self._raw_backend_class
         res["verbose"] = False
         dict_ = copy.deepcopy(self.chronics_handler.kwargs)
         if 'path' in dict_:
