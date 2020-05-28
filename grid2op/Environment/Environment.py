@@ -126,19 +126,20 @@ class Environment(BaseEnv):
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0,
-                 _raw_backend_class=None
+                 _raw_backend_class=None,
+                 with_forecast=True
                  ):
         BaseEnv.__init__(self,
-                           parameters=parameters,
-                           thermal_limit_a=thermal_limit_a,
-                           epsilon_poly=epsilon_poly,
-                           tol_poly=tol_poly,
-                           other_rewards=other_rewards)
+                         parameters=parameters,
+                         thermal_limit_a=thermal_limit_a,
+                         epsilon_poly=epsilon_poly,
+                         tol_poly=tol_poly,
+                         other_rewards=other_rewards,
+                         with_forecast=with_forecast)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
         self.name = name
-
         # the voltage controler
         self.voltagecontrolerClass = voltagecontrolerClass
         self.voltage_controler = None

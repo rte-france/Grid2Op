@@ -63,6 +63,8 @@ class RemoteEnv(Process):
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
         self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x), replace=False)])
+        # forecast are not forwarded with this method anyway
+        self.env.deactivate_forecast()
 
     def _clean_observation(self, obs):
         obs._forecasted_grid = []

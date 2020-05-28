@@ -207,3 +207,6 @@ getting_started/path_agents/awesome_agent_logs/
 save_class.pickle
 test_multiproc.py
 test_multiproc2.py
+
+# profiling files
+**.prof

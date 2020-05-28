@@ -85,7 +85,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
-                 other_rewards={}
+                 other_rewards={},
+                 with_forecast=True
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -95,7 +96,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
         self.parameters = parameters
-
+        self.with_forecast = with_forecast
         # some timers
         self._time_apply_act = dt_float(0)
         self._time_powerflow = dt_float(0)
@@ -369,6 +370,53 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             seed = self.space_prng.randint(max_int)
             seed_opponent = self.opponent.seed(seed)
         return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent)
+
+    def deactivate_forecast(self):
+        """
+        This function will have the effect to deactivate the `obs.simulate`, the forecast will not be updated
+        in the observation space.
+
+        This will most likely lead to some performance increase (~10-15% faster) if you don't use the
+        `obs.simulate` function.
+
+        Notes
+        ------
+        If you really don't want to use the `obs.simulate` functionality, you should rather disable it at the creation
+        of the environment. For example, if you use the recommended `make` function, you can pass an argument
+        that will ignore the chronics even when reading it (using `GridStateFromFile` instead of
+        `GridStateFromFileWithForecast` for example) this would give something like:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Chronics import GridStateFromFile
+            # tell grid2op not to read the "forecast"
+            env = grid2op.make("rte_case14_realistic", data_feeding_kwargs={"gridvalueClass": GridStateFromFile})
+
+            # improve speed ups to not even try to use forecast
+            env.deactivate_forecast()
+
+            # this is normal behavior
+            obs = env.reset()
+
+            # but this will make the programm stop working
+            # obs.simulate()  # DO NOT RUN IT RAISES AN ERROR
+
+        """
+        if self.helper_observation is not None:
+            self.helper_observation.with_forecast = False
+        self.with_forecast = False
+
+    def reactivate_forecast(self):
+        """
+        This function will have the effect to reactivate the `obs.simulate`, the forecast will be updated
+        in the observation space.
+
+        This will most likely lead to some performance decrease but you will be able to use `obs.simulate` function.
+        """
+        if self.helper_observation is not None:
+            self.helper_observation.with_forecast = True
+        self.with_forecast = True
 
     @abstractmethod
     def init_backend(self, init_grid_path, chronics_handler, backend,
