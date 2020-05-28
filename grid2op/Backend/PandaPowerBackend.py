@@ -509,7 +509,6 @@ class PandaPowerBackend(Backend):
                     self.change_bus_trafo_hv(id_el_backend - self.__nb_powerline, new_bus_backend)
             elif type_obj == "lineex":
                 new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lex[id_el_backend])
-                # if id_el_backend == 0: pdb.set_trace()
                 if id_el_backend < self.__nb_powerline:
                     # it's a powerline
                     self.change_bus_powerline_ex(id_el_backend, new_bus_backend)

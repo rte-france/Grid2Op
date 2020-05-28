@@ -901,7 +901,6 @@ class GridObjects:
                 raise IncorrectPositionOfLines("for line {} at origin end".format(i))
         for i, (sub_id, sub_pos) in enumerate(zip(self.line_ex_to_subid, self.line_ex_to_sub_pos)):
             if sub_pos >= self.sub_info[sub_id]:
-                # pdb.set_trace()
                 raise IncorrectPositionOfLines("for line {} at extremity end".format(i))
 
         # check that i don't have 2 objects with the same id in the "big topo" vector

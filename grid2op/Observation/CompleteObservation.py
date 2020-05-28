@@ -335,7 +335,5 @@ class CompleteObservation(BaseObservation):
 
                 self.bus_connectivity_matrix_[bus_id_or, bus_id_ex] = 1
                 self.bus_connectivity_matrix_[bus_id_ex, bus_id_or] = 1
-                # except:
-                #     pdb.set_trace()
         return self.bus_connectivity_matrix_
 
