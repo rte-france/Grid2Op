@@ -430,7 +430,6 @@ class BasePlot(ABC):
             line_or_sub_name = observation.name_sub[line_or_sub]
             line_ex_sub = observation.line_ex_to_subid[line_idx]
             line_ex_sub_name = observation.name_sub[line_ex_sub]
-            #line_name = "line_{}_{}".format(line_or_sub, line_ex_sub)
             line_name = observation.name_line[line_idx]
             line_status = True
             line_status = observation.line_status[line_idx]
