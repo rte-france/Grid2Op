@@ -14,7 +14,7 @@ from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import PlotError
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
-
+from grid2op.dtypes import dt_float, dt_int
 
 class BasePlot(ABC):
     """
@@ -430,13 +430,20 @@ class BasePlot(ABC):
             line_or_sub_name = observation.name_sub[line_or_sub]
             line_ex_sub = observation.line_ex_to_subid[line_idx]
             line_ex_sub_name = observation.name_sub[line_ex_sub]
-            line_name = "line_{}_{}".format(line_or_sub, line_ex_sub)
+            #line_name = "line_{}_{}".format(line_or_sub, line_ex_sub)
+            line_name = observation.name_line[line_idx]
             line_status = True
             line_status = observation.line_status[line_idx]
             line_value = None
             if line_values is not None:
-                line_value = np.round(float(line_values[line_idx]), 2)
-                
+                lv = line_values[line_idx]
+                if isinstance(lv, (float, dt_float)):
+                    line_value = np.round(float(lv), 2)
+                elif isinstance(lv, (int, dt_int)):
+                    line_value = int(lv)
+                else:
+                    line_value = lv
+
             line_or_bus = topo[line_or_pos[line_idx]]
             line_or_bus = line_or_bus if line_or_bus > 0 else 0
             line_or_x = self._grid_layout[line_or_sub_name][0]
@@ -481,7 +488,8 @@ class BasePlot(ABC):
         This function plot the layout of the grid, as well as the object. You will see the name of each elements and
         their id.
         """
-        return self.plot_info(observation=self.observation_space, figure=None, redraw=True)
+        return self.plot_info(observation=self.observation_space,
+                              figure=None, redraw=True)
         
     def plot_obs(self, observation,
                  figure=None,
