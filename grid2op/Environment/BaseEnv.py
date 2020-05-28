@@ -312,21 +312,25 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Parameters
         ----------
-            seed: ``int``
-               The seed to set.
+        seed: ``int``
+           The seed to set.
 
         Returns
         ---------
-        seed: ``int``
+        seed: ``tuple``
             The seed used to set the prng (pseudo random number generator) for the environment
-        seed_chron: ``int``
+        seed_chron: ``tuple``
             The seed used to set the prng for the chronics_handler (if any), otherwise ``None``
-        seed_obs: ``int``
+        seed_obs: ``tuple``
             The seed used to set the prng for the observation space (if any), otherwise ``None``
-        seed_action_space: ``int``
+        seed_action_space: ``tuple``
             The seed used to set the prng for the action space (if any), otherwise ``None``
-        seed_env_modif: ``int``
+        seed_env_modif: ``tuple``
             The seed used to set the prng for the modification of th environment (if any otherwise ``None``)
+        seed_volt_cont: ``tuple``
+            The seed used to set the prng for voltage controler (if any otherwise ``None``)
+        seed_opponent: ``tuple``
+            The seed used to set the prng for the opponent (if any otherwise ``None``)
 
         """
         try:
@@ -343,6 +347,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         seed_obs = None
         seed_action_space = None
         seed_env_modif = None
+        seed_volt_cont = None
+        seed_opponent = None
         max_int = np.iinfo(dt_int).max
         if self.chronics_handler is not None:
             seed = self.space_prng.randint(max_int)
@@ -356,7 +362,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.helper_action_env is not None:
             seed = self.space_prng.randint(max_int)
             seed_env_modif = self.helper_action_env.seed(seed)
-        return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif)
+        if self.voltage_controler is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_volt_cont = self.voltage_controler.seed(seed)
+        if self.opponent is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_opponent = self.opponent.seed(seed)
+        return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent)
 
     @abstractmethod
     def init_backend(self, init_grid_path, chronics_handler, backend,

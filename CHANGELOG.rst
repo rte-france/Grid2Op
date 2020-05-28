@@ -25,6 +25,8 @@ Change Log
   `disconnect_powerline` methods of the action space.
 - [UPDATED] `Issued #105 <https://github.com/rte-france/Grid2Op/issues/105>`_ problem solved for notebook 4.
   based OS.
+- [ADDED] `Issued #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
+  The notebook has been updated accordingly.
 
 [0.9.2] - 2020-05-26
 ---------------------
