@@ -119,7 +119,7 @@ class CompleteObservation(BaseObservation):
         self.vectorized = None
         self.dictionnarized = None
 
-    def update(self, env):
+    def update(self, env, with_forecast=True):
         """
         This use the environement to update properly the BaseObservation.
 
@@ -153,12 +153,14 @@ class CompleteObservation(BaseObservation):
         self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = env.backend.lines_ex_info()
 
         # handles forecasts here
-        self._forecasted_inj = env.chronics_handler.forecasts()
-        for grid_act in self._forecasted_grid_act.values():
-            # in the action, i assign the lat topology known, it's a choice here...
-            grid_act["inj_action"]["setbus"] = self.topo_vect
+        if with_forecast:
+            self._forecasted_inj = env.chronics_handler.forecasts()
+            for grid_act in self._forecasted_grid_act.values():
+                # in the action, i assign the lat topology known, it's a choice here...
+                grid_act["inj_action"]["setbus"] = self.topo_vect
 
-        self._forecasted_grid = [None for _ in self._forecasted_inj]
+            self._forecasted_grid = [None for _ in self._forecasted_inj]
+
         self.rho = env.backend.get_relative_flow().astype(dt_float)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
@@ -333,7 +335,5 @@ class CompleteObservation(BaseObservation):
 
                 self.bus_connectivity_matrix_[bus_id_or, bus_id_ex] = 1
                 self.bus_connectivity_matrix_[bus_id_ex, bus_id_or] = 1
-                # except:
-                #     pdb.set_trace()
         return self.bus_connectivity_matrix_
 

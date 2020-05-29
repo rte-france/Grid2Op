@@ -584,7 +584,7 @@ class BaseObservation(GridObjects):
         return True
 
     @abstractmethod
-    def update(self, env):
+    def update(self, env, with_forecast=True):
         """
         Update the actual instance of BaseObservation with the new received value from the environment.
 

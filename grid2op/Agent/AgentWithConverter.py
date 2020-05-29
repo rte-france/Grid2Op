@@ -207,6 +207,16 @@ class AgentWithConverter(BaseAgent):
         encoded_act = self.my_act(transformed_observation, reward, done)
         return self.convert_act(encoded_act)
 
+    def seed(self, seed):
+        """
+        Seed the agent AND the associated converter if it needs to be seeded.
+
+        See a more detailed explanation in :func:`BaseAgent.seed` for more information about seeding.
+        """
+        super().seed(seed)
+        if self.action_space_converter is not None:
+            self.action_space.seed(seed)
+
     @abstractmethod
     def my_act(self, transformed_observation, reward, done=False):
         """
