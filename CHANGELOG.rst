@@ -16,7 +16,7 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
-[0.9.3] - 2020-yy-xx
+[0.9.3] - 2020-05-29
 ---------------------
 - [FIXED] `Issue #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows
   based OS.
@@ -25,14 +25,17 @@ Change Log
   `disconnect_powerline` methods of the action space.
 - [UPDATED] `Issue #105 <https://github.com/rte-france/Grid2Op/issues/105>`_ problem solved for notebook 4.
   based OS.
+- [UPDATED] overall speed enhancement mostly in the `VoltageControler`, with the adding of the previous capability,
+  some updates in the `BackendAction`
+  `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_
+- [UPDATED] Added `PlotMatplot` constructor arguments to control display of names and IDs of the grid elements
+  (gen, load, lines). As suggested in `Issue #106 <https://github.com/rte-france/Grid2Op/issues/106>`_
 - [ADDED] `Issue #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
   The notebook has been updated accordingly.
 - [ADDED] Some function to disable the `obs.simulate` if wanted. This can lead to around 10~15% performance speed up
   in case `obs.simulate` is not used. See `env.deactivate_forecast` and `env.reactivate_forecast`
   (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
-- [UPDATED] overall speed enhancement mostly in the `VoltageControler`, with the adding of the previous capability,
-  some updates in the `BackendAction`
-  `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_
+
 
 [0.9.2] - 2020-05-26
 ---------------------
