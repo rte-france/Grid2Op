@@ -89,9 +89,13 @@ class PlotMatplot(BasePlot):
                  scale=2000.0,
                  sub_radius = 15,
                  load_radius = 8,
-                 load_name=True,
+                 load_name=False,
+                 load_id=False,
                  gen_radius = 8,
-                 gen_name=True):
+                 gen_name=False,
+                 gen_id=False,
+                 line_name=False,
+                 line_id=False):
         self.dpi = dpi
         super().__init__(observation_space, width, height, scale, grid_layout)
 
@@ -102,6 +106,7 @@ class PlotMatplot(BasePlot):
         
         self._load_radius = load_radius
         self._load_name = load_name
+        self._load_id = load_id
         self._load_face_color = "w"
         self._load_edge_color = "orange"
         self._load_txt_color = "black"
@@ -110,6 +115,7 @@ class PlotMatplot(BasePlot):
         
         self._gen_radius = gen_radius
         self._gen_name = gen_name
+        self._gen_id = gen_id
         self._gen_face_color = "w"
         self._gen_edge_color = "green"
         self._gen_txt_color = "black"
@@ -118,6 +124,8 @@ class PlotMatplot(BasePlot):
 
         #cx = np.linspace(0.0, 0.70, 10)
         #self._line_color_scheme = cm.get_cmap("inferno")(cx)
+        self._line_name = line_name
+        self._line_id = line_id
         self._line_color_scheme = [ "blue", "orange", "red"]
         self._line_color_width = 1
         self._line_bus_radius = 6
@@ -145,7 +153,8 @@ class PlotMatplot(BasePlot):
             return "right"
         
     def create_figure(self):
-        # lazy loading of graphics library (reduce loading time) [and mainly because matplolib has weird impact on argparse)
+        # lazy loading of graphics library (reduce loading time)
+        # and mainly because matplolib has weird impact on argparse
         import matplotlib.pyplot as plt
         w_inch = self.width / self.dpi
         h_inch = self.height / self.dpi
@@ -258,14 +267,18 @@ class PlotMatplot(BasePlot):
         self.ylim[1] = max(self.ylim[1], pos_y + self._load_radius)
         self._draw_load_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_load_circle(pos_x, pos_y)
+        load_txt = ""
+        if self._load_name:
+            load_txt += "\"{}\":\n".format(load_name)
+        if self._load_id:
+            load_txt += "id: {}\n".format(load_id)
         if load_value is not None:
-            load_txt = ""
-            if self._load_name:
-                load_txt += load_name + ":\n"
             load_txt += pltu.format_value_unit(load_value, load_unit)
+        if load_txt:
             self._draw_load_txt(pos_x, pos_y, sub_x, sub_y, load_txt)
         self._draw_load_name(pos_x, pos_y, str(load_id))
-        load_dir_x, load_dir_y = pltu.norm_from_points(sub_x, sub_y, pos_x, pos_y)
+        load_dir_x, load_dir_y = pltu.norm_from_points(sub_x, sub_y,
+                                                       pos_x, pos_y)
         self._draw_load_bus(sub_x, sub_y, load_dir_x, load_dir_y, load_bus)
     
     def update_load(self, figure, observation,
@@ -340,14 +353,18 @@ class PlotMatplot(BasePlot):
         self.ylim[1] = max(self.ylim[1], pos_y + self._gen_radius)
         self._draw_gen_line(pos_x, pos_y, sub_x, sub_y)
         self._draw_gen_circle(pos_x, pos_y)
+        gen_txt = ""
+        if self._gen_name:
+            gen_txt += "\"{}\":\n".format(gen_name)
+        if self._gen_id:
+            gen_txt += "id: {}\n".format(gen_id)
         if gen_value is not None:
-            gen_txt = ""
-            if self._gen_name:
-                gen_txt += gen_name + ":\n"
             gen_txt += pltu.format_value_unit(gen_value, gen_unit)
+        if gen_txt:
             self._draw_gen_txt(pos_x, pos_y, sub_x, sub_y, gen_txt)
         self._draw_gen_name(pos_x, pos_y, str(gen_id))
-        gen_dir_x, gen_dir_y = pltu.norm_from_points(sub_x, sub_y, pos_x, pos_y)
+        gen_dir_x, gen_dir_y = pltu.norm_from_points(sub_x, sub_y,
+                                                     pos_x, pos_y)
         self._draw_gen_bus(sub_x, sub_y, gen_dir_x, gen_dir_y, gen_bus)
 
     def update_gen(self, figure, observation,
@@ -361,8 +378,10 @@ class PlotMatplot(BasePlot):
                             pos_or_x, pos_or_y,
                             pos_ex_x, pos_ex_y,
                             text):
-        pos_x, pos_y = pltu.middle_from_points(pos_or_x, pos_or_y, pos_ex_x, pos_ex_y)
-        off_x, off_y = pltu.orth_norm_from_points(pos_or_x, pos_or_y, pos_ex_x, pos_ex_y)
+        pos_x, pos_y = pltu.middle_from_points(pos_or_x, pos_or_y,
+                                               pos_ex_x, pos_ex_y)
+        off_x, off_y = pltu.orth_norm_from_points(pos_or_x, pos_or_y,
+                                                  pos_ex_x, pos_ex_y)
         txt_x = pos_x + off_x * (self._load_radius / 2)
         txt_y = pos_y + off_y * (self._load_radius / 2)
         ha = self._h_textpos_from_dir(off_x, off_y)
@@ -433,22 +452,33 @@ class PlotMatplot(BasePlot):
         rho = observation.rho[line_id]
         n_colors = len(self._line_color_scheme) - 1
         color_idx = max(0, min(n_colors, int(rho * n_colors)))
-        color = self._line_color_scheme[color_idx] if connected and rho > 0.0 else "black"
+        color = "black"
+        if connected and rho > 0.0:
+            color = self._line_color_scheme[color_idx]
         line_style = "-" if connected else "--"
         self._draw_powerline_line(pos_or_x, pos_or_y,
                                   pos_ex_x, pos_ex_y,
                                   color, line_style)
+        # Deal with line text configurations
+        txt = ""
+        if self._line_name:
+            txt += "\"{}\"\n".format(line_name)
+        if self._line_id:
+            txt += "id: {}\n".format(str(line_id))
         if line_value is not None:
-            txt = pltu.format_value_unit(line_value, line_unit)
+            txt += pltu.format_value_unit(line_value, line_unit)
+        if txt:
             self._draw_powerline_txt(pos_or_x, pos_or_y,
                                      pos_ex_x, pos_ex_y,
                                      txt)
 
-        or_dir_x, or_dir_y = pltu.norm_from_points(pos_or_x, pos_or_y, pos_ex_x, pos_ex_y)
+        or_dir_x, or_dir_y = pltu.norm_from_points(pos_or_x, pos_or_y,
+                                                   pos_ex_x, pos_ex_y)
         self._draw_powerline_bus(pos_or_x, pos_or_y,
                                  or_dir_x, or_dir_y,
                                  or_bus)
-        ex_dir_x, ex_dir_y = pltu.norm_from_points(pos_ex_x, pos_ex_y, pos_or_x, pos_or_y)
+        ex_dir_x, ex_dir_y = pltu.norm_from_points(pos_ex_x, pos_ex_y,
+                                                   pos_or_x, pos_or_y)
         self._draw_powerline_bus(pos_ex_x, pos_ex_y,
                                  ex_dir_x, ex_dir_y,
                                  ex_bus)

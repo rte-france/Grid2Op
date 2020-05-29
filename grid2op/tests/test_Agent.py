@@ -141,6 +141,35 @@ class TestMake2Agents(HelperTests):
         # test the env can step
         _ = env.step(act)
         _ = env2.step(act2)
+        env.close()
+        env2.close()
+
+
+class TestSeeding(HelperTests):
+    def test_random(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case5_example", test=True) as env:
+                obs = env.reset()
+                my_agent = RandomAgent(env.action_space)
+                my_agent.seed(0)
+                nb_test = 100
+                res = np.zeros(nb_test, dtype=np.int)
+                res2 = np.zeros(nb_test, dtype=np.int)
+                res3 = np.zeros(nb_test, dtype=np.int)
+                for i in range(nb_test):
+                    res[i] = my_agent.my_act(obs, 0., False)
+                my_agent.seed(0)
+                for i in range(nb_test):
+                    res2[i] = my_agent.my_act(obs, 0., False)
+                my_agent.seed(1)
+                for i in range(nb_test):
+                    res3[i] = my_agent.my_act(obs, 0., False)
+
+                # the same seeds should produce the same sequence
+                assert np.all(res == res2)
+                # different seeds should produce different sequence
+                assert np.any(res != res3)
 
 
 if __name__ == "__main__":

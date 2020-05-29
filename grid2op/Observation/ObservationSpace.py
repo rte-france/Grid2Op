@@ -25,6 +25,9 @@ class ObservationSpace(SerializableObservationSpace):
 
     Attributes
     ----------
+    with_forecast: ``bool``
+        If ``True`` the :func:`BaseObservation.simulate` will be available. If ``False`` it will deactivate this
+        possibility. If `simulate` function is not used, setting it to ``False`` can lead to non neglectible speed-ups.
 
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
@@ -54,7 +57,8 @@ class ObservationSpace(SerializableObservationSpace):
                  gridobj,
                  env,
                  rewardClass=None,
-                 observationClass=CompleteObservation):
+                 observationClass=CompleteObservation,
+                 with_forecast=True):
         """
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
@@ -63,6 +67,7 @@ class ObservationSpace(SerializableObservationSpace):
 
         # TODO DOCUMENTATION !!!
 
+        self.with_forecast = with_forecast
         # print("ObservationSpace init with rewardClass: {}".format(rewardClass))
         self.parameters = copy.deepcopy(env.parameters)
         # for the observation, I switch between the _parameters for the environment and for the simulation
@@ -81,10 +86,10 @@ class ObservationSpace(SerializableObservationSpace):
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
 
         # TODO here: have another backend maybe
-        self.backend_obs = env.backend.copy()
+        self._backend_obs = env.backend.copy()
 
-        _ObsEnv_class = _ObsEnv.init_grid(self.backend_obs)
-        self.obs_env = _ObsEnv_class(backend_instanciated=self.backend_obs,
+        _ObsEnv_class = _ObsEnv.init_grid(self._backend_obs)
+        self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
                                      obsClass=self.observationClass,
                                      parameters=env.parameters,
                                      reward_helper=self.reward_helper,
@@ -105,18 +110,20 @@ class ObservationSpace(SerializableObservationSpace):
         self._update_env_time = 0.
 
     def reset_space(self):
-        self.obs_env.reset_space()
+        if self.with_forecast:
+            self.obs_env.reset_space()
         self.action_helper_env.actionClass.reset_space()
 
     def __call__(self, env):
-        self.obs_env.update_grid(env)
+        if self.with_forecast:
+            self.obs_env.update_grid(env)
 
         res = self.observationClass(obs_env=self.obs_env,
                                     action_helper=self.action_helper_env)
 
         # TODO how to make sure that whatever the number of time i call "simulate" i still get the same observations
         # TODO use self.obs_prng when updating actions
-        res.update(env=env)
+        res.update(env=env, with_forecast=self.with_forecast)
         return res
 
     def size_obs(self):
