@@ -15,11 +15,11 @@ class CloseToOverflowReward(BaseReward):
     Returns max reward when there is no overflow, min reward if more than one line is close to overflow
     and the mean between max and min reward if one line is close to overflow
     """
-    def __init__(self):
+    def __init__(self, max_lines=5):
         BaseReward.__init__(self)
         self.reward_min = dt_float(0.0)
         self.reward_max = dt_float(1.0)
-        self.max_overflowed = dt_float(5.0)
+        self.max_overflowed = dt_float(max_lines)
 
     def initialize(self, env):
         pass
