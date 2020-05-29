@@ -73,6 +73,9 @@ class TestAgent(AgentWithConverter):
                     continue
                 if i == 177:
                     continue
+            elif env_name == "l2rpn_wcci_2020":
+                if i == 2:
+                    continue
             all_actions_tmp.append(action_space.disconnect_powerline(line_id=i))
 
         # other type of actions
@@ -141,6 +144,14 @@ class TestAgent(AgentWithConverter):
                                                        "loads_id": [(8, 1)]
                                                        }}),
             ]
+
+        elif env_name == "l2rpn_wcci_2020":
+            breaking_acts = [action_space({"set_bus": {"lines_or_id": [(5, 2), (6, 2)],
+                                                       "lines_ex_id": [(1, 2), (2, 1), (4, 2), (55, 2)],
+                                                       # "generators_id": [(2, 2)],
+                                                       # "loads_id": [(6, 1)]
+                                                       }}),
+            ]
         else:
             breaking_acts = [action_space({"set_bus": {"lines_or_id": [(0,2), (1,2), (2,2), (3,1)],
                                                        "generators_id": [(0,1)],
@@ -174,7 +185,7 @@ class TestAgent(AgentWithConverter):
         return res
 
 
-def main(max_ts, name, use_lightsim=False):
+def main(max_ts, name, use_lightsim=False, test_env=True):
     param = Parameters()
     if use_lightsim:
         if light_sim_avail:
@@ -186,7 +197,7 @@ def main(max_ts, name, use_lightsim=False):
 
     param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
 
-    env_klu = make(name, backend=backend, param=param, gamerules_class=AlwaysLegal, test=True)
+    env_klu = make(name, backend=backend, param=param, gamerules_class=AlwaysLegal, test=test_env)
     agent = TestAgent(action_space=env_klu.action_space, env_name=name)
 
     cp = cProfile.Profile()
@@ -209,11 +220,15 @@ if __name__ == "__main__":
                         help='Maximum number of time steps for which the benchamark will be run.')
     parser.add_argument("--use_ls", type=str2bool, nargs='?',
                         const=True, default=False,
-                        help="Activate nice mode.")
+                        help="Use the LightSim2Grid Backend.")
+    parser.add_argument("--test_env", type=str2bool, nargs='?',
+                        const=True, default=True,
+                        help="Use a test environment")
 
     args = parser.parse_args()
 
     max_ts = int(args.number)
     name = str(args.name)
     use_ls = args.use_ls
-    main(max_ts, name, use_lightsim=use_ls)
+    test_env = args.test_env
+    main(max_ts, name, use_lightsim=use_ls, test_env=test_env)
