@@ -20,6 +20,8 @@ Change Log
 ---------------------
 - [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
   more broadly usable.
+- [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
+  disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
 
 [0.9.3] - 2020-05-29
 ---------------------

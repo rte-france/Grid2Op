@@ -7,7 +7,8 @@ __all__ = [
     "TopologyGreedy",
     "AgentWithConverter",
     "RandomAgent",
-    "MLAgent"
+    "MLAgent",
+    "RecoPowerlineAgent"
 ]
 
 from grid2op.Agent.BaseAgent import BaseAgent
@@ -19,3 +20,4 @@ from grid2op.Agent.TopologyGreedy import TopologyGreedy
 from grid2op.Agent.AgentWithConverter import AgentWithConverter
 from grid2op.Agent.RandomAgent import RandomAgent
 from grid2op.Agent.MLAgent import MLAgent
+from grid2op.Agent.RecoPowerlineAgent import RecoPowerlineAgent

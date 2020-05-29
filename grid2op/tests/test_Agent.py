@@ -15,7 +15,7 @@ from grid2op.tests.helper_path_test import *
 import grid2op
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make
-from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent
+from grid2op.Agent import PowerLineSwitch, TopologyGreedy, DoNothingAgent, RecoPowerlineAgent
 from grid2op.Parameters import Parameters
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
@@ -170,6 +170,87 @@ class TestSeeding(HelperTests):
                 assert np.all(res == res2)
                 # different seeds should produce different sequence
                 assert np.any(res != res3)
+
+
+class TestRecoPowerlineAgent(HelperTests):
+    def test_reco_simple(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        param.NB_TIMESTEP_COOLDOWN_LINE = 1
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+                my_agent = RecoPowerlineAgent(env.action_space)
+                obs = env.reset()
+                obs, reward, done, info = env.step(env.action_space({'set_line_status': [(1, -1)]}))
+                assert np.sum(obs.time_before_cooldown_line) == 1
+                # the agent should do nothing, as the line is still in cooldown
+                act = my_agent.act(obs, reward, done)
+                assert not act.as_dict()
+                obs, reward, done, info = env.step(act)
+                # now cooldown is over
+                assert np.sum(obs.time_before_cooldown_line) == 0
+                act2 = my_agent.act(obs, reward, done)
+                ddict = act2.as_dict()
+                assert "set_line_status" in ddict
+                assert "nb_connected" in ddict["set_line_status"]
+                assert "connected_id" in ddict["set_line_status"]
+                assert ddict["set_line_status"]["nb_connected"] == 1
+                assert ddict["set_line_status"]["connected_id"][0] == 1
+
+    def test_reco_more_difficult(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        param.NB_TIMESTEP_COOLDOWN_LINE = 3
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case5_example", test=True, param=param) as env:
+                my_agent = RecoPowerlineAgent(env.action_space)
+                obs = env.reset()
+                obs, reward, done, info = env.step(env.action_space({'set_line_status': [(1, -1)]}))
+                obs, reward, done, info = env.step(env.action_space({'set_line_status': [(2, -1)]}))
+
+                # the agent should do nothing, as the line is still in cooldown
+                act = my_agent.act(obs, reward, done)
+                assert not act.as_dict()
+                obs, reward, done, info = env.step(act)
+                act = my_agent.act(obs, reward, done)
+                assert not act.as_dict()
+                obs, reward, done, info = env.step(act)
+                # now in theory i can reconnect the first one
+                act2 = my_agent.act(obs, reward, done)
+                ddict = act2.as_dict()
+                assert "set_line_status" in ddict
+                assert "nb_connected" in ddict["set_line_status"]
+                assert "connected_id" in ddict["set_line_status"]
+                assert ddict["set_line_status"]["nb_connected"] == 1
+                assert ddict["set_line_status"]["connected_id"][0] == 1
+
+                # but i will not implement it on the grid
+                obs, reward, done, info = env.step(env.action_space())
+
+                act3 = my_agent.act(obs, reward, done)
+                ddict3 = act3.as_dict()
+                assert len(my_agent.tested_action) == 2
+                # and it turns out i need to reconnect the first one first
+                assert "set_line_status" in ddict3
+                assert "nb_connected" in ddict3["set_line_status"]
+                assert "connected_id" in ddict3["set_line_status"]
+                assert ddict3["set_line_status"]["nb_connected"] == 1
+                assert ddict3["set_line_status"]["connected_id"][0] == 1
+
+                obs, reward, done, info = env.step(act3)
+
+                act4 = my_agent.act(obs, reward, done)
+                ddict4 = act4.as_dict()
+                assert len(my_agent.tested_action) == 1
+                # and it turns out i need to reconnect the first one first
+                assert "set_line_status" in ddict4
+                assert "nb_connected" in ddict4["set_line_status"]
+                assert "connected_id" in ddict4["set_line_status"]
+                assert ddict4["set_line_status"]["nb_connected"] == 1
+                assert ddict4["set_line_status"]["connected_id"][0] == 2
+
 
 
 if __name__ == "__main__":
