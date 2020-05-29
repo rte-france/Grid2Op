@@ -16,14 +16,33 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+[0.9.3] - 2020-yy-xx
+---------------------
+- [FIXED] `Issue #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows
+  based OS.
+- [UPDATED] the first introductory notebook.
+- [UPDATED] possibility to reconnect / disconnect powerline giving its name when using `reconnect_powerline` and
+  `disconnect_powerline` methods of the action space.
+- [UPDATED] `Issue #105 <https://github.com/rte-france/Grid2Op/issues/105>`_ problem solved for notebook 4.
+  based OS.
+- [ADDED] `Issue #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
+  The notebook has been updated accordingly.
+- [ADDED] Some function to disable the `obs.simulate` if wanted. This can lead to around 10~15% performance speed up
+  in case `obs.simulate` is not used. See `env.deactivate_forecast` and `env.reactivate_forecast`
+  (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
+- [UPDATED] overall speed enhancement mostly in the `VoltageControler`, with the adding of the previous capability,
+  some updates in the `BackendAction`
+  `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_
+
 [0.9.2] - 2020-05-26
 ---------------------
-- [FIXED] `GridObject` loading from file does initialize single values (`bool`, `int`, `float`) correctly instead of creating a `np.array` of size one.
+- [FIXED] `GridObject` loading from file does initialize single values (`bool`, `int`, `float`)
+  correctly instead of creating a `np.array` of size one.
 - [FIXED] `IdToAct` loading actions from file .npy
 - [FIXED] a problem on the grid name import on some version of pandas
 - [ADDED] a function that returns the types of the action see `action.get_types()`
 - [ADDED] a class to "cache" the data in memory instead of reading it over an over again from disk (see
-  `grid2op.chronics.MultifolderWithCache`
+  `grid2op.chronics.MultifolderWithCache` (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
 - [ADDED] improve the documentation of the observation class.
 - [UPDATED] Reward `LinesReconnectedReward` to take into account maintenances downtimes
 - [UPDATED] Adds an option to disable plotting load and generators names when using `PlotMatplot`

@@ -89,7 +89,7 @@ class SerializableActionSpace(SerializableSpace):
         res.sample()
         return res
 
-    def disconnect_powerline(self, line_id, previous_action=None):
+    def disconnect_powerline(self, line_id=None, line_name=None, previous_action=None):
         """
         Utilities to disconnect a powerline more easily.
 
@@ -98,12 +98,26 @@ class SerializableActionSpace(SerializableSpace):
         line_id: ``int``
             The powerline to be disconnected.
 
+        line_name: ``str``
+            Name of the powerline. Note that either line_id or line_name should be provided. If both are provided, it is
+            an error, if none are provided it is an error.
+
         previous_action
 
         Returns
         -------
 
         """
+        if line_id is None and line_name is None:
+            raise AmbiguousAction("You need to provide either the \"line_id\" or the \"line_name\" of the powerline "
+                                  "you want to disconnect")
+        if line_id is not None and line_name is not None:
+            raise AmbiguousAction("You need to provide only of the \"line_id\" or the \"line_name\" of the powerline "
+                                  "you want to disconnect")
+
+        if line_id is None:
+            line_id = np.where(self.name_line == line_name)[0]
+
         if previous_action is None:
             res = self.actionClass()
         else:
@@ -118,7 +132,7 @@ class SerializableActionSpace(SerializableSpace):
         res.update({"set_line_status": [(line_id, -1)]})
         return res
 
-    def reconnect_powerline(self, line_id, bus_or, bus_ex, previous_action=None):
+    def reconnect_powerline(self, bus_or, bus_ex, line_id=None, line_name=None, previous_action=None):
         """
         Utilities to reconnect a powerline more easily.
 
@@ -141,6 +155,16 @@ class SerializableActionSpace(SerializableSpace):
         -------
 
         """
+        if line_id is None and line_name is None:
+            raise AmbiguousAction("You need to provide either the \"line_id\" or the \"line_name\" of the powerline "
+                                  "you want to reconnect")
+        if line_id is not None and line_name is not None:
+            raise AmbiguousAction("You need to provide only of the \"line_id\" or the \"line_name\" of the powerline "
+                                  "you want to reconnect")
+
+        if line_id is None:
+            line_id = np.where(self.name_line == line_name)[0]
+
         if previous_action is None:
             res = self.actionClass()
         else:

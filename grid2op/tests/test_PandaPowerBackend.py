@@ -14,6 +14,7 @@ import pdb
 import warnings
 
 import grid2op
+from grid2op.dtypes import dt_int
 from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Backend import PandaPowerBackend
@@ -510,7 +511,9 @@ class TestTopoAction(unittest.TestCase):
         after_amps_flow = self.backend.get_line_flow()
 
         topo_vect = self.backend.get_topo_vect()
-        topo_vect_old = self.backend._get_topo_vect_old()
+        topo_vect_old = np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dt_int)
         assert self.compare_vect(topo_vect, topo_vect_old) == True
 
     def test_topo_set1sub(self):

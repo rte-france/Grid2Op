@@ -10,7 +10,7 @@ The function define in this module is the easiest and most convenient ways to cr
 
 To get started with such an environment, you can simply do:
 
-..code-block:: python
+.. code-block:: python
 
     import grid2op
     env = grid2op.make("rte_case14_realistic")

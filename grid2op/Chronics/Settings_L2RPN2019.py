@@ -90,12 +90,12 @@ class L2RPN2019_Action(BaseAction):
     **NB** This class doesn't allow to connect object to other buses than their original bus. In this case,
     reconnecting a powerline cannot be considered "ambiguous". We have to
     """
-    def __init__(self, gridobj):
+    def __init__(self):
         """
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing more is done
         in this constructor.
         """
-        BaseAction.__init__(self, gridobj)
+        BaseAction.__init__(self)
 
         # the injection keys is not authorized, meaning it will send a warning is someone try to implement some
         # modification injection.
@@ -215,7 +215,6 @@ class L2RPN2019_Action(BaseAction):
 
         """
         self.reset()
-        # pdb.set_trace()
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while loading a \"TopologyAction\" from a vector. Found {} elements instead of {}".format(vect.shape[1], self.size()))
         prev_ = 0
@@ -229,20 +228,6 @@ class L2RPN2019_Action(BaseAction):
         # self.disambiguate_reconnection()
 
         self._check_for_ambiguity()
-
-    # def disambiguate_reconnection(self):
-    #     """
-    #     As this class doesn't allow to perform any topology change, when a powerline is reconnected, it's necessarily
-    #     on the first bus of the substation.
-    #
-    #     So it's not ambiguous in this case. We have to implement this logic here, and that is what is done in this
-    #     function.
-    #
-    #     """
-    #     sel_ = self._set_line_status == 1
-    #     if np.any(sel_):
-    #         self._set_topo_vect[self.line_ex_pos_topo_vect[sel_]] = 1
-    #         self._set_topo_vect[self.line_or_pos_topo_vect[sel_]] = 1
 
     def sample(self, space_prng):
         """

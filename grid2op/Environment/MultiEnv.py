@@ -13,7 +13,6 @@ from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
-
 # TODO test this class.
 
 
@@ -61,6 +60,8 @@ class RemoteEnv(Process):
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
         self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x), replace=False)])
+        # forecast are not forwarded with this method anyway
+        self.env.deactivate_forecast()
 
     def _clean_observation(self, obs):
         obs._forecasted_grid = []
@@ -155,6 +156,15 @@ class MultiEnvironment(GridObjects):
     A broader support of regular grid2op environment capabilities as well as support for
     :func:`grid2op.Observation.BaseObservation.simulate` call will be added in the future.
 
+    **NB** if the backend class you use is not pickable, the :class:`MultiEnvironment`
+    will **NOT** be supported in Microsoft Windows based machine. However, you can always fall
+    back to use the default :class:`grid2op.Backend.PandaPowerBackend` in this case. This class
+    is compatible with multi environments in linux (tested on Fedora and Ubuntu) mac os (tested
+    on the latest macos release at time of writing) and windows 10 (latest update at time of
+    writing).
+
+    Examples
+    --------
     An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
 
     .. code-block:: python
@@ -213,11 +223,11 @@ class MultiEnvironment(GridObjects):
 
         env_params = [env.get_kwargs() for _ in range(self.nb_env)]
         for el in env_params:
-            el["backendClass"] = type(env.backend)
+            el["backendClass"] = env._raw_backend_class
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
-                              name="env: {}".format(i),
+                              name="{}_subprocess_{}".format(env.name, i),
                               seed=env.space_prng.randint(max_int))
                     for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
 

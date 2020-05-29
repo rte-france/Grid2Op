@@ -125,19 +125,21 @@ class Environment(BaseEnv):
                  tol_poly=1e-6,
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_init_budget=0
+                 opponent_init_budget=0,
+                 _raw_backend_class=None,
+                 with_forecast=True
                  ):
         BaseEnv.__init__(self,
-                           parameters=parameters,
-                           thermal_limit_a=thermal_limit_a,
-                           epsilon_poly=epsilon_poly,
-                           tol_poly=tol_poly,
-                           other_rewards=other_rewards)
+                         parameters=parameters,
+                         thermal_limit_a=thermal_limit_a,
+                         epsilon_poly=epsilon_poly,
+                         tol_poly=tol_poly,
+                         other_rewards=other_rewards,
+                         with_forecast=with_forecast)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
         self.name = name
-
         # the voltage controler
         self.voltagecontrolerClass = voltagecontrolerClass
         self.voltage_controler = None
@@ -155,6 +157,10 @@ class Environment(BaseEnv):
         self.opponent_class = opponent_class
         self.opponent_init_budget = opponent_init_budget
 
+        if _raw_backend_class is None:
+            self._raw_backend_class = type(backend)
+        else:
+            _raw_backend_class = _raw_backend_class
         # for plotting
         self.init_backend(init_grid_path, chronics_handler, backend,
                           names_chronics_to_backend, actionClass, observationClass,
@@ -630,6 +636,7 @@ class Environment(BaseEnv):
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
         res["name"] = self.name
+        res["_raw_backend_class"] = self._raw_backend_class
         return res
 
     def get_params_for_runner(self):
@@ -665,7 +672,7 @@ class Environment(BaseEnv):
         res["legalActClass"] = self.legalActClass
         res["envClass"] = Environment
         res["gridStateclass"] = self.chronics_handler.chronicsClass
-        res["backendClass"] = type(self.backend)  # TODO
+        res["backendClass"] = self._raw_backend_class
         res["verbose"] = False
         dict_ = copy.deepcopy(self.chronics_handler.kwargs)
         if 'path' in dict_:
