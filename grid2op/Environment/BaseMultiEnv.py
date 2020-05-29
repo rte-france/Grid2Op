@@ -213,11 +213,11 @@ class BaseMultiEnvironment(GridObjects):
 
         env_params = [envs[e].get_kwargs() for e in range(self.nb_env)]
         for e, el in enumerate(env_params):
-            el["backendClass"] = type(envs[e].backend)
+            el["backendClass"] = envs[e]._raw_backend_class
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
-                              name="env: {}".format(i),
+                              name="{}_subprocess_{}".format(envs[i].name, i),
                               seed=envs[i].space_prng.randint(max_int))
                     for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
 
