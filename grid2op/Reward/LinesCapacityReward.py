@@ -29,9 +29,10 @@ class LinesCapacityReward(BaseReward):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
-        usage = np.sum(env.current_obs.rho)
-        usage = np.clip(usage, 0.0, float(env.n_line))
-        reward = np.interp(usage,
-                           [dt_float(0.0), float(env.n_line)],
-                           [self.reward_max, self.reward_min])
+        n_connected = np.sum(env.line_status.astype(dt_float))
+        usage = np.sum(env.current_obs.rho[env.line_status == True])
+        usage = np.clip(usage, 0.0, float(n_connected))
+        reward = np.interp(n_connected - usage,
+                           [dt_float(0.0), float(n_connected)],
+                           [self.reward_min, self.reward_max])
         return reward
