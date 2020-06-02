@@ -27,6 +27,8 @@ class MultiEnvironment2(BaseMultiEnvironment):
 
     nb_envs: ``list:int``
         Number of parallel underlying environment that will be handled. 
+        MUST be the same length as the parameter `envs`.
+        The total number of subprocesses will be the sum of this list.
 
     """
     def __init__(self, envs, nb_envs):
