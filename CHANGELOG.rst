@@ -18,6 +18,7 @@ Change Log
 
 [0.10.0] - 2020-06-??
 ---------------------
+- [FIXED] `LinesReconnectedReward` fixes reward inverted range  
 - [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same grid and an arbitrary number of processes for each of these.  
   
 [0.9.3] - 2020-05-29
