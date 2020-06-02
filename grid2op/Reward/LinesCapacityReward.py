@@ -15,6 +15,10 @@ class LinesCapacityReward(BaseReward):
     Reward based on lines capacity usage
     Returns max reward if no current is flowing in the lines
     Returns min reward if all lines are used at max capacity
+
+    Compared to `:class:L2RPNReward`:
+    This reward is linear (instead of quadratic) and only 
+    considers connected lines capacities
     """
     def __init__(self):
         BaseReward.__init__(self)
