@@ -22,6 +22,7 @@ Change Log
   more broadly usable.
 - [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
   disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
+- [ADDED] a clearer explanation between illegal and ambiguous action.
 
 [0.9.3] - 2020-05-29
 ---------------------

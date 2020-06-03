@@ -706,8 +706,8 @@ class BaseAction(GridObjects):
         It also performs a check of whether or not an action is "Ambiguous", eg an action that reconnect a powerline
         but doesn't specify on which bus to reconnect it is said to be ambiguous.
 
-        If this :func:`BaseAction.__call__` is overloaded, the call of :func:`BaseAction._check_for_ambiguity` must be ensured
-        by this the derived class.
+        If this :func:`BaseAction.__call__` is overloaded, the call of :func:`BaseAction._check_for_ambiguity` must be
+        ensured by this the derived class.
 
         Returns
         -------

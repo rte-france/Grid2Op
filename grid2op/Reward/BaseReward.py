@@ -45,6 +45,10 @@ class BaseReward(ABC):
         If :attr:`BaseReward.reward_min`, :attr:`BaseReward.reward_max` or other custom attributes require to have a
         valid :class:`grid2op.Environement.Environment` to be initialized, this should be done in this method.
 
+        **NB** reward_min and reward_max are used by the environment to compute the maximum and minimum reward and
+        cast it in "reward_range" which is part of the openAI gym public interface. If you don't define them, some
+        piece of code might not work as expected.
+
         Parameters
         ----------
         env: :class:`grid2op.Environment.Environment`
@@ -79,13 +83,13 @@ class BaseReward(ABC):
 
         is_illegal: ``bool``
             Has the action submitted by the BaseAgent raised an :class:`grid2op.Exceptions.IllegalAction` exception.
-            In this case it has been
-            overidden by "do nohting" by the environment.
+            In this case it has been replaced by "do nohting" by the environment. **NB** an illegal action is NOT
+            an ambiguous action. See the description of the Action module: :ref:`Illegal-vs-Ambiguous` for more details.
 
         is_ambiguous: ``bool``
             Has the action submitted by the BaseAgent raised an :class:`grid2op.Exceptions.AmbiguousAction` exception.
-            In this case it has been
-            overidden by "do nothing" by the environment.
+            In this case it has been replaced by "do nothing" by the environment. **NB** an illegal action is NOT
+            an ambiguous action. See the description of the Action module: :ref:`Illegal-vs-Ambiguous` for more details.
 
         Returns
         -------
