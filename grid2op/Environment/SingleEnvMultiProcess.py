@@ -11,12 +11,12 @@ import numpy as np
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
-from grid2op.Environment import BaseMultiEnvironment
+from grid2op.Environment.BaseMultiProcessEnv import BaseMultiProcessEnvironment
 from grid2op.Action import BaseAction
 
 # TODO test this class.
 
-class MultiEnvironment(BaseMultiEnvironment):
+class SingleEnvMultiProcess(BaseMultiProcessEnvironment):
     """
     This class allows to evaluate a single agent instance on multiple environments running in parrallel.
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     env.seed(42)
 
     agent = DoNothingAgent(env.action_space)
-    multi_envs = MultiEnvironment(env, nb_env)
+    multi_envs = SingleEnvMultiProcess(env, nb_env)
 
     obs = multi_envs.reset()
     rews = [env.reward_range[0] for i in range(nb_env)]

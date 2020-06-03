@@ -129,7 +129,7 @@ class RemoteEnv(Process):
                 raise NotImplementedError
 
 
-class BaseMultiEnvironment(GridObjects):
+class BaseMultiProcessEnvironment(GridObjects):
     """
     This class allows to evaluate a single agent instance on multiple environments running in parrallel.
 
@@ -380,7 +380,7 @@ if __name__ == "__main__":
     envs = [env for _ in range(nb_env)]
     
     agent = DoNothingAgent(env.action_space)
-    multi_envs = BaseMultiEnvironment(envs)
+    multi_envs = BaseMultiProcessEnvironment(envs)
 
     obs = multi_envs.reset()
     rews = [env.reward_range[0] for i in range(nb_env)]

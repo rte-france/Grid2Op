@@ -18,6 +18,9 @@ Change Log
 
 [0.10.0] - 2020-06-??
 ---------------------
+- [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
+- [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now `SingleProcessMultiEnv`
+- [ADDED] `MultiEnvMultiProcess` as a new multi-process class to run different environments in multiples prallel processes.
 - [FIXED] `LinesReconnectedReward` fixes reward inverted range  
 - [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same grid and an arbitrary number of processes for each of these.  
   
