@@ -16,6 +16,14 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+[0.10.0] - 2020-06-??
+---------------------
+- [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
+- [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now `SingleProcessMultiEnv`
+- [ADDED] `MultiEnvMultiProcess` as a new multi-process class to run different environments in multiples prallel processes.
+- [FIXED] `LinesReconnectedReward` fixes reward inverted range  
+- [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same grid and an arbitrary number of processes for each of these.  
+  
 [0.9.3] - 2020-05-29
 ---------------------
 - [FIXED] `Issue #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows

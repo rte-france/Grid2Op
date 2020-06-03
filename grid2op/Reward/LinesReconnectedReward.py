@@ -48,6 +48,7 @@ class LinesReconnectedReward(BaseReward):
 
         max_p = self.penalty_max_at_n_lines
         n_penalties = dt_float(max(max_p, n_penalties))
-        r = np.interp(n_penalties, [dt_float(0.0), max_p],
-                      [self.reward_min, self.reward_max])
+        r = np.interp(max_p - n_penalties,
+                      [dt_float(0.0), max_p],
+                      [self.reward_max, self.reward_min])
         return dt_float(r)

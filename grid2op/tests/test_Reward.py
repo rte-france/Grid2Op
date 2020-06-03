@@ -78,6 +78,9 @@ class TestLoadingL2RPNSandBoxScore(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
         return L2RPNSandBoxScore
 
+class TestLoadingLinesCapacityReward(TestLoadingReward, unittest.TestCase):
+    def _reward_type(self):
+        return LinesCapacityReward
 
 class TestDistanceReward(TestLoadingReward, unittest.TestCase):
     def _reward_type(self):
