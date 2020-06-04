@@ -11,6 +11,7 @@ import numpy as np
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
+from grid2op.Exceptions import EnvError 
 
 class MultiMixEnvironment(GridObjects, RandomObject):
     """
@@ -30,16 +31,24 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_obs = None
         self._envs = []
 
-        # Inline imkport to prevent cyclical import
+        # Inline import to prevent cyclical import
         from grid2op.MakeEnv.Make import make
 
-        for env_dir in os.listdir(envs_dir):
-            env_path = os.path.join(envs_dir, env_dir)            
-            if not os.path.isdir(env_path):
-                continue
-            env = make(env_path)
-            self._envs.append(env)
-        
+        try:
+            for env_dir in sorted(os.listdir(envs_dir)):
+                env_path = os.path.join(envs_dir, env_dir)            
+                if not os.path.isdir(env_path):
+                    continue
+                env = make(env_path)
+                self._envs.append(env)
+        except Exception as e:
+            err_msg = "MultiMix environment creation failed: {}".format(e)
+            raise EnvError(err_msg)
+
+        if len(self._envs) == 0:
+            err_msg = "MultiMix envs_dir did not contain any valid env"
+            raise EnvError(err_msg)
+            
         self.current_env = self._envs[0]
         self.get_obs()
 
