@@ -49,7 +49,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert np.all(seeds_1 == seeds_3)
         assert np.any(seeds_1 != seeds_2)
 
-    def test_step(self):
+    def test_step_dn(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         dn = mme.action_space({})
 
@@ -58,6 +58,25 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert r is not None
         assert isinstance(info, dict)
         assert done is not True
-        
+
+    def test_step_switch_line(self):
+        LINE_ID = 4
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        line_ex_topo = mme.line_ex_pos_topo_vect[LINE_ID]
+        line_or_topo = mme.line_or_pos_topo_vect[LINE_ID]
+        switch_status = mme.action_space.get_change_line_status_vect()
+        switch_status[LINE_ID] = True
+        switch_action = mme.action_space({
+            'change_line_status': switch_status
+        })
+
+        obs, r, d, info = mme.step(switch_action)
+        assert d is False
+        assert obs.line_status[LINE_ID] == False
+        obs, r, d, info = mme.step(switch_action)
+        assert d is False, "Diverged powerflow on reconnection"
+        assert info["is_illegal"] == False, "Reconnecting should be legal"
+        assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
+
 if __name__ == "__main__":
     unittest.main()

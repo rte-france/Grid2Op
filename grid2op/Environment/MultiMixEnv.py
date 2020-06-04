@@ -49,18 +49,13 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             raise EnvError(err_msg)
             
         self.current_env = self._envs[0]
+        # Make sure GridObject class attributes are set from first env
+        # Shouldbe fine since the grid is the same for all envs
+        self.__class__ = self.init_grid(self.current_env)
 
-    @property
-    def action_space(self):
-        return self.current_env.action_space
+    def __getattr__(self, name):
+        return getattr(self.current_env, name)
 
-    @property
-    def observation_space(self):
-        return self.current_env.observation_space
-
-    def current_obs(self):
-        return self.current_env.current_obs
-    
     def reset(self):
         rnd_env_idx = np.random.randint(len(self._envs))
         self.current_env = self._envs[rnd_env_idx]
