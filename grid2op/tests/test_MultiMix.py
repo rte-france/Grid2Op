@@ -51,7 +51,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_step(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
-        dn = mme.current_env.action_space()
+        dn = mme.action_space({})
 
         obs, r, done, info  = mme.step(dn)
         assert obs is not None

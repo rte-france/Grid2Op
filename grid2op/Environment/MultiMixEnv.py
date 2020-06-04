@@ -28,7 +28,6 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         RandomObject.__init__(self)
 
         self.current_env = None
-        self.current_obs = None
         self._envs = []
 
         # Inline import to prevent cyclical import
@@ -50,8 +49,18 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             raise EnvError(err_msg)
             
         self.current_env = self._envs[0]
-        self.get_obs()
 
+    @property
+    def action_space(self):
+        return self.current_env.action_space
+
+    @property
+    def observation_space(self):
+        return self.current_env.observation_space
+
+    def current_obs(self):
+        return self.current_env.current_obs
+    
     def reset(self):
         rnd_env_idx = np.random.randint(len(self._envs))
         self.current_env = self._envs[rnd_env_idx]
@@ -109,9 +118,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             The current BaseObservation given to the 
             :class:`grid2op.BaseAgent.BaseAgent` / bot / controler.
         """
-        obs = self.current_env.get_obs()
-        self.current_obs = obs
-        return obs
+        return self.current_env.get_obs()
 
     def get_thermal_limit(self):
         """
@@ -153,9 +160,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 contains auxiliary diagnostic information
 
         """
-        o, r, d, i =  self.current_env.step(action)
-        self.current_obs = o
-        return o, r, d, i
+        return self.current_env.step(action)
 
     def __enter__(self):
         """
