@@ -89,10 +89,12 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return super().seed(seed)
 
     def deactivate_forecast(self):
-        self.current_env.deactive_forecast()
+        for e in self._envs:
+            e.deactive_forecast()
 
     def reactivate_forecast(self):
-        self.current_env.reactivate_forecast()
+        for e in self._envs:
+            e.reactivate_forecast()
 
     def set_thermal_limit(self, thermal_limit):
         """
