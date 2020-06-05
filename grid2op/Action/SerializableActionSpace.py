@@ -403,8 +403,7 @@ class SerializableActionSpace(SerializableSpace):
         This methods allows to compute and return all the unitary topological changes that can be performed on a
         powergrid.
 
-        The changes will be performed using the "change_bus" method. The "do nothing" action will be counted only
-        once.
+        The changes will be performed using the "change_bus" method. It ecludes the "do nothing" action
 
         Parameters
         ----------
@@ -421,6 +420,10 @@ class SerializableActionSpace(SerializableSpace):
         S = [0, 1]
         for sub_id, num_el in enumerate(action_space.sub_info):
             already_set = set()
+            # remove the "do nothing" action, which is either equivalent to not change anything
+            # or to change everything
+            already_set.add(tuple([1 for _ in range(num_el)]))
+            already_set.add(tuple([0 for _ in range(num_el)]))
             for tup_ in itertools.product(S, repeat=num_el):
                 if tup_ not in already_set:
                     indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)
