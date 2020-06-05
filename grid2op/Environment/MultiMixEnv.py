@@ -52,7 +52,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.env_index = 0
         self.current_env = self._envs[self.env_index]
         # Make sure GridObject class attributes are set from first env
-        # Shouldbe fine since the grid is the same for all envs
+        # Should be fine since the grid is the same for all envs
         self.__class__ = self.init_grid(self.current_env)
 
     def __getattr__(self, name):
@@ -80,9 +80,9 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
         Returns
         ---------
-        seed: ``tuple``
+        seeds: ``list``
             The seed used to set the prng (pseudo random number generator) 
-            for all environments
+            for all environments, and each environment ``tuple`` seeds
 
         """
         try:
