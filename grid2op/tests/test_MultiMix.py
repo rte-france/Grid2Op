@@ -32,6 +32,22 @@ class TestMultiMixEnvironment(unittest.TestCase):
         mme.reset()
         assert mme.current_obs is not None
         assert mme.current_env is not None
+
+    def test_reset_seq(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        for i in range(2):
+            assert i == mme.current_index
+            mme.reset()
+            assert mme.current_obs is not None
+            assert mme.current_env is not None
+
+    def test_reset_random(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        for i in range(2):
+            mme.reset(random=True)
+            assert mme.current_obs is not None
+            assert mme.current_env is not None
+
         
     def test_seeding(self):
         mme1 = MultiMixEnvironment(PATH_DATA_MULTIMIX)

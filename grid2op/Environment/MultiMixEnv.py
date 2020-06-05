@@ -55,6 +55,10 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         # Should be fine since the grid is the same for all envs
         self.__class__ = self.init_grid(self.current_env)
 
+    @property
+    def current_index(self):
+        return self.env_index
+
     def __getattr__(self, name):
         return getattr(self.current_env, name)
 
