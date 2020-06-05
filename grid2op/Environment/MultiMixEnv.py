@@ -90,7 +90,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     def deactivate_forecast(self):
         for e in self._envs:
-            e.deactive_forecast()
+            e.deactivate_forecast()
 
     def reactivate_forecast(self):
         for e in self._envs:

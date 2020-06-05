@@ -11,7 +11,7 @@ import tempfile
 from grid2op.tests.helper_path_test import *
 from grid2op.Environment import MultiMixEnvironment
 from grid2op.Observation import CompleteObservation
-from grid2op.Exceptions import EnvError
+from grid2op.Exceptions import EnvError, NoForecastAvailable
 
 class TestMultiMixEnvironment(unittest.TestCase):
     def test_creation(self):        
@@ -77,6 +77,28 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert d is False, "Diverged powerflow on reconnection"
         assert info["is_illegal"] == False, "Reconnecting should be legal"
         assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
+
+    def test_forecast_toggle(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        dn = mme.action_space({})
+        # Forecast off
+        mme.deactivate_forecast()
+        # Step once
+        obs, _, _ , _ = mme.step(dn)
+        # Cant simulate
+        with self.assertRaises(NoForecastAvailable):
+            obs.simulate(dn)
+        # Forecast ON
+        mme.reactivate_forecast()
+        # Reset, step once
+        mme.reset()
+        obs, _, _ , _ = mme.step(dn)
+        # Can simulate
+        obs, r, done, info = obs.simulate(dn)
+        assert obs is not None
+        assert r is not None
+        assert isinstance(info, dict)
+        assert done is not True
 
 if __name__ == "__main__":
     unittest.main()
