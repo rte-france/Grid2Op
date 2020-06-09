@@ -36,6 +36,8 @@ Change Log
   more broadly usable.
 - [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same
   grid and an arbitrary number of processes for each of these.
+- [UPDATED] Behaviour of "change_bus" and "set_bus": it is no more possible to affect the bus of a powerline
+  disconnected.
 
 [0.9.3] - 2020-05-29
 ---------------------
