@@ -1015,6 +1015,37 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # test all prod p are equal, of course we remove the slack bus...
         assert np.sum(np.abs(prod_p_f[:-1] - sim_obs.prod_p[:-1])) < 1e-5
 
+    def _check_equal(self, obs1, obs2):
+        tol = 1e-8
+        assert np.all(np.abs(obs1.prod_p - obs2.prod_p) <= tol)
+        assert np.all(np.abs(obs1.prod_v - obs2.prod_v) <= tol)
+        assert np.all(np.abs(obs1.prod_q - obs2.prod_q) <= tol)
+        assert np.all(np.abs(obs1.load_p - obs2.load_p) <= tol)
+        assert np.all(np.abs(obs1.load_q - obs2.load_q) <= tol)
+        assert np.all(np.abs(obs1.load_v - obs2.load_v) <= tol)
+        assert np.all(np.abs(obs1.rho - obs2.rho) <= tol)
+        assert np.all(np.abs(obs1.p_or - obs2.p_or) <= tol)
+        assert np.all(np.abs(obs1.q_or - obs2.q_or) <= tol)
+        assert np.all(np.abs(obs1.v_or - obs2.v_or) <= tol)
+        assert np.all(np.abs(obs1.a_or - obs2.a_or) <= tol)
+        assert np.all(np.abs(obs1.p_ex - obs2.p_ex) <= tol)
+        assert np.all(np.abs(obs1.q_ex - obs2.q_ex) <= tol)
+        assert np.all(np.abs(obs1.v_ex - obs2.v_ex) <= tol)
+        assert np.all(np.abs(obs1.a_ex - obs2.a_ex) <= tol)
+
+    def test_simulate_current_ts(self):
+        sim_obs, _, _, _ = self.obs.simulate(self.env.action_space(), time_step=-1)
+        # check that the observations are equal
+        self._check_equal(sim_obs, self.obs)
+
+        obs = self.env.reset()
+        sim_obs1, _, _, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        sim_obs2, _, _, _ = obs.simulate(self.env.action_space(), time_step=-1)
+        sim_obs3, _, _, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        self._check_equal(sim_obs2, obs)
+        self._check_equal(sim_obs1, sim_obs3)
+
+
 ## TODO test -- Add test to cover simulation vs step when there is a planned maintenance operation
 
         

@@ -187,28 +187,21 @@ class _ObsEnv(BaseEnv):
         ``None``
 
         """
-        if self.is_init:
-            return
-
+        # if self.time_stamp == time_stamp:
+            # no need to re modify it
+            # return
 
         self._topo_vect[:] = topo_vect
-        # update the action that set the grid to the real value
-        self._action = self.CompleteActionClass()
-        self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
-                             "set_bus": self._topo_vect,
-                             "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
-                                           "load_p": self._load_p, "load_q": self._load_q}})
-
-        self._action += new_state_action
 
         # TODO set the shunts here
-        self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
         self._backend_action_set += self.helper_action_env({"set_line_status": np.array(self._line_status, dtype=dt_int),
                                                             "set_bus": self._topo_vect,
-                                                            "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
-                                                                          "load_p": self._load_p, "load_q": self._load_q}})
-        self._backend_action_set += self._action
+                                                            "injection": {"prod_p": self._prod_p,
+                                                                          "prod_v": self._prod_v,
+                                                                          "load_p": self._load_p,
+                                                                          "load_q": self._load_q}})
+        self._backend_action_set += new_state_action
         self.is_init = True
         self.current_obs = None
         self.time_stamp = time_stamp
@@ -219,6 +212,7 @@ class _ObsEnv(BaseEnv):
         reset this "environment" to the state it should be
         """
         self.reset()  # reset the "BaseEnv"
+        # self.time_stamp = None  # TODO this should not throw...
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self.gen_activeprod_t[:] = self.gen_activeprod_t_init
         self.gen_activeprod_t_redisp[:] = self.gen_activeprod_t_redisp_init
@@ -244,7 +238,6 @@ class _ObsEnv(BaseEnv):
             if save:
                 import pandapower as pp
                 pp.to_json(self.backend._grid, "test_action1.json")
-        # print("load after applying act: {}".format(self.backend._grid.load["p_mw"].values[0]))
 
     def simulate(self, action):
         """
@@ -284,25 +277,9 @@ class _ObsEnv(BaseEnv):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
-        # print("-----")
         self._reset_to_orig_state()
-        # print("\t before {}".format(np.sum(self.backend._grid.gen["p_mw"])))
-        # self.backend._pf_init = "dc"
         # TODO set back the "change" to True
         obs, reward, done, info = self.step(action)
-        # print("\t {}".format(reward))
-        # print("\t after {}".format(np.sum(self.backend._grid.res_gen["p_mw"])))
-        # print("\t after {}".format(np.sum(self.backend._grid.res_bus["vm_pu"])))
-        # print("\t after {}".format(np.sum(self.backend._grid.res_shunt["vm_pu"])))
-        # print("\t after {}".format(np.sum(self.backend._grid.shunt["q_mvar"])))
-        # print("\t\t{}".format(np.sum(obs.prod_p)))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[0]["vm_pu"]))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[1]["vm_pu"]))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[2]["vm_pu"]))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[3]["vm_pu"]))
-        # print("slack p {}".format(self.backend._grid.res_gen.iloc[4]["vm_pu"]))
-        # print("\t\t{}".format(np.sum(obs.prod_v)))
-        # print("\t\t{}".format(np.sum(obs.prod_v)))
         return obs, reward, done, info
 
     def get_obs(self):
@@ -363,3 +340,4 @@ class _ObsEnv(BaseEnv):
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!
+        # TODO add the opponent budget here

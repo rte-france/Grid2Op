@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
+import datetime
 import numpy as np
 from abc import abstractmethod
 
@@ -697,6 +698,12 @@ class BaseObservation(GridObjects):
         load_q_f[tmp_arg] = self.load_q[tmp_arg]
         return prod_p_f, prod_v_f, load_p_f, load_q_f
 
+    def get_time_stamp(self):
+        """get the time stamp of the current observation as a datetime.datetim object"""
+        res = datetime.datetime(year=self.year, month=self.month, day=self.day,
+                          hour=self.hour_of_day, minute=self.minute_of_hour)
+        return res
+
     def simulate(self, action, time_step=0):
         """
         This method is used to simulate the effect of an action on a forecasted powergrid state. It has the same return
@@ -733,19 +740,33 @@ class BaseObservation(GridObjects):
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation (no action_space "
                                       "and no simulated environment are set).")
 
-        if time_step >= len(self._forecasted_inj):
-            raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
+        if time_step == -1:
+            # "forecast" on the current time step... weird, but can be usefull...
+            inj_action = {}
+            dict_ = {}
+            dict_["load_p"] = dt_float(1.0 * self.load_p)
+            dict_["load_q"] = dt_float(1.0 * self.load_q)
+            dict_["prod_p"] = dt_float(1.0 * self.prod_p)
+            dict_["prod_v"] = dt_float(1.0 * self.prod_v)
+            inj_action["injection"] = dict_
+            inj_action = self.action_helper(inj_action)
+            timestamp = self.get_time_stamp()
+        else:
+            if time_step >= len(self._forecasted_inj):
+                raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics."
+                                          "".format(time_step))
 
-        if time_step not in self._forecasted_grid_act:
-            timestamp, inj_forecasted = self._forecasted_inj[time_step]
-            self._forecasted_grid_act[time_step] = {
-                "timestamp": timestamp,
-                "inj_action": self.action_helper(inj_forecasted)
-            }
+            if time_step not in self._forecasted_grid_act:
+                timestamp, inj_forecasted = self._forecasted_inj[time_step]
+                self._forecasted_grid_act[time_step] = {
+                    "timestamp": timestamp,
+                    "inj_action": self.action_helper(inj_forecasted)
+                }
 
-        timestamp = self._forecasted_grid_act[time_step]["timestamp"]
-        inj_action = self._forecasted_grid_act[time_step]["inj_action"]
-        self._obs_env.init(inj_action, time_stamp=timestamp,
+            timestamp = self._forecasted_grid_act[time_step]["timestamp"]
+            inj_action = self._forecasted_grid_act[time_step]["inj_action"]
+        self._obs_env.init(inj_action,
+                           time_stamp=timestamp,
                            timestep_overflow=self.timestep_overflow,
                            topo_vect=self.topo_vect)
 
