@@ -106,6 +106,8 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
+        res: :class:`BaseAction`
+            The action that will disconnect the powerline.
 
         """
         if line_id is None and line_name is None:
@@ -155,7 +157,9 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
-res: :class:`’
+        res: :class:`BaseAction`
+            The action that will reconnect the powerline.
+
         """
         if line_id is None and line_name is None:
             raise AmbiguousAction("You need to provide either the \"line_id\" or the \"line_name\" of the powerline "
@@ -212,7 +216,7 @@ res: :class:`’
 
         Raises
         ------
-        :class:`grid2op.Exception.AmbiguousAction`
+        res :class:`grid2op.Exception.AmbiguousAction`
             If *previous_action* has not the same type as :attr:`ActionSpace.actionClass`.
 
         """
@@ -405,7 +409,7 @@ res: :class:`’
         This methods allows to compute and return all the unitary topological changes that can be performed on a
         powergrid.
 
-        The changes will be performed using the "change_bus" method. It ecludes the "do nothing" action
+        The changes will be performed using the "change_bus" method. It excludes the "do nothing" action
 
         Parameters
         ----------

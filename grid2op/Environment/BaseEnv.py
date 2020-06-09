@@ -92,8 +92,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  opponent_budget_class=UnlimitedBudget,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
-                 kwargs_opponent={},
-                 _raw_opponent_budget_class=None
+                 kwargs_opponent={}
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -214,10 +213,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.opponent_budget_per_ts = dt_float(opponent_budget_per_ts)
         self.kwargs_opponent = kwargs_opponent
         self.opponent_budget_class = opponent_budget_class
-        if _raw_opponent_budget_class is None:
-            self._raw_opponent_budget_class = opponent_budget_class
-        else:
-            self._raw_opponent_budget_class = _raw_opponent_budget_class
 
         ## below initialized by _create_env, above: need to be called
         self.opponent_action_space = None
@@ -1012,10 +1007,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _reset_vectors_and_timings(self):
         """
         Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
-
-        Returns
-        -------
-
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow[:] = 0
@@ -1161,4 +1152,3 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # Update to the fast forward state using a do nothing action
         self.step(self.helper_action_player({}))
-        # return self.current_obs

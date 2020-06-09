@@ -130,8 +130,7 @@ class Environment(BaseEnv):
                  opponent_budget_per_ts=0.,
                  opponent_budget_class=UnlimitedBudget,
                  kwargs_opponent={},
-                 _raw_backend_class=None,
-                 _raw_opponent_budget_class=None
+                 _raw_backend_class=None
                  ):
         BaseEnv.__init__(self,
                          parameters=parameters,
@@ -145,8 +144,7 @@ class Environment(BaseEnv):
                          opponent_budget_class=opponent_budget_class,
                          opponent_init_budget=opponent_init_budget,
                          opponent_budget_per_ts=opponent_budget_per_ts,
-                         kwargs_opponent=kwargs_opponent,
-                         _raw_opponent_budget_class=_raw_opponent_budget_class)
+                         kwargs_opponent=kwargs_opponent)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
@@ -472,10 +470,6 @@ class Environment(BaseEnv):
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
         # TODO be closer to original gym implementation
-        # if self.spec is None:
-        #     return '<{} instance>'.format(type(self).__name__)
-        # else:
-        #     return '<{}<{}>>'.format(type(self).__name__, self.spec.id)
 
     def reset_grid(self):
         """
@@ -496,9 +490,6 @@ class Environment(BaseEnv):
         if fail_to_start:
             raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                                    "Available information are: {}".format(info))
-
-        # test the backend returns object of the proper size
-        # self.backend.assert_grid_correct_after_powerflow()
 
     def add_text_logger(self, logger=None):
         """
@@ -643,7 +634,6 @@ class Environment(BaseEnv):
         res["opponent_init_budget"] = self.opponent_init_budget
         res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
         res["opponent_budget_class"] = self.opponent_budget_class
-        res["_raw_opponent_budget_class"] = self._raw_opponent_budget_class
         return res
 
     def get_params_for_runner(self):
