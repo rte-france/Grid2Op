@@ -1,0 +1,81 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
+import numpy as np
+from grid2op.Opponent import OpponentWithConverter
+from grid2op.Converter import LineDisconnection
+
+
+class RandomLineOpponent(OpponentWithConverter):
+    def __init__(self, action_space):
+        OpponentWithConverter.__init__(self, action_space,
+                                       action_space_converter=LineDisconnection)
+        lines_maintenance = ["26_30_56", "30_31_45", "16_18_23", "16_21_27", "9_16_18", "7_9_9",
+                             "11_12_13", "12_13_14", "2_3_0", "22_26_39" ]
+        self.action_space.filter_lines(lines_maintenance)
+
+    def init(self, *args, **kwargs):
+        """
+        Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
+        path where is the file is located should be pass with this method.
+        """
+        pass
+
+    def reset(self, initial_budget):
+        """
+        This function is called at the end of an episode, when the episode is over. It aims at resetting the
+        self and prepare it for a new episode.
+
+        Parameters
+        ----------
+        initial_budget: ``float``
+            The initial budget the opponent has
+        """
+        pass
+
+    def my_attack(self, observation, agent_action, env_action, budget, previous_fails):
+        """
+        This method is the equivalent of "attack" for a regular agent.
+
+        Opponent, in this framework can have more information than a regular agent (in particular it can
+        view time step t+1), it has access to its current budget etc.
+
+        Parameters
+        ----------
+        observation: :class:`grid2op.Observation.Observation`
+            The last observation (at time t)
+
+        opp_reward: ``float``
+            THe opponent "reward" (equivalent to the agent reward, but for the opponent) TODO do i add it back ???
+
+        done: ``bool``
+            Whether the game ended or not TODO do i add it back ???
+
+        agent_action: :class:`grid2op.Action.Action`
+            The action that the agent took
+
+        env_action: :class:`grid2op.Action.Action`
+            The modification that the environment will take.
+
+        budget: ``float``
+            The current remaining budget (if an action is above this budget, it will be replaced by a do nothing.
+
+        previous_fails: ``bool``
+            Wheter the previous attack failed (due to budget or ambiguous action)
+
+        Returns
+        -------
+        attack: :class:`grid2op.Action.Action`
+            The attack performed by the opponent. In this case, a do nothing, all the time.
+        """
+        # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
+        # TODO information, and forward something to the "act" method.
+        if observation is None: # On first step
+            return 0 # do nothing
+        
+        return np.random.randint(1, self.action_space.size()) # try to disconnect a random line
