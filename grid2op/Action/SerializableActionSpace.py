@@ -117,7 +117,9 @@ class SerializableActionSpace(SerializableSpace):
 
         if line_id is None:
             line_id = np.where(self.name_line == line_name)[0]
-
+            if not len(line_id):
+                raise AmbiguousAction("Line with name \"{}\" is not on the grid. The powerlines names are:\n{}"
+                                      "".format(line_name, self.name_line))
         if previous_action is None:
             res = self.actionClass()
         else:
@@ -153,7 +155,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
-
+res: :class:`’
         """
         if line_id is None and line_name is None:
             raise AmbiguousAction("You need to provide either the \"line_id\" or the \"line_name\" of the powerline "

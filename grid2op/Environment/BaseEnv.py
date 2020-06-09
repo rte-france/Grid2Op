@@ -86,7 +86,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
                  other_rewards={},
-                 with_forecast=True
+                 with_forecast=True,
+                 opponent_action_class=DontAct,
+                 opponent_class=BaseOpponent,
+                 opponent_budget_class=UnlimitedBudget,
+                 opponent_init_budget=0.,
+                 opponent_budget_per_ts=0.,
+                 kwargs_opponent={},
+                 _raw_opponent_budget_class=None
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -97,6 +104,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
         self.parameters = parameters
         self.with_forecast = with_forecast
+
         # some timers
         self._time_apply_act = dt_float(0)
         self._time_powerflow = dt_float(0)
@@ -120,7 +128,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # observation
         self.current_obs = None
 
-
         self.ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
         self.forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
 
@@ -133,7 +140,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # store actions "cooldown"
         self.times_before_line_status_actionable = None
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
-
         self.times_before_topology_actionable = None
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
@@ -199,18 +205,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                        "from \"grid2op.BaseReward\"")
             if not isinstance(k, str):
                 raise Grid2OpException("All keys of \"rewards\" should be of string type.")
-
             self.other_rewards[k] = RewardHelper(v)
 
         # opponent
-        self.opponent_action_class = DontAct  # class of the action of the opponent
-        self.opponent_class = BaseOpponent  # class of the opponent
-        self.opponent_init_budget = 0
+        self.opponent_action_class = opponent_action_class  # class of the action of the opponent
+        self.opponent_class = opponent_class  # class of the opponent
+        self.opponent_init_budget = dt_float(opponent_init_budget)
+        self.opponent_budget_per_ts = dt_float(opponent_budget_per_ts)
+        self.kwargs_opponent = kwargs_opponent
+        self.opponent_budget_class = opponent_budget_class
+        if _raw_opponent_budget_class is None:
+            self._raw_opponent_budget_class = opponent_budget_class
+        else:
+            self._raw_opponent_budget_class = _raw_opponent_budget_class
 
         ## below initialized by _create_env, above: need to be called
-        self.opponent_action_space = None  # ActionSpace(gridobj=)
-        self.compute_opp_budg = None  # UnlimitedBudget(self.opponent_act_space)
-        self.opponent = None  # OpponentSpace()
+        self.opponent_action_space = None
+        self.compute_opp_budget = None
+        self.opponent = None
         self.oppSpace = None
 
         # voltage
@@ -247,10 +259,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.opponent_action_space = self.helper_action_class(gridobj=self.backend,
                                                               legal_action=AlwaysLegal,
                                                               actionClass=self.opponent_action_class)
-        self.compute_opp_budg = UnlimitedBudget(self.opponent_action_space)
-        self.opponent = self.opponent_class(self.opponent_action_space)
-        self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budg,
+
+        self.compute_opp_budget = self.opponent_budget_class(self.opponent_action_space)
+        self.opponent = self.opponent_class(self.opponent_action_space,
+                                            **self.kwargs_opponent)
+        self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budget,
                                       init_budget=self.opponent_init_budget,
+                                      budget_per_timestep=self.opponent_budget_per_ts,
                                       opponent=self.opponent
                                       )
         self.oppSpace.init()

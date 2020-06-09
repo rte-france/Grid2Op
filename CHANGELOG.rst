@@ -21,22 +21,28 @@ Change Log
 - [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
 - [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now
   `SingleProcessMultiEnv`
-- [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
-  more broadly usable.
+- [FIXED] `LinesReconnectedReward` fixes reward inverted range
+- [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
 - [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
   disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
 - [ADDED] a clearer explanation between illegal and ambiguous action.
 - [ADDED] `MultiEnvMultiProcess` as a new multi-process class to run different environments in multiples prallel
   processes.
-- [FIXED] `LinesReconnectedReward` fixes reward inverted range
+- [ADDED] more control on the environment when using the `grid2op.make` function.
+- [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
+  more broadly usable.
 - [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same
   grid and an arbitrary number of processes for each of these.
-- [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
 
 [0.9.3] - 2020-05-29
 ---------------------
 - [FIXED] `Issue #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows
   based OS.
+- [ADDED] `Issue #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
+  The notebook has been updated accordingly.
+- [ADDED] Some function to disable the `obs.simulate` if wanted. This can lead to around 10~15% performance speed up
+  in case `obs.simulate` is not used. See `env.deactivate_forecast` and `env.reactivate_forecast`
+  (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
 - [UPDATED] the first introductory notebook.
 - [UPDATED] possibility to reconnect / disconnect powerline giving its name when using `reconnect_powerline` and
   `disconnect_powerline` methods of the action space.
@@ -47,11 +53,6 @@ Change Log
   `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_
 - [UPDATED] Added `PlotMatplot` constructor arguments to control display of names and IDs of the grid elements
   (gen, load, lines). As suggested in `Issue #106 <https://github.com/rte-france/Grid2Op/issues/106>`_
-- [ADDED] `Issue #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
-  The notebook has been updated accordingly.
-- [ADDED] Some function to disable the `obs.simulate` if wanted. This can lead to around 10~15% performance speed up
-  in case `obs.simulate` is not used. See `env.deactivate_forecast` and `env.reactivate_forecast`
-  (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
 
 
 [0.9.2] - 2020-05-26
