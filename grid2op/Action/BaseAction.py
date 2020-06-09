@@ -706,8 +706,8 @@ class BaseAction(GridObjects):
         It also performs a check of whether or not an action is "Ambiguous", eg an action that reconnect a powerline
         but doesn't specify on which bus to reconnect it is said to be ambiguous.
 
-        If this :func:`BaseAction.__call__` is overloaded, the call of :func:`BaseAction._check_for_ambiguity` must be ensured
-        by this the derived class.
+        If this :func:`BaseAction.__call__` is overloaded, the call of :func:`BaseAction._check_for_ambiguity` must be
+        ensured by this the derived class.
 
         Returns
         -------
@@ -1863,6 +1863,7 @@ class BaseAction(GridObjects):
     def get_types(self):
         """
         Shorthand to get the type of an action. The type of an action is among:
+
         - "injection": does this action modifies load or generator active values
         - "voltage": does this action modifies the generator voltage setpoint or the shunts
         - "topology": does this action modifies the topology of the grid (*ie* set or switch some buses)
@@ -1897,8 +1898,6 @@ class BaseAction(GridObjects):
             voltage = voltage or np.any(self.shunt_bus != 0)
 
         lines_impacted, subs_impacted = self.get_topological_impact()
-        # topology = np.any(self._set_topo_vect != 0) or np.any(self._change_bus_vect)
-        # line = np.any(self._set_line_status != 0) or np.any(self._switch_line_status)
         topology = np.any(subs_impacted)
         line = np.any(lines_impacted)
         redispatching = np.any(self._redispatch != 0.)

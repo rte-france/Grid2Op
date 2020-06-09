@@ -13,7 +13,7 @@ class UnlimitedBudget(BaseActionBudget):
     """
     This class define an unlimited budget for the opponent.
 
-    It SHOULD NOT be used if the opponent is allow to take any actions!
+    It SHOULD NOT be used if the opponent is allowed to take any actions!
     """
     def __init__(self, action_space):
         BaseActionBudget.__init__(self, action_space)

@@ -87,8 +87,9 @@ class PlotMatplot(BasePlot):
                  grid_layout=None,
                  dpi=96,
                  scale=2000.0,
-                 sub_radius = 15,
-                 load_radius = 8,
+                 bus_radius=6,
+                 sub_radius=15,
+                 load_radius=8,
                  load_name=False,
                  load_id=False,
                  gen_radius = 8,
@@ -126,9 +127,9 @@ class PlotMatplot(BasePlot):
         #self._line_color_scheme = cm.get_cmap("inferno")(cx)
         self._line_name = line_name
         self._line_id = line_id
-        self._line_color_scheme = [ "blue", "orange", "red"]
+        self._line_color_scheme = ["blue", "orange", "red"]
         self._line_color_width = 1
-        self._line_bus_radius = 6
+        self._line_bus_radius = bus_radius
         self._line_bus_face_colors = ["black", "red", "lime"]
         self._line_arrow_len = 10
         self._line_arrow_width = 10.0

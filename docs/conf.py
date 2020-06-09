@@ -45,6 +45,7 @@ extensions = [
      "sphinx_rtd_theme",
     # toc of modules
     'autodocsumm',
+    # 'sphinx.ext.autosectionlabel',
 
     # 'details',
     #'exception_hierarchy'

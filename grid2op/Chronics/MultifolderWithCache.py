@@ -76,10 +76,12 @@ class MultifolderWithCache(Multifolder):
         self._cached_data = None
         self._filter = self._default_filter
         self._prev_cache_id = 0
+        self.cache_size = 0
         if not issubclass(self.gridvalueClass, GridStateFromFile):
             raise RuntimeError("MultifolderWithCache does not work when \"gridvalueClass\" does not inherit from "
                                "\"GridStateFromFile\".")
         self.__i = 0
+        self._order = None # np.arange(len(self._cached_data))
 
     def _default_filter(self, x):
         """
@@ -131,13 +133,42 @@ class MultifolderWithCache(Multifolder):
 
         if len(self._cached_data) == 0:
             raise RuntimeError("Impossible to initialize the new cache.")
-        self.space_prng.shuffle(self._cached_data)
+        self._order = np.arange(len(self._cached_data))
+        self.space_prng.shuffle(self._order)
+        self.cache_size = len(self._cached_data)
 
     def next_chronics(self):
         self._prev_cache_id += 1
-        if self._prev_cache_id >= len(self._cached_data):
-            self.space_prng.shuffle(self._cached_data)
-        self._prev_cache_id %= len(self._cached_data)
+        if self._prev_cache_id >= len(self._order):
+            self.space_prng.shuffle(self._order)
+        self._prev_cache_id %= len(self._order)
+
+    def sample_next_chronics(self, probabilities):
+        """
+        This function should be called before "next_chronics".
+        It can be used to sample non uniformly for the next next chronics.
+
+        Parameters
+        -----------
+        probabilities: ``np.ndarray``
+            Array of integer with the same size as the number of chronics in the cache.
+
+        Returns
+        -------
+        selected: ``int``
+            The integer that was selected.
+        """
+        self._prev_cache_id = -1
+        # make sure it sums to 1
+        probabilities /= np.sum(probabilities)
+
+        self._order[:] = np.arange(len(self._cached_data))
+        # take one at "random" among these
+        selected = self.space_prng.choice(self._order,  p=probabilities)
+        # tmp = self._order[0]
+        self._order[0] = selected
+        # self._order[selected] = tmp
+        return selected
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -154,8 +185,9 @@ class MultifolderWithCache(Multifolder):
             # initialize the cache
             self.reset_cache()
 
-        self.data = self._cached_data[self._prev_cache_id]
-        # self.data.current_index = 0
-        # self.data.curr_iter = 0
+        id_scenario = self._order[self._prev_cache_id]
+        # print("selected scenario in chronics: {}".format(id_scenario))
+        # print("prev cache id: {}".format(self._prev_cache_id))
+        self.data = self._cached_data[id_scenario]
         self.data.next_chronics()
         # print("data updated, self._prev_cache_id: {}".format(os.path.split(self.data.path)[-1]))

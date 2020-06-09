@@ -25,12 +25,12 @@ class CompleteObservation(BaseObservation):
 
     For a :class:`CompleteObservation` the unique representation as a vector is:
 
-        1. the year [1 element]
-        2. the month [1 element]
-        3. the day [1 element]
-        4. the day of the week. Monday = 0, Sunday = 6 [1 element]
-        5. the hour of the day [1 element]
-        6. minute of the hour  [1 element]
+        1. :attr:`BaseObservation.year` the year [1 element]
+        2. :attr:`BaseObservation.month` the month [1 element]
+        3. :attr:`BaseObservation.day` the day [1 element]
+        4. :attr:`BaseObservation.hour_of_day` the hour of the day [1 element]
+        5. :attr:`BaseObservation.minute_of_hour` minute of the hour  [1 element]
+        6. :attr:`BaseObservation.day_of_week` the day of the week. Monday = 0, Sunday = 6 [1 element]
         7. :attr:`BaseObservation.prod_p` the active value of the productions
            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         8. :attr:`BaseObservation.prod_q` the reactive value of the productions

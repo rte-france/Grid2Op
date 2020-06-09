@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 import argparse
 
+
 def print_res(env_klu, env_pp,
               nb_ts_klu, nb_ts_pp,
               time_klu, time_pp,
@@ -58,8 +59,8 @@ def run_env(env, max_ts, agent):
             # if np.sum(obs.line_status) < obs.n_line - 1 * (nb_ts % 2 == 1):
             #     print("There is a bug following action; {}".format(act))
             prev_act = act
-            # if done:
-            #     print(act)
+            if done:
+                print(act)
     end_ = time.time()
     total_time = end_ - beg_
     return nb_ts, total_time, aor, gen_p, gen_q

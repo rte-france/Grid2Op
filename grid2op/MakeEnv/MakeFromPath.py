@@ -22,7 +22,7 @@ from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import BaseReward, L2RPNReward
 from grid2op.Rules import BaseRules, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
-from grid2op.Opponent import BaseOpponent
+from grid2op.Opponent import BaseOpponent, BaseActionBudget, UnlimitedBudget
 
 from grid2op.MakeEnv.get_default_aux import _get_default_aux
 
@@ -48,14 +48,19 @@ ERR_MSG_KWARGS = {
     "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
                      "should be dictionnary.",
+
+    "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
+    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string.",
     "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
                              "inherit from \"BaseAction\"",
     "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
-                             "inherit from \"BaseOpponent\"",
+                      "inherit from \"BaseOpponent\"",
     "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float",
-    "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
-    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string.",
-    DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are {difficulties}"
+    "opponent_budget_class": "The opponent budget class (\"opponent_budget_class\") should derive from "
+                             "\"BaseActionBudget\".",
+    "opponent_budget_per_ts": "The increase of the opponent's budget (\"opponent_budget_per_ts\") should be a float.",
+    DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are "
+                     "{difficulties}"
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
@@ -137,6 +142,28 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
         most realistic mode). If multiple difficulty levels are available, the most realistic one
         (the "hardest") is the default choice.
 
+    opponent_action_class: ``type``, optional
+        The action class used for the opponent. The opponent will not be able to use action that are invalid with
+        the given action class provided. It defaults to :class:`grid2op.Action.DontAct` which forbid any type
+        of action possible.
+
+    opponent_class: ``type``, optional
+        The opponent class to use. The default class is :class:`grid2op.Opponent.BaseOpponent` which is a type
+        of opponents that does nothing.
+
+    opponent_init_budget: ``float``, optional
+        The initial budget of the opponent. It defaults to 0.0 which means the opponent cannot perform any action
+        if this is not modified.
+
+    opponent_budget_per_ts: ``float``, optional
+        The increase of the opponent budget per time step. Each time step the opponent see its budget increase. It
+        defaults to 0.0.
+
+    opponent_budget_class: ``type``, optional
+        defaults: :class:`grid2op.Opponent.UnlimitedBudget`
+
+    TODO : budget per time step and method to compute cost of an action in here and also kwargs_opponent
+
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
@@ -145,6 +172,7 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
     # Compute and find root folder
     _check_path(dataset_path, "Dataset root directory")
     dataset_path_abs = os.path.abspath(dataset_path)
+
     # Compute env name from directory name
     name_env = os.path.split(dataset_path_abs)[1]
 
@@ -371,11 +399,22 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                                       defaultClass=BaseOpponent,
                                       msg_error=ERR_MSG_KWARGS["opponent_class"],
                                       isclass=True)
+    opponent_budget_class = _get_default_aux("opponent_budget_class",
+                                             kwargs,
+                                             defaultClassApp=BaseActionBudget,
+                                             defaultClass=UnlimitedBudget,
+                                             msg_error=ERR_MSG_KWARGS["opponent_budget_class"],
+                                             isclass=True)
     opponent_init_budget = _get_default_aux("opponent_init_budget", kwargs,
                                             defaultClassApp=float,
                                             defaultinstance=0.,
                                             msg_error=ERR_MSG_KWARGS["opponent_init_budget"],
                                             isclass=False)
+    opponent_budget_per_ts = _get_default_aux("opponent_budget_per_ts", kwargs,
+                                              defaultClassApp=float,
+                                              defaultinstance=0.,
+                                              msg_error=ERR_MSG_KWARGS["opponent_budget_per_ts"],
+                                              isclass=False)
 
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
@@ -392,7 +431,10 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                       other_rewards=other_rewards,
                       opponent_action_class=opponent_action_class,
                       opponent_class=opponent_class,
-                      opponent_init_budget=opponent_init_budget)
+                      opponent_init_budget=opponent_init_budget,
+                      opponent_budget_per_ts=opponent_budget_per_ts,
+                      opponent_budget_class=opponent_budget_class
+                      )
 
     # Update the thermal limit if any
     if thermal_limits is not None:
