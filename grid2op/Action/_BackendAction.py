@@ -1,7 +1,12 @@
-import numpy as np
-import warnings
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import pdb
+import numpy as np
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
@@ -49,45 +54,58 @@ class ValueStore:
         self.last_index = 0
 
     def change_status(self, switch, lineor_id, lineex_id, old_vect):
-        for i, el in enumerate(switch):
-            if not el:
-                continue
-            id_or = lineor_id[i]
-            id_ex = lineex_id[i]
-            self.changed[id_or] = True
-            self.changed[id_ex] = True
-            me_or_bus = self.values[id_or]
-            me_ex_bus = self.values[id_ex]
-            if me_ex_bus > 0 or me_or_bus > 0:
-                # powerline was connected, i disconnect it
-                self.values[id_or] = -1
-                self.values[id_ex] = -1
-            else:
-                # i need to reconnect it
-                self.values[id_or] = old_vect[id_or]
-                self.values[id_ex] = old_vect[id_ex]
+        # changed
+        changed_ = switch
+
+        # make it to ids
+        id_chg_or = lineor_id[changed_]
+        id_chg_ex = lineex_id[changed_]
+
+        self.changed[id_chg_or] = True
+        self.changed[id_chg_ex] = True
+
+        # disconnect the powerlines
+        me_or_bus = self.values[id_chg_or]
+        me_ex_bus = self.values[id_chg_ex]
+        was_connected = (me_or_bus > 0) | (me_ex_bus > 0)
+        was_disco = ~was_connected
+
+        # it was connected, i disconnect it
+        self.values[id_chg_or[was_connected]] = -1
+        self.values[id_chg_ex[was_connected]] = -1
+
+        # it was disconnected, i reconnect it
+        reco_or = id_chg_or[was_disco]
+        reco_ex = id_chg_ex[was_disco]
+        self.values[reco_or] = old_vect[reco_or]
+        self.values[reco_ex] = old_vect[reco_ex]
 
     def set_status(self, set, lineor_id, lineex_id, old_vect):
-        # TODO
-        for i, el in enumerate(set):
-            id_or = lineor_id[i]
-            id_ex = lineex_id[i]
-            if el == -1:
-                if self.values[id_or] != -1:
-                    self.values[id_or] = -1
-                    self.changed[id_or] = True
+        id_or = lineor_id
+        id_ex = lineex_id
 
-                if self.values[id_ex] != -1:
-                    self.values[id_ex] = -1
-                    self.changed[id_ex] = True
-            elif el == 1:
-                if self.values[id_or] == -1:
-                    self.values[id_or] = old_vect[id_or]
-                    self.changed[id_or] = True
+        # disco
+        disco_ = set == -1
+        reco_ = set == 1
 
-                if self.values[id_ex] == -1:
-                    self.values[id_ex] = old_vect[id_ex]
-                    self.changed[id_ex] = True
+        # make it to ids
+        id_reco_or = id_or[reco_]
+        id_reco_ex = id_ex[reco_]
+        id_disco_or = id_or[disco_]
+        id_disco_ex = id_ex[disco_]
+
+        self.changed[id_reco_or] = True
+        self.changed[id_reco_ex] = True
+        self.changed[id_disco_or] = True
+        self.changed[id_disco_ex] = True
+
+        # disconnect the powerlines
+        self.values[id_disco_or] = -1
+        self.values[id_disco_ex] = -1
+
+        # reconnect the powerlines
+        self.values[id_reco_or] = old_vect[id_reco_or]
+        self.values[id_reco_ex] = old_vect[id_reco_ex]
 
     def update_connected(self, current_values):
         indx_conn = current_values.values > 0
@@ -196,13 +214,20 @@ class _BackendAction(GridObjects):
 
         Parameters
         ----------
-        other
+        other: grid2op.Action.BaseAction.BaseAction
 
         Returns
         -------
 
         """
-        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = other()
+
+        dict_injection = other._dict_inj
+        set_status = other._set_line_status
+        switch_status = other._switch_line_status
+        set_topo_vect = other._set_topo_vect
+        switcth_topo_vect = other._change_bus_vect
+        redispatching = other._redispatch
+
         # I deal with injections
         # Ia set the injection
         if "load_p" in dict_injection:
@@ -221,7 +246,13 @@ class _BackendAction(GridObjects):
         self.prod_p.change_val(redispatching)
 
         # II shunts
-        if self.shunts_data_available and shunts:
+        if self.shunts_data_available:
+            shunts = {}
+            if other.shunts_data_available:
+                shunts["shunt_p"] = other.shunt_p
+                shunts["shunt_q"] = other.shunt_q
+                shunts["shunt_bus"] = other.shunt_bus
+
             arr_ = shunts["shunt_p"]
             self.shunt_p.set_val(arr_)
             arr_ = shunts["shunt_q"]

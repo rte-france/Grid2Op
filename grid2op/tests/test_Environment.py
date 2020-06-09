@@ -163,14 +163,15 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.enable()
         beg_ = time.time()
         cum_reward = dt_float(0.0)
+        do_nothing = self.env.helper_action_player({})
         while not done:
-            do_nothing = self.env.helper_action_player({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
             cum_reward += reward
             i += 1
         end_ = time.time()
         if DEBUG:
-            msg_ = "\nEnv: {:.2f}s\n\t - apply act {:.2f}s\n\t - run pf: {:.2f}s\n\t - env update + observation: {:.2f}s\nTotal time: {:.2f}\nCumulative reward: {:1f}"
+            msg_ = "\nEnv: {:.2f}s\n\t - apply act {:.2f}s\n\t - run pf: {:.2f}s\n" \
+                   "\t - env update + observation: {:.2f}s\nTotal time: {:.2f}\nCumulative reward: {:1f}"
             print(msg_.format(
                 self.env._time_apply_act+self.env._time_powerflow+self.env._time_extract_obs,
                 self.env._time_apply_act, self.env._time_powerflow, self.env._time_extract_obs, end_-beg_, cum_reward))
@@ -355,7 +356,7 @@ class TestLineChangeLastBus(unittest.TestCase):
         line_or_topo = self.env.line_or_pos_topo_vect[LINE_ID]
         bus_action = self.env.action_space({
             "set_bus": {
-                "lines_ex_id": [(LINE_ID,2)]
+                "lines_ex_id": [(LINE_ID, 2)]
             }
         })
         set_status = self.env.action_space.get_set_line_status_vect()
@@ -513,6 +514,29 @@ class TestLoading2envDontCrash(unittest.TestCase):
 
         assert obs1.n_sub == 14
         assert obs2.n_sub == 5
+
+
+class TestDeactivateForecast(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = make("rte_case14_test", test=True)
+
+    def tearDown(self) -> None:
+        self.env1.close()
+
+    def test_deactivate_reactivate(self):
+        self.env1.deactivate_forecast()
+        obs = self.env1.reset()
+        # it should not be possible to use forecast
+        with self.assertRaises(NoForecastAvailable):
+            sim_obs, *_ = obs.simulate(self.env1.action_space())
+
+        # i reactivate the forecast
+        self.env1.reactivate_forecast()
+        obs, reward, done, info = self.env1.step(self.env1.action_space())
+        # i check i can use it again
+        sim_obs, *_ = obs.simulate(self.env1.action_space())
 
 
 if __name__ == "__main__":

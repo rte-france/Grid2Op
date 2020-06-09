@@ -22,11 +22,15 @@ We wanted, in this package, to treat the voltages setpoint of the generators dif
 part of the game. This module exposes the main class to do this.
 """
 from abc import ABC, abstractmethod
+import numpy as np
+
+from grid2op.dtypes import dt_int
 from grid2op.Action import VoltageOnlyAction, ActionSpace
 from grid2op.Rules import AlwaysLegal
+from grid2op.Space import RandomObject
 
 
-class BaseVoltageController(ABC):
+class BaseVoltageController(RandomObject, ABC):
     """
     This class is the most basic controler for the voltages. Basically, what it does is read the voltages from the
     chronics.
@@ -45,6 +49,7 @@ class BaseVoltageController(ABC):
             An instanciated backend to perform some computation on a powergrid, before taking some actions.
 
         """
+        RandomObject.__init__(self)
         legal_act = AlwaysLegal()
         self.action_space = ActionSpace(gridobj=gridobj,
                                         actionClass=VoltageOnlyAction,
@@ -53,6 +58,13 @@ class BaseVoltageController(ABC):
 
     def attach_layout(self, grid_layout):
         self.action_space.attach_layout(grid_layout)
+
+    def seed(self, seed):
+        me_seed = super().seed(seed)
+        max_int = np.iinfo(dt_int).max
+        seed_space = self.space_prng.randint(max_int)
+        space_seed = self.action_space.seed(seed_space)
+        return me_seed, space_seed
 
     @abstractmethod
     def fix_voltage(self, observation, agent_action, env_action, prod_v_chronics):

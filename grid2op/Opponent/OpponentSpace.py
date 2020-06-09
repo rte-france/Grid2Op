@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 from grid2op.Exceptions import OpponentError
-from grid2op.Reward import RewardHelper, BaseReward
 
 
 class OpponentSpace(object):
@@ -48,8 +47,6 @@ class OpponentSpace(object):
         self.previous_fails = False
         self.budget_per_timestep = budget_per_timestep
 
-        if budget_per_timestep != 0.:
-            raise NotImplementedError("You should implement that in Environment!")
         if init_budget < 0.:
             raise OpponentError("An opponent should at least have a positive (or null) budget. If you "
                                 "want to deactivate the opponent set its budget to 0 and use the"

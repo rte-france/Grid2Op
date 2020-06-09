@@ -8,8 +8,6 @@
 
 import warnings
 
-import pdb
-
 from grid2op.Exceptions import AmbiguousAction
 from grid2op.Action.BaseAction import BaseAction
 
@@ -25,7 +23,8 @@ class VoltageOnlyAction(BaseAction):
     authorized_keys = {"injection"}
     attr_list_vect = ["prod_v"]
     attr_list_set = set(attr_list_vect)
-    shunt_added = False
+    _shunt_added = False
+    _first_init = True
 
     def __init__(self):
         """
@@ -35,10 +34,14 @@ class VoltageOnlyAction(BaseAction):
         """
         BaseAction.__init__(self)
 
-        if VoltageOnlyAction.shunt_added is False and self.shunts_data_available:
+        if VoltageOnlyAction._shunt_added is False and self.shunts_data_available:
             VoltageOnlyAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
             VoltageOnlyAction.authorized_keys.add("shunt")
-        self._update_value_set()
+            VoltageOnlyAction._shunt_added = True
+
+        if VoltageOnlyAction._first_init is True:
+            self._update_value_set()
+            VoltageOnlyAction._first_init = False
 
     def _check_dict(self):
         """

@@ -23,8 +23,6 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
-import pdb
-
 
 # TODO better random stuff when random observation (seed in argument is really weird)
 
@@ -431,7 +429,6 @@ class GridObjects:
         """
         Update the class attribute `attr_list_vect_set` from  `attr_list_vect`
         """
-
         cls.attr_list_set = set(cls.attr_list_vect)
 
     def _raise_error_attr_list_none(self):
@@ -560,7 +557,10 @@ class GridObjects:
         """
         tmp = getattr(self, attr_nm)
         if isinstance(tmp, (dt_bool, dt_int, dt_float)):
-            setattr(self, attr_nm, vect)
+            if isinstance(vect, np.ndarray):
+                setattr(self, attr_nm, vect[0])
+            else:
+                setattr(self, attr_nm, vect)
         else:
             tmp[:] = vect
 
@@ -901,7 +901,6 @@ class GridObjects:
                 raise IncorrectPositionOfLines("for line {} at origin end".format(i))
         for i, (sub_id, sub_pos) in enumerate(zip(self.line_ex_to_subid, self.line_ex_to_sub_pos)):
             if sub_pos >= self.sub_info[sub_id]:
-                # pdb.set_trace()
                 raise IncorrectPositionOfLines("for line {} at extremity end".format(i))
 
         # check that i don't have 2 objects with the same id in the "big topo" vector

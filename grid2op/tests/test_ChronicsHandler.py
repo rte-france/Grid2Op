@@ -15,6 +15,7 @@ from grid2op.tests.helper_path_test import *
 from grid2op.MakeEnv import make
 from grid2op.Exceptions import *
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
+from grid2op.Chronics import MultifolderWithCache
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 
@@ -784,6 +785,33 @@ class TestCFFWFWM(HelperTests):
                 obs = env.reset()
                 maint2 = env.chronics_handler.real_data.data.maintenance
                 assert np.all(maint == maint2)
+
+
+class TestWithCache(HelperTests):
+    def test_load(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"),
+                      param=param,
+                      chronics_class=MultifolderWithCache) as env:
+                env.seed(123456)  # for reproducible tests !
+                nb_steps = 10
+                # I test that the reset ... reset also the date time and the chronics "state"
+                obs = env.reset()
+                assert obs.minute_of_hour == 5
+                assert env.chronics_handler.real_data.data.current_index == 0
+                assert env.chronics_handler.real_data.data.curr_iter == 1
+                for i in range(nb_steps):
+                    obs, reward, done, info = env.step(env.action_space())
+                assert obs.minute_of_hour == 55
+                obs = env.reset()
+                assert obs.minute_of_hour == 5
+                assert env.chronics_handler.real_data.data.current_index == 0
+                assert env.chronics_handler.real_data.data.curr_iter == 1
+
+
 
 if __name__ == "__main__":
     unittest.main()

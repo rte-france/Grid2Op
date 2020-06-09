@@ -11,7 +11,6 @@ import numpy as np
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
 from grid2op.dtypes import dt_float
-import pdb
 
 
 class IdToAct(Converter):
@@ -71,6 +70,8 @@ class IdToAct(Converter):
         # add the do nothing topology
         self.all_actions.append(super().__call__())
         self.n = 1
+        self._init_size = action_space.size()
+        self.kwargs_init = {}
 
     def init_converter(self, all_actions=None, **kwargs):
         """
@@ -79,12 +80,21 @@ class IdToAct(Converter):
 
         Parameters
         ----------
-        all_actions: ``list``
-            The (ordered) list of all actions that the agent will be able to perform. If given a number ``i`` the
-            converter will return action ``all_actions[i]``. In the "pacman" game, this vector could be
-            ["up", "down", "left", "right"], in this case "up" would be encode by 0, "down" by 1, "left" by 2 and
-            "right" by 3. If nothing is provided, the converter will output all the unary actions possible for
-            the environment. Be careful, computing all these actions might take some time.
+        all_actions: ``None``, ``list``, ``str``, ``np.ndarray``
+            See the example section for more informations.
+
+            if `all_actions` is:
+
+                - ``None``: the action space will be built from scratch using the provided key word arguments.
+                - a ``list``: The (ordered) list of all actions that the agent will be able to perform.
+                  If given a number ``i`` the
+                  converter will return action ``all_actions[i]``. In the "pacman" game, this vector could be
+                  ["up", "down", "left", "right"], in this case "up" would be encode by 0, "down" by 1, "left" by 2 and
+                  "right" by 3. If nothing is provided, the converter will output all the unary actions possible for
+                  the environment. Be careful, computing all these actions might take some time.
+                - a ``str`` this will be considered as a path where a previous converter has been saved. You need to
+                  provide the full path, including the filename and its extension. It gives something like:
+                  "/path/where/it/is/saved/action_space_vect.npy"
 
         kwargs:
             other keyword arguments (all considered to be ``True`` by default) that can be:
@@ -113,7 +123,40 @@ class IdToAct(Converter):
                 Whether you want to include the "redispatch" in your action space
                 (in case the original action space allows it)
 
+
+        Examples
+        --------
+        Here is an example of a code that will: make a converter by selecting some action. Save it, and then restore
+        its original state to be used elsewhere.
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Converter import IdToAct
+            env = grid2op.make()
+            converter = IdToAct(env.action_space)
+
+            # the path were will save it
+            path_ = "/path/where/it/is/saved/"
+            name_file = "tmp_convert.npy"
+
+            # init the converter, the first time, here by passing some key word arguments, to not consider
+            # redispatching for example
+            converter.init_converter(redispatch=False)
+            converter.save(path_, name_file)
+
+            # i just do an action, for example the number 27... whatever it does does not matter here
+            act = converter.convert_act(27)
+
+            converter2 = IdToAct(self.env.action_space)
+            converter2.init_converter(all_actions=os.path.join(path_, name_file))
+            act2 = converter2.convert_act(27)
+
+            assert act ==  act2  # this is ``True`` the converter has properly been saved.
+
+
         """
+        self.kwargs_init = kwargs
         if all_actions is None:
             self.all_actions = []
             # add the do nothing action, always
@@ -168,9 +211,11 @@ class IdToAct(Converter):
                 raise RuntimeError("Impossible to load the data located at \"{}\" with error\n{}."
                                    "".format(all_actions, e))
             try:
-                self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_act])
+                self.all_actions = np.array([self.__call__() for _ in all_act])
+                for i, el in enumerate(all_act):
+                    self.all_actions[i].from_vect(el)
             except Exception as e:
-                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action."
+                raise RuntimeError("Impossible to convert the data located at \"{}\" into valid grid2op action. "
                                    "The error was:\n{}".format(all_actions, e))
         elif isinstance(all_actions, (list, np.ndarray)):
             # assign the action to my actions
@@ -179,7 +224,9 @@ class IdToAct(Converter):
                 self.all_actions = np.array(all_actions)
             else:
                 try:
-                    self.all_actions = np.array([super(Converter, self).from_vect(el) for el in all_actions])
+                    self.all_actions = np.array([self.__call__() for _ in all_actions])
+                    for i, el in enumerate(all_actions):
+                        self.all_actions[i].from_vect(el)
                 except Exception as e:
                     raise RuntimeError("Impossible to convert the data provided in \"all_actions\" into valid "
                                        "grid2op action. The error was:\n{}".format(e))
@@ -220,8 +267,35 @@ class IdToAct(Converter):
         name: ``str``, optional
             The name of the numpy array stored on disk. By default its "action_space_vect.npy"
 
-        Returns
-        -------
+        Examples
+        --------
+        Here is an example of a code that will: make a converter by selecting some action. Save it, and then restore
+        its original state to be used elsewhere.
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Converter import IdToAct
+            env = grid2op.make()
+            converter = IdToAct(env.action_space)
+
+            # the path were will save it
+            path_ = "/path/where/it/is/saved/"
+            name_file = "tmp_convert.npy"
+
+            # init the converter, the first time, here by passing some key word arguments, to not consider
+            # redispatching for example
+            converter.init_converter(redispatch=False)
+            converter.save(path_, name_file)
+
+            # i just do an action, for example the number 27... whatever it does does not matter here
+            act = converter.convert_act(27)
+
+            converter2 = IdToAct(self.env.action_space)
+            converter2.init_converter(all_actions=os.path.join(path_, name_file))
+            act2 = converter2.convert_act(27)
+
+            assert act ==  act2  # this is ``True`` the converter has properly been saved.
 
         """
         if not os.path.exists(path):

@@ -10,10 +10,9 @@ import time
 import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
-import copy
 from abc import ABC, abstractmethod
 
-from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
@@ -24,8 +23,6 @@ from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 from grid2op.Action._BackendAction import _BackendAction
-from grid2op.Action import ActionSpace
-import pdb
 
 
 class BaseEnv(GridObjects, RandomObject, ABC):
@@ -88,7 +85,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
-                 other_rewards={}
+                 other_rewards={},
+                 with_forecast=True,
+                 opponent_action_class=DontAct,
+                 opponent_class=BaseOpponent,
+                 opponent_budget_class=UnlimitedBudget,
+                 opponent_init_budget=0.,
+                 opponent_budget_per_ts=0.,
+                 kwargs_opponent={}
                  ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -98,6 +102,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
         self.parameters = parameters
+        self.with_forecast = with_forecast
 
         # some timers
         self._time_apply_act = dt_float(0)
@@ -122,7 +127,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # observation
         self.current_obs = None
 
-
         self.ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
         self.forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
 
@@ -135,7 +139,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # store actions "cooldown"
         self.times_before_line_status_actionable = None
         self.max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
-
         self.times_before_topology_actionable = None
         self.max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
@@ -201,18 +204,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                        "from \"grid2op.BaseReward\"")
             if not isinstance(k, str):
                 raise Grid2OpException("All keys of \"rewards\" should be of string type.")
-
             self.other_rewards[k] = RewardHelper(v)
 
         # opponent
-        self.opponent_action_class = DontAct  # class of the action of the opponent
-        self.opponent_class = BaseOpponent  # class of the opponent
-        self.opponent_init_budget = 0
+        self.opponent_action_class = opponent_action_class  # class of the action of the opponent
+        self.opponent_class = opponent_class  # class of the opponent
+        self.opponent_init_budget = dt_float(opponent_init_budget)
+        self.opponent_budget_per_ts = dt_float(opponent_budget_per_ts)
+        self.kwargs_opponent = kwargs_opponent
+        self.opponent_budget_class = opponent_budget_class
 
         ## below initialized by _create_env, above: need to be called
-        self.opponent_action_space = None  # ActionSpace(gridobj=)
-        self.compute_opp_budg = None  # UnlimitedBudget(self.opponent_act_space)
-        self.opponent = None  # OpponentSpace()
+        self.opponent_action_space = None
+        self.compute_opp_budget = None
+        self.opponent = None
         self.oppSpace = None
 
         # voltage
@@ -249,10 +254,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.opponent_action_space = self.helper_action_class(gridobj=self.backend,
                                                               legal_action=AlwaysLegal,
                                                               actionClass=self.opponent_action_class)
-        self.compute_opp_budg = UnlimitedBudget(self.opponent_action_space)
-        self.opponent = self.opponent_class(self.opponent_action_space)
-        self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budg,
+
+        self.compute_opp_budget = self.opponent_budget_class(self.opponent_action_space)
+        self.opponent = self.opponent_class(self.opponent_action_space,
+                                            **self.kwargs_opponent)
+        self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budget,
                                       init_budget=self.opponent_init_budget,
+                                      budget_per_timestep=self.opponent_budget_per_ts,
                                       opponent=self.opponent
                                       )
         self.oppSpace.init()
@@ -315,21 +323,25 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Parameters
         ----------
-            seed: ``int``
-               The seed to set.
+        seed: ``int``
+           The seed to set.
 
         Returns
         ---------
-        seed: ``int``
+        seed: ``tuple``
             The seed used to set the prng (pseudo random number generator) for the environment
-        seed_chron: ``int``
+        seed_chron: ``tuple``
             The seed used to set the prng for the chronics_handler (if any), otherwise ``None``
-        seed_obs: ``int``
+        seed_obs: ``tuple``
             The seed used to set the prng for the observation space (if any), otherwise ``None``
-        seed_action_space: ``int``
+        seed_action_space: ``tuple``
             The seed used to set the prng for the action space (if any), otherwise ``None``
-        seed_env_modif: ``int``
+        seed_env_modif: ``tuple``
             The seed used to set the prng for the modification of th environment (if any otherwise ``None``)
+        seed_volt_cont: ``tuple``
+            The seed used to set the prng for voltage controler (if any otherwise ``None``)
+        seed_opponent: ``tuple``
+            The seed used to set the prng for the opponent (if any otherwise ``None``)
 
         """
         try:
@@ -346,6 +358,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         seed_obs = None
         seed_action_space = None
         seed_env_modif = None
+        seed_volt_cont = None
+        seed_opponent = None
         max_int = np.iinfo(dt_int).max
         if self.chronics_handler is not None:
             seed = self.space_prng.randint(max_int)
@@ -359,7 +373,60 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.helper_action_env is not None:
             seed = self.space_prng.randint(max_int)
             seed_env_modif = self.helper_action_env.seed(seed)
-        return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif)
+        if self.voltage_controler is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_volt_cont = self.voltage_controler.seed(seed)
+        if self.opponent is not None:
+            seed = self.space_prng.randint(max_int)
+            seed_opponent = self.opponent.seed(seed)
+        return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent)
+
+    def deactivate_forecast(self):
+        """
+        This function will have the effect to deactivate the `obs.simulate`, the forecast will not be updated
+        in the observation space.
+
+        This will most likely lead to some performance increase (~10-15% faster) if you don't use the
+        `obs.simulate` function.
+
+        Notes
+        ------
+        If you really don't want to use the `obs.simulate` functionality, you should rather disable it at the creation
+        of the environment. For example, if you use the recommended `make` function, you can pass an argument
+        that will ignore the chronics even when reading it (using `GridStateFromFile` instead of
+        `GridStateFromFileWithForecast` for example) this would give something like:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Chronics import GridStateFromFile
+            # tell grid2op not to read the "forecast"
+            env = grid2op.make("rte_case14_realistic", data_feeding_kwargs={"gridvalueClass": GridStateFromFile})
+
+            # improve speed ups to not even try to use forecast
+            env.deactivate_forecast()
+
+            # this is normal behavior
+            obs = env.reset()
+
+            # but this will make the programm stop working
+            # obs.simulate()  # DO NOT RUN IT RAISES AN ERROR
+
+        """
+        if self.helper_observation is not None:
+            self.helper_observation.with_forecast = False
+        self.with_forecast = False
+
+    def reactivate_forecast(self):
+        """
+        This function will have the effect to reactivate the `obs.simulate`, the forecast will be updated
+        in the observation space.
+
+        This will most likely lead to some performance decrease but you will be able to use `obs.simulate` function.
+        """
+        if self.helper_observation is not None:
+            self.helper_observation.with_forecast = True
+        self.with_forecast = True
 
     @abstractmethod
     def init_backend(self, init_grid_path, chronics_handler, backend,
@@ -940,10 +1007,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _reset_vectors_and_timings(self):
         """
         Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
-
-        Returns
-        -------
-
         """
         self.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
         self.timestep_overflow[:] = 0
@@ -1089,4 +1152,3 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # Update to the fast forward state using a do nothing action
         self.step(self.helper_action_player({}))
-        # return self.current_obs

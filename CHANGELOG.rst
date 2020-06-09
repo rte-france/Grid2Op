@@ -16,6 +16,61 @@ Change Log
 - [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 - [???] fix notebook 5 texts
 
+[1.0.0] - 2020-06-xx
+---------------------
+- [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
+- [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now
+  `SingleProcessMultiEnv`
+- [FIXED] `LinesReconnectedReward` fixes reward inverted range
+- [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
+- [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
+  disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
+- [ADDED] a clearer explanation between illegal and ambiguous action.
+- [ADDED] `MultiEnvMultiProcess` as a new multi-process class to run different environments in multiples prallel
+  processes.
+- [ADDED] more control on the environment when using the `grid2op.make` function.
+- [ADDED] creation of the MultiMixEnv that allows to have, through a unified interface the possibility to interact
+  alternatively with one environment or the other. This is especially useful when considering an agent that should
+  interact in multiple environments.
+- [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
+  more broadly usable.
+- [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same
+  grid and an arbitrary number of processes for each of these.
+
+[0.9.3] - 2020-05-29
+---------------------
+- [FIXED] `Issue #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows
+  based OS.
+- [ADDED] `Issue #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
+  The notebook has been updated accordingly.
+- [ADDED] Some function to disable the `obs.simulate` if wanted. This can lead to around 10~15% performance speed up
+  in case `obs.simulate` is not used. See `env.deactivate_forecast` and `env.reactivate_forecast`
+  (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
+- [UPDATED] the first introductory notebook.
+- [UPDATED] possibility to reconnect / disconnect powerline giving its name when using `reconnect_powerline` and
+  `disconnect_powerline` methods of the action space.
+- [UPDATED] `Issue #105 <https://github.com/rte-france/Grid2Op/issues/105>`_ problem solved for notebook 4.
+  based OS.
+- [UPDATED] overall speed enhancement mostly in the `VoltageControler`, with the adding of the previous capability,
+  some updates in the `BackendAction`
+  `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_
+- [UPDATED] Added `PlotMatplot` constructor arguments to control display of names and IDs of the grid elements
+  (gen, load, lines). As suggested in `Issue #106 <https://github.com/rte-france/Grid2Op/issues/106>`_
+
+
+[0.9.2] - 2020-05-26
+---------------------
+- [FIXED] `GridObject` loading from file does initialize single values (`bool`, `int`, `float`)
+  correctly instead of creating a `np.array` of size one.
+- [FIXED] `IdToAct` loading actions from file .npy
+- [FIXED] a problem on the grid name import on some version of pandas
+- [ADDED] a function that returns the types of the action see `action.get_types()`
+- [ADDED] a class to "cache" the data in memory instead of reading it over an over again from disk (see
+  `grid2op.chronics.MultifolderWithCache` (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
+- [ADDED] improve the documentation of the observation class.
+- [UPDATED] Reward `LinesReconnectedReward` to take into account maintenances downtimes
+- [UPDATED] Adds an option to disable plotting load and generators names when using `PlotMatplot`
+
 [0.9.1] - 2020-05-20
 ---------------------
 - [FIXED] a bug preventing to save gif with episode replay when there has been a game over before starting time step
@@ -398,32 +453,32 @@ Change Log
 - [BREAKING] previous saved BaseAction Spaces and BaseObservation Spaces (as dictionnary) are no more compatible
 - [BREAKING] renaming of attributes describing the powergrid across classes for better consistency:
 
-====================  =======================  =======================
-Class Name            Old Attribute Name       New Attribute Name
-====================  =======================  =======================
-Backend               n_lines                  n_line
-Backend               n_generators             n_gen
-Backend               n_loads                  n_load
-Backend               n_substations            n_sub
-Backend               subs_elements            sub_info
-Backend               name_loads               name_load
-Backend               name_prods               name_gen
-Backend               name_lines               name_line
-Backend               name_subs                name_sub
-Backend               lines_or_to_subid        line_or_to_subid
-Backend               lines_ex_to_subid        line_ex_to_subid
-Backend               lines_or_to_sub_pos      line_or_to_sub_pos
-Backend               lines_ex_to_sub_pos      line_ex_to_sub_pos
-Backend               lines_or_pos_topo_vect   line_or_pos_topo_vect
-Backend               lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
-BaseAction / BaseObservation  _lines_or_to_subid       line_or_to_subid
-BaseAction / BaseObservation  _lines_ex_to_subid       line_ex_to_subid
-BaseAction / BaseObservation  _lines_or_to_sub_pos     line_or_to_sub_pos
-BaseAction / BaseObservation  _lines_ex_to_sub_pos     line_ex_to_sub_pos
-BaseAction / BaseObservation  _lines_or_pos_topo_vect  line_or_pos_topo_vect
-BaseAction / BaseObservation  _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
-GridValue             n_lines                  n_line
-====================  =======================  =======================
+=============================    =======================  =======================
+Class Name                       Old Attribute Name       New Attribute Name
+=============================    =======================  =======================
+Backend                           n_lines                  n_line
+Backend                           n_generators             n_gen
+Backend                           n_loads                  n_load
+Backend                           n_substations            n_sub
+Backend                           subs_elements            sub_info
+Backend                           name_loads               name_load
+Backend                           name_prods               name_gen
+Backend                           name_lines               name_line
+Backend                           name_subs                name_sub
+Backend                           lines_or_to_subid        line_or_to_subid
+Backend                           lines_ex_to_subid        line_ex_to_subid
+Backend                           lines_or_to_sub_pos      line_or_to_sub_pos
+Backend                           lines_ex_to_sub_pos      line_ex_to_sub_pos
+Backend                           lines_or_pos_topo_vect   line_or_pos_topo_vect
+Backend                           lines_ex_pos_topo_vect   lines_ex_pos_topo_vect
+BaseAction / BaseObservation     _lines_or_to_subid       line_or_to_subid
+BaseAction / BaseObservation     _lines_ex_to_subid       line_ex_to_subid
+BaseAction / BaseObservation     _lines_or_to_sub_pos     line_or_to_sub_pos
+BaseAction / BaseObservation     _lines_ex_to_sub_pos     line_ex_to_sub_pos
+BaseAction / BaseObservation     _lines_or_pos_topo_vect  line_or_pos_topo_vect
+BaseAction / BaseObservation     _lines_ex_pos_topo_vect  lines_ex_pos_topo_vect
+GridValue                        n_lines                  n_line
+=============================    =======================  =======================
 
 - [FIXED] Runner cannot save properly action and observation (sizes are not computed properly)
   **now fixed and unit test added**

@@ -26,7 +26,7 @@ class Parameters:
         thermal
         limit. Default is ``False``
 
-    NB_TIMESTEP_POWERFLOW_ALLOWED: ``int``
+    NB_TIMESTEP_OVERFLOW_ALLOWED: ``int``
         Number of timesteps for which a soft overflow is allowed, default 2. This means that a powerline will be
         disconnected (if :attr:`.NO_OVERFLOW_DISCONNECTION` is set to ``False``) after 2 time steps above its thermal
         limit. This is called a "soft overflow".
@@ -69,7 +69,6 @@ class Parameters:
     MAX_SUB_CHANGED: ``int``
         Maximum number of substations that can be reconfigured between two consecutive timesteps by an
         :class:`grid2op.Agent.BaseAgent`. Default value is 1.
-
 
     MAX_LINE_STATUS_CHANGED: ``int``
         Maximum number of powerlines statuses that can be changed between two consecutive timestetps by an

@@ -22,7 +22,7 @@ copyright = '2019, RTE France'
 author = 'Benjamin Donnot'
 
 # The full version, including alpha/beta/rc tags
-release = '0.9.1.post1'
+release = '0.9.3'
 version = '0.9'
 
 
@@ -45,6 +45,7 @@ extensions = [
      "sphinx_rtd_theme",
     # toc of modules
     'autodocsumm',
+    # 'sphinx.ext.autosectionlabel',
 
     # 'details',
     #'exception_hierarchy'

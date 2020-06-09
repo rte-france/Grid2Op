@@ -37,7 +37,6 @@ except (ImportError, ModuleNotFoundError):
     numba_ = False
     warnings.warn("Numba cannot be loaded. You will gain possibly massive speed if installing it by "
                   "\n\t{} -m pip install numba\n".format(sys.executable))
-import pdb
 
 
 class PandaPowerBackend(Backend):
@@ -127,6 +126,8 @@ class PandaPowerBackend(Backend):
         self._vars_action = BaseAction.attr_list_vect
         self._vars_action_set = BaseAction.attr_list_vect
         self.cst_1 = dt_float(1.0)
+        self._topo_vect = None
+
         # self._time_topo_vect = 0.
 
     def get_nb_active_bus(self):
@@ -245,12 +246,12 @@ class PandaPowerBackend(Backend):
 
         # now extract the powergrid
         self.n_line = copy.deepcopy(self._grid.line.shape[0]) + copy.deepcopy(self._grid.trafo.shape[0])
-        if "name" in self._grid.line.columns and self._grid.line["name"].isnull().values.any() is False:
+        if "name" in self._grid.line.columns and not self._grid.line["name"].isnull().values.any():
             self.name_line = [name for name in self._grid.line["name"]]
         else:
             self.name_line = ['{from_bus}_{to_bus}_{id_powerline_me}'.format(**row, id_powerline_me=i)
                               for i, (_, row) in enumerate(self._grid.line.iterrows())]
-        if "name" in self._grid.trafo.columns and self._grid.trafo["name"].isnull().values.any() is False:
+        if "name" in self._grid.trafo.columns and not self._grid.trafo["name"].isnull().values.any():
             self.name_line += [name_traf for name_traf in self._grid.trafo["name"]]
         else:
             transfo = [('{hv_bus}'.format(**row), '{lv_bus}'.format(**row))
@@ -260,7 +261,7 @@ class PandaPowerBackend(Backend):
         self.name_line = np.array(self.name_line)
 
         self.n_gen = copy.deepcopy(self._grid.gen.shape[0])
-        if "name" in self._grid.gen.columns and self._grid.gen["name"].isnull().values.any() is False:
+        if "name" in self._grid.gen.columns and not self._grid.gen["name"].isnull().values.any():
             self.name_gen = [name_g for name_g in self._grid.gen["name"]]
         else:
             self.name_gen = ["gen_{bus}_{index_gen}".format(**row, index_gen=i)
@@ -268,13 +269,12 @@ class PandaPowerBackend(Backend):
         self.name_gen = np.array(self.name_gen)
 
         self.n_load = copy.deepcopy(self._grid.load.shape[0])
-        if "name" in self._grid.load.columns and self._grid.load["name"].isnull().values.any() is False:
+        if "name" in self._grid.load.columns and not self._grid.load["name"].isnull().values.any():
             self.name_load = [nl for nl in self._grid.load["name"]]
         else:
             self.name_load = ["load_{bus}_{index_gen}".format(**row, index_gen=i)
                               for i, (_, row) in enumerate(self._grid.load.iterrows())]
         self.name_load = np.array(self.name_load)
-
         self.n_sub = copy.deepcopy(self._grid.bus.shape[0])
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)
@@ -421,6 +421,7 @@ class PandaPowerBackend(Backend):
         for l_id, pos_big_topo  in enumerate(self.line_ex_pos_topo_vect):
             self._big_topo_to_obj[pos_big_topo] = (l_id, nm_)
 
+        self._topo_vect = self._get_topo_vect()
         # Create a deep copy of itself in the initial state
         pp_backend_initial_state = copy.deepcopy(self)
         # Store it under super private attribute
@@ -508,7 +509,6 @@ class PandaPowerBackend(Backend):
                     self.change_bus_trafo_hv(id_el_backend - self.__nb_powerline, new_bus_backend)
             elif type_obj == "lineex":
                 new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lex[id_el_backend])
-                # if id_el_backend == 0: pdb.set_trace()
                 if id_el_backend < self.__nb_powerline:
                     # it's a powerline
                     self.change_bus_powerline_ex(id_el_backend, new_bus_backend)
@@ -632,6 +632,7 @@ class PandaPowerBackend(Backend):
 
                 self._nb_bus_before = None
                 self._grid._ppc["gen"][self._iref_slack, 1] = 0.
+                self._topo_vect[:] = self._get_topo_vect()
                 return self._grid.converged
 
         except pp.powerflow.LoadflowNotConverged:
@@ -708,6 +709,9 @@ class PandaPowerBackend(Backend):
             self._grid.trafo["in_service"].iloc[id - self._number_true_line] = True
 
     def get_topo_vect(self):
+        return self._topo_vect
+
+    def _get_topo_vect(self):
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
 
         line_status = self.get_line_status()
@@ -749,43 +753,6 @@ class PandaPowerBackend(Backend):
             res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
             i += 1
 
-        return res
-
-    def _get_topo_vect_old(self):
-        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
-
-        line_status = self.get_line_status()
-
-        for i, (_, row) in enumerate(self._grid.line.iterrows()):
-            bus_or_id = int(row["from_bus"])
-            bus_ex_id = int(row["to_bus"])
-            if line_status[i]:
-                res[self.line_or_pos_topo_vect[i]] = 1 if bus_or_id == self.line_or_to_subid[i] else 2
-                res[self.line_ex_pos_topo_vect[i]] = 1 if bus_ex_id == self.line_ex_to_subid[i] else 2
-            else:
-                res[self.line_or_pos_topo_vect[i]] = -1
-                res[self.line_ex_pos_topo_vect[i]] = -1
-
-        nb = self._number_true_line
-        for i, (_, row) in enumerate(self._grid.trafo.iterrows()):
-            bus_or_id = int(row["hv_bus"])
-            bus_ex_id = int(row["lv_bus"])
-
-            j = i + nb
-            if line_status[j]:
-                res[self.line_or_pos_topo_vect[j]] = 1 if bus_or_id == self.line_or_to_subid[j] else 2
-                res[self.line_ex_pos_topo_vect[j]] = 1 if bus_ex_id == self.line_ex_to_subid[j] else 2
-            else:
-                res[self.line_or_pos_topo_vect[j]] = -1
-                res[self.line_ex_pos_topo_vect[j]] = -1
-
-        for i, (_, row) in enumerate(self._grid.gen.iterrows()):
-            bus_id = int(row["bus"])
-            res[self.gen_pos_topo_vect[i]] = 1 if bus_id == self.gen_to_subid[i] else 2
-
-        for i, (_, row) in enumerate(self._grid.load.iterrows()):
-            bus_id = int(row["bus"])
-            res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
         return res
 
     def _gens_info(self):

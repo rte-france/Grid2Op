@@ -8,13 +8,11 @@
 from multiprocessing import Process, Pipe
 import numpy as np
 
-from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
-
-import pdb
 
 # TODO test this class.
 
@@ -125,11 +123,13 @@ class RemoteEnv(Process):
                 self.fast_forward = int(data)
             elif cmd == "seed":
                 self.remote.send((self.seed_used, self.all_seeds))
+            elif cmd == "params":
+                self.remote.send(self.env.parameters)
             else:
                 raise NotImplementedError
 
 
-class MultiEnvironment(GridObjects):
+class BaseMultiProcessEnvironment(GridObjects):
     """
     This class allows to evaluate a single agent instance on multiple environments running in parrallel.
 
@@ -195,8 +195,8 @@ class MultiEnvironment(GridObjects):
 
     Attributes
     -----------
-    imported_env: `grid2op.Environment.Environment`
-        The environment to duplicated and for which the evaluation will be made in parallel.
+    envs: `list::grid2op.Environment.Environment`
+        Al list of environments for which the evaluation will be made in parallel.
 
     nb_env: ``int``
         Number of parallel underlying environment that will be handled. It is also the size of the list of actions
@@ -204,21 +204,21 @@ class MultiEnvironment(GridObjects):
         same function.
 
     """
-    def __init__(self, nb_env, env):
+    def __init__(self, envs):
         GridObjects.__init__(self)
-        self.imported_env = env
-        self.nb_env = nb_env
+        self.envs = envs
+        self.nb_env = len(envs)
         max_int = np.iinfo(dt_int).max
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
-        env_params = [env.get_kwargs() for _ in range(self.nb_env)]
-        for el in env_params:
-            el["backendClass"] = type(env.backend)
+        env_params = [envs[e].get_kwargs() for e in range(self.nb_env)]
+        for e, el in enumerate(env_params):
+            el["backendClass"] = envs[e]._raw_backend_class
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
-                              name="env: {}".format(i),
-                              seed=env.space_prng.randint(max_int))
+                              name="{}_subprocess_{}".format(envs[i].name, i),
+                              seed=envs[i].space_prng.randint(max_int))
                     for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
 
         for p in self._ps:
@@ -238,7 +238,7 @@ class MultiEnvironment(GridObjects):
         results = [remote.recv() for remote in self._remotes]
         self._waiting = False
         obs, rews, dones, infos = zip(*results)
-        obs = [self.imported_env.observation_space.from_vect(ob) for ob in obs]
+        obs = [self.envs[e].observation_space.from_vect(ob) for e, ob in enumerate(obs)]
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
     def step(self, actions):
@@ -297,7 +297,7 @@ class MultiEnvironment(GridObjects):
         """
         for remote in self._remotes:
             remote.send(('r', None))
-        res = [self.imported_env.observation_space.from_vect(remote.recv()) for remote in self._remotes]
+        res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
         return np.stack(res)
 
     def close(self):
@@ -349,24 +349,38 @@ class MultiEnvironment(GridObjects):
             remote.send(('f', ff_max))
 
     def get_seeds(self):
+        """
+        Get the seeds used to initialize each sub environments.
+        """
         for remote in self._remotes:
             remote.send(('seed', None))
         res = [remote.recv() for remote in self._remotes]
         return np.stack(res)
 
+    def get_parameters(self):
+        """
+        Get the parameters of each sub environments
+        """
+        for remote in self._remotes:
+            remote.send(('params', None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
 
 
 if __name__ == "__main__":
     from tqdm import tqdm
     from grid2op import make
     from grid2op.Agent import DoNothingAgent
-    env = make()
 
     nb_env = 8  # change that to adapt to your system
-    NB_STEP = 1000  # number of step for each environment
+    NB_STEP = 100  # number of step for each environment
 
+    env = make()
+    env.seed(42)
+    envs = [env for _ in range(nb_env)]
+    
     agent = DoNothingAgent(env.action_space)
-    multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
+    multi_envs = BaseMultiProcessEnvironment(envs)
 
     obs = multi_envs.reset()
     rews = [env.reward_range[0] for i in range(nb_env)]

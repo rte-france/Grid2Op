@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from abc import abstractmethod
-import pdb
 
 from grid2op.Converter import Converter
 from grid2op.Exceptions import Grid2OpException
@@ -207,6 +206,16 @@ class AgentWithConverter(BaseAgent):
         transformed_observation = self.convert_obs(observation)
         encoded_act = self.my_act(transformed_observation, reward, done)
         return self.convert_act(encoded_act)
+
+    def seed(self, seed):
+        """
+        Seed the agent AND the associated converter if it needs to be seeded.
+
+        See a more detailed explanation in :func:`BaseAgent.seed` for more information about seeding.
+        """
+        super().seed(seed)
+        if self.action_space_converter is not None:
+            self.action_space.seed(seed)
 
     @abstractmethod
     def my_act(self, transformed_observation, reward, done=False):

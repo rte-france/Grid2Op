@@ -12,7 +12,12 @@ import numpy as np
 class PlotUtil:
     @staticmethod
     def format_value_unit(value, unit):
-        return "{} {}".format(value, unit)
+        if isinstance(value, float):
+            return "{:.2f} {}".format(value, unit)
+        elif isinstance(value, int):
+            return "{:d} {}".format(value, unit)
+        else:
+            return "{} {}".format(value, unit)
 
     @staticmethod
     def middle_from_points(x1, y1, x2, y2):

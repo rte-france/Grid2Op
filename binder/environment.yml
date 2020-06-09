@@ -6,7 +6,7 @@ dependencies:
   - numpy
   - keras
   - pip:
-    - grid2op
+    - grid2op[challenge]
     - jyquickhelper
     - numpy
     - numba

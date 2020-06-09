@@ -24,4 +24,23 @@ class RandomAgent(AgentWithConverter):
         AgentWithConverter.__init__(self, action_space, action_space_converter, **kwargs_converter)
 
     def my_act(self, transformed_observation, reward, done=False):
-        return self.action_space.sample()
+        """
+        A random agent will "simply" draw a random number between 0 and the number of action, and return this action.
+
+        This is equivalent to draw uniformly at random a feasible action.
+
+        Notes
+        -----
+        In order to be working as intended, it is crucial that this method does not rely on any other source
+        of "pseudo randomness" than :attr:`grid2op.Space.RandomObject.space_prng`.
+
+        In particular, you must avoid
+        to use `np.random.XXXX` or the `random` python module. You can replace any call to `np.random.XXX` by
+        `self.space_prng.XXX` (**eg**  `np.random.randint(1,5)` can be replaced by `self.space_prng.randint(1,5)`).
+
+        If you really need other sources of randomness (for example if you use tensorflow or torch) we strongly
+        recommend you to overload the :func:`BaseAgent.seed` accordingly.
+
+        """
+        my_int = self.space_prng.randint(self.action_space.n)
+        return my_int

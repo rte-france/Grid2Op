@@ -14,7 +14,8 @@ import pdb
 import warnings
 
 import grid2op
-from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP
+from grid2op.dtypes import dt_int
+from grid2op.tests.helper_path_test import HelperTests, PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
@@ -26,7 +27,16 @@ from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
 from grid2op.Action._BackendAction import _BackendAction
 
+PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
+
+
+class TestNames(unittest.TestCase):
+    def test_properNames(self):
+        with make(os.path.join(PATH_DATA_TEST_INIT, "5bus_example_diff_name")) as env:
+            obs = env.reset()
+            assert np.all(obs.name_load == ["tutu", "toto", "tata"])
+            assert np.all(env.name_load == ["tutu", "toto", "tata"])
 
 
 class TestLoadingCase(unittest.TestCase):
@@ -501,7 +511,9 @@ class TestTopoAction(unittest.TestCase):
         after_amps_flow = self.backend.get_line_flow()
 
         topo_vect = self.backend.get_topo_vect()
-        topo_vect_old = self.backend._get_topo_vect_old()
+        topo_vect_old = np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dt_int)
         assert self.compare_vect(topo_vect, topo_vect_old) == True
 
     def test_topo_set1sub(self):

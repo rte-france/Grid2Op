@@ -13,7 +13,6 @@ import copy
 
 from multiprocessing import Pool
 
-import pdb
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Action import BaseAction, TopologyAction, DontAct
 from grid2op.Exceptions import *
@@ -28,9 +27,8 @@ from grid2op.Agent import DoNothingAgent, BaseAgent
 from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
-from grid2op.Opponent import BaseOpponent
 from grid2op.dtypes import dt_float
-from grid2op.Space import RandomObject
+from grid2op.Opponent import BaseOpponent, UnlimitedBudget
 
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
@@ -204,6 +202,22 @@ class Runner(object):
         The seed used, for reproducible experiments (**NB** to ensure reproducible experiments even in the case of
         parallel evaluation, there are absolutely not warrantee the seed used by any of the envrionment generated
         will be the seed passed in this parameter.)
+
+    opponent_action_class: ``type``, optional
+        The action class used for the opponent. The opponent will not be able to use action that are invalid with
+        the given action class provided. It defaults to :class:`grid2op.Action.DontAct` which forbid any type
+        of action possible.
+
+    opponent_class: ``type``, optional
+        The opponent class to use. The default class is :class:`grid2op.Opponent.BaseOpponent` which is a type
+        of opponents that does nothing.
+
+    opponent_init_budget: ``float``, optional
+        The initial budget of the opponent. It defaults to 0.0 which means the opponent cannot perform any action
+        if this is not modified.
+
+    opponent_budget_per_ts
+    opponent_budget_class
     """
 
     def __init__(self,
@@ -231,7 +245,9 @@ class Runner(object):
                  other_rewards={},
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_init_budget=0,
+                 opponent_init_budget=0.,
+                 opponent_budget_per_ts=0.,
+                 opponent_budget_class=UnlimitedBudget,
                  grid_layout=None):
         """
         Initialize the Runner.
@@ -467,6 +483,9 @@ class Runner(object):
         self.opponent_action_class = opponent_action_class
         self.opponent_class = opponent_class
         self.opponent_init_budget = opponent_init_budget
+        self.opponent_budget_per_ts = opponent_budget_per_ts
+        self.opponent_budget_class = opponent_budget_class
+
         self.grid_layout = grid_layout
 
     def _new_env(self, chronics_handler, backend, parameters):
@@ -484,6 +503,8 @@ class Runner(object):
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
                             opponent_init_budget=self.opponent_init_budget,
+                            opponent_budget_per_ts=self.opponent_budget_per_ts,
+                            opponent_budget_class=self.opponent_budget_class,
                             name=self.name_env)
 
         if self.thermal_limit_a is not None:
