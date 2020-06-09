@@ -32,6 +32,7 @@ Change Log
 - [ADDED] creation of the MultiMixEnv that allows to have, through a unified interface the possibility to interact
   alternatively with one environment or the other. This is especially useful when considering an agent that should
   interact in multiple environments.
+- [ADDED] possibility to use `simulate` on the current observation.
 - [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
   more broadly usable.
 - [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same
