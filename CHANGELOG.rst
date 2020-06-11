@@ -23,6 +23,8 @@ Change Log
   `SingleProcessMultiEnv`
 - [FIXED] `LinesReconnectedReward` fixes reward inverted range
 - [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
+- [FIXED] `obs.simulate` could sometime returns "None" when the simulated action lead to a game over. This is no longer
+  a problem.
 - [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
   disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
 - [ADDED] a clearer explanation between illegal and ambiguous action.
@@ -32,10 +34,13 @@ Change Log
 - [ADDED] creation of the MultiMixEnv that allows to have, through a unified interface the possibility to interact
   alternatively with one environment or the other. This is especially useful when considering an agent that should
   interact in multiple environments.
+- [ADDED] possibility to use `simulate` on the current observation.
 - [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
   more broadly usable.
 - [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same
   grid and an arbitrary number of processes for each of these.
+- [UPDATED] Behaviour of "change_bus" and "set_bus": it is no more possible to affect the bus of a powerline
+  disconnected.
 
 [0.9.3] - 2020-05-29
 ---------------------

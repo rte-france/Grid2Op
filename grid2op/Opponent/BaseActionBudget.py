@@ -10,6 +10,7 @@ import numpy as np
 from grid2op.Exceptions import OpponentError
 
 
+# TODO update and check this is also working in simulate
 class BaseActionBudget:
     """
     This is the base class representing the action bugdet.
