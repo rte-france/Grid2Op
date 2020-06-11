@@ -23,6 +23,8 @@ Change Log
   `SingleProcessMultiEnv`
 - [FIXED] `LinesReconnectedReward` fixes reward inverted range
 - [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
+- [FIXED] `obs.simulate` could sometime returns "None" when the simulated action lead to a game over. This is no longer
+  a problem.
 - [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
   disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
 - [ADDED] a clearer explanation between illegal and ambiguous action.

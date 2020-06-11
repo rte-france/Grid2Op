@@ -129,6 +129,10 @@ class _ObsEnv(BaseEnv):
         self.last_bus_line_or_init = np.zeros(self.n_line, dtype=dt_int)
         self.last_bus_line_ex_init = np.zeros(self.n_line, dtype=dt_int)
 
+        self.current_obs = self.obsClass(seed=None,
+                                         obs_env=None,
+                                         action_helper=None)
+
     def _do_nothing(self, x):
         return self._do_nothing_act
 
@@ -187,10 +191,6 @@ class _ObsEnv(BaseEnv):
         ``None``
 
         """
-        # if self.time_stamp == time_stamp:
-            # no need to re modify it
-            # return
-
         self._topo_vect[:] = topo_vect
 
         # TODO set the shunts here
@@ -200,10 +200,11 @@ class _ObsEnv(BaseEnv):
                                                             "injection": {"prod_p": self._prod_p,
                                                                           "prod_v": self._prod_v,
                                                                           "load_p": self._load_p,
-                                                                          "load_q": self._load_q}})
+                                                                          "load_q": self._load_q}
+                                                            })
         self._backend_action_set += new_state_action
         self.is_init = True
-        self.current_obs = None
+        self.current_obs.reset()
         self.time_stamp = time_stamp
         self.timestep_overflow[:] = timestep_overflow
 
@@ -224,20 +225,9 @@ class _ObsEnv(BaseEnv):
         self.actual_dispatch[:] = self.actual_dispatch_init
         self.last_bus_line_or[:] = self.last_bus_line_or_init
         self.last_bus_line_ex[:] = self.last_bus_line_ex_init
-        new = True
-        save = False
-        if new:
-            self._backend_action_set.all_changed()
-            # self.backend.apply_action(None, self._backend_action_set)
-            self._backend_action = copy.deepcopy(self._backend_action_set)
-            if save:
-                import pandapower as pp
-                pp.to_json(self.backend._grid, "test_action2.json")
-        else:
-            self.backend.apply_action(self._action)
-            if save:
-                import pandapower as pp
-                pp.to_json(self.backend._grid, "test_action1.json")
+
+        self._backend_action_set.all_changed()
+        self._backend_action = copy.deepcopy(self._backend_action_set)
 
     def simulate(self, action):
         """
@@ -291,13 +281,8 @@ class _ObsEnv(BaseEnv):
         res: :class:`grid2op.Observation.Observation`
             The observation available.
         """
-
-        self.current_obs = self.obsClass(seed=None,
-                                         obs_env=None,
-                                         action_helper=None)
-
-        self.current_obs.update(self)
-        res = self.current_obs
+        self.current_obs.update(self, with_forecast=False)
+        res = copy.deepcopy(self.current_obs)
         return res
 
     def update_grid(self, env):

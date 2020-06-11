@@ -191,6 +191,7 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         self._forecasted_grid_act = {}
         self._forecasted_inj = []
+        self._obs_env = obs_env
 
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
@@ -234,11 +235,6 @@ class BaseObservation(GridObjects):
         self.hour_of_day = dt_int(0)
         self.minute_of_hour = dt_int(0)
         self.day_of_week = dt_int(0)
-
-        # forecasts
-        self._forecasted_inj = []
-        self._forecasted_grid = []
-        self._obs_env = obs_env
 
         # redispatching
         self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
@@ -652,7 +648,7 @@ class BaseObservation(GridObjects):
         """
         raise NotImplementedError("This method is not implemented. ")
 
-    def get_forecasted_inj(self, time_step=0):
+    def get_forecasted_inj(self, time_step=1):
         """
         This function allows you to retrieve directly the "planned" injections for the timestep `time_step`
 
@@ -672,7 +668,7 @@ class BaseObservation(GridObjects):
         load_q_f: ``numpy.ndarray``
             The forecasted load reactive consumption
         """
-        if time_step >= len(self._forecasted_inj):
+        if time_step > len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
         a = self._forecasted_grid_act[time_step]["inj_action"]
         prod_p_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
@@ -704,7 +700,7 @@ class BaseObservation(GridObjects):
                           hour=self.hour_of_day, minute=self.minute_of_hour)
         return res
 
-    def simulate(self, action, time_step=0):
+    def simulate(self, action, time_step=1):
         """
         This method is used to simulate the effect of an action on a forecasted powergrid state. It has the same return
         value as the :func:`grid2op.Environment.Environment.step` function.
@@ -740,38 +736,30 @@ class BaseObservation(GridObjects):
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation (no action_space "
                                       "and no simulated environment are set).")
 
-        if time_step == -1:
-            # "forecast" on the current time step... weird, but can be usefull...
-            inj_action = {}
-            dict_ = {}
-            dict_["load_p"] = dt_float(1.0 * self.load_p)
-            dict_["load_q"] = dt_float(1.0 * self.load_q)
-            dict_["prod_p"] = dt_float(1.0 * self.prod_p)
-            dict_["prod_v"] = dt_float(1.0 * self.prod_v)
-            inj_action["injection"] = dict_
-            inj_action = self.action_helper(inj_action)
-            timestamp = self.get_time_stamp()
-        else:
-            if time_step >= len(self._forecasted_inj):
-                raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics."
-                                          "".format(time_step))
+        if time_step < 0:
+            raise NoForecastAvailable("Impossible to forecast in the past.")
 
-            if time_step not in self._forecasted_grid_act:
-                timestamp, inj_forecasted = self._forecasted_inj[time_step]
-                self._forecasted_grid_act[time_step] = {
-                    "timestamp": timestamp,
-                    "inj_action": self.action_helper(inj_forecasted)
-                }
+        if time_step > len(self._forecasted_inj):
+            raise NoForecastAvailable("Forecast for {} timestep(s) ahead is not possible with your chronics."
+                                      "".format(time_step))
 
-            timestamp = self._forecasted_grid_act[time_step]["timestamp"]
-            inj_action = self._forecasted_grid_act[time_step]["inj_action"]
+        if time_step not in self._forecasted_grid_act:
+            timestamp, inj_forecasted = self._forecasted_inj[time_step]
+            self._forecasted_grid_act[time_step] = {
+                "timestamp": timestamp,
+                "inj_action": self.action_helper(inj_forecasted)
+            }
+
+        timestamp = self._forecasted_grid_act[time_step]["timestamp"]
+        inj_action = self._forecasted_grid_act[time_step]["inj_action"]
         self._obs_env.init(inj_action,
                            time_stamp=timestamp,
                            timestep_overflow=self.timestep_overflow,
                            topo_vect=self.topo_vect)
 
-        sim_obs = self._obs_env.simulate(action)
-        return sim_obs
+        sim_obs, *rest = self._obs_env.simulate(action)
+        sim_obs = copy.deepcopy(sim_obs)
+        return (sim_obs, *rest)
 
     def copy(self):
         """

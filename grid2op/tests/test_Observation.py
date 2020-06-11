@@ -662,10 +662,12 @@ class TestUpdateEnvironement(unittest.TestCase):
             l_prod_v = self.lobs._forecasted_inj[i][1]['injection']['prod_v']
             r_prod_v = self.robs._forecasted_inj[i][1]['injection']['prod_v']
             assert np.all(l_prod_v == r_prod_v)
+
             # Check maintenance
-            l_maintenance = self.lobs._forecasted_inj[i][1]['maintenance']
-            r_maintenance = self.robs._forecasted_inj[i][1]['maintenance']
-            assert np.all(l_maintenance == r_maintenance)
+            # we never forecasted the maintenance anyway
+            # l_maintenance = self.lobs._forecasted_inj[i][1]['maintenance']
+            # r_maintenance = self.robs._forecasted_inj[i][1]['maintenance']
+            # assert np.all(l_maintenance == r_maintenance)
 
         # Check relative flows
         assert np.all(self.lobs.rho == self.robs.rho)
@@ -721,8 +723,11 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create change action
         change_act = self.env.action_space({'change_line_status': change_status})
         # Simulate & Step
-        self.sim_obs, _, _, _ = self.obs.simulate(change_act)
-        self.step_obs, _, _, _ = self.env.step(change_act)        
+        self.sim_obs, reward_sim, done_sim, _ = self.obs.simulate(change_act)
+        self.step_obs, reward_real, done_real, _ = self.env.step(change_act)
+        assert not done_sim
+        assert not done_real
+        assert abs(reward_sim - reward_real) <= 1e-7
         # Test observations are the same
         assert self.sim_obs == self.step_obs
 
@@ -1017,32 +1022,36 @@ class TestSimulateEqualsStep(unittest.TestCase):
 
     def _check_equal(self, obs1, obs2):
         tol = 1e-8
-        assert np.all(np.abs(obs1.prod_p - obs2.prod_p) <= tol)
-        assert np.all(np.abs(obs1.prod_v - obs2.prod_v) <= tol)
-        assert np.all(np.abs(obs1.prod_q - obs2.prod_q) <= tol)
-        assert np.all(np.abs(obs1.load_p - obs2.load_p) <= tol)
-        assert np.all(np.abs(obs1.load_q - obs2.load_q) <= tol)
-        assert np.all(np.abs(obs1.load_v - obs2.load_v) <= tol)
-        assert np.all(np.abs(obs1.rho - obs2.rho) <= tol)
-        assert np.all(np.abs(obs1.p_or - obs2.p_or) <= tol)
-        assert np.all(np.abs(obs1.q_or - obs2.q_or) <= tol)
-        assert np.all(np.abs(obs1.v_or - obs2.v_or) <= tol)
-        assert np.all(np.abs(obs1.a_or - obs2.a_or) <= tol)
-        assert np.all(np.abs(obs1.p_ex - obs2.p_ex) <= tol)
-        assert np.all(np.abs(obs1.q_ex - obs2.q_ex) <= tol)
-        assert np.all(np.abs(obs1.v_ex - obs2.v_ex) <= tol)
-        assert np.all(np.abs(obs1.a_ex - obs2.a_ex) <= tol)
+        assert np.all(np.abs(obs1.prod_p - obs2.prod_p) <= tol), "issue with prod_p"
+        assert np.all(np.abs(obs1.prod_v - obs2.prod_v) <= tol), "issue with prod_v"
+        assert np.all(np.abs(obs1.prod_q - obs2.prod_q) <= tol), "issue with prod_q"
+        assert np.all(np.abs(obs1.load_p - obs2.load_p) <= tol), "issue with load_p"
+        assert np.all(np.abs(obs1.load_q - obs2.load_q) <= tol), "issue with load_q"
+        assert np.all(np.abs(obs1.load_v - obs2.load_v) <= tol), "issue with load_v"
+        assert np.all(np.abs(obs1.rho - obs2.rho) <= tol), "issue with rho"
+        assert np.all(np.abs(obs1.p_or - obs2.p_or) <= tol), "issue with p_or)"
+        assert np.all(np.abs(obs1.q_or - obs2.q_or) <= tol), "issue with q_or"
+        assert np.all(np.abs(obs1.v_or - obs2.v_or) <= tol), "issue with v_or"
+        assert np.all(np.abs(obs1.a_or - obs2.a_or) <= tol), "issue with a_or"
+        assert np.all(np.abs(obs1.p_ex - obs2.p_ex) <= tol), "issue with p_ex"
+        assert np.all(np.abs(obs1.q_ex - obs2.q_ex) <= tol), "issue with q_ex"
+        assert np.all(np.abs(obs1.v_ex - obs2.v_ex) <= tol), "issue with v_ex"
+        assert np.all(np.abs(obs1.a_ex - obs2.a_ex) <= tol), "issue with a_ex"
 
     def test_simulate_current_ts(self):
-        sim_obs, _, _, _ = self.obs.simulate(self.env.action_space(), time_step=-1)
+        sim_obs, _, _, _ = self.obs.simulate(self.env.action_space(), time_step=0)
         # check that the observations are equal
         self._check_equal(sim_obs, self.obs)
 
         obs = self.env.reset()
-        sim_obs1, _, _, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
-        sim_obs2, _, _, _ = obs.simulate(self.env.action_space(), time_step=-1)
-        sim_obs3, _, _, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        sim_obs1, rew1, done1, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        sim_obs3, rew3, done3, _ = obs.simulate(self.env.action_space.disconnect_powerline(line_id=2))
+        assert not done1
+        assert not done2
+        assert not done3
         self._check_equal(sim_obs2, obs)
+        assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
         self._check_equal(sim_obs1, sim_obs3)
 
 
