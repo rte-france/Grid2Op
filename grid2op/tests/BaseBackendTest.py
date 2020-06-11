@@ -129,29 +129,31 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.action_env_class = ActionSpace.init_grid(self.backend)
         self.action_env = self.action_env_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
+        self.backend.runpf()
+        self.backend.assert_grid_correct_after_powerflow()
 
     def tearDown(self):
         pass
 
-    def test_runpf(self):
+    def test_runpf_dc(self):
         self.skip_if_needed()
         conv = self.backend.runpf(is_dc=True)
         assert conv
-
-        true_values_ac = np.array([1.56882891e+02, 7.55103818e+01, 5.22755247e+00, 9.42638103e+00,
-                                   -3.78532238e+00, 1.61425777e+00, 5.64385098e+00, 7.32375792e+01,
-                                   5.61314959e+01, 4.15162150e+01, -2.32856901e+01, -6.11582304e+01,
-                                   7.35327698e+00, 7.78606702e+00, 1.77479769e+01, 2.80741759e+01,
-                                   1.60797576e+01, 4.40873209e+01, -1.11022302e-14, 2.80741759e+01])
         true_values_dc = np.array([147.83859556, 71.16140444, 5.7716542, 9.64132512,
                                    -3.2283458, 1.50735814, 5.25867488, 70.01463596,
                                    55.1518527, 40.9721069, -24.18536404, -61.74649065,
                                    6.7283458, 7.60735814, 17.25131674, 28.36115279,
                                    16.55182652, 42.78702069, 0., 28.36115279])
-
         p_or, *_ = self.backend.lines_or_info()
         assert self.compare_vect(p_or, true_values_dc)
 
+    def test_runpf(self):
+        self.skip_if_needed()
+        true_values_ac = np.array([1.56882891e+02, 7.55103818e+01, 5.22755247e+00, 9.42638103e+00,
+                                   -3.78532238e+00, 1.61425777e+00, 5.64385098e+00, 7.32375792e+01,
+                                   5.61314959e+01, 4.15162150e+01, -2.32856901e+01, -6.11582304e+01,
+                                   7.35327698e+00, 7.78606702e+00, 1.77479769e+01, 2.80741759e+01,
+                                   1.60797576e+01, 4.40873209e+01, -1.11022302e-14, 2.80741759e+01])
         conv = self.backend.runpf(is_dc=False)
         assert conv
         p_or, *_ = self.backend.lines_or_info()
@@ -226,12 +228,20 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert np.abs(p_or_ref[3]) <= self.tol_one
         assert self.compare_vect(p_or_orig, p_or)
 
-    def test_get_line_status(self):
+    def test_get_private_line_status(self):
         self.skip_if_needed()
-        assert np.all(self.backend._get_line_status())
+        if hasattr(self.backend, "_get_line_status"):
+            assert np.all(self.backend._get_line_status())
+        else:
+            assert np.all(self.backend.get_line_status())
+
         self.backend._disconnect_line(3)
-        assert np.sum(~self.backend._get_line_status()) == 1
-        assert not self.backend._get_line_status()[3]
+        if hasattr(self.backend, "_get_line_status"):
+            vect_ = self.backend._get_line_status()
+        else:
+            vect_ = self.backend.get_line_status()
+        assert np.sum(~vect_) == 1
+        assert not vect_[3]
 
     def test_get_line_flow(self):
         self.skip_if_needed()
@@ -1021,7 +1031,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
         assert np.all(np.isfinite(obs.v_or))
-        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
+        assert np.sum(env.backend.get_topo_vect() == 2) == 1
 
     def test_change_bus(self):
         self.skip_if_needed()
@@ -1033,7 +1043,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert np.all(np.isfinite(obs.v_or))
-        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
+        assert np.sum(env.backend.get_topo_vect() == 2) == 1
 
     def test_change_bustwice(self):
         self.skip_if_needed()
@@ -1046,15 +1056,13 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         obs, reward, done, info = env.step(action)
         assert not done
         assert np.all(np.isfinite(obs.v_or))
-        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
-        assert env.backend._grid["trafo"]["hv_bus"][2] == 18
+        assert np.sum(env.backend.get_topo_vect() == 2) == 1
 
         action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert not done
         assert np.all(np.isfinite(obs.v_or))
-        assert np.sum(env.backend._grid["bus"]["in_service"]) == 14
-        assert env.backend._grid["trafo"]["hv_bus"][2] == 4
+        assert np.sum(env.backend.get_topo_vect() == 2) == 0
 
     def test_isolate_load(self):
         self.skip_if_needed()
@@ -1163,15 +1171,14 @@ class BaseTestShuntAction(MakeBackend):
                                 action_class=CompleteAction, backend=backend2)
 
         obs_ref, *_ = env_ref.step(env_ref.action_space())
-        obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, -30)]}}))
-        assert obs_ref.v_or[10] < obs_change_p.v_or[10]
-        obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, +30)]}}))
+        obs_change_p_down, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, -30)]}}))
+        assert obs_ref.v_or[10] < obs_change_p_down.v_or[10] - self.tol_one
+        obs_change_p_up, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, +30)]}}))
         obs_ref, *_ = env_ref.step(env_ref.action_space())
-        assert obs_ref.v_or[10] > obs_change_p.v_or[10]
-        obs_change_p, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"set_bus": [(0, -1)]}}))
-        env_ref.backend._grid.shunt["in_service"] = False  # force disconnection of shunt
-        obs_ref, *_ = env_ref.step(env_ref.action_space())
-        assert np.abs(obs_ref.v_or[10] - obs_change_p.v_or[10]) < self.tol_one
+        assert obs_ref.v_or[10] > obs_change_p_up.v_or[10] + self.tol_one
+        obs_disco_sh, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"set_bus": [(0, -1)]}}))
+        # given the shunt amount at first, this is the right test to do
+        assert obs_ref.v_or[10] > obs_disco_sh.v_or[10] + self.tol_one
 
 
 class BaseTestResetEqualsLoadGrid(MakeBackend):

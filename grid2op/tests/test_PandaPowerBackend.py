@@ -6,6 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import unittest
+import warnings
+
+import numpy as np
+
+from grid2op import make
 
 from grid2op.tests.helper_path_test import PATH_DATA_TEST_PP, PATH_DATA_TEST
 from grid2op.Backend import PandaPowerBackend
@@ -120,6 +125,60 @@ class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 
+
+# Specific to pandapower power
+class TestChangeBusAffectRightBus2(unittest.TestCase):
+    def skip_if_needed(self):
+        pass
+
+    def make_backend(self):
+        return PandaPowerBackend()
+
+    def test_set_bus(self):
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make(test=True, backend=backend)
+        env.reset()
+        # action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
+        obs, reward, done, info = env.step(action)
+        assert np.all(np.isfinite(obs.v_or))
+        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
+
+    def test_change_bus(self):
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make(test=True, backend=backend)
+        env.reset()
+        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        obs, reward, done, info = env.step(action)
+        assert np.all(np.isfinite(obs.v_or))
+        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
+
+    def test_change_bustwice(self):
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make(test=True, backend=backend)
+        env.reset()
+        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        obs, reward, done, info = env.step(action)
+        assert not done
+        assert np.all(np.isfinite(obs.v_or))
+        assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
+        assert env.backend._grid["trafo"]["hv_bus"][2] == 18
+
+        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        obs, reward, done, info = env.step(action)
+        assert not done
+        assert np.all(np.isfinite(obs.v_or))
+        assert np.sum(env.backend._grid["bus"]["in_service"]) == 14
+        assert env.backend._grid["trafo"]["hv_bus"][2] == 4
 
 if __name__ == "__main__":
     unittest.main()
