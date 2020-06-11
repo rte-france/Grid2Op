@@ -908,6 +908,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # included in time_apply_act
             tick = time.time()
             attack = self.oppSpace.attack(observation=self.current_obs,
+                                          env=self,
                                           agent_action=action,
                                           env_action=self.env_modification)
             self._backend_action += attack

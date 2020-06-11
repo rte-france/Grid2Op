@@ -10,7 +10,7 @@ from abc import abstractmethod
 
 from grid2op.Converter import Converter
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Opponent.BaseOpponent import BaseOpponent
+from grid2op.Opponent import BaseOpponent
 
 
 class OpponentWithConverter(BaseOpponent):
@@ -154,7 +154,7 @@ class OpponentWithConverter(BaseOpponent):
         return self.convert_act(encoded_attack)
 
     @abstractmethod
-    def my_attack(self, transformed_observation, agent_action, env_action, budget, previous_fails):
+    def my_attack(self, transformed_observation, *args):
         """
         This method should be overide if this class is used. It is an "abstract" method.
 

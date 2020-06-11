@@ -1,5 +1,5 @@
-__all__ = ["OpponentSpace", "BaseActionBudget", "BaseOpponent", "UnlimitedBudget", "OpponentWithConverter",
-           "RandomLineOpponent"]
+__all__ = ["OpponentSpace", "BaseActionBudget", "BaseOpponent", "UnlimitedBudget",
+           "OpponentWithConverter", "RandomLineOpponent"]
 
 from grid2op.Opponent.OpponentSpace import OpponentSpace
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget

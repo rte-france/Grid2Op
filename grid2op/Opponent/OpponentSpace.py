@@ -79,7 +79,7 @@ class OpponentSpace(object):
         """
         self.previous_fails = True
 
-    def attack(self, observation, agent_action, env_action):
+    def attack(self, observation, env, agent_action, env_action):
         """
         This function calls the attack from the opponent.
 
@@ -95,6 +95,9 @@ class OpponentSpace(object):
         observation: :class:`grid2op.Observation.Observation`
             The last observation (at time t)
 
+        env: :class:`grid2op.Environment.Environment`
+            The environment
+
         agent_action: :class:`grid2op.Action.Action`
             The action that the agent took
 
@@ -108,7 +111,7 @@ class OpponentSpace(object):
 
         """
         self.budget += self.budget_per_timestep
-        attack = self.opponent.attack(observation, agent_action, env_action, self.budget, self.previous_fails)
+        attack = self.opponent.attack(observation, env, self, agent_action, env_action, self.budget, self.previous_fails)
         tmp = self.compute_budget(attack)
         if tmp <= self.budget:
             self.previous_fails = False
