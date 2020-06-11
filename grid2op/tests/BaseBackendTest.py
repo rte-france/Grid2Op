@@ -15,6 +15,7 @@ import os
 import numpy as np
 import copy
 from abc import ABC, abstractmethod
+import inspect
 
 import pdb
 import warnings
@@ -42,6 +43,13 @@ class MakeBackend(ABC):
 
     def get_casefile(self):
         raise NotImplementedError("This function should be implemented for the test suit you are developping")
+
+    def skip_if_needed(self):
+        if hasattr(self, "tests_skipped"):
+            nm_ = inspect.currentframe().f_back.f_code.co_name
+            if nm_ in self.tests_skipped:
+                self.skipTest("the test \"{}\" is skipped".format(nm_))
+
 
 class BaseTestNames(MakeBackend):
     def test_properNames(self):
@@ -126,6 +134,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         pass
 
     def test_runpf(self):
+        self.skip_if_needed()
         conv = self.backend.runpf(is_dc=True)
         assert conv
 
@@ -149,6 +158,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(p_or, true_values_ac)
 
     def test_voltage_convert_powerlines(self):
+        self.skip_if_needed()
         # i have the correct voltages in powerlines if the formula to link mw, mvar, kv and amps is correct
         conv = self.backend.runpf(is_dc=False)
         assert conv
@@ -162,6 +172,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(a_th, a_ex)
 
     def test_voltages_correct_load_gen(self):
+        self.skip_if_needed()
         # i have the right voltages to generators and load, if it's the same as the voltage (correct from the above test)
         # of the powerline connected to it.
 
@@ -200,6 +211,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
             assert False, "generator {} has not been checked".format(g_id)
 
     def test_copy(self):
+        self.skip_if_needed()
         conv = self.backend.runpf(is_dc=False)
         p_or_orig, *_ = self.backend.lines_or_info()
         adn_backend_cpy = self.backend.copy()
@@ -215,12 +227,14 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(p_or_orig, p_or)
 
     def test_get_line_status(self):
+        self.skip_if_needed()
         assert np.all(self.backend._get_line_status())
         self.backend._disconnect_line(3)
         assert np.sum(~self.backend._get_line_status()) == 1
         assert not self.backend._get_line_status()[3]
 
     def test_get_line_flow(self):
+        self.skip_if_needed()
         self.backend.runpf(is_dc=False)
         true_values_ac = np.array([-20.40429168, 3.85499114, 4.2191378, 3.61000624,
                                    -1.61506292, 0.75395917, 1.74717378, 3.56020295,
@@ -241,6 +255,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(q_or_orig, true_values_ac)
 
     def test_pf_ac_dc(self):
+        self.skip_if_needed()
         true_values_ac = np.array([-20.40429168, 3.85499114, 4.2191378, 3.61000624,
                                    -1.61506292, 0.75395917, 1.74717378, 3.56020295,
                                    -1.5503504, 1.17099786, 4.47311562, 15.82364194,
@@ -256,6 +271,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(q_or_orig, true_values_ac)
 
     def test_get_thermal_limit(self):
+        self.skip_if_needed()
         res = self.backend.get_thermal_limit()
         true_values_ac = np.array([42339.01974057, 42339.01974057, 27479652.23546777,
                                    27479652.23546777, 27479652.23546777, 27479652.23546777,
@@ -267,6 +283,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(res, true_values_ac)
 
     def test_disconnect_line(self):
+        self.skip_if_needed()
         for i in range(self.backend.n_line):
             if i == 18:
                 # powerflow diverge if line 1 is removed, unfortunately
@@ -280,6 +297,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
             assert np.sum(~flows) == 1
 
     def test_donothing_action(self):
+        self.skip_if_needed()
         conv = self.backend.runpf()
         init_flow = self.backend.get_line_flow()
         init_lp, *_ = self.backend.loads_info()
@@ -303,6 +321,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(init_flow, after_flow)
 
     def test_apply_action_active_value(self):
+        self.skip_if_needed()
         # test that i can modify only the load / prod active values of the powergrid
         # to do that i modify the productions and load all of a factor 0.5 and compare that the DC flows are
         # also multiply by 2
@@ -361,6 +380,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(ratio * init_flow, after_flow)  # probably an error with the DC approx
 
     def test_apply_action_prod_v(self):
+        self.skip_if_needed()
         conv = self.backend.runpf(is_dc=False)
         prod_p_init, prod_q_init, prod_v_init = self.backend.generators_info()
         ratio = 1.05
@@ -375,6 +395,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert self.compare_vect(ratio * prod_v_init, prod_v_after)  # check i didn't modify the generators
 
     def test_apply_action_maintenance(self):
+        self.skip_if_needed()
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         conv = self.backend.runpf()
         init_lp, *_ = self.backend.loads_info()
@@ -407,6 +428,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         assert not flows[19]
 
     def test_apply_action_hazard(self):
+        self.skip_if_needed()
         conv = self.backend.runpf()
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
@@ -432,8 +454,8 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         # assert self.compare_vect(init_gp, after_gp)  # check i didn't modify the generators  # TODO here problem with steady state P=C+L
         assert np.all(maintenance == ~after_ls)  # check i didn't disconnect any powerlines beside the correct one
 
-    #
     def test_apply_action_disconnection(self):
+        self.skip_if_needed()
         # retrieve some initial data to be sure only a subpart of the _grid is modified
         conv = self.backend.runpf()
         init_lp, *_ = self.backend.loads_info()
@@ -492,6 +514,7 @@ class BaseTestTopoAction(MakeBackend):
 
     def test_get_topo_vect_speed(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
+        self.skip_if_needed()
         conv = self.backend.runpf()
         init_amps_flow = self.backend.get_line_flow()
 
@@ -516,6 +539,7 @@ class BaseTestTopoAction(MakeBackend):
 
     def test_topo_set1sub(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
+        self.skip_if_needed()
         conv = self.backend.runpf()
         init_amps_flow = self.backend.get_line_flow()
 
@@ -574,6 +598,7 @@ class BaseTestTopoAction(MakeBackend):
 
     def test_topo_change1sub(self):
         # check that switching the bus of 3 object is equivalent to set them to bus 2 (as above)
+        self.skip_if_needed()
         conv = self.backend.runpf()
         init_amps_flow = self.backend.get_line_flow()
 
@@ -630,6 +655,7 @@ class BaseTestTopoAction(MakeBackend):
     def test_topo_change_1sub_twice(self):
         # check that switching the bus of 3 object is equivalent to set them to bus 2 (as above)
         # and that setting it again is equivalent to doing nothing
+        self.skip_if_needed()
         conv = self.backend.runpf()
         init_amps_flow = copy.deepcopy(self.backend.get_line_flow())
 
@@ -706,6 +732,7 @@ class BaseTestTopoAction(MakeBackend):
 
     def test_topo_change_2sub(self):
         # check that maintenance vector is properly taken into account
+        self.skip_if_needed()
         arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
         arr2 = np.array([1, 1, 2, 2], dtype=np.int)
         id_1 = 1
@@ -813,6 +840,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
 
     def test_next_grid_state_1overflow(self):
         # second i test that, when is one line on hard overflow it is disconnected
+        self.skip_if_needed()
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
@@ -834,6 +862,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
     def test_next_grid_state_1overflow_envNoCF(self):
         # third i test that, if a line is on hard overflow, but i'm on a "no cascading failure" mode,
         # i don't simulate a cascading failure
+        self.skip_if_needed()
         self.env_params.NO_OVERFLOW_DISCONNECTION = True
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
@@ -858,6 +887,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         # it is disconnected
         # then powerline 16 have a relative flow of 1.5916318201096937
         # in this scenario i don't have a second line disconnection.
+        self.skip_if_needed()
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
@@ -889,6 +919,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         # in this scenario i don't have a second line disconnection because
         # the overflow is a soft overflow and  the powerline is presumably overflow since 0
         # timestep
+        self.skip_if_needed()
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
@@ -918,6 +949,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         # in this scenario i don't have a second line disconnection because
         # the overflow is a soft overflow and  the powerline is presumably overflow since only 1
         # timestep
+        self.skip_if_needed()
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
@@ -947,6 +979,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
 
         # in this scenario I have a second disconnection, because the powerline is allowed to be on overflow for 2
         # timestep and is still on overflow here.
+        self.skip_if_needed()
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
@@ -978,6 +1011,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
 
 class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_set_bus(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -990,6 +1024,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
 
     def test_change_bus(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1001,6 +1036,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
 
     def test_change_bustwice(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1021,6 +1057,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert env.backend._grid["trafo"]["hv_bus"][2] == 4
 
     def test_isolate_load(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1030,6 +1067,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert done, "an isolated laod has not lead to a game over"
 
     def test_reco_disco_bus(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1045,6 +1083,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert done_case1
 
     def test_reco_disco_bus2(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1060,6 +1099,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert done_case2
 
     def test_reco_disco_bus3(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1073,6 +1113,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert done_case2 is False
 
     def test_reco_disco_bus4(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1086,6 +1127,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
         assert done_case2 is False
 
     def test_reco_disco_bus5(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1100,6 +1142,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
 class BaseTestShuntAction(MakeBackend):
     def test_shunt_ambiguous_id_incorrect(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1109,6 +1152,7 @@ class BaseTestShuntAction(MakeBackend):
                     act = env_case2.action_space({"shunt": {"set_bus": [(0, 2)]}})
 
     def test_shunt_effect(self):
+        self.skip_if_needed()
         backend1 = self.make_backend()
         backend2 = self.make_backend()
         with warnings.catch_warnings():
@@ -1146,6 +1190,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.env2.close()
 
     def test_reset_equals_reset(self):
+        self.skip_if_needed()
         # Reset backend1 with reset
         self.env1.reset()
         # Reset backend2 with reset
@@ -1165,6 +1210,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         assert np.all(self.backend1.v_ex == self.backend2.v_ex)
 
     def test_reset_equals_load_grid(self):
+        self.skip_if_needed()
         # Reset backend1 with reset
         self.env1.reset()
         # Reset backend2 with load_grid
@@ -1185,6 +1231,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         assert np.all(self.backend1.v_ex == self.backend2.v_ex)
 
     def test_load_grid_equals_load_grid(self):
+        self.skip_if_needed()
         # Reset backend1 with load_grid
         self.backend1.reset = self.backend1.load_grid
         self.env1.reset()
@@ -1206,6 +1253,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         assert np.all(self.backend1.v_ex == self.backend2.v_ex)
 
     def test_obs_from_same_chronic(self):
+        self.skip_if_needed()
         # Store first observation
         obs1 = self.env1.current_obs
         obs2 = None
@@ -1248,6 +1296,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
 
 class BaseTestVoltageOWhenDisco(MakeBackend):
     def test_this(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1260,6 +1309,7 @@ class BaseTestVoltageOWhenDisco(MakeBackend):
 
 class BaseTestChangeBusSlack(MakeBackend):
     def test_change_slack_case14(self):
+        self.skip_if_needed()
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
