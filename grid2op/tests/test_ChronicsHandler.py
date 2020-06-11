@@ -12,6 +12,7 @@ import pandas as pd
 
 from grid2op.tests.helper_path_test import *
 
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.MakeEnv import make
 from grid2op.Exceptions import *
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
@@ -812,6 +813,63 @@ class TestWithCache(HelperTests):
                 assert env.chronics_handler.real_data.data.curr_iter == 1
 
 
+class TestMaintenanceBehavingNormally(HelperTests):
+    def test_withrealistic(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True,
+                      param=param) as env:
+                obs = env.reset()
+                assert np.all(obs.time_before_cooldown_line == 0)
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert info["is_illegal"]
+                assert not obs.line_status[11]
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert info["is_illegal"] is False  # it is legal
+                assert not obs.line_status[11]  # but has no effect (line is still disconnected)
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    arr_ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int)
+                    arr_[11] = 9-i
+                    assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert info["is_illegal"] is False  # it is legal
+                assert not obs.line_status[11]  #  reconnecting only one end has still no effect
+
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert info["is_illegal"] is False  # it's legal
+                assert obs.line_status[11]  # it has reconnected the powerline
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # nothing is in maintenance
+
+                for i in range(obs.time_next_maintenance[12]-1):
+                    obs, reward, done, info = env.step(env.action_space())
+                # no maintenance yet
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # a maintenance now
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+
+# load_10_8,load_11_9,load_12_10,load_13_2,load_1_0,load_2_1,load_3_3,load_4_4,load_5_5,load_8_6,load_9_7
+# load_10_8;load_11_9;load_12_10;load_13_2;load_1_0;load_2_1;load_3_3;load_4_4;load_5_5;load_8_6;load_9_7
+# gen_0_4;gen_1_0;gen_2_1;gen_5_2;gen_7_3
+# 0_1_0;0_4_1;11_12_13;12_13_14;1_2_2;1_3_3;1_4_4;2_3_5;3_4_6;3_6_15;3_8_16;4_5_17;5_10_7;5_11_8;5_12_9;6_7_18;6_8_19;8_13_11;8_9_10;9_10_12
 
 if __name__ == "__main__":
     unittest.main()
