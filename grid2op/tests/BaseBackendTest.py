@@ -7,7 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 # do some generic tests that can be implemented directly to test if a backend implementation can work out of the box
-# with grid2op
+# with grid2op.
+# see an example of test_Pandapower for how to use this suit.
 
 
 import os
