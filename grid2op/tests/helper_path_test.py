@@ -32,6 +32,7 @@ EXAMPLE_CHRONICSPATH = os.path.abspath(os.path.join(data_dir, "5bus_example", "c
 EXAMPLE_CASEFILE = os.path.abspath(os.path.join(data_dir, "5bus_example", "5bus_example.json"))
 PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_dir, "multimix"))
 
+
 class HelperTests(unittest.TestCase):
     def __init__(self, methodName='runTest'):
         unittest.TestCase.__init__(self, methodName=methodName)
@@ -39,4 +40,6 @@ class HelperTests(unittest.TestCase):
         self.tol_one = dt_float(1e-5)
 
     def compare_vect(self, pred, true):
-        return dt_float(np.max(np.abs(pred - true))) <= self.tolvect
+        res = dt_float(np.max(np.abs(pred - true))) <= self.tolvect
+        res = res and dt_float(np.mean(np.abs(pred - true))) <= self.tolvect
+        return res
