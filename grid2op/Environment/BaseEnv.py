@@ -692,9 +692,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         For this Environment, we suppose that the maximum of the 3 values are taken into account. The reality would
         be more complicated.
         """
-        first_time_maitnenance = self.time_next_maintenance == 0
-        self.times_before_line_status_actionable[first_time_maitnenance] = np.maximum(self.times_before_line_status_actionable[first_time_maitnenance],
-                                                                                      self.duration_next_maintenance[first_time_maitnenance])
+        first_time_maintenance = self.time_next_maintenance == 0
+        self.times_before_line_status_actionable[first_time_maintenance] = np.maximum(self.times_before_line_status_actionable[first_time_maintenance],
+                                                                                      self.duration_next_maintenance[first_time_maintenance])
         self.times_before_line_status_actionable[:] = np.maximum(self.times_before_line_status_actionable,
                                                                   self._hazard_duration)
 
