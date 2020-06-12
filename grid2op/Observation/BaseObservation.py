@@ -668,7 +668,7 @@ class BaseObservation(GridObjects):
         load_q_f: ``numpy.ndarray``
             The forecasted load reactive consumption
         """
-        if time_step > len(self._forecasted_inj):
+        if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
         a = self._forecasted_grid_act[time_step]["inj_action"]
         prod_p_f = np.full(self.n_gen, fill_value=np.NaN, dtype=dt_float)
@@ -739,7 +739,7 @@ class BaseObservation(GridObjects):
         if time_step < 0:
             raise NoForecastAvailable("Impossible to forecast in the past.")
 
-        if time_step > len(self._forecasted_inj):
+        if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep(s) ahead is not possible with your chronics."
                                       "".format(time_step))
 

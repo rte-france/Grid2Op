@@ -221,14 +221,14 @@ if __name__ == "__main__":
     parser.add_argument("--use_ls", type=str2bool, nargs='?',
                         const=True, default=False,
                         help="Use the LightSim2Grid Backend.")
-    parser.add_argument("--test_env", type=str2bool, nargs='?',
-                        const=True, default=True,
-                        help="Use a test environment")
+    parser.add_argument("--no_test", type=str2bool, nargs='?',
+                        const=True, default=False,
+                        help="Do not use a test environment for the profiling (default to False: meaning you use a test env)")
 
     args = parser.parse_args()
 
     max_ts = int(args.number)
     name = str(args.name)
     use_ls = args.use_ls
-    test_env = args.test_env
+    test_env = not args.no_test
     main(max_ts, name, use_lightsim=use_ls, test_env=test_env)

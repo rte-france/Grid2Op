@@ -697,7 +697,7 @@ class GridStateFromFile(GridValue):
             if arr is not None:
                 if self.chunk_size is None:
                     if arr.shape[0] != self.n_:
-                        msg_err = "Array {} has not the same number of rows tahn load_p. " \
+                        msg_err = "Array {} has not the same number of rows than the maintenance. " \
                                   "The chronics cannot be loaded properly."
                         raise EnvError(msg_err.format(name_arr))
 
