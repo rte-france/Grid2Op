@@ -12,6 +12,7 @@ import pandas as pd
 
 from grid2op.tests.helper_path_test import *
 
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.MakeEnv import make
 from grid2op.Exceptions import *
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
@@ -811,6 +812,54 @@ class TestWithCache(HelperTests):
                 assert env.chronics_handler.real_data.data.current_index == 0
                 assert env.chronics_handler.real_data.data.curr_iter == 1
 
+
+class TestMaintenanceBehavingNormally(HelperTests):
+    def test_withrealistic(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True,
+                      param=param) as env:
+                obs = env.reset()
+                assert np.all(obs.time_before_cooldown_line == 0)
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert info["is_illegal"]
+                assert not obs.line_status[11]
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert info["is_illegal"]  # it is illegal
+                assert not obs.line_status[11]
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    arr_ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int)
+                    arr_[11] = 9-i
+                    assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
+
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert not info["is_illegal"] # it's illegal
+                assert obs.line_status[11]  # it has reconnected the powerline
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # nothing is in maintenance
+
+                for i in range(obs.time_next_maintenance[12]-1):
+                    obs, reward, done, info = env.step(env.action_space())
+                # no maintenance yet
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # a maintenance now
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
 
 if __name__ == "__main__":
