@@ -882,9 +882,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
                 obs, reward, done, info = env.step(env.action_space())
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
-                print("before____________________")
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
-                print("after____________________")
                 assert not info["is_illegal"]  # it is legal
                 assert not obs.line_status[11]  # yet maintenance should have stayed
                 assert np.all(obs.time_before_cooldown_line ==
