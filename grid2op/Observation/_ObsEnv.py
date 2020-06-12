@@ -299,6 +299,8 @@ class _ObsEnv(BaseEnv):
 
         """
         real_backend = env.backend
+        self.reward_helper = env.reward_helper
+
         self._load_p, self._load_q, self._load_v = real_backend.loads_info()
         self._prod_p, self._prod_q, self._prod_v = real_backend.generators_info()
         self._topo_vect = real_backend.get_topo_vect()
