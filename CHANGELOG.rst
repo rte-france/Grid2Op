@@ -42,6 +42,11 @@ Change Log
 - [UPDATED] Behaviour of "change_bus" and "set_bus": it is no more possible to affect the bus of a powerline
   disconnected.
 
+[0.9.4] - 2020-06-12
+---------------------
+- [FIXED] `Issue #114 <https://github.com/rte-france/Grid2Op/issues/114>`_ the issue concerning the bug for the maintenance.
+
+
 [0.9.3] - 2020-05-29
 ---------------------
 - [FIXED] `Issue #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows

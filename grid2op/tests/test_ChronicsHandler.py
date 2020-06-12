@@ -836,6 +836,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
                 obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
                 assert info["is_illegal"] is False  # it is legal
                 assert not obs.line_status[11]  # but has no effect (line is still disconnected)
+
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 for i in range(10):
@@ -850,6 +851,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
 
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
                 assert info["is_illegal"] is False  # it's legal
+
                 assert obs.line_status[11]  # it has reconnected the powerline
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
@@ -865,11 +867,6 @@ class TestMaintenanceBehavingNormally(HelperTests):
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
-
-# load_10_8,load_11_9,load_12_10,load_13_2,load_1_0,load_2_1,load_3_3,load_4_4,load_5_5,load_8_6,load_9_7
-# load_10_8;load_11_9;load_12_10;load_13_2;load_1_0;load_2_1;load_3_3;load_4_4;load_5_5;load_8_6;load_9_7
-# gen_0_4;gen_1_0;gen_2_1;gen_5_2;gen_7_3
-# 0_1_0;0_4_1;11_12_13;12_13_14;1_2_2;1_3_3;1_4_4;2_3_5;3_4_6;3_6_15;3_8_16;4_5_17;5_10_7;5_11_8;5_12_9;6_7_18;6_8_19;8_13_11;8_9_10;9_10_12
 
 if __name__ == "__main__":
     unittest.main()
