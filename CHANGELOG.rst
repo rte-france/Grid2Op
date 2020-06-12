@@ -21,6 +21,7 @@ Change Log
 - [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
 - [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now
   `SingleProcessMultiEnv`
+- [FIXED] `obs.simulate` post-initialized reward behaves like the environment
 - [FIXED] `LinesReconnectedReward` fixes reward inverted range
 - [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
 - [FIXED] `obs.simulate` could sometime returns "None" when the simulated action lead to a game over. This is no longer

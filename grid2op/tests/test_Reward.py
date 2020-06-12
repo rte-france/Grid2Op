@@ -163,7 +163,22 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
 
         set_action = self.env.action_space({"set_bus": {"lines_or_id": [(1,2)]}})
         obs, r, d, info = self.env.step(set_action)
-        assert r < 1.0 
-        
+        assert r < 1.0
+
+    def test_combine_simulate(self):
+        cr = self.env.reward_helper.template_reward
+        assert cr is not None
+        gr = GameplayReward()
+        gr.set_range(-21.0, 21.0)
+        added = cr.addReward("Gameplay", gr, 2.0)
+        assert added is True
+
+        obs = self.env.reset()
+        cr.initialize(self.env)
+        _, r, d, i = obs.simulate(self.env.action_space({}))
+        assert d is False
+        assert r == 42.0
+
+
 if __name__ == "__main__":
     unittest.main()
