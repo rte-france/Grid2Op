@@ -671,10 +671,11 @@ class BaseAction(GridObjects):
         me_change[other_set != 0 & me_change] = False
 
         # i set, but the other change, so it's equivalent to setting to the opposite
+        inverted_set = other_change & me_set != 0
         # so change +1 becomes +2 and +2 becomes +1
-        me_set[other_change & me_set != 0] -= 1  # 1 becomes 0 and 2 becomes 1
-        me_set[other_change & me_set != 0] *= -1  # 1 is 0 and 2 becomes -1
-        me_set[other_change & me_set != 0] += 2  # 1 is 2 and 2 becomes 1
+        me_set[inverted_set] -= 1  # 1 becomes 0 and 2 becomes 1
+        me_set[inverted_set] *= -1  # 1 is 0 and 2 becomes -1
+        me_set[inverted_set] += 2  # 1 is 2 and 2 becomes 1
 
         # i set, the other set
         me_set[other_set != 0] = other_set[other_set != 0]
