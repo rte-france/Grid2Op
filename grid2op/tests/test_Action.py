@@ -1093,6 +1093,47 @@ class TestIADD:
         indx_same = (act1._set_topo_vect == 0) & (act2._change_bus_vect)
         assert np.all(act1._set_topo_vect[indx_same] == act1_init._set_topo_vect[indx_same])
 
+    def test_iadd_empty_change_bus(self):
+        act1 = self.action_space_1({})
+        self._skipMissingKey("_change_bus_vect", act1)
+
+        act2 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        # Iadd change
+        act1 += act2
+
+        assert act2._change_bus_vect[0] == True
+        assert act2._change_bus_vect[1] == True
+        assert act1._change_bus_vect[0] == True
+        assert act1._change_bus_vect[1] == True
+        assert np.any(act1._set_topo_vect != 0) == False
+
+    def test_iadd_change_change_bus(self):
+        act1 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+        self._skipMissingKey("_change_bus_vect", act1)
+
+        act2 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        # Iadd change
+        act1 += act2
+
+        assert act2._change_bus_vect[0] == True
+        assert act2._change_bus_vect[1] == True
+        assert act1._change_bus_vect[0] == False
+        assert act1._change_bus_vect[1] == False
+        assert np.any(act1._set_topo_vect != 0) == False
 
 # TODO a generic method to build them all maybe ?
 class TestDontAct_PowerlineChangeAndDispatchAction(TestIADD, unittest.TestCase):
