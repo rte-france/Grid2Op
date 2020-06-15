@@ -1032,11 +1032,12 @@ class TestIADD:
                            "error, attr {} has been updated".format(attr_nm)
 
     def test_iadd_change_set_status(self):
+        self._skipMissingKey("change_line_status", self.action_space_1)
+        self._skipMissingKey("set_line_status", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_switch_line_status", act1)
-        self._skipMissingKey("_set_line_status", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1045,11 +1046,12 @@ class TestIADD:
         assert np.sum(act1._switch_line_status[act2._set_line_status != 0]) == 0
 
     def test_iadd_set_change_status(self):
+        self._skipMissingKey("set_line_status", self.action_space_1)
+        self._skipMissingKey("change_line_status", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_set_line_status", act1)
-        self._skipMissingKey("_switch_line_status", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1063,11 +1065,12 @@ class TestIADD:
         assert np.all(act1._set_line_status[indx_same] == act1_init._set_line_status[indx_same])
 
     def test_iadd_change_set_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+        self._skipMissingKey("set_bus", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_change_bus_vect", act1)
-        self._skipMissingKey("_set_topo_vect", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1076,11 +1079,12 @@ class TestIADD:
         assert np.sum(act1._change_bus_vect[act2._set_topo_vect != 0]) == 0
 
     def test_iadd_set_change_bus(self):
+        self._skipMissingKey("set_bus", self.action_space_1)
+        self._skipMissingKey("change_bus", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_set_topo_vect", act1)
-        self._skipMissingKey("_change_bus_vect", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1094,9 +1098,9 @@ class TestIADD:
         assert np.all(act1._set_topo_vect[indx_same] == act1_init._set_topo_vect[indx_same])
 
     def test_iadd_empty_change_bus(self):
-        act1 = self.action_space_1({})
-        self._skipMissingKey("_change_bus_vect", act1)
+        self._skipMissingKey("change_bus", self.action_space_1)
 
+        act1 = self.action_space_1({})
         act2 = self.action_space_1({
             "change_bus": {
                 "substations_id": [(0, [0, 1])]
@@ -1113,12 +1117,13 @@ class TestIADD:
         assert np.any(act1._set_topo_vect != 0) == False
 
     def test_iadd_change_change_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+
         act1 = self.action_space_1({
             "change_bus": {
                 "substations_id": [(0, [0, 1])]
             }
         })
-        self._skipMissingKey("_change_bus_vect", act1)
 
         act2 = self.action_space_1({
             "change_bus": {
