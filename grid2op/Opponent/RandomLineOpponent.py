@@ -10,13 +10,20 @@ import numpy as np
 from grid2op.Opponent import OpponentWithConverter
 from grid2op.Converter import LineDisconnection
 
+np.random.seed(0)
+
 
 class RandomLineOpponent(OpponentWithConverter):
     def __init__(self, action_space, uptime=12, downtime=12*24):
         OpponentWithConverter.__init__(self, action_space,
                                        action_space_converter=LineDisconnection)
-        lines_maintenance = ["26_30_56", "30_31_45", "16_18_23", "16_21_27", "9_16_18", "7_9_9",
-                             "11_12_13", "12_13_14", "2_3_0", "22_26_39" ]
+        if action_space.n_line == 59: # WCCI
+            lines_maintenance = ["26_30_56", "30_31_45", "16_18_23", "16_21_27", "9_16_18", "7_9_9",
+                                 "11_12_13", "12_13_14", "2_3_0", "22_26_39" ]
+        elif action_space.n_line == 20: # case 14
+            lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
+        else:
+            raise Warning(f'Unknown environment found with {action_space.n_line} lines')
         self.action_space.filter_lines(lines_maintenance)
         self._do_nothing = 0
         self.uptime = uptime
@@ -46,7 +53,7 @@ class RandomLineOpponent(OpponentWithConverter):
         self.current_downtime = self.downtime
         self.current_attack = None
 
-    def my_attack(self, observation, env, opp_space, agent_action, env_action, budget, previous_fails):
+    def my_attack(self, observation, env, opp_space, agent_action, env_action, budget, previous_fails, update=True):
         """
         This method is the equivalent of "attack" for a regular agent.
 
@@ -96,8 +103,7 @@ class RandomLineOpponent(OpponentWithConverter):
             attack = self.current_attack
             # If the cost is too high
             if not opp_space.compute_budget(self.convert_act(attack)) <= opp_space.budget:
-                attack = self._do_nothing
-                new_uptime = 0 # interrupt the attack
+                raise Warning('The attack is too expensive to be fully completed')
 
         # If the opponent has already attacked today
         elif new_downtime > self.downtime:
@@ -111,12 +117,13 @@ class RandomLineOpponent(OpponentWithConverter):
                 attack = self._do_nothing
             # If we can afford the attack
             elif attack != self._do_nothing:
-                new_uptime = self.uptime
+                new_uptime = min(self.uptime,
+                                 int(opp_space.budget / opp_space.compute_budget(self.convert_act(attack))))
                 new_downtime += self.downtime
 
         # If this is launched from env.step (not obs.simulate)
         from grid2op.Observation import _ObsEnv
-        if not isinstance(env, _ObsEnv): # update the opponent and the environment
+        if update and not isinstance(env, _ObsEnv): # update the opponent and the environment
             self.current_uptime = new_uptime
             self.current_downtime = new_downtime
             self.current_attack = attack
@@ -125,11 +132,19 @@ class RandomLineOpponent(OpponentWithConverter):
                 line_attacked = self.convert_act(attack).as_dict()['set_line_status']['disconnected_id'][0]
                 env.times_before_line_status_actionable[line_attacked] = new_uptime
 
-        print(self.current_downtime, self.current_uptime, attack)
         return attack
 
     def _my_attack_raw(self, observation):
         if observation is None: # during creation of the environment
             return self._do_nothing # do nothing
 
-        return np.random.randint(1, self.action_space.size()) # try to disconnect a random line
+        action_line_ids = [a.as_dict()['set_line_status']['disconnected_id'][0] for a in self.action_space.actions[1:]]
+        status = observation.line_status[action_line_ids]
+
+        # If all lines are disconnected
+        if not any(status):
+            return self._do_nothing
+
+        # Pick a line among the connected lines
+        picked = 1 + np.random.choice(np.argwhere(status).ravel())
+        return picked
