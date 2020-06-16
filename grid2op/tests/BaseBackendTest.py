@@ -16,7 +16,31 @@ import numpy as np
 import copy
 from abc import ABC, abstractmethod
 import inspect
+try:
+    # this is only available starting python 3.7 or 3.8... tests are with python 3.6 :-(
+    from math import comb
+except ImportError:
+    def comb(n, k):
+        if n == k:
+            return 1
+        if n < k:
+            return 0
+        res = 1
+        acc = 1
+        for i in range(k):
+            res *= int((n-i))
+        for i in range(1,k+1):
+            res /= i
+        return res
 
+    """
+    test to check that it's working
+    for i in range(10):
+        for j in range(10):
+            me_ = comb(i,j)
+            real_ = math.comb(i,j)
+            assert me_ == real_, "{}, {}".format(i,j)
+    """
 import pdb
 import warnings
 
@@ -1333,10 +1357,12 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         act = np.random.choice(acts)
 
         # Reset env
-        env.reset()
+        obs = env.reset()
+        # At t=0 everything is on bus 1 normally
+        assert np.all(obs.topo_vect == 1)
+
         # Step
         obs, _, done, _ = env.step(act)
-
         # This should use valid actions
         assert done == False
         # At t=1, unchanged elements should be on bus 1
@@ -1366,11 +1392,10 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         return tuple(result)
 
     def aux_random_topos_act(self, env, n=128, r=2):
-        import math
         actsp = env.action_space
         acts = actsp.get_all_unitary_topologies_change(actsp)
         res = []
-        n_comb = math.comb(len(acts), r)
+        n_comb = comb(len(acts), r)
         while len(res) < n:
             env.reset()
             rnd_idx = np.random.randint(n_comb)

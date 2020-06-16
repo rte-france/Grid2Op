@@ -167,6 +167,7 @@ class PandaPowerBackend(Backend):
         # Assign the content of itself as saved at the end of load_grid
         # This overide all the attributes with the attributes from the copy in __pp_backend_initial_state
         self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
+        self._topo_vect[:] = self._get_topo_vect()
 
     def load_grid(self, path=None, filename=None):
         """
@@ -628,9 +629,6 @@ class PandaPowerBackend(Backend):
                 self.v_ex[:] *= self.lines_ex_pu_to_kv
 
                 self.prod_p[:], self.prod_q[:], self.prod_v[:] = self._gens_info()
-                # for attr_nm in ["load_p", "load_q", "load_v", "p_or", "q_or", "v_or", "a_or", "p_ex", "q_ex",
-                #                 "v_ex", "a_ex", "prod_p", "prod_q", "prod_v"]:
-                #     setattr(self, attr_nm, getattr(self, attr_nm).astype(dt_float))
 
                 self._nb_bus_before = None
                 self._grid._ppc["gen"][self._iref_slack, 1] = 0.
@@ -698,17 +696,21 @@ class PandaPowerBackend(Backend):
         """
         return self.a_or
 
-    def _disconnect_line(self, id):
-        if id < self._number_true_line:
-            self._grid.line["in_service"].iloc[id] = False
+    def _disconnect_line(self, id_):
+        if id_ < self._number_true_line:
+            self._grid.line["in_service"].iloc[id_] = False
         else:
-            self._grid.trafo["in_service"].iloc[id - self._number_true_line] = False
+            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = False
+        self._topo_vect[self.line_or_pos_topo_vect[id_]] = -1
+        self._topo_vect[self.line_ex_pos_topo_vect[id_]] = -1
+        self.line_status[id_] = False
 
-    def _reconnect_line(self, id):
+    def _reconnect_line(self, id_):
         if id < self._number_true_line:
-            self._grid.line["in_service"].iloc[id] = True
+            self._grid.line["in_service"].iloc[id_] = True
         else:
-            self._grid.trafo["in_service"].iloc[id - self._number_true_line] = True
+            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = True
+        self.line_status[id_] = True
 
     def get_topo_vect(self):
         return self._topo_vect
