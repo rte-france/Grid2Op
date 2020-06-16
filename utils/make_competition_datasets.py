@@ -29,61 +29,61 @@ def split_ds(indir, outdir, start_d, end_d):
 def test_intervals():
     # Declare datetimes intervals to extract for test set
     start_test = {
-        "Scenario_januray_00": "2012-01-01 00:00",
-        "Scenario_february_00": "2012-02-01 00:00",
-        "Scenario_march_00": "2012-03-01 00:00",
-        "Scenario_april_00": "2012-04-01 00:00",
-        "Scenario_may_00": "2012-05-01 00:00",
-        "Scenario_june_00": "2012-06-01 00:00",
-        "Scenario_april_00": "2012-04-01 00:00",
-        "Scenario_august_00": "2012-08-01 00:00",
-        "Scenario_november_00": "2012-11-01 00:00",
-        "Scenario_december_00": "2012-12-01 00:00"
-    }    
+        "Scenario_january_28": "2012-01-21 23:55",
+        "Scenario_february_40": "2012-02-21 23:55",
+        "Scenario_march_07": "2012-03-16 23:55",
+        "Scenario_april_42": "2012-04-08 23:55",
+        "Scenario_may_17": "2012-05-03 23:55",
+        "Scenario_june_01": "2012-06-06 23:55",
+        "Scenario_august_01": "2012-08-06 23:55",
+        "Scenario_october_21": "2012-10-01 23:55",
+        "Scenario_november_34": "2012-11-05 23:55",
+        "Scenario_december_12": "2012-12-08 23:55"
+    }
     end_test = {
-        "Scenario_januray_00": "2012-01-03 00:00",
-        "Scenario_february_00": "2012-02-03 00:00",
-        "Scenario_march_00": "2012-03-03 00:00",
-        "Scenario_april_00": "2012-04-03 00:00",
-        "Scenario_may_00": "2012-05-03 00:00",
-        "Scenario_june_00": "2012-06-03 00:00",
-        "Scenario_april_00": "2012-04-03 00:00",
-        "Scenario_august_00": "2012-08-03 00:00",
-        "Scenario_november_00": "2012-11-03 00:00",
-        "Scenario_december_00": "2012-12-03 00:00"
+        "Scenario_january_28": "2012-01-25 00:00",
+        "Scenario_february_40": "2012-02-25 00:00",
+        "Scenario_march_07": "2012-03-20 00:00",
+        "Scenario_april_42": "2012-04-14 00:00",
+        "Scenario_may_17": "2012-05-07 00:00",
+        "Scenario_june_01": "2012-06-10 00:00",
+        "Scenario_august_01": "2012-08-10 00:00",
+        "Scenario_october_21": "2012-10-04 00:00",
+        "Scenario_november_34": "2012-11-09 00:00",
+        "Scenario_december_12": "2012-12-14 00:00"
     }
     return start_test, end_test
 
 def validation_intervals():
     # Declare datetimes intervals to extract for validation set
     start_valid = {
-        "Scenario_januray_00": "2012-01-01 00:00",
-        "Scenario_february_00": "2012-02-01 00:00",
-        "Scenario_march_00": "2012-03-01 00:00",
-        "Scenario_april_00": "2012-04-01 00:00",
-        "Scenario_may_00": "2012-05-01 00:00",
-        "Scenario_june_00": "2012-06-01 00:00",
-        "Scenario_april_00": "2012-04-01 00:00",
-        "Scenario_august_00": "2012-08-01 00:00",
-        "Scenario_november_00": "2012-11-01 00:00",
-        "Scenario_december_00": "2012-12-01 00:00"
+        "Scenario_january_32": "2012-01-21 23:55",
+        "Scenario_february_20": "2012-02-21 23:55",
+        "Scenario_march_39": "2012-03-16 23:55",
+        "Scenario_april_19": "2012-04-08 23:55",
+        "Scenario_may_24": "2012-05-03 23:55",
+        "Scenario_june_14": "2012-06-06 23:55",
+        "Scenario_august_02": "2012-08-06 23:55",
+        "Scenario_october_05": "2012-10-01 23:55",
+        "Scenario_november_46": "2012-11-05 23:55",
+        "Scenario_december_16": "2012-12-08 23:55"
     }    
     end_valid = {
-        "Scenario_januray_00": "2012-01-03 00:00",
-        "Scenario_february_00": "2012-02-03 00:00",
-        "Scenario_march_00": "2012-03-03 00:00",
-        "Scenario_april_00": "2012-04-03 00:00",
-        "Scenario_may_00": "2012-05-03 00:00",
-        "Scenario_june_00": "2012-06-03 00:00",
-        "Scenario_april_00": "2012-04-03 00:00",
-        "Scenario_august_00": "2012-08-03 00:00",
-        "Scenario_november_00": "2012-11-03 00:00",
-        "Scenario_december_00": "2012-12-03 00:00"
+        "Scenario_january_32": "2012-01-24 00:00",
+        "Scenario_february_20": "2012-02-24 00:00",
+        "Scenario_march_39": "2012-03-20 00:00",
+        "Scenario_april_19": "2012-04-14 00:00",
+        "Scenario_may_24": "2012-05-07 00:00",
+        "Scenario_june_14": "2012-06-10 00:00",
+        "Scenario_august_02": "2012-08-10 00:00",
+        "Scenario_october_05": "2012-10-04 00:00",
+        "Scenario_november_46": "2012-11-08 00:00",
+        "Scenario_december_16": "2012-12-14 00:00"
     }
     return start_valid, end_valid
     
 if __name__ == "__main__":
-    dir_input_rel = "/home/tezirg/data_grid2op/case118_l2rpn_wcci_48years"
+    dir_input_rel = "/home/tezirg/data_grid2op/case118_l2rpn_neurips_2.5x"
     dir_input = os.path.abspath(dir_input_rel)
     ds = os.path.basename(dir_input)
     dir_test = os.path.join("/tmp", ds, "test")
