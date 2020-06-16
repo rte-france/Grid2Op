@@ -98,22 +98,22 @@ class Backend(GridObjects, ABC):
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
         tmp = self.get_line_flow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
         tmp = self.get_thermal_limit()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
         tmp = self.get_line_overflow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
 
         tmp = self.generators_info()
         if len(tmp) != 3:

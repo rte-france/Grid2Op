@@ -677,23 +677,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         This supposes that :attr:`Environment.times_before_line_status_actionable` is already updated
         with the cascading failure, soft overflow and hard overflow.
+
         It also supposes that :func:`Environment._update_actions` has been called, so that the vectors
         :attr:`Environment.duration_next_maintenance`, :attr:`Environment.time_next_maintenance` and
         :attr:`Environment._hazard_duration` are updated with the most recent values.
         Finally the Environment supposes that this method is called before calling :func:`Environment.get_obs`
         This function integrates the hazards and maintenance in the
         :attr:`Environment.times_before_line_status_actionable` vector.
+
         For example, if a powerline `i` has no problem
         of overflow, but is affected by a hazard, :attr:`Environment.times_before_line_status_actionable`
         should be updated with the duration of this hazard (stored in one of the three vector mentionned in the
         above paragraph)
         For this Environment, we suppose that the maximum of the 3 values are taken into account. The reality would
         be more complicated.
-        Returns
-        -------
         """
-        self.times_before_line_status_actionable[:] = np.maximum(self.times_before_line_status_actionable,
-                                                                  self.duration_next_maintenance)
+        first_time_maintenance = self.time_next_maintenance == 0
+        self.times_before_line_status_actionable[first_time_maintenance] = np.maximum(self.times_before_line_status_actionable[first_time_maintenance],
+                                                                                      self.duration_next_maintenance[first_time_maintenance])
         self.times_before_line_status_actionable[:] = np.maximum(self.times_before_line_status_actionable,
                                                                   self._hazard_duration)
 

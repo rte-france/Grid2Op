@@ -127,6 +127,7 @@ class PandaPowerBackend(Backend):
         self._vars_action_set = BaseAction.attr_list_vect
         self.cst_1 = dt_float(1.0)
         self._topo_vect = None
+        self.slack_id = None
 
         # self._time_topo_vect = 0.
 
@@ -222,6 +223,8 @@ class PandaPowerBackend(Backend):
                           min_q_mvar=self._grid._ppc['gen'][i_ref, 4],
                           slack=True,
                           controllable=True)
+        else:
+            self.slack_id = np.where(self._grid.gen["slack"])[0]
 
         pp.runpp(self._grid, numba=numba_)
         self.__nb_bus_before = self._grid.bus.shape[0]
@@ -457,7 +460,7 @@ class PandaPowerBackend(Backend):
                 # original data
                 if gen_id == self._id_bus_added:
                     # handling of the slack bus, where "2" generators are present.
-                    self._grid["ext_grid"]["vm_pu"] = tmp[gen_id]
+                    self._grid["ext_grid"]["vm_pu"] = 1.0 * tmp[gen_id]
 
         k = "load_p"
         tmp = self._get_vector_inj[k](self._grid)
@@ -570,7 +573,6 @@ class PandaPowerBackend(Backend):
         buses has not changed between two calls, the previous results are re used. This speeds up the computation
         in case of "do nothing" action applied.
         """
-        # print("I called runpf")
         conv = True
         nb_bus = self.get_nb_active_bus()
         try:
