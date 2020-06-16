@@ -643,15 +643,27 @@ class BaseAction(GridObjects):
         me_set = self._set_line_status
         me_change = self._switch_line_status
 
-        # i set, but the other change, so it's equivalent to setting to the opposite
+        # i change, but so does the other, i do nothing
+        canceled_change = other_change & me_change
+        # i dont change, the other change, i change
+        update_change = other_change & ~me_change
+        # Defered apply to prevent conflicts
+        me_change[canceled_change] = False
+        me_change[update_change] = True
+
+        # i change, but the other set, it's erased
+        me_change[other_set != 0 & me_change] = False
+
+        # i set, but the other change, set to the opposite
+        inverted_set = other_change & (me_set != 0)
         # so change +1 becomes -1 and -1 becomes +1
-        me_set[other_change] *= -1
+        me_set[inverted_set] *= -1
+        # Has been inverted, cancel change
+        me_change[inverted_set] = False
+
         # i set, the other set
         me_set[other_set != 0] = other_set[other_set != 0]
-        # i change, but so does the other, i do nothing
-        me_change[other_change] = False
-        # i change, but the other set, it's erased
-        me_change[other_set != 0] = False
+
         self._assign_iadd_or_warn("_set_line_status", me_set)
         self._assign_iadd_or_warn("_switch_line_status", me_change)
 
@@ -661,18 +673,29 @@ class BaseAction(GridObjects):
         me_set = self._set_topo_vect
         me_change = self._change_bus_vect
 
-        # i set, but the other change, so it's equivalent to setting to the opposite
+        # i change, but so does the other, i do nothing
+        canceled_change = other_change & me_change
+        # i dont change, the other change, i change
+        update_change = other_change & ~me_change
+        # Defered apply to prevent conflicts
+        me_change[canceled_change] = False
+        me_change[update_change] = True
+
+        # i change, but the other set, it's erased
+        me_change[other_set != 0 & me_change] = False
+
+        # i set, but the other change, set to the opposite
+        inverted_set = other_change & (me_set != 0)
         # so change +1 becomes +2 and +2 becomes +1
-        me_set[other_change] -= 1  # 1 becomes 0 and 2 becomes 1
-        me_set[other_change] *= -1  # 1 is 0 and 2 becomes -1
-        me_set[other_change] += 2  # 1 is 2 and 2 becomes 1
+        me_set[inverted_set] -= 1  # 1 becomes 0 and 2 becomes 1
+        me_set[inverted_set] *= -1  # 1 is 0 and 2 becomes -1
+        me_set[inverted_set] += 2  # 1 is 2 and 2 becomes 1
+        # Has been inverted, cancel change
+        me_change[inverted_set] = False
 
         # i set, the other set
         me_set[other_set != 0] = other_set[other_set != 0]
-        # i change, but so does the other, i do nothing
-        me_change[other_change] = False
-        # i change, but the other set, it's erased
-        me_change[other_set != 0] = False
+        
         self._assign_iadd_or_warn("_set_topo_vect", me_set)
         self._assign_iadd_or_warn("_change_bus_vect", me_change)
 
@@ -1022,7 +1045,7 @@ class BaseAction(GridObjects):
                 # dict must have key: generator to modify, value: the delta value applied to this generator
                 ddict_ = tmp
                 for kk, val in ddict_.items():
-                    kk, val = self.__convert_and_redispatch(kk, val)
+                    self.__convert_and_redispatch(kk, val)
             elif isinstance(tmp, list):
                 # list of tuples: each tupe (k,v) being the same as the key/value describe above
                 treated = False
