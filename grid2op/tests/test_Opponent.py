@@ -13,6 +13,7 @@ from grid2op.Opponent import BaseOpponent, RandomLineOpponent
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.dtypes import dt_int
 
 
 class TestSuiteBudget_001(BaseActionBudget):
@@ -231,7 +232,7 @@ class TestLoadingOpp(unittest.TestCase):
 
                         attack = env.opponent_class.picked_attack
                         attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
-                        status_actionable = np.zeros_like(env.times_before_line_status_actionable)
+                        status_actionable = np.zeros_like(env.times_before_line_status_actionable).astype(dt_int)
                         status_actionable[attacked_line] = env.oppSpace.opponent.uptime - i - 1
                         assert np.all(env.times_before_line_status_actionable == status_actionable)
 
