@@ -1028,7 +1028,7 @@ class BaseAction(GridObjects):
                 # dict must have key: generator to modify, value: the delta value applied to this generator
                 ddict_ = tmp
                 for kk, val in ddict_.items():
-                    kk, val = self.__convert_and_redispatch(kk, val)
+                    self.__convert_and_redispatch(kk, val)
             elif isinstance(tmp, list):
                 # list of tuples: each tupe (k,v) being the same as the key/value describe above
                 treated = False
