@@ -268,7 +268,7 @@ class BaseObservation(GridObjects):
             ID of the powerline we want to inspect
 
         substation_id: ``int``
-            ID of the powerline we want to inspect
+            ID of the substation we want to inspect
 
         Returns
         -------
@@ -403,10 +403,9 @@ class BaseObservation(GridObjects):
                 nb_bus = np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
             else:
                 nb_bus = 0
-            res = {
-                "topo_vect": topo_sub,
-                "nb_bus": nb_bus,
-                "cooldown_time": self.time_before_cooldown_sub[substation_id]
+            res = {"topo_vect": topo_sub,
+                   "nb_bus": nb_bus,
+                   "cooldown_time": self.time_before_cooldown_sub[substation_id]
                    }
 
         return res
