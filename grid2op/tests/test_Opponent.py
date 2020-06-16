@@ -222,7 +222,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=TestRandomLineOpponent) as env:
                 # Collect some attacks and check that they belong to the correct lines
-                for _ in range(tries):
+                for j in range(tries):
                     obs = env.reset()
                     assert env.oppSpace.budget == init_budget
                     assert np.all(env.times_before_line_status_actionable == 0)
@@ -234,6 +234,10 @@ class TestLoadingOpp(unittest.TestCase):
                         attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
                         status_actionable = np.zeros_like(env.times_before_line_status_actionable).astype(dt_int)
                         status_actionable[attacked_line] = env.oppSpace.opponent.uptime - i - 1
+
+                        print(f'Try {j} step {i+1}:')
+                        for x in [status_actionable, env.times_before_line_status_actionable]:
+                            print(x, x.dtype)
                         assert np.all(env.times_before_line_status_actionable == status_actionable)
 
     def test_RandomLineOpponent_only_attack_connected(self):
