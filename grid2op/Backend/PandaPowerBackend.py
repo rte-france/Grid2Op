@@ -474,7 +474,7 @@ class PandaPowerBackend(Backend):
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed == True):
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
-        
+
         tmp_prod_v = self._get_vector_inj["prod_v"](self._grid)
         if np.any(prod_v.changed == True):
             tmp_prod_v.iloc[prod_v.changed] = prod_v.values[prod_v.changed] / self.prod_pu_to_kv[prod_v.changed]
@@ -486,7 +486,7 @@ class PandaPowerBackend(Backend):
         tmp_load_p = self._get_vector_inj["load_p"](self._grid)
         if np.any(load_p.changed == True):
             tmp_load_p.iloc[load_p.changed] = load_p.values[load_p.changed]
-            
+
         tmp_load_q = self._get_vector_inj["load_q"](self._grid)
         if np.any(load_q.changed == True):
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
