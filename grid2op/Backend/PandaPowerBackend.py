@@ -130,14 +130,14 @@ class PandaPowerBackend(Backend):
         self.slack_id = None
 
         # Mapping some fun to apply bus updates
-        self._type_to_bus_set = {
-            0: self._apply_load_bus,
-            1: self._apply_gen_bus,
-            2: self._apply_lor_bus,
-            3: self._apply_trafo_hv,
-            4: self._apply_lex_bus,
-            5: self._apply_trafo_lv
-        }
+        self._type_to_bus_set = [
+            self._apply_load_bus,
+            self._apply_gen_bus,
+            self._apply_lor_bus,
+            self._apply_trafo_hv,
+            self._apply_lex_bus,
+            self._apply_trafo_lv
+        ]
 
     def get_nb_active_bus(self):
         """
