@@ -130,7 +130,7 @@ class PandaPowerBackend(Backend):
         self.slack_id = None
 
         # Mapping some fun to apply bus updates
-        self.type_to_bus_set = {
+        self._type_to_bus_set = {
             0: self._apply_load_bus,
             1: self._apply_gen_bus,
             2: self._apply_lor_bus,
@@ -434,7 +434,7 @@ class PandaPowerBackend(Backend):
 
         # store the topoid -> objid
         self._big_topo_to_backend = [(None, None, None) for _ in range(self.dim_topo)]
-        for load_id, pos_big_topo  in enumerate(self.load_pos_topo_vect):
+        for load_id, pos_big_topo in enumerate(self.load_pos_topo_vect):
             self._big_topo_to_backend[pos_big_topo] = (load_id, load_id, 0)
         for gen_id, pos_big_topo  in enumerate(self.gen_pos_topo_vect):
             self._big_topo_to_backend[pos_big_topo] = (gen_id, gen_id, 1)
@@ -499,7 +499,7 @@ class PandaPowerBackend(Backend):
             if np.any(shunt_q.changed == True):
                 self._grid.shunt["q_mvar"].iloc[shunt_q.changed] = shunt_q.values[shunt_q.changed]
             if np.any(shunt_bus.changed == True):
-                sh_service = shunt_bus[shunt_bus.changed] != -1
+                sh_service = shunt_bus.values[shunt_bus.changed] != -1
                 self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service
                 sh_bus1 = np.arange(len(shunt_bus))[shunt_bus.changed & shunt_bus.values == 1]
                 sh_bus2 = np.arange(len(shunt_bus))[shunt_bus.changed & shunt_bus.values == 2]
@@ -511,7 +511,7 @@ class PandaPowerBackend(Backend):
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:
             id_el_backend, id_topo, type_obj = self._big_topo_to_backend[id_el]
-            self.type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
+            self._type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
 
         bus_is = self._grid.bus["in_service"]
         for i, (bus1_status, bus2_status) in enumerate(active_bus):
@@ -526,7 +526,7 @@ class PandaPowerBackend(Backend):
         new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_gen[id_el_backend])
         self._grid.gen["bus"].iat[id_el_backend] = new_bus_backend
         # remember in this case slack bus is actually 2 generators for pandapower !
-        if id_el_backend == self._grid.gen.shape[0] -1 and self._iref_slack is not None:
+        if id_el_backend == (self._grid.gen.shape[0] - 1) and self._iref_slack is not None:
             self._grid.ext_grid["bus"].iat[0] = new_bus_backend        
 
     def _apply_lor_bus(self, new_bus, id_el_backend, id_topo):
@@ -534,7 +534,7 @@ class PandaPowerBackend(Backend):
         self.change_bus_powerline_or(id_el_backend, new_bus_backend)
 
     def change_bus_powerline_or(self, id_powerline_backend, new_bus_backend):
-        if new_bus_backend > 0:
+        if new_bus_backend >= 0:
             self._grid.line["in_service"].iat[id_powerline_backend] = True
             self._grid.line["from_bus"].iat[id_powerline_backend] = new_bus_backend
         else:
@@ -545,7 +545,7 @@ class PandaPowerBackend(Backend):
         self.change_bus_powerline_ex(id_el_backend, new_bus_backend)
 
     def change_bus_powerline_ex(self, id_powerline_backend, new_bus_backend):
-        if new_bus_backend > 0:
+        if new_bus_backend >= 0:
             self._grid.line["in_service"].iat[id_powerline_backend] = True
             self._grid.line["to_bus"].iat[id_powerline_backend] = new_bus_backend
         else:
@@ -556,7 +556,7 @@ class PandaPowerBackend(Backend):
         self.change_bus_trafo_hv(id_topo, new_bus_backend)
 
     def change_bus_trafo_hv(self, id_powerline_backend, new_bus_backend):
-        if new_bus_backend > 0:
+        if new_bus_backend >= 0:
             self._grid.trafo["in_service"].iat[id_powerline_backend] = True
             self._grid.trafo["hv_bus"].iat[id_powerline_backend] = new_bus_backend
         else:
@@ -567,7 +567,7 @@ class PandaPowerBackend(Backend):
         self.change_bus_trafo_lv(id_topo, new_bus_backend)
 
     def change_bus_trafo_lv(self, id_powerline_backend, new_bus_backend):
-        if new_bus_backend > 0:
+        if new_bus_backend >= 0:
             self._grid.trafo["in_service"].iat[id_powerline_backend] = True
             self._grid.trafo["lv_bus"].iat[id_powerline_backend] = new_bus_backend
         else:
