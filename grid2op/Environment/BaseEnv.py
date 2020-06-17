@@ -908,10 +908,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # TODO code the opponent part here and split more the timings! here "opponent time" is
             # included in time_apply_act
             tick = time.time()
-            attack = self.oppSpace.attack(observation=self.current_obs,
-                                          env=self,
-                                          agent_action=action,
-                                          env_action=self.env_modification)
+            attack, duration = self.oppSpace.attack(observation=self.current_obs,
+                                                    env=self,
+                                                    agent_action=action,
+                                                    env_action=self.env_modification)
+            if self.action_space is not None and attack != self.action_space({}):
+                line_attacked = attack.as_dict()['set_line_status']['disconnected_id'][0]
+                self.times_before_line_status_actionable[line_attacked] = \
+                                max(duration, self.times_before_line_status_actionable[line_attacked])
             self._backend_action += attack
             self._time_opponent += time.time() - tick
             self.backend.apply_action(self._backend_action)

@@ -34,7 +34,7 @@ class BaseOpponent(RandomObject):
         """
         pass
 
-    def attack(self, observation, env, opp_space, agent_action, env_action, budget, previous_fails):
+    def attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
         This method is the equivalent of "act" for a regular agent.
 
@@ -45,9 +45,6 @@ class BaseOpponent(RandomObject):
         ----------
         observation: :class:`grid2op.Observation.Observation`
             The last observation (at time t)
-
-        env: :class:`grid2op.Environment.Environment`
-            The environment
 
         opp_reward: ``float``
             THe opponent "reward" (equivalent to the agent reward, but for the opponent) TODO do i add it back ???

@@ -29,7 +29,7 @@ class TestSuiteOpponent_001(BaseOpponent):
         self.possible_attack = [self.action_space.disconnect_powerline(line_id=el) for el in self.line_id]
         self.do_nothing = self.action_space()
 
-    def attack(self, observation, env, opp_space, agent_action, env_action, budget, previous_fails):
+    def attack(self, observation, agent_action, env_action, budget, previous_fails):
         if observation is None:  # On first step
             return self.do_nothing
         attack = self.space_prng.choice(self.possible_attack)
@@ -146,7 +146,8 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 3
-            with make("l2rpn_case14_sandbox",
+            with make("rte_case14_realistic",
+                      test=True,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
@@ -170,7 +171,8 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 1000
             tries = 30
             attackable_lines_case14 = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
-            with make("l2rpn_case14_sandbox",
+            with make("rte_case14_realistic",
+                      test=True,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
@@ -193,7 +195,8 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             tries = 30
-            with make("l2rpn_case14_sandbox",
+            with make("rte_case14_realistic",
+                      test=True,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
@@ -215,7 +218,8 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             tries = 10
-            with make("l2rpn_case14_sandbox",
+            with make("rte_case14_realistic",
+                      test=True,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
@@ -226,18 +230,14 @@ class TestLoadingOpp(unittest.TestCase):
                     obs = env.reset()
                     assert env.oppSpace.budget == init_budget
                     assert np.all(env.times_before_line_status_actionable == 0)
-                    for i in range(env.oppSpace.opponent.uptime):
+                    for i in range(env.oppSpace.attack_duration):
                         obs, reward, done, info = env.step(env.action_space())
                         assert env.oppSpace.budget == max(init_budget - i - 1, 0)
 
                         attack = env.opponent_class.picked_attack
                         attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
                         status_actionable = np.zeros_like(env.times_before_line_status_actionable).astype(dt_int)
-                        status_actionable[attacked_line] = env.oppSpace.opponent.uptime - i - 1
-
-                        print(f'Try {j} step {i+1}:')
-                        for x in [status_actionable, env.times_before_line_status_actionable]:
-                            print(x, x.dtype)
+                        status_actionable[attacked_line] = env.oppSpace.attack_duration - i - 1
                         assert np.all(env.times_before_line_status_actionable == status_actionable)
 
     def test_RandomLineOpponent_only_attack_connected(self):
@@ -245,7 +245,8 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             length = 100
-            with make("l2rpn_case14_sandbox",
+            with make("rte_case14_realistic",
+                      test=True,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
@@ -267,7 +268,7 @@ class TestLoadingOpp(unittest.TestCase):
                         continue
 
                     attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
-                    if env.oppSpace.opponent.current_uptime < env.oppSpace.opponent.uptime:
+                    if env.oppSpace.current_attack_duration < env.oppSpace.attack_duration:
                         # The attack is ungoing. The line must have been disconnected already
                         assert not pre_obs.line_status[attacked_line]
                     else:

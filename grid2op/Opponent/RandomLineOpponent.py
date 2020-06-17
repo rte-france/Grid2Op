@@ -10,11 +10,9 @@ import numpy as np
 from grid2op.Opponent import OpponentWithConverter
 from grid2op.Converter import LineDisconnection
 
-np.random.seed(0)
-
 
 class RandomLineOpponent(OpponentWithConverter):
-    def __init__(self, action_space, uptime=12, downtime=12*24):
+    def __init__(self, action_space):
         OpponentWithConverter.__init__(self, action_space,
                                        action_space_converter=LineDisconnection)
         if action_space.n_line == 59: # WCCI
@@ -26,11 +24,6 @@ class RandomLineOpponent(OpponentWithConverter):
             raise Warning(f'Unknown environment found with {action_space.n_line} lines')
         self.action_space.filter_lines(lines_maintenance)
         self._do_nothing = 0
-        self.uptime = uptime
-        self.current_uptime = 0
-        self.downtime = downtime
-        self.current_downtime = downtime
-        self.current_attack = None
 
     def init(self, *args, **kwargs):
         """
@@ -49,11 +42,9 @@ class RandomLineOpponent(OpponentWithConverter):
         initial_budget: ``float``
             The initial budget the opponent has
         """
-        self.current_uptime = 0
-        self.current_downtime = self.downtime
-        self.current_attack = None
+        pass
 
-    def my_attack(self, observation, env, opp_space, agent_action, env_action, budget, previous_fails, update=True):
+    def my_attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
         This method is the equivalent of "attack" for a regular agent.
 
@@ -64,9 +55,6 @@ class RandomLineOpponent(OpponentWithConverter):
         ----------
         observation: :class:`grid2op.Observation.Observation`
             The last observation (at time t)
-
-        env: :class:`grid2op.Environment.Environment`
-            The environment
 
         opp_reward: ``float``
             THe opponent "reward" (equivalent to the agent reward, but for the opponent) TODO do i add it back ???
@@ -94,51 +82,11 @@ class RandomLineOpponent(OpponentWithConverter):
         # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
         # TODO information, and forward something to the "act" method.
 
-        # Decrement counters
-        new_uptime = max(0, self.current_uptime - 1)
-        new_downtime = max(0, self.current_downtime - 1)
-
-        # If currently attacking
-        if new_uptime > 0:
-            attack = self.current_attack
-            # If the cost is too high
-            if not opp_space.compute_budget(self.convert_act(attack)) <= opp_space.budget:
-                raise Warning('The attack is too expensive to be fully completed')
-
-        # If the opponent has already attacked today
-        elif new_downtime > self.downtime:
-            attack = self._do_nothing
-
-        # If the opponent can attack  
-        else:      
-            attack = self._my_attack_raw(observation)
-            # If the cost is too high
-            if not opp_space.compute_budget(self.convert_act(attack)) <= opp_space.budget:
-                attack = self._do_nothing
-            # If we can afford the attack
-            elif attack != self._do_nothing:
-                new_uptime = min(self.uptime,
-                                 int(opp_space.budget / opp_space.compute_budget(self.convert_act(attack))))
-                new_downtime += self.downtime
-
-        # If this is launched from env.step (not obs.simulate)
-        from grid2op.Observation import _ObsEnv
-        if update and not isinstance(env, _ObsEnv): # update the opponent and the environment
-            self.current_uptime = new_uptime
-            self.current_downtime = new_downtime
-            self.current_attack = attack
-            # Todo : Check that the value is correct and must only be set when attacking (=check that the default value is 0 ; need Benjamin's advice)
-            if attack != self._do_nothing:
-                line_attacked = self.convert_act(attack).as_dict()['set_line_status']['disconnected_id'][0]
-                env.times_before_line_status_actionable[line_attacked] = new_uptime
-
-        return attack
-
-    def _my_attack_raw(self, observation):
         if observation is None: # during creation of the environment
             return self._do_nothing # do nothing
 
-        action_line_ids = [a.as_dict()['set_line_status']['disconnected_id'][0] for a in self.action_space.actions[1:]]
+        action_line_ids = [a.as_dict()['set_line_status']['disconnected_id'][0]
+                           for a in self.action_space.actions[1:]]
         status = observation.line_status[action_line_ids]
 
         # If all lines are disconnected
@@ -147,4 +95,6 @@ class RandomLineOpponent(OpponentWithConverter):
 
         # Pick a line among the connected lines
         picked = 1 + np.random.choice(np.argwhere(status).ravel())
+        return picked
+
         return picked
