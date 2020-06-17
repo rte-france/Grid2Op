@@ -21,6 +21,7 @@ class ValueStore:
         self.values = np.ones(size, dtype=dtype)
         self.changed = np.full(size, dtype=dt_bool, fill_value=False)
         self.last_index = 0
+        self.__size = size
 
         if issubclass(dtype, dt_int):
             self.set_val = self._set_val_int
@@ -140,6 +141,9 @@ class ValueStore:
             return res
         else:
             raise StopIteration
+
+    def __len__(self):
+        return self.__size
 
 
 class _BackendAction(GridObjects):
