@@ -68,10 +68,12 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return self
 
     def __next__(self):
-        self.env_index = self.env_index + 1
         if self.env_index < len(self.mix_envs):
-            return self.mix_envs[self.env_index]
+            r =  self.mix_envs[self.env_index]
+            self.env_index = self.env_index + 1
+            return r
         else:
+            self.env_index = 0
             raise StopIteration
 
     def __getattr__(self, name):
