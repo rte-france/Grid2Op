@@ -117,6 +117,34 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert "game" in i["rewards"]
         assert "l2rpn" in i["rewards"]
 
+    def test_reset_with_backend(self):
+        class DummyBackend(PandaPowerBackend):
+            self._dummy = -1
+
+            def reset(self):
+                self._dummy = 1
+                
+            def dummy(self):
+                return self._dummy
+            
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  backend=DummyBackend())
+        mme.reset()
+        for env in mme._envs:
+            assert env.backend.dummy() == 1
+
+    def test_reset_with_opponent(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  opponent_class=BaseOpponent,
+                                  opponent_init_budget=42.0,
+                                  opponent_budget_per_ts=0.42)
+        mme.reset()
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        assert mme.opponent_class == BaseOpponent
+        assert mme.opponent_init_budget == dt_float(42.0)
+        assert mme.opponent_budget_per_ts == dt_float(0.42)
+
     def test_reset_seq(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         for i in range(2):
