@@ -7,14 +7,18 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-from grid2op.Opponent import OpponentWithConverter
+from grid2op.Opponent import BaseOpponent
 from grid2op.Converter import LineDisconnection
 
 
-class RandomLineOpponent(OpponentWithConverter):
+class RandomLineOpponent(BaseOpponent):
     def __init__(self, action_space):
-        OpponentWithConverter.__init__(self, action_space,
-                                       action_space_converter=LineDisconnection)
+        # Apply converter
+        converter_action_space = LineDisconnection(action_space)
+        BaseOpponent.__init__(self, converter_action_space)
+        self.action_space.init_converter()
+
+        # Filter lines
         if action_space.n_line == 59: # WCCI
             lines_maintenance = ["26_30_56", "30_31_45", "16_18_23", "16_21_27", "9_16_18", "7_9_9",
                                  "11_12_13", "12_13_14", "2_3_0", "22_26_39" ]
@@ -23,7 +27,9 @@ class RandomLineOpponent(OpponentWithConverter):
         else:
             raise Warning(f'Unknown environment found with {action_space.n_line} lines')
         self.action_space.filter_lines(lines_maintenance)
-        self._do_nothing = 0
+
+        self._do_nothing = self.action_space.actions[0]
+        self._attacks = self.action_space.actions[1:]
 
     def init(self, *args, **kwargs):
         """
@@ -44,7 +50,7 @@ class RandomLineOpponent(OpponentWithConverter):
         """
         pass
 
-    def my_attack(self, observation, agent_action, env_action, budget, previous_fails):
+    def attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
         This method is the equivalent of "attack" for a regular agent.
 
@@ -86,7 +92,7 @@ class RandomLineOpponent(OpponentWithConverter):
             return self._do_nothing # do nothing
 
         action_line_ids = [a.as_dict()['set_line_status']['disconnected_id'][0]
-                           for a in self.action_space.actions[1:]]
+                           for a in self._attacks]
         status = observation.line_status[action_line_ids]
 
         # If all lines are disconnected
@@ -94,7 +100,4 @@ class RandomLineOpponent(OpponentWithConverter):
             return self._do_nothing
 
         # Pick a line among the connected lines
-        picked = 1 + np.random.choice(np.argwhere(status).ravel())
-        return picked
-
-        return picked
+        return np.random.choice(self._attacks)

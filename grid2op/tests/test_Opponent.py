@@ -145,7 +145,7 @@ class TestLoadingOpp(unittest.TestCase):
                 for i in range(init_budget):
                     obs, reward, done, info = env.step(env.action_space())
                     assert env.oppSpace.budget == init_budget - i - 1
-                    assert env.oppSpace.last_attack not in [None, env.action_space({})]
+                    assert env.oppSpace.last_attack.as_dict()
                 # There is no more budget
                 assert env.oppSpace.budget == 0
                 obs, reward, done, info = env.step(env.action_space())
@@ -249,7 +249,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
-                env.oppSpace.opponent.downtime = 0 # only for this test
+                env.oppSpace.attack_cooldown = 0 # only for this test
                 pre_obs = env.reset()
                 done = False
                 assert env.oppSpace.budget == init_budget
@@ -259,7 +259,7 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env.oppSpace.last_attack
-                    if attack in [None, env.action_space({})]: # all attackable lines are already disconnected
+                    if not attack.as_dict(): # all attackable lines are already disconnected
                         assert np.invert(pre_obs.line_status).sum() == 6 # the number of attackable lines
                         continue
 

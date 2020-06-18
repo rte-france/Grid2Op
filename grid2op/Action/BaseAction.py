@@ -370,7 +370,7 @@ class BaseAction(GridObjects):
 
         """
         if other is None:
-            return not self.as_dict()
+            return False
 
         # check that the _grid is the same in both instances
         same_grid = True
