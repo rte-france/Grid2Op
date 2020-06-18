@@ -11,6 +11,8 @@ import tempfile
 from grid2op.tests.helper_path_test import *
 from grid2op.Environment import MultiMixEnvironment
 from grid2op.Observation import CompleteObservation
+from grid2op.Parameters import Parameters
+from grid2op.Reward import GameplayReward, L2RPNReward
 from grid2op.Exceptions import EnvError, NoForecastAvailable
 
 class TestMultiMixEnvironment(unittest.TestCase):
@@ -27,11 +29,66 @@ class TestMultiMixEnvironment(unittest.TestCase):
             with self.assertRaises(EnvError):
                 mme = MultiMixEnvironment(tmpdir)
 
+    def test_creation_with_params(self):
+        p = Parameters()
+        p.MAX_SUB_CHANGED = 666
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p)
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        assert mme.parameters.MAX_SUB_CHANGED == 666
+
+    def test_creation_with_other_rewards(self):
+        p = Parameters()
+        p.NO_OVERFLOW_DISCONNECTION = True
+        oth_r = {
+            "game": GameplayReward,
+            "l2rpn": L2RPNReward,
+        }
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  param=p,
+                                  other_rewards=oth_r)
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        o, r, d, i = mme.step(mme.action_space({}))
+        assert i is not None
+        assert "rewards" in i
+        assert "game" in i["rewards"]
+        assert "l2rpn" in i["rewards"]
+
     def test_reset(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         mme.reset()
         assert mme.current_obs is not None
         assert mme.current_env is not None
+
+    def test_reset_with_params(self):
+        p = Parameters()
+        p.MAX_SUB_CHANGED = 666
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, param=p)
+        mme.reset()
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        assert mme.parameters.MAX_SUB_CHANGED == 666
+
+    def test_reset_with_other_rewards(self):
+        p = Parameters()
+        p.NO_OVERFLOW_DISCONNECTION = True
+        oth_r = {
+            "game": GameplayReward,
+            "l2rpn": L2RPNReward,
+        }
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  param=p,
+                                  other_rewards=oth_r)
+        mme.reset()
+
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        o, r, d, i = mme.step(mme.action_space({}))
+        assert i is not None
+        assert "rewards" in i
+        assert "game" in i["rewards"]
+        assert "l2rpn" in i["rewards"]
 
     def test_reset_seq(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
