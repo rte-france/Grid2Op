@@ -33,14 +33,17 @@ class LineDisconnection(Converter):
         self.actions.append(super().__call__())
         self.n = 1
 
-    def init_converter(self):
+    def init_converter(self, opponent=False):
         """
         This function is used ato initialize the converter. When the converter is created, this method should be called
         otherwise the converter might be in an unstable state.
         """
         self.actions = []
         # powerline switch: disconnection
-        self.actions.append(super().__call__())
+        if not opponent:
+            self.actions.append(super().__call__())
+        else:
+            self.actions.append(None)
         for i in range(self.n_line):
             self.actions.append(self.disconnect_powerline(line_id=i))
     
@@ -62,7 +65,7 @@ class LineDisconnection(Converter):
         """
         ids = np.argwhere(np.in1d(self.name_line, requested_lines))
         self.actions = np.array([el for el in self.actions
-                                    if not el.as_dict()
+                                    if el is None or not el.as_dict()
                                     or el.as_dict()['set_line_status']['disconnected_id'][0] in ids])
         self.n = len(self.actions)
 

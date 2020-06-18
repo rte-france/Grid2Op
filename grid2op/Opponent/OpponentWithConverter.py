@@ -82,7 +82,7 @@ class OpponentWithConverter(BaseOpponent):
                                        "deriving from it."
                                        "".format(action_space_converter))
 
-            self.action_space.init_converter(**kwargs_converter)
+            self.action_space.init_converter(opponent=True, **kwargs_converter)
 
     def convert_obs(self, observation):
         """

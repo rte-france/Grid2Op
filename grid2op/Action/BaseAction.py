@@ -369,6 +369,8 @@ class BaseAction(GridObjects):
             Whether the actions are equal or not.
 
         """
+        if other is None:
+            return not self.as_dict()
 
         # check that the _grid is the same in both instances
         same_grid = True

@@ -34,6 +34,9 @@ class BaseActionBudget:
         cost: the cost of the action performed by the opponent.
 
         """
+        if attack is None:
+            return 0
+
         if not isinstance(attack, self.action_space.actionClass):
             raise OpponentError("Attempt to use an attack of type \"{}\" which is not a instance of \"{}\", "
                                 "the type of action the opponent was supposed to use."

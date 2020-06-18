@@ -91,6 +91,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  opponent_class=BaseOpponent,
                  opponent_budget_class=UnlimitedBudget,
                  opponent_init_budget=0.,
+                 opponent_attack_duration=12*4,
+                 opponent_attack_cooldown=12*24,
                  opponent_budget_per_ts=0.,
                  kwargs_opponent={}
                  ):
@@ -210,6 +212,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.opponent_action_class = opponent_action_class  # class of the action of the opponent
         self.opponent_class = opponent_class  # class of the opponent
         self.opponent_init_budget = dt_float(opponent_init_budget)
+        self.opponent_attack_duration = dt_int(opponent_attack_duration)
+        self.opponent_attack_cooldown = dt_int(opponent_attack_cooldown)
         self.opponent_budget_per_ts = dt_float(opponent_budget_per_ts)
         self.kwargs_opponent = kwargs_opponent
         self.opponent_budget_class = opponent_budget_class
@@ -260,6 +264,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                             **self.kwargs_opponent)
         self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budget,
                                       init_budget=self.opponent_init_budget,
+                                      attack_duration=self.opponent_attack_duration,
+                                      attack_cooldown=self.opponent_attack_cooldown,
                                       budget_per_timestep=self.opponent_budget_per_ts,
                                       opponent=self.opponent
                                       )
@@ -909,14 +915,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # included in time_apply_act
             tick = time.time()
             attack, duration = self.oppSpace.attack(observation=self.current_obs,
-                                                    env=self,
                                                     agent_action=action,
                                                     env_action=self.env_modification)
-            if self.action_space is not None and attack != self.action_space({}):
+            if attack is not None and attack.as_dict():
                 line_attacked = attack.as_dict()['set_line_status']['disconnected_id'][0]
                 self.times_before_line_status_actionable[line_attacked] = \
                                 max(duration, self.times_before_line_status_actionable[line_attacked])
-            self._backend_action += attack
+                self._backend_action += attack
             self._time_opponent += time.time() - tick
             self.backend.apply_action(self._backend_action)
 

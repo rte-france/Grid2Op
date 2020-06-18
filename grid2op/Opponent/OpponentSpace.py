@@ -31,8 +31,8 @@ class OpponentSpace(object):
     budget_per_timestep: ``float``
         The increase of the opponent budget per time step (if any)
     """
-    def __init__(self, compute_budget, init_budget, opponent, budget_per_timestep=0., action_space=None,
-                 attack_duration=12*4, attack_cooldown=12*24):
+    def __init__(self, compute_budget, init_budget, opponent, attack_duration, attack_cooldown,
+                 budget_per_timestep=0., action_space=None):
         if action_space is not None:
             if not isinstance(action_space, compute_budget.action_space):
                 raise OpponentError("BaseAction space provided to build the agent is not a subclass from the"
@@ -51,7 +51,7 @@ class OpponentSpace(object):
         self.attack_cooldown = attack_cooldown
         self.current_attack_duration = 0
         self.current_attack_cooldown = attack_cooldown
-        self.current_attack = None
+        self.last_attack = None
 
         if init_budget < 0.:
             raise OpponentError("An opponent should at least have a positive (or null) budget. If you "
@@ -78,7 +78,7 @@ class OpponentSpace(object):
         self.previous_fails = False
         self.current_attack_duration = 0
         self.current_attack_cooldown = self.attack_cooldown
-        self.current_attack = None
+        self.last_attack = None
         self.opponent.reset(self.budget)
 
     def has_failed(self):
@@ -88,7 +88,7 @@ class OpponentSpace(object):
         """
         self.previous_fails = True
 
-    def attack(self, observation, env, agent_action, env_action):
+    def attack(self, observation, agent_action, env_action):
         """
         This function calls the attack from the opponent.
 
@@ -103,9 +103,6 @@ class OpponentSpace(object):
         ----------
         observation: :class:`grid2op.Observation.Observation`
             The last observation (at time t)
-
-        env: :class:`grid2op.Environment.Environment`
-            The environment
 
         agent_action: :class:`grid2op.Action.Action`
             The action that the agent took
@@ -127,11 +124,11 @@ class OpponentSpace(object):
 
         # If currently attacking
         if self.current_attack_duration > 0:
-            attack = self.current_attack
+            attack = self.last_attack
 
         # If the opponent has already attacked today
         elif self.current_attack_cooldown > self.attack_cooldown:
-            attack = self._do_nothing
+            attack = None
 
         # If the opponent can attack  
         else:
@@ -140,14 +137,14 @@ class OpponentSpace(object):
                                           self.previous_fails)
             # If the cost is too high
             if self.attack_duration * self.compute_budget(attack) > self.budget:
-                attack = self._do_nothing
+                attack = None
                 self.previous_fails = True
             # If we can afford the attack
-            elif attack != self._do_nothing:
+            elif attack is not None:
                 self.current_attack_duration = self.attack_duration
                 self.current_attack_cooldown += self.attack_cooldown
 
         self.budget -= self.compute_budget(attack)
-        self.current_attack = attack
+        self.last_attack = attack
 
         return attack, self.current_attack_duration

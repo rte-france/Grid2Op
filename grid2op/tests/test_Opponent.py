@@ -27,27 +27,11 @@ class TestSuiteOpponent_001(BaseOpponent):
         BaseOpponent.__init__(self, action_space)
         self.line_id = [0, 1, 2, 3]
         self.possible_attack = [self.action_space.disconnect_powerline(line_id=el) for el in self.line_id]
-        self.do_nothing = self.action_space()
 
     def attack(self, observation, agent_action, env_action, budget, previous_fails):
         if observation is None:  # On first step
-            return self.do_nothing
+            return None
         attack = self.space_prng.choice(self.possible_attack)
-        return attack
-
-
-class TestRandomLineOpponent(RandomLineOpponent):
-    """test class to store the action picked"""
-    picked_attack = None
-
-    def reset(self, *args):
-        super().reset(*args)
-        TestRandomLineOpponent.picked_attack = None
-
-    def attack(self, *args):
-        attack = super().attack(*args)
-        TestRandomLineOpponent.picked_attack = attack
-
         return attack
 
 
@@ -143,6 +127,7 @@ class TestLoadingOpp(unittest.TestCase):
                 assert env.oppSpace.budget == 0.
 
     def test_RandomLineOpponent_not_enough_budget(self):
+        """Tests that the attack is ignored when the budget is too low"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 3
@@ -152,20 +137,22 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=TestRandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
                 obs = env.reset()
                 assert env.oppSpace.budget == init_budget
                 # The opponent can attack
                 for i in range(init_budget):
                     obs, reward, done, info = env.step(env.action_space())
                     assert env.oppSpace.budget == init_budget - i - 1
-                    assert env.opponent_class.picked_attack != env.action_space({})
+                    assert env.oppSpace.last_attack not in [None, env.action_space({})]
                 # There is no more budget
                 assert env.oppSpace.budget == 0
                 obs, reward, done, info = env.step(env.action_space())
-                assert env.opponent_class.picked_attack == env.action_space({})
+                assert env.oppSpace.last_attack is None
 
     def test_RandomLineOpponent_attackable_lines(self):
+        """Tests that the RandomLineOpponent only attacks the authorized lines"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -177,7 +164,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=TestRandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
                     obs = env.reset()
@@ -185,12 +173,13 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
                     assert env.oppSpace.budget == init_budget - 1
 
-                    attack = env.opponent_class.picked_attack
+                    attack = env.oppSpace.last_attack
                     attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
                     line_name = env.action_space.name_line[attacked_line]
                     assert line_name in attackable_lines_case14
 
-    def test_RandomLineOpponent_one_line_at_a_time(self):
+    def test_RandomLineOpponent_disconnects_only_one_line(self):
+        """Tests that the RandomLineOpponent does not disconnect several lines at a time"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -201,7 +190,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=TestRandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
                     obs = env.reset()
@@ -209,11 +199,12 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
                     assert env.oppSpace.budget == init_budget - 1
 
-                    attack = env.opponent_class.picked_attack
+                    attack = env.oppSpace.last_attack
                     n_disconnected = attack.as_dict()['set_line_status']['nb_disconnected']
                     assert n_disconnected == 1
 
     def test_RandomLineOpponent_env_updated(self):
+        """Tests that the line status cooldown is correctly updated when the opponent attacks a line"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -224,9 +215,10 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=TestRandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
-                for j in range(tries):
+                for _ in range(tries):
                     obs = env.reset()
                     assert env.oppSpace.budget == init_budget
                     assert np.all(env.times_before_line_status_actionable == 0)
@@ -234,13 +226,16 @@ class TestLoadingOpp(unittest.TestCase):
                         obs, reward, done, info = env.step(env.action_space())
                         assert env.oppSpace.budget == max(init_budget - i - 1, 0)
 
-                        attack = env.opponent_class.picked_attack
+                        attack = env.oppSpace.last_attack
                         attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
                         status_actionable = np.zeros_like(env.times_before_line_status_actionable).astype(dt_int)
                         status_actionable[attacked_line] = env.oppSpace.attack_duration - i - 1
+                        if not np.all(env.times_before_line_status_actionable == status_actionable):
+                            a = 0
                         assert np.all(env.times_before_line_status_actionable == status_actionable)
 
     def test_RandomLineOpponent_only_attack_connected(self):
+        """Tests that the RandomLineOpponent does not attack lines that are already disconnected"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -251,7 +246,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=TestRandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 env.oppSpace.opponent.downtime = 0 # only for this test
                 pre_obs = env.reset()
@@ -262,8 +258,8 @@ class TestLoadingOpp(unittest.TestCase):
                         pre_obs = env.reset()
                     obs, reward, done, info = env.step(env.action_space())
 
-                    attack = env.opponent_class.picked_attack
-                    if attack == env.action_space({}): # all attackable lines are already disconnected
+                    attack = env.oppSpace.last_attack
+                    if attack in [None, env.action_space({})]: # all attackable lines are already disconnected
                         assert np.invert(pre_obs.line_status).sum() == 6 # the number of attackable lines
                         continue
 
