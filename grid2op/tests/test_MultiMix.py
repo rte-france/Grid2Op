@@ -14,6 +14,9 @@ from grid2op.Observation import CompleteObservation
 from grid2op.Parameters import Parameters
 from grid2op.Reward import GameplayReward, L2RPNReward
 from grid2op.Exceptions import EnvError, NoForecastAvailable
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Opponent import BaseOpponent
+from grid2op.dtypes import dt_float
 
 class TestMultiMixEnvironment(unittest.TestCase):
     def test_creation(self):        
@@ -54,6 +57,30 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert "rewards" in i
         assert "game" in i["rewards"]
         assert "l2rpn" in i["rewards"]
+
+    def test_creation_with_backend(self):
+        class DummyBackend(PandaPowerBackend):
+            def dummy(self):
+                return True
+            
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  backend=DummyBackend())
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        for env in mme._envs:
+            assert env.backend.dummy() == True
+
+    def test_creation_with_opponent(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  opponent_class=BaseOpponent,
+                                  opponent_init_budget=42.0,
+                                  opponent_budget_per_ts=0.42)
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        for env in mme._envs:
+            assert env.opponent_class == BaseOpponent
+            assert env.opponent_init_budget == dt_float(42.0)
+            assert env.opponent_budget_per_ts == dt_float(0.42)
 
     def test_reset(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
