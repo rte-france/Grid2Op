@@ -37,6 +37,7 @@ Change Log
   alternatively with one environment or the other. This is especially useful when considering an agent that should
   interact in multiple environments.
 - [ADDED] possibility to use `simulate` on the current observation.
+- [UPDATED] `Backend.PandaPowerBackend.apply_action` vectorized backend apply action method for speed.
 - [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
   more broadly usable.
 - [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same
