@@ -101,3 +101,23 @@ class RandomLineOpponent(BaseOpponent):
 
         # Pick a line among the connected lines
         return np.random.choice(self._attacks)
+
+    def tell_attack_continues(self, observation, agent_action, env_action, budget):
+        """
+        The purpose of this method is to tell the agent that his attack is being continued.
+
+        Parameters
+        ----------
+        observation: :class:`grid2op.Observation.Observation`
+            The last observation (at time t)
+
+        agent_action: :class:`grid2op.Action.Action`
+            The action that the agent took
+
+        env_action: :class:`grid2op.Action.Action`
+            The modification that the environment will take.
+
+        budget: ``float``
+            The current remaining budget (if an action is above this budget, it will be replaced by a do nothing.
+        """
+        pass

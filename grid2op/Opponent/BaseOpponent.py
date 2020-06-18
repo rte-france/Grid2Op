@@ -73,3 +73,23 @@ class BaseOpponent(RandomObject):
         # TODO information, and forward something to the "act" method.
         attack = self._do_nothing
         return attack
+
+    def tell_attack_continues(self, observation, agent_action, env_action, budget):
+        """
+        The purpose of this method is to tell the agent that his attack is being continued.
+
+        Parameters
+        ----------
+        observation: :class:`grid2op.Observation.Observation`
+            The last observation (at time t)
+
+        agent_action: :class:`grid2op.Action.Action`
+            The action that the agent took
+
+        env_action: :class:`grid2op.Action.Action`
+            The modification that the environment will take.
+
+        budget: ``float``
+            The current remaining budget (if an action is above this budget, it will be replaced by a do nothing.
+        """
+        pass
