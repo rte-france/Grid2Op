@@ -843,6 +843,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
+        attack = None
         except_ = []
         init_disp = 1.0 * action._redispatch
 
@@ -991,6 +992,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  "is_ambiguous": is_ambiguous,
                  "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
+                 "opponent_attack": attack,
                  "exception": except_}
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(action,

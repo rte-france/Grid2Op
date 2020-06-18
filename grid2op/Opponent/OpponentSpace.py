@@ -112,8 +112,9 @@ class OpponentSpace(object):
 
         Returns
         -------
-        res: :class:`grid2op.Action.Action`
-            The attack the opponent wants to perform (or "do nothing" if the attack was too costly)
+        res: :class:`grid2op.Action.Action` : The attack the opponent wants to perform
+                                              (or "do nothing" if the attack was too costly)
+              or class:`NoneType` : Returns None if no action is taken
 
         """
 

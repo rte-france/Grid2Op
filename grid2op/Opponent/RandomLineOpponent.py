@@ -31,25 +31,6 @@ class RandomLineOpponent(BaseOpponent):
         self._do_nothing = self.action_space.actions[0]
         self._attacks = self.action_space.actions[1:]
 
-    def init(self, *args, **kwargs):
-        """
-        Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
-        path where is the file is located should be pass with this method.
-        """
-        pass
-
-    def reset(self, initial_budget):
-        """
-        This function is called at the end of an episode, when the episode is over. It aims at resetting the
-        self and prepare it for a new episode.
-
-        Parameters
-        ----------
-        initial_budget: ``float``
-            The initial budget the opponent has
-        """
-        pass
-
     def attack(self, observation, agent_action, env_action, budget, previous_fails):
         """
         This method is the equivalent of "attack" for a regular agent.
@@ -101,23 +82,3 @@ class RandomLineOpponent(BaseOpponent):
 
         # Pick a line among the connected lines
         return np.random.choice(self._attacks)
-
-    def tell_attack_continues(self, observation, agent_action, env_action, budget):
-        """
-        The purpose of this method is to tell the agent that his attack is being continued.
-
-        Parameters
-        ----------
-        observation: :class:`grid2op.Observation.Observation`
-            The last observation (at time t)
-
-        agent_action: :class:`grid2op.Action.Action`
-            The action that the agent took
-
-        env_action: :class:`grid2op.Action.Action`
-            The modification that the environment will take.
-
-        budget: ``float``
-            The current remaining budget (if an action is above this budget, it will be replaced by a do nothing.
-        """
-        pass
