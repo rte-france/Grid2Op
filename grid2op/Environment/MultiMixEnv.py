@@ -84,7 +84,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             self.env_index = self.space_prng.randint(len(self.mix_envs))
         else:
             self.env_index = (self.env_index + 1) % len(self.mix_envs)
-            
+
         self.current_env = self.mix_envs[self.env_index]
         self.current_env.reset()
         return self.get_obs()
