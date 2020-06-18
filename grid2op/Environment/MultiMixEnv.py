@@ -64,6 +64,22 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return len(self.mix_envs)
 
     def __iter__(self):
+        """
+        Operator __iter__ overload to make a ``MultiMixEnvironment`` iterable
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import MultiMixEnvironment
+            from grid2op.Runner import Runner
+
+            mm_env = MultiMixEnvironment("/path/to/multi/dataset/folder")
+            
+            for env in mm_env:
+                run_p = env.get_params_for_runner()
+                runner = Runner(**run_p)
+                runner.run(nb_episode=1, max_iter=-1)
+        """
         self.env_index = 0
         return self
 
