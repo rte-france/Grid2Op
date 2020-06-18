@@ -23,7 +23,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     """
     def __init__(self,
-                 envs_dir):
+                 envs_dir,
+                 **kwargs):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
 
@@ -39,7 +40,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 env_path = os.path.join(envs_dir, env_dir)            
                 if not os.path.isdir(env_path):
                     continue
-                env = make(env_path)
+                env = make(env_path, **kwargs)
                 self._envs.append(env)
         except Exception as e:
             err_msg = "MultiMix environment creation failed: {}".format(e)
