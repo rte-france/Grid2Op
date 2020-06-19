@@ -10,6 +10,7 @@ import tempfile
 
 from grid2op.tests.helper_path_test import *
 from grid2op.Environment import MultiMixEnvironment
+from grid2op.Environment import BaseEnv
 from grid2op.Observation import CompleteObservation
 from grid2op.Parameters import Parameters
 from grid2op.Reward import GameplayReward, L2RPNReward
@@ -59,16 +60,36 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert "l2rpn" in i["rewards"]
 
     def test_creation_with_backend(self):
-        class DummyBackend(PandaPowerBackend):
+        class DummyBackend1(PandaPowerBackend):
             def dummy(self):
                 return True
             
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  backend=DummyBackend())
+                                  backend=DummyBackend1())
         assert mme.current_obs is not None
         assert mme.current_env is not None
         for env in mme:
             assert env.backend.dummy() == True
+
+    def test_creation_with_backend_are_not_shared(self):
+        class DummyBackend2(PandaPowerBackend):
+            def __init__(self):
+                super().__init__()
+                self.calls = 0
+
+            def dummy(self):
+                r = self.calls
+                self.calls += 1
+                return r
+            
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
+                                  backend=DummyBackend2())
+        assert mme.current_obs is not None
+        assert mme.current_env is not None
+        for t in range(3):
+            for env in mme:
+                dummy = env.backend.dummy() 
+                assert dummy == t
 
     def test_creation_with_opponent(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
@@ -118,20 +139,21 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert "l2rpn" in i["rewards"]
 
     def test_reset_with_backend(self):
-        class DummyBackend(PandaPowerBackend):
-            self._dummy = -1
+        class DummyBackend3(PandaPowerBackend):
+            def __init__(self):
+                super().__init__()
+                self._dummy = -1
 
-            def reset(self):
+            def reset(self, grid_path=None, grid_filename=None):
                 self._dummy = 1
-                
+
             def dummy(self):
                 return self._dummy
-            
+
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
-                                  backend=DummyBackend())
+                                  backend=DummyBackend3())
         mme.reset()
-        for env in mme:
-            assert env.backend.dummy() == 1
+        assert mme.current_env.backend.dummy() == 1
 
     def test_reset_with_opponent(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
@@ -227,6 +249,49 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert r is not None
         assert isinstance(info, dict)
         assert done is not True
+
+    def test_bracket_access_by_name(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        
+        mix1_env = mme["case14_001"]                                          
+        assert mix1_env.name == "case14_001"
+        mix2_env = mme["case14_002"]
+        assert mix2_env.name == "case14_002"
+        with self.assertRaises(KeyError):
+            unknown_env = mme["unknown_raise"]
+
+    def test_keys_access(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+
+        for k in mme.keys():
+            mix = mme[k]
+            assert mix is not None
+            assert isinstance(mix, BaseEnv)
+            assert mix.name == k
+
+    def test_values_access(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+
+        for v in mme.values():
+            assert v is not None
+            assert isinstance(v, BaseEnv)
+            assert v == mme[v.name]
+
+    def test_values_unique(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        vals = list(mme.values())
+        vals_unique = list(set(vals))
+
+        assert len(vals) == len(vals_unique)
+        
+    def test_items_acces(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+
+        for k,v in mme.items():
+            assert k is not None
+            assert v is not None
+            assert isinstance(v, BaseEnv)
+            assert v == mme[k]
 
 if __name__ == "__main__":
     unittest.main()
