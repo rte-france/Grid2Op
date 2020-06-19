@@ -32,6 +32,12 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.env_index = None
         self.mix_envs = []
 
+        # Special case handling for backend 
+        backendClass = None
+        if "backend" in kwargs:
+            backendClass = type(kwargs["backend"])
+            del kwargs["backend"]
+
         # Inline import to prevent cyclical import
         from grid2op.MakeEnv.Make import make
 
@@ -40,7 +46,14 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 env_path = os.path.join(envs_dir, env_dir)            
                 if not os.path.isdir(env_path):
                     continue
-                env = make(env_path, **kwargs)
+                # Special case for backend
+                if backendClass is not None:
+                    env = make(env_path,
+                               backend=backendClass(),
+                               **kwargs)
+                else:
+                    env = make(env_path, **kwargs)
+                
                 self.mix_envs.append(env)
         except Exception as e:
             err_msg = "MultiMix environment creation failed: {}".format(e)
@@ -95,6 +108,42 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     def __getattr__(self, name):
         return getattr(self.current_env, name)
 
+    def keys(self):
+        for mix in self.mix_envs:
+            yield mix.name
+
+    def values(self):
+        for mix in self.mix_envs:
+            yield mix
+
+    def items(self):
+        for mix in self.mix_envs:
+            yield mix.name, mix
+
+    def __getitem__(self, key):
+        """
+        Operator [] overload for accesing underlying mixes by name
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import MultiMixEnvironment
+
+            mm_env = MultiMixEnvironment("/path/to/multi/dataset/folder")
+
+            mix1_env.name = mm_env["mix_1"]
+            assert mix1_env == "mix_1"
+            mix2_env.name = mm_env["mix_2"]
+            assert mix2_env == "mix_2"
+        """
+        # Search for key
+        for mix in self.mix_envs:
+            if mix.name == key:
+                return mix
+
+        # Not found by name
+        raise KeyError
+    
     def reset(self, random=False):
         if random:
             self.env_index = self.space_prng.randint(len(self.mix_envs))
