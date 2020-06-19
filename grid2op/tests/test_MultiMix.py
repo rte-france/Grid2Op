@@ -122,7 +122,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         class DummyBackend(PandaPowerBackend):
             self._dummy = -1
 
-            def reset(self):
+            def reset(self, grid_path=None, grid_filename=None):
                 self._dummy = 1
                 
             def dummy(self):
