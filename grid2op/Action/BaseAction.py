@@ -482,13 +482,14 @@ class BaseAction(GridObjects):
         """
         # TODO this is extremly slow, it takes ~30% of the time taken by "step" for the 118 with lightsim
         # it is slower than the computing of a powerflow on this case :-/
+        # powerline_status = None
         recompute = powerline_status is not None
         if powerline_status is None:
             powerline_status = np.full(self.n_line, fill_value=False, dtype=dt_bool)
         not_powerline_status = ~(powerline_status)
 
         if self._lines_impacted is None or recompute:
-            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & not_powerline_status)
+            self._lines_impacted = self._switch_line_status | self._set_line_status != 0 #& not_powerline_status)
 
         if self._subs_impacted is None or recompute:
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
