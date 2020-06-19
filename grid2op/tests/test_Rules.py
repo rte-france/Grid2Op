@@ -531,7 +531,6 @@ class TestReconnectionsLegality(unittest.TestCase):
         assert env.backend._grid.line.iloc[l_id]["in_service"] == True
 
 
-
 class TestSubstationImpactLegality(unittest.TestCase):
     def setUp(self):
         # Create env with custom params

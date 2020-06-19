@@ -26,21 +26,22 @@ class RandomObject(object):
 
     Notes
     -----
-        In order to be reproducible, and to make proper use of the
-        :func:`BaseAgent.seed` capabilities, you must absolutely NOT use the `random` python module (which will not
-        be seeded) nor the `np.random` module and avoid any other "sources" of pseudo random numbers.
+    In order to be reproducible, and to make proper use of the
+    :func:`BaseAgent.seed` capabilities, you must absolutely NOT use the `random` python module (which will not
+    be seeded) nor the `np.random` module and avoid any other "sources" of pseudo random numbers.
 
-        You can adapt your code the following way. Instead of using `np.random` use `self.space_prng`.
+    You can adapt your code the following way. Instead of using `np.random` use `self.space_prng`.
 
-        For example, if you wanted to write
-        `np.random.randint(1,5)` replace it by `self.space_prng.randint(1,5)`. It is the same for `np.random.normal()`
-        that is
-        replaced by `self.space_prng.normal()`.
+    For example, if you wanted to write
+    `np.random.randint(1,5)` replace it by `self.space_prng.randint(1,5)`. It is the same for `np.random.normal()`
+    that is
+    replaced by `self.space_prng.normal()`.
 
-        You have an example of such usage in :func:`RandomAgent.my_act`.
+    You have an example of such usage in :func:`RandomAgent.my_act`.
 
-        If you really need other sources of randomness (for example if you use tensorflow or torch) we strongly
-        recommend you to overload the :func:`BaseAgent.seed` accordingly. In that
+    If you really need other sources of randomness (for example if you use tensorflow or torch) we strongly
+    recommend you to overload the :func:`BaseAgent.seed` accordingly so that the neural networks are always initialized
+    in the same order using the same weights.
     """
     def __init__(self):
         self.space_prng = np.random.RandomState()

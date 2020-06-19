@@ -14,6 +14,7 @@ from grid2op.Space import GridObjects
 from grid2op.Environment.BaseMultiProcessEnv import BaseMultiProcessEnvironment
 from grid2op.Action import BaseAction
 
+
 class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
     """
     This class allows to evaluate a single agent instance on multiple environments running in parrallel.
@@ -34,6 +35,7 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
         for e, n in enumerate(nb_envs):
             all_envs += [envs[e] for _ in range(n)]
         super().__init__(all_envs)
+
 
 if __name__ == "__main__":
     from tqdm import tqdm

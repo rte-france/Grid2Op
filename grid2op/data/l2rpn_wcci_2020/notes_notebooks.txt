@@ -1,0 +1,76 @@
+0:	- I.A) What is a Chronic? Explain?
+	- I.A) The link to ChronicsHandler.py is not working (to be fixed)
+	- III) Cell 10 : have the agent act before the environment in the loop, for consistency with the NeurIPS
+			 proposal paper? EDIT : it looks like this has been fixed already.
+	- IV.B) I don't understand "the other one is the "case14_redisp" that is a transposition
+				    of the case14 ieee powergrid TODO describe it"
+
+NEW:	- Create a doc to describe powergrid entities and how they're connected (IMPORTANT)
+
+1:	- I.B.a) Point to the powergrid doc (also explain what are active/reactive flows)
+	- I.B.a) Cell 8 : load_q instead of prod_q
+	- II) Cell 22 : according to the cell, a line is connected if rho > 0
+			shouldn't it be connected if rho < 1?
+			==> "the rho ratio, ie. the ratio between the current flow on each powerlines
+			     and the its thermal limits"
+
+2:	- I.A) Point to the powergrid doc, also explain the possible actions
+	- I.A) Should be "action $a_2$ consists in "change the status of EXTREMITY of powerline $l_3$".
+	       After applying this action, the status of POWERLINE 3 is: "connected"" ?
+	       Also, the extremity of l3 is not connected, but is l3 necessarily connected? Depends on the origin?
+	- II.A.a) The action is ambiguous because the buses are not specified.
+		  - How to specify the buses? Explain, show an example?
+		  - It is explained later on cell 14 but maybe it should be explained before? (On cell 7)
+		  - Why is it done through action_space.reconnect_powerline(line_id=1,bus_or=1,bus_ex=1)
+		    and not syntax more similar to the other actions, such as
+		    action_space({"set_line_status": [(3,1,bus), (4,1,bus), (5,-1), (6,-1)]}) ?
+	- Ambiguous action : I.A) : "This action will not be implemented and the episode will terminate"
+			     II.A.a) Cell 7 : "Implementing this action on a grid will be equivalent to doing nothing"
+			     Will attempting to return an ambiguous action terminate the episode or do nothin?
+
+3:	- I) Cells 3/4/5 : The text lacks clarity? What are the default convertions? What are act and my_act? Explain?
+	- II.C.a) Cell 10 : - The code is kind of unclear and big, needs more comments? Is the code necessary?
+			    - Methods predict_movement, train, save_model, load_model, target_train can be generalized?
+			    - train / target_train methods can be done per batch? (would be faster?)
+			    - Why use a model and a target model?
+			    - In the DeepQ, RealQ and SAC classes, the target model follows the model with a delay TAU.
+			      In the DuelQ class, there is no delay, why?
+	- II.C.a) Cell 13 : - Have the __init__ method at the top of DeepQAgent?
+			    - Where are the deep_q .train and .target_train methods used?
+			      ==> in the TrainAgent class : why not simply add a .train method to the DeepQAgent class
+							    instead of having a whole new class for training?
+							    I was expecting the training in the DeepQAgent class
+	- II.C.a) Cell 14 : L2RPNReward_LoadWise and L2RPNReward_LoadWise_ActionWise have the same docstrings.
+			    - What is the difference?
+			    - Avoid mixed snake case / camel case?
+	- III.B) Cell 23 : Assuming that there are only set actions taken (no change actions),
+			   there are 0 reconnection attempts, should mean that the agent never tries to reconnect a line?
+			   (and not always as written?)
+
+4:	- Inspect) Cell 7 : The variable name line_disconnected is confusing (maybe operations_on_line_14?)
+	- Inspect) Cells 9/10/11 : Try to show the figures in the notebook?
+
+5:	- Re-run the title of the notebook
+	- Complete the notebook (TODO cells)
+	- Implementation) Before cell 6 : what is the setpoint of a generator? Maybe the explanation could be clearer
+			  Is it the target value (desired value) or the true value?
+			  ==> It is explained on cell 12 (the setpoint is the desired value,
+							  the true value is actual_dispatch)
+			      It could be explained sooner (before cell 6) so that the explanation is easy to understand
+	- Example of use) After cell 17 : comment on the agents performances?
+
+6:	- III.A) - Highlight the definition of a multienvironment
+		 - Clarify that the environments run in parallel and INDEPENDENTLY
+		   ==> the observations and actions do not interact between the different environments
+	- III.B) Have a .train method in the agent class? As suggested in 3: II.C.a) Cell 13
+		 and then use self.agent.train instead of self.agent.deepq.train?
+		 The self.agent.deepq.train syntax looks non-obvious
+	- III.B) Comment on the performance graph, particularly on the variance in the scores at a certain time?
+	- Assess) Clean the output of the last cell for lisibility's sake
+
+7:	- II.B) plot_obs : try to show the figures in the notebook?
+	- III) Even if the env.render output cannot be shown in the notebook, try to display a saved example
+	- IV) Even if the ReplayEpisode output cannot be shown directly in the notebook
+	      (has to be saved locally then loaded), try to show a saved example
+	- VI) Cell 13 : we want to compare two agents, but only DoNothingAgent is used
+			==> use TopologyGreedy
