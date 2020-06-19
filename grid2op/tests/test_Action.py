@@ -1270,6 +1270,21 @@ class TestTopologicalImpact(unittest.TestCase):
         assert np.sum(subs_impacted) == 0
         assert lines_impacted[9]
 
+    def test_get_topo_imp_setstatus_up_2(self):
+        # i set a status (no substation impacted, one line impacted)
+        # plus I change the topology of one element (one sub impacted, no line impacted)
+        l_id = 0
+        changelor = self.helper_action({"set_line_status": [(l_id, 1)],
+                                        "set_bus": {"lines_or_id": [(l_id, 2)],
+                                                    "lines_ex_id": [(l_id, 2)]}
+                                        })
+        changelor.update({"set_bus": {"generators_id": [(0, 2)]}})
+        lines_impacted, subs_impacted = changelor.get_topological_impact()
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 1
+        assert lines_impacted[l_id]
+        assert subs_impacted[0]
+
     def test_get_topo_imp_setstatus_up_alreadyup(self):
         l_id = 15
         powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
@@ -1285,6 +1300,26 @@ class TestTopologicalImpact(unittest.TestCase):
         assert lines_impacted[l_id]
         assert subs_impacted[self.res["line_or_to_subid"][l_id]]
         assert subs_impacted[self.res["line_ex_to_subid"][l_id]]
+
+    def test_get_topo_imp_setstatus_up_alreadyup2(self):
+        # change a line that is already reconnected (2 subs) + 1 line
+        # and i change the object on same substation, should count as 0
+        l_id = 0
+        powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        changelor = self.helper_action({"set_line_status": [(l_id, 1)],
+                                        "set_bus": {"lines_or_id": [(l_id, 1)],
+                                                    "lines_ex_id": [(l_id, 1)]}
+                                        })
+        changelor.update({"set_bus": {"generators_id": [(0, 2)]}})
+        # powerline is already connected
+        # i fake connect it, so it's like changing both its ends
+        lines_impacted, subs_impacted = changelor.get_topological_impact(powerline_status)
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 2
+        assert lines_impacted[l_id]
+        assert subs_impacted[self.res["line_or_to_subid"][l_id]]
+        assert subs_impacted[self.res["line_ex_to_subid"][l_id]]
+        assert subs_impacted[0]
 
     def test_get_topo_imp_setstatus_up_isdown(self):
         l_id = 15

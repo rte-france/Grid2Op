@@ -443,6 +443,26 @@ class BaseAction(GridObjects):
         return True
 
     def get_topological_impact(self, powerline_status=None):
+        if powerline_status is None:
+            isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        else:
+            isnotconnected = ~powerline_status
+
+        self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
+        self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
+
+        # todo could be set as a class attribute
+        _topo_vect_to_sub = np.repeat(np.arange(self.sub_info.shape[0]), repeats=self.sub_info)
+
+        # compute the changes of the topo vector
+        effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
+        # remove the change due to powerline only
+        effective_change[self.line_or_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+        effective_change[self.line_ex_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+        self._subs_impacted[_topo_vect_to_sub[effective_change]] = True
+        return self._lines_impacted, self._subs_impacted
+
+    def get_topological_impact_old(self, powerline_status=None):
         """
         Gives information about the element being impacted by this action.
 
@@ -489,7 +509,7 @@ class BaseAction(GridObjects):
         not_powerline_status = ~(powerline_status)
 
         if self._lines_impacted is None or recompute:
-            self._lines_impacted = self._switch_line_status | self._set_line_status != 0 #& not_powerline_status)
+            self._lines_impacted = self._switch_line_status | self._set_line_status != 0
 
         if self._subs_impacted is None or recompute:
             self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)

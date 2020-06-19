@@ -99,7 +99,7 @@ class TestIdToAct(HelperTests):
     def tearDown(self):
         self.env.close()
 
-    def test_save(self):
+    def test_save_reload(self):
         path_ = tempfile.mkdtemp()
         converter = IdToAct(self.env.action_space)
         converter.init_converter(set_line_status=False, change_bus_vect=False)
