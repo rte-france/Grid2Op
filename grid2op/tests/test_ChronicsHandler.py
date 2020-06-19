@@ -1049,27 +1049,7 @@ class TestMultiFolder(HelperTests):
                 self.i += 1
                 return self.i % 2 == 0
         root_path = env.chronics_handler.real_data.path
-        chronics_paths = np.array([os.path.join(root_path, '00'),
-                                   os.path.join(root_path, '01'),
-                                   os.path.join(root_path, '02'),
-                                   os.path.join(root_path, '03'),
-                                   os.path.join(root_path, '04'),
-                                   os.path.join(root_path, '05'),
-                                   os.path.join(root_path, '06'),
-                                   os.path.join(root_path, '07'),
-                                   os.path.join(root_path, '08'),
-                                   os.path.join(root_path, '09'),
-                                   os.path.join(root_path, '10'),
-                                   os.path.join(root_path, '11'),
-                                   os.path.join(root_path, '12'),
-                                   os.path.join(root_path, '13'),
-                                   os.path.join(root_path, '14'),
-                                   os.path.join(root_path, '15'),
-                                   os.path.join(root_path, '16'),
-                                   os.path.join(root_path, '17'),
-                                   os.path.join(root_path, '18'),
-                                   os.path.join(root_path, '19'),
-                                   ])
+        chronics_paths = np.array([os.path.join(root_path, "{:02d}".format(i)) for i in range(20)])
         # if i don't do anything, then everything is normal
         assert np.all(env.chronics_handler.real_data.subpaths == chronics_paths)
         assert np.all(env.chronics_handler.real_data._order == [i for i in range(20)])

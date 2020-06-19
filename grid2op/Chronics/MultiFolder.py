@@ -75,8 +75,8 @@ class Multifolder(GridValue):
         if len(self.subpaths) == 0:
             raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "
                                         "1 chronics folder there.".format(self.path))
+        # TODO clarify that
         # np.random.shuffle(self.subpaths)
-        # self.id_chron_folder_current = 0
         self.chunk_size = chunk_size
 
         # for saving

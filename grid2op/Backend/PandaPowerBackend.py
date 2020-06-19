@@ -728,7 +728,7 @@ class PandaPowerBackend(Backend):
         self.line_status[id_] = False
 
     def _reconnect_line(self, id_):
-        if id < self._number_true_line:
+        if id_ < self._number_true_line:
             self._grid.line["in_service"].iloc[id_] = True
         else:
             self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = True
