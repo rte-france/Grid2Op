@@ -443,6 +443,31 @@ class BaseAction(GridObjects):
         return True
 
     def get_topological_impact(self, powerline_status=None):
+        """
+        Gives information about the element being impacted by this action.
+        **NB** The impacted elements can be used by :class:`grid2op.BaseRules` to determine whether or not an action
+        is legal or not.
+        **NB** The impacted are the elements that can potentially be impacted by the action. This does not mean they
+        will be impacted. For examples:
+            - If an action from an :class:`grid2op.BaseAgent` reconnect a powerline, but this powerline is being
+              disconnected by a hazard at the same time step, then this action will not be implemented on the grid.
+              However, it this powerline couldn't be reconnected for some reason (for example it was already out of
+              order) the action will still be declared illegal, even if it has NOT impacted the powergrid.
+            - If an action tries to disconnect a powerline already disconnected, it will "impact" this powergrid. This
+              means that even if the action will do nothing, it disconnecting this powerline is against the
+              rules, then the action will be illegal.
+            - If an action tries to change the topology of a substation, but this substation is already at the target
+              topology, the same mechanism applies. The action will "impact" the substation, even if, in the end, it
+              consists of doing nothing.
+        Any such "change" that would be illegal is declared as "illegal" regardless of the real impact of this action
+        on the powergrid.
+        Returns
+        -------
+        lines_impacted: :class:`numpy.array`, dtype:dt_bool
+            A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for each
+            component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
+            :attr:`BaseAction._lines_impacted` for more information.
+        """
         if powerline_status is None:
             isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
         else:
