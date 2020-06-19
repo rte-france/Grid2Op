@@ -32,6 +32,12 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.env_index = None
         self.mix_envs = []
 
+        # Special case handling for backend 
+        backendClass = None
+        if "backend" in kwargs:
+            backendClass = type(kwargs["backend"])
+            del kwargs["backend"]
+
         # Inline import to prevent cyclical import
         from grid2op.MakeEnv.Make import make
 
@@ -40,7 +46,14 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 env_path = os.path.join(envs_dir, env_dir)            
                 if not os.path.isdir(env_path):
                     continue
-                env = make(env_path, **kwargs)
+                # Special case for backend
+                if backendClass is not None:
+                    env = make(env_path,
+                               backend=backendClass(),
+                               **kwargs)
+                else:
+                    env = make(env_path, **kwargs)
+                
                 self.mix_envs.append(env)
         except Exception as e:
             err_msg = "MultiMix environment creation failed: {}".format(e)
