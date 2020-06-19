@@ -10,6 +10,7 @@ import tempfile
 
 from grid2op.tests.helper_path_test import *
 from grid2op.Environment import MultiMixEnvironment
+from grid2op.Environment import BaseEnv
 from grid2op.Observation import CompleteObservation
 from grid2op.Parameters import Parameters
 from grid2op.Reward import GameplayReward, L2RPNReward
@@ -228,7 +229,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert isinstance(info, dict)
         assert done is not True
 
-    def test_bracked_access_by_name(self):
+    def test_bracket_access_by_name(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         
         mix1_env = mme["case14_001"]                                          
@@ -236,8 +237,33 @@ class TestMultiMixEnvironment(unittest.TestCase):
         mix2_env = mme["case14_002"]
         assert mix2_env.name == "case14_002"
         with self.assertRaises(KeyError):
-            unknown_env = mme["unknwon_raise"]
+            unknown_env = mme["unknown_raise"]
 
+    def test_keys_access(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+
+        for k in mme.keys():
+            mix = mme[k]
+            assert mix is not None
+            assert isinstance(mix, BaseEnv)
+            assert mix.name == k
+
+    def test_values_access(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+
+        for v in mme.values():
+            assert v is not None
+            assert isinstance(v, BaseEnv)
+            assert v == mme[v.name]
+
+    def test_items_acces(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+
+        for k,v in mme.items():
+            assert k is not None
+            assert v is not None
+            assert isinstance(v, BaseEnv)
+            assert v == mme[k]
 
 if __name__ == "__main__":
     unittest.main()

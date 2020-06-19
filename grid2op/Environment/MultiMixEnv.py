@@ -95,6 +95,17 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     def __getattr__(self, name):
         return getattr(self.current_env, name)
 
+    def keys(self):
+        for mix in self.mix_envs:
+            yield mix.name
+
+    def values(self):
+        for mix in self.mix_envs:
+            yield mix
+
+    def items(self):
+        for mix in self.mix_envs:
+            yield mix.name, mix
 
     def __getitem__(self, key):
         """
