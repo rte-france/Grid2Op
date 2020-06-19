@@ -50,6 +50,7 @@ class Multifolder(GridValue):
 
     id_chron_folder_current: ``int``
         Id (in :attr:`MultiFolder.subpaths`) for which data are generated in the current episode.
+
     """
     def __init__(self, path,
                  time_interval=timedelta(minutes=5),
@@ -75,7 +76,7 @@ class Multifolder(GridValue):
             raise ChronicsNotFoundError("Not chronics are found in \"{}\". Make sure there are at least "
                                         "1 chronics folder there.".format(self.path))
         # np.random.shuffle(self.subpaths)
-        self.id_chron_folder_current = 0
+        # self.id_chron_folder_current = 0
         self.chunk_size = chunk_size
 
         # for saving
@@ -84,6 +85,88 @@ class Multifolder(GridValue):
         self._order_backend_lines = None
         self._order_backend_subs = None
         self._names_chronics_to_backend = None
+
+        # improving looping strategy
+        self._filter = self._default_filter
+        self._prev_cache_id = 0
+        self._order = None
+
+    def _default_filter(self, x):
+        """
+        default filter used at the initialization. It keeps only the first data encountered.
+        """
+        return True
+
+    def set_filter(self, filter_fun):
+        """
+        Assign a filtering function to remove some chronics from the next time a call to "reset_cache" is called.
+
+        **NB** filter_fun is applied to all element of :attr:`MultifolderWithCache.subpaths`. If ``True`` then it will
+        be put in cache, if ``False`` this data will NOT be put in the cache.
+
+        **NB** this has no effect until :attr:`Multifolder.reset` is called.
+        """
+        self._filter = filter_fun
+
+    def next_chronics(self):
+        self._prev_cache_id += 1
+        # TODO
+        # if self._prev_cache_id >= len(self._order):
+        #     self.space_prng.shuffle(self._order)
+        self._prev_cache_id %= len(self._order)
+
+    def sample_next_chronics(self, probabilities):
+        """
+        This function should be called before "next_chronics".
+        It can be used to sample non uniformly for the next next chronics.
+
+        Parameters
+        -----------
+        probabilities: ``np.ndarray``
+            Array of integer with the same size as the number of chronics in the cache.
+
+        Returns
+        -------
+        selected: ``int``
+            The integer that was selected.
+
+        """
+        self._prev_cache_id = -1
+        # make sure it sums to 1
+        probabilities /= np.sum(probabilities)
+        # take one at "random" among these
+        selected = self.space_prng.choice(self._order,  p=probabilities)
+        self._prev_cache_id = selected - 1
+        return selected
+
+    def reset(self):
+        """
+        Rebuilt the :attr:`Multifolder._order`. This should be called after a call to :func:`Multifolder.set_filter`
+        is performed.
+
+        **NB** This "reset" is different from the "env.reset". It should be only called after the function to set
+        the filtering function has been called.
+
+        Returns
+        -------
+        new_order: ``numpy.ndarray``, dtype: str
+            The selected chronics paths after a call to this method.
+
+        """
+        self._order = []
+        self._prev_cache_id = 0
+        for i, path in enumerate(self.subpaths):
+            if not self._filter(path):
+                continue
+            self._order.append(i)
+
+        if len(self._order) == 0:
+            raise RuntimeError("Impossible to initialize the Multifolder. Your \"filter_fun\" filters out all the "
+                               "possible scenarios.")
+        self._order = np.array(self._order)
+        # TODO this shuffling there
+        # self.space_prng.shuffle(self._order)
+        return self.subpaths[self._order]
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -97,9 +180,16 @@ class Multifolder(GridValue):
         self.n_gen = len(order_backend_prods)
         self.n_load = len(order_backend_loads)
         self.n_line = len(order_backend_lines)
+
+        if self._order is None:
+            # initialize the cache
+            self.reset()
+
+        id_scenario = self._order[self._prev_cache_id]
+        this_path = self.subpaths[id_scenario]
         self.data = self.gridvalueClass(time_interval=self.time_interval,
                                         sep=self.sep,
-                                        path=self.subpaths[self.id_chron_folder_current],
+                                        path=this_path,
                                         max_iter=self.max_iter,
                                         chunk_size=self.chunk_size)
         if self.seed is not None:
@@ -161,21 +251,6 @@ class Multifolder(GridValue):
         """
         return self.data.forecasts()
 
-    def next_chronics(self):
-        """
-        Load the next episode.
-
-        Note that :func:`MultiFolder.initialize` must be called after a call to this method has been performed. This is
-        either done by the :class:`grid2op.Environemnt` or by the :class:`grid2op.Runner`.
-
-        Returns
-        -------
-        ``None``
-
-        """
-        self.id_chron_folder_current += 1
-        self.id_chron_folder_current %= len(self.subpaths)
-
     def tell_id(self, id_num):
         """
         This tells this chronics to load for the next episode.
@@ -191,9 +266,8 @@ class Multifolder(GridValue):
         -------
 
         """
-        self.id_chron_folder_current = id_num
-        self.id_chron_folder_current %= len(self.subpaths)
-        # print("Chronics handler: going to chronics {}".format(self.id_chron_folder_current))
+        self._prev_cache_id = id_num
+        self._prev_cache_id %= len(self._order)
 
     def get_id(self) -> str:
         """
@@ -203,8 +277,9 @@ class Multifolder(GridValue):
         -------
         res: ``str``
             Path from which the data are generated for the current episode.
+
         """
-        return self.subpaths[self.id_chron_folder_current]
+        return self.subpaths[self._order[self._prev_cache_id]]
 
     def max_timestep(self):
         return self.data.max_timestep()
@@ -222,6 +297,11 @@ class Multifolder(GridValue):
         shuffler: ``object``
             Shuffler should be a function that is called on :attr:`MultiFolder.subpaths` that will shuffle them.
             It can also be used to remove some path if needed (see example).
+
+        Returns
+        --------
+        new_order: ``numpy.ndarray``, dtype: str
+            The order in which the chronics will be looped through
 
         Examples
         ---------
@@ -241,12 +321,26 @@ class Multifolder(GridValue):
             data.shuffle(shuffler=lambda x: x[1, 5, 6])
 
         """
-        self.subpaths = shuffler(self.subpaths)
+        self._order = shuffler(self._order)
+        return self.subpaths[self._order]
 
     def set_chunk_size(self, new_chunk_size):
         self.chunk_size = new_chunk_size
 
     def split_and_save(self, datetime_beg, datetime_end, path_out):
+        """
+        TODO documentation
+
+        Parameters
+        ----------
+        datetime_beg
+        datetime_end
+        path_out
+
+        Returns
+        -------
+
+        """
         if not isinstance(datetime_beg, dict):
             datetime_beg_orig = datetime_beg
             datetime_beg = {}
