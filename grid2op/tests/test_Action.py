@@ -22,6 +22,8 @@ from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Space import GridObjects
 from grid2op.Space.space_utils import save_to_dict
 
+# TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
+
 
 class TestActionBase(ABC):
 

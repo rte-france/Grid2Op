@@ -64,6 +64,15 @@ class TestRunner(HelperTests):
         assert int(timestep) == self.max_iter
         assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
+    def test_one_process_par(self):
+        res = Runner._one_process_parrallel(self.runner, [0], 0, None, None, self.max_iter)
+        assert len(res) == 1
+        _, el1, el2, el3, el4 = res[0]
+        assert el1 == "1"
+        assert np.abs(el2 - 199.9980010986328) <= self.tol_one
+        assert el3 == 10
+        assert el4 == 10
+
     def test_2episode(self):
         res = self.runner.run_sequential(nb_episode=2, max_iter=self.max_iter)
         assert len(res) == 2

@@ -210,7 +210,8 @@ test_multiproc2.py
 getting_started/saved_agent2_DDDQN_1500/
 getting_started/saved_agent2_DDDQN_1500_results/
 getting_started/saved_agent_DDDQN_1000_results/
-
+getting_started/saved_agent_DDDQN_100_multi/
+getting_started/saved_agent_DDDQN_100_multi_results_multi/
 
 # profiling files
 **.prof

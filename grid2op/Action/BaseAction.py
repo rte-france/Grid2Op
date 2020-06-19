@@ -482,6 +482,8 @@ class BaseAction(GridObjects):
             :attr:`BaseAction._subs_impacted` for more information.
 
         """
+        # TODO this is extremly slow, it takes ~30% of the time taken by "step" for the 118 with lightsim
+        # it is slower than the computing of a powerflow on this case :-/
         recompute = powerline_status is not None
         if powerline_status is None:
             powerline_status = np.full(self.n_line, fill_value=False, dtype=dt_bool)

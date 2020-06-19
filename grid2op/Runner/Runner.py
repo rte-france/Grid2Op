@@ -883,7 +883,6 @@ class Runner(object):
                 seeds_res = [[] for i in range(nb_process)]
                 for i in range(nb_episode):
                     seeds_res[i % nb_process].append(seeds[i])
-
             res = []
             with Pool(nb_process) as p:
                 tmp = p.starmap(Runner._one_process_parrallel,

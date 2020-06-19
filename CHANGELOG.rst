@@ -21,7 +21,8 @@ Change Log
 - [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
 - [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now
   `SingleProcessMultiEnv`
-- [FIXED] `BaseAction.__iadd__` fixed a bug with change actions `+=` operator reported in `Issue #116 <https://github.com/rte-france/Grid2Op/issues/116>`_
+- [FIXED] `BaseAction.__iadd__` fixed a bug with change actions `+=` operator reported in
+  `Issue #116 <https://github.com/rte-france/Grid2Op/issues/116>`_
 - [FIXED] `obs.simulate` post-initialized reward behaves like the environment
 - [FIXED] `LinesReconnectedReward` fixes reward inverted range
 - [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
@@ -44,10 +45,13 @@ Change Log
   grid and an arbitrary number of processes for each of these.
 - [UPDATED] Behaviour of "change_bus" and "set_bus": it is no more possible to affect the bus of a powerline
   disconnected.
+- [UPDATED] More control about the looping strategy of the `ChronicsHandler` that has been refactored, and can now be
+  more easily cached (no need to do an expensive reading of the data at each call to `env.reset`)
 
 [0.9.4] - 2020-06-12
 ---------------------
-- [FIXED] `Issue #114 <https://github.com/rte-france/Grid2Op/issues/114>`_ the issue concerning the bug for the maintenance.
+- [FIXED] `Issue #114 <https://github.com/rte-france/Grid2Op/issues/114>`_ the issue concerning the
+  bug for the maintenance.
 
 
 [0.9.3] - 2020-05-29

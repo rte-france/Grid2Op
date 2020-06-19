@@ -16,7 +16,31 @@ import numpy as np
 import copy
 from abc import ABC, abstractmethod
 import inspect
+try:
+    # this is only available starting python 3.7 or 3.8... tests are with python 3.6 :-(
+    from math import comb
+except ImportError:
+    def comb(n, k):
+        if n == k:
+            return 1
+        if n < k:
+            return 0
+        res = 1
+        acc = 1
+        for i in range(k):
+            res *= int((n-i))
+        for i in range(1,k+1):
+            res /= i
+        return res
 
+    """
+    test to check that it's working
+    for i in range(10):
+        for j in range(10):
+            me_ = comb(i,j)
+            real_ = math.comb(i,j)
+            assert me_ == real_, "{}, {}".format(i,j)
+    """
 import pdb
 import warnings
 
@@ -227,6 +251,19 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         p_or, *_ = adn_backend_cpy.lines_or_info()
         assert np.abs(p_or_ref[3]) <= self.tol_one
         assert self.compare_vect(p_or_orig, p_or)
+
+    def test_copy2(self):
+        self.skip_if_needed()
+        self.backend._disconnect_line(8)
+        conv = self.backend.runpf(is_dc=False)
+        p_or_orig, *_ = self.backend.lines_or_info()
+
+        adn_backend_cpy = self.backend.copy()
+        adn_backend_cpy._disconnect_line(11)
+        assert not adn_backend_cpy.get_line_status()[8]
+        assert not adn_backend_cpy.get_line_status()[11]
+        assert not self.backend.get_line_status()[8]
+        assert self.backend.get_line_status()[11]
 
     def test_get_private_line_status(self):
         self.skip_if_needed()
@@ -1027,11 +1064,11 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         env.reset()
-        # action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
         action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend.get_topo_vect() == 2) == 1
+        assert np.all(np.isfinite(obs.to_vect()))
 
     def test_change_bus(self):
         self.skip_if_needed()
@@ -1191,6 +1228,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
             self.backend1 = self.env1.backend
             self.env2 = make("rte_case5_example", test=True, backend=backend2)
             self.backend2 = self.env2.backend
+        np.random.seed(69)
 
     def tearDown(self):
         self.env1.close()
@@ -1300,6 +1338,75 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         assert np.all(obs1.target_dispatch == obs2.target_dispatch)
         assert np.all(obs1.actual_dispatch == obs2.actual_dispatch)
 
+    def test_combined_changes(self):
+        # Unlimited sub changes
+        backend = self.make_backend()
+        params = grid2op.Parameters.Parameters()
+        params.MAX_SUB_CHANGED = 999
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic",
+                               test=True,
+                               backend=backend,
+                               param=params)
+
+        # Find N valid iadd combination of R change actions
+        acts = self.aux_random_topos_act(env, n=16, r=3)
+        # Pick one at random
+        act = np.random.choice(acts)
+
+        # Reset env
+        obs = env.reset()
+        # At t=0 everything is on bus 1 normally
+        assert np.all(obs.topo_vect == 1)
+
+        # Step
+        obs, _, done, _ = env.step(act)
+        # This should use valid actions
+        assert done == False
+        # At t=1, unchanged elements should be on bus 1
+        assert np.all(obs.topo_vect[~act._change_bus_vect] == 1)
+
+    def aux_nth_combination(self, iterable, r, index):
+        'Equivalent to list(combinations(iterable, r))[index]'
+        pool = tuple(iterable)
+        n = len(pool)
+        if r < 0 or r > n:
+            raise ValueError
+        c = 1
+        k = min(r, n-r)
+        for i in range(1, k+1):
+            c = c * (n - k + i) // i
+        if index < 0:
+            index += c
+        if index < 0 or index >= c:
+            raise IndexError
+        result = []
+        while r:
+            c, n, r = c*r//n, n-1, r-1
+            while index >= c:
+                index -= c
+                c, n = c*(n-r)//n, n-1
+            result.append(pool[-1-n])
+        return tuple(result)
+
+    def aux_random_topos_act(self, env, n=128, r=2):
+        actsp = env.action_space
+        acts = actsp.get_all_unitary_topologies_change(actsp)
+        res = []
+        n_comb = comb(len(acts), r)
+        while len(res) < n:
+            env.reset()
+            rnd_idx = np.random.randint(n_comb)
+            a = self.aux_nth_combination(acts, r, rnd_idx)
+            atest = env.action_space({})
+            for atmp in a:
+                atest += atmp
+            _, _, done, _ = env.step(atest)
+            if not done:
+                res.append(copy.deepcopy(atest))
+        return res
 
 class BaseTestVoltageOWhenDisco(MakeBackend):
     def test_this(self):

@@ -23,13 +23,20 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     """
     def __init__(self,
-                 envs_dir):
+                 envs_dir,
+                 **kwargs):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
 
         self.current_env = None
         self.env_index = None
-        self._envs = []
+        self.mix_envs = []
+
+        # Special case handling for backend 
+        backendClass = None
+        if "backend" in kwargs:
+            backendClass = type(kwargs["backend"])
+            del kwargs["backend"]
 
         # Inline import to prevent cyclical import
         from grid2op.MakeEnv.Make import make
@@ -39,18 +46,25 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 env_path = os.path.join(envs_dir, env_dir)            
                 if not os.path.isdir(env_path):
                     continue
-                env = make(env_path)
-                self._envs.append(env)
+                # Special case for backend
+                if backendClass is not None:
+                    env = make(env_path,
+                               backend=backendClass(),
+                               **kwargs)
+                else:
+                    env = make(env_path, **kwargs)
+                
+                self.mix_envs.append(env)
         except Exception as e:
             err_msg = "MultiMix environment creation failed: {}".format(e)
             raise EnvError(err_msg)
 
-        if len(self._envs) == 0:
+        if len(self.mix_envs) == 0:
             err_msg = "MultiMix envs_dir did not contain any valid env"
             raise EnvError(err_msg)
 
         self.env_index = 0
-        self.current_env = self._envs[self.env_index]
+        self.current_env = self.mix_envs[self.env_index]
         # Make sure GridObject class attributes are set from first env
         # Should be fine since the grid is the same for all envs
         self.__class__ = self.init_grid(self.current_env)
@@ -59,16 +73,84 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     def current_index(self):
         return self.env_index
 
+    def __len__(self):
+        return len(self.mix_envs)
+
+    def __iter__(self):
+        """
+        Operator __iter__ overload to make a ``MultiMixEnvironment`` iterable
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import MultiMixEnvironment
+            from grid2op.Runner import Runner
+
+            mm_env = MultiMixEnvironment("/path/to/multi/dataset/folder")
+            
+            for env in mm_env:
+                run_p = env.get_params_for_runner()
+                runner = Runner(**run_p)
+                runner.run(nb_episode=1, max_iter=-1)
+        """
+        self.env_index = 0
+        return self
+
+    def __next__(self):
+        if self.env_index < len(self.mix_envs):
+            r =  self.mix_envs[self.env_index]
+            self.env_index = self.env_index + 1
+            return r
+        else:
+            self.env_index = 0
+            raise StopIteration
+
     def __getattr__(self, name):
         return getattr(self.current_env, name)
 
+    def keys(self):
+        for mix in self.mix_envs:
+            yield mix.name
+
+    def values(self):
+        for mix in self.mix_envs:
+            yield mix
+
+    def items(self):
+        for mix in self.mix_envs:
+            yield mix.name, mix
+
+    def __getitem__(self, key):
+        """
+        Operator [] overload for accesing underlying mixes by name
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import MultiMixEnvironment
+
+            mm_env = MultiMixEnvironment("/path/to/multi/dataset/folder")
+
+            mix1_env.name = mm_env["mix_1"]
+            assert mix1_env == "mix_1"
+            mix2_env.name = mm_env["mix_2"]
+            assert mix2_env == "mix_2"
+        """
+        # Search for key
+        for mix in self.mix_envs:
+            if mix.name == key:
+                return mix
+
+        # Not found by name
+        raise KeyError
+    
     def reset(self, random=False):
         if random:
-            self.env_index = self.space_prng.randint(len(self._envs))
+            self.env_index = self.space_prng.randint(len(self.mix_envs))
         else:
-            self.env_index = (self.env_index + 1) % len(self._envs)
-        
-        self.current_env = self._envs[self.env_index]
+            self.env_index = (self.env_index + 1) % len(self.mix_envs)
+
+        self.current_env = self.mix_envs[self.env_index]
         self.current_env.reset()
         return self.get_obs()
 
@@ -99,18 +181,18 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         s = super().seed(seed)
         seeds = [s]
         max_dt_int = np.iinfo(dt_int).max
-        for env in self._envs:
+        for env in self.mix_envs:
             env_seed = self.space_prng.randint(max_dt_int)
             env_seeds = env.seed(env_seed)
             seeds.append(env_seeds)
         return seeds
 
     def deactivate_forecast(self):
-        for e in self._envs:
+        for e in self.mix_envs:
             e.deactivate_forecast()
 
     def reactivate_forecast(self):
-        for e in self._envs:
+        for e in self.mix_envs:
             e.reactivate_forecast()
 
     def set_thermal_limit(self, thermal_limit):
@@ -118,7 +200,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         Set the thermal limit effectively.
         Will propagate to all underlying environments
         """
-        for e in self._envs:
+        for e in self.mix_envs:
             e.set_thermal_limit(thermal_limit)
 
     def __enter__(self):
@@ -138,7 +220,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return False
 
     def close(self):
-        for e in self._envs:
+        for e in self.mix_envs:
             e.close()
 
     def attach_layout(self, grid_layout):
@@ -154,5 +236,5 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         -------
 
         """
-        for e in self._envs:
+        for e in self.mix_envs:
             e.attach_layout(grid_layout)
