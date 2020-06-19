@@ -67,7 +67,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
                                   backend=DummyBackend())
         assert mme.current_obs is not None
         assert mme.current_env is not None
-        for env in mme._envs:
+        for env in mme:
             assert env.backend.dummy() == True
 
     def test_creation_with_opponent(self):
@@ -77,7 +77,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
                                   opponent_budget_per_ts=0.42)
         assert mme.current_obs is not None
         assert mme.current_env is not None
-        for env in mme._envs:
+        for env in mme:
             assert env.opponent_class == BaseOpponent
             assert env.opponent_init_budget == dt_float(42.0)
             assert env.opponent_budget_per_ts == dt_float(0.42)
@@ -130,7 +130,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX,
                                   backend=DummyBackend())
         mme.reset()
-        for env in mme._envs:
+        for env in mme:
             assert env.backend.dummy() == 1
 
     def test_reset_with_opponent(self):
