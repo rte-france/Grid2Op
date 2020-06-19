@@ -128,6 +128,8 @@ class Environment(BaseEnv):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
+                 opponent_attack_duration=12*4,
+                 opponent_attack_cooldown=12*24,
                  opponent_budget_class=UnlimitedBudget,
                  kwargs_opponent={},
                  _raw_backend_class=None
@@ -144,6 +146,8 @@ class Environment(BaseEnv):
                          opponent_budget_class=opponent_budget_class,
                          opponent_init_budget=opponent_init_budget,
                          opponent_budget_per_ts=opponent_budget_per_ts,
+                         opponent_attack_duration=opponent_attack_duration,
+                         opponent_attack_cooldown=opponent_attack_cooldown,
                          kwargs_opponent=kwargs_opponent)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "

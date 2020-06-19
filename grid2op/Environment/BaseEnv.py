@@ -844,6 +844,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_illegal_redisp = False
         is_illegal_reco = False
         attack = None
+        print('STEP')
         except_ = []
         init_disp = 1.0 * action._redispatch
 
@@ -918,6 +919,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack, duration = self.oppSpace.attack(observation=self.current_obs,
                                                     agent_action=action,
                                                     env_action=self.env_modification)
+            print('Attack:')
+            print(attack)
             if attack is not None and attack.as_dict():
                 line_attacked = attack.as_dict()['set_line_status']['disconnected_id'][0]
                 self.times_before_line_status_actionable[line_attacked] = \

@@ -55,6 +55,8 @@ ERR_MSG_KWARGS = {
                              "inherit from \"BaseAction\"",
     "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
                       "inherit from \"BaseOpponent\"",
+    "opponent_attack_duration": "The number of time steps an attack from the opponent lasts",
+    "opponent_attack_cooldown": "The number of time steps the opponent as to wait for an attack",
     "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float",
     "opponent_budget_class": "The opponent budget class (\"opponent_budget_class\") should derive from "
                              "\"BaseActionBudget\".",
@@ -154,6 +156,12 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
     opponent_init_budget: ``float``, optional
         The initial budget of the opponent. It defaults to 0.0 which means the opponent cannot perform any action
         if this is not modified.
+
+    opponent_attack_duration: ``int``, optional
+        The number of time steps an attack from the opponent lasts.
+
+    opponent_attack_cooldown: ``int``, optional
+        The number of time steps the opponent as to wait for an attack.
 
     opponent_budget_per_ts: ``float``, optional
         The increase of the opponent budget per time step. Each time step the opponent see its budget increase. It
@@ -415,6 +423,16 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                                               defaultinstance=0.,
                                               msg_error=ERR_MSG_KWARGS["opponent_budget_per_ts"],
                                               isclass=False)
+    opponent_attack_duration = _get_default_aux("opponent_attack_duration", kwargs,
+                                              defaultClassApp=int,
+                                              defaultinstance=12*4,
+                                              msg_error=ERR_MSG_KWARGS["opponent_attack_duration"],
+                                              isclass=False)
+    opponent_attack_cooldown = _get_default_aux("opponent_attack_cooldown", kwargs,
+                                              defaultClassApp=int,
+                                              defaultinstance=12*24,
+                                              msg_error=ERR_MSG_KWARGS["opponent_attack_cooldown"],
+                                              isclass=False)
 
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
@@ -432,6 +450,8 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                       opponent_action_class=opponent_action_class,
                       opponent_class=opponent_class,
                       opponent_init_budget=opponent_init_budget,
+                      opponent_attack_duration=opponent_attack_duration,
+                      opponent_attack_cooldown=opponent_attack_cooldown,
                       opponent_budget_per_ts=opponent_budget_per_ts,
                       opponent_budget_class=opponent_budget_class
                       )

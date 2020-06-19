@@ -81,4 +81,4 @@ class RandomLineOpponent(BaseOpponent):
             return self._do_nothing
 
         # Pick a line among the connected lines
-        return np.random.choice(self._attacks)
+        return self.space_prng.choice(self._attacks[status])

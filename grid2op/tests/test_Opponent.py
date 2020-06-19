@@ -109,6 +109,7 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example",
                       test=True,
                       opponent_budget_per_ts=init_budg_ts,
+                      opponent_attack_duration=1, # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=TestSuiteBudget_001,
                       opponent_class=TestSuiteOpponent_001) as env:
@@ -130,9 +131,10 @@ class TestLoadingOpp(unittest.TestCase):
         """Tests that the attack is ignored when the budget is too low"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            init_budget = 3
+            init_budget = 50
             with make("rte_case14_realistic",
                       test=True,
+                      opponent_attack_cooldown=0, # only for testing
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
@@ -142,12 +144,11 @@ class TestLoadingOpp(unittest.TestCase):
                 obs = env.reset()
                 assert env.oppSpace.budget == init_budget
                 # The opponent can attack
-                for i in range(init_budget):
+                for i in range(env.oppSpace.attack_duration):
                     obs, reward, done, info = env.step(env.action_space())
                     assert env.oppSpace.budget == init_budget - i - 1
                     assert env.oppSpace.last_attack.as_dict()
-                # There is no more budget
-                assert env.oppSpace.budget == 0
+                # There is not enough budget for a second attack
                 obs, reward, done, info = env.step(env.action_space())
                 assert env.oppSpace.last_attack is None
 
@@ -230,8 +231,6 @@ class TestLoadingOpp(unittest.TestCase):
                         attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
                         status_actionable = np.zeros_like(env.times_before_line_status_actionable).astype(dt_int)
                         status_actionable[attacked_line] = env.oppSpace.attack_duration - i - 1
-                        if not np.all(env.times_before_line_status_actionable == status_actionable):
-                            a = 0
                         assert np.all(env.times_before_line_status_actionable == status_actionable)
 
     def test_RandomLineOpponent_only_attack_connected(self):
@@ -239,17 +238,17 @@ class TestLoadingOpp(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
-            length = 100
+            length = 300
             with make("rte_case14_realistic",
                       test=True,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=0, # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
-                env.oppSpace.attack_cooldown = 0 # only for this test
                 pre_obs = env.reset()
                 done = False
                 assert env.oppSpace.budget == init_budget
@@ -259,10 +258,6 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env.oppSpace.last_attack
-                    if not attack.as_dict(): # all attackable lines are already disconnected
-                        assert np.invert(pre_obs.line_status).sum() == 6 # the number of attackable lines
-                        continue
-
                     attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
                     if env.oppSpace.current_attack_duration < env.oppSpace.attack_duration:
                         # The attack is ungoing. The line must have been disconnected already
@@ -271,6 +266,48 @@ class TestLoadingOpp(unittest.TestCase):
                         # A new attack was launched. The line must have been connected
                         assert pre_obs.line_status[attacked_line]
                     pre_obs = obs
+
+    def test_RandomLineOpponent_same_attack_order_and_attacks_all_lines(self):
+        """Tests that the RandomLineOpponent has the same attack order (when seeded) and attacks all lines"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            init_budget = 1000
+            length = 30
+            expected_attack_order = [4, 13, 15, 3, 12, 14, 4, 14, 13, 12, 13, 12, 4, 14, 15, 13, 3,
+                                     13, 12, 15, 14, 4, 3, 15, 14, 12, 13, 4, 12]
+            attack_order = []
+            has_disconnected_all = False
+            with make("rte_case14_realistic",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=0, # only for testing
+                      opponent_attack_duration=1, # only for testing
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
+                # Collect some attacks and check that they belong to the correct lines
+                obs = env.reset()
+                done = False
+                assert env.oppSpace.budget == init_budget
+                for i in range(length):
+                    if done:
+                        obs = env.reset()
+                    pre_done = done
+                    obs, reward, done, info = env.step(env.action_space())
+
+                    attack = env.oppSpace.last_attack
+                    if not attack.as_dict(): # all attackable lines are already disconnected
+                        continue
+
+                    attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
+                    if pre_done or not (attack_order and attack_order[-1] == attacked_line):
+                        attack_order.append(attacked_line)
+                    if len(attack_order) == 6 and len(set(attack_order)) == 6:
+                        has_disconnected_all = True
+                assert attack_order == expected_attack_order
+                assert has_disconnected_all
 
 if __name__ == "__main__":
     unittest.main()
