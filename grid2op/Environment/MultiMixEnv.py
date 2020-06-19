@@ -95,6 +95,31 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     def __getattr__(self, name):
         return getattr(self.current_env, name)
 
+
+    def __getitem__(self, key):
+        """
+        Operator [] overload for accesing underlying mixes by name
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import MultiMixEnvironment
+
+            mm_env = MultiMixEnvironment("/path/to/multi/dataset/folder")
+
+            mix1_env.name = mm_env["mix_1"]
+            assert mix1_env == "mix_1"
+            mix2_env.name = mm_env["mix_2"]
+            assert mix2_env == "mix_2"
+        """
+        # Search for key
+        for mix in self.mix_envs:
+            if mix.name == key:
+                return mix
+
+        # Not found by name
+        raise KeyError
+    
     def reset(self, random=False):
         if random:
             self.env_index = self.space_prng.randint(len(self.mix_envs))

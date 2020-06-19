@@ -228,5 +228,16 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert isinstance(info, dict)
         assert done is not True
 
+    def test_bracked_access_by_name(self):
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        
+        mix1_env = mme["case14_001"]                                          
+        assert mix1_env.name == "case14_001"
+        mix2_env = mme["case14_002"]
+        assert mix2_env.name == "case14_002"
+        with self.assertRaises(KeyError):
+            unknown_env = mme["unknwon_raise"]
+
+
 if __name__ == "__main__":
     unittest.main()
