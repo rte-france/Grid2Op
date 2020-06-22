@@ -525,7 +525,9 @@ class TestLoadingOpp(unittest.TestCase):
 
 
                 # TODO add the seed here !
-                res = runner.run(nb_episode=1, max_iter=opponent_attack_cooldown)
+                res = runner.run(nb_episode=1,
+                                 max_iter=opponent_attack_cooldown,
+                                 env_seeds=[0], agent_seeds=[0])
                 f = tempfile.mkdtemp()
                 res = runner.run(nb_episode=1, max_iter=opponent_attack_cooldown, path_save=f)
                 for i, episode_name, cum_reward, timestep, total_ts in res:
