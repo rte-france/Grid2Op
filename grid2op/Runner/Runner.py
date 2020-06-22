@@ -198,11 +198,6 @@ class Runner(object):
     thermal_limit_a: ``numpy.ndarray``
         The thermal limit for the environment (if any).
 
-    seed: ``int``
-        The seed used, for reproducible experiments (**NB** to ensure reproducible experiments even in the case of
-        parallel evaluation, there are absolutely not warrantee the seed used by any of the envrionment generated
-        will be the seed passed in this parameter.)
-
     opponent_action_class: ``type``, optional
         The action class used for the opponent. The opponent will not be able to use action that are invalid with
         the given action class provided. It defaults to :class:`grid2op.Action.DontAct` which forbid any type
@@ -305,15 +300,6 @@ class Runner(object):
         voltagecontrolerClass: :class:`grid2op.VoltageControler.ControlVoltageFromFile`, optional
             The controler that will change the voltage setpoints of the generators.
 
-        forbid_dispatch_off: ``bool``
-            Whether or not you forbid to apply dispacthing action on turned off generator (default False)
-
-        ignore_min_up_down_times: ``bool``
-            Whether or not to ignore gen_min_uptime and gen_min_downtime when applying redispatching actions.
-            (default True)
-
-        seed: ``int``
-            Seed used (default ``None``)
         """
         self.name_env = name_env
         if not isinstance(envClass, type):

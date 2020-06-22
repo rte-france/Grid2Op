@@ -88,8 +88,11 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
 
     It mimic the ``gym.make`` function.
 
+    .. _Parameters-make-from-path:
+
     Parameters
     ----------
+
     dataset_path: ``str``
         Path to the dataset folder
 
@@ -111,6 +114,9 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
     reward_class: ``type``, optional
         Type of reward signal the BaseAgent will receive.
         If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
+
+    other_rewards: ``dict``, optional
+        Used to additional information than the "info" returned value after a call to env.step.
 
     gamerules_class: ``type``, optional
         Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
