@@ -13,6 +13,7 @@ from grid2op.Opponent import BaseOpponent, RandomLineOpponent
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.Converter import LineDisconnection
 from grid2op.dtypes import dt_int
 
 
@@ -33,6 +34,11 @@ class TestSuiteOpponent_001(BaseOpponent):
             return None
         attack = self.space_prng.choice(self.possible_attack)
         return attack
+
+
+class TestOpponentForConverter(BaseOpponent):
+    def __init__(self, action_space=None):
+        pass
 
 
 class TestLoadingOpp(unittest.TestCase):
@@ -308,6 +314,37 @@ class TestLoadingOpp(unittest.TestCase):
                         has_disconnected_all = True
                 assert attack_order == expected_attack_order
                 assert has_disconnected_all
+
+    def test_LineDisconnection_converter(self):
+        """Tests that the RandomLineOpponent does not attack lines that are already disconnected"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_realistic",
+                      test=True) as env:
+                assert env.action_space.size() == 157
+
+                # Add converter
+                opponent = TestOpponentForConverter()
+                converter_action_space = LineDisconnection(env.action_space)
+                BaseOpponent.__init__(opponent, converter_action_space)
+                assert opponent.action_space.size() == 1
+                assert opponent.action_space.actions[0] == env.action_space({})
+
+                # Init converter
+                opponent.action_space.init_converter()
+                assert opponent.action_space.size() == 1 + env.action_space.n_line
+                assert opponent.action_space.actions[0] == env.action_space({})
+                for i in range(env.action_space.n_line):
+                    assert opponent.action_space.actions[1 + i] == env.action_space.disconnect_powerline(line_id=i)
+
+                # Filter lines
+                lines_maintenance_case14 = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
+                opponent.action_space.filter_lines(lines_maintenance_case14)
+                assert opponent.action_space.size() == 1 + len(lines_maintenance_case14)
+                assert opponent.action_space.actions[0] == env.action_space({})
+                line_ids = np.argwhere(np.in1d(env.action_space.name_line, lines_maintenance_case14))
+                for i, l_id in enumerate(line_ids):
+                    assert opponent.action_space.actions[1 + i] == env.action_space.disconnect_powerline(line_id=l_id)
 
     def test_simulate(self):
         with warnings.catch_warnings():
