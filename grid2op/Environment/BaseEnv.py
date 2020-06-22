@@ -818,7 +818,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             info: ``dict``
                 contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). It is a
-                dicitonnary with keys:
+                dictionary with keys:
 
                     - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
                         due to overflow
@@ -916,15 +916,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # TODO code the opponent part here and split more the timings! here "opponent time" is
             # included in time_apply_act
             tick = time.time()
-            attack, duration = self.oppSpace.attack(observation=self.current_obs,
-                                                    agent_action=action,
-                                                    env_action=self.env_modification)
+            attack, attack_duration = self.oppSpace.attack(observation=self.current_obs,
+                                                            agent_action=action,
+                                                            env_action=self.env_modification)
             print('Attack:')
             print(attack)
-            if attack is not None and attack.as_dict():
-                line_attacked = attack.as_dict()['set_line_status']['disconnected_id'][0]
-                self.times_before_line_status_actionable[line_attacked] = \
-                                max(duration, self.times_before_line_status_actionable[line_attacked])
+            if attack is not None:
+                # the opponent choose to attack
+                # i update the "cooldown" on these things
+                lines_attacked, subs_attacked = attack.get_topological_impact()
+                self.times_before_line_status_actionable[lines_attacked] = \
+                                np.maximum(attack_duration, self.times_before_line_status_actionable[lines_attacked])
+                self.times_before_topology_actionable[subs_attacked] = \
+                                np.maximum(attack_duration, self.times_before_topology_actionable[subs_attacked])
                 self._backend_action += attack
             self._time_opponent += time.time() - tick
             self.backend.apply_action(self._backend_action)
@@ -996,6 +1000,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
                  "opponent_attack": attack,
+                 "opponent_attack_duration": attack_duration,
                  "exception": except_}
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(action,
