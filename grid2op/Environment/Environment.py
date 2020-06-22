@@ -691,5 +691,7 @@ class Environment(BaseEnv):
         res["opponent_init_budget"] = self.opponent_init_budget
         res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
         res["opponent_budget_class"] = self.opponent_budget_class
+        res["opponent_attack_duration"] = self.opponent_attack_duration
+        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
         # TODO make a test for that
         return res

@@ -513,7 +513,7 @@ class GridObjects:
             The shape of the :class:`GridObjects`
         """
         self._raise_error_attr_list_none()
-        res = np.array([self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect])
+        res = np.array([self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]).astype(dt_int)
         return res
 
     def dtype(self):
@@ -620,7 +620,7 @@ class GridObjects:
             The size of the GridObjects if it's converted to a flat vector.
 
         """
-        res = np.sum(self.shape())
+        res = np.sum(self.shape()).astype(dt_int)
         return res
 
     def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
