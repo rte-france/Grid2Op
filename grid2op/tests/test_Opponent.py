@@ -524,7 +524,6 @@ class TestLoadingOpp(unittest.TestCase):
                 assert runner.opponent_action_class == opponent_action_class
 
 
-                # TODO add the seed here !
                 res = runner.run(nb_episode=1,
                                  max_iter=opponent_attack_cooldown,
                                  env_seeds=[0], agent_seeds=[0])
