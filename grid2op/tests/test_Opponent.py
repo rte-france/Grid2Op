@@ -415,14 +415,6 @@ class TestLoadingOpp(unittest.TestCase):
             line_id = 4
             opponent_action_class = TopologyAction
 
-            class RandomLineOpponentTestSuite(RandomLineOpponent):
-                def init(self, *args, **kwargs):
-                    lines_maintenance = ["1_3_3"]
-                    self.action_space.filter_lines(lines_maintenance)
-
-                    self._do_nothing = self.action_space.actions[0]
-                    self._attacks = self.action_space.actions[1:]
-
             with make("rte_case14_realistic",
                       test=True,
                       opponent_init_budget=init_budget,
@@ -431,7 +423,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=opponent_action_class,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponentTestSuite) as env:
+                      opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 assert env.opponent_action_class == opponent_action_class
                 assert issubclass(env.oppSpace.action_space.actionClass, opponent_action_class)
@@ -512,14 +504,6 @@ class TestLoadingOpp(unittest.TestCase):
             opponent_action_class = TopologyAction
             line_id = 3
 
-            class RandomLineOpponentTestSuite(RandomLineOpponent):
-                def init(self, *args, **kwargs):
-                    lines_maintenance = ["1_3_3"]
-                    self.action_space.filter_lines(lines_maintenance)
-
-                    self._do_nothing = self.action_space.actions[0]
-                    self._attacks = self.action_space.actions[1:]
-
             with make("rte_case14_realistic",
                       test=True,
                       opponent_init_budget=init_budget,
@@ -528,7 +512,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=opponent_action_class,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponentTestSuite) as env:
+                      opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 runner = Runner(**env.get_params_for_runner())
                 assert runner.opponent_init_budget == init_budget
