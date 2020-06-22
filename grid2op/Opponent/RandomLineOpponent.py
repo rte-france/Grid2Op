@@ -9,7 +9,6 @@ import warnings
 import numpy as np
 
 from grid2op.Opponent import BaseOpponent
-from grid2op.Converter import LineDisconnection
 
 
 class RandomLineOpponent(BaseOpponent):
