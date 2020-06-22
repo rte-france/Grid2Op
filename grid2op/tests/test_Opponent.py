@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import pdb
+import tempfile
 import warnings
 from grid2op.tests.helper_path_test import *
 from grid2op.Opponent import BaseOpponent, RandomLineOpponent
@@ -15,6 +15,9 @@ from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
 from grid2op.dtypes import dt_int
 from grid2op.Parameters import Parameters
+from grid2op.Runner import Runner
+from grid2op.Episode import EpisodeData
+import pdb
 
 class TestSuiteBudget_001(BaseActionBudget):
     """just for testing"""
@@ -403,6 +406,41 @@ class TestLoadingOpp(unittest.TestCase):
                 env_2.seed(0)
                 obs, reward, done, info = env_2.step(env_2.action_space())
 
+    def test_proper_action_class(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            init_budget = 1000
+            opponent_attack_duration = 15
+            opponent_attack_cooldown = 20
+            line_id = 4
+            opponent_action_class = TopologyAction
+
+            class RandomLineOpponentTestSuite(RandomLineOpponent):
+                def init(self, *args, **kwargs):
+                    lines_maintenance = ["1_3_3"]
+                    self.action_space.filter_lines(lines_maintenance)
+
+                    self._do_nothing = self.action_space.actions[0]
+                    self._attacks = self.action_space.actions[1:]
+
+            with make("rte_case14_realistic",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=opponent_attack_cooldown,
+                      opponent_attack_duration=opponent_attack_duration,
+                      opponent_action_class=opponent_action_class,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=RandomLineOpponentTestSuite) as env:
+                env.seed(0)
+                assert env.opponent_action_class == opponent_action_class
+                assert issubclass(env.oppSpace.action_space.actionClass, opponent_action_class)
+                assert issubclass(env.opponent_action_space.actionClass, opponent_action_class)
+                opp_space = env.oppSpace
+                attack, duration = opp_space.attack(env.get_obs(), env.action_space(), env.action_space())
+                assert isinstance(attack, opponent_action_class)
+
+
     def test_get_set_state(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -454,12 +492,62 @@ class TestLoadingOpp(unittest.TestCase):
                 for i in range(70):
                     opp_space.attack(observation, agent_action, env_action)
                 opp_space._set_state(*init_state)
+                second_init_state = opp_space._get_state()
+                assert np.all(init_state == second_init_state)
+
                 # this time the attack continues, so it should be same
                 attack2 = opp_space.attack(observation, agent_action, env_action)
                 # attack are the same
                 assert np.all(attack1[0].to_vect() == attack2[0].to_vect())
                 # the second time i attacked twice, the first one only once, i check the budget
                 assert np.all(attack1[1] == attack2[1]+1)
+
+    def test_withrunner(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            init_budget = 1000
+            opponent_attack_duration = 15
+            opponent_attack_cooldown = 30
+            opponent_budget_per_ts = 0.
+            opponent_action_class = TopologyAction
+            line_id = 3
+
+            class RandomLineOpponentTestSuite(RandomLineOpponent):
+                def init(self, *args, **kwargs):
+                    lines_maintenance = ["1_3_3"]
+                    self.action_space.filter_lines(lines_maintenance)
+
+                    self._do_nothing = self.action_space.actions[0]
+                    self._attacks = self.action_space.actions[1:]
+
+            with make("rte_case14_realistic",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=opponent_budget_per_ts,
+                      opponent_attack_cooldown=opponent_attack_cooldown,
+                      opponent_attack_duration=opponent_attack_duration,
+                      opponent_action_class=opponent_action_class,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=RandomLineOpponentTestSuite) as env:
+                env.seed(0)
+                runner = Runner(**env.get_params_for_runner())
+                assert runner.opponent_init_budget == init_budget
+                assert runner.opponent_budget_per_ts == opponent_budget_per_ts
+                assert runner.opponent_attack_cooldown == opponent_attack_cooldown
+                assert runner.opponent_attack_duration == opponent_attack_duration
+                assert runner.opponent_action_class == opponent_action_class
+
+
+                # TODO add the seed here !
+                res = runner.run(nb_episode=1, max_iter=opponent_attack_cooldown)
+                f = tempfile.mkdtemp()
+                res = runner.run(nb_episode=1, max_iter=opponent_attack_cooldown, path_save=f)
+                for i, episode_name, cum_reward, timestep, total_ts in res:
+                    episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+                    assert np.any(episode_data.attack[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
+                    assert np.sum(episode_data.attack[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
+                    assert np.all(episode_data.attack[:, 0] == 0.)
+            print("toto")
 
 
 if __name__ == "__main__":
