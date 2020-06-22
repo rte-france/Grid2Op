@@ -504,8 +504,10 @@ class TestLoadingOpp(unittest.TestCase):
             opponent_action_class = TopologyAction
             line_id = 3
 
+            p = Parameters()
+            p.NO_OVERFLOW_DISCONNECTION = True
             with make("rte_case14_realistic",
-                      test=True,
+                      test=True, param=p,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=opponent_budget_per_ts,
                       opponent_attack_cooldown=opponent_attack_cooldown,
@@ -531,7 +533,6 @@ class TestLoadingOpp(unittest.TestCase):
                     assert np.any(episode_data.attack[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
                     assert np.sum(episode_data.attack[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
                     assert np.all(episode_data.attack[:, 0] == 0.)
-            print("toto")
 
 
 if __name__ == "__main__":
