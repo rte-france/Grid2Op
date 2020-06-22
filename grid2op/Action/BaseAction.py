@@ -461,12 +461,19 @@ class BaseAction(GridObjects):
               consists of doing nothing.
         Any such "change" that would be illegal is declared as "illegal" regardless of the real impact of this action
         on the powergrid.
+
         Returns
         -------
         lines_impacted: :class:`numpy.array`, dtype:dt_bool
             A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for each
             component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._lines_impacted` for more information.
+
+        subs_impacted: :class:`numpy.array`, dtype:dt_bool
+            A vector with the same size as the number of substations in the grid with for each
+            component ``True`` if the substation is impacted by the action, and ``False`` otherwise. See
+            :attr:`BaseAction._subs_impacted` for more information.
+
         """
         if powerline_status is None:
             isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
@@ -477,7 +484,7 @@ class BaseAction(GridObjects):
         self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
 
         # todo could be set as a class attribute
-        _topo_vect_to_sub = np.repeat(np.arange(self.sub_info.shape[0]), repeats=self.sub_info)
+        _topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
 
         # compute the changes of the topo vector
         effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
