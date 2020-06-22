@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import warnings
+import numpy as np
 
 from grid2op.Opponent import BaseOpponent
 from grid2op.Converter import LineDisconnection
@@ -13,17 +14,16 @@ from grid2op.Converter import LineDisconnection
 
 class RandomLineOpponent(BaseOpponent):
     def __init__(self, action_space):
-        # Apply converter
-        converter_action_space = LineDisconnection(action_space)
-        BaseOpponent.__init__(self, converter_action_space)
-        self.action_space.init_converter()
+        BaseOpponent.__init__(self, action_space)
         self._do_nothing = None
         self._attacks = None
 
-        # this is the constructor, it should have the exact same signature as here
+        # this is the constructor:
+        # it should have the exact same signature as here
 
     def init(self, *args, **kwargs):
-        # this if the function used to properly set the object. It has the generic signature above,
+        # this if the function used to properly set the object.
+        #It has the generic signature above,
         # and it's way more flexible that the other one.
 
         # Filter lines
@@ -37,12 +37,27 @@ class RandomLineOpponent(BaseOpponent):
         else:
             lines_maintenance = []
             warnings.warn(f'Unknown environment {self.action_space.env_name} found. The opponent is deactivated')
-        self.action_space.filter_lines(lines_maintenance)
 
-        self._do_nothing = self.action_space.actions[0]
-        self._attacks = self.action_space.actions[1:]
+        # Store attackable lines IDs
+        self._lines_ids = []
+        for l_name in lines_maintenance:
+            l_id = np.where(self.action_space.name_line == l_name)
+            if len(l_id) and len(l_id[0]):
+                self._lines_ids.append(l_id[0][0])
 
-    def attack(self, observation, agent_action, env_action, budget, previous_fails):
+        # Pre build do nothing action
+        self._do_nothing = self.action_space({})
+        # Pre-build attacks actions
+        self._attacks = []
+        for l_id in self._lines_ids:
+            a = self.action_space({
+                'set_line_status': [(l_id, -1)]
+            })
+            self._attacks.append(a)
+        self._attacks = np.array(self._attacks)
+
+    def attack(self, observation, agent_action, env_action,
+               budget, previous_fails):
         """
         This method is the equivalent of "attack" for a regular agent.
 
@@ -83,13 +98,13 @@ class RandomLineOpponent(BaseOpponent):
         if observation is None:  # during creation of the environment
             return None  # i choose not to attack in this case
 
-        action_line_ids = [a.as_dict()['set_line_status']['disconnected_id'][0]
-                           for a in self._attacks]
-        status = observation.line_status[action_line_ids]
+        # Status of attackable lines
+        status = observation.line_status[self._lines_ids]
 
-        # If all lines are disconnected
-        if not any(status):
+        # If all attackable lines are disconnected
+        if np.all(status == False):
             return None  # i choose not to attack in this case
 
         # Pick a line among the connected lines
-        return self.space_prng.choice(self._attacks[status])
+        attack = self.space_prng.choice(self._attacks[status])
+        return attack
