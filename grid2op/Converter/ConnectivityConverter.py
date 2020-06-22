@@ -8,7 +8,7 @@
 import numpy as np
 
 from grid2op.Converter.Converters import Converter
-from grid2op.dtypes import dt_int
+from grid2op.dtypes import dt_int, dt_bool
 
 
 class ConnectivityConverter(Converter):
@@ -34,6 +34,7 @@ class ConnectivityConverter(Converter):
         self.subs_ids = np.array([], dtype=dt_int)
         self.obj_type = []
         self.pos_topo = np.array([], dtype=dt_int)
+
         self.n = 1
         self.last_obs = None
         self.max_sub_changed = self.n_sub
@@ -46,8 +47,6 @@ class ConnectivityConverter(Converter):
         for sub_id, nb_element in enumerate(self.sub_info):
             if nb_element < 4:
                 continue
-
-            nb_pairs = int(nb_element * (nb_element - 1)/2)
 
             c_id = np.where(self.load_to_subid == sub_id)[0]
             g_id = np.where(self.gen_to_subid == sub_id)[0]
@@ -177,7 +176,7 @@ class ConnectivityConverter(Converter):
 
         """
         argsort = np.argsort(np.minimum(encoded_act, 1-encoded_act))
-        topo_vect = np.zeros(self.n, dtype=dt_int)
+        topo_vect = np.zeros(self.dim_topo, dtype=dt_int)
         subs_added = np.full(self.n_sub, fill_value=False)
         sub_changed = 0
         for el in argsort:
@@ -209,6 +208,7 @@ class ConnectivityConverter(Converter):
                 else:
                     # they are on different bus
                     topo_vect[bus_1_id] = 1 - topo_vect[bus_2_id] + 2
+
         act = super().__call__({"set_bus": topo_vect})
         self.last_disagreement = self._compute_disagreement(encoded_act, topo_vect)
         return act
