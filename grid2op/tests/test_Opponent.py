@@ -17,6 +17,7 @@ from grid2op.Converter import LineDisconnection
 from grid2op.dtypes import dt_int
 from grid2op.Runner import Runner
 from grid2op.Episode import EpisodeData
+from grid2op.Parameters import Parameters
 import pdb
 
 
@@ -241,6 +242,42 @@ class TestLoadingOpp(unittest.TestCase):
                         status_actionable = np.zeros_like(env.times_before_line_status_actionable).astype(dt_int)
                         status_actionable[attacked_line] = env.oppSpace.attack_duration - i - 1
                         assert np.all(env.times_before_line_status_actionable == status_actionable)
+
+    def test_RandomLineOpponent_no_overflow(self):
+        """Tests that the line status cooldown is correctly updated when the opponent attacks a line"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            init_budget = 1000
+            length = 300
+            param = Parameters()
+            param.NO_OVERFLOW_DISCONNECTION = True
+            with make("rte_case14_realistic",
+                        test=True,
+                        param=param,
+                        opponent_attack_cooldown=0, # only for testing
+                        opponent_init_budget=init_budget,
+                        opponent_action_class=TopologyAction,
+                        opponent_budget_class=BaseActionBudget,
+                        opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
+                obs = env.reset()
+                assert env.oppSpace.budget == init_budget
+                assert np.all(obs.time_before_cooldown_line == 0)
+                # Collect some attacks and check that they belong to the correct lines
+                for i in range(length):
+                    pre_cooldown = obs.time_before_cooldown_line.copy()
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert env.oppSpace.budget == init_budget - i - 1
+    
+                    attack = env.oppSpace.last_attack
+                    attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
+                    status_actionable = pre_cooldown
+                    status_actionable[attacked_line] = env.oppSpace.current_attack_duration - 1
+    
+                    ## Add maintenance? Where to find?
+                    ## Add agent? Where to find?
+    
+                    assert np.all(obs.time_before_cooldown_line == status_actionable)
 
     def test_RandomLineOpponent_only_attack_connected(self):
         """Tests that the RandomLineOpponent does not attack lines that are already disconnected"""
