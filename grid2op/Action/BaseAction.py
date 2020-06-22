@@ -445,13 +445,10 @@ class BaseAction(GridObjects):
     def get_topological_impact(self, powerline_status=None):
         """
         Gives information about the element being impacted by this action.
-
         **NB** The impacted elements can be used by :class:`grid2op.BaseRules` to determine whether or not an action
         is legal or not.
-
         **NB** The impacted are the elements that can potentially be impacted by the action. This does not mean they
         will be impacted. For examples:
-
             - If an action from an :class:`grid2op.BaseAgent` reconnect a powerline, but this powerline is being
               disconnected by a hazard at the same time step, then this action will not be implemented on the grid.
               However, it this powerline couldn't be reconnected for some reason (for example it was already out of
@@ -462,10 +459,8 @@ class BaseAction(GridObjects):
             - If an action tries to change the topology of a substation, but this substation is already at the target
               topology, the same mechanism applies. The action will "impact" the substation, even if, in the end, it
               consists of doing nothing.
-
         Any such "change" that would be illegal is declared as "illegal" regardless of the real impact of this action
         on the powergrid.
-
 
         Returns
         -------
@@ -480,69 +475,23 @@ class BaseAction(GridObjects):
             :attr:`BaseAction._subs_impacted` for more information.
 
         """
-        # TODO this is extremly slow, it takes ~30% of the time taken by "step" for the 118 with lightsim
-        # it is slower than the computing of a powerflow on this case :-/
-        recompute = powerline_status is not None
         if powerline_status is None:
-            powerline_status = np.full(self.n_line, fill_value=False, dtype=dt_bool)
-        not_powerline_status = ~(powerline_status)
+            isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        else:
+            isnotconnected = ~powerline_status
 
-        if self._lines_impacted is None or recompute:
-            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & not_powerline_status)
+        self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
+        self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
 
-        if self._subs_impacted is None or recompute:
-            self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
+        # todo could be set as a class attribute
+        _topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
 
-            # Mask of powerlines reconnected by set
-            powerlines_set_reco = self._set_line_status == 1
-            # Mask of powerlines reconnected by change
-            powerlines_change_reco = self._switch_line_status
-            # all the id of the powerlines reconnected
-            powerlines_reco = np.array(list(range(self.n_line)))
-            powerlines_reco = powerlines_reco[
-                np.logical_or(
-                    np.logical_and(powerlines_set_reco, not_powerline_status),
-                    np.logical_and(powerlines_change_reco, not_powerline_status)
-                )
-            ]
-            # all the reconnected lines origin substation id
-            sub_or_id = self.line_or_to_subid[powerlines_reco]
-            # all the reconnected lines extremity substation id
-            sub_ex_id = self.line_ex_to_subid[powerlines_reco]
-
-            # Group by sub_id => {sub_id: reconnected_count}
-            sub_id = np.concatenate((sub_or_id, sub_ex_id))
-            sub_id_unique, sub_counts = np.unique(sub_id, return_counts=True)
-            sub_reco_counts = dict(zip(sub_id_unique, sub_counts))
-            
-            # Loop over all substations
-            beg_ = 0
-            end_ = 0
-            for sub_id, nb_obj in enumerate(self.sub_info):
-                nb_obj = int(nb_obj)
-                end_ += nb_obj
-
-                # Handle change action
-                if np.any(self._change_bus_vect[beg_:end_]):
-                    # change always impact the substations
-                    self._subs_impacted[sub_id] = True
-
-                # Handle set action
-                nb_set = np.sum(self._set_topo_vect[beg_:end_] != 0)
-                if nb_set > 0:
-                    # We have some lines reconnections, special case
-                    if sub_id in sub_reco_counts:
-                        if nb_set > sub_reco_counts[sub_id]:
-                            # Substation has other sets than line reconnections 
-                            self._subs_impacted[sub_id] = True
-                        else:
-                            # Substation set is only from line reconnections: do not impact it
-                            self._subs_impacted[sub_id] = False
-                    else: # Any other set operations will impact the substation
-                        self._subs_impacted[sub_id] = True
-
-                beg_ += nb_obj
-
+        # compute the changes of the topo vector
+        effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
+        # remove the change due to powerline only
+        effective_change[self.line_or_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+        effective_change[self.line_ex_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+        self._subs_impacted[_topo_vect_to_sub[effective_change]] = True
         return self._lines_impacted, self._subs_impacted
 
     def reset(self):

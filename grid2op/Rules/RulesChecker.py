@@ -13,7 +13,7 @@ from grid2op.Rules.AlwaysLegal import AlwaysLegal
 
 class RulesChecker(object):
     """
-    Class that defin the rules of the game.
+    Class that define the rules of the game.
 
     """
     def __init__(self, legalActClass=AlwaysLegal):

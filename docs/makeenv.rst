@@ -27,6 +27,42 @@ a new algorithm of "Reinforcement Learning" and you used the openai gym framewor
 in a few minutes (basically this consists in adapting the input and output dimension of your BaseAgent) and make it work
 with a Grid2Op environment. An example of such modifications is exposed in the getting_started/ notebooks.
 
+.. _usage:
+
+Usage
+------
+
+There are two main ways to use the :func:`make` function. The first one is to directly pass the name of the environment
+you want to use:
+
+.. code-block:: python
+
+    import grid2op
+    env = grid2op.make("rte_case14_realistic")
+
+This will create the environment known "rte_case14_realistic" with all default parameters. If this environment is has
+not been downloaded, at the first call to this function it will download it and store it in a cache on your system (
+see the section :ref:`cache_manip` for more information), afterwards it will use the downloaded environment.
+
+If your computer don't have internet access, or you prefer to download things manually, it is also possible to provide
+the full absolute path of you dataset. On linux / unix (including macos) machines this will be something like
+
+.. code-block:: python
+
+    import grid2op
+    env = grid2op.make("/full/path/where/the/env/is/located/rte_case14_realistic")
+
+And on windows based machine this will look like:
+
+.. code-block:: python
+
+    import grid2op
+    env = grid2op.make("C:\\the\\full\\path\\where\\the\\env\\is\\located\\rte_case14_realistic")
+
+In bot cases it will load the environment named "rte_case14_realistic" (provided that you found a way to get it on your
+machine) located at the path "/full/path/where/the/env/is/located/rte_case14_realistic" (or
+"C:\\the\\full\\path\\where\\the\\env\\is\\located\\rte_case14_realistic").
+
 Important notes
 ---------------
 As of version 0.8.0 a ":func:`make`" has been updated in grid2op. This function, replace the current implementation of
@@ -35,8 +71,8 @@ renamed :func:`make_old`, merges the behaviour of "grid2op.download" script and 
 It has the following behavior:
 
 1) if you specify a full path to a local environment (containing the chronics and the default parameters),
-   it will be used
-2) if you specify the name of an environmnet that you have already downloaded, it will use this environment (NB
+   it will be used (see section :sec:`usage`)
+2) if you specify the name of an environment that you have already downloaded, it will use this environment (NB
    currently no checks are implemented if the environment has been updated remotely, which can happen if
    we realize there were some issues with it.)
 3) if you provided no arguments a default environment will be used: ``rte_case14_realistic`` 
@@ -47,8 +83,12 @@ It has the following behavior:
    pre defined environment provided with the python package. We want to emphasize that because the environments provided
    with this package contains only little data, they are not suitable for leaning a consistent agent / controler. That
    is why a warning is sent in this case. Also, keep in mind that if you don't pass ``test=True`` then you will not
-   have the possibility to search for these environments provided in the package.
+   have the possibility to search for these environments provided in the package. *Setting "test=True" is NOT
+   recommended* for most usage. Have a look at the section :ref:`usage` for more details on how to use `make`,
+   especially if you don't have an internet connection.
 6) if no valid environment is found, :func:`make` throws a EnvError.
+
+.. _cache_manip:
 
 Cache manipulation
 -------------------------------
@@ -58,7 +98,45 @@ done with :func:`change_local_dir`.
 Call :func:`get_current_local_dir` to get the local cache directory location.
 
 You can list the environments in the local cache directory by calling :func:`list_available_local_env` and list all
-available environments with :func:`list_available_remote_env`.
+environments that can be downloaded with :func:`list_available_remote_env` (*nb* `list_available_remote_env` requires
+an internet connection)
+
+.. code-block:: python
+
+    import grid2op
+    print("The current local directory where the environment are downloaded is {}"
+           "".format(grid2op.get_current_local_dir()))
+    print("The environments available without necessary download are: {}".format(grid2op.list_available_local_env()))
+    print("I can download these environments from the internet: {}".format(grid2op.list_available_remote_env()))
+
+**NB** if you change the cache directory, all previously downloaded environments will not be visible by grid2op and they
+will not be removed from your local hard drive. This is why we don't recommend to change this folder unless you have a
+valid reason to do so.
+
+Customize your environment
+--------------------------
+When you create it, you can change different parameters of the environments. We summarize all parameters
+that can be modified at the creation of your environment. We recommend you to see the section
+`Parameters` of the :func:`make_from_dataset_path`
+for more information about the effect of this attributes. **NB** arguments preceding by a \* are listed to be
+exhaustive. They are technical arguments and should not be modified unless you have a reason to. For example, in the
+context of the L2RPN competition, we don't recommend to modify them.
+
+- `dataset_path`: used to specify the name (or the path) of the environment you want to load
+- `backend`: a initialized backend that will carry out the computation related to power system [mainly use if you want
+  to change from PandapowerBackend (default) to a different one *eg* LightSim2Grid)
+- `reward_class`: change the type of reward you want to use for your agent
+- `other_reward`: tell "env.step" to return addition "rewards"
+- `difficulty`, `param`: control the difficulty level of the game (might not always be available)
+- \* `action_class`: which action class your agent is allowed to use.
+- \* `gamerules_class`: the rules that are checked to declare an action legal / illegal
+- \* `chronics_path`, `data_feeding`, `chronics_class`, `data_feeding_kwargs`: the path where the data are located
+- \* `volagecontroler_class`: how the voltages are set on the grid
+- \* `grid_path`: the path where the default powergrid properties are stored
+- \* `observation_class`: which type of observation do you use
+- \* `opponent_action_class`, `opponent_class`, `opponent_init_budget`, `opponent_budget_per_ts`,
+  `opponent_budget_class`: all configuration for the opponent.
+
 
 Detailed Documentation by class
 --------------------------------
