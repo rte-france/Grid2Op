@@ -45,7 +45,7 @@ not been downloaded, at the first call to this function it will download it and 
 see the section :ref:`cache_manip` for more information), afterwards it will use the downloaded environment.
 
 If your computer don't have internet access, or you prefer to download things manually, it is also possible to provide
-the full absolute path of you dataset. On linux / unix (including macos) machine this will be something like
+the full absolute path of you dataset. On linux / unix (including macos) machines this will be something like
 
 .. code-block:: python
 
@@ -71,8 +71,8 @@ renamed :func:`make_old`, merges the behaviour of "grid2op.download" script and 
 It has the following behavior:
 
 1) if you specify a full path to a local environment (containing the chronics and the default parameters),
-   it will be used
-2) if you specify the name of an environmnet that you have already downloaded, it will use this environment (NB
+   it will be used (see section :sec:`usage`)
+2) if you specify the name of an environment that you have already downloaded, it will use this environment (NB
    currently no checks are implemented if the environment has been updated remotely, which can happen if
    we realize there were some issues with it.)
 3) if you provided no arguments a default environment will be used: ``rte_case14_realistic`` 
@@ -118,9 +118,9 @@ Customize your environment
 When you create it, you can change different parameters of the environments. We summarize all parameters
 that can be modified at the creation of your environment. We recommend you to see the section
 `Parameters` of the :func:`make_from_dataset_path`
-for more information about the effect of this attributes. **NB** arguments preceeding by a \* are listed out of
-exhaustivity. They are technical and should not be modified unless you have a reason to. For example, in the
-context of the L2RPN compeition, we don't recommend to modify them.
+for more information about the effect of this attributes. **NB** arguments preceding by a \* are listed to be
+exhaustive. They are technical arguments and should not be modified unless you have a reason to. For example, in the
+context of the L2RPN competition, we don't recommend to modify them.
 
 - `dataset_path`: used to specify the name (or the path) of the environment you want to load
 - `backend`: a initialized backend that will carry out the computation related to power system [mainly use if you want
