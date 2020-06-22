@@ -404,6 +404,86 @@ class TestLoadingOpp(unittest.TestCase):
                 assert obs.rho[line_id] > 0.
                 assert obs.line_status[line_id]
 
+    def test_opponent_load(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example",
+                      test=True,
+                      opponent_class=RandomLineOpponent) as env_1:
+                env_1.seed(0)
+                obs, reward, done, info = env_1.step(env_1.action_space())
+            with make("rte_case118_example",
+                      test=True,
+                      opponent_class=RandomLineOpponent) as env_2:
+                env_2.seed(0)
+                obs, reward, done, info = env_2.step(env_2.action_space())
+
+    def test_get_set_state(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            init_budget = 1000
+            opponent_attack_duration = 15
+            opponent_attack_cooldown = 20
+            line_id = 4
+
+            class RandomLineOpponentTestSuite(RandomLineOpponent):
+                def init(self, *args, **kwargs):
+                    lines_maintenance = ["1_3_3"]
+                    self.action_space.filter_lines(lines_maintenance)
+
+                    self._do_nothing = self.action_space.actions[0]
+                    self._attacks = self.action_space.actions[1:]
+
+            with make("rte_case14_realistic",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=opponent_attack_cooldown,
+                      opponent_attack_duration=opponent_attack_duration,
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=RandomLineOpponentTestSuite) as env:
+                env.seed(0)
+                agent_action = env.action_space()
+                observation = env.get_obs()
+                env_action = env.action_space()
+
+                opp_space = env.oppSpace
+                # FIRST CHECK: WHEN NO ATTACK ARE PERFORMED
+                # test that if i do "a loop of get / set" i get the same stuff
+                init_state = opp_space._get_state()
+                opp_space._set_state(*init_state)
+                second_init_state = opp_space._get_state()
+                assert np.all(init_state == second_init_state)
+
+                # now do absolutely anything
+                for i in range(70):
+                    opp_space.attack(observation, agent_action, env_action)
+                # check that indeed the state should have changed
+                other_state = opp_space._get_state()
+                assert np.any(init_state != other_state)
+
+                # check that if i set the state back, the
+                opp_space._set_state(*init_state)
+                second_init_state = opp_space._get_state()
+                assert np.all(init_state == second_init_state)
+                # note due to the "random effect" we don't impose the opponent to act on the same line again...
+                # this normal and should be explained in the notebooks.
+
+                # SECOND CHECK WHEN AN ATTACK NEED TO BE CONTINUED
+                # now i do an attack that should be continues
+                attack1 = opp_space.attack(observation, agent_action, env_action)
+                init_state = opp_space._get_state()
+                for i in range(70):
+                    opp_space.attack(observation, agent_action, env_action)
+                opp_space._set_state(*init_state)
+                # this time the attack continues, so it should be same
+                attack2 = opp_space.attack(observation, agent_action, env_action)
+                # attack are the same
+                assert np.all(attack1[0].to_vect() == attack2[0].to_vect())
+                # the second time i attacked twice, the first one only once, i check the budget
+                assert np.all(attack1[1] == attack2[1]+1)
+
 
 if __name__ == "__main__":
     unittest.main()

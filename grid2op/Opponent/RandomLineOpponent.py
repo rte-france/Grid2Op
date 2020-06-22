@@ -5,8 +5,8 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+import warnings
 
-import numpy as np
 from grid2op.Opponent import BaseOpponent
 from grid2op.Converter import LineDisconnection
 
@@ -17,15 +17,26 @@ class RandomLineOpponent(BaseOpponent):
         converter_action_space = LineDisconnection(action_space)
         BaseOpponent.__init__(self, converter_action_space)
         self.action_space.init_converter()
+        self._do_nothing = None
+        self._attacks = None
+
+        # this is the constructor, it should have the exact same signature as here
+
+    def init(self, *args, **kwargs):
+        # this if the function used to properly set the object. It has the generic signature above,
+        # and it's way more flexible that the other one.
 
         # Filter lines
-        if action_space.n_line == 59: # WCCI
+        if self.action_space.env_name == "l2rpn_wcci_2020": # WCCI
             lines_maintenance = ["26_30_56", "30_31_45", "16_18_23", "16_21_27", "9_16_18", "7_9_9",
                                  "11_12_13", "12_13_14", "2_3_0", "22_26_39" ]
-        elif action_space.n_line == 20: # case 14
+        elif self.action_space.env_name == "l2rpn_case14_sandbox":  # case 14
+            lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
+        elif self.action_space.env_name == "rte_case14_realistic":  # case 14
             lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
         else:
-            raise Warning(f'Unknown environment found with {action_space.n_line} lines')
+            lines_maintenance = []
+            warnings.warn(f'Unknown environment {self.action_space.env_name} found. The opponent is deactivated')
         self.action_space.filter_lines(lines_maintenance)
 
         self._do_nothing = self.action_space.actions[0]
