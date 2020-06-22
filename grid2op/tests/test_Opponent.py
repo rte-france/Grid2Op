@@ -307,7 +307,7 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env.oppSpace.last_attack
-                    if not attack.as_dict(): # all attackable lines are already disconnected
+                    if attack is None: # all attackable lines are already disconnected
                         continue
 
                     attacked_line = attack.as_dict()['set_line_status']['disconnected_id'][0]
@@ -412,11 +412,13 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             with make("rte_case5_example",
                       test=True,
+                      opponent_action_class=TopologyAction,
                       opponent_class=RandomLineOpponent) as env_1:
                 env_1.seed(0)
                 obs, reward, done, info = env_1.step(env_1.action_space())
             with make("rte_case118_example",
                       test=True,
+                      opponent_action_class=TopologyAction,
                       opponent_class=RandomLineOpponent) as env_2:
                 env_2.seed(0)
                 obs, reward, done, info = env_2.step(env_2.action_space())
