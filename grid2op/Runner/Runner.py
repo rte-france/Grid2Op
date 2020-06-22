@@ -799,14 +799,14 @@ class Runner(object):
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)
-            seed = None
+            env_seed = None
             if env_seeds is not None:
-                seed = env_seeds[i]
+                env_seed = env_seeds[i]
             agt_seed = None
             if agent_seeds is not None:
                 agt_seed = agent_seeds[i]
             name_chron, cum_reward, nb_time_step = Runner._run_one_episode(
-                env, agent, runner.logger, p_id, path_save, env_seed=seed, max_iter=max_iter, agent_seed=agt_seed)
+                env, agent, runner.logger, p_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
             res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
@@ -842,6 +842,11 @@ class Runner(object):
         env_seeds: ``list``
             An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
             its size should match ``nb_episode``.
+
+        agent_seeds: ``list``
+            An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
+            If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
+            scenario BEFORE calling `agent.reset()`.
 
         Returns
         -------
@@ -937,8 +942,6 @@ class Runner(object):
             An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
             If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
             scenario BEFORE calling `agent.reset()`.
-
-        # TODO env seeds et agent seed
 
         Returns
         -------
