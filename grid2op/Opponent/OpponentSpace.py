@@ -81,6 +81,23 @@ class OpponentSpace(object):
         self.last_attack = None
         self.opponent.reset(self.budget)
 
+    def _get_state(self):
+        # used for simulate
+        state_me = self.budget, self.previous_fails, self.current_attack_duration,  \
+                 self.current_attack_cooldown, self.last_attack
+        state_opp = self.opponent.get_state()
+        return state_me, state_opp
+
+    def _set_state(self, my_state, opp_state):
+        # used for simulate
+        self.opponent.set_state(opp_state)
+        budget, previous_fails, current_attack_duration, current_attack_cooldown, last_attack = my_state
+        self.budget = budget
+        self.previous_fails = previous_fails
+        self.current_attack_duration = current_attack_duration
+        self.current_attack_cooldown = current_attack_cooldown
+        self.last_attack = last_attack
+
     def has_failed(self):
         """
         This signal is sent by the environment and indicated the opponent attack could not be implmented on the

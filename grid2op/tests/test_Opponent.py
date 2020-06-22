@@ -281,8 +281,8 @@ class TestLoadingOpp(unittest.TestCase):
                       test=True,
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
-                      opponent_attack_cooldown=0, # only for testing
-                      opponent_attack_duration=1, # only for testing
+                      opponent_attack_cooldown=0,  # only for testing
+                      opponent_attack_duration=1,  # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=RandomLineOpponent) as env:
@@ -308,6 +308,65 @@ class TestLoadingOpp(unittest.TestCase):
                         has_disconnected_all = True
                 assert attack_order == expected_attack_order
                 assert has_disconnected_all
+
+    def test_simulate(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            init_budget = 1000
+            opponent_attack_duration = 15
+            opponent_attack_cooldown = 20
+            line_id = 4
+            with make("rte_case14_realistic",
+                      test=True,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_attack_cooldown=opponent_attack_cooldown,
+                      opponent_attack_duration=opponent_attack_duration,
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_class=RandomLineOpponent) as env:
+                env.seed(0)
+                reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
+
+                obs = env.reset()
+                obs, reward, done, info = env.step(env.action_space())
+                assert obs.rho[line_id] == 0.
+                assert not obs.line_status[line_id]
+                simobs, sim_r, sim_d, sim_info = obs.simulate(env.action_space())
+                assert simobs.rho[line_id] == 0.
+                assert not simobs.line_status[line_id]
+                simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                assert simobs.rho[line_id] == 0.
+                assert not simobs.line_status[line_id]
+                obs, reward, done, info = env.step(reco_line)
+                assert obs.rho[line_id] == 0.
+                assert not obs.line_status[line_id]
+
+                # check that the budget of the opponent in the ObsEnv does not decrease
+                for i in range(opponent_attack_duration):
+                    simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                    assert simobs.rho[line_id] == 0.
+                    assert not simobs.line_status[line_id]
+
+                # check that the opponent continue its attacks
+                for i in range(opponent_attack_duration - 2):
+                    obs, reward, done, info = env.step(reco_line)
+                    assert obs.rho[line_id] == 0.
+                    assert not obs.line_status[line_id]
+
+                # i should be able to simulate a reconnection now
+                simobs, sim_r, sim_d, sim_info = obs.simulate(reco_line)
+                assert simobs.rho[line_id] > 0.
+                assert simobs.line_status[line_id]
+                # this should not affect the environment
+                assert obs.rho[line_id] == 0.
+                assert not obs.line_status[line_id]
+
+                # and now that i'm able to reconnect the powerline in step
+                obs, reward, done, info = env.step(reco_line)
+                assert obs.rho[line_id] > 0.
+                assert obs.line_status[line_id]
+
 
 if __name__ == "__main__":
     unittest.main()

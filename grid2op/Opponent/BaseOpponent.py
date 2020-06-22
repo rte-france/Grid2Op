@@ -71,8 +71,7 @@ class BaseOpponent(RandomObject):
         """
         # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
         # TODO information, and forward something to the "act" method.
-        attack = self._do_nothing
-        return attack
+        return None
 
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         """
@@ -94,5 +93,29 @@ class BaseOpponent(RandomObject):
 
         budget: ``float``
             The current remaining budget (if an action is above this budget, it will be replaced by a do nothing.
+        """
+        pass
+
+    def get_state(self):
+        """
+        This function should return the internal state of the Opponent.
+
+        This means that after a call to `opponent.set_state(opponent.get_state())` the opponent should do the exact
+        same things than without these calls.
+
+        Returns
+        -------
+
+        """
+        return None
+
+    def set_state(self, my_state):
+        """
+        This function is used to set the internal state of the Opponent.
+
+        Parameters
+        ----------
+        my_state
+
         """
         pass

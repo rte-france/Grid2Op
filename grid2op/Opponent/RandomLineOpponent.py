@@ -69,8 +69,8 @@ class RandomLineOpponent(BaseOpponent):
         # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
         # TODO information, and forward something to the "act" method.
 
-        if observation is None: # during creation of the environment
-            return self._do_nothing # do nothing
+        if observation is None:  # during creation of the environment
+            return None  # i choose not to attack in this case
 
         action_line_ids = [a.as_dict()['set_line_status']['disconnected_id'][0]
                            for a in self._attacks]
@@ -78,7 +78,7 @@ class RandomLineOpponent(BaseOpponent):
 
         # If all lines are disconnected
         if not any(status):
-            return self._do_nothing
+            return None  # i choose not to attack in this case
 
         # Pick a line among the connected lines
         return self.space_prng.choice(self._attacks[status])
