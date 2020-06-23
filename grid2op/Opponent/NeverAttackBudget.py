@@ -19,4 +19,6 @@ class NeverAttackBudget(BaseActionBudget):
         BaseActionBudget.__init__(self, action_space)
 
     def __call__(self, attack):
-        return np.inf
+        if attack is not None:
+            return np.inf
+        return 0.
