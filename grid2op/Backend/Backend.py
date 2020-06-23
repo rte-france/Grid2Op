@@ -612,7 +612,6 @@ class Backend(GridObjects, ABC):
         infos = []
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
         conv_ = self._runpf_with_diverging_exception(is_dc)
-
         if env.no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
@@ -645,6 +644,7 @@ class Backend(GridObjects, ABC):
             conv_ = self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
                 infos.append(self.copy())
+
             if conv_ is not None:
                 break
         return disconnected_during_cf, infos, conv_

@@ -849,6 +849,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         init_disp = 1.0 * action._redispatch
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
+        conv_ = None
         try:
             # "smart" reconnecting
             beg_ = time.time()
@@ -992,7 +993,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_done = True
 
         self._backend_action.reset()
-
+        if conv_ is not None:
+            except_.append(conv_)
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,

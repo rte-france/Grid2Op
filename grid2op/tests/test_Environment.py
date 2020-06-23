@@ -307,6 +307,7 @@ class TestResetOk(unittest.TestCase):
         obs, reward, done, info = self.env.step(act)
         act = self.env.action_space.disconnect_powerline(4)
         obs, reward, done, info = self.env.step(act)
+        # at this stage there is a cascading failure
         assert len(info["exception"])
         assert isinstance(info["exception"][0], DivergingPowerFlow)
         # reset the grid
@@ -317,6 +318,37 @@ class TestResetOk(unittest.TestCase):
         simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
         assert np.all(simobs.topo_vect == 1)
 
+    def test_reset_after_blackout_withdetailed_info(self):
+        backend = PandaPowerBackend(detailed_infos_for_cascading_failures=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+                       other_rewards={"test": L2RPNReward},
+                       backend=backend)
+
+        # make the grid in bad shape
+        act = env.action_space({"set_bus": {"substations_id": [(2, [1, 2, 1, 2])]}})
+        obs, reward, done, info = env.step(act)
+        act = env.action_space({"set_bus": {"substations_id": [(0, [1, 1, 2, 2, 1, 2])]}})
+        obs, reward, done, info = env.step(act)
+        act = env.action_space({"set_bus": {"substations_id": [(3, [1, 1, 2, 2, 1])]}})
+        obs, reward, done, info = env.step(act)
+        act = env.action_space.disconnect_powerline(3)
+        obs, reward, done, info = env.step(act)
+        obs, reward, done, info = env.step(env.action_space())
+        obs, reward, done, info = env.step(env.action_space())
+        # at this stage there is a cascading failure
+        assert len(info["exception"])
+        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        assert "detailed_infos_for_cascading_failures" in info
+        assert len(info["detailed_infos_for_cascading_failures"])
+        # reset the grid
+        obs = self.env.reset()
+        assert np.all(obs.topo_vect == 1)
+
+        # check that i can simulate
+        simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
+        assert np.all(simobs.topo_vect == 1)
 
 class TestAttachLayout(unittest.TestCase):
     def test_attach(self):
