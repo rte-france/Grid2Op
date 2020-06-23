@@ -281,7 +281,7 @@ class EpisodeData:
                 self.meta["agent_seed"] = int(agent_seed)
 
     def incr_store(self, efficient_storing, time_step, time_step_duration,
-                   reward, env_act, act, obs, info):
+                   reward, env_act, act, obs, opp_attack, info):
 
         if self.serialize:
             self.actions.update(time_step, act.to_vect(), efficient_storing)
@@ -299,12 +299,11 @@ class EpisodeData:
                         self.disc_lines[time_step - 1, :] = arr
                     else:
                         self.disc_lines[time_step - 1, :] = self.disc_lines_templ
-                if "opponent_attack" in info:
-                    attack = info["opponent_attack"]
-                    if attack is not None:
-                        self.attack[time_step -1, :] = attack.to_vect()
-                    else:
-                        self.attack[time_step -1, :] = 0.
+
+                if opp_attack is not None:
+                    self.attack[time_step - 1, :] = opp_attack.to_vect()
+                else:
+                    self.attack[time_step - 1, :] = 0.
             else:
                 # completely inefficient way of writing
                 self.times = np.concatenate(
@@ -319,14 +318,12 @@ class EpisodeData:
                         self.disc_lines = np.concatenate(
                             (self.disc_lines, self.disc_lines_templ))
 
-                if "opponent_attack" in info:
-                    attack = info["opponent_attack"]
-                    if attack is not None:
-                        self.attack = np.concatenate(
-                            (self.attack, attack.to_vect().reshape(1, -1)))
-                    else:
-                        self.attack = np.concatenate(
-                            (self.attack, self.attack_templ))
+                if opp_attack is not None:
+                    self.attack = np.concatenate(
+                        (self.attack, opp_attack.to_vect().reshape(1, -1)))
+                else:
+                    self.attack = np.concatenate(
+                        (self.attack, self.attack_templ))
 
             if "rewards" in info:
                 self.other_rewards.append({k: self._convert_to_float(v) for k, v in info["rewards"].items()})

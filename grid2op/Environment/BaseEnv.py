@@ -322,6 +322,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def reset(self):
         self.__is_init = True
+        self.current_obs = None
 
     def seed(self, seed=None):
         """
@@ -846,7 +847,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         attack = None
         except_ = []
         init_disp = 1.0 * action._redispatch
-
+        attack_duration = 0
+        lines_attacked, subs_attacked = None, None
         try:
             # "smart" reconnecting
             beg_ = time.time()
@@ -996,7 +998,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  "is_ambiguous": is_ambiguous,
                  "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
-                 "opponent_attack": attack,
+                 "opponent_attack_line": lines_attacked,
+                 "opponent_attack_sub": subs_attacked,
                  "opponent_attack_duration": attack_duration,
                  "exception": except_}
         self.done = self._is_done(has_error, is_done)

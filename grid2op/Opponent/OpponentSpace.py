@@ -135,6 +135,11 @@ class OpponentSpace(object):
 
         """
 
+        if observation is None:
+            # this is the first time step, which is not a "real" one
+            # just here to load the data properly, so opponent do not attack there
+            return None, 0
+
         # Update variables
         self.budget += self.budget_per_timestep
         self.current_attack_duration = max(0, self.current_attack_duration - 1)

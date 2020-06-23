@@ -133,9 +133,10 @@ class _ObsEnv(BaseEnv):
         self.last_bus_line_or_init = np.zeros(self.n_line, dtype=dt_int)
         self.last_bus_line_ex_init = np.zeros(self.n_line, dtype=dt_int)
 
-        self.current_obs = self.obsClass(seed=None,
-                                         obs_env=None,
-                                         action_helper=None)
+        self.current_obs_init = self.obsClass(seed=None,
+                                              obs_env=None,
+                                              action_helper=None)
+        self.current_obs = self.current_obs_init
 
     def _do_nothing(self, x):
         return self._do_nothing_act
@@ -212,6 +213,10 @@ class _ObsEnv(BaseEnv):
         self.current_obs.reset()
         self.time_stamp = time_stamp
         self.timestep_overflow[:] = timestep_overflow
+
+    def reset(self):
+        super().reset()
+        self.current_obs = self.current_obs_init
 
     def _reset_to_orig_state(self):
         """

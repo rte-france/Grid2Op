@@ -24,6 +24,7 @@ class BaseActionBudget:
         """
         This function takes an attack as input and compute the cost associated to it.
 
+        **NB** The cost of a "None" attack is necessarily 0 !
         Parameters
         ----------
         attack: :class:`ŋrid2op.BaseAction.BaseAction`

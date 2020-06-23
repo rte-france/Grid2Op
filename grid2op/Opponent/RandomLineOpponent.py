@@ -33,6 +33,8 @@ class RandomLineOpponent(BaseOpponent):
             lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
         elif self.action_space.env_name == "rte_case14_realistic":  # case 14
             lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
+        elif self.action_space.env_name == "rte_case14_opponent":  # case 14
+            lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
         else:
             lines_maintenance = []
             warnings.warn(f'Unknown environment {self.action_space.env_name} found. The opponent is deactivated')
