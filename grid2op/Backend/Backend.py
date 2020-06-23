@@ -587,8 +587,6 @@ class Backend(GridObjects, ABC):
         This method is called by the environment to compute the next _grid states.
         It allows to compute the powerline and approximate the "cascading failures" if there are some overflows.
 
-        Note that it **DOESNT** update the environment with the disconnected lines.
-
         Attributes
         ----------
         env: :class:`grid2op.Environment.Environment`

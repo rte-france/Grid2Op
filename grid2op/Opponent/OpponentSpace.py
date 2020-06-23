@@ -142,13 +142,11 @@ class OpponentSpace(object):
 
         # If currently attacking
         if self.current_attack_duration > 0:
-            print('CONTINUE')
             attack = self.last_attack
             self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
 
         # If the opponent has already attacked today
         elif self.current_attack_cooldown > self.attack_cooldown:
-            print('PAUSE')
             attack = None
 
         # If the opponent can attack  
@@ -156,8 +154,6 @@ class OpponentSpace(object):
             self.previous_fails = False
             attack = self.opponent.attack(observation, agent_action, env_action, self.budget,
                                           self.previous_fails)
-            print('RECEIVES ATTACK:')
-            print(attack)
             # If the cost is too high
             if self.attack_duration * self.compute_budget(attack) > self.budget:
                 attack = None
