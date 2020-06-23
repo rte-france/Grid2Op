@@ -22,15 +22,12 @@ class RandomLineOpponent(BaseOpponent):
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self, **kwargs):
+    def init(self, lines_attacked=[], **kwargs):
         # this if the function used to properly set the object.
         # It has the generic signature above,
         # and it's way more flexible that the other one.
 
-        if "lines_attacked" in kwargs:
-            lines_attacked = kwargs["lines_attacked"]
-        else:
-            lines_attacked = []
+        if len(lines_attacked) == 0:
             warnings.warn(f'The opponent is deactivated as there is no information as to which line to attack. '
                           f'You can set the argument "kwargs_opponent" to the list of the line names you want '
                           f' the opponent to attack in the "make" function.')

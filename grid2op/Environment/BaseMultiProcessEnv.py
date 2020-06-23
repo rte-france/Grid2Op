@@ -366,7 +366,10 @@ class BaseMultiProcessEnvironment(GridObjects):
 
     def __getattr__(self, name):
         """
-        This function is used to get the attribute of the underlying sub environment.
+        This function is used to get the attribute of the underlying sub environments.
+
+        Note that setting attributes or information to the sub_env this way will not work. This method only allows
+        to get the value of some attributes, NOT to modify them.
 
         /!\ **DANGER** /!\ is you use this function, you are entering the danger zone. This might not work and
         make your all python session dies without any notice. You've been warned.
