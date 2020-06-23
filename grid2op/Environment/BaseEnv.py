@@ -322,6 +322,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def reset(self):
         self.__is_init = True
+        self.current_obs = None
 
     def seed(self, seed=None):
         """

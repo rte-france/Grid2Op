@@ -20,6 +20,9 @@ from grid2op.Episode import EpisodeData
 from grid2op.Environment import SingleEnvMultiProcess
 import pdb
 
+ATTACK_DURATION = 48
+ATTACK_COOLDOWN = 100
+
 
 class TestSuiteBudget_001(BaseActionBudget):
     """just for testing"""
@@ -95,6 +98,7 @@ class TestLoadingOpp(unittest.TestCase):
                 assert issubclass(env.opponent_action_class, TopologyAction)
 
     def test_env_opp_attack(self):
+        # and test reset, which apparently is NOT done correctly
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budg = 100.
@@ -103,12 +107,19 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_init_budget=init_budg,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=TestSuiteBudget_001,
+                      opponent_attack_duration=ATTACK_DURATION,
+                      opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=TestSuiteOpponent_001) as env:
                 obs = env.reset()
+                # opponent should not attack at the first time step
+                assert np.all(obs.line_status)
                 assert env.opponent_init_budget == init_budg
                 obs, reward, done, info = env.step(env.action_space())
                 assert env.oppSpace.budget == init_budg - 1.0
+
                 obs = env.reset()
+                # opponent should not attack at the first time step
+                assert np.all(obs.line_status)
                 assert env.opponent_init_budget == init_budg
                 assert env.oppSpace.budget == init_budg
 
@@ -119,9 +130,10 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example",
                       test=True,
                       opponent_budget_per_ts=init_budg_ts,
-                      opponent_attack_duration=1, # only for testing
+                      opponent_attack_duration=1,  # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=TestSuiteBudget_001,
+                      opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=TestSuiteOpponent_001) as env:
                 obs = env.reset()
                 assert env.opponent_init_budget == 0.
@@ -144,11 +156,12 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 50
             with make("rte_case14_realistic",
                       test=True,
-                      opponent_attack_cooldown=0, # only for testing
+                      opponent_attack_cooldown=0,  # only for testing
                       opponent_init_budget=init_budget,
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
+                      opponent_attack_duration=ATTACK_DURATION,
                       opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -158,7 +171,9 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
                     assert env.oppSpace.budget == init_budget - i - 1
                     assert env.oppSpace.last_attack.as_dict()
+
                 # There is not enough budget for a second attack
+                assert abs(env.oppSpace.budget - (init_budget - ATTACK_DURATION)) <= 1e-5
                 obs, reward, done, info = env.step(env.action_space())
                 assert env.oppSpace.last_attack is None
 
@@ -175,6 +190,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
+                      opponent_attack_duration=ATTACK_DURATION,
+                      opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -201,6 +218,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
+                      opponent_attack_duration=ATTACK_DURATION,
+                      opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -228,6 +247,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_per_ts=0.,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
+                      opponent_attack_duration=ATTACK_DURATION,
+                      opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=RandomLineOpponent) as env:
                 env.seed(0)
                 # Collect some attacks
@@ -263,6 +284,7 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_attack_cooldown=0, # only for testing
                        opponent_action_class=TopologyAction,
                        opponent_budget_class=BaseActionBudget,
+                       opponent_attack_duration=ATTACK_DURATION,
                        opponent_class=RandomLineOpponent)
             env.seed(0)
             # Collect some attacks
