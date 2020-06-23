@@ -23,6 +23,8 @@ Change Log
   `SingleProcessMultiEnv`
 - [BREAKING] the `seeds` parameters of the `Runner.run` function has been renamed `env_seeds` and an `agent_seeds`
   parameters is now available for fully reproducible experiments.
+- [FIXED] a weird effect on `env.reset` that did not reset the state of the previous observation held
+  by the environment. This could have caused some issue in some corner cases.
 - [FIXED] `BaseAction.__iadd__` fixed a bug with change actions `+=` operator reported in
   `Issue #116 <https://github.com/rte-france/Grid2Op/issues/116>`_
 - [FIXED] `obs.simulate` post-initialized reward behaves like the environment
