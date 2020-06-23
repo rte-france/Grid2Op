@@ -589,19 +589,19 @@ class Environment(BaseEnv):
         self.backend = tmp_backend
         return res
 
-    def get_kwargs(self):
+    def get_kwargs(self, with_backend=True):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
 
-        This is usefull especially in cases where Environment is not pickable (for example if some non pickable c++
+        This is useful especially in cases where Environment is not pickable (for example if some non pickable c++
         code are used) but you still want to make parallel processing using "MultiProcessing" module. In that case,
-        you can send this dictionnary to each child process, and have each child process make a copy of ``self``
+        you can send this dictionary to each child process, and have each child process make a copy of ``self``
 
         Returns
         -------
         res: ``dict``
-            A dictionnary that helps build an environment like ``self``
+            A dictionary that helps build an environment like ``self``
 
         Examples
         --------
@@ -616,9 +616,12 @@ class Environment(BaseEnv):
             # And you can use this one as you would any other environment.
 
         """
+        # TODO make a test about that
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+        if with_backend:
+            res["backend"] = self.backend.copy()
         res["parameters"] = copy.deepcopy(self.parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
         res["actionClass"] = self.actionClass
@@ -632,12 +635,16 @@ class Environment(BaseEnv):
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["name"] = self.name
         res["_raw_backend_class"] = self._raw_backend_class
+        res["with_forecast"] = self.with_forecast
 
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
         res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
         res["opponent_budget_class"] = self.opponent_budget_class
+        res["opponent_attack_duration"] = self.opponent_attack_duration
+        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
+        res["kwargs_opponent"] = self.kwargs_opponent
         return res
 
     def get_params_for_runner(self):
@@ -693,5 +700,6 @@ class Environment(BaseEnv):
         res["opponent_budget_class"] = self.opponent_budget_class
         res["opponent_attack_duration"] = self.opponent_attack_duration
         res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
+        res["opponent_kwargs"] = self.kwargs_opponent
         # TODO make a test for that
         return res

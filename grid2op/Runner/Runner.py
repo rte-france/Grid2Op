@@ -245,7 +245,9 @@ class Runner(object):
                  opponent_budget_class=UnlimitedBudget,
                  opponent_attack_duration=12*4,
                  opponent_attack_cooldown=12*24,
-                 grid_layout=None):
+                 opponent_kwargs={},
+                 grid_layout=None,
+                 with_forecast=True):
         """
         Initialize the Runner.
 
@@ -304,6 +306,7 @@ class Runner(object):
 
         # TODO documentation on the opponent
         """
+        self.with_forecast = with_forecast
         self.name_env = name_env
         if not isinstance(envClass, type):
             raise Grid2OpException(
@@ -476,6 +479,7 @@ class Runner(object):
         self.opponent_budget_class = opponent_budget_class
         self.opponent_attack_duration = opponent_attack_duration
         self.opponent_attack_cooldown = opponent_attack_cooldown
+        self.opponent_kwargs = opponent_kwargs
 
         self.grid_layout = grid_layout
 
@@ -484,6 +488,7 @@ class Runner(object):
                             chronics_handler=chronics_handler,
                             backend=backend,
                             parameters=parameters,
+                            name=self.name_env,
                             names_chronics_to_backend=self.names_chronics_to_backend,
                             actionClass=self.actionClass,
                             observationClass=self.observationClass,
@@ -491,6 +496,7 @@ class Runner(object):
                             legalActClass=self.legalActClass,
                             voltagecontrolerClass=self.voltageControlerClass,
                             other_rewards=self._other_rewards,
+
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
                             opponent_init_budget=self.opponent_init_budget,
@@ -498,7 +504,12 @@ class Runner(object):
                             opponent_budget_class=self.opponent_budget_class,
                             opponent_attack_duration=self.opponent_attack_duration,
                             opponent_attack_cooldown=self.opponent_attack_cooldown,
-                            name=self.name_env)
+                            kwargs_opponent=self.opponent_kwargs,
+
+                            with_forecast=self.with_forecast,
+
+                            _raw_backend_class=self.backendClass
+                            )
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)

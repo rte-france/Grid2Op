@@ -54,9 +54,7 @@ class RemoteEnv(Process):
 
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)
-        self.backend = self.env_params["backendClass"]()
-        del self.env_params["backendClass"]
-        chronics_handler = self.env_params["chronics_handler"]
+        self.backend = self.env_params["_raw_backend_class"]()
         self.env = Environment(**self.env_params, backend=self.backend)
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
@@ -211,9 +209,8 @@ class BaseMultiProcessEnvironment(GridObjects):
         max_int = np.iinfo(dt_int).max
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
-        env_params = [envs[e].get_kwargs() for e in range(self.nb_env)]
-        for e, el in enumerate(env_params):
-            el["backendClass"] = envs[e]._raw_backend_class
+        env_params = [envs[e].get_kwargs(with_backend=False) for e in range(self.nb_env)]
+
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
