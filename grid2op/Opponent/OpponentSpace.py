@@ -171,4 +171,7 @@ class OpponentSpace(object):
         self.budget -= self.compute_budget(attack)
         self.last_attack = attack
 
-        return attack, self.current_attack_duration
+        attack_duration = self.current_attack_duration
+        if attack is None:
+            attack_duration = 0
+        return attack, attack_duration
