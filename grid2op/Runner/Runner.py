@@ -542,7 +542,7 @@ class Runner(object):
         else:
             self.env.reset()
 
-    def run_one_episode(self, indx=0, path_save=None, pbar=False, seed=None, max_iter=None):
+    def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None):
         """
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
 
@@ -567,11 +567,12 @@ class Runner(object):
         """
         self.reset()
         res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save,
-                                    pbar=pbar, seed=seed, max_iter=max_iter)
+                                    pbar=pbar, env_seed=env_seed, max_iter=max_iter, agent_seed=agent_seed)
         return res
 
     @staticmethod
-    def _run_one_episode(env, agent, logger, indx, path_save=None, pbar=False, seed=None, max_iter=None):
+    def _run_one_episode(env, agent, logger, indx, path_save=None,
+                         pbar=False, env_seed=None, agent_seed=None, max_iter=None):
         done = False
         time_step = int(0)
         time_act = 0.
@@ -582,8 +583,8 @@ class Runner(object):
         # the "-1" above is because the environment will be reset. So it will increase id of 1.
 
         # set the seed
-        if seed is not None:
-            env.seed(seed)
+        if env_seed is not None:
+            env.seed(env_seed)
 
         # handle max_iter
         if max_iter is not None:
@@ -592,7 +593,9 @@ class Runner(object):
         # reset it
         obs = env.reset()
 
-        # reset the agent
+        # seed and reset the agent
+        if agent_seed is not None:
+            agent.seed(agent_seed)
         agent.reset(obs)
 
         # compute the size and everything if it needs to be stored
@@ -674,12 +677,14 @@ class Runner(object):
                 cum_reward += reward
                 time_step += 1
                 pbar_.update(1)
-
+                opp_attack = env.oppSpace.last_attack
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   float(reward), env.env_modification, act, obs, info)
+                                   float(reward), env.env_modification,
+                                   act, obs, opp_attack,
+                                   info)
             end_ = time.time()
 
-        episode.set_meta(env, time_step, float(cum_reward), seed)
+        episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
 
         li_text = ["Env: {:.2f}s", "\t - apply act {:.2f}s", "\t - run pf: {:.2f}s",
                    "\t - env update + observation: {:.2f}s", "Agent: {:.2f}s", "Total time: {:.2f}s",
@@ -732,7 +737,7 @@ class Runner(object):
             pbar_ = pbar
         return pbar_
 
-    def run_sequential(self, nb_episode, path_save=None, pbar=False, seeds=None, max_iter=None):
+    def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None):
         """
         This method is called to see how well an agent performed on a sequence of episode.
 
@@ -757,7 +762,7 @@ class Runner(object):
             - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
               (episode) but not at lower levels (setp during the episode)
 
-        seeds: ``list``
+        env_seeds: ``list``
             An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
             its size should match ``nb_episode``.
 
@@ -778,13 +783,17 @@ class Runner(object):
         next_pbar = [False]
         with self._make_progress_bar(pbar, nb_episode, next_pbar) as pbar_:
             for i in range(nb_episode):
-                seed = None
-                if seeds is not None:
-                    seed = seeds[i]
+                env_seed = None
+                if env_seeds is not None:
+                    env_seed = env_seeds[i]
+                agt_seed = None
+                if agent_seeds is not None:
+                    agt_seed = agent_seeds[i]
                 name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save,
                                                                             indx=i,
                                                                             pbar=next_pbar[0],
-                                                                            seed=seed,
+                                                                            env_seed=env_seed,
+                                                                            agent_seed=agt_seed,
                                                                             max_iter=max_iter)
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
@@ -793,7 +802,8 @@ class Runner(object):
         return res
 
     @staticmethod
-    def _one_process_parrallel(runner, episode_this_process, process_id, path_save=None, seeds=None, max_iter=None):
+    def _one_process_parrallel(runner, episode_this_process, process_id, path_save=None,
+                               env_seeds=None, max_iter=None, agent_seeds=None):
         chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass,
                                            path=runner.path_chron,
                                            **runner.gridStateclass_kwargs)
@@ -805,17 +815,20 @@ class Runner(object):
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)
-            seed = None
-            if seeds is not None:
-                seed = seeds[i]
+            env_seed = None
+            if env_seeds is not None:
+                env_seed = env_seeds[i]
+            agt_seed = None
+            if agent_seeds is not None:
+                agt_seed = agent_seeds[i]
             name_chron, cum_reward, nb_time_step = Runner._run_one_episode(
-                env, agent, runner.logger, p_id, path_save, seed=seed, max_iter=max_iter)
+                env, agent, runner.logger, p_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
             res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
         return res
 
-    def run_parrallel(self, nb_episode, nb_process=1, path_save=None, seeds=None, max_iter=None):
+    def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None):
         """
         This method will run in parrallel, independantly the nb_episode over nb_process.
 
@@ -842,9 +855,14 @@ class Runner(object):
             If not None, it specifies where to store the data. See the description of this module :mod:`Runner` for
             more information
 
-        seeds: ``list``
+        env_seeds: ``list``
             An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
             its size should match ``nb_episode``.
+
+        agent_seeds: ``list``
+            An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
+            If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
+            scenario BEFORE calling `agent.reset()`.
 
         Returns
         -------
@@ -864,7 +882,7 @@ class Runner(object):
         if nb_process == 1 or self.__can_copy_agent is False:
             warnings.warn(
                 "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return [self.run_sequential(nb_episode, path_save=path_save, seeds=seeds)]
+            return [self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds)]
         else:
             if self.env is not None:
                 self.env.close()
@@ -876,13 +894,22 @@ class Runner(object):
             for i in range(nb_episode):
                 process_ids[i % nb_process].append(i)
 
-            if seeds is None:
+            if env_seeds is None:
                 seeds_res = [None for _ in range(nb_process)]
             else:
                 # split the seeds according to the process
                 seeds_res = [[] for i in range(nb_process)]
                 for i in range(nb_episode):
-                    seeds_res[i % nb_process].append(seeds[i])
+                    seeds_res[i % nb_process].append(env_seeds[i])
+
+            if agent_seeds is None:
+                seeds_agt_res = [None for _ in range(nb_process)]
+            else:
+                # split the seeds according to the process
+                seeds_agt_res = [[] for i in range(nb_process)]
+                for i in range(nb_episode):
+                    seeds_agt_res[i % nb_process].append(agent_seeds[i])
+
             res = []
             with Pool(nb_process) as p:
                 tmp = p.starmap(Runner._one_process_parrallel,
@@ -891,7 +918,7 @@ class Runner(object):
                 res += el
         return res
 
-    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, seeds=None):
+    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None, agent_seeds=None):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
         1 or :func:`Runner.run_parrallel` if nb_process >= 2.
@@ -923,9 +950,14 @@ class Runner(object):
             - if pbar is an object (an instance of a class) it is used to make a progress bar at this highest level
               (episode) but not at lower levels (setp during the episode)
 
-        seeds: ``list``
-            An iterable of the seed used for the experiments. By default ``None``, no seeds are set. If provided,
+        env_seeds: ``list``
+            An iterable of the seed used for the environment. By default ``None``, no seeds are set. If provided,
             its size should match ``nb_episode``.
+
+        agent_seeds: ``list``
+            An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
+            If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
+            scenario BEFORE calling `agent.reset()`.
 
         Returns
         -------
@@ -937,14 +969,64 @@ class Runner(object):
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.BaseAgent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
 
+        Examples
+        --------
+
+        You can use the runner this way:
+
+        .. code-block: python
+
+            import grid2op
+            from gri2op.Runner import Runner
+            from grid2op.Agent import RandomAgent
+
+            env = grid2op.make()
+            runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+            res = runner.run(nb_episode=1)
+
+        If you would rather to provide an agent instance (and not a class) you can do it this way:
+
+        .. code-block: python
+
+            import grid2op
+            from gri2op.Runner import Runner
+            from grid2op.Agent import RandomAgent
+
+            env = grid2op.make()
+            my_agent = RandomAgent(env.action_space)
+            runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
+            res = runner.run(nb_episode=1)
+
+        Finally, in the presence of stochastic environments or stochastic agent you might want to set the seeds for
+        ensuring reproducible experiments you might want to seed both the environment and your agent. You can do that
+        by passing `env_seeds` and `agent_seeds` parameters (on the example bellow, the agent will be seeded with 42
+        and the environment with 0.
+
+        .. code-block: python
+
+            import grid2op
+            from gri2op.Runner import Runner
+            from grid2op.Agent import RandomAgent
+
+            env = grid2op.make()
+            my_agent = RandomAgent(env.action_space)
+            runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
+            res = runner.run(nb_episode=1, agent_seeds=[42], env_seeds=[0])
+
         """
         if nb_episode < 0:
             raise RuntimeError("Impossible to run a negative number of scenarios.")
 
-        if seeds is not None:
-            if len(seeds) != nb_episode:
-                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds."
-                                   "".format(nb_episode, len(seeds)))
+        if env_seeds is not None:
+            if len(env_seeds) != nb_episode:
+                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds "
+                                   "(environment)."
+                                   "".format(nb_episode, len(env_seeds)))
+
+        if agent_seeds is not None:
+            if len(agent_seeds) != nb_episode:
+                raise RuntimeError("You want to compute \"{}\" run(s) but provide only \"{}\" different seeds (agent)."
+                                   "".format(nb_episode, len(agent_seeds)))
 
         if max_iter is not None:
             max_iter = int(max_iter)
@@ -957,9 +1039,10 @@ class Runner(object):
 
             if nb_process == 1:
                 self.logger.info("Sequential runner used.")
-                res = self.run_sequential(nb_episode, path_save=path_save, pbar=pbar, seeds=seeds, max_iter=max_iter)
+                res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
+                                           env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
             else:
                 self.logger.info("Parallel runner used.")
-                res = self.run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save, seeds=seeds,
-                                         max_iter=max_iter)
+                res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save, env_seeds=env_seeds,
+                                          max_iter=max_iter, agent_seeds=agent_seeds)
         return res
