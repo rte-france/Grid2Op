@@ -38,10 +38,6 @@ TEST_DEV_ENVS = {
     "case5_example": DEV_DATASET.format("rte_case5_example"),
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
 }
-MULTIMIX_ENVS = [
-    "multimix",
-    "l2rpn_neurips_2020_track2"
-]
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
                               "If the problem persists, please contact grid2op organizers"
@@ -159,9 +155,10 @@ def _extract_ds_name(dataset_path):
     dataset_name = os.path.splitext(dataset_name)[0]
     return dataset_name
 
-def _aux_is_multimix(dataset):
-    ds_name = os.path.basename(dataset)
-    if ds_name in MULTIMIX_ENVS:
+_MULTIMIX_FILE = ".multimix"
+
+def _aux_is_multimix(dataset_path):
+    if os.path.exists(os.path.join(dataset_path, _MULTIMIX_FILE)):
         return True
     return False
 
@@ -251,12 +248,12 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     # Select how to create the environment:
     # Default with make from path
     make_from_path_fn = make_from_dataset_path
-    if _aux_is_multimix(dataset):
-        # Expect for multimix where the class handles creation
-        make_from_path_fn = _aux_make_multimix
 
     # dataset arg is a valid path: load it
     if os.path.exists(dataset):
+        # Check if multimix from path
+        if _aux_is_multimix(dataset):
+            make_from_path_fn = _aux_make_multimix
         return make_from_path_fn(dataset, **kwargs)
 
     # Not a path: get the dataset name and cache path
@@ -273,7 +270,13 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
         # Warning for deprecated dev envs
         if not dataset_name.startswith("rte"):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
-        return make_from_path_fn(TEST_DEV_ENVS[dataset_name], **kwargs)
+
+        ds_path = TEST_DEV_ENVS[dataset_name]
+        # Check if multimix from path
+        if _aux_is_multimix(ds_path):
+            make_from_path_fn = _aux_make_multimix
+
+        return make_from_path_fn(ds_path, **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):
@@ -284,4 +287,9 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     _create_path_folder(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
     url, ds_name_dl = _fecth_environments(dataset_name)
     _aux_download(url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, ds_name_dl)
+
+    # Check if multimix from path
+    if _aux_is_multimix(real_ds_path):
+        make_from_path_fn = _aux_make_multimix
+
     return make_from_path_fn(real_ds_path, **kwargs)
