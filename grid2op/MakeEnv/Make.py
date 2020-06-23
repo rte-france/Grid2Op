@@ -30,6 +30,7 @@ TEST_DEV_ENVS = {
     "rte_case5_example": DEV_DATASET.format("rte_case5_example"),
     "rte_case118_example": DEV_DATASET.format("rte_case118_example"),
     "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
+    "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     # keep the old names for now
     "case14_realistic": DEV_DATASET.format("rte_case14_realistic"),
     "case14_redisp": DEV_DATASET.format("rte_case14_redisp"),
@@ -154,6 +155,18 @@ def _extract_ds_name(dataset_path):
     dataset_name = os.path.splitext(dataset_name)[0]
     return dataset_name
 
+_MULTIMIX_FILE = ".multimix"
+
+def _aux_is_multimix(dataset_path):
+    if os.path.exists(os.path.join(dataset_path, _MULTIMIX_FILE)):
+        return True
+    return False
+
+def _aux_make_multimix(dataset, **kwargs):
+    # Local import to prevent imports loop
+    from grid2op.Environment import MultiMixEnvironment
+
+    return MultiMixEnvironment(dataset, **kwargs)
 
 _MAKE_DEV_ENV_WARN = "You are using a development environment. " \
                      "This environment is not intended for training agents."
@@ -232,9 +245,16 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     env: :class:`grid2op.Environment.Environment`
         The created environment.
     """
+    # Select how to create the environment:
+    # Default with make from path
+    make_from_path_fn = make_from_dataset_path
+
     # dataset arg is a valid path: load it
     if os.path.exists(dataset):
-        return make_from_dataset_path(dataset, **kwargs)
+        # Check if multimix from path
+        if _aux_is_multimix(dataset):
+            make_from_path_fn = _aux_make_multimix
+        return make_from_path_fn(dataset, **kwargs)
 
     # Not a path: get the dataset name and cache path
     dataset_name = _extract_ds_name(dataset)
@@ -250,15 +270,26 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
         # Warning for deprecated dev envs
         if not dataset_name.startswith("rte"):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
-        return make_from_dataset_path(TEST_DEV_ENVS[dataset_name], **kwargs)
+
+        ds_path = TEST_DEV_ENVS[dataset_name]
+        # Check if multimix from path
+        if _aux_is_multimix(ds_path):
+            make_from_path_fn = _aux_make_multimix
+
+        return make_from_path_fn(ds_path, **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):
-        return make_from_dataset_path(real_ds_path, **kwargs)
+        return make_from_path_fn(real_ds_path, **kwargs)
 
     # Env needs to be downloaded
     warnings.warn(_MAKE_FIRST_TIME_WARN.format(dataset_name))
     _create_path_folder(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
     url, ds_name_dl = _fecth_environments(dataset_name)
     _aux_download(url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, ds_name_dl)
-    return make_from_dataset_path(real_ds_path, **kwargs)
+
+    # Check if multimix from path
+    if _aux_is_multimix(real_ds_path):
+        make_from_path_fn = _aux_make_multimix
+
+    return make_from_path_fn(real_ds_path, **kwargs)
