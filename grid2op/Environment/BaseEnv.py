@@ -844,7 +844,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_illegal_redisp = False
         is_illegal_reco = False
         attack = None
-        print('STEP')
         except_ = []
         init_disp = 1.0 * action._redispatch
 
@@ -919,8 +918,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack, attack_duration = self.oppSpace.attack(observation=self.current_obs,
                                                             agent_action=action,
                                                             env_action=self.env_modification)
-            print('Attack:')
-            print(attack)
             if attack is not None:
                 # the opponent choose to attack
                 # i update the "cooldown" on these things

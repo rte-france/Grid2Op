@@ -21,6 +21,8 @@ Change Log
 - [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
 - [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now
   `SingleProcessMultiEnv`
+- [BREAKING] the `seeds` parameters of the `Runner.run` function has been renamed `env_seeds` and an `agent_seeds`
+  parameters is now available for fully reproducible experiments.
 - [FIXED] `BaseAction.__iadd__` fixed a bug with change actions `+=` operator reported in
   `Issue #116 <https://github.com/rte-france/Grid2Op/issues/116>`_
 - [FIXED] `obs.simulate` post-initialized reward behaves like the environment
