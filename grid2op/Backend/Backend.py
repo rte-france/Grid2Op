@@ -581,7 +581,8 @@ class Backend(GridObjects, ABC):
 
         res = None
         if not conv:
-            res = DivergingPowerFlow("Powerflow has diverged during computation.")
+            res = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
+                                     "or a load has been disconnected or a generator has been disconnected.")
         return res
 
     def next_grid_state(self, env, is_dc=False):
