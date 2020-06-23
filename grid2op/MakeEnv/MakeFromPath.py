@@ -400,45 +400,65 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                                      isclass=False)
 
     # Opponent
-    # TODO make that in config file of the default environment !!!
+    chronics_class_cfg = DontAct
+    if "opponent_action_class" in config_data and config_data["opponent_action_class"] is not None:
+        chronics_class_cfg = config_data["opponent_action_class"]
     opponent_action_class = _get_default_aux("opponent_action_class",
                                              kwargs,
                                              defaultClassApp=BaseAction,
-                                             defaultClass=DontAct,
+                                             defaultClass=chronics_class_cfg,
                                              msg_error=ERR_MSG_KWARGS["opponent_action_class"],
                                              isclass=True)
+    opponent_class_cfg = BaseOpponent
+    if "opponent_class" in config_data and config_data["opponent_class"] is not None:
+        opponent_class_cfg = config_data["opponent_class"]
     opponent_class = _get_default_aux("opponent_class",
                                       kwargs,
                                       defaultClassApp=BaseOpponent,
-                                      defaultClass=BaseOpponent,
+                                      defaultClass=opponent_class_cfg,
                                       msg_error=ERR_MSG_KWARGS["opponent_class"],
                                       isclass=True)
+    opponent_budget_class_cfg = UnlimitedBudget
+    if "opponent_budget_class" in config_data and config_data["opponent_budget_class"] is not None:
+        opponent_budget_class_cfg = config_data["opponent_budget_class"]
     opponent_budget_class = _get_default_aux("opponent_budget_class",
                                              kwargs,
                                              defaultClassApp=BaseActionBudget,
-                                             defaultClass=UnlimitedBudget,
+                                             defaultClass=opponent_budget_class_cfg,
                                              msg_error=ERR_MSG_KWARGS["opponent_budget_class"],
                                              isclass=True)
+    opponent_init_budget_cfg = 0.
+    if "opponent_init_budget" in config_data and config_data["opponent_init_budget"] is not None:
+        opponent_init_budget_cfg = config_data["opponent_init_budget"]
     opponent_init_budget = _get_default_aux("opponent_init_budget", kwargs,
                                             defaultClassApp=float,
-                                            defaultinstance=0.,
+                                            defaultinstance=opponent_init_budget_cfg,
                                             msg_error=ERR_MSG_KWARGS["opponent_init_budget"],
                                             isclass=False)
+    opponent_budget_per_ts_cfg = 0.
+    if "opponent_budget_per_ts" in config_data and config_data["opponent_budget_per_ts"] is not None:
+        opponent_budget_per_ts_cfg = config_data["opponent_budget_per_ts"]
     opponent_budget_per_ts = _get_default_aux("opponent_budget_per_ts", kwargs,
                                               defaultClassApp=float,
-                                              defaultinstance=0.,
+                                              defaultinstance=opponent_budget_per_ts_cfg,
                                               msg_error=ERR_MSG_KWARGS["opponent_budget_per_ts"],
                                               isclass=False)
+    opponent_attack_duration_cfg = 0
+    if "opponent_attack_duration" in config_data and config_data["opponent_attack_duration"] is not None:
+        opponent_attack_duration_cfg = config_data["opponent_attack_duration"]
     opponent_attack_duration = _get_default_aux("opponent_attack_duration", kwargs,
-                                              defaultClassApp=int,
-                                              defaultinstance=12*4,
-                                              msg_error=ERR_MSG_KWARGS["opponent_attack_duration"],
-                                              isclass=False)
+                                                defaultClassApp=int,
+                                                defaultinstance=opponent_attack_duration_cfg,
+                                                msg_error=ERR_MSG_KWARGS["opponent_attack_duration"],
+                                                isclass=False)
+    opponent_attack_cooldown_cfg = 99999
+    if "opponent_attack_cooldown" in config_data and config_data["opponent_attack_cooldown"] is not None:
+        opponent_attack_cooldown_cfg = config_data["opponent_attack_cooldown"]
     opponent_attack_cooldown = _get_default_aux("opponent_attack_cooldown", kwargs,
-                                              defaultClassApp=int,
-                                              defaultinstance=12*24,
-                                              msg_error=ERR_MSG_KWARGS["opponent_attack_cooldown"],
-                                              isclass=False)
+                                                defaultClassApp=int,
+                                                defaultinstance=opponent_attack_cooldown_cfg,
+                                                msg_error=ERR_MSG_KWARGS["opponent_attack_cooldown"],
+                                                isclass=False)
 
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
