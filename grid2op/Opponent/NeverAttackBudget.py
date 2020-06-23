@@ -5,12 +5,11 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-
-from grid2op.dtypes import dt_float
+import numpy as np
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
 
 
-class UnlimitedBudget(BaseActionBudget):
+class NeverAttackBudget(BaseActionBudget):
     """
     This class define an unlimited budget for the opponent.
 
@@ -18,7 +17,6 @@ class UnlimitedBudget(BaseActionBudget):
     """
     def __init__(self, action_space):
         BaseActionBudget.__init__(self, action_space)
-        self._zero = dt_float(0.)
 
     def __call__(self, attack):
-        return self._zero
+        return np.inf

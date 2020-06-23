@@ -22,7 +22,7 @@ from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import BaseReward, L2RPNReward
 from grid2op.Rules import BaseRules, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
-from grid2op.Opponent import BaseOpponent, BaseActionBudget, UnlimitedBudget
+from grid2op.Opponent import BaseOpponent, BaseActionBudget, NeverAttackBudget
 
 from grid2op.MakeEnv.get_default_aux import _get_default_aux
 
@@ -86,7 +86,8 @@ def _check_path(path, info):
 
 def make_from_dataset_path(dataset_path="/", **kwargs):
     """
-    This function is a shortcut to rapidly create environments within the grid2op Framework.
+    This function is a shortcut to rapidly create environments within the grid2op Framework. We don't
+    recommend using directly this function. Prefer using the :func:`make` function.
 
     It mimic the ``gym.make`` function.
 
@@ -176,12 +177,11 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
     opponent_budget_class: ``type``, optional
         defaults: :class:`grid2op.Opponent.UnlimitedBudget`
 
-    TODO : budget per time step and method to compute cost of an action in here and also kwargs_opponent
-
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
-        The created environment.
+        The created environment with the given properties.
+
     """
     # Compute and find root folder
     _check_path(dataset_path, "Dataset root directory")
@@ -418,7 +418,7 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                                       defaultClass=opponent_class_cfg,
                                       msg_error=ERR_MSG_KWARGS["opponent_class"],
                                       isclass=True)
-    opponent_budget_class_cfg = UnlimitedBudget
+    opponent_budget_class_cfg = NeverAttackBudget
     if "opponent_budget_class" in config_data and config_data["opponent_budget_class"] is not None:
         opponent_budget_class_cfg = config_data["opponent_budget_class"]
     opponent_budget_class = _get_default_aux("opponent_budget_class",

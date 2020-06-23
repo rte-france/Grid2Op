@@ -677,9 +677,11 @@ class Runner(object):
                 cum_reward += reward
                 time_step += 1
                 pbar_.update(1)
-
+                opp_attack = env.oppSpace.last_attack
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   float(reward), env.env_modification, act, obs, info)
+                                   float(reward), env.env_modification,
+                                   act, obs, opp_attack,
+                                   info)
             end_ = time.time()
 
         episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)

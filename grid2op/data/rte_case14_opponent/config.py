@@ -1,10 +1,11 @@
-from grid2op.Action import TopologyAndDispatchAction
+from grid2op.Action import TopologyAndDispatchAction, PowerlineSetAction
 from grid2op.Reward import RedispReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecasts
 from grid2op.Backend import PandaPowerBackend
-from grid2op.Opponent import RandomLineOpponent
+from grid2op.Opponent import RandomLineOpponent, BaseActionBudget
+
 config = {
     "backend": PandaPowerBackend,
     "action_class": TopologyAndDispatchAction,
@@ -38,8 +39,10 @@ config = {
     ],
     "names_chronics_to_grid": None,
     "opponent_attack_cooldown": 12*24,
-    "opponent_attack_duration": 4*24,
-    "opponent_budget_per_ts": 0.166667,
+    "opponent_attack_duration": 12*4,
+    "opponent_budget_per_ts": 0.5,
     "opponent_init_budget": 0.,
-    "opponent_class": RandomLineOpponent
+    "opponent_action_class": PowerlineSetAction,
+    "opponent_class": RandomLineOpponent,
+    "opponent_budget_class": BaseActionBudget
 }

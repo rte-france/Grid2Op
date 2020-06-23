@@ -30,6 +30,7 @@ Change Log
 - [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
 - [FIXED] `obs.simulate` could sometime returns "None" when the simulated action lead to a game over. This is no longer
   a problem.
+- [FIXED] `grid2op.make` will now raise an error if an invalid argument as been passed to it.
 - [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
   disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
 - [ADDED] a clearer explanation between illegal and ambiguous action.

@@ -17,7 +17,9 @@ from grid2op.dtypes import dt_int
 from grid2op.Parameters import Parameters
 from grid2op.Runner import Runner
 from grid2op.Episode import EpisodeData
+from grid2op.Environment import SingleEnvMultiProcess
 import pdb
+
 
 class TestSuiteBudget_001(BaseActionBudget):
     """just for testing"""
@@ -523,7 +525,6 @@ class TestLoadingOpp(unittest.TestCase):
                 assert runner.opponent_attack_duration == opponent_attack_duration
                 assert runner.opponent_action_class == opponent_action_class
 
-
                 res = runner.run(nb_episode=1,
                                  max_iter=opponent_attack_cooldown,
                                  env_seeds=[0], agent_seeds=[0])
@@ -534,6 +535,35 @@ class TestLoadingOpp(unittest.TestCase):
                     assert np.any(episode_data.attack[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
                     assert np.sum(episode_data.attack[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
                     assert np.all(episode_data.attack[:, 0] == 0.)
+
+    def test_env_opponent(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_opponent", test=True, param=param)
+        env.seed(0)  # make sure i have reproducible experiments
+        obs = env.reset()
+        assert np.all(obs.line_status)
+        obs, reward, done, info = env.step(env.action_space())
+        assert abs(env.oppSpace.budget - 0.5) <= 1e-5
+        assert np.all(obs.line_status)
+
+        env.close()
+
+    def test_multienv_opponent(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_opponent", test=True, param=param)
+        env.seed(0)  # make sure i have reproducible experiments
+        multi_env = SingleEnvMultiProcess(env=env, nb_env=2)
+        obs = multi_env.reset()
+        for ob in obs:
+            assert np.all(ob.line_status)
+        env.close()
+        multi_env.close()
 
 
 if __name__ == "__main__":
