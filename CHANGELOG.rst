@@ -5,16 +5,15 @@ Change Log
 --------------------
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] test and doc for opponent
 - [???] better logging
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] better explanation of the notebook 3 with action silently
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
-- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
-- [???] fix notebook 5 texts
+- [???] model curtailment
+- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] model dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
 [1.0.0] - 2020-06-xx
 ---------------------
