@@ -61,6 +61,9 @@ ERR_MSG_KWARGS = {
     "opponent_budget_class": "The opponent budget class (\"opponent_budget_class\") should derive from "
                              "\"BaseActionBudget\".",
     "opponent_budget_per_ts": "The increase of the opponent's budget (\"opponent_budget_per_ts\") should be a float.",
+    "kwargs_opponent": "The extra kwargs argument used to properly initiliazed the opponent "
+                       "(\"kwargs_opponent\") shoud "
+                       "be a dictionary.",
     DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are "
                      "{difficulties}"
 }
@@ -459,6 +462,14 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                                                 defaultinstance=opponent_attack_cooldown_cfg,
                                                 msg_error=ERR_MSG_KWARGS["opponent_attack_cooldown"],
                                                 isclass=False)
+    kwargs_opponent_cfg = {}
+    if "kwargs_opponent" in config_data and config_data["kwargs_opponent"] is not None:
+        kwargs_opponent_cfg = config_data["kwargs_opponent"]
+    kwargs_opponent = _get_default_aux("kwargs_opponent", kwargs,
+                                       defaultClassApp=dict,
+                                       defaultinstance=kwargs_opponent_cfg,
+                                       msg_error=ERR_MSG_KWARGS["kwargs_opponent"],
+                                       isclass=False)
 
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
@@ -479,7 +490,8 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_attack_cooldown=opponent_attack_cooldown,
                       opponent_budget_per_ts=opponent_budget_per_ts,
-                      opponent_budget_class=opponent_budget_class
+                      opponent_budget_class=opponent_budget_class,
+                      kwargs_opponent=kwargs_opponent,
                       )
 
     # Update the thermal limit if any

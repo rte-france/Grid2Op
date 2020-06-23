@@ -44,5 +44,6 @@ config = {
     "opponent_init_budget": 0.,
     "opponent_action_class": PowerlineSetAction,
     "opponent_class": RandomLineOpponent,
-    "opponent_budget_class": BaseActionBudget
+    "opponent_budget_class": BaseActionBudget,
+    "kwargs_opponent": {"lines_attacked": ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]}
 }

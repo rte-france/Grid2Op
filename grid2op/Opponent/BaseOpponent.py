@@ -15,7 +15,7 @@ class BaseOpponent(RandomObject):
         self.action_space = action_space
         self._do_nothing = self.action_space()
 
-    def init(self, *args, **kwargs):
+    def init(self, **kwargs):
         """
         Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
         path where is the file is located should be pass with this method.

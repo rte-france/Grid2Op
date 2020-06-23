@@ -260,8 +260,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                               actionClass=self.opponent_action_class)
 
         self.compute_opp_budget = self.opponent_budget_class(self.opponent_action_space)
-        self.opponent = self.opponent_class(self.opponent_action_space,
-                                            **self.kwargs_opponent)
+        self.opponent = self.opponent_class(self.opponent_action_space)
         self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budget,
                                       init_budget=self.opponent_init_budget,
                                       attack_duration=self.opponent_attack_duration,
@@ -269,7 +268,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                       budget_per_timestep=self.opponent_budget_per_ts,
                                       opponent=self.opponent
                                       )
-        self.oppSpace.init()
+        self.oppSpace.init_opponent(**self.kwargs_opponent)
         self.oppSpace.reset()
 
     def _has_been_initialized(self):

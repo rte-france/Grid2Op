@@ -23,6 +23,7 @@ import pdb
 
 ATTACK_DURATION = 48
 ATTACK_COOLDOWN = 100
+LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
 
 
 class TestSuiteBudget_001(BaseActionBudget):
@@ -174,7 +175,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 obs = env.reset()
                 assert env.oppSpace.budget == init_budget
@@ -206,7 +208,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
@@ -234,7 +237,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
@@ -253,19 +257,22 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             length = 300
-            agent_line_cooldown = 15
+            agent_line_cooldown = 30
+            attack_duration = 10
+            attack_cooldown = 15
             param = Parameters()
             param.NO_OVERFLOW_DISCONNECTION = True
             param.NB_TIMESTEP_COOLDOWN_LINE = agent_line_cooldown
             with make("rte_case14_realistic",
-                        test=True,
-                        param=param,
-                        opponent_attack_cooldown=0, # only for testing
-                        opponent_attack_duration=10, # only for testing
-                        opponent_init_budget=init_budget,
-                        opponent_action_class=TopologyAction,
-                        opponent_budget_class=BaseActionBudget,
-                        opponent_class=RandomLineOpponent) as env:
+                      test=True, param=param,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=0.,
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_attack_duration=attack_duration,
+                      opponent_attack_cooldown=attack_cooldown,
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 agent = ReconnectAgent(env.action_space)
                 env.seed(0)
                 obs = env.reset()
@@ -277,24 +284,26 @@ class TestLoadingOpp(unittest.TestCase):
                     pre_cooldown = obs.time_before_cooldown_line.copy()
                     agent_action = agent.act(obs, reward)
                     obs, reward, done, info = env.step(agent_action)
-                    assert env.oppSpace.budget == init_budget - i - 1
     
                     status_actionable = np.maximum(0, pre_cooldown - 1)
 
                     # Add attack cooldown
                     attack = env.oppSpace.last_attack
-                    attacked_line = np.where(attack._set_line_status == -1)[0][0]
-                    status_actionable[attacked_line] = env.oppSpace.current_attack_duration - 1
+                    if attack is not None:
+                        attacked_line = np.where(attack._set_line_status == -1)[0][0]
+                        status_actionable[attacked_line] = max(env.oppSpace.current_attack_duration - 1,
+                                                               status_actionable[attacked_line])
 
                     # Add agent cooldown
                     if any(agent_action._set_line_status == 1):
                         reco_line = np.where(agent_action._set_line_status == 1)[0][0]
                         if pre_cooldown[reco_line] == 0:
-                            status_actionable[reco_line] = agent_line_cooldown
+                            status_actionable[reco_line] = max(status_actionable[reco_line],
+                                                               agent_line_cooldown)
     
                     ## Add maintenance? Where to find?
     
-                    assert np.all(obs.time_before_cooldown_line == status_actionable)
+                    assert np.all(obs.time_before_cooldown_line == status_actionable) # Should fail because of maintenance
 
     def test_RandomLineOpponent_only_attack_connected(self):
         """
@@ -312,7 +321,8 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_action_class=TopologyAction,
                        opponent_budget_class=BaseActionBudget,
                        opponent_attack_duration=ATTACK_DURATION,
-                       opponent_class=RandomLineOpponent)
+                       opponent_class=RandomLineOpponent,
+                       kwargs_opponent={"lines_attacked": LINES_ATTACKED})
             env.seed(0)
             # Collect some attacks
             # and check that they belong to the correct lines
@@ -362,7 +372,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=1,  # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 obs = env.reset()
@@ -402,7 +413,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
 
@@ -478,7 +490,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=opponent_action_class,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 assert env.opponent_action_class == opponent_action_class
                 assert issubclass(env.oppSpace.action_space.actionClass, opponent_action_class)
@@ -486,7 +499,6 @@ class TestLoadingOpp(unittest.TestCase):
                 opp_space = env.oppSpace
                 attack, duration = opp_space.attack(env.get_obs(), env.action_space(), env.action_space())
                 assert isinstance(attack, opponent_action_class)
-
 
     def test_get_set_state(self):
         with warnings.catch_warnings():
@@ -504,7 +516,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 agent_action = env.action_space()
                 observation = env.get_obs()
@@ -569,7 +582,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=opponent_action_class,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent) as env:
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 runner = Runner(**env.get_params_for_runner())
                 assert runner.opponent_init_budget == init_budget
@@ -617,6 +631,8 @@ class TestLoadingOpp(unittest.TestCase):
         obs = multi_env.reset()
         for ob in obs:
             assert np.all(ob.line_status)
+        assert np.all(multi_env.opponent[0]._lines_ids == [3, 4, 15, 12, 13, 14])
+        assert np.all(multi_env.opponent[1]._lines_ids == [3, 4, 15, 12, 13, 14])
         env.close()
         multi_env.close()
 
