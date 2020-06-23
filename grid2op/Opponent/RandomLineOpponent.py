@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 
 from grid2op.Opponent import BaseOpponent
+from grid2op.Exceptions import OpponentError
 
 
 class RandomLineOpponent(BaseOpponent):
@@ -16,38 +17,35 @@ class RandomLineOpponent(BaseOpponent):
         BaseOpponent.__init__(self, action_space)
         self._do_nothing = None
         self._attacks = None
+        self._lines_ids = None
 
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self, *args, **kwargs):
+    def init(self, lines_attacked=[], **kwargs):
         # this if the function used to properly set the object.
-        #It has the generic signature above,
+        # It has the generic signature above,
         # and it's way more flexible that the other one.
 
-        # Filter lines
-        if self.action_space.env_name == "l2rpn_wcci_2020": # WCCI
-            lines_maintenance = ["26_30_56", "30_31_45", "16_18_23", "16_21_27", "9_16_18", "7_9_9",
-                                 "11_12_13", "12_13_14", "2_3_0", "22_26_39" ]
-        elif self.action_space.env_name == "l2rpn_case14_sandbox":  # case 14
-            lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
-        elif self.action_space.env_name == "rte_case14_realistic":  # case 14
-            lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
-        elif self.action_space.env_name == "rte_case14_opponent":  # case 14
-            lines_maintenance = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
-        else:
-            lines_maintenance = []
-            warnings.warn(f'Unknown environment {self.action_space.env_name} found. The opponent is deactivated')
+        if len(lines_attacked) == 0:
+            warnings.warn(f'The opponent is deactivated as there is no information as to which line to attack. '
+                          f'You can set the argument "kwargs_opponent" to the list of the line names you want '
+                          f' the opponent to attack in the "make" function.')
 
         # Store attackable lines IDs
         self._lines_ids = []
-        for l_name in lines_maintenance:
+        for l_name in lines_attacked:
             l_id = np.where(self.action_space.name_line == l_name)
             if len(l_id) and len(l_id[0]):
                 self._lines_ids.append(l_id[0][0])
+            else:
+                raise OpponentError("Unable to find the powerline named \"{}\" on the grid. For "
+                                    "information, powerlines on the grid are : {}"
+                                    "".format(l_name, sorted(self.action_space.name_line)))
 
         # Pre build do nothing action
         self._do_nothing = self.action_space({})
+
         # Pre-build attacks actions
         self._attacks = []
         for l_id in self._lines_ids:

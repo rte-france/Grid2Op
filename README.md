@@ -148,6 +148,9 @@ interesting part of this framework:
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
   to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines. 
+* [9_nvironmentModifications](getting_started/9_EnvironmentModifications.ipynb) elaborates on the maintenance, hazards
+  and attacks. All three of these represents external events that can disconnect some powerlines. This notebook
+  covers how to spot when such things happened and what can be done when the maintenance or the attack is over.
   
 Try them out in your own browser without installing 
 anything with the help of mybinder: 
