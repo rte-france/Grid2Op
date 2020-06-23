@@ -17,6 +17,7 @@ import pdb
 from grid2op.tests.helper_path_test import PATH_CHRONICS_Make2, PATH_DATA_TEST
 from grid2op.tests.helper_path_test import EXAMPLE_CHRONICSPATH, EXAMPLE_CASEFILE
 from grid2op.tests.helper_data_test import case14_redisp_TH_LIM, case14_test_TH_LIM, case14_real_TH_LIM
+from grid2op.tests.helper_path_test import PATH_DATA_MULTIMIX
 
 from grid2op.Exceptions import *
 from grid2op.MakeEnv import make_from_dataset_path
@@ -32,6 +33,7 @@ from grid2op.Reward import FlatReward, L2RPNReward, RedispReward
 from grid2op.Rules import AlwaysLegal, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.Opponent import BaseOpponent
+from grid2op.Environment import MultiMixEnvironment, Environment
 
 # TODO make a test that the defaults are correct for all environment below
 # (eg that the env.chronics_handler has
@@ -159,11 +161,11 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
 
     def test_case14test_can_simulate(self):
         with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                with make("rte_case14_test", test=True) as env:
-                    obs = env.reset()
-                    sim_obs, reward, done, info = obs.simulate(env.action_space())
-                    assert sim_obs != obs
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_test", test=True) as env:
+                obs = env.reset()
+                sim_obs, reward, done, info = obs.simulate(env.action_space())
+                assert sim_obs != obs
 
     def test_case14test_thermals(self):
         with warnings.catch_warnings():
@@ -552,6 +554,30 @@ class TestMakeFromPathParameters(unittest.TestCase):
             with self.assertRaises(EnvError):
                 with make_from_dataset_path(dataset_path, difficulty="3") as env:
                     assert False, "this should have raised an exception"
+
+class TestMakeMultiMix(unittest.TestCase):
+    def test_create_dev(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_neurips_2020_track2", test=True)
+        assert env != None
+        assert isinstance(env, MultiMixEnvironment)
+
+    def test_create_dev_iterable(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("l2rpn_neurips_2020_track2", test=True)
+        assert env != None
+        assert isinstance(env, MultiMixEnvironment)
+        for mix in env:
+            assert isinstance(mix, Environment)
+
+    def test_create_from_path(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make(PATH_DATA_MULTIMIX)
+        assert env != None
+        assert isinstance(env, MultiMixEnvironment)
 
 
 if __name__ == "__main__":
