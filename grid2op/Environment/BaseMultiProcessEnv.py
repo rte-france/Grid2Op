@@ -123,6 +123,8 @@ class RemoteEnv(Process):
                 self.remote.send((self.seed_used, self.all_seeds))
             elif cmd == "params":
                 self.remote.send(self.env.parameters)
+            elif hasattr(self.env, cmd):
+                self.remote.send(getattr(self.env, cmd))
             else:
                 raise NotImplementedError
 
@@ -210,7 +212,6 @@ class BaseMultiProcessEnvironment(GridObjects):
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
         env_params = [envs[e].get_kwargs(with_backend=False) for e in range(self.nb_env)]
-
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
@@ -360,6 +361,36 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         for remote in self._remotes:
             remote.send(('params', None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def __getattr__(self, name):
+        """
+        This function is used to get the attribute of the underlying sub environment.
+
+        /!\ **DANGER** /!\ is you use this function, you are entering the danger zone. This might not work and
+        make your all python session dies without any notice. You've been warned.
+
+        Parameters
+        ----------
+        name: ``str``
+            Name of the attribute you want to get the value, for each sub_env
+
+        Returns
+        -------
+        res: ``list``
+            The value of the given attribute for each sub env. Again, use with care.
+
+        """
+        res = True
+        for sub_env in self.envs:
+            if not hasattr(sub_env, name):
+                res = False
+        if not res:
+            raise RuntimeError("At least one of the sub_env has not the attribute \"{}\". This will not be "
+                               "executed.".format(name))
+        for remote in self._remotes:
+            remote.send((name, None))
         res = [remote.recv() for remote in self._remotes]
         return res
 

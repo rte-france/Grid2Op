@@ -63,12 +63,12 @@ class OpponentSpace(object):
         #    raise OpponentError("Impossible to build an opponent reward with a reward of type {}".format(opponent_reward_class))
         # self.opp_reward_helper = RewardHelper(opponent_reward_class)
 
-    def init(self, *args, **kwargs):
+    def init_opponent(self, **kwargs):
         """
         Generic function used to initialize the opponent. For example, if an opponent reads from a file, the
         path where is the file is located should be pass with this method.
         """
-        self.opponent.init(*args, **kwargs)
+        self.opponent.init(**kwargs)
 
     def reset(self):
         """

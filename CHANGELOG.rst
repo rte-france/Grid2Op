@@ -32,7 +32,8 @@ Change Log
 - [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
 - [FIXED] `obs.simulate` could sometime returns "None" when the simulated action lead to a game over. This is no longer
   a problem.
-- [FIXED] `grid2op.make` will now raise an error if an invalid argument as been passed to it.
+- [FIXED] `grid2op.make` will now raise an error if an invalid argument has been passed to it.
+- [FIXED] some arguments were not passed correctly to `env.get_kwargs()` or `env.get_params_for_runner()`
 - [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
   disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
 - [ADDED] a clearer explanation between illegal and ambiguous action.
@@ -43,6 +44,8 @@ Change Log
   alternatively with one environment or the other. This is especially useful when considering an agent that should
   interact in multiple environments.
 - [ADDED] possibility to use `simulate` on the current observation.
+- [ADDED] the overload of "__getattr__" for environment running in parallel
+- [ADDED] capability to change the powerlines on which the opponent attack at the environment initialization
 - [UPDATED] `Backend.PandaPowerBackend.apply_action` vectorized backend apply action method for speed.
 - [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
   more broadly usable.
