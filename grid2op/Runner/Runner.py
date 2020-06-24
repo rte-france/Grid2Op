@@ -8,6 +8,7 @@
 import time
 import warnings
 
+import sys
 import numpy as np
 import copy
 
@@ -28,8 +29,12 @@ from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.dtypes import dt_float
-from grid2op.Opponent import BaseOpponent, UnlimitedBudget
+from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
+# on windows if i start using sequential, i need to continue using sequential
+# if i start using parallel i need to continue using parallel
+# so i force the usage of the "starmap" stuff even if there is one process on windows
+_IS_WINDOWS = sys.platform.startswith('win')
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -37,7 +42,7 @@ from grid2op.Opponent import BaseOpponent, UnlimitedBudget
 # TODO add a more suitable logging strategy
 
 # TODO use gym logger if specified by the user.
-
+# TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 class DoNothingLog:
     """
@@ -98,8 +103,6 @@ class ConsoleLog(DoNothingLog):
                 print("WARNING: \"{}\"".format(", ".join(args)))
             if kwargs:
                 print("WARNING: {}".format(kwargs))
-
-#TODO i think runner.env are not close, like, never closed :eyes:
 
 
 class Runner(object):
@@ -211,12 +214,17 @@ class Runner(object):
         The initial budget of the opponent. It defaults to 0.0 which means the opponent cannot perform any action
         if this is not modified.
 
-    opponent_budget_per_ts
-    opponent_budget_class
+    opponent_budget_per_ts: ``float``, optional
+        The budget increase of the opponent per time step
+
+    opponent_budget_class: ``type``, optional
+        The class used to compute the attack cost.
+
+    grid_layout: ``dict``, optional
+        The layout of the grid (position of each substation) usefull if you need to plot some things for example.
     """
 
     def __init__(self,
-                 # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
                  name_env="unknown",
@@ -242,8 +250,12 @@ class Runner(object):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
-                 opponent_budget_class=UnlimitedBudget,
-                 grid_layout=None):
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
+                 opponent_kwargs={},
+                 grid_layout=None,
+                 with_forecast=True):
         """
         Initialize the Runner.
 
@@ -300,7 +312,9 @@ class Runner(object):
         voltagecontrolerClass: :class:`grid2op.VoltageControler.ControlVoltageFromFile`, optional
             The controler that will change the voltage setpoints of the generators.
 
+        # TODO documentation on the opponent
         """
+        self.with_forecast = with_forecast
         self.name_env = name_env
         if not isinstance(envClass, type):
             raise Grid2OpException(
@@ -471,14 +485,21 @@ class Runner(object):
         self.opponent_init_budget = opponent_init_budget
         self.opponent_budget_per_ts = opponent_budget_per_ts
         self.opponent_budget_class = opponent_budget_class
+        self.opponent_attack_duration = opponent_attack_duration
+        self.opponent_attack_cooldown = opponent_attack_cooldown
+        self.opponent_kwargs = opponent_kwargs
 
         self.grid_layout = grid_layout
+
+        # otherwise on windows it sometimes fail in the runner in multi process
+        # self.init_env()
 
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
                             chronics_handler=chronics_handler,
                             backend=backend,
                             parameters=parameters,
+                            name=self.name_env,
                             names_chronics_to_backend=self.names_chronics_to_backend,
                             actionClass=self.actionClass,
                             observationClass=self.observationClass,
@@ -486,12 +507,20 @@ class Runner(object):
                             legalActClass=self.legalActClass,
                             voltagecontrolerClass=self.voltageControlerClass,
                             other_rewards=self._other_rewards,
+
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
                             opponent_init_budget=self.opponent_init_budget,
                             opponent_budget_per_ts=self.opponent_budget_per_ts,
                             opponent_budget_class=self.opponent_budget_class,
-                            name=self.name_env)
+                            opponent_attack_duration=self.opponent_attack_duration,
+                            opponent_attack_cooldown=self.opponent_attack_cooldown,
+                            kwargs_opponent=self.opponent_kwargs,
+
+                            with_forecast=self.with_forecast,
+
+                            _raw_backend_class=self.backendClass
+                            )
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
@@ -600,6 +629,11 @@ class Runner(object):
             # i don't store anything on drive, so i don't need to store anything on memory
             nb_timestep_max = 0
 
+        disc_lines_templ = np.full(
+            (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
+
+        attack_templ = np.full(
+            (1, env.oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
         if efficient_storing:
             times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
@@ -611,8 +645,7 @@ class Runner(object):
                 (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full(
                 (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            disc_lines_templ = np.full(
-                (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
+            attack = np.full((nb_timestep_max, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
         else:
             times = np.full(0, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
@@ -620,7 +653,7 @@ class Runner(object):
             env_actions = np.full((0, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
             observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            disc_lines_templ = np.full( (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
+            attack = np.full((0, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
 
         if path_save is not None:
             # store observation at timestep 0
@@ -640,6 +673,9 @@ class Runner(object):
                               helper_action_env=env.helper_action_env,
                               path_save=path_save,
                               disc_lines_templ=disc_lines_templ,
+                              attack_templ=attack_templ,
+                              attack=attack,
+                              attack_space=env.opponent_action_space,
                               logger=logger,
                               name=env.chronics_handler.get_name(),
                               other_rewards=[])
@@ -663,9 +699,11 @@ class Runner(object):
                 cum_reward += reward
                 time_step += 1
                 pbar_.update(1)
-
+                opp_attack = env.oppSpace.last_attack
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   float(reward), env.env_modification, act, obs, info)
+                                   float(reward), env.env_modification,
+                                   act, obs, opp_attack,
+                                   info)
             end_ = time.time()
 
         episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
@@ -863,14 +901,14 @@ class Runner(object):
         if nb_process <= 0:
             raise RuntimeError(
                 "Runner: you need at least 1 process to run episodes")
-        if nb_process == 1 or self.__can_copy_agent is False:
-            warnings.warn(
-                "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return [self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds)]
+        if _IS_WINDOWS or nb_process == 1 or self.__can_copy_agent is False:
+            # on windows if i start using sequential, i need to continue using sequential
+            # if i start using parallel i need to continue using parallel
+            # so i force the usage of the sequential mode
+            self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
+            return self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds)
         else:
-            if self.env is not None:
-                self.env.close()
-                self.env = None
+            self._clean_up()
             self.backend = self.backendClass()
 
             nb_process = int(nb_process)
@@ -902,6 +940,12 @@ class Runner(object):
                 res += el
         return res
 
+    def _clean_up(self):
+        """close the environment is it has been created"""
+        if self.env is not None:
+            self.env.close()
+        self.env = None
+
     def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None, agent_seeds=None):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
@@ -913,7 +957,8 @@ class Runner(object):
             Number of episode to simulate
 
         nb_process: ``int``, optional
-            Number of process used to play the nb_episode. Default to 1.
+            Number of process used to play the nb_episode. Default to 1. **NB** Multitoprocessing is deactivated
+            on windows based platform (it was not fully supported so we decided to remove it)
 
         path_save: ``str``, optional
             If not None, it specifies where to store the data. See the description of this module :mod:`Runner` for
@@ -1018,15 +1063,21 @@ class Runner(object):
         if nb_episode == 0:
             res = []
         else:
-            if nb_process <= 0:
-                raise RuntimeError("Impossible to run using less than 1 process.")
+            try:
+                if nb_process <= 0:
+                    raise RuntimeError("Impossible to run using less than 1 process.")
 
-            if nb_process == 1:
-                self.logger.info("Sequential runner used.")
-                res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
-                                           env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
-            else:
-                self.logger.info("Parallel runner used.")
-                res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save, env_seeds=env_seeds,
-                                          max_iter=max_iter, agent_seeds=agent_seeds)
+                if _IS_WINDOWS and nb_process > 1:
+                    self.logger.warn("Parallel run are not fully supported on windows at the moment. So we decided "
+                                     "to fully deactivate them.")
+                if nb_process == 1 or _IS_WINDOWS:
+                    self.logger.info("Sequential runner used.")
+                    res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
+                                               env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
+                else:
+                    self.logger.info("Parallel runner used.")
+                    res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save,
+                                              env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
+            finally:
+                self._clean_up()
         return res

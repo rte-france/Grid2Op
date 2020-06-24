@@ -39,6 +39,7 @@ from grid2op.Reward.L2RPNSandBoxScore import L2RPNSandBoxScore
 
 import warnings
 
+
 class Reward(BaseReward):
     def __init__(self, *args, **kwargs):
         BaseReward.__init__(self, *args, **kwargs)

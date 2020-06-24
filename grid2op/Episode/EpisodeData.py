@@ -49,7 +49,6 @@ will save the information in a structured way. For each episode there will be a 
 All of the above should allow to read back, and better understand the behaviour of some
 :class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
 """
-
 import json
 import os
 
@@ -64,6 +63,7 @@ class EpisodeData:
     ACTION_SPACE = "dict_action_space.json"
     OBS_SPACE = "dict_observation_space.json"
     ENV_MODIF_SPACE = "dict_env_modification_space.json"
+    ATTACK_SPACE = "dict_attack_space.json"  # action space of the attack (this is NOT the OpponentSpace) this is the "opponent action space"
     PARAMS = "_parameters.json"
     META = "episode_meta.json"
     TIMES = "episode_times.json"
@@ -74,14 +74,33 @@ class EpisodeData:
     ENV_ACTIONS = "env_modifications.npz"
     OBSERVATIONS = "observations.npz"
     LINES_FAILURES = "disc_lines_cascading_failure.npz"
+    ATTACK = "opponent_attack.npz"
     REWARDS = "rewards.npz"
 
-    def __init__(self, actions=None, env_actions=None, observations=None, rewards=None,
-                 disc_lines=None, times=None,
-                 params=None, meta=None, episode_times=None,
-                 observation_space=None, action_space=None,
-                 helper_action_env=None, path_save=None, disc_lines_templ=None,
-                 logger=None, name=str(1), get_dataframes=None, other_rewards=[]):
+    def __init__(self,
+                 actions=None,
+                 env_actions=None,
+                 observations=None,
+                 rewards=None,
+                 disc_lines=None,
+                 times=None,
+                 params=None,
+                 meta=None,
+                 episode_times=None,
+                 observation_space=None,
+                 action_space=None,
+                 helper_action_env=None,
+                 attack_space=None,
+                 path_save=None,
+                 disc_lines_templ=None,
+
+                 attack_templ=None,
+                 attack=None,
+
+                 logger=None,
+                 name="EpisodeDAta",
+                 get_dataframes=None,
+                 other_rewards=[]):
 
         self.actions = CollectionWrapper(actions,
                                          action_space,
@@ -102,6 +121,11 @@ class EpisodeData:
         self.episode_times = episode_times
         self.name = name
         self.disc_lines_templ = disc_lines_templ
+
+        self.attack_templ = attack_templ
+        self.attack = attack
+        self.attack_space = attack_space
+
         self.logger = logger
         self.serialize = False
         self.load_names = action_space.name_load
@@ -130,6 +154,8 @@ class EpisodeData:
                 self.agent_path, EpisodeData.OBS_SPACE)
             env_modif_space_path = os.path.join(
                 self.agent_path, EpisodeData.ENV_MODIF_SPACE)
+            attack_space_path = os.path.join(
+                self.agent_path, EpisodeData.ATTACK_SPACE)
 
             if not os.path.exists(act_space_path):
                 dict_action_space = action_space.to_dict()
@@ -145,6 +171,11 @@ class EpisodeData:
                 dict_helper_action_env = helper_action_env.to_dict()
                 with open(env_modif_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_helper_action_env, fp=f,
+                              indent=4, sort_keys=True)
+            if not os.path.exists(attack_space_path):
+                dict_attack_space = attack_space.to_dict()
+                with open(attack_space_path, "w", encoding='utf8') as f:
+                    json.dump(obj=dict_attack_space, fp=f,
                               indent=4, sort_keys=True)
 
             if not os.path.exists(self.episode_path):
@@ -165,8 +196,8 @@ class EpisodeData:
     def from_disk(cls, agent_path, name=str(1)):
 
         if agent_path is None:
-            # TODO: proper exception
-            raise Grid2OpException("A path to an episode should be provided")
+            raise Grid2OpException("A path to an episode should be provided, please call \"from_disck\" with "
+                                   "\"agent_path other\" than None")
         episode_path = os.path.abspath(os.path.join(agent_path, name))
 
         try:
@@ -188,6 +219,8 @@ class EpisodeData:
                 episode_path, EpisodeData.OBSERVATIONS))["data"]
             disc_lines = np.load(os.path.join(
                 episode_path, EpisodeData.LINES_FAILURES))["data"]
+            attack = np.load(os.path.join(
+                episode_path, EpisodeData.ATTACK))["data"]
             rewards = np.load(os.path.join(episode_path, EpisodeData.REWARDS))["data"]
 
         except FileNotFoundError as ex:
@@ -199,11 +232,26 @@ class EpisodeData:
             os.path.join(agent_path, EpisodeData.ACTION_SPACE))
         helper_action_env = ActionSpace.from_dict(
             os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
+        attack_space = ActionSpace.from_dict(
+            os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
 
-        return cls(actions, env_actions, observations, rewards, disc_lines,
-                   times, _parameters, episode_meta, episode_times,
-                   observation_space, action_space, helper_action_env,
-                   agent_path, name=name, get_dataframes=True,
+        return cls(actions,
+                   env_actions=env_actions,
+                   observations=observations,
+                   rewards=rewards,
+                   disc_lines=disc_lines,
+                   times=times,
+                   params=_parameters,
+                   meta=episode_meta,
+                   episode_times=episode_times,
+                   observation_space=observation_space,
+                   action_space=action_space,
+                   helper_action_env=helper_action_env,
+                   path_save=agent_path,
+                   attack=attack,
+                   attack_space=attack_space,
+                   name=name,
+                   get_dataframes=True,
                    other_rewards=other_rewards)
 
     def set_parameters(self, env):
@@ -233,7 +281,7 @@ class EpisodeData:
                 self.meta["agent_seed"] = int(agent_seed)
 
     def incr_store(self, efficient_storing, time_step, time_step_duration,
-                   reward, env_act, act, obs, info):
+                   reward, env_act, act, obs, opp_attack, info):
 
         if self.serialize:
             self.actions.update(time_step, act.to_vect(), efficient_storing)
@@ -250,8 +298,12 @@ class EpisodeData:
                     if arr is not None:
                         self.disc_lines[time_step - 1, :] = arr
                     else:
-                        self.disc_lines[time_step - 1,
-                                        :] = self.disc_lines_templ
+                        self.disc_lines[time_step - 1, :] = self.disc_lines_templ
+
+                if opp_attack is not None:
+                    self.attack[time_step - 1, :] = opp_attack.to_vect()
+                else:
+                    self.attack[time_step - 1, :] = 0.
             else:
                 # completely inefficient way of writing
                 self.times = np.concatenate(
@@ -265,6 +317,13 @@ class EpisodeData:
                     else:
                         self.disc_lines = np.concatenate(
                             (self.disc_lines, self.disc_lines_templ))
+
+                if opp_attack is not None:
+                    self.attack = np.concatenate(
+                        (self.attack, opp_attack.to_vect().reshape(1, -1)))
+                else:
+                    self.attack = np.concatenate(
+                        (self.attack, self.attack_templ))
 
             if "rewards" in info:
                 self.other_rewards.append({k: self._convert_to_float(v) for k, v in info["rewards"].items()})
@@ -326,6 +385,8 @@ class EpisodeData:
                 self.episode_path, EpisodeData.LINES_FAILURES), data=self.disc_lines)
             np.savez_compressed(os.path.join(self.episode_path,
                                  EpisodeData.REWARDS), data=self.rewards)
+            np.savez_compressed(os.path.join(self.episode_path,
+                                 EpisodeData.ATTACK), data=self.attack)
 
 
 class CollectionWrapper:

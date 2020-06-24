@@ -65,7 +65,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self._data_already_in_mem = False  # says if the "main" value from the base class had to be reloaded (used for chunk)
 
     def _get_next_chunk_forecasted(self):
-        # TODO merge this class with GridStateFromFile
         load_p = None
         load_q = None
         prod_p = None

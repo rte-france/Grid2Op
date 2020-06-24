@@ -18,7 +18,7 @@ from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
 from grid2op.Reward import RewardHelper
-from grid2op.Opponent import OpponentSpace, UnlimitedBudget
+from grid2op.Opponent import OpponentSpace, NeverAttackBudget
 from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
@@ -57,7 +57,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         :attr:`grid2op.Parameters.Parameters.ENV_DC`.
 
 
-    TODO update with maintenance, hazards etc. see below
+    TODO update docs here...
     # store actions "cooldown"
     times_before_line_status_actionable
     max_timestep_line_status_deactivated
@@ -89,9 +89,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  with_forecast=True,
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_budget_class=UnlimitedBudget,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
                  kwargs_opponent={}
                  ):
         GridObjects.__init__(self)
@@ -210,6 +212,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.opponent_action_class = opponent_action_class  # class of the action of the opponent
         self.opponent_class = opponent_class  # class of the opponent
         self.opponent_init_budget = dt_float(opponent_init_budget)
+        self.opponent_attack_duration = dt_int(opponent_attack_duration)
+        self.opponent_attack_cooldown = dt_int(opponent_attack_cooldown)
         self.opponent_budget_per_ts = dt_float(opponent_budget_per_ts)
         self.kwargs_opponent = kwargs_opponent
         self.opponent_budget_class = opponent_budget_class
@@ -256,14 +260,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                               actionClass=self.opponent_action_class)
 
         self.compute_opp_budget = self.opponent_budget_class(self.opponent_action_space)
-        self.opponent = self.opponent_class(self.opponent_action_space,
-                                            **self.kwargs_opponent)
+        self.opponent = self.opponent_class(self.opponent_action_space)
         self.oppSpace = OpponentSpace(compute_budget=self.compute_opp_budget,
                                       init_budget=self.opponent_init_budget,
+                                      attack_duration=self.opponent_attack_duration,
+                                      attack_cooldown=self.opponent_attack_cooldown,
                                       budget_per_timestep=self.opponent_budget_per_ts,
                                       opponent=self.opponent
                                       )
-        self.oppSpace.init()
+        self.oppSpace.init_opponent(**self.kwargs_opponent)
         self.oppSpace.reset()
 
     def _has_been_initialized(self):
@@ -316,6 +321,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def reset(self):
         self.__is_init = True
+        self.current_obs = None
 
     def seed(self, seed=None):
         """
@@ -351,7 +357,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                    "numpy 64 integer.")
         # example from gym
         # self.np_random, seed = seeding.np_random(seed)
-        # TODO make that more clean, see example of seeding @ https://github.com/openai/gym/tree/master/gym/utils
+        # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
 
         super().seed(seed)
         seed_chron = None
@@ -537,7 +543,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.forbid_dispatch_off is True:
             redisp_act_orig_cut = 1.0 * redisp_act_orig
             redisp_act_orig_cut[new_p == 0.] = 0.
-            # TODO add a flag here too, like before (the action has been "cut")
             if np.any(redisp_act_orig_cut != redisp_act_orig):
                 info_.append({"INFO: redispatching cut because generator will be turned_off":
                               np.where(redisp_act_orig_cut != redisp_act_orig)[0]})
@@ -812,7 +817,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             info: ``dict``
                 contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). It is a
-                dicitonnary with keys:
+                dictionary with keys:
 
                     - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
                         due to overflow
@@ -837,9 +842,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
+        attack = None
         except_ = []
+        detailed_info = []
         init_disp = 1.0 * action._redispatch
-
+        attack_duration = 0
+        lines_attacked, subs_attacked = None, None
+        conv_ = None
         try:
             # "smart" reconnecting
             beg_ = time.time()
@@ -908,10 +917,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # TODO code the opponent part here and split more the timings! here "opponent time" is
             # included in time_apply_act
             tick = time.time()
-            attack = self.oppSpace.attack(observation=self.current_obs,
-                                          agent_action=action,
-                                          env_action=self.env_modification)
-            self._backend_action += attack
+            attack, attack_duration = self.oppSpace.attack(observation=self.current_obs,
+                                                            agent_action=action,
+                                                            env_action=self.env_modification)
+            if attack is not None:
+                # the opponent choose to attack
+                # i update the "cooldown" on these things
+                lines_attacked, subs_attacked = attack.get_topological_impact()
+                self.times_before_line_status_actionable[lines_attacked] = \
+                                np.maximum(attack_duration, self.times_before_line_status_actionable[lines_attacked])
+                self.times_before_topology_actionable[subs_attacked] = \
+                                np.maximum(attack_duration, self.times_before_topology_actionable[subs_attacked])
+                self._backend_action += attack
             self._time_opponent += time.time() - tick
             self.backend.apply_action(self._backend_action)
 
@@ -921,50 +938,50 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             try:
                 # compute the next _grid state
                 beg_ = time.time()
-                disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
+                disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
                 self._time_powerflow += time.time() - beg_
+                if conv_ is None:
+                    beg_ = time.time()
+                    self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
+                    overflow_lines = self.backend.get_line_overflow()
+                    self._backend_action.update_state(disc_lines)
 
-                beg_ = time.time()
-                self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
-                overflow_lines = self.backend.get_line_overflow()
-                self._backend_action.update_state(disc_lines)
+                    # one timestep passed, i can maybe reconnect some lines
+                    self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
+                    # update the vector for lines that have been disconnected
+                    self.times_before_line_status_actionable[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                    self._update_time_reconnection_hazards_maintenance()
 
-                # one timestep passed, i can maybe reconnect some lines
-                self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
-                # update the vector for lines that have been disconnected
-                self.times_before_line_status_actionable[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
-                self._update_time_reconnection_hazards_maintenance()
+                    # for the powerline that are on overflow, increase this time step
+                    self.timestep_overflow[overflow_lines] += 1
 
-                # for the powerline that are on overflow, increase this time step
-                self.timestep_overflow[overflow_lines] += 1
+                    # set to 0 the number of timestep for lines that are not on overflow
+                    self.timestep_overflow[~overflow_lines] = 0
 
-                # set to 0 the number of timestep for lines that are not on overflow
-                self.timestep_overflow[~overflow_lines] = 0
+                    # build the topological action "cooldown"
+                    aff_lines, aff_subs = action.get_topological_impact()
+                    if self.max_timestep_line_status_deactivated > 0:
+                        # i update the cooldown only when this does not impact the line disconnected for the
+                        # opponent or by maitnenance for example
+                        cond = aff_lines  # powerlines i modified
+                        # powerlines that are not affected by any other "forced disconnection"
+                        cond &= self.times_before_line_status_actionable < self.max_timestep_line_status_deactivated
+                        self.times_before_line_status_actionable[cond] = self.max_timestep_line_status_deactivated
+                    if self.max_timestep_topology_deactivated > 0:
+                        self.times_before_topology_actionable[self.times_before_topology_actionable > 0] -= 1
+                        self.times_before_topology_actionable[aff_subs] = self.max_timestep_topology_deactivated
 
-                # build the topological action "cooldown"
-                aff_lines, aff_subs = action.get_topological_impact()
-                if self.max_timestep_line_status_deactivated > 0:
-                    # i update the cooldown only when this does not impact the line disconnected for the
-                    # opponent or by maitnenance for example
-                    cond = aff_lines  # powerlines i modified
-                    # powerlines that are not affected by any other "forced disconnection"
-                    cond &= self.times_before_line_status_actionable < self.max_timestep_line_status_deactivated
-                    self.times_before_line_status_actionable[cond] = self.max_timestep_line_status_deactivated
-                if self.max_timestep_topology_deactivated > 0:
-                    self.times_before_topology_actionable[self.times_before_topology_actionable > 0] -= 1
-                    self.times_before_topology_actionable[aff_subs] = self.max_timestep_topology_deactivated
+                    # build the observation
+                    self.current_obs = self.get_obs()
+                    self._time_extract_obs += time.time() - beg_
 
-                # build the observation
-                self.current_obs = self.get_obs()
-                self._time_extract_obs += time.time() - beg_
-
-                # extract production active value at this time step (should be independant of action class)
-                self.gen_activeprod_t[:], *_ = self.backend.generators_info()
-                # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
-                # of the system. So basically, when it's too high (higher than the ramp) it can
-                # mess up the rest of the environment
-                self.gen_activeprod_t_redisp[:] = new_p + self.actual_dispatch
-                has_error = False
+                    # extract production active value at this time step (should be independant of action class)
+                    self.gen_activeprod_t[:], *_ = self.backend.generators_info()
+                    # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
+                    # of the system. So basically, when it's too high (higher than the ramp) it can
+                    # mess up the rest of the environment
+                    self.gen_activeprod_t_redisp[:] = new_p + self.actual_dispatch
+                    has_error = False
             except Grid2OpException as e:
                 except_.append(e)
                 if self.logger is not None:
@@ -975,13 +992,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_done = True
 
         self._backend_action.reset()
-
+        if conv_ is not None:
+            except_.append(conv_)
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,
                  "is_dispatching_illegal": is_illegal_redisp,
                  "is_illegal_reco": is_illegal_reco,
+                 "opponent_attack_line": lines_attacked,
+                 "opponent_attack_sub": subs_attacked,
+                 "opponent_attack_duration": attack_duration,
                  "exception": except_}
+        if self.backend.detailed_infos_for_cascading_failures:
+            infos["detailed_infos_for_cascading_failures"] = detailed_info
+
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(action,
                                                              has_error,

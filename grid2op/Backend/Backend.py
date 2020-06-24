@@ -20,8 +20,6 @@ from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction
 
-# TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
-
 
 class Backend(GridObjects, ABC):
     """
@@ -425,7 +423,8 @@ class Backend(GridObjects, ABC):
         `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
         For each elements it gives its position in this vector.
 
-        TODO make an example here on how to use this!
+        As any function of the backend, it is not advised to use it directly. You can get this information in the
+        :attr:`grid2op.Observation.Observation.topo_vect`instead.
 
         Returns
         --------
@@ -579,8 +578,11 @@ class Backend(GridObjects, ABC):
         except:
             pass
 
+        res = None
         if not conv:
-            raise DivergingPowerFlow("Powerflow has diverged during computation.")
+            res = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
+                                     "or a load has been disconnected or a generator has been disconnected.")
+        return res
 
     def next_grid_state(self, env, is_dc=False):
         """
@@ -608,11 +610,10 @@ class Backend(GridObjects, ABC):
 
         """
         infos = []
-        self._runpf_with_diverging_exception(is_dc)
-
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
-        if env.no_overflow_disconnection:
-            return disconnected_during_cf, infos
+        conv_ = self._runpf_with_diverging_exception(is_dc)
+        if env.no_overflow_disconnection or conv_ is not None:
+            return disconnected_during_cf, infos, conv_
 
         # the environment disconnect some
 
@@ -640,10 +641,13 @@ class Backend(GridObjects, ABC):
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
 
             # start a powerflow on this new state
-            self._runpf_with_diverging_exception(is_dc)
+            conv_ = self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
                 infos.append(self.copy())
-        return disconnected_during_cf, infos
+
+            if conv_ is not None:
+                break
+        return disconnected_during_cf, infos, conv_
 
     def check_kirchoff(self):
         """

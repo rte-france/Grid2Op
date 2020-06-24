@@ -12,8 +12,7 @@ import os
 import warnings
 import pkg_resources
 
-from grid2op.MakeEnv.MakeFromPath import make_from_dataset_path
-from grid2op.MakeEnv.MakeOld import make_old
+from grid2op.MakeEnv.MakeFromPath import make_from_dataset_path, ERR_MSG_KWARGS
 from grid2op.Exceptions import Grid2OpException, UnknownEnv
 import grid2op.MakeEnv.PathUtils
 from grid2op.MakeEnv.PathUtils import _create_path_folder
@@ -30,6 +29,7 @@ TEST_DEV_ENVS = {
     "rte_case5_example": DEV_DATASET.format("rte_case5_example"),
     "rte_case118_example": DEV_DATASET.format("rte_case118_example"),
     "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
+    "rte_case14_opponent": DEV_DATASET.format("rte_case14_opponent"),
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     # keep the old names for now
     "case14_realistic": DEV_DATASET.format("rte_case14_realistic"),
@@ -81,6 +81,8 @@ _LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = "Corrupted json retrieved from github 
 _LIST_REMOTE_INVALID_DATASETS_JSON_ERR = "Impossible to retrieve available datasets. " \
                                          "File could not be converted to json. " \
                                          "The error was \n\"{}\""
+
+
 def _list_available_remote_env_aux():
     answer = _send_request_retry(_LIST_REMOTE_URL)
     try:
@@ -162,14 +164,16 @@ def _aux_is_multimix(dataset_path):
         return True
     return False
 
-def _aux_make_multimix(dataset, **kwargs):
+def _aux_make_multimix(dataset_path, **kwargs):
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
 
-    return MultiMixEnvironment(dataset, **kwargs)
+    return MultiMixEnvironment(dataset_path, **kwargs)
 
 _MAKE_DEV_ENV_WARN = "You are using a development environment. " \
-                     "This environment is not intended for training agents."
+                     "This environment is not intended for training agents. It might not be up to date "\
+                     "and its primary use if for tests (hence the \"test=True\" you passed as argument). "\
+                     "Use at your own risk."
 _MAKE_DEV_ENV_DEPRECATED_WARN = "Dev env \"{}\" has been deprecated " \
                                 "and will be removed in future version.\n" \
                                 "Please update to dev envs starting by \"rte\" or \"l2rpn\""
@@ -191,60 +195,41 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     ----------
 
     dataset: ``str``
-        Path to the dataset folder, defaults to "rte_case14_realistic"
+        Name of the environment you want to create
 
     test: ``bool``
-        Do not attempt to download data for environments stored remotely. See the global help of this module for
-        detailed behavior above this flag.
+        Whether you want to use a test environment (**NOT** recommended). Use at your own risk.
 
-    param: ``grid2op.Parameters.Parameters``, optional
-        Type of parameters used for the Environment. Parameters defines how the powergrid problem is cast into an
-        markov decision process, and some internal
-
-    backend: ``grid2op.Backend.Backend``, optional
-        The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
-
-    action_class: ``type``, optional
-        Type of BaseAction the BaseAgent will be able to perform.
-        If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
-
-    observation_class: ``type``, optional
-        Type of BaseObservation the BaseAgent will receive.
-        If provided, It must be a subclass of :class:`grid2op.BaseAction.BaseObservation`
-
-    reward_class: ``type``, optional
-        Type of reward signal the BaseAgent will receive.
-        If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
-
-    gamerules_class: ``type``, optional
-        Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
-        If provided, It must be a subclass of :class:`grid2op.RulesChecker.BaseRules`
-
-    data_feeding_kwargs: ``dict``, optional
-        Dictionnary that is used to build the `data_feeding` (chronics) objects.
-
-    chronics_class: ``type``, optional
-        The type of chronics that represents the dynamics of the Environment created. Usually they come from different
-        folders.
-
-    data_feeding: ``type``, optional
-        The type of chronics handler you want to use.
-
-    volagecontroler_class: ``type``, optional
-        The type of :class:`grid2op.VoltageControler.VoltageControler` to use, it defaults to
-
-    chronics_path: ``str``
-        Path where to look for the chronics dataset (optional)
-
-    grid_path: ``str``, optional
-        The path where the powergrid is located.
-        If provided it must be a string, and point to a valid file present on the hard drive.
+    kwargs:
+        Other keyword argument to give more control on the environment you are creating. See
+        the Parameters information of the :func:`make_from_dataset_path`.
 
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
         The created environment.
+
+    Examples
+    --------
+
+    If you want to create the environment "rte_case14_realistic":
+
+    .. code-block: python
+
+        import grid2op
+        env = grid2op.make("rte_case14_realistic")
+        # env implements the openai gym interface (env.step, env.render, env.reset etc.)
+
+    **NB** the first time you type this command, the dataset (approximately 300 MB for this one) will be
+    downloaded from the internet, sizes vary per dataset.
+
     """
+    accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
+    for el in kwargs:
+        if not el in accepted_kwargs:
+            raise Grid2OpException("The keyword argument \"{}\" you provided is invalid. Possible keyword "
+                                   "arguments to create environments are \"{}\"."
+                                   "".format(el, sorted(accepted_kwargs)))
     # Select how to create the environment:
     # Default with make from path
     make_from_path_fn = make_from_dataset_path
@@ -254,7 +239,7 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
         # Check if multimix from path
         if _aux_is_multimix(dataset):
             make_from_path_fn = _aux_make_multimix
-        return make_from_path_fn(dataset, **kwargs)
+        return make_from_path_fn(dataset_path=dataset, **kwargs)
 
     # Not a path: get the dataset name and cache path
     dataset_name = _extract_ds_name(dataset)
@@ -268,15 +253,14 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     if test:
         warnings.warn(_MAKE_DEV_ENV_WARN)
         # Warning for deprecated dev envs
-        if not dataset_name.startswith("rte"):
+        if not (dataset_name.startswith("rte") or dataset_name.startswith("l2rpn")):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
-
         ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
             make_from_path_fn = _aux_make_multimix
 
-        return make_from_path_fn(ds_path, **kwargs)
+        return make_from_path_fn(dataset_path=ds_path, **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):
@@ -291,5 +275,5 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     # Check if multimix from path
     if _aux_is_multimix(real_ds_path):
         make_from_path_fn = _aux_make_multimix
+    return make_from_path_fn(dataset_path=real_ds_path, **kwargs)
 
-    return make_from_path_fn(real_ds_path, **kwargs)

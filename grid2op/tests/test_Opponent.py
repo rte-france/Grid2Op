@@ -594,6 +594,7 @@ class TestLoadingOpp(unittest.TestCase):
                       kwargs_opponent={
                           "lines_attacked": LINES_ATTACKED
                       }) as env:
+
                 env.seed(0)
                 agent_action = env.action_space()
                 observation = env.get_obs()
