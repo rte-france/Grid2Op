@@ -124,14 +124,14 @@ class BaseObservation(GridObjects):
 
     time_before_cooldown_line:  :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the number of time step the powerline is unavailable due to "cooldown"
-        (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF` for more information). 0 means the
+        (see :attr:`grid2op.Parameters.NB_TIMESTEP_COOLDOWN_LINE` for more information). 0 means the
         an action will be able to act on this same powerline, a number > 0 (eg 1) means that an action at this time step
         cannot act on this powerline (in the example the agent have to wait 1 time step)
 
     time_before_cooldown_sub: :class:`numpy.ndarray`, dtype:int
         Same as :attr:`BaseObservation.time_before_cooldown_line` but for substations. For each substation, it gives the
         number of timesteps to wait before acting on this substation (see
-        see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information).
+        see :attr:`grid2op.Parameters.NB_TIMESTEP_COOLDOWN_SUB` for more information).
 
     time_next_maintenance: :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the time of the next planned maintenance. For example if there is:
