@@ -164,7 +164,7 @@ class OpponentSpace(object):
                 attack = None
                 self.previous_fails = True
             # If we can afford the attack
-            elif attack is not None and attack.as_dict():
+            elif attack is not None and any(attack._set_line_status != 0):
                 self.current_attack_duration = self.attack_duration
                 self.current_attack_cooldown += self.attack_cooldown
 
