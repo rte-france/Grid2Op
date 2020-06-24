@@ -142,9 +142,10 @@ class BaseAction(GridObjects):
         bus connectivity at a substation. It has the same size as the full topological vector (:attr:`BaseAction._dim_topo`)
         and for each element it should be understood as:
 
-            - 0: nothing is changed for this element
-            - +1: this element is affected to bus 1
-            - -1: this element is affected to bus 2
+            - 0 -> don't change
+            - 1 -> connect to bus 1
+            - 2 -> connect to bus 2
+            - -1 -> disconnect the object.
 
     _change_bus_vect: :class:`numpy.ndarray`, dtype:bool
          Similar to :attr:`BaseAction._switch_line_status` but it affects the topology at substations instead of the status
