@@ -110,7 +110,7 @@ class Multifolder(GridValue):
 
     def next_chronics(self):
         self._prev_cache_id += 1
-        # TODO
+        # TODO implement the shuffling indeed.
         # if self._prev_cache_id >= len(self._order):
         #     self.space_prng.shuffle(self._order)
         self._prev_cache_id %= len(self._order)
@@ -329,16 +329,20 @@ class Multifolder(GridValue):
 
     def split_and_save(self, datetime_beg, datetime_end, path_out):
         """
-        TODO documentation
+        This function allows you to split the data (keeping only the data between datetime_beg and datetime_end) and to
+        save it on your local machine. This is espacially handy if you want to extract only a piece of the dataset we
+        provide for example.
+
+        # TODO add an example somewhere
 
         Parameters
         ----------
-        datetime_beg
-        datetime_end
-        path_out
-
-        Returns
-        -------
+        datetime_beg:
+            See example (coming soon)
+        datetime_end:
+            See example (coming soon)
+        path_out: ``str``
+            The path were the data will be stored.
 
         """
         if not isinstance(datetime_beg, dict):

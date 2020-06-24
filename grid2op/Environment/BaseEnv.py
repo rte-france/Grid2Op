@@ -57,7 +57,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         :attr:`grid2op.Parameters.Parameters.ENV_DC`.
 
 
-    TODO update with maintenance, hazards etc. see below
+    TODO update docs here...
     # store actions "cooldown"
     times_before_line_status_actionable
     max_timestep_line_status_deactivated
@@ -357,7 +357,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                    "numpy 64 integer.")
         # example from gym
         # self.np_random, seed = seeding.np_random(seed)
-        # TODO make that more clean, see example of seeding @ https://github.com/openai/gym/tree/master/gym/utils
+        # inspiration from @ https://github.com/openai/gym/tree/master/gym/utils
 
         super().seed(seed)
         seed_chron = None
@@ -543,7 +543,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.forbid_dispatch_off is True:
             redisp_act_orig_cut = 1.0 * redisp_act_orig
             redisp_act_orig_cut[new_p == 0.] = 0.
-            # TODO add a flag here too, like before (the action has been "cut")
             if np.any(redisp_act_orig_cut != redisp_act_orig):
                 info_.append({"INFO: redispatching cut because generator will be turned_off":
                               np.where(redisp_act_orig_cut != redisp_act_orig)[0]})

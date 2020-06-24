@@ -14,17 +14,12 @@ from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
-# TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
-# ambiguous at all, same with "set" then "change")
-
 
 # TODO code "convert_for" and "convert_from" to be able to change the backend (should be handled by the backend directly)
 # TODO have something that output a dict like "i want to change this element" (with a simpler API than the update stuff)
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
-
-# TODO tests for redispatching action.
 
 class BaseAction(GridObjects):
     """
@@ -1111,7 +1106,10 @@ class BaseAction(GridObjects):
               change it (eg switch it from bus 1 to bus 2 or from bus 2 to bus 1). NB this is only active if the system
               has only 2 buses per substation.
 
-            - "redispatch" TODO
+            - "redispatch": the best use of this is to specify either the numpy array of the redispatch vector you want
+              to apply (that should have the size of the number of generators on the grid) or to specify a list of
+              tuple, each tuple being 2 elements: first the generator ID, second the amount of redispatching,
+              for example `[(1, -23), (12, +17)]`
 
             **NB** the difference between "set_bus" and "change_bus" is the following:
 
@@ -1201,6 +1199,13 @@ class BaseAction(GridObjects):
             target_topology[3:] = 2
             reconfig_sub = env.action_space({"set_bus": {"substations_id": [(sub_id, target_topology)] } })
             print(reconfig_sub)
+
+        *Example 6*: apply redispatching of +17.42 MW at generator with id 23 and -27.8 at generator with id 1
+
+        .. code-block:: python
+
+            redisp_act = env.action_space({"redispatch": [(23, +17.42), (23, -27.8)]})
+            print(redisp_act)
 
         Returns
         -------
@@ -1442,14 +1447,11 @@ class BaseAction(GridObjects):
         A generic sampling of action can be really tedious. Uniform sampling is almost impossible.
         The actual implementation gives absolutely no warranty toward any of these concerns.
 
-        It is not implemented yet.
-        TODO
+        **It is not implemented yet.**
 
-        By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state.
-
-        Parameters
-        ----------
-        space_prng
+        By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state. If you want
+        to sample uniformly at random among some actions, we recommand you the use of the converter IdToAct that
+        implements this feature.
 
         Returns
         -------
@@ -1457,7 +1459,6 @@ class BaseAction(GridObjects):
             The action sampled among the action space.
         """
         self.reset()
-        # TODO code the sampling now
         return self
 
     def _ignore_topo_action_if_disconnection(self, sel_):

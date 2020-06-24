@@ -37,7 +37,7 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 # TODO add a more suitable logging strategy
 
 # TODO use gym logger if specified by the user.
-
+# TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 class DoNothingLog:
     """
@@ -98,8 +98,6 @@ class ConsoleLog(DoNothingLog):
                 print("WARNING: \"{}\"".format(", ".join(args)))
             if kwargs:
                 print("WARNING: {}".format(kwargs))
-
-#TODO i think runner.env are not close, like, never closed :eyes:
 
 
 class Runner(object):

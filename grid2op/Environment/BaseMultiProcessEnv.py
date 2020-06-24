@@ -14,8 +14,6 @@ from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
 
-# TODO test this class.
-
 
 class RemoteEnv(Process):
     """
@@ -50,7 +48,6 @@ class RemoteEnv(Process):
 
         """
         # TODO documentation
-        # TODO seed of the environment.
 
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)

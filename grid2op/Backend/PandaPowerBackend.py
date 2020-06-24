@@ -185,8 +185,6 @@ class PandaPowerBackend(Backend):
 
         """
 
-        # TODO read the name from the file if they are set...
-
         if path is None and filename is None:
             raise RuntimeError("You must provide at least one of path or file to laod a powergrid.")
         if path is None:
@@ -616,7 +614,7 @@ class PandaPowerBackend(Backend):
                     pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
 
                 if self._grid.res_gen.isnull().values.any():
-                    # TODO see if there is a better way here
+                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.
                     raise pp.powerflow.LoadflowNotConverged("Isolated gen")
 

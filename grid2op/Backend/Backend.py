@@ -20,8 +20,6 @@ from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction
 
-# TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
-
 
 class Backend(GridObjects, ABC):
     """
@@ -425,7 +423,8 @@ class Backend(GridObjects, ABC):
         `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
         For each elements it gives its position in this vector.
 
-        TODO make an example here on how to use this!
+        As any function of the backend, it is not advised to use it directly. You can get this information in the
+        :attr:`grid2op.Observation.Observation.topo_vect`instead.
 
         Returns
         --------

@@ -21,8 +21,6 @@ from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageControll
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
-# TODO code "start from a given time step" -> link to the "skip" method of GridValue
-
 
 class Environment(BaseEnv):
     """
@@ -537,7 +535,6 @@ class Environment(BaseEnv):
             self.viewer_fig = None
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
-        # TODO add test above: fake a cascading failure, do a reset, check that it can be loaded
 
         # reset the opponent
         self.oppSpace.reset()
@@ -616,7 +613,6 @@ class Environment(BaseEnv):
             # And you can use this one as you would any other environment.
 
         """
-        # TODO make a test about that
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)

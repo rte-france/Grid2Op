@@ -196,8 +196,8 @@ class EpisodeData:
     def from_disk(cls, agent_path, name=str(1)):
 
         if agent_path is None:
-            # TODO: proper exception
-            raise Grid2OpException("A path to an episode should be provided")
+            raise Grid2OpException("A path to an episode should be provided, please call \"from_disck\" with "
+                                   "\"agent_path other\" than None")
         episode_path = os.path.abspath(os.path.join(agent_path, name))
 
         try:

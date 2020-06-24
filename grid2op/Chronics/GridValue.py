@@ -21,8 +21,6 @@ from grid2op.Exceptions import EnvError
 
 # TODO add a class to sample "online" the data.
 
-# TODO add a method 'skip' that can skip a given number of timestep or a until a specific date.
-
 
 class GridValue(RandomObject, ABC):
     """
@@ -619,13 +617,13 @@ class GridValue(RandomObject, ABC):
 
     def set_chunk_size(self, new_chunk_size):
         """
-        TODO
+        This parameters allows to set, if the data generation process support it, the amount of data that is read
+        at the same time. It can help speeding up the computation process by adding more control on the io operation.
+
         Parameters
         ----------
-        new_chunk_size
-
-        Returns
-        -------
+        new_chunk_size: ``int``
+            The chunk size (ie the number of rows that will be read on each data set at the same time)
 
         """
         pass
