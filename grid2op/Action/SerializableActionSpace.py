@@ -106,6 +106,8 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
+        res: :class:`BaseAction`
+            The action that will disconnect the powerline.
 
         """
         if line_id is None and line_name is None:
@@ -117,7 +119,9 @@ class SerializableActionSpace(SerializableSpace):
 
         if line_id is None:
             line_id = np.where(self.name_line == line_name)[0]
-
+            if not len(line_id):
+                raise AmbiguousAction("Line with name \"{}\" is not on the grid. The powerlines names are:\n{}"
+                                      "".format(line_name, self.name_line))
         if previous_action is None:
             res = self.actionClass()
         else:
@@ -153,6 +157,8 @@ class SerializableActionSpace(SerializableSpace):
 
         Returns
         -------
+        res: :class:`BaseAction`
+            The action that will reconnect the powerline.
 
         """
         if line_id is None and line_name is None:
@@ -210,7 +216,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Raises
         ------
-        :class:`grid2op.Exception.AmbiguousAction`
+        res :class:`grid2op.Exception.AmbiguousAction`
             If *previous_action* has not the same type as :attr:`ActionSpace.actionClass`.
 
         """
@@ -403,8 +409,7 @@ class SerializableActionSpace(SerializableSpace):
         This methods allows to compute and return all the unitary topological changes that can be performed on a
         powergrid.
 
-        The changes will be performed using the "change_bus" method. The "do nothing" action will be counted only
-        once.
+        The changes will be performed using the "change_bus" method. It excludes the "do nothing" action
 
         Parameters
         ----------
@@ -421,6 +426,10 @@ class SerializableActionSpace(SerializableSpace):
         S = [0, 1]
         for sub_id, num_el in enumerate(action_space.sub_info):
             already_set = set()
+            # remove the "do nothing" action, which is either equivalent to not change anything
+            # or to change everything
+            already_set.add(tuple([1 for _ in range(num_el)]))
+            already_set.add(tuple([0 for _ in range(num_el)]))
             for tup_ in itertools.product(S, repeat=num_el):
                 if tup_ not in already_set:
                     indx = np.full(shape=num_el, fill_value=False, dtype=dt_bool)

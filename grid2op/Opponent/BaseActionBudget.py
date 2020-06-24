@@ -5,6 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import numpy as np
 from grid2op.Exceptions import OpponentError
 
@@ -22,6 +23,7 @@ class BaseActionBudget:
         """
         This function takes an attack as input and compute the cost associated to it.
 
+        **NB** The cost of a "None" attack is necessarily 0 !
         Parameters
         ----------
         attack: :class:`ŋrid2op.BaseAction.BaseAction`
@@ -32,6 +34,9 @@ class BaseActionBudget:
         cost: the cost of the action performed by the opponent.
 
         """
+        if attack is None:
+            return 0
+
         if not isinstance(attack, self.action_space.actionClass):
             raise OpponentError("Attempt to use an attack of type \"{}\" which is not a instance of \"{}\", "
                                 "the type of action the opponent was supposed to use."

@@ -10,8 +10,6 @@
 import os
 import json
 
-# TODO use something a bit different when in venv for example
-# look at where the local package can be installed
 DEFAULT_PATH_CONFIG = os.path.expanduser("~/.grid2opconfig.json")
 DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
 KEY_DATA_PATH = "data_path"

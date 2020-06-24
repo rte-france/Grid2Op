@@ -75,6 +75,10 @@ class _ObsEnv(BaseEnv):
         self._do_nothing_act = self.helper_action_env()
         self._backend_action_set = self._backend_action_class()
 
+        # opponent
+        self.opp_space_state = None
+        self.opp_state = None
+
     def init_backend(self,
                      init_grid_path,
                      chronics_handler,
@@ -128,6 +132,11 @@ class _ObsEnv(BaseEnv):
         self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
         self.last_bus_line_or_init = np.zeros(self.n_line, dtype=dt_int)
         self.last_bus_line_ex_init = np.zeros(self.n_line, dtype=dt_int)
+
+        self.current_obs_init = self.obsClass(seed=None,
+                                              obs_env=None,
+                                              action_helper=None)
+        self.current_obs = self.current_obs_init
 
     def _do_nothing(self, x):
         return self._do_nothing_act
@@ -187,38 +196,34 @@ class _ObsEnv(BaseEnv):
         ``None``
 
         """
-        if self.is_init:
-            return
-
-
         self._topo_vect[:] = topo_vect
-        # update the action that set the grid to the real value
-        self._action = self.CompleteActionClass()
-        self._action.update({"set_line_status": np.array(self._line_status, dtype=dt_int),
-                             "set_bus": self._topo_vect,
-                             "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
-                                           "load_p": self._load_p, "load_q": self._load_q}})
-
-        self._action += new_state_action
+        # TODO update maintenance time, duration and cooldown accordingly (see all todos in `update_grid`)
 
         # TODO set the shunts here
-        self._topo_vect[:] = topo_vect
         # update the action that set the grid to the real value
         self._backend_action_set += self.helper_action_env({"set_line_status": np.array(self._line_status, dtype=dt_int),
                                                             "set_bus": self._topo_vect,
-                                                            "injection": {"prod_p": self._prod_p, "prod_v": self._prod_v,
-                                                                          "load_p": self._load_p, "load_q": self._load_q}})
-        self._backend_action_set += self._action
+                                                            "injection": {"prod_p": self._prod_p,
+                                                                          "prod_v": self._prod_v,
+                                                                          "load_p": self._load_p,
+                                                                          "load_q": self._load_q}
+                                                            })
+        self._backend_action_set += new_state_action
         self.is_init = True
-        self.current_obs = None
+        self.current_obs.reset()
         self.time_stamp = time_stamp
         self.timestep_overflow[:] = timestep_overflow
+
+    def reset(self):
+        super().reset()
+        self.current_obs = self.current_obs_init
 
     def _reset_to_orig_state(self):
         """
         reset this "environment" to the state it should be
         """
         self.reset()  # reset the "BaseEnv"
+        # self.time_stamp = None  # TODO this should not throw...
         self.backend.set_thermal_limit(self._thermal_limit_a)
         self.gen_activeprod_t[:] = self.gen_activeprod_t_init
         self.gen_activeprod_t_redisp[:] = self.gen_activeprod_t_redisp_init
@@ -230,21 +235,10 @@ class _ObsEnv(BaseEnv):
         self.actual_dispatch[:] = self.actual_dispatch_init
         self.last_bus_line_or[:] = self.last_bus_line_or_init
         self.last_bus_line_ex[:] = self.last_bus_line_ex_init
-        new = True
-        save = False
-        if new:
-            self._backend_action_set.all_changed()
-            # self.backend.apply_action(None, self._backend_action_set)
-            self._backend_action = copy.deepcopy(self._backend_action_set)
-            if save:
-                import pandapower as pp
-                pp.to_json(self.backend._grid, "test_action2.json")
-        else:
-            self.backend.apply_action(self._action)
-            if save:
-                import pandapower as pp
-                pp.to_json(self.backend._grid, "test_action1.json")
-        # print("load after applying act: {}".format(self.backend._grid.load["p_mw"].values[0]))
+
+        self._backend_action_set.all_changed()
+        self._backend_action = copy.deepcopy(self._backend_action_set)
+        self.oppSpace._set_state(self.opp_space_state, self.opp_state)
 
     def simulate(self, action):
         """
@@ -284,25 +278,9 @@ class _ObsEnv(BaseEnv):
                 - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
 
         """
-        # print("-----")
         self._reset_to_orig_state()
-        # print("\t before {}".format(np.sum(self.backend._grid.gen["p_mw"])))
-        # self.backend._pf_init = "dc"
         # TODO set back the "change" to True
         obs, reward, done, info = self.step(action)
-        # print("\t {}".format(reward))
-        # print("\t after {}".format(np.sum(self.backend._grid.res_gen["p_mw"])))
-        # print("\t after {}".format(np.sum(self.backend._grid.res_bus["vm_pu"])))
-        # print("\t after {}".format(np.sum(self.backend._grid.res_shunt["vm_pu"])))
-        # print("\t after {}".format(np.sum(self.backend._grid.shunt["q_mvar"])))
-        # print("\t\t{}".format(np.sum(obs.prod_p)))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[0]["vm_pu"]))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[1]["vm_pu"]))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[2]["vm_pu"]))
-        # print("p {}".format(self.backend._grid.res_gen.iloc[3]["vm_pu"]))
-        # print("slack p {}".format(self.backend._grid.res_gen.iloc[4]["vm_pu"]))
-        # print("\t\t{}".format(np.sum(obs.prod_v)))
-        # print("\t\t{}".format(np.sum(obs.prod_v)))
         return obs, reward, done, info
 
     def get_obs(self):
@@ -314,13 +292,8 @@ class _ObsEnv(BaseEnv):
         res: :class:`grid2op.Observation.Observation`
             The observation available.
         """
-
-        self.current_obs = self.obsClass(seed=None,
-                                         obs_env=None,
-                                         action_helper=None)
-
-        self.current_obs.update(self)
-        res = self.current_obs
+        self.current_obs.update(self, with_forecast=False)
+        res = copy.deepcopy(self.current_obs)
         return res
 
     def update_grid(self, env):
@@ -337,6 +310,8 @@ class _ObsEnv(BaseEnv):
 
         """
         real_backend = env.backend
+        self.reward_helper = env.reward_helper
+
         self._load_p, self._load_q, self._load_v = real_backend.loads_info()
         self._prod_p, self._prod_q, self._prod_v = real_backend.generators_info()
         self._topo_vect = real_backend.get_topo_vect()
@@ -360,6 +335,9 @@ class _ObsEnv(BaseEnv):
         self.actual_dispatch_init[:] = env.actual_dispatch
         self.last_bus_line_or_init[:] = env.last_bus_line_or
         self.last_bus_line_ex_init[:] = env.last_bus_line_ex
+        self.opp_space_state, self.opp_state = env.oppSpace._get_state()
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!
+        # TODO add the opponent budget here (should decrease with the time step :scared:) -> we really need to address
+        # all that before 1.0.0

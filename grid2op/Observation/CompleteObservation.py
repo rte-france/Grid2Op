@@ -25,12 +25,12 @@ class CompleteObservation(BaseObservation):
 
     For a :class:`CompleteObservation` the unique representation as a vector is:
 
-        1. the year [1 element]
-        2. the month [1 element]
-        3. the day [1 element]
-        4. the day of the week. Monday = 0, Sunday = 6 [1 element]
-        5. the hour of the day [1 element]
-        6. minute of the hour  [1 element]
+        1. :attr:`BaseObservation.year` the year [1 element]
+        2. :attr:`BaseObservation.month` the month [1 element]
+        3. :attr:`BaseObservation.day` the day [1 element]
+        4. :attr:`BaseObservation.hour_of_day` the hour of the day [1 element]
+        5. :attr:`BaseObservation.minute_of_hour` minute of the hour  [1 element]
+        6. :attr:`BaseObservation.day_of_week` the day of the week. Monday = 0, Sunday = 6 [1 element]
         7. :attr:`BaseObservation.prod_p` the active value of the productions
            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         8. :attr:`BaseObservation.prod_q` the reactive value of the productions
@@ -154,11 +154,17 @@ class CompleteObservation(BaseObservation):
 
         # handles forecasts here
         if with_forecast:
-            self._forecasted_inj = env.chronics_handler.forecasts()
-            for grid_act in self._forecasted_grid_act.values():
-                # in the action, i assign the lat topology known, it's a choice here...
-                grid_act["inj_action"]["setbus"] = self.topo_vect
-
+            inj_action = {}
+            dict_ = {}
+            dict_["load_p"] = dt_float(1.0 * self.load_p)
+            dict_["load_q"] = dt_float(1.0 * self.load_q)
+            dict_["prod_p"] = dt_float(1.0 * self.prod_p)
+            dict_["prod_v"] = dt_float(1.0 * self.prod_v)
+            inj_action["injection"] = dict_
+            # inj_action = self.action_helper(inj_action)
+            timestamp = self.get_time_stamp()
+            self._forecasted_inj = [(timestamp, inj_action)]
+            self._forecasted_inj += env.chronics_handler.forecasts()
             self._forecasted_grid = [None for _ in self._forecasted_inj]
 
         self.rho = env.backend.get_relative_flow().astype(dt_float)
@@ -194,12 +200,14 @@ class CompleteObservation(BaseObservation):
 
     def to_dict(self):
         """
+        Transform this observation as a dictionary. This dictionary allows you to inspect the state of this
+        observation and is simply a shortcut of the class instance.
 
         Returns
         -------
+        A dictionary representing the observation.
 
         """
-        # TODO doc
         if self.dictionnarized is None:
             self.dictionnarized = {}
             self.dictionnarized["timestep_overflow"] = self.timestep_overflow

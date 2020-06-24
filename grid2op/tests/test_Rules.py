@@ -488,6 +488,48 @@ class TestReconnectionsLegality(unittest.TestCase):
         # Check line has been reconnected
         assert np.sum(obs.line_status) == (env_case2.n_line)
 
+    def test_sub_dont_change(self):
+        """test that i cannot reconect a powerline by acting on the substation"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 1
+            params.MAX_LINE_STATUS_CHANGED = 1
+            params.NB_TIMESTEP_COOLDOWN_LINE = 3
+            params.NB_TIMESTEP_COOLDOWN_SUB = 3
+            params.NO_OVERFLOW_DISCONNECTION = True
+            env = make("rte_case5_example", test=True, param=params)
+        l_id = 2
+        # prepare the actions
+        disco_act = env.action_space.disconnect_powerline(line_id=l_id)
+        reco_act = env.action_space.reconnect_powerline(line_id=l_id, bus_or=1, bus_ex=1)
+        set_or_1_act = env.action_space({"set_bus": {"lines_or_id": [(l_id, 1)]}})
+        set_ex_1_act = env.action_space({"set_bus": {"lines_ex_id": [(l_id, 1)]}})
+
+        obs, reward, done, info = env.step(disco_act)
+        assert obs.rho[l_id] == 0.
+        assert obs.time_before_cooldown_line[l_id] == 3
+        assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+        obs, reward, done, info = env.step(reco_act)
+        assert obs.rho[l_id] == 0.
+        assert info["is_illegal"]
+        assert obs.time_before_cooldown_line[l_id] == 2
+        assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+        obs, reward, done, info = env.step(set_or_1_act)
+        assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+        assert obs.rho[l_id] == 0.
+        assert obs.time_before_cooldown_line[l_id] == 1
+        assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+        obs, reward, done, info = env.step(set_ex_1_act)
+        assert obs.rho[l_id] == 0.
+        assert obs.time_before_cooldown_line[l_id] == 0
+        assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+        # and now i can reconnect
+        obs, reward, done, info = env.step(reco_act)
+        assert obs.rho[l_id] != 0.
+        assert obs.time_before_cooldown_line[l_id] == 3
+        assert env.backend._grid.line.iloc[l_id]["in_service"] == True
+
 
 class TestSubstationImpactLegality(unittest.TestCase):
     def setUp(self):

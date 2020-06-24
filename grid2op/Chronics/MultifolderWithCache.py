@@ -13,7 +13,6 @@ from grid2op.Chronics.MultiFolder import Multifolder
 from grid2op.Chronics.GridStateFromFile import GridStateFromFile
 
 
-#TODO tests for this class
 class MultifolderWithCache(Multifolder):
     """
     This class is a particular type of :class:`MultiFolder` that, instead of reading is all from disk each time
@@ -57,6 +56,7 @@ class MultifolderWithCache(Multifolder):
         while not done:
             act = my_agent.act(obs, reward, done)
             obs, reward, done, info = env.step(act)  # and step will NOT load any data from disk.
+
     """
     def __init__(self, path,
                  time_interval=timedelta(minutes=5),
@@ -74,8 +74,7 @@ class MultifolderWithCache(Multifolder):
                              max_iter=max_iter,
                              chunk_size=None)
         self._cached_data = None
-        self._filter = self._default_filter
-        self._prev_cache_id = 0
+        self.cache_size = 0
         if not issubclass(self.gridvalueClass, GridStateFromFile):
             raise RuntimeError("MultifolderWithCache does not work when \"gridvalueClass\" does not inherit from "
                                "\"GridStateFromFile\".")
@@ -84,7 +83,6 @@ class MultifolderWithCache(Multifolder):
     def _default_filter(self, x):
         """
         default filter used at the initialization. It keeps only the first data encountered.
-
         """
         if self.__i > 0:
             return False
@@ -92,31 +90,23 @@ class MultifolderWithCache(Multifolder):
             self.__i += 1
             return True
 
-    def set_filter(self, filter_fun):
-        """
-        Assign a filtering function to remove some chronics from the next time a call to "reset_cache" is called.
-
-        **NB** filter_fun is applied to all element of :attr:`MultifolderWithCache.subpaths`. If ``True`` then it will
-        be put in cache, if ``False`` this data will NOT be put in the cache.
-
-        **NB** this has no effect until "reset_cache" is called.
-        """
-        self._filter = filter_fun
-
-    def reset_cache(self):
+    def reset(self):
         """
         Rebuilt the cache as if it were built from scratch. This call might take a while to process.
         """
-        self._cached_data = []
-        self._prev_cache_id = 0
-        for path in self.subpaths:
-            if not self._filter(path):
-                continue
+        self._cached_data = [None for _ in self.subpaths]
+        self.__i = 0
+        # select the right paths, and store their id in "_order"
+        super().reset()
+        self.cache_size = 0
+        for i in self._order:
+            # everything in "_order" need to be put in cache
+            path = self.subpaths[i]
             data = self.gridvalueClass(time_interval=self.time_interval,
                                        sep=self.sep,
                                        path=path,
                                        max_iter=self.max_iter,
-                                       chunk_size=self.chunk_size)
+                                       chunk_size=None)
             if self.seed is not None:
                 max_int = np.iinfo(dt_int).max
                 seed_chronics = self.space_prng.randint(max_int)
@@ -127,17 +117,11 @@ class MultifolderWithCache(Multifolder):
                             self._order_backend_lines,
                             self._order_backend_subs,
                             self._names_chronics_to_backend)
-            self._cached_data.append(data)
+            self._cached_data[i] = data
+            self.cache_size += 1
 
-        if len(self._cached_data) == 0:
+        if self.cache_size == 0:
             raise RuntimeError("Impossible to initialize the new cache.")
-        self.space_prng.shuffle(self._cached_data)
-
-    def next_chronics(self):
-        self._prev_cache_id += 1
-        if self._prev_cache_id >= len(self._cached_data):
-            self.space_prng.shuffle(self._cached_data)
-        self._prev_cache_id %= len(self._cached_data)
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
@@ -152,10 +136,8 @@ class MultifolderWithCache(Multifolder):
         self.n_line = len(order_backend_lines)
         if self._cached_data is None:
             # initialize the cache
-            self.reset_cache()
+            self.reset()
 
-        self.data = self._cached_data[self._prev_cache_id]
-        # self.data.current_index = 0
-        # self.data.curr_iter = 0
+        id_scenario = self._order[self._prev_cache_id]
+        self.data = self._cached_data[id_scenario]
         self.data.next_chronics()
-        # print("data updated, self._prev_cache_id: {}".format(os.path.split(self.data.path)[-1]))

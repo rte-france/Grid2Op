@@ -6,6 +6,7 @@
 [![Documentation Status](https://readthedocs.org/projects/grid2op/badge/?version=latest)](https://grid2op.readthedocs.io/en/latest/?badge=latest)
 [![circleci](https://circleci.com/gh/BDonnot/Grid2Op.svg?style=shield)](https://circleci.com/gh/BDonnot/Grid2Op)
 [![discord](https://discord.com/api/guilds/698080905209577513/embed.png)]( https://discord.gg/cYsYrPT)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
 
 Grid2Op is a plateform, built with modularity in mind, that allows to perform powergrid operation.
 And that's what it stands for: Grid To Operate.
@@ -147,6 +148,9 @@ interesting part of this framework:
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
   to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines. 
+* [9_nvironmentModifications](getting_started/9_EnvironmentModifications.ipynb) elaborates on the maintenance, hazards
+  and attacks. All three of these represents external events that can disconnect some powerlines. This notebook
+  covers how to spot when such things happened and what can be done when the maintenance or the attack is over.
   
 Try them out in your own browser without installing 
 anything with the help of mybinder: 

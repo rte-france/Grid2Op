@@ -13,7 +13,6 @@ from grid2op.Exceptions import Grid2OpException, MultiEnvException
 from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
-# TODO test this class.
 
 
 class RemoteEnv(Process):
@@ -49,19 +48,14 @@ class RemoteEnv(Process):
 
         """
         # TODO documentation
-        # TODO seed of the environment.
 
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)
-        self.backend = self.env_params["backendClass"]()
-        del self.env_params["backendClass"]
-        chronics_handler = self.env_params["chronics_handler"]
+        self.backend = self.env_params["_raw_backend_class"]()
         self.env = Environment(**self.env_params, backend=self.backend)
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
         self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x), replace=False)])
-        # forecast are not forwarded with this method anyway
-        self.env.deactivate_forecast()
 
     def _clean_observation(self, obs):
         obs._forecasted_grid = []
@@ -126,11 +120,13 @@ class RemoteEnv(Process):
                 self.remote.send((self.seed_used, self.all_seeds))
             elif cmd == "params":
                 self.remote.send(self.env.parameters)
+            elif hasattr(self.env, cmd):
+                self.remote.send(getattr(self.env, cmd))
             else:
                 raise NotImplementedError
 
 
-class MultiEnvironment(GridObjects):
+class BaseMultiProcessEnvironment(GridObjects):
     """
     This class allows to evaluate a single agent instance on multiple environments running in parrallel.
 
@@ -156,15 +152,6 @@ class MultiEnvironment(GridObjects):
     A broader support of regular grid2op environment capabilities as well as support for
     :func:`grid2op.Observation.BaseObservation.simulate` call will be added in the future.
 
-    **NB** if the backend class you use is not pickable, the :class:`MultiEnvironment`
-    will **NOT** be supported in Microsoft Windows based machine. However, you can always fall
-    back to use the default :class:`grid2op.Backend.PandaPowerBackend` in this case. This class
-    is compatible with multi environments in linux (tested on Fedora and Ubuntu) mac os (tested
-    on the latest macos release at time of writing) and windows 10 (latest update at time of
-    writing).
-
-    Examples
-    --------
     An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
 
     .. code-block:: python
@@ -205,8 +192,8 @@ class MultiEnvironment(GridObjects):
 
     Attributes
     -----------
-    imported_env: `grid2op.Environment.Environment`
-        The environment to duplicated and for which the evaluation will be made in parallel.
+    envs: `list::grid2op.Environment.Environment`
+        Al list of environments for which the evaluation will be made in parallel.
 
     nb_env: ``int``
         Number of parallel underlying environment that will be handled. It is also the size of the list of actions
@@ -214,21 +201,19 @@ class MultiEnvironment(GridObjects):
         same function.
 
     """
-    def __init__(self, nb_env, env):
+    def __init__(self, envs):
         GridObjects.__init__(self)
-        self.imported_env = env
-        self.nb_env = nb_env
+        self.envs = envs
+        self.nb_env = len(envs)
         max_int = np.iinfo(dt_int).max
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
-        env_params = [env.get_kwargs() for _ in range(self.nb_env)]
-        for el in env_params:
-            el["backendClass"] = env._raw_backend_class
+        env_params = [envs[e].get_kwargs(with_backend=False) for e in range(self.nb_env)]
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
-                              name="{}_subprocess_{}".format(env.name, i),
-                              seed=env.space_prng.randint(max_int))
+                              name="{}_subprocess_{}".format(envs[i].name, i),
+                              seed=envs[i].space_prng.randint(max_int))
                     for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
 
         for p in self._ps:
@@ -248,7 +233,7 @@ class MultiEnvironment(GridObjects):
         results = [remote.recv() for remote in self._remotes]
         self._waiting = False
         obs, rews, dones, infos = zip(*results)
-        obs = [self.imported_env.observation_space.from_vect(ob) for ob in obs]
+        obs = [self.envs[e].observation_space.from_vect(ob) for e, ob in enumerate(obs)]
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
     def step(self, actions):
@@ -307,7 +292,7 @@ class MultiEnvironment(GridObjects):
         """
         for remote in self._remotes:
             remote.send(('r', None))
-        res = [self.imported_env.observation_space.from_vect(remote.recv()) for remote in self._remotes]
+        res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
         return np.stack(res)
 
     def close(self):
@@ -376,18 +361,54 @@ class MultiEnvironment(GridObjects):
         res = [remote.recv() for remote in self._remotes]
         return res
 
+    def __getattr__(self, name):
+        """
+        This function is used to get the attribute of the underlying sub environments.
+
+        Note that setting attributes or information to the sub_env this way will not work. This method only allows
+        to get the value of some attributes, NOT to modify them.
+
+        /!\ **DANGER** /!\ is you use this function, you are entering the danger zone. This might not work and
+        make your all python session dies without any notice. You've been warned.
+
+        Parameters
+        ----------
+        name: ``str``
+            Name of the attribute you want to get the value, for each sub_env
+
+        Returns
+        -------
+        res: ``list``
+            The value of the given attribute for each sub env. Again, use with care.
+
+        """
+        res = True
+        for sub_env in self.envs:
+            if not hasattr(sub_env, name):
+                res = False
+        if not res:
+            raise RuntimeError("At least one of the sub_env has not the attribute \"{}\". This will not be "
+                               "executed.".format(name))
+        for remote in self._remotes:
+            remote.send((name, None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
 
 if __name__ == "__main__":
     from tqdm import tqdm
     from grid2op import make
     from grid2op.Agent import DoNothingAgent
-    env = make()
 
     nb_env = 8  # change that to adapt to your system
-    NB_STEP = 1000  # number of step for each environment
+    NB_STEP = 100  # number of step for each environment
 
+    env = make()
+    env.seed(42)
+    envs = [env for _ in range(nb_env)]
+    
     agent = DoNothingAgent(env.action_space)
-    multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
+    multi_envs = BaseMultiProcessEnvironment(envs)
 
     obs = multi_envs.reset()
     rews = [env.reward_range[0] for i in range(nb_env)]

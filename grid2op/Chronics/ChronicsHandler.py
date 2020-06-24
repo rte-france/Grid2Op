@@ -65,41 +65,17 @@ class ChronicsHandler(RandomObject):
         if "path" in kwargs:
             self.path = kwargs["path"]
 
-        self.real_data = None
+        self._real_data = None
         try:
-            self.real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
-                                                **self.kwargs)
+            self._real_data = self.chronicsClass(time_interval=time_interval, max_iter=self.max_iter,
+                                                 **self.kwargs)
         except TypeError:
             raise ChronicsError("Impossible to build a chronics of type {} with arguments in "
                                 "{}".format(chronicsClass, self.kwargs))
 
-    def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                   names_chronics_to_backend=None):
-        """
-        After being loaded, this method will initialize the data.
-
-        See definition of :func:`GridValue.initialize` for more information about this method.
-
-        Returns
-        -------
-        ``None``
-
-        """
-        self.real_data.initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
-                                  names_chronics_to_backend)
-
-    def check_validity(self, backend):
-        """
-        This method ensure the data are valid and compatible with the backend used.
-
-        See definition of :func:`GridValue.check_validity` for more information about this method.
-
-        Returns
-        -------
-        ``None``
-
-        """
-        self.real_data.check_validity(backend)
+    @property
+    def real_data(self):
+        return self._real_data
 
     def next_time_step(self):
         """
@@ -108,62 +84,8 @@ class ChronicsHandler(RandomObject):
         See definition of :func:`GridValue.load_next` for more information about this method.
 
         """
-        res = self.real_data.load_next()
+        res = self._real_data.load_next()
         return res
-
-    def done(self):
-        """
-        This method returns whether or not the episode is done.
-
-        See definition of :func:`GridValue.done` for more information about this method.
-
-        """
-        return self.real_data.done()
-
-    def forecasts(self):
-        """
-        This method returns the forecasts of the data.
-
-        See definition of :func:`GridValue.forecasts` for more information about this method.
-
-        """
-        return self.real_data.forecasts()
-
-    def next_chronics(self):
-        """
-        This method is called when changing the episode after game over or after it has reached the end.
-
-        See definition of :func:`GridValue.next_chronics` for more information about this method.
-
-        """
-        self.real_data.next_chronics()
-
-    def tell_id(self, id_num):
-        """
-        This method is called when setting a given episode after game over or after it has reached the end.
-
-        See definition of :func:`GridValue.tell_id` for more information about this method.
-
-        """
-        self.real_data.tell_id(id_num=id_num)
-
-    def max_timestep(self):
-        """
-        This method gives the maximum number of time step an episode can last.
-
-        See definition of :func:`GridValue.max_timestep` for more information about this method.
-
-        """
-        return self.real_data.max_timestep()
-
-    def get_id(self):
-        """
-        This method gives a unique identifier for the current episode.
-
-        See definition of :func:`GridValue.get_id` for more information about this method.
-
-        """
-        return self.real_data.get_id()
 
     def get_name(self):
         """
@@ -174,39 +96,6 @@ class ChronicsHandler(RandomObject):
 
         """
         return str(os.path.split(self.get_id())[-1])
-
-    def shuffle(self, shuffler):
-        """
-        Will attempt to shuffle the underlying data.
-
-        Note that a call to this function might not do anything is the :func:`GridValue.shuffle` is not implemented
-        for :attr:`ChronicsHandler.real_data`.
-
-        Parameters
-        ----------
-        shuffler: ``object``
-            Anything that is used to shuffle the data.
-
-        """
-        self.real_data.shuffle(shuffler)
-
-    def set_chunk_size(self, new_chunk_size):
-        """
-        This functions allows to adjust dynamically the chunk size when reading the data.
-
-        **NB** this function is not supported by all data generating process.
-
-        Parameters
-        ----------
-        new_chunk_size: ``int`` or ``None``
-            The new chunk size
-
-        """
-        if new_chunk_size is None:
-            pass
-        elif not isinstance(new_chunk_size, int):
-            raise Grid2OpException("Impossible to read data with an non integer chunk size.")
-        self.real_data.set_chunk_size(new_chunk_size)
 
     def set_max_iter(self, max_iter):
         """
@@ -225,26 +114,7 @@ class ChronicsHandler(RandomObject):
         if not isinstance(max_iter, int):
             raise Grid2OpException("The maximum number of iterations possible for this chronics, before it ends.")
         self.max_iter = max_iter
-        self.real_data.max_iter = max_iter
-
-    def fast_forward(self, nb_timestep):
-        """
-        This method allows you to skip some time step at the beginning of the chronics.
-
-        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
-        Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
-        00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
-        the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
-
-
-        Parameters
-        ----------
-        nb_timestep: ``int``
-            Number of time step to "fast forward"
-
-        """
-        for _ in range(nb_timestep):
-            self.real_data.load_next()
+        self._real_data.max_iter = max_iter
 
     def seed(self, seed):
         """
@@ -267,5 +137,12 @@ class ChronicsHandler(RandomObject):
         super().seed(seed)
         max_int = np.iinfo(dt_int).max
         seed_chronics = self.space_prng.randint(max_int)
-        self.real_data.seed(seed_chronics)
+        self._real_data.seed(seed_chronics)
         return seed, seed_chronics
+
+    def __getattr__(self, name):
+        if name in ['__getstate__', '__setstate__']:
+            # otherwise there is a recursion depth exceeded in multiprocessing
+            # https://github.com/matplotlib/matplotlib/issues/7852/
+            return object.__getattr__(self, name)
+        return getattr(self._real_data, name)

@@ -21,6 +21,7 @@ class ValueStore:
         self.values = np.ones(size, dtype=dtype)
         self.changed = np.full(size, dtype=dt_bool, fill_value=False)
         self.last_index = 0
+        self.__size = size
 
         if issubclass(dtype, dt_int):
             self.set_val = self._set_val_int
@@ -107,6 +108,9 @@ class ValueStore:
         self.values[id_reco_or] = old_vect[id_reco_or]
         self.values[id_reco_ex] = old_vect[id_reco_ex]
 
+    def get_line_status(self, lineor_id, lineex_id):
+        return self.values[lineor_id], self.values[lineex_id]
+
     def update_connected(self, current_values):
         indx_conn = current_values.values > 0
         self.values[indx_conn] = current_values.values[indx_conn]
@@ -138,6 +142,9 @@ class ValueStore:
         else:
             raise StopIteration
 
+    def __len__(self):
+        return self.__size
+
 
 class _BackendAction(GridObjects):
     """
@@ -168,6 +175,9 @@ class _BackendAction(GridObjects):
             self.shunt_p = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_q = ValueStore(self.n_shunt, dtype=dt_float)
             self.shunt_bus = ValueStore(self.n_shunt, dtype=dt_int)
+
+        self._status_or_before = np.ones(self.n_line, dtype=dt_int)
+        self._status_ex_before = np.ones(self.n_line, dtype=dt_int)
 
     def reset(self):
         # last topo
@@ -272,9 +282,19 @@ class _BackendAction(GridObjects):
                                      self.line_ex_pos_topo_vect,
                                      self.last_topo_registered)
 
+        self._status_or_before[:], self._status_ex_before[:] = self.current_topo.get_line_status(self.line_or_pos_topo_vect,
+                                                                                                 self.line_ex_pos_topo_vect)
         # IV topo
         self.current_topo.change_val(switcth_topo_vect)
         self.current_topo.set_val(set_topo_vect)
+
+        # V Force disconnection of disconnected powerlines
+        disco_before_topo = (self._status_or_before == -1) | (self._status_ex_before == -1)
+        self.current_topo.set_status(self._status_or_before[disco_before_topo],
+                                     self.line_or_pos_topo_vect[disco_before_topo],
+                                     self.line_ex_pos_topo_vect[disco_before_topo],
+                                     self._status_or_before[disco_before_topo]  # unused
+                                     )
 
         return self
 

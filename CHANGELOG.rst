@@ -5,25 +5,72 @@ Change Log
 --------------------
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] test and doc for opponent
 - [???] better logging
+- [???] add a "plot action" method
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-- [???] better explanation of the notebook 3 with action silently
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
-- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
-- [???] fix notebook 5 texts
+- [???] properly model interconnecting powerlines
+- [???] model curtailment
+- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] model dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+
+[1.0.0] - 2020-06-xx
+---------------------
+- [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
+- [BREAKING] `MultiEnv` has been abstracted to `BaseMultiProcessEnv` and the backwards compatible interface is now
+  `SingleProcessMultiEnv`
+- [BREAKING] the `seeds` parameters of the `Runner.run` function has been renamed `env_seeds` and an `agent_seeds`
+  parameters is now available for fully reproducible experiments.
+- [FIXED] a weird effect on `env.reset` that did not reset the state of the previous observation held
+  by the environment. This could have caused some issue in some corner cases.
+- [FIXED] `BaseAction.__iadd__` fixed a bug with change actions `+=` operator reported in
+  `Issue #116 <https://github.com/rte-france/Grid2Op/issues/116>`_
+- [FIXED] `obs.simulate` post-initialized reward behaves like the environment
+- [FIXED] `LinesReconnectedReward` fixes reward inverted range
+- [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
+- [FIXED] `obs.simulate` could sometime returns "None" when the simulated action lead to a game over. This is no longer
+  a problem.
+- [FIXED] `grid2op.make` will now raise an error if an invalid argument has been passed to it.
+- [FIXED] some arguments were not passed correctly to `env.get_kwargs()` or `env.get_params_for_runner()`
+- [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
+  disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
+- [ADDED] a clearer explanation between illegal and ambiguous action.
+- [ADDED] `MultiEnvMultiProcess` as a new multi-process class to run different environments in multiples prallel
+  processes.
+- [ADDED] more control on the environment when using the `grid2op.make` function.
+- [ADDED] creation of the MultiMixEnv that allows to have, through a unified interface the possibility to interact
+  alternatively with one environment or the other. This is especially useful when considering an agent that should
+  interact in multiple environments.
+- [ADDED] possibility to use `simulate` on the current observation.
+- [ADDED] the overload of "__getattr__" for environment running in parallel
+- [ADDED] capability to change the powerlines on which the opponent attack at the environment initialization
+- [UPDATED] `Backend.PandaPowerBackend.apply_action` vectorized backend apply action method for speed.
+- [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
+  more broadly usable.
+- [UPDATED] `MultiEnv` has been updated for new use case: Providing different environments configurations on the same
+  grid and an arbitrary number of processes for each of these.
+- [UPDATED] Behaviour of "change_bus" and "set_bus": it is no more possible to affect the bus of a powerline
+  disconnected.
+- [UPDATED] More control about the looping strategy of the `ChronicsHandler` that has been refactored, and can now be
+  more easily cached (no need to do an expensive reading of the data at each call to `env.reset`)
 
 [0.9.4] - 2020-06-12
 ---------------------
-- [FIXED] `Issue #114 <https://github.com/rte-france/Grid2Op/issues/114>`_ the issue concerning the bug for the maintenance.
+- [FIXED] `Issue #114 <https://github.com/rte-france/Grid2Op/issues/114>`_ the issue concerning the
+  bug for the maintenance.
+
 
 [0.9.3] - 2020-05-29
 ---------------------
 - [FIXED] `Issue #69 <https://github.com/rte-france/Grid2Op/issues/69>`_ MultEnvironment is now working with windows
   based OS.
+- [ADDED] `Issue #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
+  The notebook has been updated accordingly.
+- [ADDED] Some function to disable the `obs.simulate` if wanted. This can lead to around 10~15% performance speed up
+  in case `obs.simulate` is not used. See `env.deactivate_forecast` and `env.reactivate_forecast`
+  (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
 - [UPDATED] the first introductory notebook.
 - [UPDATED] possibility to reconnect / disconnect powerline giving its name when using `reconnect_powerline` and
   `disconnect_powerline` methods of the action space.
@@ -34,11 +81,6 @@ Change Log
   `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_
 - [UPDATED] Added `PlotMatplot` constructor arguments to control display of names and IDs of the grid elements
   (gen, load, lines). As suggested in `Issue #106 <https://github.com/rte-france/Grid2Op/issues/106>`_
-- [ADDED] `Issue #108 <https://github.com/rte-france/Grid2Op/issues/108>`_ Seed is now part of the public agent API.
-  The notebook has been updated accordingly.
-- [ADDED] Some function to disable the `obs.simulate` if wanted. This can lead to around 10~15% performance speed up
-  in case `obs.simulate` is not used. See `env.deactivate_forecast` and `env.reactivate_forecast`
-  (related to `Issued #98 <https://github.com/rte-france/Grid2Op/issues/98>`_)
 
 
 [0.9.2] - 2020-05-26

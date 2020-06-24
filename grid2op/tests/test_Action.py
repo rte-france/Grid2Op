@@ -22,6 +22,8 @@ from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Space import GridObjects
 from grid2op.Space.space_utils import save_to_dict
 
+# TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
+
 
 class TestActionBase(ABC):
 
@@ -42,10 +44,11 @@ class TestActionBase(ABC):
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
 
+        self.n_line = 20
         GridObjects.env_name = "test_action_env"
         GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
         GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
-        GridObjects.name_line = ["line_{}".format(i) for i in range(20)]
+        GridObjects.name_line = ["line_{}".format(i) for i in range(self.n_line)]
         GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
         GridObjects.sub_info = np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
         GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
@@ -1032,11 +1035,12 @@ class TestIADD:
                            "error, attr {} has been updated".format(attr_nm)
 
     def test_iadd_change_set_status(self):
+        self._skipMissingKey("change_line_status", self.action_space_1)
+        self._skipMissingKey("set_line_status", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_switch_line_status", act1)
-        self._skipMissingKey("_set_line_status", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1045,11 +1049,12 @@ class TestIADD:
         assert np.sum(act1._switch_line_status[act2._set_line_status != 0]) == 0
 
     def test_iadd_set_change_status(self):
+        self._skipMissingKey("set_line_status", self.action_space_1)
+        self._skipMissingKey("change_line_status", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_set_line_status", act1)
-        self._skipMissingKey("_switch_line_status", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1063,11 +1068,12 @@ class TestIADD:
         assert np.all(act1._set_line_status[indx_same] == act1_init._set_line_status[indx_same])
 
     def test_iadd_change_set_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+        self._skipMissingKey("set_bus", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_change_bus_vect", act1)
-        self._skipMissingKey("_set_topo_vect", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1076,11 +1082,12 @@ class TestIADD:
         assert np.sum(act1._change_bus_vect[act2._set_topo_vect != 0]) == 0
 
     def test_iadd_set_change_bus(self):
+        self._skipMissingKey("set_bus", self.action_space_1)
+        self._skipMissingKey("change_bus", self.action_space_2)
+
         act1_init = self.aux_get_act(self.action_space_1)
         act1 = copy.deepcopy(act1_init)
         act2 = self.aux_get_act(self.action_space_2)
-        self._skipMissingKey("_set_topo_vect", act1)
-        self._skipMissingKey("_change_bus_vect", act2)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1093,6 +1100,48 @@ class TestIADD:
         indx_same = (act1._set_topo_vect == 0) & (act2._change_bus_vect)
         assert np.all(act1._set_topo_vect[indx_same] == act1_init._set_topo_vect[indx_same])
 
+    def test_iadd_empty_change_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+
+        act1 = self.action_space_1({})
+        act2 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        # Iadd change
+        act1 += act2
+
+        assert act2._change_bus_vect[0] == True
+        assert act2._change_bus_vect[1] == True
+        assert act1._change_bus_vect[0] == True
+        assert act1._change_bus_vect[1] == True
+        assert np.any(act1._set_topo_vect != 0) == False
+
+    def test_iadd_change_change_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+
+        act1 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        act2 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        # Iadd change
+        act1 += act2
+
+        assert act2._change_bus_vect[0] == True
+        assert act2._change_bus_vect[1] == True
+        assert act1._change_bus_vect[0] == False
+        assert act1._change_bus_vect[1] == False
+        assert np.any(act1._set_topo_vect != 0) == False
 
 # TODO a generic method to build them all maybe ?
 class TestDontAct_PowerlineChangeAndDispatchAction(TestIADD, unittest.TestCase):
@@ -1131,6 +1180,183 @@ class TestTopologyAndDispatchAction_PowerlineChangeAndDispatchAction(TestIADD, u
     def get_action_space_2(self):
         return self.ActionSpaceClass(self.gridobj, legal_action=self.game_rules.legal_action,
                            actionClass=PowerlineChangeAndDispatchAction)
+
+
+class TestTopologicalImpact(unittest.TestCase):
+    # weird stuf to avoid copy paste and inheritance
+    def _action_setup(self):
+        return self.ActionSpaceClass(self.gridobj,
+                                     legal_action=self.game_rules.legal_action,
+                                     actionClass=TopologyAndDispatchAction)
+
+    def setUp(self):
+        TestActionBase.setUp(self)
+
+    def test_get_topo_imp_dn(self):
+        donothing = self.helper_action()
+        lines_impacted, subs_impacted = donothing.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 0
+
+    def test_get_topo_imp_changebus(self):
+        changelor = self.helper_action({"change_bus": {"lines_or_id": [0]}})
+        lines_impacted, subs_impacted = changelor.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[0]
+        changelex = self.helper_action({"change_bus": {"lines_ex_id": [0]}})
+        lines_impacted, subs_impacted = changelex.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[1]
+
+        changeload = self.helper_action({"change_bus": {"loads_id": [0]}})
+        lines_impacted, subs_impacted = changeload.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[1]
+
+        changegen = self.helper_action({"change_bus": {"generators_id": [0]}})
+        lines_impacted, subs_impacted = changegen.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[0]
+
+    def test_get_topo_imp_setbus(self):
+        changelor = self.helper_action({"set_bus": {"lines_or_id": [(0, 2)]}})
+        lines_impacted, subs_impacted = changelor.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[0]
+        changelex = self.helper_action({"set_bus": {"lines_ex_id": [(0, 2)]}})
+        lines_impacted, subs_impacted = changelex.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[1]
+
+        changeload = self.helper_action({"set_bus": {"loads_id": [(0, 2)]}})
+        lines_impacted, subs_impacted = changeload.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[1]
+
+        changegen = self.helper_action({"set_bus": {"generators_id": [(0, 2)]}})
+        lines_impacted, subs_impacted = changegen.get_topological_impact()
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 1
+        assert subs_impacted[0]
+
+    def test_get_topo_imp_changestatus(self):
+        changelor = self.helper_action({"change_line_status": [7]})
+        lines_impacted, subs_impacted = changelor.get_topological_impact()
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 0
+        assert lines_impacted[7]
+
+    def test_get_topo_imp_setstatus_down(self):
+        changelor = self.helper_action({"set_line_status": [(9, -1)]})
+        lines_impacted, subs_impacted = changelor.get_topological_impact()
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 0
+        assert lines_impacted[9]
+
+    def test_get_topo_imp_setstatus_up(self):
+        changelor = self.helper_action({"set_line_status": [(9, 1)],
+                                        "set_bus": {"lines_or_id": [(9, 2)],
+                                                    "lines_ex_id": [(9, 2)]}
+                                        })
+        lines_impacted, subs_impacted = changelor.get_topological_impact()
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 0
+        assert lines_impacted[9]
+
+    def test_get_topo_imp_setstatus_up_2(self):
+        # i set a status (no substation impacted, one line impacted)
+        # plus I change the topology of one element (one sub impacted, no line impacted)
+        l_id = 0
+        changelor = self.helper_action({"set_line_status": [(l_id, 1)],
+                                        "set_bus": {"lines_or_id": [(l_id, 2)],
+                                                    "lines_ex_id": [(l_id, 2)]}
+                                        })
+        changelor.update({"set_bus": {"generators_id": [(0, 2)]}})
+        lines_impacted, subs_impacted = changelor.get_topological_impact()
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 1
+        assert lines_impacted[l_id]
+        assert subs_impacted[0]
+
+    def test_get_topo_imp_setstatus_up_alreadyup(self):
+        l_id = 15
+        powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        changelor = self.helper_action({"set_line_status": [(l_id, 1)],
+                                        "set_bus": {"lines_or_id": [(l_id, 1)],
+                                                    "lines_ex_id": [(l_id, 1)]}
+                                        })
+        # powerline is already connected
+        # i fake connect it, so it's like changing both its ends
+        lines_impacted, subs_impacted = changelor.get_topological_impact(powerline_status)
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 2
+        assert lines_impacted[l_id]
+        assert subs_impacted[self.res["line_or_to_subid"][l_id]]
+        assert subs_impacted[self.res["line_ex_to_subid"][l_id]]
+
+    def test_get_topo_imp_setstatus_up_alreadyup2(self):
+        # change a line that is already reconnected (2 subs) + 1 line
+        # and i change the object on same substation, should count as 0
+        l_id = 0
+        powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        changelor = self.helper_action({"set_line_status": [(l_id, 1)],
+                                        "set_bus": {"lines_or_id": [(l_id, 1)],
+                                                    "lines_ex_id": [(l_id, 1)]}
+                                        })
+        changelor.update({"set_bus": {"generators_id": [(0, 2)]}})
+        # powerline is already connected
+        # i fake connect it, so it's like changing both its ends
+        lines_impacted, subs_impacted = changelor.get_topological_impact(powerline_status)
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 2
+        assert lines_impacted[l_id]
+        assert subs_impacted[self.res["line_or_to_subid"][l_id]]
+        assert subs_impacted[self.res["line_ex_to_subid"][l_id]]
+        assert subs_impacted[0]
+
+    def test_get_topo_imp_setstatus_up_isdown(self):
+        l_id = 15
+        powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        powerline_status[l_id] = False
+        changelor = self.helper_action({"set_line_status": [(l_id, 1)],
+                                        "set_bus": {"lines_or_id": [(l_id, 1)],
+                                                    "lines_ex_id": [(l_id, 1)]}
+                                        })
+        # this is a real reconnection, is concerns only the powerline
+        lines_impacted, subs_impacted = changelor.get_topological_impact(powerline_status)
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 0
+        assert lines_impacted[l_id]
+
+    def test_get_topo_imp_setstatus_down_alreadydown(self):
+        self.skipTest("does not pass but should imho")
+        l_id = 12
+        powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        powerline_status[l_id] = False
+        changelor = self.helper_action({"set_line_status": [(l_id, -1)]
+                                        })
+        # powerline is already disconnected
+        lines_impacted, subs_impacted = changelor.get_topological_impact(powerline_status)
+        assert np.sum(lines_impacted) == 0
+        assert np.sum(subs_impacted) == 0
+
+    def test_get_topo_imp_setstatus_down_isup(self):
+        l_id = 3
+        powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        changelor = self.helper_action({"set_line_status": [(l_id, -1)]
+                                        })
+        # this is a real reconnection, is concerns only the powerline
+        lines_impacted, subs_impacted = changelor.get_topological_impact(powerline_status)
+        assert np.sum(lines_impacted) == 1
+        assert np.sum(subs_impacted) == 0
+        assert lines_impacted[l_id]
 
 
 if __name__ == "__main__":

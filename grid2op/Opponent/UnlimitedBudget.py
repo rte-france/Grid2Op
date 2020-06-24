@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from grid2op.dtypes import dt_float
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
 
 
@@ -13,10 +14,11 @@ class UnlimitedBudget(BaseActionBudget):
     """
     This class define an unlimited budget for the opponent.
 
-    It SHOULD NOT be used if the opponent is allow to take any actions!
+    It SHOULD NOT be used if the opponent is allowed to take any actions!
     """
     def __init__(self, action_space):
         BaseActionBudget.__init__(self, action_space)
+        self._zero = dt_float(0.)
 
     def __call__(self, attack):
-        return 0
+        return self._zero

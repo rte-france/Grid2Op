@@ -65,8 +65,6 @@ class ObservationSpace(SerializableObservationSpace):
 
         SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
 
-        # TODO DOCUMENTATION !!!
-
         self.with_forecast = with_forecast
         # print("ObservationSpace init with rewardClass: {}".format(rewardClass))
         self.parameters = copy.deepcopy(env.parameters)

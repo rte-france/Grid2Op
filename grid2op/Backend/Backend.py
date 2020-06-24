@@ -20,8 +20,6 @@ from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction
 
-# TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
-
 
 class Backend(GridObjects, ABC):
     """
@@ -98,22 +96,22 @@ class Backend(GridObjects, ABC):
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
         tmp = self.get_line_flow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
         tmp = self.get_thermal_limit()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
         tmp = self.get_line_overflow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
         if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please your data.")
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
 
         tmp = self.generators_info()
         if len(tmp) != 3:
@@ -425,7 +423,8 @@ class Backend(GridObjects, ABC):
         `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
         For each elements it gives its position in this vector.
 
-        TODO make an example here on how to use this!
+        As any function of the backend, it is not advised to use it directly. You can get this information in the
+        :attr:`grid2op.Observation.Observation.topo_vect`instead.
 
         Returns
         --------
@@ -579,15 +578,16 @@ class Backend(GridObjects, ABC):
         except:
             pass
 
+        res = None
         if not conv:
-            raise DivergingPowerFlow("Powerflow has diverged during computation.")
+            res = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
+                                     "or a load has been disconnected or a generator has been disconnected.")
+        return res
 
     def next_grid_state(self, env, is_dc=False):
         """
         This method is called by the environment to compute the next _grid states.
         It allows to compute the powerline and approximate the "cascading failures" if there are some overflows.
-
-        Note that it **DOESNT** update the environment with the disconnected lines.
 
         Attributes
         ----------
@@ -610,22 +610,13 @@ class Backend(GridObjects, ABC):
 
         """
         infos = []
-        # print("\t\t gen p_mw {}".format(np.sum(self._grid.gen["p_mw"])))  # OK
-        # print("\t\t gen vm_pu {}".format(np.sum(self._grid.gen["vm_pu"])))  # OK
-        # print("\t\t load p_mw {}".format(np.sum(self._grid.load["p_mw"])))  # OK
-        # print("\t\t line in_service {}".format(np.sum(self._grid.line["in_service"])))  # OK
-        # print("\t\t shunt in_service {}".format(np.sum(self._grid.shunt["in_service"])))  # OK
-        # print("\t\t shunt q {}".format(np.sum(self._grid.shunt["q_mvar"])))  # OK
-        # print("\t\t load q_mvar {}".format(np.sum(self._grid.load["q_mvar"])))  # OK
-        # print("slack bus {}".format(self._grid["ext_grid"]))  # OK
-        # print("slack p {}".format(self._grid._ppc["gen"][self._iref_slack, 1]))
-        # self._nb_bus_before = None
-        self._runpf_with_diverging_exception(is_dc)
-
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
-        if env.no_overflow_disconnection:
-            return disconnected_during_cf, infos
+        conv_ = self._runpf_with_diverging_exception(is_dc)
+        if env.no_overflow_disconnection or conv_ is not None:
+            return disconnected_during_cf, infos, conv_
+
         # the environment disconnect some
+
         init_time_step_overflow = copy.deepcopy(env.timestep_overflow)
         while True:
             # simulate the cascading failure
@@ -645,14 +636,18 @@ class Backend(GridObjects, ABC):
                 # no powerlines have been disconnected at this time step, i stop the computation there
                 break
             disconnected_during_cf[to_disc] = True
+
             # perform the disconnection action
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
 
             # start a powerflow on this new state
-            self._runpf_with_diverging_exception(is_dc)
+            conv_ = self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
                 infos.append(self.copy())
-        return disconnected_during_cf, infos
+
+            if conv_ is not None:
+                break
+        return disconnected_during_cf, infos, conv_
 
     def check_kirchoff(self):
         """

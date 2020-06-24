@@ -14,17 +14,12 @@ from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
-# TODO code "reduce" multiple action (eg __add__ method, carefull with that... for example "change", then "set" is not
-# ambiguous at all, same with "set" then "change")
-
 
 # TODO code "convert_for" and "convert_from" to be able to change the backend (should be handled by the backend directly)
 # TODO have something that output a dict like "i want to change this element" (with a simpler API than the update stuff)
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
-
-# TODO tests for redispatching action.
 
 class BaseAction(GridObjects):
     """
@@ -142,9 +137,10 @@ class BaseAction(GridObjects):
         bus connectivity at a substation. It has the same size as the full topological vector (:attr:`BaseAction._dim_topo`)
         and for each element it should be understood as:
 
-            - 0: nothing is changed for this element
-            - +1: this element is affected to bus 1
-            - -1: this element is affected to bus 2
+            - 0 -> don't change
+            - 1 -> connect to bus 1
+            - 2 -> connect to bus 2
+            - -1 -> disconnect the object.
 
     _change_bus_vect: :class:`numpy.ndarray`, dtype:bool
          Similar to :attr:`BaseAction._switch_line_status` but it affects the topology at substations instead of the status
@@ -369,6 +365,8 @@ class BaseAction(GridObjects):
             Whether the actions are equal or not.
 
         """
+        if other is None:
+            return False
 
         # check that the _grid is the same in both instances
         same_grid = True
@@ -445,13 +443,10 @@ class BaseAction(GridObjects):
     def get_topological_impact(self, powerline_status=None):
         """
         Gives information about the element being impacted by this action.
-
         **NB** The impacted elements can be used by :class:`grid2op.BaseRules` to determine whether or not an action
         is legal or not.
-
         **NB** The impacted are the elements that can potentially be impacted by the action. This does not mean they
         will be impacted. For examples:
-
             - If an action from an :class:`grid2op.BaseAgent` reconnect a powerline, but this powerline is being
               disconnected by a hazard at the same time step, then this action will not be implemented on the grid.
               However, it this powerline couldn't be reconnected for some reason (for example it was already out of
@@ -462,10 +457,8 @@ class BaseAction(GridObjects):
             - If an action tries to change the topology of a substation, but this substation is already at the target
               topology, the same mechanism applies. The action will "impact" the substation, even if, in the end, it
               consists of doing nothing.
-
         Any such "change" that would be illegal is declared as "illegal" regardless of the real impact of this action
         on the powergrid.
-
 
         Returns
         -------
@@ -480,67 +473,23 @@ class BaseAction(GridObjects):
             :attr:`BaseAction._subs_impacted` for more information.
 
         """
-        recompute = powerline_status is not None
         if powerline_status is None:
-            powerline_status = np.full(self.n_line, fill_value=False, dtype=dt_bool)
-        not_powerline_status = ~(powerline_status)
+            isnotconnected = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        else:
+            isnotconnected = ~powerline_status
 
-        if self._lines_impacted is None or recompute:
-            self._lines_impacted = self._switch_line_status | (self._set_line_status != 0 & not_powerline_status)
+        self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
+        self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
 
-        if self._subs_impacted is None or recompute:
-            self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
+        # todo could be set as a class attribute
+        _topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
 
-            # Mask of powerlines reconnected by set
-            powerlines_set_reco = self._set_line_status == 1
-            # Mask of powerlines reconnected by change
-            powerlines_change_reco = self._switch_line_status
-            # all the id of the powerlines reconnected
-            powerlines_reco = np.array(list(range(self.n_line)))
-            powerlines_reco = powerlines_reco[
-                np.logical_or(
-                    np.logical_and(powerlines_set_reco, not_powerline_status),
-                    np.logical_and(powerlines_change_reco, not_powerline_status)
-                )
-            ]
-            # all the reconnected lines origin substation id
-            sub_or_id = self.line_or_to_subid[powerlines_reco]
-            # all the reconnected lines extremity substation id
-            sub_ex_id = self.line_ex_to_subid[powerlines_reco]
-
-            # Group by sub_id => {sub_id: reconnected_count}
-            sub_id = np.concatenate((sub_or_id, sub_ex_id))
-            sub_id_unique, sub_counts = np.unique(sub_id, return_counts=True)
-            sub_reco_counts = dict(zip(sub_id_unique, sub_counts))
-            
-            # Loop over all substations
-            beg_ = 0
-            end_ = 0
-            for sub_id, nb_obj in enumerate(self.sub_info):
-                nb_obj = int(nb_obj)
-                end_ += nb_obj
-
-                # Handle change action
-                if np.any(self._change_bus_vect[beg_:end_]):
-                    # change always impact the substations
-                    self._subs_impacted[sub_id] = True
-
-                # Handle set action
-                nb_set = np.sum(self._set_topo_vect[beg_:end_] != 0)
-                if nb_set > 0:
-                    # We have some lines reconnections, special case
-                    if sub_id in sub_reco_counts:
-                        if nb_set > sub_reco_counts[sub_id]:
-                            # Substation has other sets than line reconnections 
-                            self._subs_impacted[sub_id] = True
-                        else:
-                            # Substation set is only from line reconnections: do not impact it
-                            self._subs_impacted[sub_id] = False
-                    else: # Any other set operations will impact the substation
-                        self._subs_impacted[sub_id] = True
-
-                beg_ += nb_obj
-
+        # compute the changes of the topo vector
+        effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
+        # remove the change due to powerline only
+        effective_change[self.line_or_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+        effective_change[self.line_ex_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+        self._subs_impacted[_topo_vect_to_sub[effective_change]] = True
         return self._lines_impacted, self._subs_impacted
 
     def reset(self):
@@ -641,15 +590,27 @@ class BaseAction(GridObjects):
         me_set = self._set_line_status
         me_change = self._switch_line_status
 
-        # i set, but the other change, so it's equivalent to setting to the opposite
+        # i change, but so does the other, i do nothing
+        canceled_change = other_change & me_change
+        # i dont change, the other change, i change
+        update_change = other_change & ~me_change
+        # Defered apply to prevent conflicts
+        me_change[canceled_change] = False
+        me_change[update_change] = True
+
+        # i change, but the other set, it's erased
+        me_change[other_set != 0 & me_change] = False
+
+        # i set, but the other change, set to the opposite
+        inverted_set = other_change & (me_set != 0)
         # so change +1 becomes -1 and -1 becomes +1
-        me_set[other_change] *= -1
+        me_set[inverted_set] *= -1
+        # Has been inverted, cancel change
+        me_change[inverted_set] = False
+
         # i set, the other set
         me_set[other_set != 0] = other_set[other_set != 0]
-        # i change, but so does the other, i do nothing
-        me_change[other_change] = False
-        # i change, but the other set, it's erased
-        me_change[other_set != 0] = False
+
         self._assign_iadd_or_warn("_set_line_status", me_set)
         self._assign_iadd_or_warn("_switch_line_status", me_change)
 
@@ -659,18 +620,29 @@ class BaseAction(GridObjects):
         me_set = self._set_topo_vect
         me_change = self._change_bus_vect
 
-        # i set, but the other change, so it's equivalent to setting to the opposite
+        # i change, but so does the other, i do nothing
+        canceled_change = other_change & me_change
+        # i dont change, the other change, i change
+        update_change = other_change & ~me_change
+        # Defered apply to prevent conflicts
+        me_change[canceled_change] = False
+        me_change[update_change] = True
+
+        # i change, but the other set, it's erased
+        me_change[other_set != 0 & me_change] = False
+
+        # i set, but the other change, set to the opposite
+        inverted_set = other_change & (me_set != 0)
         # so change +1 becomes +2 and +2 becomes +1
-        me_set[other_change] -= 1  # 1 becomes 0 and 2 becomes 1
-        me_set[other_change] *= -1  # 1 is 0 and 2 becomes -1
-        me_set[other_change] += 2  # 1 is 2 and 2 becomes 1
+        me_set[inverted_set] -= 1  # 1 becomes 0 and 2 becomes 1
+        me_set[inverted_set] *= -1  # 1 is 0 and 2 becomes -1
+        me_set[inverted_set] += 2  # 1 is 2 and 2 becomes 1
+        # Has been inverted, cancel change
+        me_change[inverted_set] = False
 
         # i set, the other set
         me_set[other_set != 0] = other_set[other_set != 0]
-        # i change, but so does the other, i do nothing
-        me_change[other_change] = False
-        # i change, but the other set, it's erased
-        me_change[other_set != 0] = False
+        
         self._assign_iadd_or_warn("_set_topo_vect", me_set)
         self._assign_iadd_or_warn("_change_bus_vect", me_change)
 
@@ -706,8 +678,8 @@ class BaseAction(GridObjects):
         It also performs a check of whether or not an action is "Ambiguous", eg an action that reconnect a powerline
         but doesn't specify on which bus to reconnect it is said to be ambiguous.
 
-        If this :func:`BaseAction.__call__` is overloaded, the call of :func:`BaseAction._check_for_ambiguity` must be ensured
-        by this the derived class.
+        If this :func:`BaseAction.__call__` is overloaded, the call of :func:`BaseAction._check_for_ambiguity` must be
+        ensured by this the derived class.
 
         Returns
         -------
@@ -1020,7 +992,7 @@ class BaseAction(GridObjects):
                 # dict must have key: generator to modify, value: the delta value applied to this generator
                 ddict_ = tmp
                 for kk, val in ddict_.items():
-                    kk, val = self.__convert_and_redispatch(kk, val)
+                    self.__convert_and_redispatch(kk, val)
             elif isinstance(tmp, list):
                 # list of tuples: each tupe (k,v) being the same as the key/value describe above
                 treated = False
@@ -1134,7 +1106,10 @@ class BaseAction(GridObjects):
               change it (eg switch it from bus 1 to bus 2 or from bus 2 to bus 1). NB this is only active if the system
               has only 2 buses per substation.
 
-            - "redispatch" TODO
+            - "redispatch": the best use of this is to specify either the numpy array of the redispatch vector you want
+              to apply (that should have the size of the number of generators on the grid) or to specify a list of
+              tuple, each tuple being 2 elements: first the generator ID, second the amount of redispatching,
+              for example `[(1, -23), (12, +17)]`
 
             **NB** the difference between "set_bus" and "change_bus" is the following:
 
@@ -1224,6 +1199,13 @@ class BaseAction(GridObjects):
             target_topology[3:] = 2
             reconfig_sub = env.action_space({"set_bus": {"substations_id": [(sub_id, target_topology)] } })
             print(reconfig_sub)
+
+        *Example 6*: apply redispatching of +17.42 MW at generator with id 23 and -27.8 at generator with id 1
+
+        .. code-block:: python
+
+            redisp_act = env.action_space({"redispatch": [(23, +17.42), (23, -27.8)]})
+            print(redisp_act)
 
         Returns
         -------
@@ -1465,14 +1447,11 @@ class BaseAction(GridObjects):
         A generic sampling of action can be really tedious. Uniform sampling is almost impossible.
         The actual implementation gives absolutely no warranty toward any of these concerns.
 
-        It is not implemented yet.
-        TODO
+        **It is not implemented yet.**
 
-        By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state.
-
-        Parameters
-        ----------
-        space_prng
+        By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state. If you want
+        to sample uniformly at random among some actions, we recommand you the use of the converter IdToAct that
+        implements this feature.
 
         Returns
         -------
@@ -1480,7 +1459,6 @@ class BaseAction(GridObjects):
             The action sampled among the action space.
         """
         self.reset()
-        # TODO code the sampling now
         return self
 
     def _ignore_topo_action_if_disconnection(self, sel_):
@@ -1863,6 +1841,7 @@ class BaseAction(GridObjects):
     def get_types(self):
         """
         Shorthand to get the type of an action. The type of an action is among:
+
         - "injection": does this action modifies load or generator active values
         - "voltage": does this action modifies the generator voltage setpoint or the shunts
         - "topology": does this action modifies the topology of the grid (*ie* set or switch some buses)
@@ -1897,8 +1876,6 @@ class BaseAction(GridObjects):
             voltage = voltage or np.any(self.shunt_bus != 0)
 
         lines_impacted, subs_impacted = self.get_topological_impact()
-        # topology = np.any(self._set_topo_vect != 0) or np.any(self._change_bus_vect)
-        # line = np.any(self._set_line_status != 0) or np.any(self._switch_line_status)
         topology = np.any(subs_impacted)
         line = np.any(lines_impacted)
         redispatching = np.any(self._redispatch != 0.)

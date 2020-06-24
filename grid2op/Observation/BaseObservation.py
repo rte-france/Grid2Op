@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
+import datetime
 import numpy as np
 from abc import abstractmethod
 
@@ -13,13 +14,8 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
-# TODO be able to change reward here
-
 # TODO make an action with the difference between the observation that would be an action.
 # TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
-
-# TODO finish documentation
-
 
 # TODO fix "bug" when action not initalized, return nan in to_vect
 
@@ -123,14 +119,14 @@ class BaseObservation(GridObjects):
 
     time_before_cooldown_line:  :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the number of time step the powerline is unavailable due to "cooldown"
-        (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF` for more information). 0 means the
+        (see :attr:`grid2op.Parameters.NB_TIMESTEP_COOLDOWN_LINE` for more information). 0 means the
         an action will be able to act on this same powerline, a number > 0 (eg 1) means that an action at this time step
         cannot act on this powerline (in the example the agent have to wait 1 time step)
 
     time_before_cooldown_sub: :class:`numpy.ndarray`, dtype:int
         Same as :attr:`BaseObservation.time_before_cooldown_line` but for substations. For each substation, it gives the
         number of timesteps to wait before acting on this substation (see
-        see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information).
+        see :attr:`grid2op.Parameters.NB_TIMESTEP_COOLDOWN_SUB` for more information).
 
     time_next_maintenance: :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the time of the next planned maintenance. For example if there is:
@@ -190,6 +186,7 @@ class BaseObservation(GridObjects):
         # handles the forecasts here
         self._forecasted_grid_act = {}
         self._forecasted_inj = []
+        self._obs_env = obs_env
 
         self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
@@ -234,11 +231,6 @@ class BaseObservation(GridObjects):
         self.minute_of_hour = dt_int(0)
         self.day_of_week = dt_int(0)
 
-        # forecasts
-        self._forecasted_inj = []
-        self._forecasted_grid = []
-        self._obs_env = obs_env
-
         # redispatching
         self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
         self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
@@ -271,7 +263,7 @@ class BaseObservation(GridObjects):
             ID of the powerline we want to inspect
 
         substation_id: ``int``
-            ID of the powerline we want to inspect
+            ID of the substation we want to inspect
 
         Returns
         -------
@@ -406,10 +398,9 @@ class BaseObservation(GridObjects):
                 nb_bus = np.max(topo_sub[topo_sub > 0]) - np.min(topo_sub[topo_sub > 0]) + 1
             else:
                 nb_bus = 0
-            res = {
-                "topo_vect": topo_sub,
-                "nb_bus": nb_bus,
-                "cooldown_time": self.time_before_cooldown_sub[substation_id]
+            res = {"topo_vect": topo_sub,
+                   "nb_bus": nb_bus,
+                   "cooldown_time": self.time_before_cooldown_sub[substation_id]
                    }
 
         return res
@@ -522,9 +513,8 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-
+        ``True`` if the action are equal, ``False`` otherwise.
         """
-        # TODO doc above
 
         if self.year != other.year:
             return False
@@ -651,7 +641,7 @@ class BaseObservation(GridObjects):
         """
         raise NotImplementedError("This method is not implemented. ")
 
-    def get_forecasted_inj(self, time_step=0):
+    def get_forecasted_inj(self, time_step=1):
         """
         This function allows you to retrieve directly the "planned" injections for the timestep `time_step`
 
@@ -697,7 +687,13 @@ class BaseObservation(GridObjects):
         load_q_f[tmp_arg] = self.load_q[tmp_arg]
         return prod_p_f, prod_v_f, load_p_f, load_q_f
 
-    def simulate(self, action, time_step=0):
+    def get_time_stamp(self):
+        """get the time stamp of the current observation as a datetime.datetim object"""
+        res = datetime.datetime(year=self.year, month=self.month, day=self.day,
+                          hour=self.hour_of_day, minute=self.minute_of_hour)
+        return res
+
+    def simulate(self, action, time_step=1):
         """
         This method is used to simulate the effect of an action on a forecasted powergrid state. It has the same return
         value as the :func:`grid2op.Environment.Environment.step` function.
@@ -733,8 +729,12 @@ class BaseObservation(GridObjects):
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation (no action_space "
                                       "and no simulated environment are set).")
 
+        if time_step < 0:
+            raise NoForecastAvailable("Impossible to forecast in the past.")
+
         if time_step >= len(self._forecasted_inj):
-            raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
+            raise NoForecastAvailable("Forecast for {} timestep(s) ahead is not possible with your chronics."
+                                      "".format(time_step))
 
         if time_step not in self._forecasted_grid_act:
             timestamp, inj_forecasted = self._forecasted_inj[time_step]
@@ -745,12 +745,14 @@ class BaseObservation(GridObjects):
 
         timestamp = self._forecasted_grid_act[time_step]["timestamp"]
         inj_action = self._forecasted_grid_act[time_step]["inj_action"]
-        self._obs_env.init(inj_action, time_stamp=timestamp,
+        self._obs_env.init(inj_action,
+                           time_stamp=timestamp,
                            timestep_overflow=self.timestep_overflow,
                            topo_vect=self.topo_vect)
 
-        sim_obs = self._obs_env.simulate(action)
-        return sim_obs
+        sim_obs, *rest = self._obs_env.simulate(action)
+        sim_obs = copy.deepcopy(sim_obs)
+        return (sim_obs, *rest)
 
     def copy(self):
         """

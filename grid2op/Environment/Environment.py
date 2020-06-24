@@ -19,9 +19,7 @@ from grid2op.Backend import Backend
 from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
-from grid2op.Opponent import BaseOpponent
-
-# TODO code "start from a given time step" -> link to the "skip" method of GridValue
+from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
 
 class Environment(BaseEnv):
@@ -121,13 +119,18 @@ class Environment(BaseEnv):
                  voltagecontrolerClass=ControlVoltageFromFile,
                  other_rewards={},
                  thermal_limit_a=None,
+                 with_forecast=True,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_init_budget=0,
-                 _raw_backend_class=None,
-                 with_forecast=True
+                 opponent_init_budget=0.,
+                 opponent_budget_per_ts=0.,
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
+                 kwargs_opponent={},
+                 _raw_backend_class=None
                  ):
         BaseEnv.__init__(self,
                          parameters=parameters,
@@ -135,7 +138,15 @@ class Environment(BaseEnv):
                          epsilon_poly=epsilon_poly,
                          tol_poly=tol_poly,
                          other_rewards=other_rewards,
-                         with_forecast=with_forecast)
+                         with_forecast=with_forecast,
+                         opponent_action_class=opponent_action_class,
+                         opponent_class=opponent_class,
+                         opponent_budget_class=opponent_budget_class,
+                         opponent_init_budget=opponent_init_budget,
+                         opponent_budget_per_ts=opponent_budget_per_ts,
+                         opponent_attack_duration=opponent_attack_duration,
+                         opponent_attack_cooldown=opponent_attack_cooldown,
+                         kwargs_opponent=kwargs_opponent)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
@@ -151,11 +162,6 @@ class Environment(BaseEnv):
         self.viewer = None
         self.metadata = None
         self.spec = None
-
-        # for opponent (should be defined here) after the initialization of BaseEnv
-        self.opponent_action_class = opponent_action_class
-        self.opponent_class = opponent_class
-        self.opponent_init_budget = opponent_init_budget
 
         if _raw_backend_class is None:
             self._raw_backend_class = type(backend)
@@ -304,9 +310,6 @@ class Environment(BaseEnv):
 
         # create the opponent
         # At least the 3 following attributes should be set before calling _create_opponent
-        # self.opponent_action_class
-        # self.opponent_class
-        # self.opponent_init_budget
         self._create_opponent()
 
         # performs one step to load the environment properly (first action need to be taken at first time step after
@@ -337,7 +340,6 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
-        # self._reset_redispatching()
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
@@ -470,10 +472,6 @@ class Environment(BaseEnv):
     def __str__(self):
         return '<{} instance>'.format(type(self).__name__)
         # TODO be closer to original gym implementation
-        # if self.spec is None:
-        #     return '<{} instance>'.format(type(self).__name__)
-        # else:
-        #     return '<{}<{}>>'.format(type(self).__name__, self.spec.id)
 
     def reset_grid(self):
         """
@@ -494,9 +492,6 @@ class Environment(BaseEnv):
         if fail_to_start:
             raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                                    "Available information are: {}".format(info))
-
-        # test the backend returns object of the proper size
-        # self.backend.assert_grid_correct_after_powerflow()
 
     def add_text_logger(self, logger=None):
         """
@@ -540,7 +535,7 @@ class Environment(BaseEnv):
             self.viewer_fig = None
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
-        # TODO add test above: fake a cascading failure, do a reset, check that it can be loaded
+
         # reset the opponent
         self.oppSpace.reset()
         return self.get_obs()
@@ -591,19 +586,19 @@ class Environment(BaseEnv):
         self.backend = tmp_backend
         return res
 
-    def get_kwargs(self):
+    def get_kwargs(self, with_backend=True):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
 
-        This is usefull especially in cases where Environment is not pickable (for example if some non pickable c++
+        This is useful especially in cases where Environment is not pickable (for example if some non pickable c++
         code are used) but you still want to make parallel processing using "MultiProcessing" module. In that case,
-        you can send this dictionnary to each child process, and have each child process make a copy of ``self``
+        you can send this dictionary to each child process, and have each child process make a copy of ``self``
 
         Returns
         -------
         res: ``dict``
-            A dictionnary that helps build an environment like ``self``
+            A dictionary that helps build an environment like ``self``
 
         Examples
         --------
@@ -621,6 +616,8 @@ class Environment(BaseEnv):
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+        if with_backend:
+            res["backend"] = self.backend.copy()
         res["parameters"] = copy.deepcopy(self.parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
         res["actionClass"] = self.actionClass
@@ -632,11 +629,18 @@ class Environment(BaseEnv):
         res["thermal_limit_a"] = self._thermal_limit_a
         res["voltagecontrolerClass"] = self.voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
+        res["name"] = self.name
+        res["_raw_backend_class"] = self._raw_backend_class
+        res["with_forecast"] = self.with_forecast
+
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
-        res["name"] = self.name
-        res["_raw_backend_class"] = self._raw_backend_class
+        res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
+        res["opponent_budget_class"] = self.opponent_budget_class
+        res["opponent_attack_duration"] = self.opponent_attack_duration
+        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
+        res["kwargs_opponent"] = self.kwargs_opponent
         return res
 
     def get_params_for_runner(self):
@@ -682,10 +686,15 @@ class Environment(BaseEnv):
         res["thermal_limit_a"] = self._thermal_limit_a
         res["voltageControlerClass"] = self.voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
+        res["grid_layout"] = self.grid_layout
+        res["name_env"] = self.name
+
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
-        res["grid_layout"] = self.grid_layout
-        res["name_env"] = self.name
-        # TODO make a test for that
+        res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
+        res["opponent_budget_class"] = self.opponent_budget_class
+        res["opponent_attack_duration"] = self.opponent_attack_duration
+        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
+        res["opponent_kwargs"] = self.kwargs_opponent
         return res

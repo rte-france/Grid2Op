@@ -19,6 +19,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
+from grid2op.Agent import RandomAgent
 
 
 class TestRunner(HelperTests):
@@ -64,15 +65,28 @@ class TestRunner(HelperTests):
         assert int(timestep) == self.max_iter
         assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
+    def test_one_process_par(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res = Runner._one_process_parrallel(self.runner, [0], 0, None, None, self.max_iter)
+        assert len(res) == 1
+        _, el1, el2, el3, el4 = res[0]
+        assert el1 == "1"
+        assert np.abs(el2 - 199.9980010986328) <= self.tol_one
+        assert el3 == 10
+        assert el4 == 10
+
     def test_2episode(self):
-        res = self.runner.run_sequential(nb_episode=2, max_iter=self.max_iter)
+        res = self.runner._run_sequential(nb_episode=2, max_iter=self.max_iter)
         assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_2episode_2process(self):
-        res = self.runner.run_parrallel(nb_episode=2, nb_process=2, max_iter=self.max_iter)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res = self.runner._run_parrallel(nb_episode=2, nb_process=2, max_iter=self.max_iter)
         assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
@@ -87,8 +101,8 @@ class TestRunner(HelperTests):
                 runner_params = env.get_params_for_runner()
                 runner = Runner(**runner_params)
                 res = runner.run(path_save=f,
-                                 nb_episode=4,
-                                 nb_process=4,
+                                 nb_episode=nb_episode,
+                                 nb_process=2,
                                  max_iter=self.max_iter)
         test_ = set()
         for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res:
@@ -118,7 +132,7 @@ class TestRunner(HelperTests):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=1, max_iter=self.max_iter, seeds=[1])
+        res = runner.run(nb_episode=1, max_iter=self.max_iter, env_seeds=[1], agent_seeds=[2])
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
 
@@ -127,15 +141,60 @@ class TestRunner(HelperTests):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=2, nb_process=2, max_iter=self.max_iter, seeds=[1, 2])
+        res = runner.run(nb_episode=2, nb_process=2, max_iter=self.max_iter, env_seeds=[1, 2], agent_seeds=[3, 4])
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
+
+    def test_seed_properly_set(self):
+        class TestSuitAgent(RandomAgent):
+            def __init__(self, *args, **kwargs):
+                RandomAgent.__init__(self, *args, **kwargs)
+                self.seeds = []
+
+            def seed(self, seed):
+                super().seed(seed)
+                self.seeds.append(seed)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_test", test=True) as env:
+                my_agent = TestSuitAgent(env.action_space)
+                runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
+
+        # test that the right seeds are assigned to the agent
+        res = runner.run(nb_episode=3, max_iter=self.max_iter, env_seeds=[1, 2, 3], agent_seeds=[5, 6, 7])
+        assert np.all(my_agent.seeds == [5, 6, 7])
+
+        # test that is no seeds are set, then the "seed" funciton of the agent is not called.
+        my_agent.seeds = []
+        res = runner.run(nb_episode=3, max_iter=self.max_iter, env_seeds=[1, 2, 3])
+        assert my_agent.seeds == []
+
+    def test_always_same_order(self):
+        # test that a call to "run" will do always the same chronics in the same order
+        # regardless of the seed or the parallelism or the number of call to runner.run
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case14_test", test=True) as env:
+                runner = Runner(**env.get_params_for_runner())
+        res = runner.run(nb_episode=2, nb_process=2, max_iter=self.max_iter, env_seeds=[1, 2], agent_seeds=[3, 4])
+        first_ = [el[0] for el in res]
+        res = runner.run(nb_episode=2, nb_process=1, max_iter=self.max_iter, env_seeds=[1, 2], agent_seeds=[3, 4])
+        second_ = [el[0] for el in res]
+        res = runner.run(nb_episode=2, nb_process=1, max_iter=self.max_iter, env_seeds=[9, 10])
+        third_ = [el[0] for el in res]
+        res = runner.run(nb_episode=2, nb_process=2, max_iter=self.max_iter, env_seeds=[1, 2], agent_seeds=[3, 4])
+        fourth_ = [el[0] for el in res]
+        assert np.all(first_ == second_)
+        assert np.all(first_ == third_)
+        assert np.all(first_ == fourth_)
 
     def test_nomaxiter(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
+        runner.gridStateclass_kwargs["max_iter"] = 2*self.max_iter
         runner.chronics_handler.set_max_iter(2*self.max_iter)
         res = runner.run(nb_episode=1)
         for i, _, cum_reward, timestep, total_ts in res:
@@ -145,11 +204,15 @@ class TestRunner(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        runner.gridStateclass_kwargs["max_iter"] = 2*self.max_iter
+                dict_ = env.get_params_for_runner()
+                dict_["max_iter"] = -1
+                sub_dict = dict_["gridStateclass_kwargs"]
+                sub_dict["max_iter"] = 2*self.max_iter
+                runner = Runner(**dict_)
         res = runner.run(nb_episode=2, nb_process=2)
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 2*self.max_iter
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,7 +19,7 @@ from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFi
 from grid2op.Chronics import MultifolderWithCache
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
-
+from grid2op.Rules import AlwaysLegal
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
     def setUp(self):
@@ -833,9 +833,10 @@ class TestMaintenanceBehavingNormally(HelperTests):
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
-                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
-                assert info["is_illegal"]  # it is illegal
-                assert not obs.line_status[11]
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert info["is_illegal"] is False  # it is legal
+                assert not obs.line_status[11]  # but has no effect (line is still disconnected)
+
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 for i in range(10):
@@ -844,8 +845,13 @@ class TestMaintenanceBehavingNormally(HelperTests):
                     arr_[11] = 9-i
                     assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
 
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert info["is_illegal"] is False  # it is legal
+                assert not obs.line_status[11]  #  reconnecting only one end has still no effect
+
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
-                assert not info["is_illegal"] # it's illegal
+                assert info["is_illegal"] is False  # it's legal
+
                 assert obs.line_status[11]  # it has reconnected the powerline
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
@@ -860,6 +866,218 @@ class TestMaintenanceBehavingNormally(HelperTests):
                 obs, reward, done, info = env.step(env.action_space())
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+    def test_with_alwayslegal(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True,
+                      param=param,
+                      gamerules_class=AlwaysLegal) as env:
+                obs = env.reset()
+                assert np.all(obs.time_before_cooldown_line == 0)
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert not info["is_illegal"]  # it is legal
+                assert not obs.line_status[11]  # yet maintenance should have stayed
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert not info["is_illegal"]  # it is legal
+                assert not obs.line_status[11]  # but has no effect (line is still disconnected)
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    arr_ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int)
+                    arr_[11] = 9-i
+                    assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert not info["is_illegal"]  # it is legal
+                assert not obs.line_status[11]  # reconnecting only one end has still no effect
+
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert not info["is_illegal"]  # it is legal
+                assert obs.line_status[11]  # it has reconnected the powerline
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # nothing is in maintenance
+
+                for i in range(obs.time_next_maintenance[12]-1):
+                    obs, reward, done, info = env.step(env.action_space())
+                # no maintenance yet
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # a maintenance now
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+
+class TestMultiFolder(HelperTests):
+    def get_multifolder_class(self):
+        return Multifolder
+
+    def _reset_chron_handl(self, chronics_handler):
+        pass
+
+    def setUp(self) -> None:
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case14_realistic", test=True, chronics_class=chronics_class)
+        root_path = self.env.chronics_handler.real_data.path
+        self.chronics_paths = np.array([os.path.join(root_path, '000'),
+                                        os.path.join(root_path, '001')])
+        self._reset_chron_handl(self.env.chronics_handler)
+        self.env.seed(0)
+
+    def test_real_data(self):
+        real_data = self.env.chronics_handler.real_data
+
+    def test_filter(self):
+        class MyFilterForTest:
+            def __init__(self):
+                self.i = -1
+
+            def __call__(self, path):
+                self.i += 1
+                return self.i == 0
+
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0, 1])
+        my_filt = MyFilterForTest()
+        self.env.chronics_handler.set_filter(my_filt)
+        obs = self.env.chronics_handler.reset()
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0])
+
+    def tearDown(self) -> None:
+        self.env.close()
+
+    def test_the_tests(self):
+        assert isinstance(self.env.chronics_handler.real_data, Multifolder)
+
+    def test_shuffler(self):
+        def shuffler(list):
+            return list[[1, 0]]
+
+        # without shuffling it's read this way
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0, 1])
+
+        # i check that shuffling is done properly
+        self.env.chronics_handler.shuffle(shuffler)
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [1, 0])
+
+        # i check that the env is working
+        obs = self.env.reset()
+        # at first chronics is 0, now it's 1
+        # and i have put the subpaths 0 at the element 1 of the order
+        assert self.env.chronics_handler.real_data.data.path == self.chronics_paths[0]
+
+    def test_get_id(self):
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
+
+    def test_set_id(self):
+        self.env.set_id(0)
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        def shuffler(list):
+            return list[[1, 0]]
+        self.env.chronics_handler.shuffle(shuffler)
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        self.env.set_id(0)
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
+
+    def test_reset(self):
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        self.env.chronics_handler.real_data.reset()
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0, 1])
+
+        def shuffler(list):
+            return list[[1, 0]]
+        self.env.chronics_handler.real_data.reset()
+        self.env.chronics_handler.shuffle(shuffler)
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [1, 0])
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+
+    def test_sample_next_chronics(self):
+        res_th = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0]
+        for i in range(20):
+            assert self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == res_th[i], "error for iteration {}" \
+                                                                                            "".format(i)
+        # reseed to test it's working accordingly
+        self.env.seed(0)
+        for i in range(20):
+            assert self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == res_th[i], "error for iteration {}" \
+                                                                                            "".format(i)
+
+    def test_sample_next_chronics_withfilter(self):
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+        self._reset_chron_handl(env.chronics_handler)
+        env.seed(0)
+
+        # test than the filtering
+        class MyFilterForTest:
+            def __init__(self):
+                self.i = -1
+
+            def __call__(self, path):
+                self.i += 1
+                return self.i % 2 == 0
+        root_path = env.chronics_handler.real_data.path
+        chronics_paths = np.array([os.path.join(root_path, "{:02d}".format(i)) for i in range(20)])
+        # if i don't do anything, then everything is normal
+        assert np.all(env.chronics_handler.real_data.subpaths == chronics_paths)
+        assert np.all(env.chronics_handler.real_data._order == [i for i in range(20)])
+        # now i will apply a filter and check it has the correct behaviour
+        my_filt = MyFilterForTest()
+        env.chronics_handler.set_filter(my_filt)
+        obs = env.chronics_handler.reset()
+        # check that reset do what need to be done
+        assert np.all(env.chronics_handler.real_data.subpaths == chronics_paths)
+        assert np.all(env.chronics_handler.real_data._order == [2*i for i in range(10)])
+        # now check the id is correct
+        id_ = self.env.chronics_handler.sample_next_chronics([0.9, 0.1])
+        assert id_ == 0
+        assert np.all(env.chronics_handler.real_data._order == [2*i for i in range(10)])
+
+
+class TestMultiFolderWithCache(TestMultiFolder):
+    def get_multifolder_class(self):
+        return MultifolderWithCache
+
+    def test_the_tests(self):
+        assert isinstance(self.env.chronics_handler.real_data, MultifolderWithCache)
+
+    def _reset_chron_handl(self, chronics_handler):
+        # by default when using the cache, only the first data is kept...
+        # I make sure to keep everything
+        chronics_handler.set_filter(lambda x: True)
+        chronics_handler.reset()
 
 
 if __name__ == "__main__":

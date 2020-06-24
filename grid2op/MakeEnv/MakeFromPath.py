@@ -22,7 +22,7 @@ from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import BaseReward, L2RPNReward
 from grid2op.Rules import BaseRules, DefaultRules
 from grid2op.VoltageControler import ControlVoltageFromFile
-from grid2op.Opponent import BaseOpponent
+from grid2op.Opponent import BaseOpponent, BaseActionBudget, NeverAttackBudget
 
 from grid2op.MakeEnv.get_default_aux import _get_default_aux
 
@@ -48,14 +48,24 @@ ERR_MSG_KWARGS = {
     "names_chronics_to_grid": "The converter between names (keyword \"names_chronics_to_backend\") should be a dictionnary.",
     "other_rewards": "The argument to build the online controler for chronics (keyword \"other_rewards\") "
                      "should be dictionnary.",
+
+    "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
+    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string.",
     "opponent_action_class": "The argument used to build the \"opponent_action_class\" should be a class that "
                              "inherit from \"BaseAction\"",
     "opponent_class": "The argument used to build the \"opponent_class\" should be a class that "
-                             "inherit from \"BaseOpponent\"",
+                      "inherit from \"BaseOpponent\"",
+    "opponent_attack_duration": "The number of time steps an attack from the opponent lasts",
+    "opponent_attack_cooldown": "The number of time steps the opponent as to wait for an attack",
     "opponent_init_budget": "The initial budget of the opponent \"opponent_init_budget\" should be a float",
-    "chronics_path": "The path where the data is located (keyword \"chronics_path\") should be a string.",
-    "grid_path": "The path where the grid is located (keyword \"grid_path\") should be a string.",
-    DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are {difficulties}"
+    "opponent_budget_class": "The opponent budget class (\"opponent_budget_class\") should derive from "
+                             "\"BaseActionBudget\".",
+    "opponent_budget_per_ts": "The increase of the opponent's budget (\"opponent_budget_per_ts\") should be a float.",
+    "kwargs_opponent": "The extra kwargs argument used to properly initiliazed the opponent "
+                       "(\"kwargs_opponent\") shoud "
+                       "be a dictionary.",
+    DIFFICULTY_NAME: "Unknown difficulty level {difficulty} for this environment. Authorized difficulties are "
+                     "{difficulties}"
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
@@ -79,12 +89,16 @@ def _check_path(path, info):
 
 def make_from_dataset_path(dataset_path="/", **kwargs):
     """
-    This function is a shortcut to rapidly create environments within the grid2op Framework.
+    This function is a shortcut to rapidly create environments within the grid2op Framework. We don't
+    recommend using directly this function. Prefer using the :func:`make` function.
 
     It mimic the ``gym.make`` function.
 
+    .. _Parameters-make-from-path:
+
     Parameters
     ----------
+
     dataset_path: ``str``
         Path to the dataset folder
 
@@ -106,6 +120,9 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
     reward_class: ``type``, optional
         Type of reward signal the BaseAgent will receive.
         If provided, It must be a subclass of :class:`grid2op.BaseReward.BaseReward`
+
+    other_rewards: ``dict``, optional
+        Used to additional information than the "info" returned value after a call to env.step.
 
     gamerules_class: ``type``, optional
         Type of "Rules" the BaseAgent need to comply with. Rules are here to model some operational constraints.
@@ -137,14 +154,42 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
         most realistic mode). If multiple difficulty levels are available, the most realistic one
         (the "hardest") is the default choice.
 
+    opponent_action_class: ``type``, optional
+        The action class used for the opponent. The opponent will not be able to use action that are invalid with
+        the given action class provided. It defaults to :class:`grid2op.Action.DontAct` which forbid any type
+        of action possible.
+
+    opponent_class: ``type``, optional
+        The opponent class to use. The default class is :class:`grid2op.Opponent.BaseOpponent` which is a type
+        of opponents that does nothing.
+
+    opponent_init_budget: ``float``, optional
+        The initial budget of the opponent. It defaults to 0.0 which means the opponent cannot perform any action
+        if this is not modified.
+
+    opponent_attack_duration: ``int``, optional
+        The number of time steps an attack from the opponent lasts.
+
+    opponent_attack_cooldown: ``int``, optional
+        The number of time steps the opponent as to wait for an attack.
+
+    opponent_budget_per_ts: ``float``, optional
+        The increase of the opponent budget per time step. Each time step the opponent see its budget increase. It
+        defaults to 0.0.
+
+    opponent_budget_class: ``type``, optional
+        defaults: :class:`grid2op.Opponent.UnlimitedBudget`
+
     Returns
     -------
     env: :class:`grid2op.Environment.Environment`
-        The created environment.
+        The created environment with the given properties.
+
     """
     # Compute and find root folder
     _check_path(dataset_path, "Dataset root directory")
     dataset_path_abs = os.path.abspath(dataset_path)
+
     # Compute env name from directory name
     name_env = os.path.split(dataset_path_abs)[1]
 
@@ -358,24 +403,73 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                                      isclass=False)
 
     # Opponent
-    # TODO make that in config file of the default environment !!!
+    chronics_class_cfg = DontAct
+    if "opponent_action_class" in config_data and config_data["opponent_action_class"] is not None:
+        chronics_class_cfg = config_data["opponent_action_class"]
     opponent_action_class = _get_default_aux("opponent_action_class",
                                              kwargs,
                                              defaultClassApp=BaseAction,
-                                             defaultClass=DontAct,
+                                             defaultClass=chronics_class_cfg,
                                              msg_error=ERR_MSG_KWARGS["opponent_action_class"],
                                              isclass=True)
+    opponent_class_cfg = BaseOpponent
+    if "opponent_class" in config_data and config_data["opponent_class"] is not None:
+        opponent_class_cfg = config_data["opponent_class"]
     opponent_class = _get_default_aux("opponent_class",
                                       kwargs,
                                       defaultClassApp=BaseOpponent,
-                                      defaultClass=BaseOpponent,
+                                      defaultClass=opponent_class_cfg,
                                       msg_error=ERR_MSG_KWARGS["opponent_class"],
                                       isclass=True)
+    opponent_budget_class_cfg = NeverAttackBudget
+    if "opponent_budget_class" in config_data and config_data["opponent_budget_class"] is not None:
+        opponent_budget_class_cfg = config_data["opponent_budget_class"]
+    opponent_budget_class = _get_default_aux("opponent_budget_class",
+                                             kwargs,
+                                             defaultClassApp=BaseActionBudget,
+                                             defaultClass=opponent_budget_class_cfg,
+                                             msg_error=ERR_MSG_KWARGS["opponent_budget_class"],
+                                             isclass=True)
+    opponent_init_budget_cfg = 0.
+    if "opponent_init_budget" in config_data and config_data["opponent_init_budget"] is not None:
+        opponent_init_budget_cfg = config_data["opponent_init_budget"]
     opponent_init_budget = _get_default_aux("opponent_init_budget", kwargs,
                                             defaultClassApp=float,
-                                            defaultinstance=0.,
+                                            defaultinstance=opponent_init_budget_cfg,
                                             msg_error=ERR_MSG_KWARGS["opponent_init_budget"],
                                             isclass=False)
+    opponent_budget_per_ts_cfg = 0.
+    if "opponent_budget_per_ts" in config_data and config_data["opponent_budget_per_ts"] is not None:
+        opponent_budget_per_ts_cfg = config_data["opponent_budget_per_ts"]
+    opponent_budget_per_ts = _get_default_aux("opponent_budget_per_ts", kwargs,
+                                              defaultClassApp=float,
+                                              defaultinstance=opponent_budget_per_ts_cfg,
+                                              msg_error=ERR_MSG_KWARGS["opponent_budget_per_ts"],
+                                              isclass=False)
+    opponent_attack_duration_cfg = 0
+    if "opponent_attack_duration" in config_data and config_data["opponent_attack_duration"] is not None:
+        opponent_attack_duration_cfg = config_data["opponent_attack_duration"]
+    opponent_attack_duration = _get_default_aux("opponent_attack_duration", kwargs,
+                                                defaultClassApp=int,
+                                                defaultinstance=opponent_attack_duration_cfg,
+                                                msg_error=ERR_MSG_KWARGS["opponent_attack_duration"],
+                                                isclass=False)
+    opponent_attack_cooldown_cfg = 99999
+    if "opponent_attack_cooldown" in config_data and config_data["opponent_attack_cooldown"] is not None:
+        opponent_attack_cooldown_cfg = config_data["opponent_attack_cooldown"]
+    opponent_attack_cooldown = _get_default_aux("opponent_attack_cooldown", kwargs,
+                                                defaultClassApp=int,
+                                                defaultinstance=opponent_attack_cooldown_cfg,
+                                                msg_error=ERR_MSG_KWARGS["opponent_attack_cooldown"],
+                                                isclass=False)
+    kwargs_opponent_cfg = {}
+    if "kwargs_opponent" in config_data and config_data["kwargs_opponent"] is not None:
+        kwargs_opponent_cfg = config_data["kwargs_opponent"]
+    kwargs_opponent = _get_default_aux("kwargs_opponent", kwargs,
+                                       defaultClassApp=dict,
+                                       defaultinstance=kwargs_opponent_cfg,
+                                       msg_error=ERR_MSG_KWARGS["kwargs_opponent"],
+                                       isclass=False)
 
     # Finally instanciate env from config & overrides
     env = Environment(init_grid_path=grid_path_abs,
@@ -392,7 +486,13 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                       other_rewards=other_rewards,
                       opponent_action_class=opponent_action_class,
                       opponent_class=opponent_class,
-                      opponent_init_budget=opponent_init_budget)
+                      opponent_init_budget=opponent_init_budget,
+                      opponent_attack_duration=opponent_attack_duration,
+                      opponent_attack_cooldown=opponent_attack_cooldown,
+                      opponent_budget_per_ts=opponent_budget_per_ts,
+                      opponent_budget_class=opponent_budget_class,
+                      kwargs_opponent=kwargs_opponent,
+                      )
 
     # Update the thermal limit if any
     if thermal_limits is not None:
