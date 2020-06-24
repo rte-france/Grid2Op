@@ -10,7 +10,6 @@ import numpy as np
 from grid2op.Exceptions import OpponentError
 
 
-# TODO update and check this is also working in simulate
 class BaseActionBudget:
     """
     This is the base class representing the action bugdet.
@@ -24,6 +23,7 @@ class BaseActionBudget:
         """
         This function takes an attack as input and compute the cost associated to it.
 
+        **NB** The cost of a "None" attack is necessarily 0 !
         Parameters
         ----------
         attack: :class:`ŋrid2op.BaseAction.BaseAction`
@@ -34,6 +34,9 @@ class BaseActionBudget:
         cost: the cost of the action performed by the opponent.
 
         """
+        if attack is None:
+            return 0
+
         if not isinstance(attack, self.action_space.actionClass):
             raise OpponentError("Attempt to use an attack of type \"{}\" which is not a instance of \"{}\", "
                                 "the type of action the opponent was supposed to use."

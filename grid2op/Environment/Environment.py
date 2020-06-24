@@ -19,9 +19,7 @@ from grid2op.Backend import Backend
 from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
-from grid2op.Opponent import BaseOpponent, UnlimitedBudget
-
-# TODO code "start from a given time step" -> link to the "skip" method of GridValue
+from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
 
 class Environment(BaseEnv):
@@ -128,7 +126,9 @@ class Environment(BaseEnv):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
-                 opponent_budget_class=UnlimitedBudget,
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
                  kwargs_opponent={},
                  _raw_backend_class=None
                  ):
@@ -144,6 +144,8 @@ class Environment(BaseEnv):
                          opponent_budget_class=opponent_budget_class,
                          opponent_init_budget=opponent_init_budget,
                          opponent_budget_per_ts=opponent_budget_per_ts,
+                         opponent_attack_duration=opponent_attack_duration,
+                         opponent_attack_cooldown=opponent_attack_cooldown,
                          kwargs_opponent=kwargs_opponent)
         if name == "unknown":
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
@@ -533,7 +535,6 @@ class Environment(BaseEnv):
             self.viewer_fig = None
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
-        # TODO add test above: fake a cascading failure, do a reset, check that it can be loaded
 
         # reset the opponent
         self.oppSpace.reset()
@@ -585,19 +586,19 @@ class Environment(BaseEnv):
         self.backend = tmp_backend
         return res
 
-    def get_kwargs(self):
+    def get_kwargs(self, with_backend=True):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
 
-        This is usefull especially in cases where Environment is not pickable (for example if some non pickable c++
+        This is useful especially in cases where Environment is not pickable (for example if some non pickable c++
         code are used) but you still want to make parallel processing using "MultiProcessing" module. In that case,
-        you can send this dictionnary to each child process, and have each child process make a copy of ``self``
+        you can send this dictionary to each child process, and have each child process make a copy of ``self``
 
         Returns
         -------
         res: ``dict``
-            A dictionnary that helps build an environment like ``self``
+            A dictionary that helps build an environment like ``self``
 
         Examples
         --------
@@ -615,6 +616,8 @@ class Environment(BaseEnv):
         res = {}
         res["init_grid_path"] = self.init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+        if with_backend:
+            res["backend"] = self.backend.copy()
         res["parameters"] = copy.deepcopy(self.parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
         res["actionClass"] = self.actionClass
@@ -628,12 +631,16 @@ class Environment(BaseEnv):
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["name"] = self.name
         res["_raw_backend_class"] = self._raw_backend_class
+        res["with_forecast"] = self.with_forecast
 
         res["opponent_action_class"] = self.opponent_action_class
         res["opponent_class"] = self.opponent_class
         res["opponent_init_budget"] = self.opponent_init_budget
         res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
         res["opponent_budget_class"] = self.opponent_budget_class
+        res["opponent_attack_duration"] = self.opponent_attack_duration
+        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
+        res["kwargs_opponent"] = self.kwargs_opponent
         return res
 
     def get_params_for_runner(self):
@@ -687,5 +694,7 @@ class Environment(BaseEnv):
         res["opponent_init_budget"] = self.opponent_init_budget
         res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
         res["opponent_budget_class"] = self.opponent_budget_class
-        # TODO make a test for that
+        res["opponent_attack_duration"] = self.opponent_attack_duration
+        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
+        res["opponent_kwargs"] = self.kwargs_opponent
         return res

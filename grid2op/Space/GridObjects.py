@@ -24,8 +24,6 @@ from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 
-# TODO better random stuff when random observation (seed in argument is really weird)
-
 # TODO tests of these methods and this class in general
 
 class GridObjects:
@@ -391,10 +389,9 @@ class GridObjects:
     _vectorized = None
 
     # for redispatching / unit commitment
-    # TODO = "TODO COMPLETE THAT BELLOW!!! AND UPDATE THE init methods"
     _li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
-                          "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                          "gen_startup_cost", "gen_shutdown_cost"]
+                     "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
+                     "gen_startup_cost", "gen_shutdown_cost"]
 
     _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
 
@@ -513,7 +510,7 @@ class GridObjects:
             The shape of the :class:`GridObjects`
         """
         self._raise_error_attr_list_none()
-        res = np.array([self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect])
+        res = np.array([self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]).astype(dt_int)
         return res
 
     def dtype(self):
@@ -620,7 +617,7 @@ class GridObjects:
             The size of the GridObjects if it's converted to a flat vector.
 
         """
-        res = np.sum(self.shape())
+        res = np.sum(self.shape()).astype(dt_int)
         return res
 
     def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):

@@ -14,13 +14,8 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
-# TODO be able to change reward here
-
 # TODO make an action with the difference between the observation that would be an action.
 # TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
-
-# TODO finish documentation
-
 
 # TODO fix "bug" when action not initalized, return nan in to_vect
 
@@ -518,9 +513,8 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-
+        ``True`` if the action are equal, ``False`` otherwise.
         """
-        # TODO doc above
 
         if self.year != other.year:
             return False

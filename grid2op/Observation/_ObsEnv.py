@@ -75,6 +75,10 @@ class _ObsEnv(BaseEnv):
         self._do_nothing_act = self.helper_action_env()
         self._backend_action_set = self._backend_action_class()
 
+        # opponent
+        self.opp_space_state = None
+        self.opp_state = None
+
     def init_backend(self,
                      init_grid_path,
                      chronics_handler,
@@ -129,9 +133,10 @@ class _ObsEnv(BaseEnv):
         self.last_bus_line_or_init = np.zeros(self.n_line, dtype=dt_int)
         self.last_bus_line_ex_init = np.zeros(self.n_line, dtype=dt_int)
 
-        self.current_obs = self.obsClass(seed=None,
-                                         obs_env=None,
-                                         action_helper=None)
+        self.current_obs_init = self.obsClass(seed=None,
+                                              obs_env=None,
+                                              action_helper=None)
+        self.current_obs = self.current_obs_init
 
     def _do_nothing(self, x):
         return self._do_nothing_act
@@ -192,6 +197,7 @@ class _ObsEnv(BaseEnv):
 
         """
         self._topo_vect[:] = topo_vect
+        # TODO update maintenance time, duration and cooldown accordingly (see all todos in `update_grid`)
 
         # TODO set the shunts here
         # update the action that set the grid to the real value
@@ -207,6 +213,10 @@ class _ObsEnv(BaseEnv):
         self.current_obs.reset()
         self.time_stamp = time_stamp
         self.timestep_overflow[:] = timestep_overflow
+
+    def reset(self):
+        super().reset()
+        self.current_obs = self.current_obs_init
 
     def _reset_to_orig_state(self):
         """
@@ -228,6 +238,7 @@ class _ObsEnv(BaseEnv):
 
         self._backend_action_set.all_changed()
         self._backend_action = copy.deepcopy(self._backend_action_set)
+        self.oppSpace._set_state(self.opp_space_state, self.opp_state)
 
     def simulate(self, action):
         """
@@ -324,7 +335,9 @@ class _ObsEnv(BaseEnv):
         self.actual_dispatch_init[:] = env.actual_dispatch
         self.last_bus_line_or_init[:] = env.last_bus_line_or
         self.last_bus_line_ex_init[:] = env.last_bus_line_ex
+        self.opp_space_state, self.opp_state = env.oppSpace._get_state()
         # TODO check redispatching and simulate are working as intended
         # TODO also update the status of hazards, maintenance etc.
         # TODO and simulate also when a maintenance is forcasted!
-        # TODO add the opponent budget here
+        # TODO add the opponent budget here (should decrease with the time step :scared:) -> we really need to address
+        # all that before 1.0.0

@@ -14,8 +14,6 @@ from grid2op.Space import GridObjects
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction
 
-# TODO test this class.
-
 
 class RemoteEnv(Process):
     """
@@ -50,13 +48,10 @@ class RemoteEnv(Process):
 
         """
         # TODO documentation
-        # TODO seed of the environment.
 
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)
-        self.backend = self.env_params["backendClass"]()
-        del self.env_params["backendClass"]
-        chronics_handler = self.env_params["chronics_handler"]
+        self.backend = self.env_params["_raw_backend_class"]()
         self.env = Environment(**self.env_params, backend=self.backend)
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
@@ -125,6 +120,8 @@ class RemoteEnv(Process):
                 self.remote.send((self.seed_used, self.all_seeds))
             elif cmd == "params":
                 self.remote.send(self.env.parameters)
+            elif hasattr(self.env, cmd):
+                self.remote.send(getattr(self.env, cmd))
             else:
                 raise NotImplementedError
 
@@ -211,9 +208,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         max_int = np.iinfo(dt_int).max
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
-        env_params = [envs[e].get_kwargs() for e in range(self.nb_env)]
-        for e, el in enumerate(env_params):
-            el["backendClass"] = envs[e]._raw_backend_class
+        env_params = [envs[e].get_kwargs(with_backend=False) for e in range(self.nb_env)]
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
@@ -363,6 +358,39 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         for remote in self._remotes:
             remote.send(('params', None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def __getattr__(self, name):
+        """
+        This function is used to get the attribute of the underlying sub environments.
+
+        Note that setting attributes or information to the sub_env this way will not work. This method only allows
+        to get the value of some attributes, NOT to modify them.
+
+        /!\ **DANGER** /!\ is you use this function, you are entering the danger zone. This might not work and
+        make your all python session dies without any notice. You've been warned.
+
+        Parameters
+        ----------
+        name: ``str``
+            Name of the attribute you want to get the value, for each sub_env
+
+        Returns
+        -------
+        res: ``list``
+            The value of the given attribute for each sub env. Again, use with care.
+
+        """
+        res = True
+        for sub_env in self.envs:
+            if not hasattr(sub_env, name):
+                res = False
+        if not res:
+            raise RuntimeError("At least one of the sub_env has not the attribute \"{}\". This will not be "
+                               "executed.".format(name))
+        for remote in self._remotes:
+            remote.send((name, None))
         res = [remote.recv() for remote in self._remotes]
         return res
 

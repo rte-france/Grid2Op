@@ -29,7 +29,7 @@ from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.dtypes import dt_float
-from grid2op.Opponent import BaseOpponent, UnlimitedBudget
+from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
 # on windows if i start using sequential, i need to continue using sequential
 # if i start using parallel i need to continue using parallel
@@ -42,7 +42,7 @@ _IS_WINDOWS = sys.platform.startswith('win')
 # TODO add a more suitable logging strategy
 
 # TODO use gym logger if specified by the user.
-
+# TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 class DoNothingLog:
     """
@@ -214,12 +214,17 @@ class Runner(object):
         The initial budget of the opponent. It defaults to 0.0 which means the opponent cannot perform any action
         if this is not modified.
 
-    opponent_budget_per_ts
-    opponent_budget_class
+    opponent_budget_per_ts: ``float``, optional
+        The budget increase of the opponent per time step
+
+    opponent_budget_class: ``type``, optional
+        The class used to compute the attack cost.
+
+    grid_layout: ``dict``, optional
+        The layout of the grid (position of each substation) usefull if you need to plot some things for example.
     """
 
     def __init__(self,
-                 # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
                  name_env="unknown",
@@ -245,8 +250,12 @@ class Runner(object):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
-                 opponent_budget_class=UnlimitedBudget,
-                 grid_layout=None):
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
+                 opponent_kwargs={},
+                 grid_layout=None,
+                 with_forecast=True):
         """
         Initialize the Runner.
 
@@ -303,7 +312,9 @@ class Runner(object):
         voltagecontrolerClass: :class:`grid2op.VoltageControler.ControlVoltageFromFile`, optional
             The controler that will change the voltage setpoints of the generators.
 
+        # TODO documentation on the opponent
         """
+        self.with_forecast = with_forecast
         self.name_env = name_env
         if not isinstance(envClass, type):
             raise Grid2OpException(
@@ -474,6 +485,9 @@ class Runner(object):
         self.opponent_init_budget = opponent_init_budget
         self.opponent_budget_per_ts = opponent_budget_per_ts
         self.opponent_budget_class = opponent_budget_class
+        self.opponent_attack_duration = opponent_attack_duration
+        self.opponent_attack_cooldown = opponent_attack_cooldown
+        self.opponent_kwargs = opponent_kwargs
 
         self.grid_layout = grid_layout
 
@@ -485,6 +499,7 @@ class Runner(object):
                             chronics_handler=chronics_handler,
                             backend=backend,
                             parameters=parameters,
+                            name=self.name_env,
                             names_chronics_to_backend=self.names_chronics_to_backend,
                             actionClass=self.actionClass,
                             observationClass=self.observationClass,
@@ -492,12 +507,20 @@ class Runner(object):
                             legalActClass=self.legalActClass,
                             voltagecontrolerClass=self.voltageControlerClass,
                             other_rewards=self._other_rewards,
+
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
                             opponent_init_budget=self.opponent_init_budget,
                             opponent_budget_per_ts=self.opponent_budget_per_ts,
                             opponent_budget_class=self.opponent_budget_class,
-                            name=self.name_env)
+                            opponent_attack_duration=self.opponent_attack_duration,
+                            opponent_attack_cooldown=self.opponent_attack_cooldown,
+                            kwargs_opponent=self.opponent_kwargs,
+
+                            with_forecast=self.with_forecast,
+
+                            _raw_backend_class=self.backendClass
+                            )
 
         if self.thermal_limit_a is not None:
             res.set_thermal_limit(self.thermal_limit_a)
@@ -606,6 +629,11 @@ class Runner(object):
             # i don't store anything on drive, so i don't need to store anything on memory
             nb_timestep_max = 0
 
+        disc_lines_templ = np.full(
+            (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
+
+        attack_templ = np.full(
+            (1, env.oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
         if efficient_storing:
             times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
@@ -617,8 +645,7 @@ class Runner(object):
                 (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full(
                 (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            disc_lines_templ = np.full(
-                (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
+            attack = np.full((nb_timestep_max, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
         else:
             times = np.full(0, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
@@ -626,7 +653,7 @@ class Runner(object):
             env_actions = np.full((0, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
             observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            disc_lines_templ = np.full( (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
+            attack = np.full((0, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
 
         if path_save is not None:
             # store observation at timestep 0
@@ -646,6 +673,9 @@ class Runner(object):
                               helper_action_env=env.helper_action_env,
                               path_save=path_save,
                               disc_lines_templ=disc_lines_templ,
+                              attack_templ=attack_templ,
+                              attack=attack,
+                              attack_space=env.opponent_action_space,
                               logger=logger,
                               name=env.chronics_handler.get_name(),
                               other_rewards=[])
@@ -669,9 +699,11 @@ class Runner(object):
                 cum_reward += reward
                 time_step += 1
                 pbar_.update(1)
-
+                opp_attack = env.oppSpace.last_attack
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   float(reward), env.env_modification, act, obs, info)
+                                   float(reward), env.env_modification,
+                                   act, obs, opp_attack,
+                                   info)
             end_ = time.time()
 
         episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)

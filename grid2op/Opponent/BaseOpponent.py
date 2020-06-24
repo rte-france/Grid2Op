@@ -15,7 +15,7 @@ class BaseOpponent(RandomObject):
         self.action_space = action_space
         self._do_nothing = self.action_space()
 
-    def init(self, *args, **kwargs):
+    def init(self, **kwargs):
         """
         Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
         path where is the file is located should be pass with this method.
@@ -71,5 +71,51 @@ class BaseOpponent(RandomObject):
         """
         # TODO maybe have a class "GymOpponent" where the observation would include the budget  and all other
         # TODO information, and forward something to the "act" method.
-        attack = self._do_nothing
-        return attack
+        return None
+
+    def tell_attack_continues(self, observation, agent_action, env_action, budget):
+        """
+        The purpose of this method is to tell the agent that his attack is being continued
+        and to indicate the current state of the grid.
+        
+        At every time step, either "attack" or "tell_acttack_continues" is called exactly once.
+
+        Parameters
+        ----------
+        observation: :class:`grid2op.Observation.Observation`
+            The last observation (at time t)
+
+        agent_action: :class:`grid2op.Action.Action`
+            The action that the agent took
+
+        env_action: :class:`grid2op.Action.Action`
+            The modification that the environment will take.
+
+        budget: ``float``
+            The current remaining budget (if an action is above this budget, it will be replaced by a do nothing.
+        """
+        pass
+
+    def get_state(self):
+        """
+        This function should return the internal state of the Opponent.
+
+        This means that after a call to `opponent.set_state(opponent.get_state())` the opponent should do the exact
+        same things than without these calls.
+
+        Returns
+        -------
+
+        """
+        return None
+
+    def set_state(self, my_state):
+        """
+        This function is used to set the internal state of the Opponent.
+
+        Parameters
+        ----------
+        my_state
+
+        """
+        pass

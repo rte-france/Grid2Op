@@ -185,8 +185,6 @@ class PandaPowerBackend(Backend):
 
         """
 
-        # TODO read the name from the file if they are set...
-
         if path is None and filename is None:
             raise RuntimeError("You must provide at least one of path or file to laod a powergrid.")
         if path is None:
@@ -616,16 +614,16 @@ class PandaPowerBackend(Backend):
                     pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
 
                 if self._grid.res_gen.isnull().values.any():
-                    # TODO see if there is a better way here
+                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.
-                    raise pp.powerflow.LoadflowNotConverged
+                    raise pp.powerflow.LoadflowNotConverged("Isolated gen")
 
                 self.load_p[:], self.load_q[:], self.load_v[:] = self._loads_info()
                 if not is_dc:
                     if not np.all(np.isfinite(self.load_v)):
                         # TODO see if there is a better way here
                         # some loads are disconnected: it's a game over case!
-                        raise pp.powerflow.LoadflowNotConverged
+                        raise pp.powerflow.LoadflowNotConverged("Isolated load")
 
                 self.line_status[:] = self._get_line_status()
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
@@ -657,7 +655,7 @@ class PandaPowerBackend(Backend):
                 self._topo_vect[:] = self._get_topo_vect()
                 return self._grid.converged
 
-        except pp.powerflow.LoadflowNotConverged:
+        except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
             self.p_or[:] = np.NaN
             self.q_or[:] = np.NaN

@@ -5,16 +5,16 @@ Change Log
 --------------------
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] test and doc for opponent
 - [???] better logging
+- [???] add a "plot action" method
 - [???] rationalize the public and private part of the API. Some members now are public but should be private.
-- [???] better explanation of the notebook 3 with action silently
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
-- [???] modeled batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] modeled dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
-- [???] fix notebook 5 texts
+- [???] properly model interconnecting powerlines
+- [???] model curtailment
+- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] model dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
 [1.0.0] - 2020-06-xx
 ---------------------
@@ -23,6 +23,8 @@ Change Log
   `SingleProcessMultiEnv`
 - [BREAKING] the `seeds` parameters of the `Runner.run` function has been renamed `env_seeds` and an `agent_seeds`
   parameters is now available for fully reproducible experiments.
+- [FIXED] a weird effect on `env.reset` that did not reset the state of the previous observation held
+  by the environment. This could have caused some issue in some corner cases.
 - [FIXED] `BaseAction.__iadd__` fixed a bug with change actions `+=` operator reported in
   `Issue #116 <https://github.com/rte-france/Grid2Op/issues/116>`_
 - [FIXED] `obs.simulate` post-initialized reward behaves like the environment
@@ -30,6 +32,8 @@ Change Log
 - [FIXED] the `get_all_unitary_topologies_change` now counts only once the "do nothing" action.
 - [FIXED] `obs.simulate` could sometime returns "None" when the simulated action lead to a game over. This is no longer
   a problem.
+- [FIXED] `grid2op.make` will now raise an error if an invalid argument has been passed to it.
+- [FIXED] some arguments were not passed correctly to `env.get_kwargs()` or `env.get_params_for_runner()`
 - [ADDED] `Issue #110 <https://github.com/rte-france/Grid2Op/issues/110>`_ Adding an agent that is able to reconnect
   disconnected powerlines that can be reconnected, see `grid2op.Agent.RecoPowerlineAgent`
 - [ADDED] a clearer explanation between illegal and ambiguous action.
@@ -40,6 +44,8 @@ Change Log
   alternatively with one environment or the other. This is especially useful when considering an agent that should
   interact in multiple environments.
 - [ADDED] possibility to use `simulate` on the current observation.
+- [ADDED] the overload of "__getattr__" for environment running in parallel
+- [ADDED] capability to change the powerlines on which the opponent attack at the environment initialization
 - [UPDATED] `Backend.PandaPowerBackend.apply_action` vectorized backend apply action method for speed.
 - [UPDATED] `Issue #111 <https://github.com/rte-france/Grid2Op/issues/111>`_ Converter is better documented to be
   more broadly usable.

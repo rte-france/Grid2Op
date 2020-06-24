@@ -200,12 +200,14 @@ class CompleteObservation(BaseObservation):
 
     def to_dict(self):
         """
+        Transform this observation as a dictionary. This dictionary allows you to inspect the state of this
+        observation and is simply a shortcut of the class instance.
 
         Returns
         -------
+        A dictionary representing the observation.
 
         """
-        # TODO doc
         if self.dictionnarized is None:
             self.dictionnarized = {}
             self.dictionnarized["timestep_overflow"] = self.timestep_overflow

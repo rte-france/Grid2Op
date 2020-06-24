@@ -13,7 +13,6 @@ from grid2op.Chronics.MultiFolder import Multifolder
 from grid2op.Chronics.GridStateFromFile import GridStateFromFile
 
 
-#TODO tests for this class
 class MultifolderWithCache(Multifolder):
     """
     This class is a particular type of :class:`MultiFolder` that, instead of reading is all from disk each time

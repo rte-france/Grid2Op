@@ -379,7 +379,6 @@ def make_old(name_env="case14_realistic", **kwargs):
                                      isclass=False)
 
     # Opponent
-    # TODO make that in config file of the default environment !!!
     opponent_action_class = _get_default_aux("opponent_action_class",
                                              kwargs,
                                              defaultClassApp=BaseAction,

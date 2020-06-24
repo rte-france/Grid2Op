@@ -31,7 +31,8 @@ class OpponentSpace(object):
     budget_per_timestep: ``float``
         The increase of the opponent budget per time step (if any)
     """
-    def __init__(self, compute_budget, init_budget, opponent, budget_per_timestep=0., action_space=None):
+    def __init__(self, compute_budget, init_budget, opponent, attack_duration, attack_cooldown,
+                 budget_per_timestep=0., action_space=None):
         if action_space is not None:
             if not isinstance(action_space, compute_budget.action_space):
                 raise OpponentError("BaseAction space provided to build the agent is not a subclass from the"
@@ -46,6 +47,11 @@ class OpponentSpace(object):
         self._do_nothing = self.action_space()
         self.previous_fails = False
         self.budget_per_timestep = budget_per_timestep
+        self.attack_duration = attack_duration
+        self.attack_cooldown = attack_cooldown
+        self.current_attack_duration = 0
+        self.current_attack_cooldown = attack_cooldown
+        self.last_attack = None
 
         if init_budget < 0.:
             raise OpponentError("An opponent should at least have a positive (or null) budget. If you "
@@ -57,12 +63,12 @@ class OpponentSpace(object):
         #    raise OpponentError("Impossible to build an opponent reward with a reward of type {}".format(opponent_reward_class))
         # self.opp_reward_helper = RewardHelper(opponent_reward_class)
 
-    def init(self, *args, **kwargs):
+    def init_opponent(self, **kwargs):
         """
         Generic function used to initialize the opponent. For example, if an opponent reads from a file, the
         path where is the file is located should be pass with this method.
         """
-        self.opponent.init(*args, **kwargs)
+        self.opponent.init(**kwargs)
 
     def reset(self):
         """
@@ -70,7 +76,27 @@ class OpponentSpace(object):
         """
         self.budget = self.init_budget
         self.previous_fails = False
+        self.current_attack_duration = 0
+        self.current_attack_cooldown = self.attack_cooldown
+        self.last_attack = None
         self.opponent.reset(self.budget)
+
+    def _get_state(self):
+        # used for simulate
+        state_me = self.budget, self.previous_fails, self.current_attack_duration,  \
+                 self.current_attack_cooldown, self.last_attack
+        state_opp = self.opponent.get_state()
+        return state_me, state_opp
+
+    def _set_state(self, my_state, opp_state):
+        # used for simulate
+        self.opponent.set_state(opp_state)
+        budget, previous_fails, current_attack_duration, current_attack_cooldown, last_attack = my_state
+        self.budget = budget
+        self.previous_fails = previous_fails
+        self.current_attack_duration = current_attack_duration
+        self.current_attack_cooldown = current_attack_cooldown
+        self.last_attack = last_attack
 
     def has_failed(self):
         """
@@ -90,6 +116,9 @@ class OpponentSpace(object):
         Note that if the attack is "ambiguous" it will fails (the environment will replace it by a
         "do nothing" action), but the budget will still be consumed.
 
+        **NB**it is expected that this function update the :attr:`OpponentSpace.last_attack`  attribute
+        with ``None`` if the opponent choose not to attack, or with the attack of the opponent otherwise.
+
         Parameters
         ----------
         observation: :class:`grid2op.Observation.Observation`
@@ -103,18 +132,59 @@ class OpponentSpace(object):
 
         Returns
         -------
-        res: :class:`grid2op.Action.Action`
-            The attack the opponent wants to perform (or "do nothing" if the attack was too costly)
+        res: :class:`grid2op.Action.Action` : The attack the opponent wants to perform
+                                              (or "do nothing" if the attack was too costly)
+              or class:`NoneType` : Returns None if no action is taken
 
         """
+
+        if observation is None:
+            # this is the first time step, which is not a "real" one
+            # just here to load the data properly, so opponent do not attack there
+            return None, 0
+
+        # Update variables
         self.budget += self.budget_per_timestep
-        attack = self.opponent.attack(observation, agent_action, env_action, self.budget, self.previous_fails)
-        tmp = self.compute_budget(attack)
-        if tmp <= self.budget:
-            self.previous_fails = False
-            self.budget -= tmp
-            res = attack
+        self.current_attack_duration = max(0, self.current_attack_duration - 1)
+        self.current_attack_cooldown = max(0, self.current_attack_cooldown - 1)
+        attack_called = False
+
+        # If currently attacking
+        if self.current_attack_duration > 0:
+            attack = self.last_attack
+            self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
+
+        # If the opponent has already attacked today
+        elif self.current_attack_cooldown > self.attack_cooldown:
+            attack = None
+
+        # If the opponent can attack  
         else:
-            self.previous_fails = True
-            res = self._do_nothing
-        return res
+            self.previous_fails = False
+            attack = self.opponent.attack(observation, agent_action, env_action, self.budget,
+                                          self.previous_fails)
+            attack_called = True
+            # If the cost is too high
+            final_budget  = self.budget  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
+            # i did not do it in case an attack is ok at the beginning, ok at the end, but at some point in the attack
+            # process it is not (but i'm not sure this can happen, and don't have time to think about it right now)
+            if self.attack_duration * self.compute_budget(attack) > final_budget:
+                attack = None
+                self.previous_fails = True
+
+            # If we can afford the attack
+            elif attack is not None:
+                # even if it's "do nothing", it's sill an attack. To bad if the opponent chose to do nothing.
+                self.current_attack_duration = self.attack_duration
+                self.current_attack_cooldown += self.attack_cooldown
+
+        if not attack_called:
+            self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
+
+        self.budget -= self.compute_budget(attack)
+        self.last_attack = attack
+
+        attack_duration = self.current_attack_duration
+        if attack is None:
+            attack_duration = 0
+        return attack, attack_duration
