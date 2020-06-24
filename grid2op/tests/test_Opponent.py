@@ -591,7 +591,10 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=RandomLineOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                      kwargs_opponent={
+                          "lines_attacked": LINES_ATTACKED
+                      }) as env:
+
                 env.seed(0)
                 agent_action = env.action_space()
                 observation = env.get_obs()
@@ -648,34 +651,36 @@ class TestLoadingOpp(unittest.TestCase):
 
             p = Parameters()
             p.NO_OVERFLOW_DISCONNECTION = True
-            with make("rte_case14_realistic",
-                      test=True, param=p,
-                      opponent_init_budget=init_budget,
-                      opponent_budget_per_ts=opponent_budget_per_ts,
-                      opponent_attack_cooldown=opponent_attack_cooldown,
-                      opponent_attack_duration=opponent_attack_duration,
-                      opponent_action_class=opponent_action_class,
-                      opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
-                env.seed(0)
-                runner = Runner(**env.get_params_for_runner())
-                assert runner.opponent_init_budget == init_budget
-                assert runner.opponent_budget_per_ts == opponent_budget_per_ts
-                assert runner.opponent_attack_cooldown == opponent_attack_cooldown
-                assert runner.opponent_attack_duration == opponent_attack_duration
-                assert runner.opponent_action_class == opponent_action_class
-
-                res = runner.run(nb_episode=1,
-                                 max_iter=opponent_attack_cooldown,
-                                 env_seeds=[0], agent_seeds=[0])
-                f = tempfile.mkdtemp()
-                res = runner.run(nb_episode=1, max_iter=opponent_attack_cooldown, path_save=f)
-                for i, episode_name, cum_reward, timestep, total_ts in res:
-                    episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
-                    assert np.any(episode_data.attack[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
-                    assert np.sum(episode_data.attack[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
-                    assert np.all(episode_data.attack[:, 0] == 0.)
+            env = make("rte_case14_realistic",
+                       test=True, param=p,
+                       opponent_init_budget=init_budget,
+                       opponent_budget_per_ts=opponent_budget_per_ts,
+                       opponent_attack_cooldown=opponent_attack_cooldown,
+                       opponent_attack_duration=opponent_attack_duration,
+                       opponent_action_class=opponent_action_class,
+                       opponent_budget_class=BaseActionBudget,
+                       opponent_class=RandomLineOpponent,
+                       kwargs_opponent={
+                           "lines_attacked": LINES_ATTACKED
+                       })
+            env.seed(0)
+            runner = Runner(**env.get_params_for_runner())
+            assert runner.opponent_init_budget == init_budget
+            assert runner.opponent_budget_per_ts == opponent_budget_per_ts
+            assert runner.opponent_attack_cooldown == opponent_attack_cooldown
+            assert runner.opponent_attack_duration == opponent_attack_duration
+            assert runner.opponent_action_class == opponent_action_class
+            
+            f = tempfile.mkdtemp()
+            res = runner.run(nb_episode=1,
+                             env_seeds=[4], agent_seeds=[0],
+                             max_iter=opponent_attack_cooldown - 1,
+                             path_save=f)
+            for i, episode_name, cum_reward, timestep, total_ts in res:
+                episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+                assert np.any(episode_data.attack[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
+                assert np.sum(episode_data.attack[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
+                assert np.all(episode_data.attack[:, 0] == 0.)
 
     def test_env_opponent(self):
         param = Parameters()
