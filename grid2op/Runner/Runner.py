@@ -873,8 +873,7 @@ class Runner(object):
             # on windows if i start using sequential, i need to continue using sequential
             # if i start using parallel i need to continue using parallel
             # so i force the usage of the sequential mode
-            warnings.warn(
-                "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
+            self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
             return self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds)
         else:
             self._clean_up()
