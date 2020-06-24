@@ -845,9 +845,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_illegal_reco = False
         attack = None
         except_ = []
+        detailed_info = []
         init_disp = 1.0 * action._redispatch
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
+        conv_ = None
         try:
             # "smart" reconnecting
             beg_ = time.time()
@@ -937,50 +939,50 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             try:
                 # compute the next _grid state
                 beg_ = time.time()
-                disc_lines, infos = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
+                disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
                 self._time_powerflow += time.time() - beg_
+                if conv_ is None:
+                    beg_ = time.time()
+                    self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
+                    overflow_lines = self.backend.get_line_overflow()
+                    self._backend_action.update_state(disc_lines)
 
-                beg_ = time.time()
-                self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
-                overflow_lines = self.backend.get_line_overflow()
-                self._backend_action.update_state(disc_lines)
+                    # one timestep passed, i can maybe reconnect some lines
+                    self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
+                    # update the vector for lines that have been disconnected
+                    self.times_before_line_status_actionable[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                    self._update_time_reconnection_hazards_maintenance()
 
-                # one timestep passed, i can maybe reconnect some lines
-                self.times_before_line_status_actionable[self.times_before_line_status_actionable > 0] -= 1
-                # update the vector for lines that have been disconnected
-                self.times_before_line_status_actionable[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
-                self._update_time_reconnection_hazards_maintenance()
+                    # for the powerline that are on overflow, increase this time step
+                    self.timestep_overflow[overflow_lines] += 1
 
-                # for the powerline that are on overflow, increase this time step
-                self.timestep_overflow[overflow_lines] += 1
+                    # set to 0 the number of timestep for lines that are not on overflow
+                    self.timestep_overflow[~overflow_lines] = 0
 
-                # set to 0 the number of timestep for lines that are not on overflow
-                self.timestep_overflow[~overflow_lines] = 0
+                    # build the topological action "cooldown"
+                    aff_lines, aff_subs = action.get_topological_impact()
+                    if self.max_timestep_line_status_deactivated > 0:
+                        # i update the cooldown only when this does not impact the line disconnected for the
+                        # opponent or by maitnenance for example
+                        cond = aff_lines  # powerlines i modified
+                        # powerlines that are not affected by any other "forced disconnection"
+                        cond &= self.times_before_line_status_actionable < self.max_timestep_line_status_deactivated
+                        self.times_before_line_status_actionable[cond] = self.max_timestep_line_status_deactivated
+                    if self.max_timestep_topology_deactivated > 0:
+                        self.times_before_topology_actionable[self.times_before_topology_actionable > 0] -= 1
+                        self.times_before_topology_actionable[aff_subs] = self.max_timestep_topology_deactivated
 
-                # build the topological action "cooldown"
-                aff_lines, aff_subs = action.get_topological_impact()
-                if self.max_timestep_line_status_deactivated > 0:
-                    # i update the cooldown only when this does not impact the line disconnected for the
-                    # opponent or by maitnenance for example
-                    cond = aff_lines  # powerlines i modified
-                    # powerlines that are not affected by any other "forced disconnection"
-                    cond &= self.times_before_line_status_actionable < self.max_timestep_line_status_deactivated
-                    self.times_before_line_status_actionable[cond] = self.max_timestep_line_status_deactivated
-                if self.max_timestep_topology_deactivated > 0:
-                    self.times_before_topology_actionable[self.times_before_topology_actionable > 0] -= 1
-                    self.times_before_topology_actionable[aff_subs] = self.max_timestep_topology_deactivated
+                    # build the observation
+                    self.current_obs = self.get_obs()
+                    self._time_extract_obs += time.time() - beg_
 
-                # build the observation
-                self.current_obs = self.get_obs()
-                self._time_extract_obs += time.time() - beg_
-
-                # extract production active value at this time step (should be independant of action class)
-                self.gen_activeprod_t[:], *_ = self.backend.generators_info()
-                # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
-                # of the system. So basically, when it's too high (higher than the ramp) it can
-                # mess up the rest of the environment
-                self.gen_activeprod_t_redisp[:] = new_p + self.actual_dispatch
-                has_error = False
+                    # extract production active value at this time step (should be independant of action class)
+                    self.gen_activeprod_t[:], *_ = self.backend.generators_info()
+                    # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
+                    # of the system. So basically, when it's too high (higher than the ramp) it can
+                    # mess up the rest of the environment
+                    self.gen_activeprod_t_redisp[:] = new_p + self.actual_dispatch
+                    has_error = False
             except Grid2OpException as e:
                 except_.append(e)
                 if self.logger is not None:
@@ -991,7 +993,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_done = True
 
         self._backend_action.reset()
-
+        if conv_ is not None:
+            except_.append(conv_)
         infos = {"disc_lines": disc_lines,
                  "is_illegal": is_illegal,
                  "is_ambiguous": is_ambiguous,
@@ -1001,6 +1004,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  "opponent_attack_sub": subs_attacked,
                  "opponent_attack_duration": attack_duration,
                  "exception": except_}
+        if self.backend.detailed_infos_for_cascading_failures:
+            infos["detailed_infos_for_cascading_failures"] = detailed_info
+
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(action,
                                                              has_error,

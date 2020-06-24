@@ -882,7 +882,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=self.env_params,
                           name="test_pp_env1")
 
-        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
+        assert conv_ is None
         assert not infos
 
     def test_next_grid_state_1overflow(self):
@@ -902,7 +903,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
         self.backend.set_thermal_limit(thermal_limit)
 
-        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
+        assert conv_ is None
         assert len(infos) == 1  # check that i have only one overflow
         assert np.sum(disco) == 1
 
@@ -925,7 +927,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
         self.backend.set_thermal_limit(thermal_limit)
 
-        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
+        assert conv_ is None
         assert not infos  # check that don't simulate a cascading failure
         assert np.sum(disco) == 0
 
@@ -951,8 +954,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         thermal_limit[self.id_2nd_line_disco] = 400
         self.backend.set_thermal_limit(thermal_limit)
 
-        disco, infos = self.backend.next_grid_state(env, is_dc=False)
-
+        disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
+        assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
         assert disco[self.id_first_line_disco]
         assert disco[self.id_2nd_line_disco]
@@ -983,7 +986,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         thermal_limit[self.id_2nd_line_disco] = 400
         self.backend.set_thermal_limit(thermal_limit)
 
-        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
+        assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
         assert disco[self.id_first_line_disco]
         assert np.sum(disco) == 1
@@ -1014,7 +1018,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         thermal_limit[self.id_2nd_line_disco] = 400
         self.backend.set_thermal_limit(thermal_limit)
 
-        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
+        assert conv_ is None
         assert len(infos) == 1  # check that don't simulate a cascading failure
         assert disco[self.id_first_line_disco]
         assert np.sum(disco) == 1
@@ -1045,7 +1050,8 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         thermal_limit[self.id_2nd_line_disco] = 400
         self.backend.set_thermal_limit(thermal_limit)
 
-        disco, infos = self.backend.next_grid_state(env, is_dc=False)
+        disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
+        assert conv_ is None
         assert len(infos) == 2  # check that there is a cascading failure of length 2
         assert disco[self.id_first_line_disco]
         assert disco[self.id_2nd_line_disco]
