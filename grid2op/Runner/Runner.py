@@ -211,12 +211,17 @@ class Runner(object):
         The initial budget of the opponent. It defaults to 0.0 which means the opponent cannot perform any action
         if this is not modified.
 
-    opponent_budget_per_ts
-    opponent_budget_class
+    opponent_budget_per_ts: ``float``, optional
+        The budget increase of the opponent per time step
+
+    opponent_budget_class: ``type``, optional
+        The class used to compute the attack cost.
+
+    grid_layout: ``dict``, optional
+        The layout of the grid (position of each substation) usefull if you need to plot some things for example.
     """
 
     def __init__(self,
-                 # full path where grid state is located, eg "./data/test_Pandapower/case14.json"
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
                  name_env="unknown",
