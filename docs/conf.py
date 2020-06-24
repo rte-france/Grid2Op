@@ -22,8 +22,8 @@ copyright = '2019, RTE France'
 author = 'Benjamin Donnot'
 
 # The full version, including alpha/beta/rc tags
-release = '0.9.4'
-version = '0.9'
+release = '1.0.0'
+version = '1.0'
 
 
 # -- General configuration ---------------------------------------------------
