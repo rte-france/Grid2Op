@@ -45,22 +45,6 @@ class TestSuiteOpponent_001(BaseOpponent):
         return attack
 
 
-class ReconnectAgent(BaseAgent):
-    def __init__(self, action_space):
-        BaseAgent.__init__(self, action_space)
-        self.rotate_counter = 0
-
-    def act(self, observation, reward, done=False):
-        if np.all(observation.line_status):
-            res = self.action_space({})
-        else:
-            dc_ids = np.argwhere(observation.line_status == False).ravel()
-            line_id = dc_ids[self.rotate_counter % len(dc_ids)]
-            res = self.action_space({'set_line_status': [(line_id, 1)]})
-            self.rotate_counter += 1
-        return res
-
-
 class TestLoadingOpp(unittest.TestCase):
     def test_creation_BaseOpponent(self):
         with warnings.catch_warnings():
@@ -278,7 +262,6 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_cooldown=attack_cooldown,
                       opponent_class=RandomLineOpponent,
                       kwargs_opponent={"lines_attacked": lines_attacked}) as env:
-                # agent = ReconnectAgent(env.action_space)
                 env.seed(0)
                 obs = env.reset()
                 reward = 0
