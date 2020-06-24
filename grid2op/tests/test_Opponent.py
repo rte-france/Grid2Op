@@ -199,7 +199,7 @@ class TestLoadingOpp(unittest.TestCase):
             warnings.filterwarnings("ignore")
             init_budget = 1000
             tries = 30
-            attackable_lines_case14 = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
+            attackable_lines_case14 = LINES_ATTACKED
             with make("rte_case14_realistic",
                       test=True,
                       opponent_init_budget=init_budget,
@@ -251,59 +251,150 @@ class TestLoadingOpp(unittest.TestCase):
                     n_disconnected = np.sum(attack._set_line_status == -1)
                     assert n_disconnected == 1
 
-    def test_RandomLineOpponent_no_overflow(self):
-        """Tests that the line status cooldown is correctly updated when the opponent attacks a line"""
+    def test_RandomLineOpponent_with_agent(self):
+        """Tests that the line status cooldown is correctly updated when the opponent attacks a line with an agent"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            init_budget = 1000
+            # to prevent attack on first time step
+            init_budget = 8
+            opponent_budget_per_ts = 1
             length = 300
             agent_line_cooldown = 30
             attack_duration = 10
-            attack_cooldown = 15
+            attack_cooldown = 20000  # i do one attack
             param = Parameters()
             param.NO_OVERFLOW_DISCONNECTION = True
             param.NB_TIMESTEP_COOLDOWN_LINE = agent_line_cooldown
+            line_opponent_attack = 4
+            line_opponent_attack = 15
+            lines_attacked = ["3_6_15"]
             with make("rte_case14_realistic",
                       test=True, param=param,
                       opponent_init_budget=init_budget,
-                      opponent_budget_per_ts=0.,
+                      opponent_budget_per_ts=opponent_budget_per_ts,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
                       opponent_class=RandomLineOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
-                agent = ReconnectAgent(env.action_space)
+                      kwargs_opponent={"lines_attacked": lines_attacked}) as env:
+                # agent = ReconnectAgent(env.action_space)
                 env.seed(0)
                 obs = env.reset()
                 reward = 0
                 assert env.oppSpace.budget == init_budget
                 assert np.all(obs.time_before_cooldown_line == 0)
-                # Collect some attacks and check that they belong to the correct lines
-                for i in range(length):
-                    pre_cooldown = obs.time_before_cooldown_line.copy()
-                    agent_action = agent.act(obs, reward)
-                    obs, reward, done, info = env.step(agent_action)
-    
-                    status_actionable = np.maximum(0, pre_cooldown - 1)
+                # the "agent" does an action (on the same powerline as the opponent attacks)
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(line_opponent_attack, 1)]}))
+                assert np.all(obs.line_status)
+                assert obs.time_before_cooldown_line[line_opponent_attack] == agent_line_cooldown
 
-                    # Add attack cooldown
-                    attack = env.oppSpace.last_attack
-                    if attack is not None:
-                        attacked_line = np.where(attack._set_line_status == -1)[0][0]
-                        status_actionable[attacked_line] = max(env.oppSpace.current_attack_duration - 1,
-                                                               status_actionable[attacked_line])
+                # check that the opponent cooldown is not taken into account (lower than the cooldown on line)
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert "opponent_attack_line" in info
+                    assert np.sum(info["opponent_attack_line"]) == 1, "error at iteration {} for attack".format(i)
+                    assert info["opponent_attack_line"][line_opponent_attack]
+                    assert obs.time_before_cooldown_line[line_opponent_attack] == agent_line_cooldown - (i+1), "error at iteration {}".format(i)
 
-                    # Add agent cooldown
-                    if any(agent_action._set_line_status == 1):
-                        reco_line = np.where(agent_action._set_line_status == 1)[0][0]
-                        if pre_cooldown[reco_line] == 0:
-                            status_actionable[reco_line] = max(status_actionable[reco_line],
-                                                               agent_line_cooldown)
-    
-                    ## Add maintenance? Where to find?
-    
-                    assert np.all(obs.time_before_cooldown_line == status_actionable) # Should fail because of maintenance
+                obs, reward, done, info = env.step(env.action_space())
+                assert "opponent_attack_line" in info
+                assert info["opponent_attack_line"] is None  # no more attack
+                assert obs.time_before_cooldown_line[line_opponent_attack] == agent_line_cooldown - 11
+
+    def test_RandomLineOpponent_with_maintenance_1(self):
+        """Tests that the line status cooldown is correctly updated when the opponent attacks a line with an agent"""
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # to prevent attack on first time step
+            init_budget = 8
+            opponent_budget_per_ts = 1
+            length = 300
+            agent_line_cooldown = 30
+            attack_duration = 5
+            attack_cooldown = 20000  # i do one attack
+            param = Parameters()
+            param.NO_OVERFLOW_DISCONNECTION = True
+            param.NB_TIMESTEP_COOLDOWN_LINE = agent_line_cooldown
+            line_opponent_attack = 4
+            line_opponent_attack = 11
+
+            # 1. attack is at the same time than the maintenance
+            lines_attacked = ["8_13_11"]
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True, param=param,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=opponent_budget_per_ts,
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_attack_duration=attack_duration,
+                      opponent_attack_cooldown=attack_cooldown,
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": lines_attacked}) as env:
+                env.seed(0)
+                obs = env.reset()
+                obs, reward, done, info = env.step(env.action_space())
+                # the opponent has attacked
+                assert "opponent_attack_line" in info
+                assert np.sum(info["opponent_attack_line"]) == 1, "error at iteration {} for attack".format(i)
+                assert info["opponent_attack_line"][line_opponent_attack]
+                # but the maintenance cooldown has priority (longer)
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+            # 2. attack is before than the maintenance
+            init_budget = 8
+            opponent_budget_per_ts = 1
+            attack_duration = 5
+            lines_attacked = ["9_10_12"]
+            line_id = 12
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True, param=param,
+                      opponent_init_budget=init_budget,
+                      opponent_budget_per_ts=opponent_budget_per_ts,
+                      opponent_action_class=TopologyAction,
+                      opponent_budget_class=BaseActionBudget,
+                      opponent_attack_duration=attack_duration,
+                      opponent_attack_cooldown=attack_cooldown,
+                      opponent_class=RandomLineOpponent,
+                      kwargs_opponent={"lines_attacked": lines_attacked}) as env:
+                env.seed(0)
+                obs = env.reset()
+                env.fast_forward_chronics(274)
+                obs, reward, done, info = env.step(env.action_space())
+                # i have a maintenance in 1 time step
+                assert obs.time_next_maintenance[line_id] == 1
+                # the opponent has attacked at this time step
+                assert "opponent_attack_line" in info
+                assert info["opponent_attack_line"] is not None
+                assert info["opponent_attack_line"][line_id]
+                assert info["opponent_attack_duration"] == 4
+                # cooldown should be updated correctly
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                for i in range(3):
+                    obs, reward, done, info = env.step(env.action_space())  # the maintenance is happening
+                    # i have a maintenance in 1 time step
+                    assert obs.time_next_maintenance[line_id] == 0
+                    # the attack continued
+                    assert "opponent_attack_line" in info
+                    assert info["opponent_attack_line"] is not None
+                    assert info["opponent_attack_line"][line_id]
+                    assert info["opponent_attack_duration"] == 3-i
+                    assert np.all(obs.time_before_cooldown_line ==
+                                  np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12-i, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+                # attack should be over
+                obs, reward, done, info = env.step(env.action_space())  # the maintenance is happening
+                # i have a maintenance in 1 time step
+                assert obs.time_next_maintenance[line_id] == 0
+                # the attack continued
+                assert "opponent_attack_line" in info
+                assert info["opponent_attack_line"] is None
+                assert info["opponent_attack_duration"] == 0
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12-3, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
     def test_RandomLineOpponent_only_attack_connected(self):
         """
