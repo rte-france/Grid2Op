@@ -163,8 +163,10 @@ class OpponentSpace(object):
             if self.attack_duration * self.compute_budget(attack) > self.budget:
                 attack = None
                 self.previous_fails = True
+
             # If we can afford the attack
-            elif attack is not None and attack.as_dict():
+            elif attack is not None:
+                # even if it's "do nothing", it's sill an attack. To bad if the opponent chose to do nothing.
                 self.current_attack_duration = self.attack_duration
                 self.current_attack_cooldown += self.attack_cooldown
 
