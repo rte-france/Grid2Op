@@ -66,7 +66,9 @@ class TestRunner(HelperTests):
         assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_one_process_par(self):
-        res = Runner._one_process_parrallel(self.runner, [0], 0, None, None, self.max_iter)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res = Runner._one_process_parrallel(self.runner, [0], 0, None, None, self.max_iter)
         assert len(res) == 1
         _, el1, el2, el3, el4 = res[0]
         assert el1 == "1"
@@ -82,7 +84,9 @@ class TestRunner(HelperTests):
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_2episode_2process(self):
-        res = self.runner._run_parrallel(nb_episode=2, nb_process=2, max_iter=self.max_iter)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res = self.runner._run_parrallel(nb_episode=2, nb_process=2, max_iter=self.max_iter)
         assert len(res) == 2
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
@@ -97,8 +101,8 @@ class TestRunner(HelperTests):
                 runner_params = env.get_params_for_runner()
                 runner = Runner(**runner_params)
                 res = runner.run(path_save=f,
-                                 nb_episode=4,
-                                 nb_process=4,
+                                 nb_episode=nb_episode,
+                                 nb_process=2,
                                  max_iter=self.max_iter)
         test_ = set()
         for id_chron, name_chron, cum_reward, nb_time_step, max_ts in res:
@@ -168,6 +172,7 @@ class TestRunner(HelperTests):
 
     def test_always_same_order(self):
         # test that a call to "run" will do always the same chronics in the same order
+        # regardless of the seed or the parallelism or the number of call to runner.run
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
@@ -189,6 +194,7 @@ class TestRunner(HelperTests):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 runner = Runner(**env.get_params_for_runner())
+        runner.gridStateclass_kwargs["max_iter"] = 2*self.max_iter
         runner.chronics_handler.set_max_iter(2*self.max_iter)
         res = runner.run(nb_episode=1)
         for i, _, cum_reward, timestep, total_ts in res:
@@ -198,11 +204,15 @@ class TestRunner(HelperTests):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        runner.gridStateclass_kwargs["max_iter"] = 2*self.max_iter
+                dict_ = env.get_params_for_runner()
+                dict_["max_iter"] = -1
+                sub_dict = dict_["gridStateclass_kwargs"]
+                sub_dict["max_iter"] = 2*self.max_iter
+                runner = Runner(**dict_)
         res = runner.run(nb_episode=2, nb_process=2)
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 2*self.max_iter
+
 
 if __name__ == "__main__":
     unittest.main()

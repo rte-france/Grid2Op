@@ -8,6 +8,7 @@
 import time
 import warnings
 
+import sys
 import numpy as np
 import copy
 
@@ -30,6 +31,10 @@ from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.dtypes import dt_float
 from grid2op.Opponent import BaseOpponent, UnlimitedBudget
 
+# on windows if i start using sequential, i need to continue using sequential
+# if i start using parallel i need to continue using parallel
+# so i force the usage of the "starmap" stuff even if there is one process on windows
+_IS_WINDOWS = sys.platform.startswith('win')
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
@@ -98,8 +103,6 @@ class ConsoleLog(DoNothingLog):
                 print("WARNING: \"{}\"".format(", ".join(args)))
             if kwargs:
                 print("WARNING: {}".format(kwargs))
-
-#TODO i think runner.env are not close, like, never closed :eyes:
 
 
 class Runner(object):
@@ -473,6 +476,9 @@ class Runner(object):
         self.opponent_budget_class = opponent_budget_class
 
         self.grid_layout = grid_layout
+
+        # otherwise on windows it sometimes fail in the runner in multi process
+        # self.init_env()
 
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
@@ -863,14 +869,15 @@ class Runner(object):
         if nb_process <= 0:
             raise RuntimeError(
                 "Runner: you need at least 1 process to run episodes")
-        if nb_process == 1 or self.__can_copy_agent is False:
+        if _IS_WINDOWS or nb_process == 1 or self.__can_copy_agent is False:
+            # on windows if i start using sequential, i need to continue using sequential
+            # if i start using parallel i need to continue using parallel
+            # so i force the usage of the sequential mode
             warnings.warn(
                 "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return [self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds)]
+            return self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds)
         else:
-            if self.env is not None:
-                self.env.close()
-                self.env = None
+            self._clean_up()
             self.backend = self.backendClass()
 
             nb_process = int(nb_process)
@@ -902,6 +909,12 @@ class Runner(object):
                 res += el
         return res
 
+    def _clean_up(self):
+        """close the environment is it has been created"""
+        if self.env is not None:
+            self.env.close()
+        self.env = None
+
     def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None, agent_seeds=None):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
@@ -913,7 +926,8 @@ class Runner(object):
             Number of episode to simulate
 
         nb_process: ``int``, optional
-            Number of process used to play the nb_episode. Default to 1.
+            Number of process used to play the nb_episode. Default to 1. **NB** Multitoprocessing is deactivated
+            on windows based platform (it was not fully supported so we decided to remove it)
 
         path_save: ``str``, optional
             If not None, it specifies where to store the data. See the description of this module :mod:`Runner` for
@@ -1018,15 +1032,21 @@ class Runner(object):
         if nb_episode == 0:
             res = []
         else:
-            if nb_process <= 0:
-                raise RuntimeError("Impossible to run using less than 1 process.")
+            try:
+                if nb_process <= 0:
+                    raise RuntimeError("Impossible to run using less than 1 process.")
 
-            if nb_process == 1:
-                self.logger.info("Sequential runner used.")
-                res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
-                                           env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
-            else:
-                self.logger.info("Parallel runner used.")
-                res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save, env_seeds=env_seeds,
-                                          max_iter=max_iter, agent_seeds=agent_seeds)
+                if _IS_WINDOWS and nb_process > 1:
+                    self.logger.warn("Parallel run are not fully supported on windows at the moment. So we decided "
+                                     "to fully deactivate them.")
+                if nb_process == 1 or _IS_WINDOWS:
+                    self.logger.info("Sequential runner used.")
+                    res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
+                                               env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
+                else:
+                    self.logger.info("Parallel runner used.")
+                    res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save,
+                                              env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
+            finally:
+                self._clean_up()
         return res
