@@ -28,7 +28,7 @@ from grid2op.Episode import EpisodeData
 from grid2op.Runner.FakePBar import _FakePbar
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.dtypes import dt_float
-from grid2op.Opponent import BaseOpponent, UnlimitedBudget
+from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
@@ -242,9 +242,9 @@ class Runner(object):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
-                 opponent_budget_class=UnlimitedBudget,
-                 opponent_attack_duration=12*4,
-                 opponent_attack_cooldown=12*24,
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
                  opponent_kwargs={},
                  grid_layout=None,
                  with_forecast=True):

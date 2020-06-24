@@ -116,6 +116,9 @@ class OpponentSpace(object):
         Note that if the attack is "ambiguous" it will fails (the environment will replace it by a
         "do nothing" action), but the budget will still be consumed.
 
+        **NB**it is expected that this function update the :attr:`OpponentSpace.last_attack`  attribute
+        with ``None`` if the opponent choose not to attack, or with the attack of the opponent otherwise.
+
         Parameters
         ----------
         observation: :class:`grid2op.Observation.Observation`
@@ -144,6 +147,7 @@ class OpponentSpace(object):
         self.budget += self.budget_per_timestep
         self.current_attack_duration = max(0, self.current_attack_duration - 1)
         self.current_attack_cooldown = max(0, self.current_attack_cooldown - 1)
+        attack_called = False
 
         # If currently attacking
         if self.current_attack_duration > 0:
@@ -159,8 +163,12 @@ class OpponentSpace(object):
             self.previous_fails = False
             attack = self.opponent.attack(observation, agent_action, env_action, self.budget,
                                           self.previous_fails)
+            attack_called = True
             # If the cost is too high
-            if self.attack_duration * self.compute_budget(attack) > self.budget:
+            final_budget  = self.budget  # TODO add the: + self.budget_per_timestep * (self.attack_duration - 1)
+            # i did not do it in case an attack is ok at the beginning, ok at the end, but at some point in the attack
+            # process it is not (but i'm not sure this can happen, and don't have time to think about it right now)
+            if self.attack_duration * self.compute_budget(attack) > final_budget:
                 attack = None
                 self.previous_fails = True
 
@@ -169,6 +177,9 @@ class OpponentSpace(object):
                 # even if it's "do nothing", it's sill an attack. To bad if the opponent chose to do nothing.
                 self.current_attack_duration = self.attack_duration
                 self.current_attack_cooldown += self.attack_cooldown
+
+        if not attack_called:
+            self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
 
         self.budget -= self.compute_budget(attack)
         self.last_attack = attack

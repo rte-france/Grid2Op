@@ -43,9 +43,6 @@ class RandomLineOpponent(BaseOpponent):
                                     "information, powerlines on the grid are : {}"
                                     "".format(l_name, sorted(self.action_space.name_line)))
 
-        # Pre build do nothing action
-        self._do_nothing = self.action_space({})
-
         # Pre-build attacks actions
         self._attacks = []
         for l_id in self._lines_ids:

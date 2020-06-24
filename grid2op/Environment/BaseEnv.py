@@ -18,7 +18,7 @@ from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
 from grid2op.Reward import RewardHelper
-from grid2op.Opponent import OpponentSpace, UnlimitedBudget
+from grid2op.Opponent import OpponentSpace, NeverAttackBudget
 from grid2op.Action import DontAct, BaseAction
 from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
@@ -89,11 +89,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  with_forecast=True,
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
-                 opponent_budget_class=UnlimitedBudget,
                  opponent_init_budget=0.,
-                 opponent_attack_duration=12*4,
-                 opponent_attack_cooldown=12*24,
                  opponent_budget_per_ts=0.,
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
                  kwargs_opponent={}
                  ):
         GridObjects.__init__(self)

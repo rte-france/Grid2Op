@@ -19,7 +19,7 @@ from grid2op.Backend import Backend
 from grid2op.Chronics import ChronicsHandler
 from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageController
 from grid2op.Environment.BaseEnv import BaseEnv
-from grid2op.Opponent import BaseOpponent, UnlimitedBudget
+from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 
 # TODO code "start from a given time step" -> link to the "skip" method of GridValue
 
@@ -128,9 +128,9 @@ class Environment(BaseEnv):
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
                  opponent_budget_per_ts=0.,
-                 opponent_attack_duration=12*4,
-                 opponent_attack_cooldown=12*24,
-                 opponent_budget_class=UnlimitedBudget,
+                 opponent_budget_class=NeverAttackBudget,
+                 opponent_attack_duration=0,
+                 opponent_attack_cooldown=99999,
                  kwargs_opponent={},
                  _raw_backend_class=None
                  ):
@@ -701,5 +701,4 @@ class Environment(BaseEnv):
         res["opponent_attack_duration"] = self.opponent_attack_duration
         res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
         res["opponent_kwargs"] = self.kwargs_opponent
-        # TODO make a test for that
         return res
