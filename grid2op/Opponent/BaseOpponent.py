@@ -6,7 +6,12 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import numpy as np
+import grid2op
 from grid2op.Space import RandomObject
+from grid2op.Parameters import Parameters
+from grid2op.Action import TopologyAction
+from grid2op.Opponent.BaseActionBudget import BaseActionBudget
 
 
 class BaseOpponent(RandomObject):
@@ -119,3 +124,84 @@ class BaseOpponent(RandomObject):
 
         """
         pass
+
+    @classmethod
+    def evaluate(cls, opponent_attack_duration=40, opponent_attack_cooldown=100):
+        """
+        This function is used to evaluate the Opponent and returns the according metrics.
+        """
+        lines_attacked = ["26_30_56", "30_31_45", "16_18_23", "16_21_27", "9_16_18", "7_9_9",
+                          "11_12_13", "12_13_14", "2_3_0", "22_26_39" ]
+        opponent_init_budget = 1000
+        opponent_budget_per_ts = 0
+        agent_line_cooldown = 10
+        max_iter = 500
+
+        kwargs = {'test': False,
+                  'opponent_init_budget': opponent_init_budget,
+                  'opponent_budget_per_ts': opponent_budget_per_ts,
+                  'opponent_action_class': TopologyAction,
+                  'opponent_budget_class': BaseActionBudget,
+                  'opponent_attack_duration': opponent_attack_duration,
+                  'opponent_attack_cooldown': opponent_attack_cooldown,
+                  'kwargs_opponent': {"lines_attacked": lines_attacked}}
+
+        def get_env(no_overflow_disconnection=False, with_opponent=False):
+            param = Parameters()
+            param.NO_OVERFLOW_DISCONNECTION = no_overflow_disconnection
+            param.NB_TIMESTEP_COOLDOWN_LINE = agent_line_cooldown
+            if with_opponent:
+                return grid2op.make('l2rpn_wcci_2020',
+                                    param=param,
+                                    opponent_class=cls,
+                                    **kwargs)
+            else:
+                return grid2op.make('l2rpn_wcci_2020',
+                                    param=param,
+                                    **kwargs)
+
+        # Measure the number of overflows (no agent, no disconnections)
+        # Without opponent
+        env = get_env(no_overflow_disconnection=True, with_opponent=False)
+        done = False
+        step = 0
+        overflows_no_opp = 0
+        while not done and step < max_iter:
+            obs, reward, done, info = env.step(env.action_space())
+            step += 1
+            overflows_no_opp += np.sum(obs.rho > 1)
+
+        # With opponent
+        env = get_env(no_overflow_disconnection=True, with_opponent=True)
+        done = False
+        step = 0
+        overflows_opp = 0
+        while not done and step < max_iter:
+            obs, reward, done, info = env.step(env.action_space())
+            step += 1
+            overflows_opp += np.sum(obs.rho > 1)
+
+        # Measure the number of steps (no agent, disconnections enabled)
+        # Without opponent
+        env = get_env(no_overflow_disconnection=False, with_opponent=False)
+        done = False
+        step = 0
+        while not done and step < max_iter:
+            obs, reward, done, info = env.step(env.action_space())
+            step += 1
+        steps_no_opp = step
+
+        # With opponent
+        env = get_env(no_overflow_disconnection=False, with_opponent=True)
+        done = False
+        step = 0
+        while not done and step < max_iter:
+            obs, reward, done, info = env.step(env.action_space())
+            step += 1
+        steps_opp = step
+
+        metrics = {'overflow_delta': overflows_opp - overflows_no_opp,
+                   'overflow_delta_relative': (overflows_opp - overflows_no_opp) / overflows_no_opp,
+                   'step_delta': steps_opp - steps_no_opp,
+                   'step_delta_relative': (steps_opp - steps_no_opp) / steps_no_opp}
+        return metrics
