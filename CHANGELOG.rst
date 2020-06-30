@@ -16,6 +16,11 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+ [1.x.x] - 2020-xx-xx
+---------------------
+- [FIXED] Minor documentation generation warnings and typos (Parameters, Backend, OpponentSpace, ActionSpace)
+
+  
 [1.0.0] - 2020-06-24
 ---------------------
 - [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`
