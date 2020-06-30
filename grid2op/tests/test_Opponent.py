@@ -9,7 +9,7 @@
 import tempfile
 import warnings
 from grid2op.tests.helper_path_test import *
-from grid2op.Opponent import BaseOpponent, RandomLineOpponent
+from grid2op.Opponent import BaseOpponent, NeuripsOpponent
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
@@ -43,6 +43,12 @@ class TestSuiteOpponent_001(BaseOpponent):
             return None
         attack = self.space_prng.choice(self.possible_attack)
         return attack
+
+
+class TestNeuripsOpponent(NeuripsOpponent):
+    def __init__(self, action_space):
+        NeuripsOpponent.__init__(self, action_space)
+        self._attack_cooldown = 1
 
 
 class TestLoadingOpp(unittest.TestCase):
@@ -146,7 +152,7 @@ class TestLoadingOpp(unittest.TestCase):
                 assert env.opponent_budget_per_ts == 0.5
                 assert env.oppSpace.budget == 0.
 
-    def test_RandomLineOpponent_not_enough_budget(self):
+    def test_NeuripsOpponent_not_enough_budget(self):
         """Tests that the attack is ignored when the budget is too low"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -159,7 +165,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -177,8 +183,8 @@ class TestLoadingOpp(unittest.TestCase):
                 attack = env.oppSpace.last_attack
                 assert attack is None
 
-    def test_RandomLineOpponent_attackable_lines(self):
-        """Tests that the RandomLineOpponent only attacks the authorized lines"""
+    def test_NeuripsOpponent_attackable_lines(self):
+        """Tests that the NeuripsOpponent only attacks the authorized lines"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -192,7 +198,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -207,8 +213,8 @@ class TestLoadingOpp(unittest.TestCase):
                     line_name = env.action_space.name_line[attacked_line]
                     assert line_name in attackable_lines_case14
 
-    def test_RandomLineOpponent_disconnects_only_one_line(self):
-        """Tests that the RandomLineOpponent does not disconnect several lines at a time"""
+    def test_NeuripsOpponent_disconnects_only_one_line(self):
+        """Tests that the NeuripsOpponent does not disconnect several lines at a time"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -221,7 +227,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -235,7 +241,7 @@ class TestLoadingOpp(unittest.TestCase):
                     n_disconnected = np.sum(attack._set_line_status == -1)
                     assert n_disconnected == 1
 
-    def test_RandomLineOpponent_with_agent(self):
+    def test_NeuripsOpponent_with_agent(self):
         """Tests that the line status cooldown is correctly updated when the opponent attacks a line with an agent"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -260,7 +266,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": lines_attacked}) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -285,7 +291,7 @@ class TestLoadingOpp(unittest.TestCase):
                 assert info["opponent_attack_line"] is None  # no more attack
                 assert obs.time_before_cooldown_line[line_opponent_attack] == agent_line_cooldown - 11
 
-    def test_RandomLineOpponent_with_maintenance_1(self):
+    def test_NeuripsOpponent_with_maintenance_1(self):
         """Tests that the line status cooldown is correctly updated when the opponent attacks a line with an agent"""
 
         with warnings.catch_warnings():
@@ -313,7 +319,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": lines_attacked}) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -340,7 +346,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": lines_attacked}) as env:
                 env.seed(0)
                 obs = env.reset()
@@ -379,9 +385,9 @@ class TestLoadingOpp(unittest.TestCase):
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12-3, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
-    def test_RandomLineOpponent_only_attack_connected(self):
+    def test_NeuripsOpponent_only_attack_connected(self):
         """
-        Tests that the RandomLineOpponent does not attack lines that are already disconnected
+        Tests that the NeuripsOpponent does not attack lines that are already disconnected
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -395,7 +401,7 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_action_class=TopologyAction,
                        opponent_budget_class=BaseActionBudget,
                        opponent_attack_duration=ATTACK_DURATION,
-                       opponent_class=RandomLineOpponent,
+                       opponent_class=TestNeuripsOpponent,
                        kwargs_opponent={"lines_attacked": LINES_ATTACKED})
             env.seed(0)
             # Collect some attacks
@@ -419,22 +425,19 @@ class TestLoadingOpp(unittest.TestCase):
                 if done:
                     pre_obs = env.reset()
 
-    def test_RandomLineOpponent_same_attack_order_and_attacks_all_lines(self):
-        """Tests that the RandomLineOpponent has the same attack order (when seeded) and attacks all lines"""
+    def test_NeuripsOpponent_same_attack_order_and_attacks_all_lines(self):
+        """Tests that the NeuripsOpponent has the same attack order (when seeded) and attacks all lines"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
             length = 30
             expected_attack_order = [
-                4, 12, 14, 3,
-                3, 15, 14, 14,
-                12, 15, 4, 15,
-                13, 12, 14, 12,
-                3, 12, 15, 14,
-                15, 4, 3, 14,
-                12, 13, 4, 15,
-                3, 13
-            ]
+                    4, 3, 14, 15, 12,
+                    4, 3, 15, 12, 13,
+                    12, 4, 3, 13, 14,
+                    12, 3, 3, 4, 15,
+                    13, 14, 12, 4, 3,
+                    15, 13, 14, 4]
 
             attack_order = []
             has_disconnected_all = False
@@ -446,7 +449,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=1,  # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
@@ -487,7 +490,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
@@ -537,13 +540,13 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example",
                       test=True,
                       opponent_action_class=TopologyAction,
-                      opponent_class=RandomLineOpponent) as env_1:
+                      opponent_class=TestNeuripsOpponent) as env_1:
                 env_1.seed(0)
                 obs, reward, done, info = env_1.step(env_1.action_space())
             with make("rte_case118_example",
                       test=True,
                       opponent_action_class=TopologyAction,
-                      opponent_class=RandomLineOpponent) as env_2:
+                      opponent_class=TestNeuripsOpponent) as env_2:
                 env_2.seed(0)
                 obs, reward, done, info = env_2.step(env_2.action_space())
 
@@ -553,7 +556,6 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 1000
             opponent_attack_duration = 15
             opponent_attack_cooldown = 20
-            line_id = 4
             opponent_action_class = TopologyAction
 
             with make("rte_case14_realistic",
@@ -564,7 +566,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=opponent_action_class,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 assert env.opponent_action_class == opponent_action_class
@@ -580,7 +582,6 @@ class TestLoadingOpp(unittest.TestCase):
             init_budget = 1000
             opponent_attack_duration = 15
             opponent_attack_cooldown = 20
-            line_id = 4
 
             with make("rte_case14_realistic",
                       test=True,
@@ -590,7 +591,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=opponent_attack_duration,
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=RandomLineOpponent,
+                      opponent_class=TestNeuripsOpponent,
                       kwargs_opponent={
                           "lines_attacked": LINES_ATTACKED
                       }) as env:
@@ -659,7 +660,7 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_attack_duration=opponent_attack_duration,
                        opponent_action_class=opponent_action_class,
                        opponent_budget_class=BaseActionBudget,
-                       opponent_class=RandomLineOpponent,
+                       opponent_class=TestNeuripsOpponent,
                        kwargs_opponent={
                            "lines_attacked": LINES_ATTACKED
                        })

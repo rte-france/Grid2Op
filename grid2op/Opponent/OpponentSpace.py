@@ -152,7 +152,6 @@ class OpponentSpace(object):
         # If currently attacking
         if self.current_attack_duration > 0:
             attack = self.last_attack
-            self.opponent.tell_attack_continues(observation, agent_action, env_action, self.budget)
 
         # If the opponent has already attacked today
         elif self.current_attack_cooldown > self.attack_cooldown:
