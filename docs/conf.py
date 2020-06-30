@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Grdi2Op'
+project = 'Grid2Op'
 copyright = '2019, RTE France'
 author = 'Benjamin Donnot'
 
