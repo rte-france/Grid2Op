@@ -25,7 +25,7 @@ class ConnectivityConverter(Converter):
     a substation, you end up with `N*(N-1)/2` different action. Compare to IdToAct though, it is expected that your
     algorithm produces more than 1 output.
 
-    **/!\ VERY IMPORTANT /!\** : for this converter to work, it needs to remember the previous state of the grid, so you
+    **VERY IMPORTANT** : for this converter to work, it needs to remember the previous state of the grid, so you
     absolutely need to call its method :func:`ConnectivityConverter.convert_obs` a each observation.
     """
     def __init__(self, action_space):
@@ -140,9 +140,7 @@ class ConnectivityConverter(Converter):
         """
         This function is used to convert an observation into something that is easier to manipulate.
 
-        **/!\ VERY IMPORTANT /!\** : for this converter to work, it needs to remember the previous state of the grid,
-        so you
-        absolutely need to call its method :func:`ConnectivityConverter.convert_obs` a each observation.
+        **VERY IMPORTANT**: for this converter to work, it needs to remember the previous state of the grid, so you absolutely need to call its method :func:`ConnectivityConverter.convert_obs` at each observation.
 
         Parameters
         ----------
@@ -153,8 +151,7 @@ class ConnectivityConverter(Converter):
         -------
 
         transformed_obs: ``object``
-            An different representation of the input observation, typically represented as a 1d vector that can be
-            processed by a neural networks.
+            An different representation of the input observation, typically represented as a 1d vector that can be processed by a neural networks.
 
         """
         self.last_obs = obs

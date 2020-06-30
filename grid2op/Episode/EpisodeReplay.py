@@ -163,9 +163,12 @@ def episode_replay_cli():
     parser = argparse.ArgumentParser(description="EpisodeReplay")
     parser.add_argument("--agent_path", required=True, type=str)
     parser.add_argument("--episode_id", required=True, type=str)
-    parser.add_argument("--display", required=False, default=False, action="store_true")
+    parser.add_argument("--display", required=False,
+                        default=False, action="store_true")
     parser.add_argument("--fps", required=False, default=2.0, type=float)
     parser.add_argument("--gif_name", required=False, default=None, type=str)
+    parser.add_argument("--gif_start", required=False, default=0, type=int)
+    parser.add_argument("--gif_end", required=False, default=-1, type=int)
     args = parser.parse_args()
     return args
 
@@ -177,6 +180,8 @@ def main(args=None):
     er.replay_episode(args.episode_id,
                       fps=args.fps,
                       gif_name=args.gif_name,
+                      start_step=args.gif_start,
+                      end_step=args.gif_end,
                       display=args.display)
 
 

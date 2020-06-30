@@ -1,1 +1,1 @@
-recursive-include grid2op/data/ *.bz2 *.json *.zip prods_charac.csv *.py
+recursive-include grid2op/data/ *.bz2 *.json *.zip prods_charac.csv *.py .multimix
