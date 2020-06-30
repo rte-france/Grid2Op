@@ -18,10 +18,10 @@ Example
     # Create parameters
     p = Parameters()
     
-    # Disable lines disconnection due to overflow
+    # Disable lines disconnections due to overflows
     p.NO_OVERFLOW_DISCONNECTION = True
     
-    # Allow 4 substations to be iompected each turn
+    # Allow 4 substations to be impacted each turn
     p.MAX_SUB_CHANGED = 4
     
     # Allow 10 lines actions per turn
