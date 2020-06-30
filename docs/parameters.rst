@@ -10,6 +10,10 @@ come soon.
 
 Example
 --------
+If you want to change the parameters it is better to do it at the creation of the environment.
+
+This can be done with:
+
 .. code-block:: python
 
     import grid2op
