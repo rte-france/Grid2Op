@@ -46,9 +46,9 @@ class TestSuiteOpponent_001(BaseOpponent):
 
 
 class TestNeuripsOpponent(NeuripsOpponent):
-    def __init__(self, action_space):
-        NeuripsOpponent.__init__(self, action_space)
-        self._attack_cooldown = 1
+    def init(self, lines_attacked=[], **kwargs):
+        NeuripsOpponent.init(self, lines_attacked=lines_attacked, **kwargs)
+        self._attack_period = 1
 
 
 class TestLoadingOpp(unittest.TestCase):
@@ -326,7 +326,7 @@ class TestLoadingOpp(unittest.TestCase):
                 obs, reward, done, info = env.step(env.action_space())
                 # the opponent has attacked
                 assert "opponent_attack_line" in info
-                assert np.sum(info["opponent_attack_line"]) == 1, "error at iteration {} for attack".format(i)
+                assert np.sum(info["opponent_attack_line"]) == 1, "error at iteration 0 for attack"
                 assert info["opponent_attack_line"][line_opponent_attack]
                 # but the maintenance cooldown has priority (longer)
                 assert np.all(obs.time_before_cooldown_line ==
