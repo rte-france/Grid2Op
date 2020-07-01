@@ -25,10 +25,17 @@ class NeuripsOpponent(BaseOpponent):
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self, lines_attacked=[], rho_normalization=[], **kwargs):
-        # this if the function used to properly set the object.
-        # It has the generic signature above,
-        # and it's way more flexible that the other one.
+    def init(self, lines_attacked=[], rho_normalization=[], attack_period=12*24, **kwargs):
+        """
+        This function initializes the parameters of the NeuripsOpponent properly.
+        lines_attacked : list: the list of lines that the NeuripsOpponent should be able to disconnect
+        rho_normalization: list: the list of mean usage rates for the attackable lines. Should have
+                                 the same length as lines_attacked. If no value is given, no normalization
+                                 will be performed.
+        attack_period: int: the number of steps among which the attack may happen.
+                            If attack_period=10, then when an attack can be made, it will happen in the 10
+                            next steps.
+        """
 
         if len(lines_attacked) == 0:
             warnings.warn(f'The opponent is deactivated as there is no information as to which line to attack. '
@@ -61,13 +68,16 @@ class NeuripsOpponent(BaseOpponent):
         if len(rho_normalization) == 0:
             warnings.warn('The usage rate normalization is not specified. No normalization will be performed.')
         elif len(rho_normalization) != len(lines_attacked):
-            warnings.warn(f'The usage rate normalization must have the same length as the number '
+            raise Warning(f'The usage rate normalization must have the same length as the number '
                           f'of attacked lines. No normalization will be performed.')
         else:
             self._rho_normalization = np.array(rho_normalization)
 
         # Opponent's attack period
-        self._attack_period = kwargs["attack_period"] if "attack_period" in kwargs else 12*24
+        self._attack_period = attack_period
+
+    def reset(self, initial_budget):
+        self._next_attack_time = None
 
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         self._next_attack_time = None
@@ -117,7 +127,8 @@ class NeuripsOpponent(BaseOpponent):
 
         # Decide the time of the next attack
         if self._next_attack_time is None:
-            self._next_attack_time = self.space_prng.randint(self._attack_period)
+            self._next_attack_time = 1 + self.space_prng.randint(self._attack_period)
+        self._next_attack_time -= 1
 
         # If the attack time has not come yet, do not attack
         if self._next_attack_time > 0:
@@ -131,6 +142,5 @@ class NeuripsOpponent(BaseOpponent):
         available_attacks = self._attacks[status]
         rho = observation.rho[self._lines_ids][status] / self._rho_normalization[status]
         attack = self.space_prng.choice(available_attacks, p=rho / rho.sum())
-        self._next_attack_time -= 1
 
         return attack
