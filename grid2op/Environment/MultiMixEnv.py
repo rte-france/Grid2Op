@@ -8,6 +8,7 @@
 
 import os
 import numpy as np
+import copy
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
@@ -67,7 +68,9 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env = self.mix_envs[self.env_index]
         # Make sure GridObject class attributes are set from first env
         # Should be fine since the grid is the same for all envs
-        self.__class__ = self.init_grid(self.current_env)
+        tmp_env = copy.deepcopy(self.current_env)
+        tmp_env.env_name = "multimix"
+        self.__class__ = self.init_grid(tmp_env)
 
     @property
     def current_index(self):
@@ -187,21 +190,29 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             seeds.append(env_seeds)
         return seeds
 
+    def set_chunk_size(self, new_chunk_size):
+        for mix in self.mix_envs:
+            mix.set_chunk_size(new_chunk_size)
+
+    def set_id(self, id_):
+        for mix in self.mix_envs:
+            mix.set_id(id_)
+
     def deactivate_forecast(self):
-        for e in self.mix_envs:
-            e.deactivate_forecast()
+        for mix in self.mix_envs:
+            mix.deactivate_forecast()
 
     def reactivate_forecast(self):
-        for e in self.mix_envs:
-            e.reactivate_forecast()
+        for mix in self.mix_envs:
+            mix.reactivate_forecast()
 
     def set_thermal_limit(self, thermal_limit):
         """
         Set the thermal limit effectively.
         Will propagate to all underlying environments
         """
-        for e in self.mix_envs:
-            e.set_thermal_limit(thermal_limit)
+        for mix in self.mix_envs:
+            mix.set_thermal_limit(thermal_limit)
 
     def __enter__(self):
         """
@@ -220,8 +231,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return False
 
     def close(self):
-        for e in self.mix_envs:
-            e.close()
+        for mix in self.mix_envs:
+            mix.close()
 
     def attach_layout(self, grid_layout):
         """
@@ -236,5 +247,5 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         -------
 
         """
-        for e in self.mix_envs:
-            e.attach_layout(grid_layout)
+        for mix in self.mix_envs:
+            mix.attach_layout(grid_layout)
