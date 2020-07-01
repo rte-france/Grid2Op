@@ -247,7 +247,7 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
 
     # Unknown dev env
     if test and dataset_name not in TEST_DEV_ENVS:
-        raise Grid2OpException(_MAKE_UNKNOWN_ENV)
+        raise Grid2OpException(_MAKE_UNKNOWN_ENV.format(dataset))
 
     # Known test env and test flag enabled
     if test:

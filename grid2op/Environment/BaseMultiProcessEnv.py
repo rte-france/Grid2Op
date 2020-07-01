@@ -135,8 +135,8 @@ class BaseMultiProcessEnvironment(GridObjects):
 
     This class uses the following representation:
 
-    - an :grid2op.BaseAgent.BaseAgent: lives in a main process
-    - different environment lives into different processes
+    - an :class:`grid2op.BaseAgent.BaseAgent`: lives in a main process
+    - different environments lives into different processes
     - a call to :func:`MultiEnv.step` will perform one step per environment, in parallel using a ``Pipe`` to transfer data
       to and from the main process from each individual environment process. It is a synchronous function. It means
       it will wait for every environment to finish the step before returning all the information.
@@ -151,44 +151,6 @@ class BaseMultiProcessEnvironment(GridObjects):
 
     A broader support of regular grid2op environment capabilities as well as support for
     :func:`grid2op.Observation.BaseObservation.simulate` call will be added in the future.
-
-    An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
-
-    .. code-block:: python
-
-        from grid2op.BaseAgent import DoNothingAgent
-        from grid2op.MakeEnv import make
-
-        # create a simple environment
-        env = make()
-        # number of parrallel environment
-        nb_env = 2  # change that to adapt to your system
-        NB_STEP = 100  # number of step for each environment
-
-        # create a simple agent
-        agent = DoNothingAgent(env.action_space)
-
-        # create the multi environment class
-        multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
-
-        # making is usable
-        obs = multi_envs.reset()
-        rews = [env.reward_range[0] for i in range(nb_env)]
-        dones = [False for i in range(nb_env)]
-
-        # performs the appropriated steps
-        for i in range(NB_STEP):
-            acts = [None for _ in range(nb_env)]
-            for env_act_id in range(nb_env):
-                acts[env_act_id] = agent.act(obs[env_act_id], rews[env_act_id], dones[env_act_id])
-            obs, rews, dones, infos = multi_envs.step(acts)
-
-            # DO SOMETHING WITH THE AGENT IF YOU WANT
-
-        # close the environments
-        multi_envs.close()
-        # close the initial environment
-        env.close()
 
     Attributes
     -----------

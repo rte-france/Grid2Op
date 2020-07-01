@@ -16,6 +16,12 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+[1.1.0] - 2020-07-03
+---------------------
+- [FIXED] forgot to print the name of the missing environment when error in creating it.
+- [FIXED] an issue in `MultiFolder.sample_next_chronics` that did not returns the right index
+- [ADDED] some documentation and example for the `MultiProcessEnv`
+
 [1.0.0] - 2020-06-24
 ---------------------
 - [BREAKING] `MultiEnv` has been renamed `SingleEnvMultiProcess`

@@ -13,6 +13,7 @@ from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import EnvError 
 
+
 class MultiMixEnvironment(GridObjects, RandomObject):
     """
     This class represent a single powergrid configuration,
@@ -20,6 +21,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     It implements most of the BaseEnv public interface:
     so it can be used as a more classic environment.
+
+    # TODO example on how to use it
 
     """
     def __init__(self,
