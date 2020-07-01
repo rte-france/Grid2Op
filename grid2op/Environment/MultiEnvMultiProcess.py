@@ -57,6 +57,13 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
 
     """
     def __init__(self, envs, nb_envs):
+        try:
+            nb_envs = np.array(nb_envs)
+            nb_envs = nb_envs.astype(dt_int)
+        except Exception as exc_:
+            raise MultiEnvException("\"nb_envs\" argument should be a list of integers. We could not "
+                                    "convert it to such with error \"{}\"".format(exc_))
+
         if np.any(nb_envs < 0):
             raise MultiEnvException("You ask to perform \"{}\" copy of an environment. This is a negative "
                                     "integer. I cannot do that. Please make sure \"nb_envs\" argument "
@@ -67,12 +74,6 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
                                     "the moment. Please make sure \"nb_envs\" argument "
                                     "is all made of strictly positive integers and not {}."
                                     "".format(nb_envs))
-        try:
-            nb_envs = np.array(nb_envs)
-            nb_envs = nb_envs.astype(dt_int)
-        except Exception as exc_:
-            raise MultiEnvException("\"nb_envs\" argument should be a list of integers. We could not "
-                                    "convert it to such with error \"{}\"".format(exc_))
 
         all_envs = []
         for e, n in enumerate(nb_envs):
