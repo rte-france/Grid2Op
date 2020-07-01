@@ -166,6 +166,12 @@ class BaseMultiProcessEnvironment(GridObjects):
     def __init__(self, envs):
         GridObjects.__init__(self)
         self.envs = envs
+        for env in envs:
+            if not isinstance(env, Environment):
+                raise MultiEnvException("You provided environment of type \"{}\" which is not supported."
+                                        "Please only provide a grid2op.Environment.Environment class."
+                                        "".format(type(env)))
+
         self.nb_env = len(envs)
         max_int = np.iinfo(dt_int).max
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
