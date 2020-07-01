@@ -116,7 +116,7 @@ class OpponentSpace(object):
         Note that if the attack is "ambiguous" it will fails (the environment will replace it by a
         "do nothing" action), but the budget will still be consumed.
 
-        **NB**it is expected that this function update the :attr:`OpponentSpace.last_attack`  attribute
+        **NB** it is expected that this function update the :attr:`OpponentSpace.last_attack`  attribute
         with ``None`` if the opponent choose not to attack, or with the attack of the opponent otherwise.
 
         Parameters
