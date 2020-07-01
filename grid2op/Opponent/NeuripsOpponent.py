@@ -19,7 +19,7 @@ class NeuripsOpponent(BaseOpponent):
         self._attacks = None
         self._lines_ids = None
         self._next_attack_time = None
-        self._attack_cooldown = 12*24 # attack cooldown
+        self._attack_frequency = None
 
         # this is the constructor:
         # it should have the exact same signature as here
@@ -54,6 +54,9 @@ class NeuripsOpponent(BaseOpponent):
             })
             self._attacks.append(a)
         self._attacks = np.array(self._attacks)
+
+        # Opponent's attack frequency
+        self._attack_frequency = kwargs["attack_frequency"] if "attack_frequency" in kwargs else 12*24
 
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         self._next_attack_time = None
@@ -103,7 +106,7 @@ class NeuripsOpponent(BaseOpponent):
 
         # Decide the time of the next attack
         if self._next_attack_time is None:
-            self._next_attack_time = self.space_prng.randint(self._attack_cooldown)
+            self._next_attack_time = self.space_prng.randint(self._attack_frequency)
 
         # If the attack time has not come yet, do not attack
         if self._next_attack_time > 0:
