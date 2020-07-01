@@ -24,6 +24,7 @@ import pdb
 ATTACK_DURATION = 48
 ATTACK_COOLDOWN = 100
 LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
+RHO_NORMALIZATION = [1, 1, 1, 1, 1, 1]
 
 
 class TestSuiteBudget_001(BaseActionBudget):
@@ -46,8 +47,8 @@ class TestSuiteOpponent_001(BaseOpponent):
 
 
 class TestNeuripsOpponent(NeuripsOpponent):
-    def init(self, lines_attacked=[], **kwargs):
-        NeuripsOpponent.init(self, lines_attacked=lines_attacked, **kwargs)
+    def init(self, lines_attacked=[], rho_normalization=[], **kwargs):
+        NeuripsOpponent.init(self, lines_attacked=lines_attacked, rho_normalization=rho_normalization, **kwargs)
         self._attack_period = 1
 
 
@@ -166,7 +167,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION}) as env:
                 env.seed(0)
                 obs = env.reset()
                 assert env.oppSpace.budget == init_budget
@@ -199,7 +201,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
@@ -228,7 +231,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
@@ -258,6 +262,7 @@ class TestLoadingOpp(unittest.TestCase):
             line_opponent_attack = 4
             line_opponent_attack = 15
             lines_attacked = ["3_6_15"]
+            rho_normalization = [1]
             with make("rte_case14_realistic",
                       test=True, param=param,
                       opponent_init_budget=init_budget,
@@ -267,7 +272,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": lines_attacked}) as env:
+                      kwargs_opponent={"lines_attacked": lines_attacked,
+                                       "rho_normalization": rho_normalization}) as env:
                 env.seed(0)
                 obs = env.reset()
                 reward = 0
@@ -311,6 +317,7 @@ class TestLoadingOpp(unittest.TestCase):
 
             # 1. attack is at the same time than the maintenance
             lines_attacked = ["8_13_11"]
+            rho_normalization = [1]
             with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                       test=True, param=param,
                       opponent_init_budget=init_budget,
@@ -320,7 +327,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": lines_attacked}) as env:
+                      kwargs_opponent={"lines_attacked": lines_attacked,
+                                       "rho_normalization": rho_normalization}) as env:
                 env.seed(0)
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
@@ -337,6 +345,7 @@ class TestLoadingOpp(unittest.TestCase):
             opponent_budget_per_ts = 1
             attack_duration = 5
             lines_attacked = ["9_10_12"]
+            rho_normalization = [1]
             line_id = 12
             with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                       test=True, param=param,
@@ -347,7 +356,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": lines_attacked}) as env:
+                      kwargs_opponent={"lines_attacked": lines_attacked,
+                                       "rho_normalization": rho_normalization}) as env:
                 env.seed(0)
                 obs = env.reset()
                 env.fast_forward_chronics(274)
@@ -402,7 +412,8 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_budget_class=BaseActionBudget,
                        opponent_attack_duration=ATTACK_DURATION,
                        opponent_class=TestNeuripsOpponent,
-                       kwargs_opponent={"lines_attacked": LINES_ATTACKED})
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION})
             env.seed(0)
             # Collect some attacks
             # and check that they belong to the correct lines
@@ -450,7 +461,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION}) as env:
                 env.seed(0)
                 # Collect some attacks and check that they belong to the correct lines
                 obs = env.reset()
@@ -491,7 +503,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION}) as env:
                 env.seed(0)
                 reco_line = env.action_space({"set_line_status": [(line_id, 1)]})
 
@@ -567,7 +580,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=opponent_action_class,
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION}) as env:
                 env.seed(0)
                 assert env.opponent_action_class == opponent_action_class
                 assert issubclass(env.oppSpace.action_space.actionClass, opponent_action_class)
@@ -592,9 +606,8 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_class=TestNeuripsOpponent,
-                      kwargs_opponent={
-                          "lines_attacked": LINES_ATTACKED
-                      }) as env:
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION}) as env:
 
                 env.seed(0)
                 agent_action = env.action_space()
@@ -661,9 +674,8 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_action_class=opponent_action_class,
                        opponent_budget_class=BaseActionBudget,
                        opponent_class=TestNeuripsOpponent,
-                       kwargs_opponent={
-                           "lines_attacked": LINES_ATTACKED
-                       })
+                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                       "rho_normalization": RHO_NORMALIZATION})
             env.seed(0)
             runner = Runner(**env.get_params_for_runner())
             assert runner.opponent_init_budget == init_budget

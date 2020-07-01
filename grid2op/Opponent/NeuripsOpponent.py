@@ -20,11 +20,12 @@ class NeuripsOpponent(BaseOpponent):
         self._lines_ids = None
         self._next_attack_time = None
         self._attack_period = None
+        self._rho_normalization = None
 
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self, lines_attacked=[], **kwargs):
+    def init(self, lines_attacked=[], rho_normalization=[], **kwargs):
         # this if the function used to properly set the object.
         # It has the generic signature above,
         # and it's way more flexible that the other one.
@@ -54,6 +55,16 @@ class NeuripsOpponent(BaseOpponent):
             })
             self._attacks.append(a)
         self._attacks = np.array(self._attacks)
+
+        # Usage rates normalization
+        self._rho_normalization = np.ones_like(lines_attacked)
+        if len(rho_normalization) == 0:
+            warnings.warn('The usage rate normalization is not specified. No normalization will be performed.')
+        elif len(rho_normalization) != len(lines_attacked):
+            warnings.warn(f'The usage rate normalization must have the same length as the number '
+                          f'of attacked lines. No normalization will be performed.')
+        else:
+            self._rho_normalization = np.array(rho_normalization)
 
         # Opponent's attack period
         self._attack_period = kwargs["attack_period"] if "attack_period" in kwargs else 12*24
@@ -118,7 +129,7 @@ class NeuripsOpponent(BaseOpponent):
             return None
 
         available_attacks = self._attacks[status]
-        rho = observation.rho[self._lines_ids][status]
+        rho = observation.rho[self._lines_ids][status] / self._rho_normalization[status]
         attack = self.space_prng.choice(available_attacks, p=rho / rho.sum())
         self._next_attack_time -= 1
 
