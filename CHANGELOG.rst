@@ -20,6 +20,8 @@ Change Log
 ---------------------
 - [FIXED] forgot to print the name of the missing environment when error in creating it.
 - [FIXED] an issue in `MultiFolder.sample_next_chronics` that did not returns the right index
+- [FIXED] an issue that prevented the `EpisodeData` class to load back properly the action of the environment.
+  This might have side effect if you used the `obs.from_vect` or `act.from_vect` in non conventional ways.
 - [ADDED] some documentation and example for the `MultiProcessEnv`
 - [IMPROVED] check that the sub environments are suitable grid2op.Environment.Environment in multiprocess env.
 

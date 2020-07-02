@@ -111,6 +111,9 @@ class EpisodeData:
         self.env_actions = CollectionWrapper(env_actions,
                                              helper_action_env,
                                              "env_actions")
+        self.attack = CollectionWrapper(attack,
+                                        attack_space,
+                                        "attack")
         self.other_rewards = other_rewards
         self.observation_space = observation_space
         self.rewards = rewards
@@ -123,7 +126,6 @@ class EpisodeData:
         self.disc_lines_templ = disc_lines_templ
 
         self.attack_templ = attack_templ
-        self.attack = attack
         self.attack_space = attack_space
 
         self.logger = logger
@@ -214,7 +216,7 @@ class EpisodeData:
                 episode_path, EpisodeData.AG_EXEC_TIMES))["data"]
             actions = np.load(os.path.join(episode_path, EpisodeData.ACTIONS))["data"]
             env_actions = np.load(os.path.join(
-                episode_path,EpisodeData.ENV_ACTIONS))["data"]
+                episode_path, EpisodeData.ENV_ACTIONS))["data"]
             observations = np.load(os.path.join(
                 episode_path, EpisodeData.OBSERVATIONS))["data"]
             disc_lines = np.load(os.path.join(
