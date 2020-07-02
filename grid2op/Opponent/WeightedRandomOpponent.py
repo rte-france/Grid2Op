@@ -12,7 +12,16 @@ from grid2op.Opponent import BaseOpponent
 from grid2op.Exceptions import OpponentError
 
 
-class NeuripsOpponent(BaseOpponent):
+class WeightedRandomOpponent(BaseOpponent):
+    """
+    This opponent will disconnect lines randomly among the attackable lines `lines_attacked`.
+    The sampling is weighted by the lines current usage rate divided by some factor `rho_normalization`
+    (see init for more details).
+
+    When an attack becomes possible, the time of the attack will be sampled uniformly
+    in the next `attack_period` steps (see init).
+    """
+
     def __init__(self, action_space):
         BaseOpponent.__init__(self, action_space)
         self._do_nothing = None
@@ -27,14 +36,23 @@ class NeuripsOpponent(BaseOpponent):
 
     def init(self, lines_attacked=[], rho_normalization=[], attack_period=12*24, **kwargs):
         """
-        This function initializes the parameters of the NeuripsOpponent properly.
-        lines_attacked : list: the list of lines that the NeuripsOpponent should be able to disconnect
-        rho_normalization: list: the list of mean usage rates for the attackable lines. Should have
-                                 the same length as lines_attacked. If no value is given, no normalization
-                                 will be performed.
-        attack_period: int: the number of steps among which the attack may happen.
-                            If attack_period=10, then when an attack can be made, it will happen in the 10
-                            next steps.
+        Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
+        path where is the file is located should be pass with this method.
+
+        Parameters
+        ----------
+        lines_attacked: ``list``
+            The list of lines that the WeightedRandomOpponent should be able to disconnect
+
+        rho_normalization: ``list``
+            The list of mean usage rates for the attackable lines. Should have
+            the same length as lines_attacked. If no value is given, no normalization will be performed.
+            The weights for sampling the attacked line are rho / rho_normalization.
+
+        attack_period: ``int``
+            The number of steps among which the attack may happen.
+            If attack_period=10, then whenever an attack can be made, it will happen in the 10
+            next steps.
         """
 
         if len(lines_attacked) == 0:

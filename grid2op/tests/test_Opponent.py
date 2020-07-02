@@ -9,7 +9,7 @@
 import tempfile
 import warnings
 from grid2op.tests.helper_path_test import *
-from grid2op.Opponent import BaseOpponent, RandomLineOpponent, NeuripsOpponent
+from grid2op.Opponent import BaseOpponent, RandomLineOpponent, WeightedRandomOpponent
 from grid2op.Action import TopologyAction
 from grid2op.MakeEnv import make
 from grid2op.Opponent.BaseActionBudget import BaseActionBudget
@@ -46,19 +46,19 @@ class TestSuiteOpponent_001(BaseOpponent):
         return attack
 
 
-class TestNeuripsOpponent(NeuripsOpponent):
+class TestWeightedRandomOpponent(WeightedRandomOpponent):
     def init(self, lines_attacked=[], rho_normalization=[], **kwargs):
-        NeuripsOpponent.init(self, lines_attacked=lines_attacked, rho_normalization=rho_normalization, **kwargs)
+        WeightedRandomOpponent.init(self, lines_attacked=lines_attacked, rho_normalization=rho_normalization, **kwargs)
         self._attack_counter = 0
         self._attack_continues_counter = 0
 
     def tell_attack_continues(self, observation, agent_action, env_action, budget):
         self._attack_continues_counter += 1
-        NeuripsOpponent.tell_attack_continues(self, observation, agent_action, env_action, budget)
+        WeightedRandomOpponent.tell_attack_continues(self, observation, agent_action, env_action, budget)
 
     def attack(self, observation, agent_action, env_action, budget, previous_fails):
         self._attack_counter += 1
-        return NeuripsOpponent.attack(self, observation, agent_action, env_action, budget, previous_fails)
+        return WeightedRandomOpponent.attack(self, observation, agent_action, env_action, budget, previous_fails)
 
 
 class TestLoadingOpp(unittest.TestCase):
@@ -731,7 +731,7 @@ class TestLoadingOpp(unittest.TestCase):
         env.close()
         multi_env.close()
 
-    def test_NeuripsOpponent_not_enough_budget(self):
+    def test_WeightedRandomOpponent_not_enough_budget(self):
         """Tests that the attack is ignored when the budget is too low"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -744,7 +744,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
-                      opponent_class=NeuripsOpponent,
+                      opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
                                        "rho_normalization": RHO_NORMALIZATION,
                                        "attack_period": 1}) as env:
@@ -764,8 +764,8 @@ class TestLoadingOpp(unittest.TestCase):
                 attack = env.oppSpace.last_attack
                 assert attack is None
 
-    def test_NeuripsOpponent_attackable_lines(self):
-        """Tests that the NeuripsOpponent only attacks the authorized lines"""
+    def test_WeightedRandomOpponent_attackable_lines(self):
+        """Tests that the WeightedRandomOpponent only attacks the authorized lines"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -779,7 +779,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
-                      opponent_class=NeuripsOpponent,
+                      opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
                                        "rho_normalization": RHO_NORMALIZATION,
                                        "attack_period": 1}) as env:
@@ -796,8 +796,8 @@ class TestLoadingOpp(unittest.TestCase):
                     line_name = env.action_space.name_line[attacked_line]
                     assert line_name in attackable_lines_case14
 
-    def test_NeuripsOpponent_disconnects_only_one_line(self):
-        """Tests that the NeuripsOpponent does not disconnect several lines at a time"""
+    def test_WeightedRandomOpponent_disconnects_only_one_line(self):
+        """Tests that the WeightedRandomOpponent does not disconnect several lines at a time"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -810,7 +810,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=ATTACK_DURATION,
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
-                      opponent_class=NeuripsOpponent,
+                      opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
                                        "rho_normalization": RHO_NORMALIZATION,
                                        "attack_period": 1}) as env:
@@ -826,7 +826,7 @@ class TestLoadingOpp(unittest.TestCase):
                     n_disconnected = np.sum(attack._set_line_status == -1)
                     assert n_disconnected == 1
 
-    def test_NeuripsOpponent_with_agent(self):
+    def test_WeightedRandomOpponent_with_agent(self):
         """Tests that the line status cooldown is correctly updated when the opponent attacks a line with an agent"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -852,7 +852,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
-                      opponent_class=NeuripsOpponent,
+                      opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": lines_attacked,
                                        "rho_normalization": rho_normalization,
                                        "attack_period": 1}) as env:
@@ -879,7 +879,7 @@ class TestLoadingOpp(unittest.TestCase):
                 assert info["opponent_attack_line"] is None  # no more attack
                 assert obs.time_before_cooldown_line[line_opponent_attack] == agent_line_cooldown - 11
 
-    def test_NeuripsOpponent_with_maintenance_1(self):
+    def test_WeightedRandomOpponent_with_maintenance_1(self):
         """Tests that the line status cooldown is correctly updated when the opponent attacks a line with an agent"""
 
         with warnings.catch_warnings():
@@ -908,7 +908,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
-                      opponent_class=NeuripsOpponent,
+                      opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": lines_attacked,
                                        "rho_normalization": rho_normalization,
                                        "attack_period": 1}) as env:
@@ -938,7 +938,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_budget_class=BaseActionBudget,
                       opponent_attack_duration=attack_duration,
                       opponent_attack_cooldown=attack_cooldown,
-                      opponent_class=NeuripsOpponent,
+                      opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": lines_attacked,
                                        "rho_normalization": rho_normalization,
                                        "attack_period": 1}) as env:
@@ -979,9 +979,9 @@ class TestLoadingOpp(unittest.TestCase):
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12-3, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
-    def test_NeuripsOpponent_only_attack_connected(self):
+    def test_WeightedRandomOpponent_only_attack_connected(self):
         """
-        Tests that the NeuripsOpponent does not attack lines that are already disconnected
+        Tests that the WeightedRandomOpponent does not attack lines that are already disconnected
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -995,7 +995,7 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_action_class=TopologyAction,
                        opponent_budget_class=BaseActionBudget,
                        opponent_attack_duration=ATTACK_DURATION,
-                       opponent_class=NeuripsOpponent,
+                       opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
                                        "rho_normalization": RHO_NORMALIZATION,
                                        "attack_period": 1})
@@ -1021,8 +1021,8 @@ class TestLoadingOpp(unittest.TestCase):
                 if done:
                     pre_obs = env.reset()
 
-    def test_NeuripsOpponent_same_attack_order_and_attacks_all_lines(self):
-        """Tests that the NeuripsOpponent has the same attack order (when seeded) and attacks all lines"""
+    def test_WeightedRandomOpponent_same_attack_order_and_attacks_all_lines(self):
+        """Tests that the WeightedRandomOpponent has the same attack order (when seeded) and attacks all lines"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             init_budget = 1000
@@ -1045,7 +1045,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=1,  # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=NeuripsOpponent,
+                      opponent_class=WeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
                                        "rho_normalization": RHO_NORMALIZATION,
                                        "attack_period": 1}) as env:
@@ -1088,7 +1088,7 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_duration=5,  # only for testing
                       opponent_action_class=TopologyAction,
                       opponent_budget_class=BaseActionBudget,
-                      opponent_class=TestNeuripsOpponent,
+                      opponent_class=TestWeightedRandomOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
                                        "rho_normalization": RHO_NORMALIZATION,
                                        "attack_period": attack_cooldown}) as env:
