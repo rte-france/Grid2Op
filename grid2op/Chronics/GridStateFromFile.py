@@ -815,7 +815,7 @@ class GridStateFromFile(GridValue):
         nb_rows = int(nb_rows / self.time_interval.total_seconds())+1
         if nb_rows <= 0:
             raise ChronicsError("Invalid time step to be extracted. Make sure \"datetime_beg\" is lower than "
-                                "\"datetime_end\"")
+                                "\"datetime_end\" {} - {}".format(datetime_beg, datetime_end))
 
         # prepare folder
         if not os.path.exists(path_out):

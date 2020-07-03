@@ -416,20 +416,17 @@ class Backend(GridObjects, ABC):
 
         For each elements, it gives on which bus it is connected in its substation.
 
-        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
-        load of id 1 is connected to the second bus of its substation.
+        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the load of id 1 is connected to the second bus of its substation.
 
-        You can check which object of the powerlines is represented by each component of this vector by looking at the
-        `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
+        You can check which object of the powerlines is represented by each component of this vector by looking at the `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
         For each elements it gives its position in this vector.
 
-        As any function of the backend, it is not advised to use it directly. You can get this information in the
-        :attr:`grid2op.Observation.Observation.topo_vect`instead.
+        As any function of the backend, it is not advised to use it directly. You can get this information in the :attr:`grid2op.Observation.Observation.topo_vect` instead.
 
         Returns
         --------
 
-        res: `numpy.ndarray`, dtype: ``int``
+        res: ``numpy.ndarray`` dtype: ``int``
             An array saying to which bus the object is connected.
 
         """
