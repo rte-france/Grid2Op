@@ -19,6 +19,10 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
     """
     This class allows to evaluate a single agent instance on multiple environments running in parrallel.
 
+    It is a kind of :class:`BaseMultiProcessEnvironment`. For more information you can consult the
+    documentation of this parent class. This class allows to interact at the same time with different copy of
+    possibly different environments in parallel
+
     Attributes
     -----------
     envs: `list:grid2op.Environment.Environment`
@@ -29,8 +33,48 @@ class MultiEnvMultiProcess(BaseMultiProcessEnvironment):
         MUST be the same length as the parameter `envs`.
         The total number of subprocesses will be the sum of this list.
 
+
+    Examples
+    --------
+    This class can be used as:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Environment import MultiEnvMultiProcess
+        env0 = grid2op.make()  # create an environment
+        env1 = grid2op.make()  # create a second environment, that can be similar, or not
+        # it is recommended to filter or create the environment with different parameters, otherwise this class
+        # is of little interest
+        envs = [env0, env1]  # list of all environments created
+        nb_envs = [1, 7]  # number of "copies" of each environment that will be made.
+        # in this case the first one will be copied only once, and the second one 7 times.
+        # the total number of environments used in the multi env will be the sum(nb_envs), here 8.
+
+        multi_env = MultiEnvMultiProcess(envs=envs, nb_envs=nb_envs)
+        # and now you can use it like any other grid2op environment (almost)
+        observations = multi_env.reset()
+
     """
     def __init__(self, envs, nb_envs):
+        try:
+            nb_envs = np.array(nb_envs)
+            nb_envs = nb_envs.astype(dt_int)
+        except Exception as exc_:
+            raise MultiEnvException("\"nb_envs\" argument should be a list of integers. We could not "
+                                    "convert it to such with error \"{}\"".format(exc_))
+
+        if np.any(nb_envs < 0):
+            raise MultiEnvException("You ask to perform \"{}\" copy of an environment. This is a negative "
+                                    "integer. I cannot do that. Please make sure \"nb_envs\" argument "
+                                    "is all made of strictly positive integers and not {}."
+                                    "".format(np.min(nb_envs), nb_envs))
+        if np.any(nb_envs == 0):
+            raise MultiEnvException("You ask to perform 0 copy of an environment. This is not supported at "
+                                    "the moment. Please make sure \"nb_envs\" argument "
+                                    "is all made of strictly positive integers and not {}."
+                                    "".format(nb_envs))
+
         all_envs = []
         for e, n in enumerate(nb_envs):
             all_envs += [envs[e] for _ in range(n)]

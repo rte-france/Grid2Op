@@ -31,6 +31,7 @@ TEST_DEV_ENVS = {
     "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
     "rte_case14_opponent": DEV_DATASET.format("rte_case14_opponent"),
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
+    "l2rpn_neurips_2020_track1": DEV_DATASET.format("l2rpn_neurips_2020_track1"),
     # keep the old names for now
     "case14_realistic": DEV_DATASET.format("rte_case14_realistic"),
     "case14_redisp": DEV_DATASET.format("rte_case14_redisp"),
@@ -247,7 +248,7 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
 
     # Unknown dev env
     if test and dataset_name not in TEST_DEV_ENVS:
-        raise Grid2OpException(_MAKE_UNKNOWN_ENV)
+        raise Grid2OpException(_MAKE_UNKNOWN_ENV.format(dataset))
 
     # Known test env and test flag enabled
     if test:

@@ -439,6 +439,12 @@ class Environment(BaseEnv):
                     obs, reward, done, info = env.step(act)
 
         """
+        try:
+            id_ = int(id_)
+        except:
+            raise EnvError("the \"id_\" parameters should be convertible to integer and not be of type {}"
+                           "".format(type(id_)))
+
         self.chronics_handler.tell_id(id_-1)
 
     def attach_renderer(self, graph_layout=None):
