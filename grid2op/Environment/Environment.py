@@ -426,11 +426,31 @@ class Environment(BaseEnv):
             from grid2op import make
             from grid2op.BaseAgent import DoNothingAgent
 
-            env = make("case14_redisp")  # create an environment
+            env = make("rte_case14_realistic")  # create an environment
             agent = DoNothingAgent(env.action_space)  # create an BaseAgent
 
             for i in range(10):
                 env.set_id(0)  # tell the environment you simply want to use the chronics with ID 0
+                obs = env.reset()  # it is necessary to perform a reset
+                reward = env.reward_range[0]
+                done = False
+                while not done:
+                    act = agent.act(obs, reward, done)
+                    obs, reward, done, info = env.step(act)
+
+        And here you have an example on how you can loop through the scenarios in a given order:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op import make
+            from grid2op.BaseAgent import DoNothingAgent
+
+            env = make("rte_case14_realistic")  # create an environment
+            agent = DoNothingAgent(env.action_space)  # create an BaseAgent
+            scenario_order = [1,2,3,4,5,10,8,6,5,7,78, 8]
+            for id_ in scenario_order:
+                env.set_id(id_)  # tell the environment you simply want to use the chronics with ID 0
                 obs = env.reset()  # it is necessary to perform a reset
                 reward = env.reward_range[0]
                 done = False
