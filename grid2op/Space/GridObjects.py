@@ -590,10 +590,6 @@ class GridObjects:
                                             "from a vector. Found {} elements instead of {}".format(
                 vect.shape[0], self.size()))
 
-        # if np.any(~np.isfinite(vect)):
-        #     raise AmbiguousAction("The action you provided contained not finite number. It cannot be converted to an"
-        #                           " action class.")
-
         self._raise_error_attr_list_none()
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
