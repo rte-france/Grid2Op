@@ -135,8 +135,8 @@ class BaseMultiProcessEnvironment(GridObjects):
 
     This class uses the following representation:
 
-    - an :grid2op.BaseAgent.BaseAgent: lives in a main process
-    - different environment lives into different processes
+    - an :class:`grid2op.BaseAgent.BaseAgent`: lives in a main process
+    - different environments lives into different processes
     - a call to :func:`MultiEnv.step` will perform one step per environment, in parallel using a ``Pipe`` to transfer data
       to and from the main process from each individual environment process. It is a synchronous function. It means
       it will wait for every environment to finish the step before returning all the information.
@@ -150,45 +150,12 @@ class BaseMultiProcessEnvironment(GridObjects):
     :class:`grid2op.Observation.BaseObservation` but as many observations as the number of underlying environments.
 
     A broader support of regular grid2op environment capabilities as well as support for
-    :func:`grid2op.Observation.BaseObservation.simulate` call will be added in the future.
+    :func:`grid2op.Observation.BaseObservation.simulate` call might be added in the future.
 
-    An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
-
-    .. code-block:: python
-
-        from grid2op.BaseAgent import DoNothingAgent
-        from grid2op.MakeEnv import make
-
-        # create a simple environment
-        env = make()
-        # number of parrallel environment
-        nb_env = 2  # change that to adapt to your system
-        NB_STEP = 100  # number of step for each environment
-
-        # create a simple agent
-        agent = DoNothingAgent(env.action_space)
-
-        # create the multi environment class
-        multi_envs = MultiEnvironment(env=env, nb_env=nb_env)
-
-        # making is usable
-        obs = multi_envs.reset()
-        rews = [env.reward_range[0] for i in range(nb_env)]
-        dones = [False for i in range(nb_env)]
-
-        # performs the appropriated steps
-        for i in range(NB_STEP):
-            acts = [None for _ in range(nb_env)]
-            for env_act_id in range(nb_env):
-                acts[env_act_id] = agent.act(obs[env_act_id], rews[env_act_id], dones[env_act_id])
-            obs, rews, dones, infos = multi_envs.step(acts)
-
-            # DO SOMETHING WITH THE AGENT IF YOU WANT
-
-        # close the environments
-        multi_envs.close()
-        # close the initial environment
-        env.close()
+    **NB** As opposed to :func:`Environment.step` a call to :func:`BaseMultiProcessEnvironment.step` or any of
+    its derived class (:class:`SingleEnvMultiProcess` or :class:`MultiEnvMultiProcess`) if a sub environment
+    is "done" then it is automatically reset. This means entails that you can call
+    :func:`BaseMultiProcessEnvironment.step` without worrying about having to reset.
 
     Attributes
     -----------
@@ -204,6 +171,12 @@ class BaseMultiProcessEnvironment(GridObjects):
     def __init__(self, envs):
         GridObjects.__init__(self)
         self.envs = envs
+        for env in envs:
+            if not isinstance(env, Environment):
+                raise MultiEnvException("You provided environment of type \"{}\" which is not supported."
+                                        "Please only provide a grid2op.Environment.Environment class."
+                                        "".format(type(env)))
+
         self.nb_env = len(envs)
         max_int = np.iinfo(dt_int).max
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
@@ -244,7 +217,19 @@ class BaseMultiProcessEnvironment(GridObjects):
         The observation sent back to the user is the observation after the :func:`grid2op.Environment.Environment.reset`
         has been called.
 
-        It has no impact on the other underlying environments.
+        As opposed to :class:`Environment.step` a call to this function will automatically reset
+        any of the underlying environments in case one of them is "done". This is performed the following way.
+        In the case one underlying environment is over (due to game over or due to end of the chronics), then:
+
+        - the corresponding "done" is returned as ``True``
+        - the corresponding observation returned is not the observation of the last time step (corresponding to the
+          underlying environment that is game over) but is the first observation after reset.
+
+        At the next call to step, the flag done will be (if not game over arise) set to ``False`` and the
+        corresponding observation is the next observation of this underlying environment: every thing works
+        as usual in this case.
+
+        We did that because restarting the game over environment added un necessary complexity.
 
         Parameters
         ----------
@@ -264,7 +249,65 @@ class BaseMultiProcessEnvironment(GridObjects):
             List all the "done" returned by each underlying environment. If one of this value is "True" this means
             the environment encounter a game over.
 
-        infos
+        infos: ``list``
+            List of dictionaries corresponding
+
+        Examples
+        ---------
+        You can use this class as followed:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Environment import BaseMultiProcessEnv
+            env1 = grid2op.make()  # create an environment of your choosing
+            env2 = grid2op.make()  # create another environment of your choosing
+
+            multi_env = BaseMultiProcessEnv([env1, env2])
+            obss = multi_env.reset()
+            obs1, obs2 = obss  # here i extract the observation of the first environment and of the second one
+            # note that you cannot do obs1.simulate().
+            # this is equivalent to a call to
+            # obs1 = env1.reset(); obs2 = env2.reset()
+
+            # then you can do regular steps
+            action_env1 = env1.action_space()
+            action_env2 = env2.action_space()
+            obss, rewards, dones, infos = env.step([action_env1, action_env2])
+            # if you define
+            # obs1, obs2 = obss
+            # r1, r2 = rewards
+            # done1, done2 = dones
+            # info1, info2 = infos
+            # in this case, it is equivalent to calling
+            # obs1, r1, done1, info1 = env1.step(action_env1)
+            # obs2, r2, done2, info2 = env2.step(action_env2)
+
+        Let us now focus on the "automatic" reset part.
+
+        .. code-block:: python
+
+            # see above for the creation of a multi_env and the proper imports
+            multi_env = BaseMultiProcessEnv([env1, env2])
+            action_env1 = env1.action_space()
+            action_env2 = env2.action_space()
+            obss, rewards, dones, infos = env.step([action_env1, action_env2])
+
+            # say dones[0] is ``True``
+            # in this case if you define
+            # obs1 = obss[0]
+            # r1=rewards[0]
+            # done1=done[0]
+            # info1=info[0]
+            # in that case it is equivalent to the "single processed" code
+            # obs1_tmp, r1_tmp, done1_tmp, info1_tmp = env1.step(action_env1)
+            # done1 = done1_tmp
+            # r1 = r1_tmp
+            # info1 = info1_tmp
+            # obs1_aux = env1.reset()
+            # obs1 = obs1_aux
+            # CAREFULLL in this case, obs1 is NOT obs1_tmp but is really
+
         """
         if len(actions) != self.nb_env:
             raise MultiEnvException("Incorrect number of actions provided. You provided {} actions, but the "
@@ -282,6 +325,10 @@ class BaseMultiProcessEnvironment(GridObjects):
     def reset(self):
         """
         Reset all the environments, and return all the associated observation.
+
+        **NB** Except in some specific occasion, there is no need to call this function reset. Indeed, when
+        a sub environment is "done" then it is automatically restarted in the
+        :func:BaseMultiEnvMultiProcess.step` function.
 
         Returns
         -------
