@@ -24,6 +24,7 @@ Change Log
   This might have side effect if you used the `obs.from_vect` or `act.from_vect` in non conventional ways.
 - [ADDED] some documentation and example for the `MultiProcessEnv`
 - [IMPROVED] check that the sub environments are suitable grid2op.Environment.Environment in multiprocess env.
+- [FIXED] Minor documentation generation warnings and typos (Parameters, Backend, OpponentSpace, ActionSpace)
 
 [1.0.0] - 2020-06-24
 ---------------------

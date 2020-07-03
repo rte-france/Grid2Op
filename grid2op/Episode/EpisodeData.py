@@ -111,9 +111,8 @@ class EpisodeData:
         self.env_actions = CollectionWrapper(env_actions,
                                              helper_action_env,
                                              "env_actions")
-        self.attack = CollectionWrapper(attack,
-                                        attack_space,
-                                        "attack")
+        self.attack = attack
+
         self.other_rewards = other_rewards
         self.observation_space = observation_space
         self.rewards = rewards

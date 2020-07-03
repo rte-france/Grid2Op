@@ -1,4 +1,4 @@
-.. Grdi2Op documentation master file, created by
+.. Grid2Op documentation master file, created by
    sphinx-quickstart on Wed Jul 24 15:07:20 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -6,7 +6,7 @@
 Welcome to Grid2Op's technical documentation!
 =============================================
 
-Grdi2Op is a pythonic, easy to use framework, to be able to develop, train or evaluate performances of "agent" or
+Grid2Op is a pythonic, easy to use framework, to be able to develop, train or evaluate performances of "agent" or
 "controler" that acts on a power grid in  different ways.
 
 It is modular and can be use to train reinforcement learning agent or to assess the performance of optimal control
