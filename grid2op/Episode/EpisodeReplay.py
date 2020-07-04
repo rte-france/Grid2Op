@@ -93,7 +93,6 @@ class EpisodeReplay(object):
         # Load episode observations
         self.episode_data = EpisodeData.from_disk(agent_path=self.agent_path, name=episode_id)
         all_obs = [el for el in self.episode_data.observations]
-
         # Create a plotter
         width, height = resolution
         plot_runner = PlotMatplot(self.episode_data.observation_space,

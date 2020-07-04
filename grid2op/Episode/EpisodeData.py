@@ -111,8 +111,29 @@ class EpisodeData:
         self.env_actions = CollectionWrapper(env_actions,
                                              helper_action_env,
                                              "env_actions")
-        self.attack = attack
+        # gives a unique game over for everyone
+        # TODO this needs testing!
+        action_go = self.actions._game_over
+        obs_go = self.observations._game_over
+        env_go = self.env_actions._game_over
+        real_go = action_go
+        if real_go is None:
+            real_go = obs_go
+        else:
+            if obs_go is not None:
+                real_go = min(obs_go, real_go)
+        if real_go is None:
+            real_go = env_go
+        else:
+            if env_go is not None:
+                real_go = min(env_go, real_go)
+        if real_go is not None:
+            # there is a real game over, i assign the proper value for each collection
+            self.actions._game_over = real_go
+            self.observations._game_over = real_go + 1
+            self.env_actions._game_over = real_go + 1
 
+        self.attack = attack
         self.other_rewards = other_rewards
         self.observation_space = observation_space
         self.rewards = rewards

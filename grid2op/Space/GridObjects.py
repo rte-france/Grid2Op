@@ -590,10 +590,16 @@ class GridObjects:
                                             "from a vector. Found {} elements instead of {}".format(
                 vect.shape[0], self.size()))
 
+        try:
+            vect = np.array(vect).astype(dt_float)
+        except Exception as exc_:
+            raise AmbiguousAction("Impossible to convert the input vector to a floating point numy array.")
+
         self._raise_error_attr_list_none()
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
-            self._assign_attr_from_name(attr_nm, vect[prev_:(prev_ + sh)].astype(dt))
+            tmp = vect[prev_:(prev_ + sh)].astype(dt)
+            self._assign_attr_from_name(attr_nm, tmp)
             prev_ += sh
         self.check_space_legit()
 
