@@ -1115,9 +1115,8 @@ class BaseAction(GridObjects):
                 then it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object is
                 disconnected then the action is ambiguous, and calling it will throw an AmbiguousAction exception.
 
-            **NB**: if a powerline is reconnected, it should be specified on the "set_bus" action at which buses it
-            should be reconnected. Otherwise, action cannot be used. Trying to apply the action to the grid will
-            lead to an "AmbiguousAction" exception.
+            **NB**: CHANGES: you can reconnect a powerline without specifying on each bus you reconnect it at both its
+            ends. In that case the last known bus id for each its end is used.
 
             **NB**: if for a given powerline, both switch_line_status and set_line_status is set, the action will not
             be usable.
@@ -1164,8 +1163,7 @@ class BaseAction(GridObjects):
             disconnect_powerline2 = env.disconnect_powerline(line_id=1)
 
         *Example 3*: force the reconnection of the powerline of id 5 by connected it to bus 1 on its origin end and
-        bus 2 on its extremity end. Note that this is mandatory to specify on which bus to reconnect each
-        extremity of the powerline. Otherwise it's an ambiguous action.
+        bus 2 on its extremity end.
 
         .. code-block:: python
 
@@ -1269,9 +1267,6 @@ class BaseAction(GridObjects):
 
             - :code:`self._switch_line_status` has not the same size as the number of powerlines
             - :code:`self._set_line_status` has not the same size as the number of powerlines
-            - somes lines are reconnected (:code:`self._switch_line_status[i] == True` for some powerline *i* but it is
-              not specified on which bus to connect it ( the element corresponding to powerline *i* in
-              :code:`self._set_topo_vect` is set to 0)
             - the status of some powerline is both *changed* (:code:`self._switch_line_status[i] == True` for some *i*)
               and *set* (:code:`self._set_line_status[i]` for the same *i* is not 0)
 
