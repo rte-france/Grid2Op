@@ -88,11 +88,11 @@ class EpisodeReplay(object):
             Can be oneof `["p", "v", None]`
 
         gen_info: ``str``
-            Defaults to "p". What kind of values to show on loads.
+            Defaults to "p". What kind of values to show on generators.
             Can be oneof `["p", "v", None]`
 
         line_info: ``str``
-            Defaults to "rho". What kind of values to show on loads.
+            Defaults to "rho". What kind of values to show on lines.
             Can be oneof `["rho", "a", "p", "v", None]` 
 
         resolution: ``tuple``
