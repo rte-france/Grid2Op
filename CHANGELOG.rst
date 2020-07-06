@@ -24,6 +24,13 @@ Change Log
 - [FIXED] `MultiFolder.split_and_save` function did not use properly the "seed"
 - [FIXED] issue `Issue 122 <https://github.com/rte-france/Grid2Op/issues/122>`_
 
+
+
+
+- [FIXED] Loading of multimix environment when they are already present in the data cache.
+
+
+
 [1.1.0] - 2020-07-03
 ---------------------
 - [FIXED] forgot to print the name of the missing environment when error in creating it.
