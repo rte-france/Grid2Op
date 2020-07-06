@@ -31,14 +31,8 @@ class LinesReconnectedReward(BaseReward):
         obs = env.current_obs
 
         # All lines ids
-        lines_id = np.array(list(range(env.n_line)))
-        lines_id = lines_id[
-            np.logical_and(
-                # Only off cooldown lines
-                obs.time_before_cooldown_line <= 0,
-                # Only off maintenances lines
-                obs.time_next_maintenance != 0
-            )]
+        lines_id = np.arange(env.n_line)
+        lines_id = lines_id[obs.time_before_cooldown_line == 0]
 
         n_penalties = dt_float(0.0)
         for line_id in lines_id:
@@ -47,8 +41,8 @@ class LinesReconnectedReward(BaseReward):
                 n_penalties += dt_float(1.0)
 
         max_p = self.penalty_max_at_n_lines
-        n_penalties = dt_float(max(max_p, n_penalties))
-        r = np.interp(max_p - n_penalties,
+        n_penalties = np.clip(n_penalties, dt_float(0.0), max_p)
+        r = np.interp(n_penalties,
                       [dt_float(0.0), max_p],
                       [self.reward_max, self.reward_min])
         return dt_float(r)

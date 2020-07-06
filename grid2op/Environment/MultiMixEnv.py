@@ -72,9 +72,10 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         # Make sure GridObject class attributes are set from first env
         # Should be fine since the grid is the same for all envs
         multi_env_name = os.path.basename(os.path.abspath(envs_dir))
-        tmp_env = copy.deepcopy(self.current_env)
-        tmp_env.env_name = multi_env_name
-        self.__class__ = self.init_grid(tmp_env)
+        save_env_name = self.current_env.env_name
+        self.current_env.env_name = multi_env_name
+        self.__class__ = self.init_grid(self.current_env)
+        self.current_env.env_name = save_env_name
 
     @property
     def current_index(self):
