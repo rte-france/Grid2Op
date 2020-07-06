@@ -615,10 +615,7 @@ class BasePlot(GridObjects):
         if colormap is not None:
             if colormap == "line":
                 # normalize the value for the color map
-                if unit == "%":
-                    # I dont touch percentage that are supposed to be scaled already
-                    vals_0 = vals_0
-                else:
+                if unit != "%":
                     vals_0 = self._get_vals(vals[0])
 
         for line_id in range(self.n_line):

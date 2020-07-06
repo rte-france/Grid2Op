@@ -166,7 +166,8 @@ class Environment(BaseEnv):
         if _raw_backend_class is None:
             self._raw_backend_class = type(backend)
         else:
-            _raw_backend_class = _raw_backend_class
+            self._raw_backend_class = _raw_backend_class
+
         # for plotting
         self.init_backend(init_grid_path, chronics_handler, backend,
                           names_chronics_to_backend, actionClass, observationClass,

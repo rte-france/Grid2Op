@@ -608,14 +608,14 @@ class BasePlot(ABC):
         line_unit: ``str``
             Unit string for the :line_values: argument, displayed after the line value
 
-        load_info: ``list``
+        load_values: ``list``
             information to display for the loads
             [must have the same size as observation.n_load and convertible to float]
 
         load_unit: ``str``
             Unit string for the :load_values: argument, displayed after the load value
 
-        gen_info: ``list``
+        gen_values: ``list``
             information to display in the generators
             [must have the same size as observation.n_gen and convertible to float]
 
@@ -639,7 +639,7 @@ class BasePlot(ABC):
                             "provided for {} loads in the grid".format(len(load_values), self.observation_space.n_load))
         if gen_values is not None and len(gen_values) != self.observation_space.n_gen:
             raise PlotError("Impossible to display these values on the generators: there are {} values"
-                            "provided for {} generators in the grid".format(len(gen_info), self.observation_space.n_gen))
+                            "provided for {} generators in the grid".format(len(gen_values), self.observation_space.n_gen))
 
         # Get a valid figure to draw into
         if figure is None:

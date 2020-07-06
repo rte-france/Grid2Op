@@ -1254,7 +1254,7 @@ class GridObjects:
             if ori == from_ and ext == to_:
                 res.append(i)
 
-        if res is []:
+        if not res:  # res is empty here
             raise BackendError("ObservationSpace.get_line_id: impossible to find a powerline with connected at "
                                "origin at {} and extremity at {}".format(from_, to_))
 
@@ -1290,7 +1290,7 @@ class GridObjects:
             if s_id_gen == sub_id:
                 res.append(i)
 
-        if res is []:
+        if not res:  # res is empty here
             raise BackendError(
                 "GridObjects.get_generators_id: impossible to find a generator connected at "
                 "substation {}".format(sub_id))
@@ -1326,7 +1326,7 @@ class GridObjects:
             if s_id_gen == sub_id:
                 res.append(i)
 
-        if res is []:
+        if not res:  # res is empty here
             raise BackendError(
                 "GridObjects.get_loads_id: impossible to find a load connected at substation {}".format(sub_id))
 
