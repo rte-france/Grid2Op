@@ -832,7 +832,6 @@ class GridStateFromFile(GridValue):
         while curr_dt < datetime_start:
             curr_dt, *_ = tmp.load_next()
         real_init_dt = curr_dt
-
         arrays = self._init_res_split(nb_rows)
         i = 0
         while curr_dt < datetime_end:

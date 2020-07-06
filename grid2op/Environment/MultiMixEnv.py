@@ -12,7 +12,7 @@ import copy
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
-from grid2op.Exceptions import EnvError 
+from grid2op.Exceptions import EnvError, Grid2OpException
 
 
 class MultiMixEnvironment(GridObjects, RandomObject):
@@ -184,7 +184,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         except Exception as e:
             raise Grid2OpException("Cannot to seed with the seed provided." \
                                    "Make sure it can be converted to a" \
-                                   "numpy 64 integer.")
+                                   "numpy 32 bits integer.")
 
         s = super().seed(seed)
         seeds = [s]

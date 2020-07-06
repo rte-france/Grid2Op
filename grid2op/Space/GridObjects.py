@@ -590,10 +590,17 @@ class GridObjects:
                                             "from a vector. Found {} elements instead of {}".format(
                 vect.shape[0], self.size()))
 
+        try:
+            vect = np.array(vect).astype(dt_float)
+        except Exception as exc_:
+            raise AmbiguousAction("Impossible to convert the input vector to a floating point numy array with error:\n"
+                                  "\"{}\".".format(exc_))
+
         self._raise_error_attr_list_none()
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
-            self._assign_attr_from_name(attr_nm, vect[prev_:(prev_ + sh)].astype(dt))
+            tmp = vect[prev_:(prev_ + sh)].astype(dt)
+            self._assign_attr_from_name(attr_nm, tmp)
             prev_ += sh
         self.check_space_legit()
 
@@ -1248,7 +1255,7 @@ class GridObjects:
             if ori == from_ and ext == to_:
                 res.append(i)
 
-        if res is []:
+        if not res:  # res is empty here
             raise BackendError("ObservationSpace.get_line_id: impossible to find a powerline with connected at "
                                "origin at {} and extremity at {}".format(from_, to_))
 
@@ -1284,7 +1291,7 @@ class GridObjects:
             if s_id_gen == sub_id:
                 res.append(i)
 
-        if res is []:
+        if not res:  # res is empty here
             raise BackendError(
                 "GridObjects.get_generators_id: impossible to find a generator connected at "
                 "substation {}".format(sub_id))
@@ -1320,7 +1327,7 @@ class GridObjects:
             if s_id_gen == sub_id:
                 res.append(i)
 
-        if res is []:
+        if not res:  # res is empty here
             raise BackendError(
                 "GridObjects.get_loads_id: impossible to find a load connected at substation {}".format(sub_id))
 

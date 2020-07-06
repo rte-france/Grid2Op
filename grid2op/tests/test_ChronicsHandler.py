@@ -9,7 +9,7 @@
 import pdb
 import warnings
 import pandas as pd
-
+import tempfile
 from grid2op.tests.helper_path_test import *
 
 from grid2op.dtypes import dt_int, dt_float
@@ -20,6 +20,7 @@ from grid2op.Chronics import MultifolderWithCache
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Rules import AlwaysLegal
+
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
     def setUp(self):
@@ -748,6 +749,74 @@ class TestCFFWFWM(HelperTests):
                     (ChronicMonth - 1)]
                 assert maxMaintenancePerDay == 0
                 assert np.sum(env.chronics_handler.real_data.data.maintenance) == 0
+
+
+    def test_split_and_save(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+                env.seed(0)
+                env.set_id(0)
+                obs = env.reset()
+                start_d = {
+                    "Scenario_august_00": "2012-08-10 00:00"
+                }
+                end_d = {
+                    "Scenario_august_00": "2012-08-19 00:00"
+                }
+                ts_beg = 2591
+                ts_end = 5184
+
+                # generate some reference data
+                chronics_outdir = tempfile.mkdtemp()
+                env.chronics_handler.real_data.split_and_save(start_d,
+                                                              end_d,
+                                                              chronics_outdir)
+                maintenance_0_0 = pd.read_csv(os.path.join(chronics_outdir,
+                                                         "Scenario_august_00",
+                                                         "maintenance.csv.bz2"),
+                                            sep=";").values
+
+                # test that i got a different result with a different seed
+                env.seed(1)
+                env.set_id(0)
+                obs = env.reset()
+                chronics_outdir2 = tempfile.mkdtemp()
+                env.chronics_handler.real_data.split_and_save(start_d,
+                                                              end_d,
+                                                              chronics_outdir2)
+                maintenance_1 = pd.read_csv(os.path.join(chronics_outdir2,
+                                                         "Scenario_august_00",
+                                                         "maintenance.csv.bz2"),
+                                            sep=";").values
+                assert np.any(maintenance_0_0 != maintenance_1)
+
+                # and now test that i have the same results with the same seed
+                env.seed(0)
+                env.set_id(0)
+                obs = env.reset()
+                chronics_outdir3 = tempfile.mkdtemp()
+                env.chronics_handler.real_data.split_and_save(start_d,
+                                                              end_d,
+                                                              chronics_outdir3)
+                maintenance_0_1 = pd.read_csv(os.path.join(chronics_outdir3,
+                                                         "Scenario_august_00",
+                                                         "maintenance.csv.bz2"),
+                                              sep=";").values
+                assert np.all(maintenance_0_0 == maintenance_0_1)
+
+                # make sure i can reload the environment
+                env2 = make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+                            param=param,
+                            data_feeding_kwargs={"gridvalueClass": GridStateFromFileWithForecasts},
+                            chronics_path=chronics_outdir3)
+                env2.set_id(0)
+                obs = env2.reset()
+                # and that it has the right chroncis
+                assert np.all(env2.chronics_handler.real_data.data.maintenance.astype(dt_float) ==
+                              maintenance_0_0)
 
     def test_seed(self):
         param = Parameters()
