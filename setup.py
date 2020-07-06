@@ -63,21 +63,6 @@ pkgs = {
     }
 }
 
-# try to install numba, not compatible on every platform
-try:
-    import numba
-except ImportError:
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "numba"])
-    except subprocess.CalledProcessError:
-        import warnings
-        warnings.warn("Numba is not available for your platform. You could gain massive speed up if you could install it.")
-    except Exception as e:
-        import warnings
-        warnings.warn("Numba is not available for your platform. You could gain massive speed up if you could install it.")
-except Exception as e:
-    import warnings
-    warnings.warn("Numba is not available for your platform. You could gain massive speed up if you could install it.")
 
 setup(name='Grid2Op',
       version='1.1.0',
