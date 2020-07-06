@@ -16,6 +16,13 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+
+
+
+- [FIXED] Loading of multimix environment when they are already present in the data cache.
+
+
+
 [1.1.0] - 2020-07-03
 ---------------------
 - [FIXED] forgot to print the name of the missing environment when error in creating it.

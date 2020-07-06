@@ -265,6 +265,8 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):
+        if _aux_is_multimix(real_ds_path):
+            make_from_path_fn = _aux_make_multimix
         return make_from_path_fn(real_ds_path, **kwargs)
 
     # Env needs to be downloaded
