@@ -58,6 +58,7 @@ class EpisodeReplay(object):
 
     def replay_episode(self, episode_id, fps=2.0, gif_name=None,
                        display=True, start_step=0, end_step=-1,
+                       line_info="rho", load_info="p", gen_info="p",
                        resolution=(1280, 720)):
         """
         When called, this function will start the display of the episode in a "mini movie" format.
@@ -81,6 +82,18 @@ class EpisodeReplay(object):
         end_step: ``int``
             Default to -1. The step at which to stop generating the gif.
             Set to -1 to specify no limit
+
+        load_info: ``str``
+            Defaults to "p". What kind of values to show on loads.
+            Can be oneof `["p", "v", None]`
+
+        gen_info: ``str``
+            Defaults to "p". What kind of values to show on generators.
+            Can be oneof `["p", "v", None]`
+
+        line_info: ``str``
+            Defaults to "rho". What kind of values to show on lines.
+            Can be oneof `["rho", "a", "p", "v", None]` 
 
         resolution: ``tuple``
             Defaults to (1280, 720). The resolution to use for the gif.
@@ -119,7 +132,12 @@ class EpisodeReplay(object):
             start_time = time.time()
 
             # Render the observation
-            fig = plot_runner.plot_obs(observation=obs, figure=figure, redraw=True)
+            fig = plot_runner.plot_obs(observation=obs,
+                                       line_info=line_info,
+                                       gen_info=gen_info,
+                                       load_info=load_info,
+                                       figure=figure,
+                                       redraw=True)
             if figure is None and display:
                 fig.show()
             elif display:
