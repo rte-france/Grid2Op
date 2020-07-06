@@ -613,10 +613,9 @@ class BasePlot(GridObjects):
             texts = [self._get_text_unit(val, unit) for val in vals[0]]
 
         if colormap is not None:
-            if colormap == "line":
+            if colormap == "line" and unit != "%":
                 # normalize the value for the color map
-                if unit != "%":
-                    vals_0 = self._get_vals(vals[0])
+                vals_0 = self._get_vals(vals[0])
 
         for line_id in range(self.n_line):
             pos_or, pos_ex, *_ = self._get_line_coord(line_id)

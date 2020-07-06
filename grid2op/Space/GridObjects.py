@@ -593,7 +593,8 @@ class GridObjects:
         try:
             vect = np.array(vect).astype(dt_float)
         except Exception as exc_:
-            raise AmbiguousAction("Impossible to convert the input vector to a floating point numy array.")
+            raise AmbiguousAction("Impossible to convert the input vector to a floating point numy array with error:\n"
+                                  "\"{}\".".format(exc_))
 
         self._raise_error_attr_list_none()
         prev_ = 0
