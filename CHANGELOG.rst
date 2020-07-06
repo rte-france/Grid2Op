@@ -23,6 +23,13 @@ Change Log
   (when a powerline is reconnected)
 - [FIXED] `MultiFolder.split_and_save` function did not use properly the "seed"
 
+
+
+
+- [FIXED] Loading of multimix environment when they are already present in the data cache.
+
+
+
 [1.1.0] - 2020-07-03
 ---------------------
 - [FIXED] forgot to print the name of the missing environment when error in creating it.
