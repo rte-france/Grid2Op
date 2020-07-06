@@ -7,6 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
+import json
+import warnings
 import numpy as np
 from datetime import timedelta, datetime
 
@@ -358,7 +360,7 @@ class Multifolder(GridValue):
             for subpath in self.subpaths:
                 id_this_chron = os.path.split(subpath)[-1]
                 datetime_end[id_this_chron] = datetime_end_orig
-
+        seed_chronics_all = {}
         for subpath in self.subpaths:
             id_this_chron = os.path.split(subpath)[-1]
             if not id_this_chron in datetime_beg:
@@ -368,6 +370,12 @@ class Multifolder(GridValue):
                                       path=subpath,
                                       max_iter=self.max_iter,
                                       chunk_size=self.chunk_size)
+            seed_chronics = None
+            if self.seed is not None:
+                max_int = np.iinfo(dt_int).max
+                seed_chronics = self.space_prng.randint(max_int)
+                tmp.seed(seed_chronics)
+            seed_chronics_all[subpath] = seed_chronics
             tmp.initialize(self._order_backend_loads,
                            self._order_backend_prods,
                            self._order_backend_lines,
@@ -375,6 +383,21 @@ class Multifolder(GridValue):
                            self._names_chronics_to_backend)
             path_out_chron = os.path.join(path_out, id_this_chron)
             tmp.split_and_save(datetime_beg[id_this_chron], datetime_end[id_this_chron], path_out_chron)
+
+            meta_params = {}
+            meta_params["datetime_beg"] = datetime_beg
+            meta_params["datetime_end"] = datetime_end
+            meta_params["path_out"] = path_out
+            meta_params["all_seeds"] = seed_chronics_all
+            try:
+                with open(os.path.join(path_out, "split_and_save_meta_params.json"), "w", encoding="utf-8") as f:
+                    json.dump(obj=meta_params, fp=f,
+                              sort_keys=True,
+                              indent=4
+                              )
+            except Exception as exc_:
+                warnings.warn("Impossible to save the \"metadata\" for the chronics with error:\n\"{}\""
+                              "".format(exc_))
 
     def fast_forward(self, nb_timestep):
         """

@@ -21,6 +21,7 @@ Change Log
 - [FIXED] the EpisodeData now properly propagates the end of the episode
 - [UPDATED] notebook 3 to reflect the change made a long time ago for the ambiguous action
   (when a powerline is reconnected)
+- [FIXED] `MultiFolder.split_and_save` function did not use properly the "seed"
 
 [1.1.0] - 2020-07-03
 ---------------------
