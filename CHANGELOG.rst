@@ -19,17 +19,11 @@ Change Log
 [1.1.1] - 2020-07-06
 ---------------------
 - [FIXED] the EpisodeData now properly propagates the end of the episode
-- [UPDATED] notebook 3 to reflect the change made a long time ago for the ambiguous action
-  (when a powerline is reconnected)
 - [FIXED] `MultiFolder.split_and_save` function did not use properly the "seed"
 - [FIXED] issue `Issue 122 <https://github.com/rte-france/Grid2Op/issues/122>`_
-
-
-
-
 - [FIXED] Loading of multimix environment when they are already present in the data cache.
-
-
+- [UPDATED] notebook 3 to reflect the change made a long time ago for the ambiguous action
+  (when a powerline is reconnected)
 
 [1.1.0] - 2020-07-03
 ---------------------
