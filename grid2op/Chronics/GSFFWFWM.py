@@ -123,6 +123,9 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
 
         # TODO this is INSANELY slow for now. find a way to make it faster
         # HINT: vectorize everything into one single numpy array, everything can be vectorized there...
+        month = 0
+        maintenance_daily_proba = -1
+        maxDailyMaintenance = -1
         for nb_day_since_beg, this_day in enumerate(datelist):
             dayOfWeek = this_day.weekday()
             if dayOfWeek < 5:  # only maintenance starting on working days
