@@ -12,7 +12,7 @@ import copy
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject
-from grid2op.Exceptions import EnvError 
+from grid2op.Exceptions import EnvError, Grid2OpException
 
 
 class MultiMixEnvironment(GridObjects, RandomObject):
@@ -72,9 +72,10 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         # Make sure GridObject class attributes are set from first env
         # Should be fine since the grid is the same for all envs
         multi_env_name = os.path.basename(os.path.abspath(envs_dir))
-        tmp_env = copy.deepcopy(self.current_env)
-        tmp_env.env_name = multi_env_name
-        self.__class__ = self.init_grid(tmp_env)
+        save_env_name = self.current_env.env_name
+        self.current_env.env_name = multi_env_name
+        self.__class__ = self.init_grid(self.current_env)
+        self.current_env.env_name = save_env_name
 
     @property
     def current_index(self):
@@ -183,7 +184,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         except Exception as e:
             raise Grid2OpException("Cannot to seed with the seed provided." \
                                    "Make sure it can be converted to a" \
-                                   "numpy 64 integer.")
+                                   "numpy 32 bits integer.")
 
         s = super().seed(seed)
         seeds = [s]

@@ -141,17 +141,17 @@ class PlotMatplotlib(BasePlot):
 
     def _draw_gens_one_gen(self, fig, g_id, pos_gen, txt_, pos_end_line, pos_gen_sub, how_center, this_col):
         fig, ax = fig
-        pos_end_line, pos_gen_sub, pos_gen, how_center = self._get_gen_coord(g_id)
-        ax.plot([pos_gen_sub[0], pos_gen.real],
-                [pos_gen_sub[1], pos_gen.imag],
+        pos_end_line_, pos_gen_sub_, pos_gen_, how_center_ = self._get_gen_coord(g_id)
+        ax.plot([pos_gen_sub_[0], pos_gen_.real],
+                [pos_gen_sub_[1], pos_gen_.imag],
                 color=this_col, alpha=self.alpha_obj)
         if txt_ is not None:
-            verticalalignment = self._getverticalalignment(how_center)
-            ax.text(pos_gen.real,
-                    pos_gen.imag,
-                     txt_,
+            verticalalignment = self._getverticalalignment(how_center_)
+            ax.text(pos_gen_.real,
+                    pos_gen_.imag,
+                    txt_,
                     color=this_col,
-                    horizontalalignment=how_center.split('|')[1],
+                    horizontalalignment=how_center_.split('|')[1],
                     verticalalignment=verticalalignment)
 
     def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):

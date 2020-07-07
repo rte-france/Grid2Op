@@ -832,7 +832,6 @@ class GridStateFromFile(GridValue):
         while curr_dt < datetime_start:
             curr_dt, *_ = tmp.load_next()
         real_init_dt = curr_dt
-
         arrays = self._init_res_split(nb_rows)
         i = 0
         while curr_dt < datetime_end:
@@ -858,3 +857,4 @@ class GridStateFromFile(GridValue):
         tmp_for_time_delta = datetime(year=2018, month=1, day=1, hour=0, minute=0, second=0) + self.time_interval
         with open(os.path.join(path_out, "time_interval.info"), "w") as f:
             f.write("{:%H:%M}\n".format(tmp_for_time_delta))
+
