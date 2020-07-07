@@ -34,7 +34,7 @@ class ProfileAgent(AgentWithConverter):
                     continue
             elif env_name == "rte_case5_example":
                 pass
-            elif env_name == "rte_case118_example":
+            elif env_name == "rte_case118_example" or env_name.startswith("l2rpn_neurips_2020_track2"):
                 if i == 6:
                     continue
                 if i == 26:
@@ -82,7 +82,7 @@ class ProfileAgent(AgentWithConverter):
                                                       "lines_ex_id": [(15, 2), (19, 2)],
                                                       }})
             ]
-        elif env_name == "rte_case118_example":
+        elif env_name == "rte_case118_example" or env_name.startswith("l2rpn_neurips_2020_track2"):
             breaking_acts = [action_space({"set_bus": {"lines_or_id": [(100, 2), (129, 1), (173, 2)],
                                                        # "lines_ex_id": [(17,2)],
                                                        "generators_id": [(2, 2)],
