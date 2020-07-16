@@ -3,20 +3,29 @@ from grid2op.Agent import BaseAgent
 class RandomRedispatchAgent(BaseAgent):        
     def __init__(self, action_space,
                  n_gens_to_redispatch=2,
-                 redispatching_increment=1):
+                 redispatching_increment=1.0):
         """
-        Initialize agent
-        :param action_space: the Grid2Op action space
-        :param n_gens_to_Redispatch: 
-          the maximum number of dispatchable generators to play with 
-        :param redispatching_increment: 
-          the redispatching MW value to play with (both Plus or Minus)
+        Agent constructor
+
+        Parameters
+        ----------
+        :action_space: :class:`grid2op.Action.ActionSpace`
+             the Grid2Op action space
+
+        :n_gens_to_redispatch: `int`
+          The maximum number of dispatchable generators to play with 
+
+        :redispatching_increment: `float`
+          The redispatching MW value used in both directions
         """
         super().__init__(action_space)
         self.desired_actions = []
 
-        gens_ids = np.arange(self.action_space.n_gen)
+        # Get all generators IDs
+        gens_ids = np.arange(self.action_space.n_gen, dtype=int)
+        # Filter out non resipatchable IDs
         gens_redisp = gens_ids[self.action_space.gen_redispatchable == True]
+        # Cut if needed
         if len(gens_redisp) > n_gens_to_redispatch:
             gens_redisp = gens_redisp[0:n_gens_to_redispatch]
 
@@ -25,18 +34,18 @@ class RandomRedispatchAgent(BaseAgent):
 
         # Register 2 actions per generator
         # (increase or decrease by the increment)
-        for i in gens_redisp:
+        for gen_id in gens_redisp:
             # Create action redispatch by opposite increment
             act1 = self.action_space({
                 "redispatch": [
-                    (i, -float(redispatching_increment))
+                    (gen_id, -float(redispatching_increment))
                 ]
             })
             
             # Create action redispatch by increment
             act2 = self.action_space({
                 "redispatch": [
-                    (i, float(redispatching_increment))
+                    (gen_id, float(redispatching_increment))
                 ]
             })
 
@@ -61,7 +70,7 @@ class RandomRedispatchAgent(BaseAgent):
         Returns
         -------
         res: :class:`grid2op.Action.Action`
-            The action chosen by the bot / controller / agent.
+            The action chosen by agent.
         """
         
         return self.space_prng.choice(self.desired_actions)
