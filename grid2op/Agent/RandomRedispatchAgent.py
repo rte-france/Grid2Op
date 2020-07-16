@@ -1,3 +1,4 @@
+import numpy as np
 from grid2op.Agent import BaseAgent
 
 class RandomRedispatchAgent(BaseAgent):        
