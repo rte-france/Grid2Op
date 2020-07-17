@@ -304,8 +304,6 @@ class BaseObservation(GridObjects):
                   of this next maintenance.
                 - "cooldown_time": for how many timestep i am not supposed to act on the powerline due to cooldown
                   (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF` for more information)
-                - "indisponibility": for how many timestep the powerline is unavailable (disconnected, and it's
-                  impossible to reconnect it) due to hazards, maintenance or overflow (incl. cascading failure)
 
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
