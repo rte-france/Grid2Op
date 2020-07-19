@@ -25,7 +25,7 @@ class RandomRedispatchAgent(BaseAgent):
         # Get all generators IDs
         gens_ids = np.arange(self.action_space.n_gen, dtype=int)
         # Filter out non resipatchable IDs
-        gens_redisp = gens_ids[self.action_space.gen_redispatchable == True]
+        gens_redisp = gens_ids[self.action_space.gen_redispatchable]
         # Cut if needed
         if len(gens_redisp) > n_gens_to_redispatch:
             gens_redisp = gens_redisp[0:n_gens_to_redispatch]
