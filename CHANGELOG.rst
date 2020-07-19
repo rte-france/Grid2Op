@@ -16,6 +16,8 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+- [ADDED] New RandomRedispatchAgent, that takes random redispatching actions
+
 [1.1.1] - 2020-07-07
 ---------------------
 - [FIXED] the EpisodeData now properly propagates the end of the episode
