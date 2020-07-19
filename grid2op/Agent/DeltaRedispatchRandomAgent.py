@@ -1,10 +1,10 @@
 import numpy as np
 from grid2op.Agent import BaseAgent
 
-class RandomRedispatchAgent(BaseAgent):        
+class DeltaRedispatchRandomAgent(BaseAgent):        
     def __init__(self, action_space,
                  n_gens_to_redispatch=2,
-                 redispatching_increment=1.0):
+                 redispatching_delta=1.0):
         """
         Agent constructor
 
@@ -16,7 +16,7 @@ class RandomRedispatchAgent(BaseAgent):
         :n_gens_to_redispatch: `int`
           The maximum number of dispatchable generators to play with 
 
-        :redispatching_increment: `float`
+        :redispatching_delta: `float`
           The redispatching MW value used in both directions
         """
         super().__init__(action_space)
@@ -34,19 +34,19 @@ class RandomRedispatchAgent(BaseAgent):
         self.desired_actions.append(self.action_space({}))
 
         # Register 2 actions per generator
-        # (increase or decrease by the increment)
+        # (increase or decrease by the delta)
         for gen_id in gens_redisp:
-            # Create action redispatch by opposite increment
+            # Create action redispatch by opposite delta
             act1 = self.action_space({
                 "redispatch": [
-                    (gen_id, -float(redispatching_increment))
+                    (gen_id, -float(redispatching_delta))
                 ]
             })
             
-            # Create action redispatch by increment
+            # Create action redispatch by delta
             act2 = self.action_space({
                 "redispatch": [
-                    (gen_id, float(redispatching_increment))
+                    (gen_id, float(redispatching_delta))
                 ]
             })
 
