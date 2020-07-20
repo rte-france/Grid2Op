@@ -86,7 +86,7 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         res = self.actionClass()  # only the GridObjects part of "self" is actually used
-        res.sample()
+        res.sample(self.space_prng)
         return res
 
     def disconnect_powerline(self, line_id=None, line_name=None, previous_action=None):
