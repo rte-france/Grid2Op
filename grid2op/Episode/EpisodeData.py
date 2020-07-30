@@ -110,7 +110,8 @@ class EpisodeData:
                                               "observations")
         self.env_actions = CollectionWrapper(env_actions,
                                              helper_action_env,
-                                             "env_actions")
+                                             "env_actions",
+                                             check_legit=False)
         # gives a unique game over for everyone
         # TODO this needs testing!
         action_go = self.actions._game_over
@@ -218,7 +219,7 @@ class EpisodeData:
     def from_disk(cls, agent_path, name=str(1)):
 
         if agent_path is None:
-            raise Grid2OpException("A path to an episode should be provided, please call \"from_disck\" with "
+            raise Grid2OpException("A path to an episode should be provided, please call \"from_disk\" with "
                                    "\"agent_path other\" than None")
         episode_path = os.path.abspath(os.path.join(agent_path, name))
 
@@ -269,7 +270,7 @@ class EpisodeData:
                    observation_space=observation_space,
                    action_space=action_space,
                    helper_action_env=helper_action_env,
-                   path_save=agent_path,
+                   path_save=None, # No save when reading
                    attack=attack,
                    attack_space=attack_space,
                    name=name,
@@ -457,7 +458,7 @@ class CollectionWrapper:
 
     """
 
-    def __init__(self, collection, helper, collection_name):
+    def __init__(self, collection, helper, collection_name, check_legit=True):
         self.collection = collection
         if not hasattr(helper, "from_vect"):
             raise Grid2OpException(f"Object {helper} must implement a "
@@ -470,8 +471,9 @@ class CollectionWrapper:
         self.objects = []
         for i, elem in enumerate(self.collection):
             try:
-                self.objects.append(
-                    self.helper.from_vect(self.collection[i, :]))
+                collection_obj = self.helper.from_vect(self.collection[i, :],
+                                                       check_legit=check_legit)
+                self.objects.append(collection_obj)
             except AmbiguousAction:
                 self._game_over = i
                 break

@@ -24,7 +24,8 @@ Change Log
 - [FIXED] `Issue #133 <https://github.com/rte-france/Grid2Op/issues/133>`_: Missing positional argument `space_prng` in `Action.SerializableActionSpace`
 - [FIXED] `Issue #131 <https://github.com/rte-france/Grid2Op/issues/131>`_: Forecast values are accessible without needing to call `obs.simulate` beforehand.
 - [FIXED] `Issue #134 <https://github.com/rte-france/Grid2Op/issues/134>`_: Backend iadd actions with lines extremities disconnections (set -1)
-- [FIXED] issue `Issue 122 <https://github.com/rte-france/Grid2Op/issues/125>`_
+- [FIXED] issue `Issue #125 <https://github.com/rte-france/Grid2Op/issues/125>`_
+- [FIXED] issue `Issue #12 <https://github.com/rte-france/Grid2Op/issues/125>`_ Loading runner logs no longer checks environment actions ambiguity
 
 [1.1.1] - 2020-07-07
 ---------------------

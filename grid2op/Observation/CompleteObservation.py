@@ -179,7 +179,7 @@ class CompleteObservation(BaseObservation):
         self.target_dispatch[:] = env.target_dispatch
         self.actual_dispatch[:] = env.actual_dispatch
 
-    def from_vect(self, vect):
+    def from_vect(self, vect, check_legit=True):
         """
         Convert back an observation represented as a vector into a proper observation.
 
@@ -196,7 +196,7 @@ class CompleteObservation(BaseObservation):
         # reset the matrices
         self._reset_matrices()
         # and ensure everything is reloaded properly
-        super().from_vect(vect)
+        super().from_vect(vect, check_legit=check_legit)
 
     def to_dict(self):
         """
