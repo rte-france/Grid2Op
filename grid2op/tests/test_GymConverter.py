@@ -15,7 +15,7 @@ import warnings
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
 from grid2op.MakeEnv import make
-from grid2op.Converter import GymActionSpace, GymObservationSpace
+from grid2op.Converter import GymActionSpace, GymObservationSpace, IdToAct
 
 import pdb
 
@@ -112,3 +112,76 @@ class TestWithoutConverter(unittest.TestCase):
                     gym_act2 = act_space.to_gym(act)
                     act2 = act_space.from_gym(gym_act2)
                     assert act == act2
+
+
+class TestIdToAct(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tol = 1e-6
+
+    def test_creation(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_wcci_2020", test=True) as env:
+                # test i can create
+                idtoact = IdToAct(env.action_space)
+                act_space = GymActionSpace(idtoact)
+
+    def _aux_test_json(self, space, obj=None):
+        if obj is None:
+            obj = space.sample()
+        obj_json = space.to_jsonable([obj])
+        # test save to json
+        with tempfile.TemporaryFile(mode="w") as f:
+            json.dump(obj_json, fp=f)
+
+        # test read from json
+        obj2 = space.from_jsonable(obj_json)[0]
+
+        # test they are equal
+        for k, v in obj2.items():
+            assert k in obj
+            tmp = obj[k]
+            if isinstance(tmp, (int, float, dt_float, dt_int, dt_bool)):
+                assert np.all(np.abs(float(obj[k]) - float(obj2[k])) <= self.tol)
+            elif len(tmp) == 1:
+                assert np.all(np.abs(float(obj[k]) - float(obj2[k])) <= self.tol)
+            else:
+                assert np.all(np.abs(obj[k].astype(dt_float) - obj2[k].astype(dt_float)) <= self.tol)
+        for k, v in obj.items():
+            assert k in obj2  # make sure every keys of obj are in obj2
+
+    def test_json(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_wcci_2020", test=True) as env:
+                # test i can create
+                idtoact = IdToAct(env.action_space)
+                act_space = GymActionSpace(idtoact)
+                act_space.seed(0)
+                self._aux_test_json(act_space)
+
+    def test_to_from_gym_act(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("l2rpn_wcci_2020", test=True) as env:
+                idtoact = IdToAct(env.action_space)
+                act_space = GymActionSpace(idtoact)
+                act_space.seed(0)
+                idtoact.seed(0)
+
+                act = idtoact.sample()
+                gym_act = act_space.to_gym(act)
+                self._aux_test_json(act_space, gym_act)
+                assert act_space.contains(gym_act)
+                act2 = act_space.from_gym(gym_act)
+                assert act == act2
+
+                act_space.seed(0)
+                for i in range(10):
+                    gym_act = act_space.sample()
+                    act = act_space.from_gym(gym_act)
+                    self._aux_test_json(act_space, gym_act)
+                    gym_act2 = act_space.to_gym(act)
+                    act2 = act_space.from_gym(gym_act2)
+                    assert act == act2
+                    assert gym_act == gym_act2

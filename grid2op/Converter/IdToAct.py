@@ -10,7 +10,7 @@ import numpy as np
 
 from grid2op.Action import BaseAction
 from grid2op.Converter.Converters import Converter
-from grid2op.dtypes import dt_float
+from grid2op.dtypes import dt_float, dt_int
 
 
 class IdToAct(Converter):
@@ -319,7 +319,7 @@ class IdToAct(Converter):
             An id of an action.
 
         """
-        idx = self.space_prng.randint(0, self.n)
+        idx = self.space_prng.randint(0, self.n, dtype=dt_int)
         return idx
 
     def convert_act(self, encoded_act):
@@ -342,3 +342,106 @@ class IdToAct(Converter):
         """
 
         return self.all_actions[encoded_act]
+
+    def get_gym_dict(self):
+        """
+        Transform this converter into a dictionnary that can be used to initialized a gym.spaces.Dict
+
+        This function should not be used "as is", but rather through :class:`grid2op.Converter.GymConverter`
+
+        Returns
+        -------
+        res: :class:`gym.spaces.Dict`
+            The
+        """
+        # lazy import gym
+        from gym import spaces
+        res = {"action": spaces.Discrete(n=self.n)}
+        return res
+
+    def convert_action_from_gym(self, gymlike_action):
+        """
+        Convert the action (represented as a gym object, in fact an ordered dict) as an action
+        compatible with this converter.
+
+        This is not compatible with all converters and you need to install gym for it to work.
+
+        Parameters
+        ----------
+        gymlike_action:
+            the action to be converted to an action compatible with the action space representation
+
+        Returns
+        -------
+        res:
+            The action converted to be understandable by this converter.
+
+        Examples
+        ---------
+        Here is an example on how to use this feature with the :class:`grid2op.Converter.IdToAct`
+        converter (imports are not shown here).
+
+        .. code-block:: python
+
+            # create the environment
+            env = grid2op.make()
+
+            # create the converter
+            converter = IdToAct(env.action_space)
+
+            # create the gym action space
+            gym_action_space = GymObservationSpace(action_space=converter)
+
+            gym_action = gym_action_space.sample()
+            converter_action = converter.from_gym(gym_action)  # this represents the same action
+            grid2op_action = converter.convert_act(converter_action)  # this is a grid2op action
+
+        """
+        res = gymlike_action["action"]
+        if not isinstance(res, (int, dt_int, np.int, np.int64)):
+            import pdb
+            pdb.set_trace()
+            raise RuntimeError("TODO")
+        return int(res)
+
+    def convert_action_to_gym(self, action):
+        """
+        Convert the action (compatible with this converter) into a "gym action" (ie an OrderedDict)
+
+        This is not compatible with all converters and you need to install gym for it to work.
+
+        Parameters
+        ----------
+        action:
+            the action to be converted to an action compatible with the action space representation
+
+        Returns
+        -------
+        res:
+            The action converted to a "gym" model (can be used by a machine learning model)
+
+        Examples
+        ---------
+        Here is an example on how to use this feature with the :class:`grid2op.Converter.IdToAct`
+        converter (imports are not shown here).
+
+        .. code-block:: python
+
+            # create the environment
+            env = grid2op.make()
+
+            # create the converter
+            converter = IdToAct(env.action_space)
+
+            # create the gym action space
+            gym_action_space = GymObservationSpace(action_space=converter)
+
+            converter_action = converter.sample()
+            gym_action = converter.to_gym(converter_action)  # this represents the same action
+
+        """
+        from gym import spaces
+        res = spaces.dict.OrderedDict({"action": int(action)})
+        return res
+
+
