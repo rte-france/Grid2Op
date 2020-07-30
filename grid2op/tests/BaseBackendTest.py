@@ -1442,3 +1442,27 @@ class BaseTestChangeBusSlack(MakeBackend):
         p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
         assert np.all(np.abs(p_subs) <= self.tol_one)
         assert np.all(np.abs(p_bus) <= self.tol_one)
+
+
+class BaseIssuesTest(MakeBackend):
+    def test_issue_125(self):
+        # https://github.com/rte-france/Grid2Op/issues/125
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+        action = env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
+        obs, reward, am_i_done, info = env.step(action)
+        assert info["is_illegal"] is False
+        assert info["is_ambiguous"] is False
+        assert len(info["exception"])
+        assert am_i_done
+
+        env.reset()
+        action = env.action_space({"set_bus": {"generators_id": [(1, -1)]}})
+        obs, reward, am_i_done, info = env.step(action)
+        assert info["is_illegal"] is False
+        assert info["is_ambiguous"] is False
+        assert len(info["exception"])
+        assert am_i_done

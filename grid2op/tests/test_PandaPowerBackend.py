@@ -20,6 +20,7 @@ from grid2op.tests.BaseBackendTest import BaseTestNames, BaseTestLoadingCase, Ba
 from grid2op.tests.BaseBackendTest import BaseTestTopoAction, BaseTestEnvPerformsCorrectCascadingFailures
 from grid2op.tests.BaseBackendTest import BaseTestChangeBusAffectRightBus, BaseTestShuntAction
 from grid2op.tests.BaseBackendTest import BaseTestResetEqualsLoadGrid, BaseTestVoltageOWhenDisco, BaseTestChangeBusSlack
+from grid2op.tests.BaseBackendTest import BaseIssuesTest
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
@@ -126,6 +127,11 @@ class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
         return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 
 
+class TestIssuesTest(HelperTests, BaseIssuesTest):
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+
+
 # Specific to pandapower power
 class TestChangeBusAffectRightBus2(unittest.TestCase):
     def skip_if_needed(self):
@@ -179,6 +185,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 14
         assert env.backend._grid["trafo"]["hv_bus"][2] == 4
+
 
 if __name__ == "__main__":
     unittest.main()
