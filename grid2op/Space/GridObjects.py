@@ -564,7 +564,7 @@ class GridObjects:
     def check_space_legit(self):
         pass
 
-    def from_vect(self, vect):
+    def from_vect(self, vect, check_legit=True):
         """
         Convert a GridObjects, represented as a vector, into an GridObjects object.
 
@@ -602,7 +602,9 @@ class GridObjects:
             tmp = vect[prev_:(prev_ + sh)].astype(dt)
             self._assign_attr_from_name(attr_nm, tmp)
             prev_ += sh
-        self.check_space_legit()
+
+        if check_legit:
+            self.check_space_legit()
 
     def size(self):
         """
