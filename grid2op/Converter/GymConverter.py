@@ -60,13 +60,18 @@ class BaseGymConverter:
 
 class GymObservationSpace(spaces.Dict, BaseGymConverter):
     # deals with the observation space (rather easy)
+    """
+    This class allows to transform the observation space into a gym space.
+
+    Gym space will be a :class:`gym.spaces.Dict`. By default all
+    """
     def __init__(self, env):
         self.initial_obs_space = env.observation_space
         dict_ = {}
-        self._fill_dict_obs_space(dict_, env.observation_space, env.parameters)
+        self._fill_dict_obs_space(dict_, env.observation_space, env.parameters, env.oppSpace)
         spaces.Dict.__init__(self, dict_)
 
-    def _fill_dict_obs_space(self, dict_, observation_space, env_params):
+    def _fill_dict_obs_space(self, dict_, observation_space, env_params, opponent_space):
         for attr_nm, sh, dt in zip(observation_space.attr_list_vect,
                                    observation_space.shape,
                                    observation_space.dtype):
@@ -87,11 +92,13 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
                 elif attr_nm == "day_of_week":
                     my_type = spaces.Discrete(n=8)
                 elif attr_nm == "topo_vect":
-                    my_type = spaces.Box(low=0, high=2, shape=shape, dtype=dt)
+                    my_type = spaces.Box(low=-1, high=2, shape=shape, dtype=dt)
                 elif attr_nm == "time_before_cooldown_line":
                     my_type = spaces.Box(low=0,
                                          high=max(env_params.NB_TIMESTEP_COOLDOWN_LINE,
-                                                  env_params.NB_TIMESTEP_RECONNECTION),
+                                                  env_params.NB_TIMESTEP_RECONNECTION,
+                                                  opponent_space.attack_cooldown
+                                                  ),
                                          shape=shape,
                                          dtype=dt)
                 elif attr_nm == "time_before_cooldown_sub":
@@ -123,6 +130,7 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
                     # amps can't be negative
                     low = 0.
                 elif attr_nm == "target_dispatch" or attr_nm == "actual_dispatch":
+                    # TODO check that to be sure
                     low = np.min([observation_space.gen_pmin,
                                   -observation_space.gen_pmax])
                     high = np.max([-observation_space.gen_pmin,
@@ -147,6 +155,17 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
 
 
 class GymActionSpace(spaces.Dict, BaseGymConverter):
+    """
+    This class enables the conversion of the action space into a gym "space".
+
+    Resulting action space will be a :class:`gym.spaces.Dict`.
+
+    **NB** it is NOT recommended to use the sample of the gym action space. Please use the sampling (
+    if availabe) of the original action space instead [if not available this means there is no
+    implemented way to generate reliable random action]
+
+
+    """
     # deals with the action space (it depends how it's encoded...)
     keys_grid2op_2_human = {"prod_p": "prod_p",
                             "prod_v": "prod_v",

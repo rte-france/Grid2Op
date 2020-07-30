@@ -63,13 +63,15 @@ class Converter(ActionSpace):
 
     def get_gym_dict(self):
         """
-        To convert this space into a open ai gym space.
+        To convert this space into a open ai gym space. This function returns a dictionnary used
+        to initialize such a converter.
 
-        # TODO
+        It should not be used directly. Prefer to use the :class:`grid2op.Converter.GymConverter`
 
         Returns
         -------
-
+        res: ``dict``
+            The dictionary of gym spaces representing this converter.
         """
         raise NotImplementedError("Impossible to convert the converter \"{}\" automatically "
                                   "into a gym space (or gym is not installed on your machine)."
