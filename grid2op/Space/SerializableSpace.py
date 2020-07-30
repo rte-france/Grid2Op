@@ -83,6 +83,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
         self.shape = self._template_obj.shape()
         self.dtype = self._template_obj.dtype()
+        self.attr_list_vect = self._template_obj.attr_list_vect
 
         self._to_extract_vect = {}  # key: attr name, value: tuple: (beg_, end_, dtype)
         beg_ = 0

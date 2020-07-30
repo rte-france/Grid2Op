@@ -60,3 +60,27 @@ class Converter(ActionSpace):
         """
         regular_act = encoded_act
         return regular_act
+
+    def get_gym_dict(self):
+        """
+        To convert this space into a open ai gym space.
+
+        # TODO
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError("Impossible to convert the converter \"{}\" automatically "
+                                  "into a gym space (or gym is not installed on your machine)."
+                                  "".format(self))
+
+    def convert_action_from_gym(self, gymlike_action):
+        raise NotImplementedError("Impossible to convert the gym-like action automatically "
+                                  "into the converter representation for \"{}\" "
+                                  "".format(self))
+
+    def convert_action_to_gym(self, gymlike_action):
+        raise NotImplementedError("Impossible to convert the gym-like action automatically "
+                                  "into the converter representation for \"{}\" "
+                                  "".format(self))

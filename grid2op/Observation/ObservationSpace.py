@@ -130,3 +130,7 @@ class ObservationSpace(SerializableObservationSpace):
         :return:
         """
         return self.n
+
+    def get_empty_observation(self):
+        """return an empty observation, for internal use only."""
+        return copy.deepcopy(self._empty_obs)
