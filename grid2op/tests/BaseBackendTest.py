@@ -1451,7 +1451,8 @@ class BaseIssuesTest(MakeBackend):
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
+            env = grid2op.make("rte_case14_realistic", test=True,
+                               backend=backend)
         action = env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
         obs, reward, am_i_done, info = env.step(action)
         assert info["is_illegal"] is False
@@ -1466,3 +1467,60 @@ class BaseIssuesTest(MakeBackend):
         assert info["is_ambiguous"] is False
         assert len(info["exception"])
         assert am_i_done
+
+    def test_issue_134(self):
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic", test=True,
+                               backend=backend)
+        LINE_ID = 2
+
+        # Disconnect ex
+        action = env.action_space({
+            'set_bus': {
+                "lines_or_id": [(LINE_ID, 0)],
+                "lines_ex_id": [(LINE_ID, -1)],
+            }
+        })
+        obs, reward, done, info = env.step(action)
+        assert obs.line_status[LINE_ID] == False
+        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
+        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
+        
+        # Reconnect ex on bus 2
+        action = env.action_space({
+            'set_bus': {
+                "lines_or_id": [(LINE_ID, 0)],
+            "lines_ex_id": [(LINE_ID, 2)],
+            }
+        })
+        obs, reward, done, info = env.step(action)
+        assert obs.line_status[LINE_ID] == True
+        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
+        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2
+    
+        # Disconnect or
+        action = env.action_space({
+            'set_bus': {
+                "lines_or_id": [(LINE_ID, -1)],
+                "lines_ex_id": [(LINE_ID, 0)],
+            }
+        })
+        obs, reward, done, info = env.step(action)
+        assert obs.line_status[LINE_ID] == False
+        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
+        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
+
+        # Reconnect or on bus 1
+        action = env.action_space({
+            'set_bus': {
+                "lines_or_id": [(LINE_ID, 1)],
+                "lines_ex_id": [(LINE_ID, 0)],
+            }
+        })
+        obs, reward, done, info = env.step(action)
+        assert obs.line_status[LINE_ID] == True
+        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
+        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2

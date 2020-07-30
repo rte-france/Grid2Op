@@ -1430,27 +1430,6 @@ class BaseAction(GridObjects):
             if self.shunt_bus is not None:
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled by backend")
 
-    def sample(self, space_prng):
-        """
-        This method is used to sample action.
-
-        A generic sampling of action can be really tedious. Uniform sampling is almost impossible.
-        The actual implementation gives absolutely no warranty toward any of these concerns.
-
-        **It is not implemented yet.**
-
-        By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state. If you want
-        to sample uniformly at random among some actions, we recommand you the use of the converter IdToAct that
-        implements this feature.
-
-        Returns
-        -------
-        self: :class:`BaseAction`
-            The action sampled among the action space.
-        """
-        self.reset()
-        return self
-
     def _ignore_topo_action_if_disconnection(self, sel_):
         # force ignore of any topological actions
         self._set_topo_vect[np.array(self.line_or_pos_topo_vect[sel_])] = 0

@@ -74,10 +74,9 @@ class SerializableActionSpace(SerializableSpace):
 
     def sample(self):
         """
-        A utility used to sample :class:`Action`.
+        A utility used to sample a new random :class:`Action`.
 
-        This method is under development, use with care (actions are not sampled on the full action space, and are
-        not uniform in general).
+        NOT IMPLEMENTED
 
         Returns
         -------
@@ -85,8 +84,12 @@ class SerializableActionSpace(SerializableSpace):
             A random action sampled from the :attr:`ActionSpace.actionClass`
 
         """
-        res = self.actionClass()  # only the GridObjects part of "self" is actually used
-        res.sample()
+        res = self.actionClass() # Create empty action of this space type
+        res.reset() # Set to do nothing
+        # TODO: Implement random action sampling
+        # switch_line_id = self.space_prng.randint(self.n_line)
+        # switch_sub_id = self.space_prng.randint(self.n_sub)
+        # .. etc
         return res
 
     def disconnect_powerline(self, line_id=None, line_name=None, previous_action=None):

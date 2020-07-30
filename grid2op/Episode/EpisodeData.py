@@ -131,7 +131,7 @@ class EpisodeData:
             # there is a real game over, i assign the proper value for each collection
             self.actions._game_over = real_go
             self.observations._game_over = real_go + 1
-            self.env_actions._game_over = real_go + 1
+            self.env_actions._game_over = real_go
 
         self.attack = attack
         self.other_rewards = other_rewards
