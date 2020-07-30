@@ -220,6 +220,9 @@ class _BackendAction(GridObjects):
         #     self.shunt_q.all_changed()
         #     self.shunt_bus.all_changed()
 
+    def set_redispatch(self, new_redispatching):
+        self.prod_p.change_val(new_redispatching)
+
     def __iadd__(self, other):
         """
         other: a grid2op action standard
