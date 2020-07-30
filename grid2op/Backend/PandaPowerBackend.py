@@ -468,14 +468,17 @@ class PandaPowerBackend(Backend):
         """
         Specific implementation of the method to apply an action modifying a powergrid in the pandapower format.
         """
+        if backendAction is None:
+            return
+
         active_bus, (prod_p, prod_v, load_p, load_q), topo__, shunts__ = backendAction()
 
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
-        if np.any(prod_p.changed == True):
+        if np.any(prod_p.changed):
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
 
         tmp_prod_v = self._get_vector_inj["prod_v"](self._grid)
-        if np.any(prod_v.changed == True):
+        if np.any(prod_v.changed):
             tmp_prod_v.iloc[prod_v.changed] = prod_v.values[prod_v.changed] / self.prod_pu_to_kv[prod_v.changed]
 
         if self._id_bus_added is not None and prod_v.changed[self._id_bus_added]:
@@ -483,21 +486,21 @@ class PandaPowerBackend(Backend):
             self._grid["ext_grid"]["vm_pu"] = 1.0 * tmp_prod_v[self._id_bus_added]
 
         tmp_load_p = self._get_vector_inj["load_p"](self._grid)
-        if np.any(load_p.changed == True):
+        if np.any(load_p.changed):
             tmp_load_p.iloc[load_p.changed] = load_p.values[load_p.changed]
 
         tmp_load_q = self._get_vector_inj["load_q"](self._grid)
-        if np.any(load_q.changed == True):
+        if np.any(load_q.changed):
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
         if self.shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
 
-            if np.any(shunt_p.changed == True):
+            if np.any(shunt_p.changed):
                 self._grid.shunt["p_mw"].iloc[shunt_p.changed] = shunt_p.values[shunt_p.changed]
-            if np.any(shunt_q.changed == True):
+            if np.any(shunt_q.changed):
                 self._grid.shunt["q_mvar"].iloc[shunt_q.changed] = shunt_q.values[shunt_q.changed]
-            if np.any(shunt_bus.changed == True):
+            if np.any(shunt_bus.changed):
                 sh_service = shunt_bus.values[shunt_bus.changed] != -1
                 self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service
                 sh_bus1 = np.arange(len(shunt_bus))[shunt_bus.changed & shunt_bus.values == 1]
@@ -519,14 +522,25 @@ class PandaPowerBackend(Backend):
 
     def _apply_load_bus(self, new_bus, id_el_backend, id_topo):
         new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_load[id_el_backend])
-        self._grid.load["bus"].iat[id_el_backend] = new_bus_backend
+        if new_bus_backend >= 0:
+            self._grid.load["bus"].iat[id_el_backend] = new_bus_backend
+            self._grid.load["in_service"].iat[id_el_backend] = True
+        else:
+            self._grid.load["in_service"].iat[id_el_backend] = False
+            self._grid.load["bus"].iat[id_el_backend] = -1
 
     def _apply_gen_bus(self, new_bus, id_el_backend, id_topo):
         new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_gen[id_el_backend])
-        self._grid.gen["bus"].iat[id_el_backend] = new_bus_backend
-        # remember in this case slack bus is actually 2 generators for pandapower !
-        if id_el_backend == (self._grid.gen.shape[0] - 1) and self._iref_slack is not None:
-            self._grid.ext_grid["bus"].iat[0] = new_bus_backend        
+        if new_bus_backend >= 0:
+            self._grid.gen["bus"].iat[id_el_backend] = new_bus_backend
+            self._grid.gen["in_service"].iat[id_el_backend] = True
+            # remember in this case slack bus is actually 2 generators for pandapower !
+            if id_el_backend == (self._grid.gen.shape[0] - 1) and self._iref_slack is not None:
+                self._grid.ext_grid["bus"].iat[0] = new_bus_backend
+        else:
+            self._grid.gen["in_service"].iat[id_el_backend] = False
+            self._grid.gen["bus"].iat[id_el_backend] = -1
+            # in this case the slack bus cannot be disconnected
 
     def _apply_lor_bus(self, new_bus, id_el_backend, id_topo):
         new_bus_backend = self._pp_bus_from_grid2op_bus(new_bus, self._init_bus_lor[id_el_backend])
@@ -607,6 +621,14 @@ class PandaPowerBackend(Backend):
                     self._pf_init = "results"
                 else:
                     self._pf_init = "auto"
+
+                if np.any(~self._grid.load["in_service"]):
+                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                    raise pp.powerflow.LoadflowNotConverged("Isolated load")
+                if np.any(~self._grid.gen["in_service"]):
+                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                    raise pp.powerflow.LoadflowNotConverged("Isolated gen")
+
                 if is_dc:
                     pp.rundcpp(self._grid, check_connectivity=False)
                     self._nb_bus_before = None  # if dc i start normally next time i call an ac powerflow

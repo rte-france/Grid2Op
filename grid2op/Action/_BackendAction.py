@@ -81,13 +81,13 @@ class ValueStore:
         self.values[reco_or] = old_vect[reco_or]
         self.values[reco_ex] = old_vect[reco_ex]
 
-    def set_status(self, set, lineor_id, lineex_id, old_vect):
+    def set_status(self, set_status, lineor_id, lineex_id, old_vect):
         id_or = lineor_id
         id_ex = lineex_id
 
         # disco
-        disco_ = set == -1
-        reco_ = set == 1
+        disco_ = set_status == -1
+        reco_ = set_status == 1
 
         # make it to ids
         id_reco_or = id_or[reco_]
@@ -178,6 +178,8 @@ class _BackendAction(GridObjects):
 
         self._status_or_before = np.ones(self.n_line, dtype=dt_int)
         self._status_ex_before = np.ones(self.n_line, dtype=dt_int)
+        self._status_or = np.ones(self.n_line, dtype=dt_int)
+        self._status_ex = np.ones(self.n_line, dtype=dt_int)
 
     def reset(self):
         # last topo
@@ -282,19 +284,35 @@ class _BackendAction(GridObjects):
                                      self.line_ex_pos_topo_vect,
                                      self.last_topo_registered)
 
-        self._status_or_before[:], self._status_ex_before[:] = self.current_topo.get_line_status(self.line_or_pos_topo_vect,
-                                                                                                 self.line_ex_pos_topo_vect)
+        topo_before = self.current_topo.values
+        self._status_or_before[:], \
+        self._status_ex_before[:] = self.current_topo.get_line_status(
+            self.line_or_pos_topo_vect,
+            self.line_ex_pos_topo_vect)
+
         # IV topo
         self.current_topo.change_val(switcth_topo_vect)
         self.current_topo.set_val(set_topo_vect)
 
-        # V Force disconnection of disconnected powerlines
-        disco_before_topo = (self._status_or_before == -1) | (self._status_ex_before == -1)
-        self.current_topo.set_status(self._status_or_before[disco_before_topo],
-                                     self.line_or_pos_topo_vect[disco_before_topo],
-                                     self.line_ex_pos_topo_vect[disco_before_topo],
-                                     self._status_or_before[disco_before_topo]  # unused
-                                     )
+        # V Force disconnected status
+        # of disconnected powerlines extremities
+        self._status_or[:], \
+        self._status_ex[:] = self.current_topo.get_line_status(
+            self.line_or_pos_topo_vect,
+            self.line_ex_pos_topo_vect)
+
+        # At least one disconnected extremity
+        disco_or = (self._status_or_before == -1) | (self._status_or == -1)
+        disco_ex = (self._status_ex_before == -1) | (self._status_ex == -1)
+        disco_now = disco_or & disco_ex
+        # Set nothing
+        set_now = np.zeros_like(self._status_or)
+        # Force some disconnections
+        set_now[disco_now] = -1
+        self.current_topo.set_status(set_now,
+                                     self.line_or_pos_topo_vect,
+                                     self.line_ex_pos_topo_vect,
+                                     self.last_topo_registered)
 
         return self
 
