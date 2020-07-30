@@ -902,12 +902,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._backend_action += action
             action._redispatch[:] = init_disp
 
-            self.env_modification._redispatch[:] = self.actual_dispatch
             self._backend_action += self.env_modification
-
-            # action, for redispatching is composed of multiple actions, so basically i won't check
-            # ramp_min and ramp_max
-            self.env_modification._single_act = False
+            self._backend_action.set_redispatch(self.actual_dispatch)
 
             # now get the new generator voltage setpoint
             voltage_control_act = self._voltage_control(action, prod_v_chronics)
