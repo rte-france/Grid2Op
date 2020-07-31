@@ -147,6 +147,7 @@ class TestActionBase(ABC):
         self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
         # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
         self.helper_action = self._action_setup()
+        self.helper_action.seed(42)
         # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
         save_to_dict(self.res, self.helper_action,
                      "_init_subtype",

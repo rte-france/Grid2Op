@@ -76,6 +76,9 @@ class SerializableActionSpace(SerializableSpace):
         """
         A utility used to sample a new random :class:`Action`.
 
+        The sampled action is unitary: 
+        It has an impact on a single line/substation/generator.
+
         Returns
         -------
         res: :class:`BaseAction`
