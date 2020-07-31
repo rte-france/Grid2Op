@@ -1563,8 +1563,9 @@ class BaseIssuesTest(MakeBackend):
         backend = self.make_backend()
         param = Parameters()
 
-        param.NB_TIMESTEP_COOLDOWN_LINE = 3
+        param.NB_TIMESTEP_COOLDOWN_LINE = 20
         param.NB_TIMESTEP_COOLDOWN_SUB = 2
+        param.NO_OVERFLOW_DISCONNECTION = True
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic",
@@ -1574,19 +1575,81 @@ class BaseIssuesTest(MakeBackend):
         LINE_ID = 2
 
         # Disconnect ex -> this is an action on the powerline
-        action = env.action_space({
-            'set_bus': {
-                "lines_or_id": [(LINE_ID, 0)],
-                "lines_ex_id": [(LINE_ID, -1)],
-            }
-        })
-        obs, reward, done, info = env.step(action)
-        assert np.all(obs.time_before_cooldown_sub == 0)
-        assert obs.time_before_cooldown_line[LINE_ID] == 3
-        assert obs.line_status[LINE_ID] == False
-        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
-        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
+        for (or_, ex_) in [(0, -1), (-1, 0)]:
+            obs = env.reset()
+            action = env.action_space({
+                'set_bus': {
+                    "lines_or_id": [(LINE_ID, or_)],
+                    "lines_ex_id": [(LINE_ID, ex_)],
+                }
+            })
+            # i disconnect a powerline, i should not act on the substation but on the line LINE_ID
+            obs, reward, done, info = env.step(action)
+            assert np.all(obs.time_before_cooldown_sub == 0)
+            assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE
+            assert obs.line_status[LINE_ID] == False
+            assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
+            assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
 
-        _ = env.step(env.action_space())
-        obs, *_ = env.step(env.action_space())
-        obs = env.reset()
+            # i try to reconnect it, should not be possible whether i do it from
+            # setting a bus at one extremity or playing with the status
+            obs, *_ = env.step(env.action_space({"set_line_status": [(LINE_ID, 1)]}))
+            assert obs.line_status[LINE_ID] == False
+            assert np.all(obs.time_before_cooldown_sub == 0)
+            assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 1
+
+            obs, *_ = env.step(env.action_space({"change_line_status": [LINE_ID]}))
+            assert obs.line_status[LINE_ID] == False
+            assert np.all(obs.time_before_cooldown_sub == 0)
+            assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 2
+
+            obs, *_ = env.step(env.action_space({
+                'set_bus': {
+                    "lines_or_id": [(LINE_ID, 0)],
+                    "lines_ex_id": [(LINE_ID, 1)],
+                }
+            }))
+            assert obs.line_status[LINE_ID] == False
+            assert np.all(obs.time_before_cooldown_sub == 0)
+            assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 3
+
+            obs, *_ = env.step(env.action_space({
+                'set_bus': {
+                    "lines_or_id": [(LINE_ID, 1)],
+                    "lines_ex_id": [(LINE_ID, 0)],
+                }
+            }))
+            assert obs.line_status[LINE_ID] == False
+            assert np.all(obs.time_before_cooldown_sub == 0)
+            assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 4
+
+            # i wait enough for the cooldown to pass
+            for _ in range(param.NB_TIMESTEP_COOLDOWN_LINE - 4):
+                obs, *_ = env.step(env.action_space())
+            assert np.all(obs.time_before_cooldown_sub == 0)
+
+            # and now i try to reconnect, this should not affect the substation but the cooldown on the line
+            obs, *_ = env.step(env.action_space({
+                'set_bus': {
+                    "lines_or_id": [(LINE_ID, -2 * or_)],
+                    "lines_ex_id": [(LINE_ID, -2 * ex_)],
+                }
+            }))
+            assert obs.line_status[LINE_ID] == True
+            assert np.all(obs.time_before_cooldown_sub == 0)
+            assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE
+
+            # and now i try to modify the buses at one end of the powerline,
+            # this should affect the substation and NOT the line (so be possible)
+            obs, *_ = env.step(env.action_space({
+                'set_bus': {
+                    "lines_or_id": [(LINE_ID, -1 * or_)],
+                    "lines_ex_id": [(LINE_ID, -1 * ex_)],
+                }
+            }))
+            assert obs.line_status[LINE_ID] == True
+            if or_ != 0:
+                assert obs.time_before_cooldown_sub[obs.line_or_to_subid[LINE_ID]] == param.NB_TIMESTEP_COOLDOWN_SUB
+            else:
+                assert obs.time_before_cooldown_sub[obs.line_ex_to_subid[LINE_ID]] == param.NB_TIMESTEP_COOLDOWN_SUB
+            assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 1

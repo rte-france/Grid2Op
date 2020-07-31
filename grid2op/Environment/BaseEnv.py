@@ -8,6 +8,7 @@
 
 import time
 import numpy as np
+import copy
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 from abc import ABC, abstractmethod
@@ -933,6 +934,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.nb_time_step += 1
             try:
                 # compute the next _grid state
+                init_line_status = copy.deepcopy(self.backend.get_line_status())
                 beg_ = time.time()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
                 self._time_powerflow += time.time() - beg_
@@ -955,7 +957,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self.timestep_overflow[~overflow_lines] = 0
 
                     # build the topological action "cooldown"
-                    aff_lines, aff_subs = action.get_topological_impact()
+                    aff_lines, aff_subs = action.get_topological_impact(init_line_status)
                     if self.max_timestep_line_status_deactivated > 0:
                         # i update the cooldown only when this does not impact the line disconnected for the
                         # opponent or by maitnenance for example

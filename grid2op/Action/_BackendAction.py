@@ -323,9 +323,6 @@ class _BackendAction(GridObjects):
         # # Force some disconnections
         set_now[disco_now] = -1
         set_now[reco_now] = 1
-        # print("gzoth: {}".format(set_now))
-        # print("_status_or: {}".format(self._status_or))
-        # print("_status_ex: {}".format(self._status_ex))
 
         self.current_topo.set_status(set_now,
                                      self.line_or_pos_topo_vect,

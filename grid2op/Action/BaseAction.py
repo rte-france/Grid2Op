@@ -481,9 +481,36 @@ class BaseAction(GridObjects):
 
         # compute the changes of the topo vector
         effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
+
         # remove the change due to powerline only
         effective_change[self.line_or_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
         effective_change[self.line_ex_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+
+        # i can change also the status of a powerline by acting on its extremity
+        # first sub case i connected the powerline by setting origin OR extremity to positive stuff
+        if powerline_status is not None:
+            # if we don't know the state of the grid, we don't consider
+            # these "improvments": we consider a powerline is never
+            # affected if its bus is modified at any of its ends.
+            connect_set_or = (self._set_topo_vect[self.line_or_pos_topo_vect] > 0) & (isnotconnected)
+            self._lines_impacted |= connect_set_or
+            effective_change[self.line_or_pos_topo_vect[connect_set_or]] = False
+            effective_change[self.line_ex_pos_topo_vect[connect_set_or]] = False
+            connect_set_ex = (self._set_topo_vect[self.line_ex_pos_topo_vect] > 0) & (isnotconnected)
+            self._lines_impacted |= connect_set_ex
+            effective_change[self.line_or_pos_topo_vect[connect_set_ex]] = False
+            effective_change[self.line_ex_pos_topo_vect[connect_set_ex]] = False
+
+            # second sub case i disconnected the powerline by setting origin or extremity to negative stuff
+            disco_set_or = (self._set_topo_vect[self.line_or_pos_topo_vect] < 0) & (~isnotconnected)
+            self._lines_impacted |= disco_set_or
+            effective_change[self.line_or_pos_topo_vect[disco_set_or]] = False
+            effective_change[self.line_ex_pos_topo_vect[disco_set_or]] = False
+            disco_set_ex = (self._set_topo_vect[self.line_ex_pos_topo_vect] < 0) & (~isnotconnected)
+            self._lines_impacted |= disco_set_ex
+            effective_change[self.line_or_pos_topo_vect[disco_set_ex]] = False
+            effective_change[self.line_ex_pos_topo_vect[disco_set_ex]] = False
+
         self._subs_impacted[_topo_vect_to_sub[effective_change]] = True
         return self._lines_impacted, self._subs_impacted
 
