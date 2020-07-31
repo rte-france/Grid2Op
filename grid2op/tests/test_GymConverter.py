@@ -15,7 +15,7 @@ import warnings
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
 from grid2op.MakeEnv import make
-from grid2op.Converter import GymActionSpace, GymObservationSpace, IdToAct
+from grid2op.Converter import GymActionSpace, GymObservationSpace, IdToAct, ToVect
 
 import pdb
 
@@ -119,17 +119,17 @@ class TestWithoutConverter(unittest.TestCase, BaseTestGymConverter):
                     assert act == act2
 
 
-class TestIdToAct(unittest.TestCase, BaseTestGymConverter):
-    def setUp(self) -> None:
-        BaseTestGymConverter.__init__(self)
-        
+class BaseTestConverter(BaseTestGymConverter):
+    def init_converter(self, env):
+        raise NotImplementedError()
+
     def test_creation(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("l2rpn_wcci_2020", test=True) as env:
                 # test i can create
-                idtoact = IdToAct(env.action_space)
-                act_space = GymActionSpace(idtoact)
+                converter = self.init_converter(env)
+                act_space = GymActionSpace(converter)
                 act_space.sample()
 
     def test_json(self):
@@ -137,8 +137,8 @@ class TestIdToAct(unittest.TestCase, BaseTestGymConverter):
             warnings.filterwarnings("ignore")
             with make("l2rpn_wcci_2020", test=True) as env:
                 # test i can create
-                idtoact = IdToAct(env.action_space)
-                act_space = GymActionSpace(idtoact)
+                converter = self.init_converter(env)
+                act_space = GymActionSpace(converter)
                 act_space.seed(0)
                 self._aux_test_json(act_space)
 
@@ -146,17 +146,19 @@ class TestIdToAct(unittest.TestCase, BaseTestGymConverter):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("l2rpn_wcci_2020", test=True) as env:
-                idtoact = IdToAct(env.action_space)
-                act_space = GymActionSpace(idtoact)
+                converter = self.init_converter(env)
+                act_space = GymActionSpace(converter)
                 act_space.seed(0)
-                idtoact.seed(0)
+                converter.seed(0)
 
-                act = idtoact.sample()
-                gym_act = act_space.to_gym(act)
+                gym_act = act_space.sample()
+                act = act_space.from_gym(gym_act)
                 self._aux_test_json(act_space, gym_act)
-                assert act_space.contains(gym_act)
-                act2 = act_space.from_gym(gym_act)
-                assert act == act2
+                gym_act2 = act_space.to_gym(act)
+                act2 = act_space.from_gym(gym_act2)
+                g2op_act = converter.convert_act(act)
+                g2op_act2 = converter.convert_act(act2)
+                assert g2op_act == g2op_act2
 
                 act_space.seed(0)
                 for i in range(10):
@@ -165,5 +167,22 @@ class TestIdToAct(unittest.TestCase, BaseTestGymConverter):
                     self._aux_test_json(act_space, gym_act)
                     gym_act2 = act_space.to_gym(act)
                     act2 = act_space.from_gym(gym_act2)
-                    assert act == act2
-                    assert gym_act == gym_act2
+                    g2op_act = converter.convert_act(act)
+                    g2op_act2 = converter.convert_act(act2)
+                    assert g2op_act == g2op_act2
+
+
+class TestIdToAct(unittest.TestCase, BaseTestConverter):
+    def init_converter(self, env):
+        return IdToAct(env.action_space)
+
+    def setUp(self) -> None:
+        BaseTestGymConverter.__init__(self)
+
+
+class TestToVect(unittest.TestCase, BaseTestConverter):
+    def init_converter(self, env):
+        return ToVect(env.action_space)
+
+    def setUp(self) -> None:
+        BaseTestGymConverter.__init__(self)

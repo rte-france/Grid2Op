@@ -345,14 +345,18 @@ class IdToAct(Converter):
 
     def get_gym_dict(self):
         """
-        Transform this converter into a dictionnary that can be used to initialized a gym.spaces.Dict
+        Transform this converter into a dictionary that can be used to initialized a :class:`gym.spaces.Dict`.
+        The converter is modeled as a "Discrete" gym space with as many elements as the number
+        of different actions handled by this converter.
+
+        This is available as the "action" keys of the spaces.Dict gym action space build from it.
 
         This function should not be used "as is", but rather through :class:`grid2op.Converter.GymConverter`
 
         Returns
         -------
         res: :class:`gym.spaces.Dict`
-            The
+            The dict
         """
         # lazy import gym
         from gym import spaces
@@ -399,8 +403,6 @@ class IdToAct(Converter):
         """
         res = gymlike_action["action"]
         if not isinstance(res, (int, dt_int, np.int, np.int64)):
-            import pdb
-            pdb.set_trace()
             raise RuntimeError("TODO")
         return int(res)
 
@@ -443,5 +445,3 @@ class IdToAct(Converter):
         from gym import spaces
         res = spaces.dict.OrderedDict({"action": int(action)})
         return res
-
-

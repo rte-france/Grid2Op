@@ -15,6 +15,9 @@ from gym import spaces
 
 
 class BaseGymConverter:
+    """
+    Internal class, do not use.
+    """
     def __init__(self):
         pass
 
@@ -63,7 +66,11 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
     """
     This class allows to transform the observation space into a gym space.
 
-    Gym space will be a :class:`gym.spaces.Dict`. By default all
+    Gym space will be a :class:`gym.spaces.Dict` with the keys being the different attributes
+    of the grid2op observation. All attributes are used.
+
+    Note that gym space converted with this class should be seeded independently. It is NOT seeded
+    when calling :func:`grid2op.Environment.Environment.seed`.
     """
     def __init__(self, env):
         self.initial_obs_space = env.observation_space
@@ -144,6 +151,17 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
             dict_[attr_nm] = my_type
 
     def from_gym(self, gymlike_observation: spaces.dict.OrderedDict) -> BaseObservation:
+        """
+        This function convert the gym-like representation of an observation to a grid2op observation.
+
+        Parameters
+        ----------
+        gymlike_observation
+
+        Returns
+        -------
+
+        """
         res = self.initial_obs_space.get_empty_observation()
         for k, v in gymlike_observation.items():
             res._assign_attr_from_name(k, v)
@@ -164,6 +182,8 @@ class GymActionSpace(spaces.Dict, BaseGymConverter):
     if availabe) of the original action space instead [if not available this means there is no
     implemented way to generate reliable random action]
 
+    Note that gym space converted with this class should be seeded independantly. It is NOT seeded
+    when calling :func:`grid2op.Environment.Environment.seed`.
 
     """
     # deals with the action space (it depends how it's encoded...)
@@ -275,18 +295,21 @@ class GymActionSpace(spaces.Dict, BaseGymConverter):
 
         Parameters
         ----------
-        action
+        action:
+            The action (coming from grid2op or understandable by the converter)
 
         Returns
         -------
-
+        gym_action:
+            The same action converted as a OrderedDict (default used by gym in case of action space
+            being Dict)
         """
         if self.__is_converter:
-            res = self.initial_act_space.convert_action_to_gym(action)
+            gym_action = self.initial_act_space.convert_action_to_gym(action)
         else:
             # in that case action should be an instance of grid2op BaseAction
             assert isinstance(action, BaseAction), "impossible to convert an action not coming from grid2op"
-            res = self._base_to_gym(self.spaces.keys(), action,
-                                    dtypes={k: self.spaces[k].dtype for k in self.spaces},
-                                    converter=self.keys_human_2_grid2op)
-        return res
+            gym_action = self._base_to_gym(self.spaces.keys(), action,
+                                           dtypes={k: self.spaces[k].dtype for k in self.spaces},
+                                           converter=self.keys_human_2_grid2op)
+        return gym_action
