@@ -27,6 +27,8 @@ Change Log
 - [FIXED] `Issue #134 <https://github.com/rte-france/Grid2Op/issues/134>`_: Backend iadd actions with lines extremities disconnections (set -1)
 - [FIXED] issue `Issue #125 <https://github.com/rte-france/Grid2Op/issues/125>`_
 - [FIXED] issue `Issue #126 <https://github.com/rte-france/Grid2Op/issues/126>`_ Loading runner logs no longer checks environment actions ambiguity
+- [IMPROVED] issue `Issue #16 <https://github.com/rte-france/Grid2Op/issues/16>`_ improving openai gym integration.
+
 
 [1.1.1] - 2020-07-07
 ---------------------

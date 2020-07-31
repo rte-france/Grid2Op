@@ -14,7 +14,6 @@ class Converter(ActionSpace):
     """
     def __init__(self, action_space):
         ActionSpace.__init__(self, action_space, action_space.legal_action, action_space.subtype)
-        # self.__class__ = Converter.init_grid(action_space)
         self.space_prng = action_space.space_prng
         self.seed_used = action_space.seed_used
 
@@ -60,3 +59,101 @@ class Converter(ActionSpace):
         """
         regular_act = encoded_act
         return regular_act
+
+    def get_gym_dict(self):
+        """
+        To convert this space into a open ai gym space. This function returns a dictionnary used
+        to initialize such a converter.
+
+        It should not be used directly. Prefer to use the :class:`grid2op.Converter.GymConverter`
+
+        Returns
+        -------
+        res: ``dict``
+            The dictionary of gym spaces representing this converter.
+        """
+        raise NotImplementedError("Impossible to convert the converter \"{}\" automatically "
+                                  "into a gym space (or gym is not installed on your machine)."
+                                  "".format(self))
+
+    def convert_action_from_gym(self, gymlike_action):
+        """
+        Convert the action (represented as a gym object, in fact an ordered dict) as an action
+        compatible with this converter.
+
+        This is not compatible with all converters and you need to install gym for it to work.
+
+        Parameters
+        ----------
+        gymlike_action:
+            the action to be converted to an action compatible with the action space representation
+
+        Returns
+        -------
+        res:
+            The action converted to be understandable by this converter.
+
+        Examples
+        ---------
+        Here is an example on how to use this feature with the :class:`grid2op.Converter.IdToAct`
+        converter (imports are not shown here).
+
+        .. code-block:: python
+
+            # create the environment
+            env = grid2op.make()
+
+            # create the converter
+            converter = IdToAct(env.action_space)
+
+            # create the gym action space
+            gym_action_space = GymObservationSpace(action_space=converter)
+
+            gym_action = gym_action_space.sample()
+            converter_action = converter.convert_action_from_gym(gym_action)  # this represents the same action
+            grid2op_action = converter.convert_act(converter_action)
+
+        """
+        raise NotImplementedError("Impossible to convert the gym-like action automatically "
+                                  "into the converter representation for \"{}\" "
+                                  "".format(self))
+
+    def convert_action_to_gym(self, action):
+        """
+        Convert the action (compatible with this converter) into a "gym action" (ie an OrderedDict)
+
+        This is not compatible with all converters and you need to install gym for it to work.
+
+        Parameters
+        ----------
+        action:
+            the action to be converted to an action compatible with the action space representation
+
+        Returns
+        -------
+        res:
+            The action converted to a "gym" model (can be used by a machine learning model)
+
+        Examples
+        ---------
+        Here is an example on how to use this feature with the :class:`grid2op.Converter.IdToAct`
+        converter (imports are not shown here).
+
+        .. code-block:: python
+
+            # create the environment
+            env = grid2op.make()
+
+            # create the converter
+            converter = IdToAct(env.action_space)
+
+            # create the gym action space
+            gym_action_space = GymObservationSpace(action_space=converter)
+
+            converter_action = converter.sample()
+            gym_action = converter.to_gym(converter_action)  # this represents the same action
+
+        """
+        raise NotImplementedError("Impossible to convert the gym-like action automatically "
+                                  "into the converter representation for \"{}\" "
+                                  "".format(self))
