@@ -48,9 +48,13 @@ class TestActionBase(ABC):
 
         self.n_line = 20
         GridObjects.env_name = "test_action_env"
+        GridObjects.n_gen = 5
         GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
+        GridObjects.n_load = 11
         GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
+        GridObjects.n_line = self.n_line
         GridObjects.name_line = ["line_{}".format(i) for i in range(self.n_line)]
+        GridObjects.n_sub = 14
         GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
         GridObjects.sub_info = np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
         GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
@@ -71,36 +75,73 @@ class TestActionBase(ABC):
                                           31, 32, 37, 38, 40, 46, 50])
         GridObjects.line_ex_pos_topo_vect = np.array([3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
                                           33, 36, 42, 55, 43, 49, 53])
+
+        GridObjects.redispatching_unit_commitment_availble = True
+        GridObjects.gen_type = np.array(["thermal"] * 5)
+        GridObjects.gen_pmin = np.array([0.0] * 5)
+        GridObjects.gen_pmax = np.array([100.0] * 5)
+        GridObjects.gen_min_uptime = np.array([0] * 5)
+        GridObjects.gen_min_downtime = np.array([0] * 5)
+        GridObjects.gen_cost_per_MW = np.array([70.0] * 5)
+        GridObjects.gen_startup_cost = np.array([0.0] * 5)
+        GridObjects.gen_shutdown_cost = np.array([0.0] * 5)
+        GridObjects.gen_redispatchable = np.array([True, False, False, True, False])
+        GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
+        GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
+
         self.gridobj = GridObjects()
 
-        self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
-                    'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
-                                  'load_7', 'load_8', 'load_9', 'load_10'],
-                    'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
-                                  'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14',
-                                  'line_15', 'line_16', 'line_17', 'line_18', 'line_19'],
-                    'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
-                                 'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
-                    'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-                    'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
-                    'gen_to_subid': [0, 1, 2, 5, 7],
-                    'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-                    'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
-                    'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
-                    'gen_to_sub_pos': [2, 5, 3, 5, 1],
-                    'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-                    'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
-                    'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
-                    'gen_pos_topo_vect': [2, 8, 12, 29, 34],
-                    'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
-                    'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
-                    'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
-                    'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
-                    'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
-                    "grid_layout": None,
-                    "shunt_to_subid": None,
-                    "name_shunt": None
-                    }
+        self.res = {
+            'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
+            'name_load': ['load_0', 'load_1', 'load_2',
+                          'load_3', 'load_4', 'load_5', 'load_6',
+                          'load_7', 'load_8', 'load_9', 'load_10'],
+            'name_line': ['line_0', 'line_1', 'line_2',
+                          'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
+                          'line_8', 'line_9', 'line_10', 'line_11',
+                          'line_12', 'line_13', 'line_14',
+                          'line_15', 'line_16', 'line_17',
+                          'line_18', 'line_19'],
+            'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
+                         'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
+                         'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
+            'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+            'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
+            'gen_to_subid': [0, 1, 2, 5, 7],
+            'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3,
+                                 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+            'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6,
+                                 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+            'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
+            'gen_to_sub_pos': [2, 5, 3, 5, 1],
+            'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2,
+                                   3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+            'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2,
+                                   0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+            'load_pos_topo_vect': [7, 11, 18, 23, 28,
+                                   39, 41, 44, 47, 51, 54],
+            'gen_pos_topo_vect': [2, 8, 12, 29, 34],
+            'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10,
+                                      15, 16, 17, 22, 25, 26,
+                                      27, 31, 32, 37, 38, 40, 46, 50],
+            'line_ex_pos_topo_vect': [3, 19, 9, 13, 20,
+                                      14, 21, 30, 35, 24, 45,
+                                      48, 52, 33, 36, 42, 55, 43, 49, 53],
+            'gen_type': ["thermal"] * 5,
+            'gen_pmin': [0.0] * 5,
+            'gen_pmax': [100.0] * 5,
+            'gen_redispatchable': [True, False, False, True, False],
+            'gen_max_ramp_up': [10., 5., 15., 7., 8.],
+            'gen_max_ramp_down': [11., 6., 16., 8., 9.],
+            'gen_min_uptime': [0] * 5,
+            'gen_min_downtime': [0] * 5,
+            'gen_cost_per_MW': [70.0] * 5,
+            'gen_startup_cost': [0.0] * 5,
+            'gen_shutdown_cost': [0.0] * 5,
+            "grid_layout": None,
+            "shunt_to_subid": None,
+            "name_shunt": None
+        }
 
         # self.size_act = 229
         self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
@@ -771,6 +812,13 @@ class TestActionBase(ABC):
         vect = act.to_vect()
         res = self.helper_action.extract_from_vect(vect, "_set_line_status")
         assert np.all(res == act._set_line_status)
+
+    def test_sample(self):
+        try:
+            for i in range(10):
+                act = self.helper_action.sample()
+        except:
+            assert False, "sample() raised"
 
 
 class TestAction(TestActionBase, unittest.TestCase):

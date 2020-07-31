@@ -76,21 +76,74 @@ class SerializableActionSpace(SerializableSpace):
         """
         A utility used to sample a new random :class:`Action`.
 
-        NOT IMPLEMENTED
-
         Returns
         -------
         res: :class:`BaseAction`
             A random action sampled from the :attr:`ActionSpace.actionClass`
 
         """
-        res = self.actionClass() # Create empty action of this space type
-        res.reset() # Set to do nothing
-        # TODO: Implement random action sampling
-        # switch_line_id = self.space_prng.randint(self.n_line)
-        # switch_sub_id = self.space_prng.randint(self.n_sub)
-        # .. etc
-        return res
+        rnd_act = self.actionClass()
+        
+        rnd_types = []
+        if "set_line_status" in self.actionClass.authorized_keys:
+            rnd_types.append(0)
+        if "change_line_status" in self.actionClass.authorized_keys:
+            rnd_types.append(1)
+        if "set_bus" in self.actionClass.authorized_keys:
+            rnd_types.append(2)
+        if "change_bus" in self.actionClass.authorized_keys:
+            rnd_types.append(3)
+        if "redispatch" in self.actionClass.authorized_keys:
+            rnd_types.append(4)
+
+        # Cannot sample this space, return do nothing
+        if not len(rnd_types):
+            return rnd_act
+
+        rnd_type = self.space_prng.choice(rnd_types)
+        if rnd_type == 0:
+            rnd_line = self.space_prng.randint(self.n_line)
+            rnd_status = self.space_prng.choice([1, -1])
+            rnd_update = {
+                "set_line_status": [(rnd_line, rnd_status)]
+            }
+        elif rnd_type == 1:
+            rnd_line = self.space_prng.randint(self.n_line)
+            rnd_update = {
+                "change_line_status": [rnd_line]
+            }
+        elif rnd_type == 2:
+            rnd_sub = self.space_prng.randint(self.n_sub)
+            sub_size = self.sub_info[rnd_sub]
+            rnd_topo = self.space_prng.choice([-1, 0, 1, 2], sub_size)
+            rnd_update = {
+                "set_bus": {
+                    "substations_id": [(rnd_sub, rnd_topo)]
+                }
+            }
+        elif rnd_type == 3:
+            rnd_sub = self.space_prng.randint(self.n_sub)
+            sub_size = self.sub_info[rnd_sub]
+            rnd_topo = self.space_prng.choice([0, 1], sub_size)
+            rnd_update = {
+                "change_bus": {
+                    "substations_id": [(rnd_sub, rnd_topo)]
+                }
+            }
+        else:
+            gens = np.arange(self.n_gen)[self.gen_redispatchable]
+            rnd_gen = self.space_prng.choice(gens)
+            ru = -self.gen_max_ramp_down[rnd_gen]
+            rd = self.gen_max_ramp_up[rnd_gen]
+            rnd_gen_disp = (ru - rd) * self.space_prng.random() + rd
+            rnd_disp = np.zeros(self.n_gen)
+            rnd_disp[rnd_gen] = rnd_gen_disp
+            rnd_update = {
+                "redispatch" : rnd_disp
+            }
+
+        rnd_act.update(rnd_update)
+        return rnd_act
 
     def disconnect_powerline(self, line_id=None, line_name=None, previous_action=None):
         """
