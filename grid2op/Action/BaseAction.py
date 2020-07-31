@@ -1269,6 +1269,8 @@ class BaseAction(GridObjects):
             - :code:`self._set_line_status` has not the same size as the number of powerlines
             - the status of some powerline is both *changed* (:code:`self._switch_line_status[i] == True` for some *i*)
               and *set* (:code:`self._set_line_status[i]` for the same *i* is not 0)
+            - a powerline is both connected at one end (ex. its origin is set to bus 1) and disconnected at another
+              (its extremity is set to bus -1)
 
           - It has an ambiguous behavior concerning the topology of some substations
 
@@ -1390,6 +1392,13 @@ class BaseAction(GridObjects):
 
                         raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
                                                 " which bus.".format(q_id))
+
+        if np.any(self._set_topo_vect[self.line_ex_pos_topo_vect][self._set_topo_vect[self.line_or_pos_topo_vect] == -1] > 0):
+            raise InvalidLineStatus("A powerline is connected (set to a bus at extremity end) and "
+                                    "disconnected (set to bus -1 at origin end)")
+        if np.any(self._set_topo_vect[self.line_or_pos_topo_vect][self._set_topo_vect[self.line_ex_pos_topo_vect] == -1] > 0):
+            raise InvalidLineStatus("A powerline is connected (set to a bus at origin end) and "
+                                    "disconnected (set to bus -1 at extremity end)")
 
         # if i disconnected of a line, but i modify also the bus where it's connected
         idx = self._set_line_status == -1

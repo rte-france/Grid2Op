@@ -914,8 +914,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # included in time_apply_act
             tick = time.time()
             attack, attack_duration = self.oppSpace.attack(observation=self.current_obs,
-                                                            agent_action=action,
-                                                            env_action=self.env_modification)
+                                                           agent_action=action,
+                                                           env_action=self.env_modification)
             if attack is not None:
                 # the opponent choose to attack
                 # i update the "cooldown" on these things

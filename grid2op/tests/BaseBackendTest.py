@@ -1471,10 +1471,16 @@ class BaseIssuesTest(MakeBackend):
     def test_issue_134(self):
         self.skip_if_needed()
         backend = self.make_backend()
+        param = Parameters()
+
+        param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        param.NB_TIMESTEP_COOLDOWN_SUB = 0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True,
-                               backend=backend)
+            env = grid2op.make("rte_case14_realistic",
+                               test=True,
+                               backend=backend,
+                               param=param)
         LINE_ID = 2
 
         # Disconnect ex
@@ -1493,7 +1499,7 @@ class BaseIssuesTest(MakeBackend):
         action = env.action_space({
             'set_bus': {
                 "lines_or_id": [(LINE_ID, 0)],
-            "lines_ex_id": [(LINE_ID, 2)],
+                "lines_ex_id": [(LINE_ID, 2)],
             }
         })
         obs, reward, done, info = env.step(action)
@@ -1524,3 +1530,63 @@ class BaseIssuesTest(MakeBackend):
         assert obs.line_status[LINE_ID] == True
         assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == 1
         assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 2
+
+    def test_issue_134_check_ambiguity(self):
+        self.skip_if_needed()
+        backend = self.make_backend()
+        param = Parameters()
+
+        param.MAX_LINE_STATUS_CHANGED = 9999
+        param.MAX_SUB_CHANGED = 99999
+        param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic",
+                               test=True,
+                               backend=backend,
+                               param=param)
+        LINE_ID = 2
+
+        # Reconnect or on bus 1 disconnect on bus ex -> this should be ambiguous
+        action = env.action_space({
+            'set_bus': {
+                "lines_or_id": [(LINE_ID, 1)],
+                "lines_ex_id": [(LINE_ID, -1)],
+            }
+        })
+        obs, reward, done, info = env.step(action)
+        assert info["is_ambiguous"] == True
+
+    def test_issue_134_withcooldown_forrules(self):
+        self.skip_if_needed()
+        backend = self.make_backend()
+        param = Parameters()
+
+        param.NB_TIMESTEP_COOLDOWN_LINE = 3
+        param.NB_TIMESTEP_COOLDOWN_SUB = 2
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic",
+                               test=True,
+                               backend=backend,
+                               param=param)
+        LINE_ID = 2
+
+        # Disconnect ex -> this is an action on the powerline
+        action = env.action_space({
+            'set_bus': {
+                "lines_or_id": [(LINE_ID, 0)],
+                "lines_ex_id": [(LINE_ID, -1)],
+            }
+        })
+        obs, reward, done, info = env.step(action)
+        assert np.all(obs.time_before_cooldown_sub == 0)
+        assert obs.time_before_cooldown_line[LINE_ID] == 3
+        assert obs.line_status[LINE_ID] == False
+        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
+        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
+
+        _ = env.step(env.action_space())
+        obs, *_ = env.step(env.action_space())
+        obs = env.reset()
