@@ -13,7 +13,7 @@ from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 from abc import ABC, abstractmethod
 
-from grid2op.dtypes import dt_int, dt_float
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
@@ -850,8 +850,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
         conv_ = None
+        init_line_status = copy.deepcopy(self.backend.get_line_status())
         try:
-            # "smart" reconnecting
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:
@@ -934,7 +934,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.nb_time_step += 1
             try:
                 # compute the next _grid state
-                init_line_status = copy.deepcopy(self.backend.get_line_status())
                 beg_ = time.time()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self.env_dc)
                 self._time_powerflow += time.time() - beg_
