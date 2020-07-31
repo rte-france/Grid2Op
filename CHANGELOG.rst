@@ -18,6 +18,7 @@ Change Log
 
 [1.1.2] - 2020-XX-XX
 ---------------------
+- [ADDED] `ActionSpace.sample` method is now implemented
 - [ADDED] DeltaRedispatchRandomAgent: that takes redispatching actions of a configurable [-delta;+delta] in MW on random generators.
 - [FIXED] `Issue #129<https://github.com/rte-france/Grid2Op/issues/129>`_: game over count for env_actions
 - [FIXED] `Issue #127 <https://github.com/rte-france/Grid2Op/issues/127>`_: Removed no longer existing attribute docstring `indisponibility`
