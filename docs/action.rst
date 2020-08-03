@@ -144,10 +144,6 @@ The action class presented here can be quite complex to apprehend, especially fo
 It is possible to use the :class:`grid2op.Converter` class for such purpose. You can have a look at the dedicated
 documentation.
 
-We also implemented some "converter" that allow the conversion of some action space into more convenient
-`gym.spaces` (this is only available if gym is installed of course). Please check
-:class:`grid2op.Converter.GymActionSpace` for more information and examples.
-
 Detailed Documentation by class
 -------------------------------
 
