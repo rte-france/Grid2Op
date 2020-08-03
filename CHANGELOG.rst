@@ -43,6 +43,7 @@ Change Log
   otherwise it affects the substations but not the powerline). Changing the bus of an extremity of
   a powerline if this powerline is connected has no impact on its status and therefor it considers
   it only affects the corresponding substation.
+- [IMPROVED] added documentation and usage example for `CombineReward` and `CombineScaledReward`
 
 [1.1.1] - 2020-07-07
 ---------------------

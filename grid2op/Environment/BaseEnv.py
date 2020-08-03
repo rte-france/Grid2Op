@@ -1022,6 +1022,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                          }
         return res, other_rewards
 
+    def get_reward_instance(self):
+        """
+        Returns the instance of the object that is used to compute the reward.
+        """
+        return self.reward_helper.template_reward
+
     def _is_done(self, has_error, is_done):
         no_more_data = self.chronics_handler.done()
         return has_error or is_done or no_more_data
