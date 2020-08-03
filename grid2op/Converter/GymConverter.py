@@ -71,6 +71,29 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
 
     Note that gym space converted with this class should be seeded independently. It is NOT seeded
     when calling :func:`grid2op.Environment.Environment.seed`.
+
+    Examples
+    --------
+    Converting an observation space is fairly straightforward:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Converter import GymObservationSpace
+        env = grid2op.make()
+
+        gym_observation_space = GymObservationSpace(env.observation_space)
+        # and now gym_observation_space is a `gym.spaces.Dict` representing the observation space
+
+        # you can "convert" the grid2op observation to / from this space with:
+
+        grid2op_obs = env.reset()
+        same_gym_obs = gym_observation_space.to_gym(grid2op_obs)
+
+        # the conversion from gym_obs to grid2op obs is feasible, but i don't imagine
+        # a situation where it is useful. And especially, you will not be able to
+        # use "obs.simulate" for the observation converted back from this gym action.
+
     """
     def __init__(self, env):
         self.initial_obs_space = env.observation_space
@@ -182,8 +205,59 @@ class GymActionSpace(spaces.Dict, BaseGymConverter):
     if availabe) of the original action space instead [if not available this means there is no
     implemented way to generate reliable random action]
 
-    Note that gym space converted with this class should be seeded independantly. It is NOT seeded
+    **Note** that gym space converted with this class should be seeded independently. It is NOT seeded
     when calling :func:`grid2op.Environment.Environment.seed`.
+
+    Examples
+    --------
+    Converting an action space is fairly straightforward, though the resulting gym action space
+    will depend on the original encoding of the action space.
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Converter import GymActionSpace
+        env = grid2op.make()
+
+        gym_action_space = GymActionSpace(env.action_space)
+        # and now gym_action_space is a `gym.spaces.Dict` representing the action space.
+        # you can convert action to / from this space to grid2op the following way
+
+        grid2op_act = env.action_space(...)
+        gym_act = gym_action_space.to_gym(grid2op_act)
+
+        # and the opposite conversion is also possible:
+        gym_act = ... # whatever you decide to do
+        grid2op_act = gym_action_space.from_gym(gym_act)
+
+    **NB** you can use this `GymActionSpace` to  represent action into the gym format even if these actions
+    comes from another converter, such as :class`IdToAct` or `ToVect` in this case, to get back a grid2op
+    action you NEED to convert back the action from this converter. Here is a complete example
+    on this (more advanced) usecase:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Converter import GymActionSpace, IdToAct
+        env = grid2op.make()
+
+        converted_action_space = IdToAct(env.action_space)
+        gym_action_space = GymActionSpace(converted_action_space)
+
+        # and now gym_action_space is a `gym.spaces.Dict` representing the action space.
+        # you can convert action to / from this space to grid2op the following way
+
+        converter_act = ... # whatever action you want
+        gym_act = gym_action_space.to_gym(converter_act)
+
+        # and the opposite conversion is also possible:
+        gym_act = ... # whatever you decide to do
+        converter_act = gym_action_space.from_gym(gym_act)
+
+        # note that this converter act only makes sense for the converter. It cannot
+        # be digest by grid2op directly. So you need to also convert it to grid2op
+        grid2op_act = IdToAct.convert_act(converter_act)
+
 
     """
     # deals with the action space (it depends how it's encoded...)
