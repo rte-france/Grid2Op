@@ -16,7 +16,7 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
-[1.2.0] - 2020-XX-XX
+[1.2.0] - 2020-08-03
 ---------------------
 - [ADDED] `ActionSpace.sample` method is now implemented
 - [ADDED] DeltaRedispatchRandomAgent: that takes redispatching actions of a configurable [-delta;+delta] in MW on random generators.
@@ -30,8 +30,8 @@ Change Log
 - [IMPROVED] issue `Issue #16 <https://github.com/rte-france/Grid2Op/issues/16>`_ improving openai gym integration.
 - [IMPROVED] `Issue #134 <https://github.com/rte-france/Grid2Op/issues/134>`_ lead us to review and rationalize the
   behavior of grid2op concerning the powerline status. Now it behave more rationally and has now the following
-  behavior: if a powerline bus is "set" to -1 at one end and not modified at the other, it will disconnect this
-  powerline, if a powerline bus is "set" to 1 or 2 at one end and not modified at the other, it will
+  behavior: if a powerline origin / extremity bus is "set" to -1 at one end and not modified at the other, it will disconnect this
+  powerline, if a powerline origin / extremity  bus is "set" to 1 or 2 at one end and not modified at the other, it will
   reconnect the powerline. If a powerline bus is "set" to -1 at one end and set to 1 or 2 at its other
   end the action is ambiguous.
 - [IMPROVED] way to count what is affect by an action (affect the cooldown of substation and powerline

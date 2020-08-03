@@ -1414,6 +1414,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
                 res.append(copy.deepcopy(atest))
         return res
 
+
 class BaseTestVoltageOWhenDisco(MakeBackend):
     def test_this(self):
         self.skip_if_needed()
@@ -1653,3 +1654,278 @@ class BaseIssuesTest(MakeBackend):
             else:
                 assert obs.time_before_cooldown_sub[obs.line_ex_to_subid[LINE_ID]] == param.NB_TIMESTEP_COOLDOWN_SUB
             assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 1
+
+
+class BaseStatusActions(MakeBackend):
+    def _make_my_env(self):
+        backend = self.make_backend()
+        param = Parameters()
+        param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic",
+                               test=True,
+                               backend=backend,
+                               param=param
+                               )
+        return env
+
+    def _init_disco_or_not(self, LINE_ID, env, disco_before_the_action):
+        if not disco_before_the_action:
+            # powerline is supposed to be connected before the action takes place
+            statuses = env.get_obs().line_status
+        else:
+            # i disconnect it
+            action = env.action_space({"set_line_status": [(LINE_ID, -1)]})
+            obs, reward, done, info = env.step(action)
+            statuses = obs.line_status
+        return statuses
+
+    def _line_connected(self, LINE_ID, obs, busor=1):
+        assert obs.line_status[LINE_ID]
+        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == busor
+        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == 1
+
+    def _line_disconnected(self, LINE_ID, obs):
+        assert not obs.line_status[LINE_ID]
+        assert obs.topo_vect[obs.line_or_pos_topo_vect[LINE_ID]] == -1
+        assert obs.topo_vect[obs.line_ex_pos_topo_vect[LINE_ID]] == -1
+
+    def _only_line_impacted(self, LINE_ID, action, statuses):
+        lines_impacted, subs_impacted = action.get_topological_impact(statuses)
+        assert np.sum(subs_impacted) == 0
+        assert np.sum(lines_impacted) == 1 and lines_impacted[LINE_ID]
+
+    def _only_sub_impacted(self, LINE_ID, action, statuses):
+        lines_impacted, subs_impacted = action.get_topological_impact(statuses)
+        assert np.sum(subs_impacted) == 1 and subs_impacted[action.line_or_to_subid[LINE_ID]]
+        assert np.sum(lines_impacted) == 0
+
+    def test_setmin1_prevConn(self):
+        """{"set_line_status": [(LINE_ID, -1)]} when connected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=False)
+
+        action = env.action_space({"set_line_status": [(LINE_ID, -1)]})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_disconnected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_set1_prevConn(self):
+        """{"set_line_status": [(LINE_ID, +1)]} when connected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=False)
+
+        action = env.action_space({"set_line_status": [(LINE_ID, +1)]})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_connected(LINE_ID, obs)
+
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_setmin1_prevDisc(self):
+        """{"set_line_status": [(LINE_ID, -1)]} when disconnected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=True)
+
+        # and now i test the impact of the action
+        action = env.action_space({"set_line_status": [(LINE_ID, -1)]})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_disconnected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_set1_prevDisc(self):
+        """{"set_line_status": [(LINE_ID, +1)]} when disconnected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=True)
+
+        # and now i test the impact of the action
+        action = env.action_space({"set_line_status": [(LINE_ID, +1)]})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_connected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_chgt_prevConn(self):
+        """{"change_line_status": [LINE_ID]} when connected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=False)
+
+        # and now i test the impact of the action
+        action = env.action_space({"change_line_status": [LINE_ID]})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_disconnected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_chgt_prevDisc(self):
+        """{"change_line_status": [LINE_ID]} when disconnected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=True)
+
+        # and now i test the impact of the action
+        action = env.action_space({"change_line_status": [LINE_ID]})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_connected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_setbusmin1_prevConn(self):
+        """{"set_bus": {"lines_or_id": [(LINE_ID, -1)]}} when connected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=False)
+
+        # and now i test the impact of the action
+        action = env.action_space({"set_bus": {"lines_or_id": [(LINE_ID, -1)]}} )
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_disconnected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_setbusmin1_prevDisc(self):
+        """{"set_bus": {"lines_or_id": [(LINE_ID, -1)]}} when disco"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=True)
+
+        # and now i test the impact of the action
+        action = env.action_space({"set_bus": {"lines_or_id": [(LINE_ID, -1)]}} )
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_disconnected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_sub_impacted(LINE_ID, action, statuses)
+
+    def test_setbus2_prevConn(self):
+        """{"set_bus": {"lines_or_id": [(LINE_ID, 2)]}} when connected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=False)
+
+        # and now i test the impact of the action
+        action = env.action_space({"set_bus": {"lines_or_id": [(LINE_ID, 2)]}} )
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_connected(LINE_ID, obs, busor=2)
+
+        # right way to count it
+        self._only_sub_impacted(LINE_ID, action, statuses)
+
+    def test_setbus2_prevDisc(self):
+        """{"set_bus": {"lines_or_id": [(LINE_ID, 2)]}} when disconnected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=True)
+
+        # and now i test the impact of the action
+        action = env.action_space({"set_bus": {"lines_or_id": [(LINE_ID, 2)]}})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_connected(LINE_ID, obs, busor=2)
+
+        # right way to count it
+        self._only_line_impacted(LINE_ID, action, statuses)
+
+    def test_chgtbus_prevConn(self):
+        """{"change_bus": {"lines_or_id": [LINE_ID]}}  when connected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=False)
+
+        # and now i test the impact of the action
+        action = env.action_space({"change_bus": {"lines_or_id": [LINE_ID]}})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_connected(LINE_ID, obs, busor=2)
+
+        # right way to count it
+        self._only_sub_impacted(LINE_ID, action, statuses)
+
+    def test_chgtbus_prevDisc(self):
+        """{"change_bus": {"lines_or_id": [LINE_ID]}}  when discconnected"""
+        self.skip_if_needed()
+        env = self._make_my_env()
+        LINE_ID = 1
+
+        # set the grid to right configuration
+        statuses = self._init_disco_or_not(LINE_ID, env, disco_before_the_action=True)
+
+        # and now i test the impact of the action
+        action = env.action_space({"change_bus": {"lines_or_id": [LINE_ID]}})
+        obs, reward, done, info = env.step(action)
+
+        # right consequences
+        self._line_disconnected(LINE_ID, obs)
+
+        # right way to count it
+        self._only_sub_impacted(LINE_ID, action, statuses)

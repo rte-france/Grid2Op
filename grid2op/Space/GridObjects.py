@@ -348,11 +348,10 @@ class GridObjects:
     """
 
     SUB_COL = 0
-    LOAD_COL = 1
+    LOA_COL = 1
     GEN_COL = 2
     LOR_COL = 3
     LEX_COL = 4
-
 
     attr_list_vect = None
     attr_list_set = {}
@@ -394,7 +393,7 @@ class GridObjects:
     line_ex_pos_topo_vect = None
 
     # "convenient" way to retrieve information of the grid
-    topo_mat = None
+    grid_objects_types = None
 
     # list of attribute to convert it from/to a vector
     _vectorized = None
@@ -676,10 +675,10 @@ class GridObjects:
         self.line_or_pos_topo_vect = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos).astype(dt_int)
         self.line_ex_pos_topo_vect = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos).astype(dt_int)
 
-        self.topo_mat = np.full(shape=(self.dim_topo, 5), fill_value=-1, dtype=dt_int)
+        self.grid_objects_types = np.full(shape=(self.dim_topo, 5), fill_value=-1, dtype=dt_int)
         prev = 0
         for sub_id, nb_el in enumerate(self.sub_info):
-            self.topo_mat[prev:(prev+nb_el), :] = self.get_obj_substations(substation_id=sub_id)
+            self.grid_objects_types[prev:(prev + nb_el), :] = self.get_obj_substations(substation_id=sub_id)
             prev += nb_el
 
     def assert_grid_correct(self):
@@ -1165,7 +1164,7 @@ class GridObjects:
         res.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
         res.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
 
-        res.topo_mat = gridobj.topo_mat
+        res.grid_objects_types = gridobj.grid_objects_types
 
         # for redispatching / unit commitment (not available for all environment)
         res.gen_type = gridobj.gen_type
@@ -1254,7 +1253,7 @@ class GridObjects:
         res = np.full((dict_["nb_elements"], 5), fill_value=-1, dtype=dt_int)
         # 0 -> load, 1-> gen, 2 -> lines_or, 3 -> lines_ex
         res[:, self.SUB_COL] = substation_id
-        res[self.load_to_sub_pos[dict_["loads_id"]], self.LOAD_COL] = dict_["loads_id"]
+        res[self.load_to_sub_pos[dict_["loads_id"]], self.LOA_COL] = dict_["loads_id"]
         res[self.gen_to_sub_pos[dict_["generators_id"]], self.GEN_COL] = dict_["generators_id"]
         res[self.line_or_to_sub_pos[dict_["lines_or_id"]], self.LOR_COL] = dict_["lines_or_id"]
         res[self.line_ex_to_sub_pos[dict_["lines_ex_id"]], self.LEX_COL] = dict_["lines_ex_id"]
@@ -1498,4 +1497,8 @@ class GridObjects:
             cls.name_shunt = np.array(cls.name_shunt).astype(str)
             cls.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int))
 
+        # retrieve the redundant information that are not stored (for efficiency)
+        obj_ = cls()
+        obj_._compute_pos_big_topo()
+        cls.init_grid(obj_)
         return cls()
