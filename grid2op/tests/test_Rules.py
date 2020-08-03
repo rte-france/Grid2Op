@@ -416,18 +416,23 @@ class TestCooldown(unittest.TestCase):
         params.NB_TIMESTEP_COOLDOWN_SUB = 15
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("rte_case5_example", test=True, gamerules_class=DefaultRules, param=params)
+            self.env = make("rte_case5_example",
+                            test=True,
+                            gamerules_class=DefaultRules,
+                            param=params)
 
     def tearDown(self):
         self.env.close()
 
     def test_cooldown_sub(self):
         sub_id = 2
-        act = self.env.action_space({"set_bus": {"substations_id": [(sub_id, [1,1,2,2])]} })
+        act = self.env.action_space({"set_bus": {"substations_id": [(sub_id, [1, 1, 2, 2])]} })
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert obs.time_before_cooldown_sub[sub_id] == 15
-        act = self.env.action_space({"set_bus": {"substations_id": [(sub_id, [1,1,1,1])]} })
+
+        # the next action is illegal because it consist in reconfiguring the same substation
+        act = self.env.action_space({"set_bus": {"substations_id": [(sub_id, [1, 1, 1, 1])]} })
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_illegal"]
@@ -510,20 +515,32 @@ class TestReconnectionsLegality(unittest.TestCase):
         assert obs.rho[l_id] == 0.
         assert obs.time_before_cooldown_line[l_id] == 3
         assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+
+        # i have a cooldown to 2 so i cannot reconnect it
+        assert obs.time_before_cooldown_line[l_id] == 3
         obs, reward, done, info = env.step(reco_act)
         assert obs.rho[l_id] == 0.
         assert info["is_illegal"]
         assert obs.time_before_cooldown_line[l_id] == 2
         assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+
+        # this is not supposed to reconnect it either (cooldown)
+        assert obs.time_before_cooldown_line[l_id] == 2
         obs, reward, done, info = env.step(set_or_1_act)
+        # pdb.set_trace()
+        # assert info["is_illegal"]
         assert env.backend._grid.line.iloc[l_id]["in_service"] == False
         assert obs.rho[l_id] == 0.
         assert obs.time_before_cooldown_line[l_id] == 1
         assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+
+        # and neither is that (cooldown)
+        assert obs.time_before_cooldown_line[l_id] == 1
         obs, reward, done, info = env.step(set_ex_1_act)
         assert obs.rho[l_id] == 0.
         assert obs.time_before_cooldown_line[l_id] == 0
         assert env.backend._grid.line.iloc[l_id]["in_service"] == False
+
         # and now i can reconnect
         obs, reward, done, info = env.step(reco_act)
         assert obs.rho[l_id] != 0.

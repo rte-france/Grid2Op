@@ -27,7 +27,14 @@ class PreventReconnection(BaseRules):
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
 
         """
-        aff_lines, aff_subs = action.get_topological_impact()
+        # at first iteration, env.current_obs is None...
+        # TODO this is used inside the environment (for step) inside LookParam and here
+        # this could be computed only once, and fed to this instead
+        if env.current_obs is not None:
+            powerline_status = env.current_obs.line_status
+        else:
+            powerline_status = None
+        aff_lines, aff_subs = action.get_topological_impact(powerline_status)
         if np.any(env.times_before_line_status_actionable[aff_lines] > 0):
             # i tried to act on a powerline too shortly after a previous action
             # or shut down due to an overflow or opponent or hazards or maintenance

@@ -11,6 +11,7 @@ import numpy as np
 from grid2op.Reward.CombinedReward import CombinedReward
 from grid2op.dtypes import dt_float
 
+
 class CombinedScaledReward(CombinedReward):
     """
     This class allows to combine multiple rewards. 
@@ -19,7 +20,29 @@ class CombinedScaledReward(CombinedReward):
     from the range [min_sum; max_sum] to [reward_min; reward_max]
 
     min_sum and max_sum are computed from the weights and ranges of registered rewards.
-    See `Reward.BaseReward` for setting the output range.
+    See :class:`Reward.BaseReward` for setting the output range.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Reward import GameplayReward, FlatReward, CombinedScaledReward
+
+        env = grid2op.make(..., reward_class=CombinedScaledReward)
+        cr = self.env.get_reward_instance()
+        cr.addReward("Gameplay", GameplayReward(), 1.0)
+        cr.addReward("Flat", FlatReward(), 1.0)
+        cr.initialize(self.env)
+
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+
+        # reward here is computed by summing the results of what would have
+        # given `GameplayReward` and the one from `FlatReward`
+
+
     """
 
     def __init__(self):

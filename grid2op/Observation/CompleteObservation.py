@@ -142,9 +142,9 @@ class CompleteObservation(BaseObservation):
         self.day_of_week = dt_int(env.time_stamp.weekday())
 
         # get the values related to topology
-        self.timestep_overflow = copy.copy(env.timestep_overflow)
-        self.line_status = copy.copy(env.backend.get_line_status())
-        self.topo_vect = copy.copy(env.backend.get_topo_vect())
+        self.timestep_overflow[:] = env.timestep_overflow
+        self.line_status[:] = env.backend.get_line_status()
+        self.topo_vect[:] = env.backend.get_topo_vect()
 
         # get the values related to continuous values
         self.prod_p[:], self.prod_q[:], self.prod_v[:] = env.backend.generators_info()
@@ -167,7 +167,7 @@ class CompleteObservation(BaseObservation):
             self._forecasted_inj += env.chronics_handler.forecasts()
             self._forecasted_grid = [None for _ in self._forecasted_inj]
 
-        self.rho = env.backend.get_relative_flow().astype(dt_float)
+        self.rho[:] = env.backend.get_relative_flow().astype(dt_float)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env.times_before_line_status_actionable
@@ -179,7 +179,7 @@ class CompleteObservation(BaseObservation):
         self.target_dispatch[:] = env.target_dispatch
         self.actual_dispatch[:] = env.actual_dispatch
 
-    def from_vect(self, vect):
+    def from_vect(self, vect, check_legit=True):
         """
         Convert back an observation represented as a vector into a proper observation.
 
@@ -196,7 +196,7 @@ class CompleteObservation(BaseObservation):
         # reset the matrices
         self._reset_matrices()
         # and ensure everything is reloaded properly
-        super().from_vect(vect)
+        super().from_vect(vect, check_legit=check_legit)
 
     def to_dict(self):
         """

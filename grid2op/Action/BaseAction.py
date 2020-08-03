@@ -481,9 +481,36 @@ class BaseAction(GridObjects):
 
         # compute the changes of the topo vector
         effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
+
         # remove the change due to powerline only
         effective_change[self.line_or_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
         effective_change[self.line_ex_pos_topo_vect[self._lines_impacted & isnotconnected]] = False
+
+        # i can change also the status of a powerline by acting on its extremity
+        # first sub case i connected the powerline by setting origin OR extremity to positive stuff
+        if powerline_status is not None:
+            # if we don't know the state of the grid, we don't consider
+            # these "improvments": we consider a powerline is never
+            # affected if its bus is modified at any of its ends.
+            connect_set_or = (self._set_topo_vect[self.line_or_pos_topo_vect] > 0) & (isnotconnected)
+            self._lines_impacted |= connect_set_or
+            effective_change[self.line_or_pos_topo_vect[connect_set_or]] = False
+            effective_change[self.line_ex_pos_topo_vect[connect_set_or]] = False
+            connect_set_ex = (self._set_topo_vect[self.line_ex_pos_topo_vect] > 0) & (isnotconnected)
+            self._lines_impacted |= connect_set_ex
+            effective_change[self.line_or_pos_topo_vect[connect_set_ex]] = False
+            effective_change[self.line_ex_pos_topo_vect[connect_set_ex]] = False
+
+            # second sub case i disconnected the powerline by setting origin or extremity to negative stuff
+            disco_set_or = (self._set_topo_vect[self.line_or_pos_topo_vect] < 0) & (~isnotconnected)
+            self._lines_impacted |= disco_set_or
+            effective_change[self.line_or_pos_topo_vect[disco_set_or]] = False
+            effective_change[self.line_ex_pos_topo_vect[disco_set_or]] = False
+            disco_set_ex = (self._set_topo_vect[self.line_ex_pos_topo_vect] < 0) & (~isnotconnected)
+            self._lines_impacted |= disco_set_ex
+            effective_change[self.line_or_pos_topo_vect[disco_set_ex]] = False
+            effective_change[self.line_ex_pos_topo_vect[disco_set_ex]] = False
+
         self._subs_impacted[_topo_vect_to_sub[effective_change]] = True
         return self._lines_impacted, self._subs_impacted
 
@@ -1269,6 +1296,8 @@ class BaseAction(GridObjects):
             - :code:`self._set_line_status` has not the same size as the number of powerlines
             - the status of some powerline is both *changed* (:code:`self._switch_line_status[i] == True` for some *i*)
               and *set* (:code:`self._set_line_status[i]` for the same *i* is not 0)
+            - a powerline is both connected at one end (ex. its origin is set to bus 1) and disconnected at another
+              (its extremity is set to bus -1)
 
           - It has an ambiguous behavior concerning the topology of some substations
 
@@ -1391,6 +1420,13 @@ class BaseAction(GridObjects):
                         raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
                                                 " which bus.".format(q_id))
 
+        if np.any(self._set_topo_vect[self.line_ex_pos_topo_vect][self._set_topo_vect[self.line_or_pos_topo_vect] == -1] > 0):
+            raise InvalidLineStatus("A powerline is connected (set to a bus at extremity end) and "
+                                    "disconnected (set to bus -1 at origin end)")
+        if np.any(self._set_topo_vect[self.line_or_pos_topo_vect][self._set_topo_vect[self.line_ex_pos_topo_vect] == -1] > 0):
+            raise InvalidLineStatus("A powerline is connected (set to a bus at origin end) and "
+                                    "disconnected (set to bus -1 at extremity end)")
+
         # if i disconnected of a line, but i modify also the bus where it's connected
         idx = self._set_line_status == -1
         id_disc = np.where(idx)[0]
@@ -1429,27 +1465,6 @@ class BaseAction(GridObjects):
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_q) while shunt data is not handled by backend")
             if self.shunt_bus is not None:
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled by backend")
-
-    def sample(self, space_prng):
-        """
-        This method is used to sample action.
-
-        A generic sampling of action can be really tedious. Uniform sampling is almost impossible.
-        The actual implementation gives absolutely no warranty toward any of these concerns.
-
-        **It is not implemented yet.**
-
-        By calling :func:`Action.sample`, the action is :func:`Action.reset` to a "do nothing" state. If you want
-        to sample uniformly at random among some actions, we recommand you the use of the converter IdToAct that
-        implements this feature.
-
-        Returns
-        -------
-        self: :class:`BaseAction`
-            The action sampled among the action space.
-        """
-        self.reset()
-        return self
 
     def _ignore_topo_action_if_disconnection(self, sel_):
         # force ignore of any topological actions

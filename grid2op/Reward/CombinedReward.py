@@ -9,9 +9,36 @@
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class CombinedReward(BaseReward):
     """
-    This class allows to combine multiple rewards, by summing them for example.
+    This class allows to combine multiple pre defined reward. The reward it computes will
+    be the sum of all the sub rewards it is made of.
+
+    Each sub reward is identified by a key.
+
+    It is used a bit differently that the other rewards. See the section example for more information.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Reward import GameplayReward, FlatReward, CombinedReward
+
+        env = grid2op.make(..., reward_class=CombinedReward)
+        cr = self.env.get_reward_instance()
+        cr.addReward("Gameplay", GameplayReward(), 1.0)
+        cr.addReward("Flat", FlatReward(), 1.0)
+        cr.initialize(self.env)
+
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+
+        # reward here is computed by summing the results of what would have
+        # given `GameplayReward` and the one from `FlatReward`
+
     """
     def __init__(self):
         BaseReward.__init__(self)

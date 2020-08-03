@@ -346,6 +346,13 @@ class GridObjects:
         for each shunt (if supported), gives the id the substation to which it is connected
 
     """
+
+    SUB_COL = 0
+    LOA_COL = 1
+    GEN_COL = 2
+    LOR_COL = 3
+    LEX_COL = 4
+
     attr_list_vect = None
     attr_list_set = {}
 
@@ -384,6 +391,9 @@ class GridObjects:
     gen_pos_topo_vect = None
     line_or_pos_topo_vect = None
     line_ex_pos_topo_vect = None
+
+    # "convenient" way to retrieve information of the grid
+    grid_objects_types = None
 
     # list of attribute to convert it from/to a vector
     _vectorized = None
@@ -564,7 +574,7 @@ class GridObjects:
     def check_space_legit(self):
         pass
 
-    def from_vect(self, vect):
+    def from_vect(self, vect, check_legit=True):
         """
         Convert a GridObjects, represented as a vector, into an GridObjects object.
 
@@ -602,7 +612,9 @@ class GridObjects:
             tmp = vect[prev_:(prev_ + sh)].astype(dt)
             self._assign_attr_from_name(attr_nm, tmp)
             prev_ += sh
-        self.check_space_legit()
+
+        if check_legit:
+            self.check_space_legit()
 
     def size(self):
         """
@@ -648,7 +660,7 @@ class GridObjects:
 
         Topology action are represented by numpy vector of size np.sum(self.sub_info).
         The vector self.load_pos_topo_vect will give the index of each load in this big topology vector.
-        For examaple, for load i, self.load_pos_topo_vect[i] gives the position in such a topology vector that
+        For example, for load i, self.load_pos_topo_vect[i] gives the position in such a topology vector that
         affect this load.
 
         This position can be automatically deduced from self.sub_info, self.load_to_subid and self.load_to_sub_pos.
@@ -662,6 +674,12 @@ class GridObjects:
         self.gen_pos_topo_vect = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos).astype(dt_int)
         self.line_or_pos_topo_vect = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos).astype(dt_int)
         self.line_ex_pos_topo_vect = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos).astype(dt_int)
+
+        self.grid_objects_types = np.full(shape=(self.dim_topo, 5), fill_value=-1, dtype=dt_int)
+        prev = 0
+        for sub_id, nb_el in enumerate(self.sub_info):
+            self.grid_objects_types[prev:(prev + nb_el), :] = self.get_obj_substations(substation_id=sub_id)
+            prev += nb_el
 
     def assert_grid_correct(self):
         """
@@ -1146,6 +1164,8 @@ class GridObjects:
         res.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
         res.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
 
+        res.grid_objects_types = gridobj.grid_objects_types
+
         # for redispatching / unit commitment (not available for all environment)
         res.gen_type = gridobj.gen_type
         res.gen_pmin = gridobj.gen_pmin
@@ -1202,7 +1222,7 @@ class GridObjects:
 
         """
         if _sentinel is not None:
-            raise Grid2OpException("get_obj_connect_to shoud be used only with key-word arguments")
+            raise Grid2OpException("get_obj_connect_to should be used only with key-word arguments")
 
         if substation_id is None:
             raise Grid2OpException("You ask the composition of a substation without specifying its id."
@@ -1216,6 +1236,27 @@ class GridObjects:
         res["lines_or_id"] = np.where(self.line_or_to_subid == substation_id)[0]
         res["lines_ex_id"] = np.where(self.line_ex_to_subid == substation_id)[0]
         res["nb_elements"] = self.sub_info[substation_id]
+        return res
+
+    def get_obj_substations(self, _sentinel=None, substation_id=None):
+        # TODO finish the doc
+        if _sentinel is not None:
+            raise Grid2OpException("get_obj_connect_to should be used only with key-word arguments")
+
+        if substation_id is None:
+            raise Grid2OpException("You ask the composition of a substation without specifying its id."
+                                   "Please provide \"substation_id\"")
+        if substation_id >= len(self.sub_info):
+            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+
+        dict_ = self.get_obj_connect_to(substation_id=substation_id)
+        res = np.full((dict_["nb_elements"], 5), fill_value=-1, dtype=dt_int)
+        # 0 -> load, 1-> gen, 2 -> lines_or, 3 -> lines_ex
+        res[:, self.SUB_COL] = substation_id
+        res[self.load_to_sub_pos[dict_["loads_id"]], self.LOA_COL] = dict_["loads_id"]
+        res[self.gen_to_sub_pos[dict_["generators_id"]], self.GEN_COL] = dict_["generators_id"]
+        res[self.line_or_to_sub_pos[dict_["lines_or_id"]], self.LOR_COL] = dict_["lines_or_id"]
+        res[self.line_ex_to_sub_pos[dict_["lines_ex_id"]], self.LEX_COL] = dict_["lines_ex_id"]
         return res
 
     def get_lines_id(self, _sentinel=None, from_=None, to_=None):
@@ -1456,4 +1497,8 @@ class GridObjects:
             cls.name_shunt = np.array(cls.name_shunt).astype(str)
             cls.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int))
 
+        # retrieve the redundant information that are not stored (for efficiency)
+        obj_ = cls()
+        obj_._compute_pos_big_topo()
+        cls.init_grid(obj_)
         return cls()

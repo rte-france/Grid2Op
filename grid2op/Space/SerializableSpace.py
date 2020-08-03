@@ -83,6 +83,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
         self.shape = self._template_obj.shape()
         self.dtype = self._template_obj.dtype()
+        self.attr_list_vect = self._template_obj.attr_list_vect
 
         self._to_extract_vect = {}  # key: attr name, value: tuple: (beg_, end_, dtype)
         beg_ = 0
@@ -192,7 +193,7 @@ class SerializableSpace(GridObjects, RandomObject):
         """
         return self.n
 
-    def from_vect(self, obj_as_vect):
+    def from_vect(self, obj_as_vect, check_legit=True):
         """
         Convert an action, represented as a vector to a valid :class:`BaseAction` instance
 
@@ -210,7 +211,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
         """
         res = copy.deepcopy(self._template_obj)
-        res.from_vect(obj_as_vect)
+        res.from_vect(obj_as_vect, check_legit=check_legit)
         return res
 
     def extract_from_vect(self, obj_as_vect, attr_name):

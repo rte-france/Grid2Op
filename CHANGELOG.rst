@@ -16,6 +16,35 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+[1.2.0] - 2020-08-03
+---------------------
+- [ADDED] `ActionSpace.sample` method is now implemented
+- [ADDED] DeltaRedispatchRandomAgent: that takes redispatching actions of a configurable [-delta;+delta] in MW on random generators.
+- [FIXED] `Issue #129<https://github.com/rte-france/Grid2Op/issues/129>`_: game over count for env_actions
+- [FIXED] `Issue #127 <https://github.com/rte-france/Grid2Op/issues/127>`_: Removed no longer existing attribute docstring `indisponibility`
+- [FIXED] `Issue #133 <https://github.com/rte-france/Grid2Op/issues/133>`_: Missing positional argument `space_prng` in `Action.SerializableActionSpace`
+- [FIXED] `Issue #131 <https://github.com/rte-france/Grid2Op/issues/131>`_: Forecast values are accessible without needing to call `obs.simulate` beforehand.
+- [FIXED] `Issue #134 <https://github.com/rte-france/Grid2Op/issues/134>`_: Backend iadd actions with lines extremities disconnections (set -1)
+- [FIXED] issue `Issue #125 <https://github.com/rte-france/Grid2Op/issues/125>`_
+- [FIXED] issue `Issue #126 <https://github.com/rte-france/Grid2Op/issues/126>`_ Loading runner logs no longer checks environment actions ambiguity
+- [IMPROVED] issue `Issue #16 <https://github.com/rte-france/Grid2Op/issues/16>`_ improving openai gym integration.
+- [IMPROVED] `Issue #134 <https://github.com/rte-france/Grid2Op/issues/134>`_ lead us to review and rationalize the
+  behavior of grid2op concerning the powerline status. Now it behave more rationally and has now the following
+  behavior: if a powerline origin / extremity bus is "set" to -1 at one end and not modified at the other, it will disconnect this
+  powerline, if a powerline origin / extremity  bus is "set" to 1 or 2 at one end and not modified at the other, it will
+  reconnect the powerline. If a powerline bus is "set" to -1 at one end and set to 1 or 2 at its other
+  end the action is ambiguous.
+- [IMPROVED] way to count what is affect by an action (affect the cooldown of substation and powerline
+  and the legality of some action). And action disconnect a powerline (using the "set_bus") will be
+  considered to affect only
+  this powerline (and not on its substations) if and only if the powerline was connected (otherwise it
+  affects also on the substation). An action that connects a powerline (using the "set_bus") will affect
+  only this powerline (and not its substations) if and only if this powerline was disconnected (
+  otherwise it affects the substations but not the powerline). Changing the bus of an extremity of
+  a powerline if this powerline is connected has no impact on its status and therefor it considers
+  it only affects the corresponding substation.
+- [IMPROVED] added documentation and usage example for `CombineReward` and `CombineScaledReward`
+
 [1.1.1] - 2020-07-07
 ---------------------
 - [FIXED] the EpisodeData now properly propagates the end of the episode
