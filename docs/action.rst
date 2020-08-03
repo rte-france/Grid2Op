@@ -62,6 +62,80 @@ An action can be incorrect because of two main factors:
 
 Ambiguous or Illegal, the action will be replaced by a "do nothing" without any other incidents on the game.
 
+Note on powerline status
+------------------------
+As of grid2op version 1.2.0, we attempted to clean and rationalize the API concerning the change of
+powerline status (see explanatory notebook `getting_started/3_Action_GridManipulation` for more detailed
+explanation.
+
+The powerline status (connected / disconnected) can now be affected in two different ways:
+
+- by `setting` / `changing` its status directly (using the "set_line_status" or "change_line_status" keyword).
+- [NEW] by modifying the bus on any of the end (origin or extremity) of a powerline
+
+In that later case, the behavior is:
+
+- if the bus of a powerline end (origin or extremity) is "set" to -1 and not modified at the other and if the powerline
+  was connected, it will disconnect this powerline
+- if the bus of a powerline end (origin or extremity) is "set" to 1 or 2 at one end and not modified at the other and
+  if the powerline was connected, it will reconnect the powerline
+- if the bus of a powerline end (origin or extremity) is "set" to -1 at one end and set to 1 or 2 at its other end the
+  action is **ambiguous**.
+
+The way to compute the impact of the action has also been adjusted to reflect these changes.
+
+In the table below we try to summarize all the possible actions and their impact on the powerline.
+This table is made considering that "`LINE_ID`" is an id of a powerline and "`SUB_OR`" is the id of the origin of the
+substation. If a status is 0 it means the powerlines is disconnected, if the status is 1 it means it is connected.
+
+=============================================  ================  ============   ====================   ====================
+action                                         original status   final status   substations affected   line status affected
+=============================================  ================  ============   ====================   ====================
+{"set_line_status": [(LINE_ID, -1)]}           1                 0              None                    LINE_ID
+{"set_line_status": [(LINE_ID, +1)]}           1                 1              None                    LINE_ID
+{"set_line_status": [(LINE_ID, -1)]}           0                 0              None                    LINE_ID
+{"set_line_status": [(LINE_ID, +1)]}           0                 1              None                    LINE_ID
+{"change_line_status": [LINE_ID]}              1                 0              None                    LINE_ID
+{"change_line_status": [LINE_ID]}              0                 1              None                    LINE_ID
+{"set_bus": {"lines_or_id": [(LINE_ID, -1)]}}  1                 0              None                    INE_ID
+{"set_bus": {"lines_or_id": [(LINE_ID, -1)]}}  0                 0              SUB_OR                  None
+{"set_bus": {"lines_or_id": [(LINE_ID, 2)]}}   1                 1              SUB_OR                  None
+{"set_bus": {"lines_or_id": [(LINE_ID, 2)]}}   0                 1              None                    LINE_ID
+{"change_bus": {"lines_or_id": [LINE_ID]}}     1                 1              SUB_OR                  None
+{"change_bus": {"lines_or_id": [LINE_ID]}}     0                 0              SUB_OR                  None
+=============================================  ================  ============   ====================   ====================
+
+This has other impacts. In grid2op there is a convention that if an object is disconnected,
+then it is assigned to bus "-1". For a powerline this entails that a status changed affects the bus of
+
+As we explained in the previous paragraph, some action on one end of a powerline can reconnect a
+powerline or disconnect it. This means they modify the bus of **both** the extremity of the powerline.
+
+Here is a table summarizing how the buses are impacted. We denoted by "`PREVIOUS_OR`" the last bus at which
+the origin end of the powerline was connected and "`PREVIOUS_EX`" the last bus at which the extremity end of the
+powerline was connected. Note that for clarity when something is not modified by the action we decided to write on
+the table "not modified" (this entails that after this action, if the powerline is connected then "new origin bus" is
+"`PREVIOUS_OR`" and "new extremity bus" is "`PREVIOUS_EX`"). We remind the reader that "-1" encode for a
+disconnected object.
+
+=============================================  ================  ============   ==============  ========================
+action                                         original status   final status   new origin bus  new extremity bus
+=============================================  ================  ============   ==============  ========================
+{"set_line_status": [(LINE_ID, -1)]}           1                 0              -1              -1
+{"set_line_status": [(LINE_ID, +1)]}           1                 1              Not modified    Not modified
+{"set_line_status": [(LINE_ID, -1)]}           0                 0              Not modified    Not modified
+{"set_line_status": [(LINE_ID, +1)]}           0                 1              PREVIOUS_OR     PREVIOUS_EX
+{"change_line_status": [LINE_ID]}              1                 0              -1              -1
+{"change_line_status": [LINE_ID]}              0                 1              PREVIOUS_OR     PREVIOUS_EX
+{"set_bus": {"lines_or_id": [(LINE_ID, -1)]}}  1                 0              -1              -1
+{"set_bus": {"lines_or_id": [(LINE_ID, -1)]}}  0                 0              Not modified    Not modified
+{"set_bus": {"lines_or_id": [(LINE_ID, 2)]}}   1                 1              2               Not modified
+{"set_bus": {"lines_or_id": [(LINE_ID, 2)]}}   0                 1              2               PREVIOUS_EX
+{"change_bus": {"lines_or_id": [LINE_ID]}}     1                 1              \*              Not modified
+{"change_bus": {"lines_or_id": [LINE_ID]}}     0                 0              Not modified    Not modified
+=============================================  ================  ============   ==============  ========================
+
+\* means that this bus is affected: if it was on bus 1 it moves on bus 2 and vice versa.
 
 Easier actions manipulation
 ----------------------------

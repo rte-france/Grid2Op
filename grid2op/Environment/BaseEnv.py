@@ -8,11 +8,12 @@
 
 import time
 import numpy as np
+import copy
 from scipy.optimize import minimize
 from scipy.optimize import LinearConstraint
 from abc import ABC, abstractmethod
 
-from grid2op.dtypes import dt_int, dt_float
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import *
 from grid2op.Parameters import Parameters
@@ -849,8 +850,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
         conv_ = None
+        init_line_status = copy.deepcopy(self.backend.get_line_status())
         try:
-            # "smart" reconnecting
             beg_ = time.time()
             is_illegal = not self.game_rules(action=action, env=self)
             if is_illegal:
@@ -914,8 +915,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # included in time_apply_act
             tick = time.time()
             attack, attack_duration = self.oppSpace.attack(observation=self.current_obs,
-                                                            agent_action=action,
-                                                            env_action=self.env_modification)
+                                                           agent_action=action,
+                                                           env_action=self.env_modification)
             if attack is not None:
                 # the opponent choose to attack
                 # i update the "cooldown" on these things
@@ -955,7 +956,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self.timestep_overflow[~overflow_lines] = 0
 
                     # build the topological action "cooldown"
-                    aff_lines, aff_subs = action.get_topological_impact()
+                    aff_lines, aff_subs = action.get_topological_impact(init_line_status)
                     if self.max_timestep_line_status_deactivated > 0:
                         # i update the cooldown only when this does not impact the line disconnected for the
                         # opponent or by maitnenance for example
@@ -1020,6 +1021,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                          for k, v in self.other_rewards.items()
                          }
         return res, other_rewards
+
+    def get_reward_instance(self):
+        """
+        Returns the instance of the object that is used to compute the reward.
+        """
+        return self.reward_helper.template_reward
 
     def _is_done(self, has_error, is_done):
         no_more_data = self.chronics_handler.done()

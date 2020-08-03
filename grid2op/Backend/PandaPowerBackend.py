@@ -361,9 +361,8 @@ class PandaPowerBackend(Backend):
 
             self._what_object_where[sub_id].append(("load", "bus", i))
 
-        self._compute_pos_big_topo()
-
         self.dim_topo = np.sum(self.sub_info)
+        self._compute_pos_big_topo()
 
         # utilities for imeplementing apply_action
         self._corresp_name_fun = {}

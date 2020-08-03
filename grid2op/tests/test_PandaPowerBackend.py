@@ -27,6 +27,7 @@ from grid2op.tests.BaseBackendTest import BaseTestResetEqualsLoadGrid
 from grid2op.tests.BaseBackendTest import BaseTestVoltageOWhenDisco
 from grid2op.tests.BaseBackendTest import BaseTestChangeBusSlack
 from grid2op.tests.BaseBackendTest import BaseIssuesTest
+from grid2op.tests.BaseBackendTest import BaseStatusActions
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
@@ -134,6 +135,11 @@ class TestChangeBusSlack(HelperTests, BaseTestChangeBusSlack):
 
 
 class TestIssuesTest(HelperTests, BaseIssuesTest):
+    def make_backend(self, detailed_infos_for_cascading_failures=False):
+        return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
+
+
+class TestStatusAction(HelperTests, BaseStatusActions):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackend(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
 

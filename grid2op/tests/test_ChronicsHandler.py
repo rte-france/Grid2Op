@@ -891,6 +891,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
             with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
                       test=True,
                       param=param) as env:
+                l_id = 11
                 obs = env.reset()
                 assert np.all(obs.time_before_cooldown_line == 0)
                 obs, reward, done, info = env.step(env.action_space())
@@ -898,30 +899,32 @@ class TestMaintenanceBehavingNormally(HelperTests):
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
                 assert info["is_illegal"]
-                assert not obs.line_status[11]
+                assert not obs.line_status[l_id]
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
                 obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
-                assert info["is_illegal"] is False  # it is legal
-                assert not obs.line_status[11]  # but has no effect (line is still disconnected)
+                assert info["is_illegal"] is True  # it is legal -> no more because of cooldown (and because now this action is counted as an action on a line)
+                assert not obs.line_status[l_id]  # but has no effect (line is still disconnected)
 
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 for i in range(10):
                     obs, reward, done, info = env.step(env.action_space())
                     arr_ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int)
-                    arr_[11] = 9-i
+                    arr_[l_id] = 9-i
                     assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
+                # i have no more cooldown on line now
+                assert np.all(obs.time_before_cooldown_line == 0)
 
                 obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
                 assert info["is_illegal"] is False  # it is legal
-                assert not obs.line_status[11]  #  reconnecting only one end has still no effect
+                assert obs.line_status[l_id]  #  reconnecting only one end has still no effect -> change of behaviour
 
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
                 assert info["is_illegal"] is False  # it's legal
 
-                assert obs.line_status[11]  # it has reconnected the powerline
+                assert obs.line_status[l_id]  # it has reconnected the powerline
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 # nothing is in maintenance
@@ -946,6 +949,7 @@ class TestMaintenanceBehavingNormally(HelperTests):
                       test=True,
                       param=param,
                       gamerules_class=AlwaysLegal) as env:
+                l_id = 11
                 obs = env.reset()
                 assert np.all(obs.time_before_cooldown_line == 0)
                 obs, reward, done, info = env.step(env.action_space())
@@ -953,28 +957,31 @@ class TestMaintenanceBehavingNormally(HelperTests):
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
                 assert not info["is_illegal"]  # it is legal
-                assert not obs.line_status[11]  # yet maintenance should have stayed
+                assert not obs.line_status[l_id]  # yet maintenance should have stayed
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
 
                 obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
                 assert not info["is_illegal"]  # it is legal
-                assert not obs.line_status[11]  # but has no effect (line is still disconnected)
+                assert not obs.line_status[l_id]  # but has no effect (line is still disconnected)
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 for i in range(10):
                     obs, reward, done, info = env.step(env.action_space())
                     arr_ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int)
-                    arr_[11] = 9-i
+                    arr_[l_id] = 9-i
                     assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
 
+                # i have no more cooldown on line now
+                assert np.all(obs.time_before_cooldown_line == 0)
+
                 obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
-                assert not info["is_illegal"]  # it is legal
-                assert not obs.line_status[11]  # reconnecting only one end has still no effect
+                assert not info["is_illegal"]  # it is legal -> no more because of cooldown
+                # assert not obs.line_status[11]  # reconnecting only one end has still no effect -> change of behaviour now
 
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
                 assert not info["is_illegal"]  # it is legal
-                assert obs.line_status[11]  # it has reconnected the powerline
+                assert obs.line_status[l_id]  # it has reconnected the powerline
                 assert np.all(obs.time_before_cooldown_line ==
                               np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
                 # nothing is in maintenance
