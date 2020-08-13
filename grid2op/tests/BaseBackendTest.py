@@ -120,16 +120,18 @@ class BaseTestLoadingCase(MakeBackend):
 
         assert np.all(backend.get_topo_vect() == np.ones(np.sum(backend.sub_info)))
 
-        backend.runpf()
-        try:
-            p_subs, q_subs, p_bus, q_bus = backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect
-            assert np.max(np.abs(q_subs)) <= self.tolvect
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect
+        conv = backend.runpf()
+        assert conv, "powerflow diverge it is not supposed to!"
 
-        except Grid2OpException:
-            pass
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            p_subs, q_subs, p_bus, q_bus = backend.check_kirchoff()
+
+        assert np.max(np.abs(p_subs)) <= self.tolvect
+        assert np.max(np.abs(p_bus.flatten())) <= self.tolvect
+        if backend.shunts_data_available:
+            assert np.max(np.abs(q_subs)) <= self.tolvect
+            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect
 
     def test_assert_grid_correct(self):
         backend = self.make_backend()
@@ -138,7 +140,8 @@ class BaseTestLoadingCase(MakeBackend):
         backend.load_grid(path_matpower, case_file)
         backend.set_env_name("TestLoadingCase_env2")
         backend.assert_grid_correct()
-        backend.runpf()
+        conv = backend.runpf()
+        assert conv, "powerflow diverge it is not supposed to!"
         backend.assert_grid_correct_after_powerflow()
 
 
@@ -523,7 +526,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         # compute a load flow an performs more tests
         conv = self.backend.runpf()
-        assert conv, "Power does not converge if lines {} and {} are removed".format(17, 19)
+        assert conv, "Powerflow does not converge if lines {} and {} are removed".format(17, 19)
 
         # performs basic check
         after_lp, *_ = self.backend.loads_info()
@@ -531,6 +534,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         after_ls = self.backend.get_line_status()
         assert self.compare_vect(init_lp, after_lp)  # check i didn't modify the loads
         # assert self.compare_vect(init_gp, after_gp)  # check i didn't modify the generators # TODO here problem with steady state, P=C+L
+        pdb.set_trace()
         assert np.all(
             disc | maintenance == ~after_ls)  # check i didn't disconnect any powerlines beside the correct one
 

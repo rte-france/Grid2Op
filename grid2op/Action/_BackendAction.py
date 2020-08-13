@@ -150,6 +150,12 @@ class ValueStore:
     def __len__(self):
         return self.__size
 
+    def reorder(self, new_order):
+        """reorder the element modified, this is use when converting backends only and should not be use
+        outside of this usecase"""
+        self.changed[new_order] = self.changed
+        self.values[new_order] = self.values
+
 
 class _BackendAction(GridObjects):
     """
@@ -185,6 +191,23 @@ class _BackendAction(GridObjects):
         self._status_ex_before = np.ones(self.n_line, dtype=dt_int)
         self._status_or = np.ones(self.n_line, dtype=dt_int)
         self._status_ex = np.ones(self.n_line, dtype=dt_int)
+
+    def reorder(self, no_load, no_gen, no_topo, no_shunt):
+        """reorder the element modified, this is use when converting backends only and should not be use
+        outside of this usecase
+
+        no_* stands for "new order"
+        """
+        self.last_topo_registered.reorder(no_topo)
+        self.current_topo.reorder(no_topo)
+        self.prod_p.reorder(no_gen)
+        self.prod_v.reorder(no_gen)
+        self.load_p.reorder(no_load)
+        self.load_q.reorder(no_load)
+        if self.shunts_data_available:
+            self.shunt_p.reorder(no_shunt)
+            self.shunt_q.reorder(no_shunt)
+            self.shunt_bus.reorder(no_shunt)
 
     def reset(self):
         # last topo

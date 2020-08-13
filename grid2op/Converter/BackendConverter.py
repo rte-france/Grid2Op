@@ -40,6 +40,7 @@ class BackendConverter(Backend):
                  source_backend_class,
                  target_backend_class,
                  target_backend_grid_path=None,
+                 sub_source_target=None,
                  detailed_infos_for_cascading_failures=False):
         Backend.__init__(self, detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)
         difcf = detailed_infos_for_cascading_failures
@@ -47,6 +48,7 @@ class BackendConverter(Backend):
         self.target_backend = target_backend_class(detailed_infos_for_cascading_failures=difcf)
         self.target_backend_grid_path = target_backend_grid_path
 
+        self.sub_source_target = sub_source_target  # key: name in the source backend, value name in the target backend, for the substations
         # TODO
         self._sub_tg2sr = None
         self._sub_sr2tg = None
@@ -57,7 +59,7 @@ class BackendConverter(Backend):
         self._load_tg2sr = None
         self._load_sr2tg = None
         self._shunt_tg2sr = None
-        self._shunt_tg2sr = None
+        self._shunt_sr2tg = None
         self._topo_tg2sr = None
         self._topo_sr2tg = None
 
@@ -84,46 +86,136 @@ class BackendConverter(Backend):
 
         # and now init all the converting vectors
         # a) for substation
-        ## automatic mode
-        if np.all(sorted(self.source_backend.name_sub) == sorted(self.target_backend.name_sub)):
-            self._sub_tg2sr = np.full(self.n_sub, fill_value=-1, dtype=np.int)
-            self._sub_sr2tg = np.full(self.n_sub, fill_value=-1, dtype=np.int)
+        self._sub_tg2sr = np.full(self.n_sub, fill_value=-1, dtype=np.int)
+        self._sub_sr2tg = np.full(self.n_sub, fill_value=-1, dtype=np.int)
+        if self.sub_source_target is None:
+            # automatic mode
+            # I can only do it if the names matches
+            if np.all(sorted(self.source_backend.name_sub) == sorted(self.target_backend.name_sub)):
+                for id_source, nm_source in enumerate(self.source_backend.name_sub):
+                    id_target = np.where(self.target_backend.name_sub == nm_source)[0]
+                    self._sub_tg2sr[id_source] = id_target
+                    self._sub_sr2tg[id_target] = id_source
+        else:
             for id_source, nm_source in enumerate(self.source_backend.name_sub):
-                id_target = np.where(self.target_backend.name_sub == nm_source)[0]
+                nm_target = self.sub_source_target[nm_source]
+                id_target = np.where(self.target_backend.name_sub == nm_target)[0]
                 self._sub_tg2sr[id_source] = id_target
                 self._sub_sr2tg[id_target] = id_source
-        else:
-            raise RuntimeError("Non automatic mode requries a mapping dict for sub that is not provided")
 
         # b) for load
-        ## automatic mode
         self._load_tg2sr = np.full(self.n_load, fill_value=-1, dtype=np.int)
         self._load_sr2tg = np.full(self.n_load, fill_value=-1, dtype=np.int)
+        # automatic mode
+        self._auto_fill_vect_load_gen_shunt(n_element=self.n_load,
+                                            source_2_id_sub=self.source_backend.load_to_subid,
+                                            target_2_id_sub=self.target_backend.load_to_subid,
+                                            tg2sr=self._load_tg2sr,
+                                            sr2tg=self._load_sr2tg,
+                                            nm="load")
+
+        # c) for generator
+        self._gen_tg2sr = np.full(self.n_gen, fill_value=-1, dtype=np.int)
+        self._gen_sr2tg = np.full(self.n_gen, fill_value=-1, dtype=np.int)
+        # automatic mode
+        self._auto_fill_vect_load_gen_shunt(n_element=self.n_gen,
+                                            source_2_id_sub=self.source_backend.gen_to_subid,
+                                            target_2_id_sub=self.target_backend.gen_to_subid,
+                                            tg2sr=self._gen_tg2sr,
+                                            sr2tg=self._gen_sr2tg,
+                                            nm="gen")
+
+        # d) for powerline
+        self._line_tg2sr = np.full(self.n_line, fill_value=-1, dtype=np.int)
+        self._line_sr2tg = np.full(self.n_line, fill_value=-1, dtype=np.int)
+        # automatic
+        self._auto_fill_vect_powerline()
+
+        # e) and now the topology vectors.
+        self._topo_tg2sr = np.full(self.dim_topo, fill_value=-1, dtype=np.int)
+        self._topo_sr2tg = np.full(self.dim_topo, fill_value=-1, dtype=np.int)
+        self._auto_fill_vect_topo()
+
+        # shunt are available if both source and target provide it
+        self.shunts_data_available = self.source_backend.shunts_data_available and self.target_backend.shunts_data_available
+        if self.shunts_data_available:
+            self._shunt_tg2sr = np.full(self.n_shunt, fill_value=-1, dtype=np.int)
+            self._shunt_sr2tg = np.full(self.n_shunt, fill_value=-1, dtype=np.int)
+            # automatic mode
+            self._auto_fill_vect_load_gen_shunt(n_element=self.n_shunt,
+                                                source_2_id_sub=self.source_backend.shunt_to_subid,
+                                                target_2_id_sub=self.target_backend.shunt_to_subid,
+                                                tg2sr=self._shunt_tg2sr,
+                                                sr2tg=self._shunt_sr2tg,
+                                                nm="shunt")
+        self.set_thermal_limit(self.target_backend.thermal_limit_a[self._line_tg2sr])
+
+    def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
+        id_sub_source = source_2_id_sub[id_source]
+        id_sub_target = self._sub_tg2sr[id_sub_source]
+        ids_target = np.where(target_2_id_sub == id_sub_target)[0]
+        if ids_target.shape[0] == 0:
+            raise RuntimeError(ERROR_ELEMENT_CONNECTED.format(nm, id_sub_target, id_sub_source))
+        return id_sub_target, ids_target
+
+    def _auto_fill_vect_load_gen_shunt(self, n_element, source_2_id_sub, target_2_id_sub,
+                                       tg2sr, sr2tg,
+                                       nm):
         nb_load_per_sub = np.zeros(self.n_sub, dtype=np.int)
-        for id_source in range(self.source_backend.n_load):
-            id_sub_source = self.source_backend.load_to_subid[id_source]
-            id_sub_target = self._sub_sr2tg[id_sub_source]
-            id_target = np.where(self.target_backend.load_to_subid == id_sub_target)[0]
-            if id_target.shape[0] == 0:
-                raise RuntimeError(ERROR_ELEMENT_CONNECTED.format("load", id_sub_target, id_sub_source))
+        for id_source in range(n_element):
+            id_sub_target, id_target = self._get_possible_target_ids(id_source, source_2_id_sub, target_2_id_sub, nm)
             id_target = id_target[nb_load_per_sub[id_sub_target]]
             # TODO no no no use the "to_sub_pos" to compute that, and even better raise an error in this case
             # this means automatic is failing here !
             nb_load_per_sub[id_sub_target] += 1
-            self._load_tg2sr[id_source] = id_target
-            self._load_sr2tg[id_target] = id_source
+            tg2sr[id_source] = id_target
+            sr2tg[id_target] = id_source
 
-        self._line_tg2sr = np.arange(self.n_line)
-        self._line_sr2tg = np.arange(self.n_line)
-        self._gen_tg2sr = np.arange(self.n_gen)
-        self._gen_sr2tg = np.arange(self.n_gen)
-        self._topo_tg2sr = np.arange(self.dim_topo)
-        self._topo_sr2tg = np.arange(self.dim_topo)
+    def _auto_fill_vect_powerline(self):
+        # automatic matching
+        nb_load_per_sub = np.zeros((self.n_sub, self.n_sub), dtype=np.int)
+        n_element = self.n_line
+        source_or_2_id_sub = self.source_backend.line_or_to_subid
+        target_or_2_id_sub = self.target_backend.line_or_to_subid
+        source_ex_2_id_sub = self.source_backend.line_ex_to_subid
+        target_ex_2_id_sub = self.target_backend.line_ex_to_subid
+        nm = "powerline"
+        tg2sr = self._line_tg2sr
+        sr2tg = self._line_sr2tg
+        for id_source in range(n_element):
+            idor_sub_source = source_or_2_id_sub[id_source]
+            idor_sub_target = self._sub_tg2sr[idor_sub_source]
+            idex_sub_source = source_ex_2_id_sub[id_source]
+            idex_sub_target = self._sub_tg2sr[idex_sub_source]
+            ids_target = np.where((target_or_2_id_sub == idor_sub_target) & (target_ex_2_id_sub == idex_sub_target))[0]
+            if ids_target.shape[0] == 0:
+                raise RuntimeError(ERROR_ELEMENT_CONNECTED.format(nm,
+                                                                  "{}->{}".format(idor_sub_target, idex_sub_target),
+                                                                  "{}->{}".format(idor_sub_source, idex_sub_source)))
+            id_target = ids_target[nb_load_per_sub[idor_sub_target, idex_sub_target]]
+            # TODO no no no use the "to_sub_pos" to compute that, and even better raise an error in this case
+            # this means automatic is failing here !
+            nb_load_per_sub[idor_sub_target, idex_sub_target] += 1
+            tg2sr[id_source] = id_target
+            sr2tg[id_target] = id_source
 
-        if self.shunts_data_available:
-            self._shunt_tg2sr = np.arange(self.n_shunt)
-            self._shunt_sr2tg = np.arange(self.n_shunt)
-        self.set_thermal_limit(self.target_backend.thermal_limit_a[self._line_tg2sr])
+    def _auto_fill_vect_topo(self):
+        self._auto_fill_vect_topo_aux(self.n_load, self.source_backend.load_pos_topo_vect,
+                                      self.target_backend.load_pos_topo_vect, self._load_tg2sr)
+        self._auto_fill_vect_topo_aux(self.n_gen, self.source_backend.gen_pos_topo_vect,
+                                      self.target_backend.gen_pos_topo_vect, self._gen_tg2sr)
+        self._auto_fill_vect_topo_aux(self.n_line, self.source_backend.line_or_pos_topo_vect,
+                                      self.target_backend.line_or_pos_topo_vect, self._line_tg2sr)
+        self._auto_fill_vect_topo_aux(self.n_line, self.source_backend.line_ex_pos_topo_vect,
+                                      self.target_backend.line_ex_pos_topo_vect, self._line_tg2sr)
+
+    def _auto_fill_vect_topo_aux(self, n_elem, source_pos, target_pos, tg2sr):
+        for id_source in range(n_elem):
+            id_target = tg2sr[id_source]
+            id_topo_source = source_pos[id_source]
+            id_topo_target = target_pos[id_target]
+            self._topo_tg2sr[id_topo_source] = id_topo_target
+            self._topo_sr2tg[id_topo_target] = id_topo_source
 
     def assert_grid_correct(self):
         # this is done before a call to this function, by the environment
@@ -135,9 +227,30 @@ class BackendConverter(Backend):
         self.target_backend.assert_grid_correct()
         # and this should be called after all the rest
         super().assert_grid_correct()
+        if self.sub_source_target is None:
+            # automatic mode for substations, names must match
+            assert np.all(self.target_backend.name_sub[self._sub_tg2sr] == self.source_backend.name_sub)
+            assert np.all(self.source_backend.name_sub[self._sub_sr2tg] == self.target_backend.name_sub)
 
-        assert np.all(self.target_backend.name_sub[self._sub_tg2sr] == self.source_backend.name_sub)
-        assert np.all(self.source_backend.name_sub[self._sub_sr2tg] == self.target_backend.name_sub)
+        # check that all corresponding vectors are valid (and properly initialized, like every component above 0 etc.)
+        self._check_vect_valid(self._line_sr2tg)
+        self._check_vect_valid(self._line_sr2tg)
+        self._check_vect_valid(self._load_tg2sr)
+        self._check_vect_valid(self._load_sr2tg)
+        self._check_vect_valid(self._gen_tg2sr)
+        self._check_vect_valid(self._gen_sr2tg)
+        self._check_vect_valid(self._sub_tg2sr)
+        self._check_vect_valid(self._sub_sr2tg)
+        self._check_vect_valid(self._topo_sr2tg)
+        self._check_vect_valid(self._topo_sr2tg)
+        if self.shunts_data_available:
+            self._check_vect_valid(self._shunt_sr2tg)
+            self._check_vect_valid(self._shunt_sr2tg)
+
+    def _check_vect_valid(self, vect):
+        assert np.all(vect >= 0), "invalid vector: some element are not found in either source or target"
+        assert sorted(np.unique(vect)) == sorted(vect), "invalid vector: some element are not found in either source or target"
+        assert np.max(vect) == vect.shape[0] - 1, "invalid vector: some element are not found in either source or target"
 
     def assert_grid_correct_after_powerflow(self):
         # we don't assert that `self.source_backend.assert_grid_correct_after_powerflow()`
@@ -233,11 +346,28 @@ class BackendConverter(Backend):
         raise Grid2OpException("This backend doesn't allow to get the substation from the bus id.")
 
     def _disconnect_line(self, id):
-        id_target = self._line_sr2tg[id]
+        id_target = int(self._line_sr2tg[id])
         self.target_backend._disconnect_line(id_target)
 
     def _transform_action(self, source_action):
         # transform the source action into the target backend action
+        target_action = copy.deepcopy(source_action)
+        target_action.reorder(no_load=self._load_tg2sr,
+                              no_gen=self._gen_tg2sr,
+                              no_topo=self._topo_tg2sr,
+                              no_shunt=self._shunt_tg2sr)
+        """        target_action.reorder(no_load=self._load_sr2tg,
+                              no_gen=self._gen_sr2tg,
+                              no_topo=self._topo_sr2tg,
+                              no_shunt=self._shunt_sr2tg)"""
+        return target_action
+
+    def load_redispacthing_data(self, path, name='prods_charac.csv'):
+        # data are loaded with the name of the source backend, i need to map it to the target backend too
         # TODO
-        return source_action
+        pass
+
+    def get_action_to_set(self):
+        # TODO
+        pass
 
