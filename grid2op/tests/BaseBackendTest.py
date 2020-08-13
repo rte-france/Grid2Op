@@ -190,7 +190,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.skip_if_needed()
         # i have the correct voltages in powerlines if the formula to link mw, mvar, kv and amps is correct
         conv = self.backend.runpf(is_dc=False)
-        assert conv
+        assert conv, "powerflow diverge at loading"
 
         p_or, q_or, v_or, a_or = self.backend.lines_or_info()
         a_th = np.sqrt(p_or ** 2 + q_or ** 2) * 1e3 / (np.sqrt(3) * v_or)
@@ -206,35 +206,36 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         # of the powerline connected to it.
 
         conv = self.backend.runpf(is_dc=False)
+        assert conv, "powerflow diverge at loading"
         load_p, load_q, load_v = self.backend.loads_info()
         gen_p, gen__q, gen_v = self.backend.generators_info()
         p_or, q_or, v_or, a_or = self.backend.lines_or_info()
         p_ex, q_ex, v_ex, a_ex = self.backend.lines_ex_info()
 
         for c_id, sub_id in enumerate(self.backend.load_to_subid):
-            l_id = np.where(self.backend.line_or_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_or_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_or[l_id] - load_v[c_id]) <= self.tol_one, "problem for load {}".format(c_id)
                 continue
 
-            l_id = np.where(self.backend.line_ex_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_ex_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_ex[l_id] - load_v[c_id]) <= self.tol_one, "problem for load {}".format(c_id)
                 continue
             assert False, "load {} has not been checked".format(c_id)
 
         for g_id, sub_id in enumerate(self.backend.gen_to_subid):
-            l_id = np.where(self.backend.line_or_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_or_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_or[l_id] - gen_v[g_id]) <= self.tol_one, "problem for generator {}".format(g_id)
                 continue
 
-            l_id = np.where(self.backend.line_ex_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_ex_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_ex[l_id] - gen_v[g_id]) <= self.tol_one, "problem for generator {}".format(g_id)
                 continue
             assert False, "generator {} has not been checked".format(g_id)
@@ -242,18 +243,21 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_copy(self):
         self.skip_if_needed()
         conv = self.backend.runpf(is_dc=False)
+        assert conv, "powerflow diverge at loading"
+        l_id = 3
+
         p_or_orig, *_ = self.backend.lines_or_info()
         adn_backend_cpy = self.backend.copy()
 
-        self.backend._disconnect_line(3)
+        self.backend._disconnect_line(l_id)
         conv = self.backend.runpf(is_dc=False)
         assert conv
         conv2 = adn_backend_cpy.runpf(is_dc=False)
         assert conv2
         p_or_ref, *_ = self.backend.lines_or_info()
         p_or, *_ = adn_backend_cpy.lines_or_info()
-        assert np.abs(p_or_ref[3]) <= self.tol_one
-        assert self.compare_vect(p_or_orig, p_or)
+        assert self.compare_vect(p_or_orig, p_or), "the copied object affects its original 'parent'"
+        assert np.abs(p_or_ref[l_id]) <= self.tol_one, "powerline {} has not been disconnected".format(l_id)
 
     def test_copy2(self):
         self.skip_if_needed()
@@ -314,7 +318,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         conv = self.backend.runpf(is_dc=True)
         assert conv
         p_or_orig, q_or_orig, *_ = self.backend.lines_or_info()
-        assert np.all(q_or_orig == 0.)
+        assert np.all(q_or_orig == 0.), "in dc mode all q must be zero"
         conv = self.backend.runpf(is_dc=False)
         assert conv
         p_or_orig, q_or_orig, *_ = self.backend.lines_or_info()
@@ -378,7 +382,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         # i set up the stuff to have exactly 0 losses
         conv = self.backend.runpf(is_dc=True)
-        assert conv
+        assert conv, "powergrid diverge after loading (even in DC)"
         init_flow, *_ = self.backend.lines_or_info()
         init_lp, init_l_q, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
@@ -415,13 +419,13 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         after_gp, *_ = self.backend.generators_info()
         after_ls = self.backend.get_line_status()
         assert self.compare_vect(new_cp, after_lp)  # check i didn't modify the loads
-        try:
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
             p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            # i'm in DC mode, i can't check for reactive values...
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-        except Grid2OpException:
-            pass
+        # i'm in DC mode, i can't check for reactive values...
+        assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
+        assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
 
         assert self.compare_vect(new_pp, after_gp)  # check i didn't modify the generators
         assert np.all(init_ls == after_ls)  # check i didn't disconnect any powerlines
@@ -432,6 +436,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_apply_action_prod_v(self):
         self.skip_if_needed()
         conv = self.backend.runpf(is_dc=False)
+        assert conv, "powergrid diverge after loading"
         prod_p_init, prod_q_init, prod_v_init = self.backend.generators_info()
         ratio = 1.05
         action = self.action_env({"injection": {"prod_v": ratio * prod_v_init}})  # update the action
@@ -439,7 +444,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         bk_action += action
         self.backend.apply_action(bk_action)
         conv = self.backend.runpf(is_dc=False)
-        assert conv, "Cannot perform a powerflow aftermodifying the powergrid"
+        assert conv, "Cannot perform a powerflow after modifying the powergrid"
 
         prod_p_after, prod_q_after, prod_v_after = self.backend.generators_info()
         assert self.compare_vect(ratio * prod_v_init, prod_v_after)  # check i didn't modify the generators
@@ -480,6 +485,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_apply_action_hazard(self):
         self.skip_if_needed()
         conv = self.backend.runpf()
+        assert conv, "powerflow did not converge at iteration 0"
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
@@ -534,7 +540,6 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         after_ls = self.backend.get_line_status()
         assert self.compare_vect(init_lp, after_lp)  # check i didn't modify the loads
         # assert self.compare_vect(init_gp, after_gp)  # check i didn't modify the generators # TODO here problem with steady state, P=C+L
-        pdb.set_trace()
         assert np.all(
             disc | maintenance == ~after_ls)  # check i didn't disconnect any powerlines beside the correct one
 
@@ -562,6 +567,17 @@ class BaseTestTopoAction(MakeBackend):
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
+
+    def _check_kirchoff(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
+            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
+            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
+
+        if self.backend.shunts_data_available:
+            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
+            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a bus"
 
     def test_get_topo_vect_speed(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
@@ -636,16 +652,7 @@ class BaseTestTopoAction(MakeBackend):
                                        20480.81970337, 21126.22533095, 49275.71520428, 128.04429617,
                                        69.00661266, 188.44754187, 688.1371226, 1132.42521887])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
     def test_topo_change1sub(self):
         # check that switching the bus of 3 object is equivalent to set them to bus 2 (as above)
@@ -692,16 +699,7 @@ class BaseTestTopoAction(MakeBackend):
                                        20480.81970337, 21126.22533095, 49275.71520428, 128.04429617,
                                        69.00661266, 188.44754187, 688.1371226, 1132.42521887])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
     def test_topo_change_1sub_twice(self):
         # check that switching the bus of 3 object is equivalent to set them to bus 2 (as above)
@@ -748,15 +746,7 @@ class BaseTestTopoAction(MakeBackend):
                                        20480.81970337, 21126.22533095, 49275.71520428, 128.04429617,
                                        69.00661266, 188.44754187, 688.1371226, 1132.42521887])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
         bk_action += action
@@ -771,15 +761,7 @@ class BaseTestTopoAction(MakeBackend):
         topo_vect = self.backend.get_topo_vect()
         assert np.min(topo_vect) == 1
         assert np.max(topo_vect) == 1
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
     def test_topo_change_2sub(self):
         # check that maintenance vector is properly taken into account
@@ -792,10 +774,11 @@ class BaseTestTopoAction(MakeBackend):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         bk_action = self.bkact_class()
         bk_action += action
+
         # apply the action here
         self.backend.apply_action(bk_action)
         conv = self.backend.runpf()
-        assert conv
+        assert conv, "powerflow diverge it should not"
 
         # check the _grid is correct
         topo_vect = self.backend.get_topo_vect()
@@ -819,6 +802,7 @@ class BaseTestTopoAction(MakeBackend):
             topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == 1 + arr1[self.backend.gen_to_sub_pos[gen_ids]])
 
         load_ids = np.where(self.backend.load_to_subid == id_2)[0]
+        #TODO check the topology symmetry
         assert np.all(
             topo_vect[self.backend.load_pos_topo_vect[load_ids]] == arr2[self.backend.load_to_sub_pos[load_ids]])
         lor_ids = np.where(self.backend.line_or_to_subid == id_2)[0]
@@ -837,16 +821,7 @@ class BaseTestTopoAction(MakeBackend):
                                        22178.16766548, 27690.51322075, 38684.31540646, 129.44842477,
                                        70.02629553, 185.67687123, 706.77680037, 1155.45754617])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
 
 class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
@@ -1444,7 +1419,10 @@ class BaseTestChangeBusSlack(MakeBackend):
         assert am_i_done is False
         assert np.all(obs.prod_p >= 0.)
         assert np.sum(obs.prod_p) >= np.sum(obs.load_p)
-        p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
         assert np.all(np.abs(p_subs) <= self.tol_one)
         assert np.all(np.abs(p_bus) <= self.tol_one)
 

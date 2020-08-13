@@ -542,7 +542,7 @@ class Backend(GridObjects, ABC):
         raise Grid2OpException("This backend doesn't allow to get the substation from the bus id.")
 
     @abstractmethod
-    def _disconnect_line(self, id):
+    def _disconnect_line(self, id_):
         """
         Disconnect the line of id "id" in the backend.
         In this scenario, the *id* of a powerline is its position (counted starting from O) in the vector returned by

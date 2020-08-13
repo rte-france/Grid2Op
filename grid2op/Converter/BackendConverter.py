@@ -200,22 +200,33 @@ class BackendConverter(Backend):
             sr2tg[id_target] = id_source
 
     def _auto_fill_vect_topo(self):
-        self._auto_fill_vect_topo_aux(self.n_load, self.source_backend.load_pos_topo_vect,
-                                      self.target_backend.load_pos_topo_vect, self._load_tg2sr)
-        self._auto_fill_vect_topo_aux(self.n_gen, self.source_backend.gen_pos_topo_vect,
-                                      self.target_backend.gen_pos_topo_vect, self._gen_tg2sr)
-        self._auto_fill_vect_topo_aux(self.n_line, self.source_backend.line_or_pos_topo_vect,
-                                      self.target_backend.line_or_pos_topo_vect, self._line_tg2sr)
-        self._auto_fill_vect_topo_aux(self.n_line, self.source_backend.line_ex_pos_topo_vect,
-                                      self.target_backend.line_ex_pos_topo_vect, self._line_tg2sr)
+        self._auto_fill_vect_topo_aux(self.n_load,
+                                      self.source_backend.load_pos_topo_vect,
+                                      self.target_backend.load_pos_topo_vect,
+                                      self._load_sr2tg)
+        self._auto_fill_vect_topo_aux(self.n_gen,
+                                      self.source_backend.gen_pos_topo_vect,
+                                      self.target_backend.gen_pos_topo_vect,
+                                      self._gen_sr2tg)
+        self._auto_fill_vect_topo_aux(self.n_line,
+                                      self.source_backend.line_or_pos_topo_vect,
+                                      self.target_backend.line_or_pos_topo_vect,
+                                      self._line_sr2tg)
+        self._auto_fill_vect_topo_aux(self.n_line,
+                                      self.source_backend.line_ex_pos_topo_vect,
+                                      self.target_backend.line_ex_pos_topo_vect,
+                                      self._line_sr2tg)
 
-    def _auto_fill_vect_topo_aux(self, n_elem, source_pos, target_pos, tg2sr):
-        for id_source in range(n_elem):
-            id_target = tg2sr[id_source]
+    def _auto_fill_vect_topo_aux(self, n_elem, source_pos, target_pos, sr2tg):
+        # TODO that might not be working as intented... it always says it's the identity...
+        self._topo_tg2sr[source_pos[sr2tg]] = target_pos
+        self._topo_sr2tg[target_pos] = source_pos[sr2tg]
+        """        for id_source in range(n_elem):
+            id_target = sr2tg[id_source]
             id_topo_source = source_pos[id_source]
             id_topo_target = target_pos[id_target]
             self._topo_tg2sr[id_topo_source] = id_topo_target
-            self._topo_sr2tg[id_topo_target] = id_topo_source
+            self._topo_sr2tg[id_topo_target] = id_topo_source"""
 
     def assert_grid_correct(self):
         # this is done before a call to this function, by the environment
@@ -233,24 +244,25 @@ class BackendConverter(Backend):
             assert np.all(self.source_backend.name_sub[self._sub_sr2tg] == self.target_backend.name_sub)
 
         # check that all corresponding vectors are valid (and properly initialized, like every component above 0 etc.)
-        self._check_vect_valid(self._line_sr2tg)
-        self._check_vect_valid(self._line_sr2tg)
-        self._check_vect_valid(self._load_tg2sr)
-        self._check_vect_valid(self._load_sr2tg)
-        self._check_vect_valid(self._gen_tg2sr)
-        self._check_vect_valid(self._gen_sr2tg)
-        self._check_vect_valid(self._sub_tg2sr)
-        self._check_vect_valid(self._sub_sr2tg)
-        self._check_vect_valid(self._topo_sr2tg)
-        self._check_vect_valid(self._topo_sr2tg)
+        self._check_both_consistent(self._line_tg2sr, self._line_sr2tg)
+        self._check_both_consistent(self._load_tg2sr, self._load_sr2tg)
+        self._check_both_consistent(self._gen_tg2sr, self._gen_sr2tg)
+        self._check_both_consistent(self._sub_tg2sr, self._sub_sr2tg)
+        self._check_both_consistent(self._topo_tg2sr, self._topo_sr2tg)
         if self.shunts_data_available:
-            self._check_vect_valid(self._shunt_sr2tg)
-            self._check_vect_valid(self._shunt_sr2tg)
+            self._check_both_consistent(self._shunt_tg2sr, self._shunt_sr2tg)
 
     def _check_vect_valid(self, vect):
         assert np.all(vect >= 0), "invalid vector: some element are not found in either source or target"
         assert sorted(np.unique(vect)) == sorted(vect), "invalid vector: some element are not found in either source or target"
         assert np.max(vect) == vect.shape[0] - 1, "invalid vector: some element are not found in either source or target"
+
+    def _check_both_consistent(self, tg2sr, sr2tg):
+        self._check_vect_valid(tg2sr)
+        self._check_vect_valid(sr2tg)
+        res = np.arange(tg2sr.shape[0])
+        assert np.all(tg2sr[sr2tg] == res)
+        assert np.all(sr2tg[tg2sr] == res)
 
     def assert_grid_correct_after_powerflow(self):
         # we don't assert that `self.source_backend.assert_grid_correct_after_powerflow()`
@@ -279,10 +291,15 @@ class BackendConverter(Backend):
         return self.target_backend.runpf(is_dc=is_dc)
 
     def copy(self):
-        res = self
-        res.target_backend_grid_path = copy.deepcopy(self.target_backend_grid_path)
-        res.source_backend = res.source_backend.copy()
-        res.target_backend = res.target_backend.copy()
+        source_backend_sv = self.source_backend
+        target_backend_sv = self.target_backend
+        self.source_backend = None
+        self.target_backend = None
+        res = copy.deepcopy(self)
+        res.source_backend = source_backend_sv.copy()
+        res.target_backend = target_backend_sv.copy()
+        self.source_backend = source_backend_sv
+        self.target_backend = target_backend_sv
         return res
 
     def save_file(self, full_path):
@@ -302,12 +319,6 @@ class BackendConverter(Backend):
         self.target_backend.set_thermal_limit(limits=limits)
         self.source_backend.set_thermal_limit(limits=limits[self._line_sr2tg])
 
-    def update_thermal_limit(self, env):
-        # TODO
-        # env has the powerline stored in the order of the source backend, but i need
-        # to have them stored in the order of the target backend for such function
-        pass
-
     def get_thermal_limit(self):
         tmp = self.target_backend.get_thermal_limit()
         return tmp[self._line_tg2sr]
@@ -318,7 +329,7 @@ class BackendConverter(Backend):
 
     def generators_info(self):
         prod_p, prod_q, prod_v = self.target_backend.generators_info()
-        return prod_p[self._gen_tg2sr], prod_q[self._gen_tg2sr], prod_q[self._gen_tg2sr]
+        return prod_p[self._gen_tg2sr], prod_q[self._gen_tg2sr], prod_v[self._gen_tg2sr]
 
     def loads_info(self):
         load_p, load_q, load_v = self.target_backend.loads_info()
@@ -345,21 +356,23 @@ class BackendConverter(Backend):
         # and i need to convert to to the target backend, not sure how to do that atm
         raise Grid2OpException("This backend doesn't allow to get the substation from the bus id.")
 
-    def _disconnect_line(self, id):
-        id_target = int(self._line_sr2tg[id])
+    def _disconnect_line(self, id_):
+        id_target = int(self._line_tg2sr[id_])  # not sure why, but it looks to work this way
         self.target_backend._disconnect_line(id_target)
 
     def _transform_action(self, source_action):
         # transform the source action into the target backend action
         target_action = copy.deepcopy(source_action)
-        target_action.reorder(no_load=self._load_tg2sr,
-                              no_gen=self._gen_tg2sr,
-                              no_topo=self._topo_tg2sr,
-                              no_shunt=self._shunt_tg2sr)
-        """        target_action.reorder(no_load=self._load_sr2tg,
+        # consistent with TestLoadingBackendFunc, otherwise it's not correct
+        target_action.reorder(no_load=self._load_sr2tg,
                               no_gen=self._gen_sr2tg,
                               no_topo=self._topo_sr2tg,
-                              no_shunt=self._shunt_sr2tg)"""
+                              no_shunt=self._shunt_sr2tg)
+        """        if False:
+            target_action.reorder(no_load=self._load_tg2sr,
+                                  no_gen=self._gen_tg2sr,
+                                  no_topo=self._topo_tg2sr,
+                                  no_shunt=self._shunt_tg2sr)"""
         return target_action
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):
@@ -371,3 +384,8 @@ class BackendConverter(Backend):
         # TODO
         pass
 
+    def update_thermal_limit(self, env):
+        # TODO
+        # env has the powerline stored in the order of the source backend, but i need
+        # to have them stored in the order of the target backend for such function
+        pass

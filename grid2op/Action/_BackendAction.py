@@ -153,8 +153,10 @@ class ValueStore:
     def reorder(self, new_order):
         """reorder the element modified, this is use when converting backends only and should not be use
         outside of this usecase"""
-        self.changed[new_order] = self.changed
-        self.values[new_order] = self.values
+        self.changed[:] = self.changed[new_order]
+        self.values[:] = self.values[new_order]
+        # self.changed[new_order] = self.changed[:]
+        # self.values[new_order] = self.values[:]
 
 
 class _BackendAction(GridObjects):
