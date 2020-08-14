@@ -47,8 +47,9 @@ def list_available_local_env():
 
     for el in os.listdir(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA):
         tmp_dir = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, el)
-        if os.path.exists(os.path.join(tmp_dir, "config.py")) and \
-            os.path.exists(os.path.join(tmp_dir, "grid.json")):
+        if (os.path.exists(os.path.join(tmp_dir, "config.py")) and \
+            os.path.exists(os.path.join(tmp_dir, "grid.json"))) or \
+            os.path.exists(os.path.join(tmp_dir, ".multimix")):
             res.append(el)
     return res
 

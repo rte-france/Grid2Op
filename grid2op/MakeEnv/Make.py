@@ -41,7 +41,8 @@ TEST_DEV_ENVS = {
 }
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
-                              "If the problem persists, please contact grid2op organizers"
+                              "If the problem persists, please contact grid2op developers by sending an issue at " \
+                              "https://github.com/rte-france/Grid2Op/issues"
 _REQUEST_FAIL_RETRY_ERR = "Failure to get a reponse from the url \"{}\".\n" \
                           "Retrying.. {} attempt(s) remaining"
 _REQUEST_EXCEPT_RETRY_ERR = "Exception in getting an answer from \"{}\".\n" \
@@ -64,6 +65,8 @@ def _send_request_retry(url, nb_retry=10, gh_session=None):
         return _send_request_retry(url, nb_retry=nb_retry-1, gh_session=gh_session)
     except Grid2OpException:
         raise
+    except KeyboardInterrupt:
+        raise
     except:
         warnings.warn(_REQUEST_EXCEPT_RETRY_ERR.format(url, nb_retry-1))
         time.sleep(1)
@@ -83,9 +86,13 @@ _LIST_REMOTE_INVALID_DATASETS_JSON_ERR = "Impossible to retrieve available datas
                                          "File could not be converted to json. " \
                                          "The error was \n\"{}\""
 
+_FETCH_ENV_UNKNOWN_ERR = "Impossible to find the environment named \"{}\".\n" \
+                         "Current available environments are:\n{}"
+# _FETCH_ENV_TAR_URL = "https://github.com/BDonnot/grid2op-datasets/releases/download/{}/{}.tar.bz2"
 
-def _list_available_remote_env_aux():
-    answer = _send_request_retry(_LIST_REMOTE_URL)
+
+def _retrieve_github_content(url, is_json=True):
+    answer = _send_request_retry(url)
     try:
         answer_json = answer.json()
     except Exception as e:
@@ -95,16 +102,18 @@ def _list_available_remote_env_aux():
         raise Grid2OpException(_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR)
     time.sleep(1)
     avail_datasets = _send_request_retry(answer_json[_LIST_REMOTE_KEY])
-    try:
-        avail_datasets_json = avail_datasets.json()
-    except Exception as e:
-        raise Grid2OpException(_LIST_REMOTE_INVALID_DATASETS_JSON_ERR.format(e))
-    return avail_datasets_json
+    if is_json:
+        try:
+            res = avail_datasets.json()
+        except Exception as e:
+            raise Grid2OpException(_LIST_REMOTE_INVALID_DATASETS_JSON_ERR.format(e))
+    else:
+        res = avail_datasets.text
+    return res
 
 
-_FETCH_ENV_UNKNOWN_ERR = "Impossible to find the environment named \"{}\".\n" \
-                         "Current available environments are:\n{}"
-# _FETCH_ENV_TAR_URL = "https://github.com/BDonnot/grid2op-datasets/releases/download/{}/{}.tar.bz2"
+def _list_available_remote_env_aux():
+    return _list_available_remote_env_aux(_LIST_REMOTE_URL)
 
 
 def _fecth_environments(dataset_name):
@@ -113,7 +122,7 @@ def _fecth_environments(dataset_name):
         known_ds = sorted(avail_datasets_json.keys())
         raise UnknownEnv(_FETCH_ENV_UNKNOWN_ERR.format(dataset_name, known_ds))
     # url = _FETCH_ENV_TAR_URL.format(avail_datasets_json[dataset_name], dataset_name)
-    dict_ =  avail_datasets_json[dataset_name]
+    dict_ = avail_datasets_json[dataset_name]
     baseurl, filename = dict_["base_url"], dict_["filename"]
     url = baseurl + filename
     # name is "tar.bz2" so i need to get rid of 2 extensions

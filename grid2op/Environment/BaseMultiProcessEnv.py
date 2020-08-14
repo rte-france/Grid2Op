@@ -113,6 +113,11 @@ class RemoteEnv(Process):
             elif cmd == 'z':
                 # adapt the chunk size
                 self.env.set_chunk_size(data)
+            elif cmd == 'o':
+                # get_obs
+                tmp = self.env.get_obs()
+                tmp = tmp.to_vect()
+                self.remote.send(tmp)
             elif cmd == "f":
                 # fast forward the chronics when restart
                 self.fast_forward = int(data)
@@ -121,7 +126,8 @@ class RemoteEnv(Process):
             elif cmd == "params":
                 self.remote.send(self.env.parameters)
             elif hasattr(self.env, cmd):
-                self.remote.send(getattr(self.env, cmd))
+                tmp = getattr(self.env, cmd)
+                self.remote.send(tmp)
             else:
                 raise NotImplementedError
 
@@ -406,6 +412,13 @@ class BaseMultiProcessEnvironment(GridObjects):
         for remote in self._remotes:
             remote.send(('params', None))
         res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def get_obs(self):
+        """implement the get_obs function that is "broken" if you use the __getattr__"""
+        for remote in self._remotes:
+            remote.send(('o', None))
+        res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
         return res
 
     def __getattr__(self, name):
