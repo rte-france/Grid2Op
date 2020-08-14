@@ -166,7 +166,7 @@ class PandaPowerBackend(Backend):
     def _load_grid_gen_vm_pu(grid):
         return grid.gen["vm_pu"]
 
-    def reset(self, path=None, filename=None):
+    def reset(self, path=None, grid_filename=None):
         """
         Reload the grid.
         For pandapower, it is a bit faster to store of a copy of itself at the end of load_grid
@@ -386,6 +386,7 @@ class PandaPowerBackend(Backend):
 
         self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
+        self.thermal_limit_a = self.thermal_limit_a.astype(dt_float)
 
         self.p_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
         self.q_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)

@@ -8,6 +8,7 @@
 
 import numpy as np
 import copy
+from grid2op.dtypes import dt_float
 from grid2op.Backend import Backend
 from grid2op.Exceptions import Grid2OpException
 
@@ -35,6 +36,32 @@ class BackendConverter(Backend):
     
     Note that these backend need to access the grid description file from both "source backend" and "target backend" 
     class. The underlying grid must be the same.
+
+    Examples
+    ---------
+    Here is a (dummy and useless) example of how to use this class.
+
+    .. code-block:: python
+
+            import grid2op
+            from grid2op.Converter import BackendConverter
+            from grid2op.Backend import PandaPowerBackend
+            from lightsim2grid.LightSimBackend import LightSimBackend
+            backend = BackendConverter(source_backend_class=PandaPowerBackend,
+                                   target_backend_class=LightSimBackend,
+                                   target_backend_grid_path=None)
+
+            # and now your environment behaves as if PandaPowerBackend did the computation (same load order, same
+            generator order etc.) but real computation are made with LightSimBackend.
+            # NB: for this specific example it is useless to do it because LightSimBackend and PandaPowerBackend have
+            # by default the same order etc. This is just an illustration here
+
+            # NB as of now you cannot use a runner with this method (yet)
+
+            env = grid2op.make(..., backend=backend)
+
+            # do regular computations here
+
     """
     def __init__(self,
                  source_backend_class,
@@ -63,11 +90,17 @@ class BackendConverter(Backend):
         self._topo_tg2sr = None
         self._topo_sr2tg = None
 
+        # for redispatching data
+        self.path_redisp = None
+        self.name_redisp = None
+        self.path_grid_layout = None
+        self.name_grid_layout = None
+
+        # for easier copy of np array
+        self.cst1 = dt_float(1.)
+
     def load_grid(self, path=None, filename=None):
         self.source_backend.load_grid(path, filename)
-        # shortcut to set all information related to the class, except the name of the environment
-        self.__class__ = self.init_grid(self.source_backend)
-
         # and now i load the target backend
         if self.target_backend_grid_path is not None:
             self.target_backend.load_grid(path=self.target_backend_grid_path)
@@ -75,6 +108,8 @@ class BackendConverter(Backend):
             # both source and target backend understands the same format
             self.target_backend.load_grid(path, filename)
 
+    def _assert_same_grid(self):
+        """basic assertion that self and the target backend have the same grid"""
         if self.n_sub != self.target_backend.n_sub:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("substations"))
         if self.n_gen != self.target_backend.n_gen:
@@ -83,6 +118,11 @@ class BackendConverter(Backend):
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("loads"))
         if self.n_line != self.target_backend.n_line:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("lines"))
+    def _init_myself(self):
+        # shortcut to set all information related to the class, except the name of the environment
+        # this should been done when the source backend is fully initialized only
+        self.__class__ = self.init_grid(self.source_backend)
+        self._assert_same_grid()
 
         # and now init all the converting vectors
         # a) for substation
@@ -149,6 +189,13 @@ class BackendConverter(Backend):
                                                 sr2tg=self._shunt_sr2tg,
                                                 nm="shunt")
         self.set_thermal_limit(self.target_backend.thermal_limit_a[self._line_tg2sr])
+
+        if self.path_redisp is not None:
+            # redispatching data were available
+            super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
+        if self.path_grid_layout is not None:
+            # grid layout data were available
+            super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
 
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
         id_sub_source = source_2_id_sub[id_source]
@@ -221,12 +268,6 @@ class BackendConverter(Backend):
         # TODO that might not be working as intented... it always says it's the identity...
         self._topo_tg2sr[source_pos[sr2tg]] = target_pos
         self._topo_sr2tg[target_pos] = source_pos[sr2tg]
-        """        for id_source in range(n_elem):
-            id_target = sr2tg[id_source]
-            id_topo_source = source_pos[id_source]
-            id_topo_target = target_pos[id_target]
-            self._topo_tg2sr[id_topo_source] = id_topo_target
-            self._topo_sr2tg[id_topo_target] = id_topo_source"""
 
     def assert_grid_correct(self):
         # this is done before a call to this function, by the environment
@@ -236,6 +277,10 @@ class BackendConverter(Backend):
         # now i assert that
         self.source_backend.assert_grid_correct()
         self.target_backend.assert_grid_correct()
+
+        # everything went well, so i can properly terminate my initialization
+        self._init_myself()
+
         # and this should be called after all the rest
         super().assert_grid_correct()
         if self.sub_source_target is None:
@@ -255,7 +300,8 @@ class BackendConverter(Backend):
     def _check_vect_valid(self, vect):
         assert np.all(vect >= 0), "invalid vector: some element are not found in either source or target"
         assert sorted(np.unique(vect)) == sorted(vect), "invalid vector: some element are not found in either source or target"
-        assert np.max(vect) == vect.shape[0] - 1, "invalid vector: some element are not found in either source or target"
+        if vect.shape[0] > 0:
+            assert np.max(vect) == vect.shape[0] - 1, "invalid vector: some element are not found in either source or target"
 
     def _check_both_consistent(self, tg2sr, sr2tg):
         self._check_vect_valid(tg2sr)
@@ -276,7 +322,7 @@ class BackendConverter(Backend):
         For backwards compatibility this method calls `Backend.load_grid`.
         But it is encouraged to overload it in the subclasses.
         """
-        self.target_backend.reset(grid_path, grid_filename=None)
+        self.target_backend.reset(grid_path, grid_filename=grid_filename)
 
     def close(self):
         self.source_backend.close()
@@ -312,16 +358,16 @@ class BackendConverter(Backend):
 
     def get_line_flow(self):
         tmp = self.target_backend.get_line_flow()
-        return tmp[self._line_tg2sr]
+        return self.cst1*tmp[self._line_tg2sr]
 
     def set_thermal_limit(self, limits):
         super().set_thermal_limit(limits=limits)
-        self.target_backend.set_thermal_limit(limits=limits)
-        self.source_backend.set_thermal_limit(limits=limits[self._line_sr2tg])
+        self.source_backend.set_thermal_limit(limits=limits)
+        self.target_backend.set_thermal_limit(limits=limits[self._line_sr2tg])
 
     def get_thermal_limit(self):
         tmp = self.target_backend.get_thermal_limit()
-        return tmp[self._line_tg2sr]
+        return self.cst1*tmp[self._line_tg2sr]
 
     def get_topo_vect(self):
         tmp = self.target_backend.get_topo_vect()
@@ -329,19 +375,23 @@ class BackendConverter(Backend):
 
     def generators_info(self):
         prod_p, prod_q, prod_v = self.target_backend.generators_info()
-        return prod_p[self._gen_tg2sr], prod_q[self._gen_tg2sr], prod_v[self._gen_tg2sr]
+        return self.cst1*prod_p[self._gen_tg2sr], self.cst1*prod_q[self._gen_tg2sr], \
+               self.cst1*prod_v[self._gen_tg2sr]
 
     def loads_info(self):
         load_p, load_q, load_v = self.target_backend.loads_info()
-        return load_p[self._load_tg2sr], load_q[self._load_tg2sr], load_v[self._load_tg2sr]
+        return self.cst1*load_p[self._load_tg2sr], self.cst1*load_q[self._load_tg2sr], \
+               self.cst1*load_v[self._load_tg2sr]
 
     def lines_or_info(self):
         p_, q_, v_, a_ = self.target_backend.lines_or_info()
-        return p_[self._line_tg2sr], q_[self._line_tg2sr], v_[self._line_tg2sr], a_[self._line_tg2sr]
+        return self.cst1*p_[self._line_tg2sr], self.cst1*q_[self._line_tg2sr], \
+               self.cst1*v_[self._line_tg2sr], self.cst1*a_[self._line_tg2sr]
 
     def lines_ex_info(self):
         p_, q_, v_, a_ = self.target_backend.lines_ex_info()
-        return p_[self._line_tg2sr], q_[self._line_tg2sr], v_[self._line_tg2sr], a_[self._line_tg2sr]
+        return self.cst1*p_[self._line_tg2sr], self.cst1*q_[self._line_tg2sr], \
+               self.cst1*v_[self._line_tg2sr], self.cst1*a_[self._line_tg2sr]
 
     def shunt_info(self):
         if self._shunt_tg2sr is not None:
@@ -377,8 +427,12 @@ class BackendConverter(Backend):
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):
         # data are loaded with the name of the source backend, i need to map it to the target backend too
-        # TODO
-        pass
+        self.path_redisp = path
+        self.name_redisp = name
+
+    def load_grid_layout(self, path, name='grid_layout.json'):
+        self.path_grid_layout = path
+        self.name_grid_layout = name
 
     def get_action_to_set(self):
         # TODO

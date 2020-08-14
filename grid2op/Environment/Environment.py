@@ -214,15 +214,15 @@ class Environment(BaseEnv):
             raise Grid2OpException( "Parameter \"backend\" used to build the Environment should derived form the "
                                     "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
         self.backend = backend
+        # all the above should be done in this exact order, otherwise some weird behaviour might occur
+        # this is due to the class attribute
+        self.backend.set_env_name(self.name)
         self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
-
         self.backend.load_redispacthing_data(os.path.split(self.init_grid_path)[0])
         self.backend.load_grid_layout(os.path.split(self.init_grid_path)[0])
-        self.backend.set_env_name(self.name)
-
         self.backend.assert_grid_correct()
-
-        self._has_been_initialized()  # really important to include this piece of code!
+        self._has_been_initialized()  # really important to include this piece of code! and just here after the
+        # backend has loaded everything
 
         if self._thermal_limit_a is None:
             self._thermal_limit_a = self.backend.thermal_limit_a.astype(dt_float)

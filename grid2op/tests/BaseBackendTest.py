@@ -45,7 +45,7 @@ import pdb
 import warnings
 
 import grid2op
-from grid2op.dtypes import dt_int
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler
@@ -92,6 +92,7 @@ class BaseTestLoadingCase(MakeBackend):
         case_file = self.get_casefile()
         backend.load_grid(path_matpower, case_file)
         backend.set_env_name("TestLoadingCase_env")
+        backend.assert_grid_correct()
 
         assert backend.n_line == 20
         assert backend.n_gen == 5
@@ -151,8 +152,9 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         self.backend.load_grid(self.path_matpower, self.case_file)
-        self.game_rules = RulesChecker()
         self.backend.set_env_name("TestLoadingBackendFunc_env")
+        self.backend.assert_grid_correct()
+        self.game_rules = RulesChecker()
         self.action_env_class = ActionSpace.init_grid(self.backend)
         self.action_env = self.action_env_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
@@ -333,7 +335,8 @@ class BaseTestLoadingBackendFunc(MakeBackend):
                                    42339.01974057, 42339.01974057, 42339.01974057,
                                    27479652.23546777, 27479652.23546777, 27479652.23546777,
                                    42339.01974057, 42339.01974057, 42339.01974057,
-                                   408269.11892695, 408269.11892695])
+                                   408269.11892695, 408269.11892695],
+                                  dtype=dt_float)
         assert self.compare_vect(res, true_values_ac)
 
     def test_disconnect_line(self):
@@ -555,9 +558,9 @@ class BaseTestTopoAction(MakeBackend):
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         self.backend.load_grid(self.path_matpower, self.case_file)
-
-        self.game_rules = RulesChecker()
         self.backend.set_env_name("TestTopoAction_env")
+        self.backend.assert_grid_correct()
+        self.game_rules = RulesChecker()
         as_class = ActionSpace.init_grid(self.backend)
         self.helper_action = as_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
@@ -834,6 +837,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.case_file = self.get_casefile()
         self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
+        self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
         self.action_env = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
@@ -877,6 +881,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env2")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         thermal_limit = 10 * self.lines_flows_init
         thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
@@ -901,15 +906,23 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=self.env_params,
                           name="test_pp_env3")
         self.backend.load_grid(self.path_matpower, case_file)
-
-        thermal_limit = 10 * self.lines_flows_init
-        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
+        self.backend.assert_grid_correct()
+        conv = self.backend.runpf()
+        assert conv, "powerflow should converge at loading"
+        lines_flows_init = self.backend.get_line_flow()
+        thermal_limit = 10 * lines_flows_init
+        thermal_limit[self.id_first_line_disco] = lines_flows_init[self.id_first_line_disco] / 2
         self.backend.set_thermal_limit(thermal_limit)
 
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert not infos  # check that don't simulate a cascading failure
         assert np.sum(disco) == 0
+
+    def test_set_thermal_limit(self):
+        thermal_limit = np.arange(self.backend.n_line)
+        self.backend.set_thermal_limit(thermal_limit)
+        assert np.all(self.backend.thermal_limit_a == thermal_limit)
 
     def test_nb_timestep_overflow_disc0(self):
         # on this _grid, first line with id 5 is overheated,
@@ -927,9 +940,13 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env4")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
+        conv = self.backend.runpf()
+        assert conv, "powerflow should converge at loading"
+        lines_flows_init = self.backend.get_line_flow()
 
-        thermal_limit = 10 * self.lines_flows_init
-        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
+        thermal_limit = 10 * lines_flows_init
+        thermal_limit[self.id_first_line_disco] = lines_flows_init[self.id_first_line_disco] / 2
         thermal_limit[self.id_2nd_line_disco] = 400
         self.backend.set_thermal_limit(thermal_limit)
 
@@ -958,6 +975,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env5")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         env.timestep_overflow[self.id_2nd_line_disco] = 0
         thermal_limit = 10 * self.lines_flows_init
@@ -989,6 +1007,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env6")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         env.timestep_overflow[self.id_2nd_line_disco] = 1
 
@@ -1021,6 +1040,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env7")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         env.timestep_overflow[self.id_2nd_line_disco] = 2
 
@@ -1044,6 +1064,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
 class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_set_bus(self):
         self.skip_if_needed()
+        # print("test_set_bus")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1057,6 +1078,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_change_bus(self):
         self.skip_if_needed()
+        # print("test_change_bus")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1069,6 +1091,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_change_bustwice(self):
         self.skip_if_needed()
+        # print("test_change_bustwice")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1088,16 +1111,18 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_isolate_load(self):
         self.skip_if_needed()
+        # print("test_isolate_load")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
-        assert done, "an isolated laod has not lead to a game over"
+        assert done, "an isolated load has not lead to a game over"
 
     def test_reco_disco_bus(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1114,6 +1139,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus2(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus2")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1130,6 +1156,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus3(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus3")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1144,6 +1171,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus4(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus4")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1158,6 +1186,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus5(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus5")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1225,19 +1254,32 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.env1.reset()
         # Reset backend2 with reset
         self.env2.reset()
+        self._compare_backends()
 
+    def _compare_backends(self):
         # Compare
-        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
-        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
-        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
-        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
-        assert np.all(self.backend1.p_or == self.backend2.p_or)
-        assert np.all(self.backend1.q_or == self.backend2.q_or)
-        assert np.all(self.backend1.v_or == self.backend2.v_or)
-        assert np.all(self.backend1.a_or == self.backend2.a_or)
-        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
-        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
-        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+        if hasattr(self.backend1, "prod_pu_to_kv") and hasattr(self.backend2, "prod_pu_to_kv"):
+            assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        if hasattr(self.backend1, "load_pu_to_kv") and hasattr(self.backend2, "load_pu_to_kv"):
+            assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        if hasattr(self.backend1, "lines_or_pu_to_kv") and hasattr(self.backend2, "lines_or_pu_to_kv"):
+            assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        if hasattr(self.backend1, "lines_ex_pu_to_kv") and hasattr(self.backend2, "lines_ex_pu_to_kv"):
+            assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        if hasattr(self.backend1, "p_or") and hasattr(self.backend2, "p_or"):
+            assert np.all(self.backend1.p_or == self.backend2.p_or)
+        if hasattr(self.backend1, "q_or") and hasattr(self.backend2, "q_or"):
+            assert np.all(self.backend1.q_or == self.backend2.q_or)
+        if hasattr(self.backend1, "v_or") and hasattr(self.backend2, "v_or"):
+            assert np.all(self.backend1.v_or == self.backend2.v_or)
+        if hasattr(self.backend1, "a_or") and hasattr(self.backend2, "a_or"):
+            assert np.all(self.backend1.a_or == self.backend2.a_or)
+        if hasattr(self.backend1, "p_ex") and hasattr(self.backend2, "p_ex"):
+            assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        if hasattr(self.backend1, "a_ex") and hasattr(self.backend2, "a_ex"):
+            assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        if hasattr(self.backend1, "v_ex") and hasattr(self.backend2, "v_ex"):
+            assert np.all(self.backend1.v_ex == self.backend2.v_ex)
 
     def test_reset_equals_load_grid(self):
         self.skip_if_needed()
@@ -1248,17 +1290,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.env2.reset()
 
         # Compare
-        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
-        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
-        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
-        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
-        assert np.all(self.backend1.p_or == self.backend2.p_or)
-        assert np.all(self.backend1.q_or == self.backend2.q_or)
-        assert np.all(self.backend1.v_or == self.backend2.v_or)
-        assert np.all(self.backend1.a_or == self.backend2.a_or)
-        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
-        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
-        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+        self._compare_backends()
 
     def test_load_grid_equals_load_grid(self):
         self.skip_if_needed()
@@ -1270,17 +1302,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.env2.reset()
 
         # Compare
-        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
-        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
-        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
-        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
-        assert np.all(self.backend1.p_or == self.backend2.p_or)
-        assert np.all(self.backend1.q_or == self.backend2.q_or)
-        assert np.all(self.backend1.v_or == self.backend2.v_or)
-        assert np.all(self.backend1.a_or == self.backend2.a_or)
-        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
-        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
-        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+        self._compare_backends()
 
     def test_obs_from_same_chronic(self):
         self.skip_if_needed()

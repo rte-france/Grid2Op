@@ -28,6 +28,8 @@ class Backend(GridObjects, ABC):
     This class allow the user or the agent to interact with an power flow calculator, while relying on dedicated
     methods to change the power grid behaviour.
 
+    It is NOT recommended to use this class outside the Environment.
+
     An example of a valid backend is provided in the :class:`PandapowerBackend`.
 
     All the abstract methods (that need to be implemented for a backend to work properly) are:
@@ -49,6 +51,11 @@ class Backend(GridObjects, ABC):
     And, if the flag :attr:Backend.shunts_data_available` is set to ``True`` the method :func:`Backend.shunt_info`
     should also be implemented.
 
+
+    In order to be valid and carry out some computations, you should call :func:`Backend.load_grid` and later
+    :func:`grid2op.Spaces.GridObjects.assert_grid_correct`. It is also more than recommended to call
+    :func:`Backend.assert_grid_correct_after_powerflow` after the first powerflow. This is all carried ou in the
+    environment properly.
 
     Attributes
     ----------
@@ -314,7 +321,7 @@ class Backend(GridObjects, ABC):
         """
         if isinstance(limits, np.ndarray):
             if limits.shape[0] == self.n_line:
-                self.thermal_limit_a = 1. * limits
+                self.thermal_limit_a = 1. * limits.astype(dt_float)
         elif isinstance(limits, dict):
             for el in limits.keys():
                 if not el in self.name_line:
@@ -636,7 +643,6 @@ class Backend(GridObjects, ABC):
 
             # perform the disconnection action
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
-
             # start a powerflow on this new state
             conv_ = self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
