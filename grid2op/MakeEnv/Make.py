@@ -113,7 +113,7 @@ def _retrieve_github_content(url, is_json=True):
 
 
 def _list_available_remote_env_aux():
-    return _list_available_remote_env_aux(_LIST_REMOTE_URL)
+    return _retrieve_github_content(url=_LIST_REMOTE_URL)
 
 
 def _fecth_environments(dataset_name):

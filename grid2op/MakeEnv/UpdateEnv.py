@@ -74,7 +74,7 @@ def _update_files(env_name=None):
     avail_envs = list_available_local_env()
     if env_name is None:
         for env_name in avail_envs:
-            _update_file(env_name)
+            _update_files(env_name)
     else:
         if env_name in avail_envs:
             answer_json = _retrieve_github_content(_LIST_REMOTE_URL)
