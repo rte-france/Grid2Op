@@ -39,6 +39,11 @@ def update_env(env_name=None):
 
 
 def _update_file(dict_, env_name, file_name):
+    """
+    Update a single file of a single environment.
+
+    File can be for example "config.py" or "prod_charac.csv" or "difficulty_levels.json".
+    """
     baseurl, filename = dict_["base_url"], dict_["filename"]
     url_ = baseurl + filename
     time.sleep(1)
@@ -54,21 +59,19 @@ def _update_file(dict_, env_name, file_name):
                 _write_file(mix_dir, new_config, file_name=file_name)
     else:
         _write_file(path_local_env, new_config, file_name=file_name)
-    print("Sucessfully updated file \"{}\" for environment \"{}\"".format(file_name, env_name))
+    print("Successfully updated file \"{}\" for environment \"{}\"".format(file_name, env_name))
 
 
 def _update_files(env_name=None):
     """
 
+    Update all the "modified" files of a given environment. If ``None`` is provided as input, all local environments
+    will be checked for update.
+
     Parameters
     ----------
-    file_name: ``str``
-        One of config.py, grid.json, grid_layout.json, prods_charac.csv depending on the file you want to update
-
-    env_name
-
-    Returns
-    -------
+    env_name: ``str``
+        Name of the environment you want to update (should be locally available)
 
     """
     avail_envs = list_available_local_env()
@@ -88,4 +91,4 @@ def _update_files(env_name=None):
                 print("Environment \"{}\" is up to date".format(env_name))
         else:
             raise UnknownEnv("Impossible to locate the environment named \"{}\". Have you downlaoded it?"
-                       "".format(env_name))
+                             "".format(env_name))
