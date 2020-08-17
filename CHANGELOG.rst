@@ -21,6 +21,7 @@ Change Log
 - [ADDED] a function that allows to modify some parameters of the environment (see `grid2op.update_env`)
 - [ADDED] a class to convert between two backends
 - [FIXED] out dated documentation in some classes
+- [FIXED] copy of whole environments without needing pickle module.
 
 [1.2.0] - 2020-08-03
 ---------------------
