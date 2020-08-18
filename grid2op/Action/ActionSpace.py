@@ -107,8 +107,9 @@ class ActionSpace(SerializableActionSpace):
         # update the action
         res.update(dict_)
         if check_legal:
-            if not self._is_legal(res, env):
-                raise IllegalAction("Impossible to perform action {}".format(res))
+            is_legal, reason = self._is_legal(res, env)
+            if not is_legal:
+                raise reason
 
         return res
 
@@ -129,4 +130,5 @@ class ActionSpace(SerializableActionSpace):
         if env is None:
             warnings.warn("Cannot performed legality check because no environment is provided.")
             return True
-        return self.legal_action(action, env)
+        is_legal, reason = self.legal_action(action, env)
+        return is_legal, reason

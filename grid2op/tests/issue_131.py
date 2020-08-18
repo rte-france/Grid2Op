@@ -4,6 +4,7 @@ import grid2op
 import unittest
 import numpy as np
 
+
 class Issue131Tester(unittest.TestCase):
 
     def test_issue_131(self):
@@ -28,6 +29,7 @@ class Issue131Tester(unittest.TestCase):
         assert np.all(prod_v_fa == prod_v_fb)
         assert np.all(load_p_fa == load_p_fb)
         assert np.all(load_q_fa == load_q_fb)
+
 
 if __name__ == "__main__":
     unittest.main()

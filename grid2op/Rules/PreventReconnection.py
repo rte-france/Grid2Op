@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
+from grid2op.Exceptions import IllegalAction
 from grid2op.Rules.BaseRules import BaseRules
 
 
@@ -38,10 +39,12 @@ class PreventReconnection(BaseRules):
         if np.any(env.times_before_line_status_actionable[aff_lines] > 0):
             # i tried to act on a powerline too shortly after a previous action
             # or shut down due to an overflow or opponent or hazards or maintenance
-            return False
+            ids = np.where(env.times_before_line_status_actionable[aff_lines] > 0)[0]
+            return False, IllegalAction("Powerline with ids {} have been modified illegally (cooldown)".format(ids))
 
         if np.any(env.times_before_topology_actionable[aff_subs] > 0):
             # I tried to act on a topology too shortly after a previous action
-            return False
+            ids = np.where(env.times_before_line_status_actionable[aff_lines] > 0)[0]
+            return False, IllegalAction("Substation with ids {} have been modified illegally (cooldown)".format(ids))
 
-        return True
+        return True, None

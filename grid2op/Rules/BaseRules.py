@@ -37,8 +37,10 @@ class BaseRules(ABC):
 
         Returns
         -------
-        res: ``bool``
+        is_legal: ``bool``
             Whether the action is legal or not
 
+        reason:
+            The cause of the illegal part of the action (should be a grid2op exception)
         """
         pass
