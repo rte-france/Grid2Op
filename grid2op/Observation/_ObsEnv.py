@@ -341,3 +341,6 @@ class _ObsEnv(BaseEnv):
         # TODO and simulate also when a maintenance is forcasted!
         # TODO add the opponent budget here (should decrease with the time step :scared:) -> we really need to address
         # all that before 1.0.0
+
+    def get_current_line_status(self):
+        return self._line_status == 1

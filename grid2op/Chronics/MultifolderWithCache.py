@@ -15,7 +15,7 @@ from grid2op.Chronics.GridStateFromFile import GridStateFromFile
 
 class MultifolderWithCache(Multifolder):
     """
-    This class is a particular type of :class:`MultiFolder` that, instead of reading is all from disk each time
+    This class is a particular type of :class:`Multifolder` that, instead of reading is all from disk each time
     stores it into memory.
 
     For now it's only compatible (because it only present some kind of interest) with :class:`GridValue` class

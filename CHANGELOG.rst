@@ -21,7 +21,12 @@ Change Log
 - [ADDED] a function that allows to modify some parameters of the environment (see `grid2op.update_env`)
 - [ADDED] a class to convert between two backends
 - [FIXED] out dated documentation in some classes
-- [FIXED] copy of whole environments without needing pickle module.
+- [FIXED] `Issue #140<https://github.com/rte-france/Grid2Op/issues/140>`_: illegal action were
+  not properly computed in some cases, especially in case of divergence of the powerflow. Also now
+  the "why" the action is illegal is displayed (instead of a generic "this action is illegal".
+- [FIXED] `LightSim Issue #10<https://github.com/BDonnot/lightsim2grid/issues/10>`_:
+  copy of whole environments without needing pickle module.
+- [UPDATED] a missing class documentation `Chronics.Multifolder` in that case.
 
 [1.2.0] - 2020-08-03
 ---------------------
