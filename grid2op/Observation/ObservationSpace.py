@@ -134,3 +134,24 @@ class ObservationSpace(SerializableObservationSpace):
     def get_empty_observation(self):
         """return an empty observation, for internal use only."""
         return copy.deepcopy(self._empty_obs)
+
+    def copy(self):
+        backend = self._backend_obs
+        self._backend_obs = None
+        obs_ = self._empty_obs
+        self._empty_obs = None
+        obs_env = self.obs_env
+        self.obs_env = None
+
+        # performs the copy
+        res = copy.deepcopy(self)
+        res._backend_obs = backend.copy()
+        res._empty_obs = obs_.copy()
+        res.obs_env = obs_env.copy()
+
+        # assign back the results
+        self._backend_obs = backend
+        self._empty_obs = obs_
+        self.obs_env = obs_env
+
+        return res
