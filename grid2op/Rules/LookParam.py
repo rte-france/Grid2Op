@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
+from grid2op.Exceptions import IllegalAction
 from grid2op.Rules.BaseRules import BaseRules
 
 
@@ -25,14 +26,15 @@ class LookParam(BaseRules):
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
         """
         # at first iteration, env.current_obs is None...
-        if env.current_obs is not None:
-            powerline_status = env.current_obs.line_status
-        else:
-            powerline_status = None
+        powerline_status = env.get_current_line_status()
 
         aff_lines, aff_subs = action.get_topological_impact(powerline_status)
         if np.sum(aff_lines) > env.parameters.MAX_LINE_STATUS_CHANGED:
-            return False
+            ids = np.where(aff_lines)[0]
+            return False, IllegalAction("More than {} line status affected by the action: {}"
+                                        "".format(env.parameters.MAX_LINE_STATUS_CHANGED, ids))
         if np.sum(aff_subs) > env.parameters.MAX_SUB_CHANGED:
-            return False
-        return True
+            ids = np.where(aff_subs)[0]
+            return False, IllegalAction("More than {} substation affected by the action: {}"
+                                        "".format(env.parameters.MAX_SUB_CHANGED, ids))
+        return True, None

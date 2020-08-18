@@ -606,11 +606,31 @@ class Environment(BaseEnv):
         """
         tmp_backend = self.backend
         self.backend = None
+
+        tmp_obs_space = self.helper_observation
+        self.observation_space = None
+        self.helper_observation = None
+
+        obs_tmp = self.current_obs
+        self.current_obs = None
+
+        volt_cont = self.voltage_controler
+        self.voltage_controler = None
+
         res = copy.deepcopy(self)
         res.backend = tmp_backend.copy()
+        res.helper_observation = tmp_obs_space.copy()
+        res.observation_space = res.helper_observation
+        res.current_obs = obs_tmp.copy()
+        res.voltage_controler = volt_cont.copy()
+
         if self._thermal_limit_a is not None:
             res.backend.set_thermal_limit(self._thermal_limit_a)
         self.backend = tmp_backend
+        self.observation_space = tmp_obs_space
+        self.helper_observation = tmp_obs_space
+        self.current_obs = obs_tmp
+        self.voltage_controler = volt_cont
         return res
 
     def get_kwargs(self, with_backend=True):

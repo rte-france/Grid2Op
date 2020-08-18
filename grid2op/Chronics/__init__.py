@@ -2,7 +2,7 @@ __all__ = [
     "ChronicsHandler",
     "GridValue",
     "ChangeNothing",
-    "MultiFolder",
+    "Multifolder",
     "MultifolderWithCache",
     "GridStateFromFile",
     "GridStateFromFileWithForecasts",

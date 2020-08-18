@@ -853,11 +853,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         init_line_status = copy.deepcopy(self.backend.get_line_status())
         try:
             beg_ = time.time()
-            is_illegal = not self.game_rules(action=action, env=self)
-            if is_illegal:
+            is_legal, reason = self.game_rules(action=action, env=self)
+            if not is_legal:
                 # action is replace by do nothing
                 action = self.helper_action_player({})
-                except_.append(IllegalAction("BaseAction illegal"))
+                except_.append(reason)
+                is_illegal = True
 
             ambiguous, except_tmp = action.is_ambiguous()
             if ambiguous:
@@ -1180,3 +1181,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # Update to the fast forward state using a do nothing action
         self.step(self.helper_action_player({}))
+
+    def get_current_line_status(self):
+        """internal, do not use outside of "Rules" or simulate etc."""
+        if self.current_obs is not None:
+            powerline_status = self.current_obs.line_status
+        else:
+            # at first time step, every powerline is connected
+            powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        return powerline_status

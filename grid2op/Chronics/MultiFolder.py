@@ -103,10 +103,43 @@ class Multifolder(GridValue):
         """
         Assign a filtering function to remove some chronics from the next time a call to "reset_cache" is called.
 
-        **NB** filter_fun is applied to all element of :attr:`MultifolderWithCache.subpaths`. If ``True`` then it will
+        **NB** filter_fun is applied to all element of :attr:`Multifolder.subpaths`. If ``True`` then it will
         be put in cache, if ``False`` this data will NOT be put in the cache.
 
         **NB** this has no effect until :attr:`Multifolder.reset` is called.
+
+        Examples
+        --------
+        Let's assume in your chronics, the folder names are "Scenario_august_dummy", and
+        "Scenario_february_dummy". For the sake of the example, we want the environment to loop
+        only through the month of february, because why not. Then we can do the following:
+
+        .. code-block:: python
+
+            import re
+            import grid2op
+            env = grid2op.make("l2rpn_neurips_2020_track1", test=True)  # don't add "test=True" if
+            # you don't want to perform a test.
+
+            # check at which month will belong each observation
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always alternatively prints "8" (if chronics if from august) or
+                # "2" if chronics is from february)
+
+            # to see where the chronics are located
+            print(env.chronics_handler.subpaths)
+
+            # keep only the month of february
+            env.chronics_handler.set_filter(lambda path: re.match(".*february.*", path) is not None)
+            env.chronics_handler.reset()  # if you don't do that it will not have any effect
+
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always prints "2" (representing february)
+
         """
         self._filter = filter_fun
 
@@ -126,11 +159,39 @@ class Multifolder(GridValue):
         -----------
         probabilities: ``np.ndarray``
             Array of integer with the same size as the number of chronics in the cache.
+            If it does not sum to one, it is rescaled such that it sums to one.
 
         Returns
         -------
         selected: ``int``
             The integer that was selected.
+
+        Examples
+        --------
+
+        Let's assume in your chronics, the folder names are "Scenario_august_dummy", and
+        "Scenario_february_dummy". For the sake of the example, we want the environment to loop
+        75% of the time to the month of february and 25% of the time to the month of august.
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_neurips_2020_track1", test=True)  # don't add "test=True" if
+            # you don't want to perform a test.
+
+            # check at which month will belong each observation
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always alternatively prints "8" (if chronics if from august) or
+                # "2" if chronics is from february) with a probability of 50% / 50%
+
+            env.seed(0)  # for reproducible experiment
+            for i in range(10):
+                _ = env.chronics_handler.sample_next_chronics([0.25, 0.75])
+                obs = env.reset()
+                print(obs.month)
+                # it prints "2" with probability 0.75 and "8" with probability 0.25
 
         """
         self._prev_cache_id = -1

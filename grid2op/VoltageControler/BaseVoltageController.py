@@ -23,6 +23,7 @@ part of the game. This module exposes the main class to do this.
 """
 from abc import ABC, abstractmethod
 import numpy as np
+import copy
 
 from grid2op.dtypes import dt_int
 from grid2op.Action import VoltageOnlyAction, ActionSpace
@@ -55,6 +56,13 @@ class BaseVoltageController(RandomObject, ABC):
                                         actionClass=VoltageOnlyAction,
                                         legal_action=legal_act)
         self.backend = controler_backend.copy()
+
+    def copy(self):
+        backend_tmp = self.backend
+        self.backend = None
+        res = copy.deepcopy(self)
+        res.backend = backend_tmp.copy()
+        self.backend = backend_tmp
 
     def attach_layout(self, grid_layout):
         self.action_space.attach_layout(grid_layout)

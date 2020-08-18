@@ -50,8 +50,9 @@ class RulesChecker(object):
 
         Returns
         -------
-        res: ``bool``
+        is_legal: ``bool``
             Assess if the given action is legal or not. ``True``: the action is legal, ``False`` otherwise
-
+        reason:
+            A grid2op IllegalException given the reason for which the action is illegal
         """
         return self.legal_action(action, env)

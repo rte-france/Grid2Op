@@ -20,4 +20,4 @@ class AlwaysLegal(BaseRules):
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
 
         """
-        return True
+        return True, None

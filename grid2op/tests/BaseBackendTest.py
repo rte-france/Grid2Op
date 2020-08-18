@@ -1659,6 +1659,20 @@ class BaseIssuesTest(MakeBackend):
                 assert obs.time_before_cooldown_sub[obs.line_ex_to_subid[LINE_ID]] == param.NB_TIMESTEP_COOLDOWN_SUB
             assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 1
 
+    def test_issue_copyenv(self):
+        # https://github.com/BDonnot/lightsim2grid/issues/10
+        from grid2op import make
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env1 = grid2op.make("rte_case14_realistic",
+                                test=True,
+                                backend=backend)
+        env2 = env1.copy()
+        obs1 = env1.reset()
+        obs2 = env2.get_obs()
+        assert np.any(obs1.prod_p != obs2.prod_p)
+
 
 class BaseStatusActions(MakeBackend):
     def _make_my_env(self):
