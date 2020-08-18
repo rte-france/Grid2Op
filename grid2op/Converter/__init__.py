@@ -6,6 +6,7 @@ __all__ = [
     "AnalogStateConverter"
 ]
 
+from grid2op.Converter.BackendConverter import BackendConverter
 from grid2op.Converter.Converters import Converter
 from grid2op.Converter.ToVect import ToVect
 from grid2op.Converter.IdToAct import IdToAct
