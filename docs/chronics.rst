@@ -48,6 +48,7 @@ come from the :class:`grid2op.GridValue` and are detailed in the
 
 Detailed Documentation by class
 --------------------------------
+
 .. automodule:: grid2op.Chronics
     :members:
     :autosummary:

@@ -166,7 +166,7 @@ class PandaPowerBackend(Backend):
     def _load_grid_gen_vm_pu(grid):
         return grid.gen["vm_pu"]
 
-    def reset(self, path=None, filename=None):
+    def reset(self, path=None, grid_filename=None):
         """
         Reload the grid.
         For pandapower, it is a bit faster to store of a copy of itself at the end of load_grid
@@ -386,6 +386,7 @@ class PandaPowerBackend(Backend):
 
         self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
+        self.thermal_limit_a = self.thermal_limit_a.astype(dt_float)
 
         self.p_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
         self.q_or = np.full(self.n_line, dtype=dt_float, fill_value=np.NaN)
@@ -813,14 +814,14 @@ class PandaPowerBackend(Backend):
                 prod_q[self._id_bus_added] += self._grid._ppc["internal"]["gen"][self._iref_slack, 2]
         return prod_p, prod_q, prod_v
 
-    def generators_info(self):
-        return self.cst_1 * self.prod_p, self.cst_1 * self.prod_q, self.cst_1 * self.prod_v
-
     def _loads_info(self):
         load_p = self.cst_1 * self._grid.res_load["p_mw"].values.astype(dt_float)
         load_q = self.cst_1 * self._grid.res_load["q_mvar"].values.astype(dt_float)
         load_v = self._grid.res_bus.loc[self._grid.load["bus"].values]["vm_pu"].values.astype(dt_float) * self.load_pu_to_kv
         return load_p, load_q, load_v
+
+    def generators_info(self):
+        return self.cst_1 * self.prod_p, self.cst_1 * self.prod_q, self.cst_1 * self.prod_v
 
     def loads_info(self):
         return self.cst_1 * self.load_p, self.cst_1 * self.load_q, self.cst_1 * self.load_v

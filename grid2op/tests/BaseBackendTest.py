@@ -45,7 +45,7 @@ import pdb
 import warnings
 
 import grid2op
-from grid2op.dtypes import dt_int
+from grid2op.dtypes import dt_int, dt_float
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler
@@ -79,7 +79,9 @@ class BaseTestNames(MakeBackend):
     def test_properNames(self):
         backend = self.make_backend()
         path = self.get_path()
-        with make(os.path.join(path, "5bus_example_diff_name"), backend=backend) as env:
+        with make(os.path.join(path, "5bus_example_diff_name"),
+                  backend=backend,
+                  ) as env:
             obs = env.reset()
             assert np.all(obs.name_load == ["tutu", "toto", "tata"])
             assert np.all(env.name_load == ["tutu", "toto", "tata"])
@@ -92,6 +94,7 @@ class BaseTestLoadingCase(MakeBackend):
         case_file = self.get_casefile()
         backend.load_grid(path_matpower, case_file)
         backend.set_env_name("TestLoadingCase_env")
+        backend.assert_grid_correct()
 
         assert backend.n_line == 20
         assert backend.n_gen == 5
@@ -120,16 +123,18 @@ class BaseTestLoadingCase(MakeBackend):
 
         assert np.all(backend.get_topo_vect() == np.ones(np.sum(backend.sub_info)))
 
-        backend.runpf()
-        try:
-            p_subs, q_subs, p_bus, q_bus = backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect
-            assert np.max(np.abs(q_subs)) <= self.tolvect
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect
+        conv = backend.runpf()
+        assert conv, "powerflow diverge it is not supposed to!"
 
-        except Grid2OpException:
-            pass
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            p_subs, q_subs, p_bus, q_bus = backend.check_kirchoff()
+
+        assert np.max(np.abs(p_subs)) <= self.tolvect
+        assert np.max(np.abs(p_bus.flatten())) <= self.tolvect
+        if backend.shunts_data_available:
+            assert np.max(np.abs(q_subs)) <= self.tolvect
+            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect
 
     def test_assert_grid_correct(self):
         backend = self.make_backend()
@@ -138,7 +143,8 @@ class BaseTestLoadingCase(MakeBackend):
         backend.load_grid(path_matpower, case_file)
         backend.set_env_name("TestLoadingCase_env2")
         backend.assert_grid_correct()
-        backend.runpf()
+        conv = backend.runpf()
+        assert conv, "powerflow diverge it is not supposed to!"
         backend.assert_grid_correct_after_powerflow()
 
 
@@ -148,8 +154,9 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         self.backend.load_grid(self.path_matpower, self.case_file)
-        self.game_rules = RulesChecker()
         self.backend.set_env_name("TestLoadingBackendFunc_env")
+        self.backend.assert_grid_correct()
+        self.game_rules = RulesChecker()
         self.action_env_class = ActionSpace.init_grid(self.backend)
         self.action_env = self.action_env_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
@@ -187,7 +194,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.skip_if_needed()
         # i have the correct voltages in powerlines if the formula to link mw, mvar, kv and amps is correct
         conv = self.backend.runpf(is_dc=False)
-        assert conv
+        assert conv, "powerflow diverge at loading"
 
         p_or, q_or, v_or, a_or = self.backend.lines_or_info()
         a_th = np.sqrt(p_or ** 2 + q_or ** 2) * 1e3 / (np.sqrt(3) * v_or)
@@ -203,35 +210,36 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         # of the powerline connected to it.
 
         conv = self.backend.runpf(is_dc=False)
+        assert conv, "powerflow diverge at loading"
         load_p, load_q, load_v = self.backend.loads_info()
         gen_p, gen__q, gen_v = self.backend.generators_info()
         p_or, q_or, v_or, a_or = self.backend.lines_or_info()
         p_ex, q_ex, v_ex, a_ex = self.backend.lines_ex_info()
 
         for c_id, sub_id in enumerate(self.backend.load_to_subid):
-            l_id = np.where(self.backend.line_or_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_or_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_or[l_id] - load_v[c_id]) <= self.tol_one, "problem for load {}".format(c_id)
                 continue
 
-            l_id = np.where(self.backend.line_ex_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_ex_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_ex[l_id] - load_v[c_id]) <= self.tol_one, "problem for load {}".format(c_id)
                 continue
             assert False, "load {} has not been checked".format(c_id)
 
         for g_id, sub_id in enumerate(self.backend.gen_to_subid):
-            l_id = np.where(self.backend.line_or_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_or_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_or[l_id] - gen_v[g_id]) <= self.tol_one, "problem for generator {}".format(g_id)
                 continue
 
-            l_id = np.where(self.backend.line_ex_to_subid == sub_id)[0]
-            if len(l_id):
-                l_id = l_id[0]
+            l_ids = np.where(self.backend.line_ex_to_subid == sub_id)[0]
+            if len(l_ids):
+                l_id = l_ids[0]
                 assert np.abs(v_ex[l_id] - gen_v[g_id]) <= self.tol_one, "problem for generator {}".format(g_id)
                 continue
             assert False, "generator {} has not been checked".format(g_id)
@@ -239,18 +247,21 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_copy(self):
         self.skip_if_needed()
         conv = self.backend.runpf(is_dc=False)
+        assert conv, "powerflow diverge at loading"
+        l_id = 3
+
         p_or_orig, *_ = self.backend.lines_or_info()
         adn_backend_cpy = self.backend.copy()
 
-        self.backend._disconnect_line(3)
+        self.backend._disconnect_line(l_id)
         conv = self.backend.runpf(is_dc=False)
         assert conv
         conv2 = adn_backend_cpy.runpf(is_dc=False)
         assert conv2
         p_or_ref, *_ = self.backend.lines_or_info()
         p_or, *_ = adn_backend_cpy.lines_or_info()
-        assert np.abs(p_or_ref[3]) <= self.tol_one
-        assert self.compare_vect(p_or_orig, p_or)
+        assert self.compare_vect(p_or_orig, p_or), "the copied object affects its original 'parent'"
+        assert np.abs(p_or_ref[l_id]) <= self.tol_one, "powerline {} has not been disconnected".format(l_id)
 
     def test_copy2(self):
         self.skip_if_needed()
@@ -311,7 +322,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         conv = self.backend.runpf(is_dc=True)
         assert conv
         p_or_orig, q_or_orig, *_ = self.backend.lines_or_info()
-        assert np.all(q_or_orig == 0.)
+        assert np.all(q_or_orig == 0.), "in dc mode all q must be zero"
         conv = self.backend.runpf(is_dc=False)
         assert conv
         p_or_orig, q_or_orig, *_ = self.backend.lines_or_info()
@@ -326,7 +337,8 @@ class BaseTestLoadingBackendFunc(MakeBackend):
                                    42339.01974057, 42339.01974057, 42339.01974057,
                                    27479652.23546777, 27479652.23546777, 27479652.23546777,
                                    42339.01974057, 42339.01974057, 42339.01974057,
-                                   408269.11892695, 408269.11892695])
+                                   408269.11892695, 408269.11892695],
+                                  dtype=dt_float)
         assert self.compare_vect(res, true_values_ac)
 
     def test_disconnect_line(self):
@@ -375,7 +387,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         # i set up the stuff to have exactly 0 losses
         conv = self.backend.runpf(is_dc=True)
-        assert conv
+        assert conv, "powergrid diverge after loading (even in DC)"
         init_flow, *_ = self.backend.lines_or_info()
         init_lp, init_l_q, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
@@ -412,13 +424,13 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         after_gp, *_ = self.backend.generators_info()
         after_ls = self.backend.get_line_status()
         assert self.compare_vect(new_cp, after_lp)  # check i didn't modify the loads
-        try:
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
             p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            # i'm in DC mode, i can't check for reactive values...
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-        except Grid2OpException:
-            pass
+        # i'm in DC mode, i can't check for reactive values...
+        assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
+        assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
 
         assert self.compare_vect(new_pp, after_gp)  # check i didn't modify the generators
         assert np.all(init_ls == after_ls)  # check i didn't disconnect any powerlines
@@ -429,6 +441,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_apply_action_prod_v(self):
         self.skip_if_needed()
         conv = self.backend.runpf(is_dc=False)
+        assert conv, "powergrid diverge after loading"
         prod_p_init, prod_q_init, prod_v_init = self.backend.generators_info()
         ratio = 1.05
         action = self.action_env({"injection": {"prod_v": ratio * prod_v_init}})  # update the action
@@ -436,7 +449,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         bk_action += action
         self.backend.apply_action(bk_action)
         conv = self.backend.runpf(is_dc=False)
-        assert conv, "Cannot perform a powerflow aftermodifying the powergrid"
+        assert conv, "Cannot perform a powerflow after modifying the powergrid"
 
         prod_p_after, prod_q_after, prod_v_after = self.backend.generators_info()
         assert self.compare_vect(ratio * prod_v_init, prod_v_after)  # check i didn't modify the generators
@@ -477,6 +490,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
     def test_apply_action_hazard(self):
         self.skip_if_needed()
         conv = self.backend.runpf()
+        assert conv, "powerflow did not converge at iteration 0"
         init_lp, *_ = self.backend.loads_info()
         init_gp, *_ = self.backend.generators_info()
 
@@ -523,7 +537,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         # compute a load flow an performs more tests
         conv = self.backend.runpf()
-        assert conv, "Power does not converge if lines {} and {} are removed".format(17, 19)
+        assert conv, "Powerflow does not converge if lines {} and {} are removed".format(17, 19)
 
         # performs basic check
         after_lp, *_ = self.backend.loads_info()
@@ -546,9 +560,9 @@ class BaseTestTopoAction(MakeBackend):
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
         self.backend.load_grid(self.path_matpower, self.case_file)
-
-        self.game_rules = RulesChecker()
         self.backend.set_env_name("TestTopoAction_env")
+        self.backend.assert_grid_correct()
+        self.game_rules = RulesChecker()
         as_class = ActionSpace.init_grid(self.backend)
         self.helper_action = as_class(gridobj=self.backend, legal_action=self.game_rules.legal_action)
         self.bkact_class = _BackendAction.init_grid(self.backend)
@@ -558,6 +572,17 @@ class BaseTestTopoAction(MakeBackend):
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
+
+    def _check_kirchoff(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
+            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
+            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
+
+        if self.backend.shunts_data_available:
+            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
+            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a bus"
 
     def test_get_topo_vect_speed(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
@@ -632,16 +657,7 @@ class BaseTestTopoAction(MakeBackend):
                                        20480.81970337, 21126.22533095, 49275.71520428, 128.04429617,
                                        69.00661266, 188.44754187, 688.1371226, 1132.42521887])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
     def test_topo_change1sub(self):
         # check that switching the bus of 3 object is equivalent to set them to bus 2 (as above)
@@ -688,16 +704,7 @@ class BaseTestTopoAction(MakeBackend):
                                        20480.81970337, 21126.22533095, 49275.71520428, 128.04429617,
                                        69.00661266, 188.44754187, 688.1371226, 1132.42521887])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
     def test_topo_change_1sub_twice(self):
         # check that switching the bus of 3 object is equivalent to set them to bus 2 (as above)
@@ -744,15 +751,7 @@ class BaseTestTopoAction(MakeBackend):
                                        20480.81970337, 21126.22533095, 49275.71520428, 128.04429617,
                                        69.00661266, 188.44754187, 688.1371226, 1132.42521887])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
         bk_action += action
@@ -767,15 +766,7 @@ class BaseTestTopoAction(MakeBackend):
         topo_vect = self.backend.get_topo_vect()
         assert np.min(topo_vect) == 1
         assert np.max(topo_vect) == 1
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
     def test_topo_change_2sub(self):
         # check that maintenance vector is properly taken into account
@@ -788,10 +779,11 @@ class BaseTestTopoAction(MakeBackend):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         bk_action = self.bkact_class()
         bk_action += action
+
         # apply the action here
         self.backend.apply_action(bk_action)
         conv = self.backend.runpf()
-        assert conv
+        assert conv, "powerflow diverge it should not"
 
         # check the _grid is correct
         topo_vect = self.backend.get_topo_vect()
@@ -815,6 +807,7 @@ class BaseTestTopoAction(MakeBackend):
             topo_vect[self.backend.gen_pos_topo_vect[gen_ids]] == 1 + arr1[self.backend.gen_to_sub_pos[gen_ids]])
 
         load_ids = np.where(self.backend.load_to_subid == id_2)[0]
+        #TODO check the topology symmetry
         assert np.all(
             topo_vect[self.backend.load_pos_topo_vect[load_ids]] == arr2[self.backend.load_to_sub_pos[load_ids]])
         lor_ids = np.where(self.backend.line_or_to_subid == id_2)[0]
@@ -833,16 +826,7 @@ class BaseTestTopoAction(MakeBackend):
                                        22178.16766548, 27690.51322075, 38684.31540646, 129.44842477,
                                        70.02629553, 185.67687123, 706.77680037, 1155.45754617])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
-
-        try:
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
-            assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
-            assert np.max(np.abs(q_subs)) <= self.tolvect, "problem with reactive values, at substation"
-            assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
-            assert np.max(np.abs(q_bus.flatten())) <= self.tolvect, "problem with reaactive values, at a load"
-
-        except Grid2OpException:
-            pass
+        self._check_kirchoff()
 
 
 class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
@@ -855,6 +839,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.case_file = self.get_casefile()
         self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
+        self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
         self.action_env = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
 
@@ -898,6 +883,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env2")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         thermal_limit = 10 * self.lines_flows_init
         thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
@@ -922,15 +908,23 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=self.env_params,
                           name="test_pp_env3")
         self.backend.load_grid(self.path_matpower, case_file)
-
-        thermal_limit = 10 * self.lines_flows_init
-        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
+        self.backend.assert_grid_correct()
+        conv = self.backend.runpf()
+        assert conv, "powerflow should converge at loading"
+        lines_flows_init = self.backend.get_line_flow()
+        thermal_limit = 10 * lines_flows_init
+        thermal_limit[self.id_first_line_disco] = lines_flows_init[self.id_first_line_disco] / 2
         self.backend.set_thermal_limit(thermal_limit)
 
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
         assert not infos  # check that don't simulate a cascading failure
         assert np.sum(disco) == 0
+
+    def test_set_thermal_limit(self):
+        thermal_limit = np.arange(self.backend.n_line)
+        self.backend.set_thermal_limit(thermal_limit)
+        assert np.all(self.backend.thermal_limit_a == thermal_limit)
 
     def test_nb_timestep_overflow_disc0(self):
         # on this _grid, first line with id 5 is overheated,
@@ -948,9 +942,13 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env4")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
+        conv = self.backend.runpf()
+        assert conv, "powerflow should converge at loading"
+        lines_flows_init = self.backend.get_line_flow()
 
-        thermal_limit = 10 * self.lines_flows_init
-        thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
+        thermal_limit = 10 * lines_flows_init
+        thermal_limit[self.id_first_line_disco] = lines_flows_init[self.id_first_line_disco] / 2
         thermal_limit[self.id_2nd_line_disco] = 400
         self.backend.set_thermal_limit(thermal_limit)
 
@@ -979,6 +977,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env5")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         env.timestep_overflow[self.id_2nd_line_disco] = 0
         thermal_limit = 10 * self.lines_flows_init
@@ -1010,6 +1009,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env6")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         env.timestep_overflow[self.id_2nd_line_disco] = 1
 
@@ -1042,6 +1042,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
                           parameters=env_params,
                           name="test_pp_env7")
         self.backend.load_grid(self.path_matpower, case_file)
+        self.backend.assert_grid_correct()
 
         env.timestep_overflow[self.id_2nd_line_disco] = 2
 
@@ -1065,6 +1066,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
 class BaseTestChangeBusAffectRightBus(MakeBackend):
     def test_set_bus(self):
         self.skip_if_needed()
+        # print("test_set_bus")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1078,6 +1080,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_change_bus(self):
         self.skip_if_needed()
+        # print("test_change_bus")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1090,6 +1093,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_change_bustwice(self):
         self.skip_if_needed()
+        # print("test_change_bustwice")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1109,16 +1113,18 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_isolate_load(self):
         self.skip_if_needed()
+        # print("test_isolate_load")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         act = env.action_space({"set_bus": {"loads_id": [(0, 2)]}})
         obs, reward, done, info = env.step(act)
-        assert done, "an isolated laod has not lead to a game over"
+        assert done, "an isolated load has not lead to a game over"
 
     def test_reco_disco_bus(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1135,6 +1141,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus2(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus2")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1151,6 +1158,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus3(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus3")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1165,6 +1173,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus4(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus4")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1179,6 +1188,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
 
     def test_reco_disco_bus5(self):
         self.skip_if_needed()
+        # print("test_reco_disco_bus5")
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -1246,19 +1256,32 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.env1.reset()
         # Reset backend2 with reset
         self.env2.reset()
+        self._compare_backends()
 
+    def _compare_backends(self):
         # Compare
-        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
-        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
-        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
-        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
-        assert np.all(self.backend1.p_or == self.backend2.p_or)
-        assert np.all(self.backend1.q_or == self.backend2.q_or)
-        assert np.all(self.backend1.v_or == self.backend2.v_or)
-        assert np.all(self.backend1.a_or == self.backend2.a_or)
-        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
-        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
-        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+        if hasattr(self.backend1, "prod_pu_to_kv") and hasattr(self.backend2, "prod_pu_to_kv"):
+            assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
+        if hasattr(self.backend1, "load_pu_to_kv") and hasattr(self.backend2, "load_pu_to_kv"):
+            assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
+        if hasattr(self.backend1, "lines_or_pu_to_kv") and hasattr(self.backend2, "lines_or_pu_to_kv"):
+            assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
+        if hasattr(self.backend1, "lines_ex_pu_to_kv") and hasattr(self.backend2, "lines_ex_pu_to_kv"):
+            assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
+        if hasattr(self.backend1, "p_or") and hasattr(self.backend2, "p_or"):
+            assert np.all(self.backend1.p_or == self.backend2.p_or)
+        if hasattr(self.backend1, "q_or") and hasattr(self.backend2, "q_or"):
+            assert np.all(self.backend1.q_or == self.backend2.q_or)
+        if hasattr(self.backend1, "v_or") and hasattr(self.backend2, "v_or"):
+            assert np.all(self.backend1.v_or == self.backend2.v_or)
+        if hasattr(self.backend1, "a_or") and hasattr(self.backend2, "a_or"):
+            assert np.all(self.backend1.a_or == self.backend2.a_or)
+        if hasattr(self.backend1, "p_ex") and hasattr(self.backend2, "p_ex"):
+            assert np.all(self.backend1.p_ex == self.backend2.p_ex)
+        if hasattr(self.backend1, "a_ex") and hasattr(self.backend2, "a_ex"):
+            assert np.all(self.backend1.a_ex == self.backend2.a_ex)
+        if hasattr(self.backend1, "v_ex") and hasattr(self.backend2, "v_ex"):
+            assert np.all(self.backend1.v_ex == self.backend2.v_ex)
 
     def test_reset_equals_load_grid(self):
         self.skip_if_needed()
@@ -1269,17 +1292,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.env2.reset()
 
         # Compare
-        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
-        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
-        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
-        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
-        assert np.all(self.backend1.p_or == self.backend2.p_or)
-        assert np.all(self.backend1.q_or == self.backend2.q_or)
-        assert np.all(self.backend1.v_or == self.backend2.v_or)
-        assert np.all(self.backend1.a_or == self.backend2.a_or)
-        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
-        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
-        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+        self._compare_backends()
 
     def test_load_grid_equals_load_grid(self):
         self.skip_if_needed()
@@ -1291,17 +1304,7 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.env2.reset()
 
         # Compare
-        assert np.all(self.backend1.prod_pu_to_kv == self.backend2.prod_pu_to_kv)
-        assert np.all(self.backend1.load_pu_to_kv == self.backend2.load_pu_to_kv)
-        assert np.all(self.backend1.lines_or_pu_to_kv == self.backend2.lines_or_pu_to_kv)
-        assert np.all(self.backend1.lines_ex_pu_to_kv == self.backend2.lines_ex_pu_to_kv)
-        assert np.all(self.backend1.p_or == self.backend2.p_or)
-        assert np.all(self.backend1.q_or == self.backend2.q_or)
-        assert np.all(self.backend1.v_or == self.backend2.v_or)
-        assert np.all(self.backend1.a_or == self.backend2.a_or)
-        assert np.all(self.backend1.p_ex == self.backend2.p_ex)
-        assert np.all(self.backend1.a_ex == self.backend2.a_ex)
-        assert np.all(self.backend1.v_ex == self.backend2.v_ex)
+        self._compare_backends()
 
     def test_obs_from_same_chronic(self):
         self.skip_if_needed()
@@ -1440,7 +1443,10 @@ class BaseTestChangeBusSlack(MakeBackend):
         assert am_i_done is False
         assert np.all(obs.prod_p >= 0.)
         assert np.sum(obs.prod_p) >= np.sum(obs.load_p)
-        p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
         assert np.all(np.abs(p_subs) <= self.tol_one)
         assert np.all(np.abs(p_bus) <= self.tol_one)
 
@@ -1654,6 +1660,20 @@ class BaseIssuesTest(MakeBackend):
             else:
                 assert obs.time_before_cooldown_sub[obs.line_ex_to_subid[LINE_ID]] == param.NB_TIMESTEP_COOLDOWN_SUB
             assert obs.time_before_cooldown_line[LINE_ID] == param.NB_TIMESTEP_COOLDOWN_LINE - 1
+
+    def test_issue_copyenv(self):
+        # https://github.com/BDonnot/lightsim2grid/issues/10
+        from grid2op import make
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env1 = grid2op.make("rte_case14_realistic",
+                                test=True,
+                                backend=backend)
+        env2 = env1.copy()
+        obs1 = env1.reset()
+        obs2 = env2.get_obs()
+        assert np.any(obs1.prod_p != obs2.prod_p)
 
 
 class BaseStatusActions(MakeBackend):

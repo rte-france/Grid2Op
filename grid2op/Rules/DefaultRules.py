@@ -26,6 +26,8 @@ class DefaultRules(LookParam, PreventReconnection):
         """
         See :func:`BaseRules.__call__` for a definition of the _parameters of this function.
         """
-        if not LookParam.__call__(self, action, env):
-            return False
+        is_legal, reason = LookParam.__call__(self, action, env)
+        if not is_legal:
+            return False, reason
+
         return PreventReconnection.__call__(self, action, env)

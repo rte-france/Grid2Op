@@ -118,6 +118,5 @@ class TestIdToAct(HelperTests):
         assert act_ == act2_
 
 
-
 if __name__ == "__main__":
     unittest.main()

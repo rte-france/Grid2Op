@@ -61,6 +61,9 @@ class ChangeNothing(GridValue):
             Information about the current hazard. See :attr:`GridValue.hazard_duration`
             for more information.
 
+        prod_v: ``numpy.ndarray``, dtype:``float``
+            the (stored) value of the generator voltage setpoint
+
         """
         self.current_datetime += self.time_interval
         self.curr_iter += 1

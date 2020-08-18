@@ -16,6 +16,18 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+[1.2.1] - 2020-08-xx
+---------------------
+- [ADDED] a function that allows to modify some parameters of the environment (see `grid2op.update_env`)
+- [ADDED] a class to convert between two backends
+- [FIXED] out dated documentation in some classes
+- [FIXED] `Issue #140<https://github.com/rte-france/Grid2Op/issues/140>`_: illegal action were
+  not properly computed in some cases, especially in case of divergence of the powerflow. Also now
+  the "why" the action is illegal is displayed (instead of a generic "this action is illegal".
+- [FIXED] `LightSim Issue #10<https://github.com/BDonnot/lightsim2grid/issues/10>`_:
+  copy of whole environments without needing pickle module.
+- [UPDATED] a missing class documentation `Chronics.Multifolder` in that case.
+
 [1.2.0] - 2020-08-03
 ---------------------
 - [ADDED] `ActionSpace.sample` method is now implemented
