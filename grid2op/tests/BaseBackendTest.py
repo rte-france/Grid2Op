@@ -79,7 +79,9 @@ class BaseTestNames(MakeBackend):
     def test_properNames(self):
         backend = self.make_backend()
         path = self.get_path()
-        with make(os.path.join(path, "5bus_example_diff_name"), backend=backend) as env:
+        with make(os.path.join(path, "5bus_example_diff_name"),
+                  backend=backend,
+                  ) as env:
             obs = env.reset()
             assert np.all(obs.name_load == ["tutu", "toto", "tata"])
             assert np.all(env.name_load == ["tutu", "toto", "tata"])

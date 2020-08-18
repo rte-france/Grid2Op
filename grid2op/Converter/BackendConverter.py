@@ -118,6 +118,7 @@ class BackendConverter(Backend):
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("loads"))
         if self.n_line != self.target_backend.n_line:
             raise Grid2OpException(ERROR_NB_ELEMENTS.format("lines"))
+
     def _init_myself(self):
         # shortcut to set all information related to the class, except the name of the environment
         # this should been done when the source backend is fully initialized only
@@ -197,6 +198,8 @@ class BackendConverter(Backend):
             # grid layout data were available
             super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
 
+
+
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
         id_sub_source = source_2_id_sub[id_source]
         id_sub_target = self._sub_tg2sr[id_sub_source]
@@ -274,12 +277,16 @@ class BackendConverter(Backend):
         self.source_backend.set_env_name(self.env_name)
         self.target_backend.set_env_name(self.env_name)
 
-        # now i assert that
-        self.source_backend.assert_grid_correct()
-        self.target_backend.assert_grid_correct()
-
         # everything went well, so i can properly terminate my initialization
         self._init_myself()
+
+        # the next is not done as it is supposed to be done in "assert_grid_correct_after_powerflow"
+        self.source_backend.__class__ = self.source_backend.init_grid(self)
+        self.target_backend.__class__ = self.target_backend.init_grid(self)  # for this one i am not sure
+
+        # now i assert that the powergrids are ok
+        self.source_backend.assert_grid_correct()
+        self.target_backend.assert_grid_correct()
 
         # and this should be called after all the rest
         super().assert_grid_correct()
