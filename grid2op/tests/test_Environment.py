@@ -276,6 +276,7 @@ class TestOtherReward(unittest.TestCase):
         assert np.abs(info_simu["rewards"]["test"] - reward_simu) <= self.tol_one
 
     def test_copy(self):
+        # https://github.com/BDonnot/lightsim2grid/issues/10
         for i in range(5):
             obs, reward, done, info = self.env.step(self.env.action_space())
         env2 = self.env.copy()
