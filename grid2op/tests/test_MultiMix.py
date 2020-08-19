@@ -293,5 +293,31 @@ class TestMultiMixEnvironment(unittest.TestCase):
             assert isinstance(v, BaseEnv)
             assert v == mme[k]
 
+    def test_copy(self):
+        # https://github.com/BDonnot/lightsim2grid/issues/10
+        mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
+        for i in range(5):
+            obs, reward, done, info = mme.step(mme.action_space())
+        env2 = mme.copy()
+
+        obsnew = env2.get_obs()
+        assert obsnew == obs
+
+        # after the same action, the original env and its copy are the same
+        obs0, reward0, done0, info0 = mme.step(mme.action_space())
+        obs1, reward1, done1, info1 = env2.step(env2.action_space())
+        assert obs0 == obs1
+        assert reward0 == reward1
+        assert done1 == done0
+
+        # reset has the correct behaviour
+        obs_after = env2.reset()
+        obs00, reward00, done00, info00 = mme.step(mme.action_space())
+        # i did not affect the other environment
+        assert obs00.minute_of_hour == obs0.minute_of_hour + mme.chronics_handler.time_interval.seconds // 60
+        # reset read the right chronics
+        assert obs_after.minute_of_hour == 0
+
+
 if __name__ == "__main__":
     unittest.main()

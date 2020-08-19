@@ -28,6 +28,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     """
     def __init__(self,
                  envs_dir,
+                 _for_copy=False,
                  **kwargs):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -35,6 +36,11 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env = None
         self.env_index = None
         self.mix_envs = []
+
+        if _for_copy:
+            # used for making copy of this environment
+            # do not set
+            return
 
         # Special case handling for backend 
         backendClass = None
@@ -106,7 +112,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     def __next__(self):
         if self.env_index < len(self.mix_envs):
-            r =  self.mix_envs[self.env_index]
+            r = self.mix_envs[self.env_index]
             self.env_index = self.env_index + 1
             return r
         else:
@@ -128,9 +134,27 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         for mix in self.mix_envs:
             yield mix.name, mix
 
+    def copy(self):
+        mix_envs = self.mix_envs
+        self.mix_envs = None
+        current_env = self.current_env
+        self.current_env = None
+        res = MultiMixEnvironment(envs_dir=None,
+                                  _for_copy=True)
+        for k, v in self.__dict__.items():
+            if v is not None:
+                setattr(res, k, copy.deepcopy(v))
+        res.mix_envs = [mix.copy() for mix in mix_envs]
+        res.current_env = res.mix_envs[res.env_index]
+        res.__class__ = self.__class__
+
+        self.mix_envs = mix_envs
+        self.current_env = current_env
+        return res
+
     def __getitem__(self, key):
         """
-        Operator [] overload for accesing underlying mixes by name
+        Operator [] overload for accessing underlying mixes by name
 
         .. code-block:: python
 
