@@ -275,6 +275,11 @@ class TestOtherReward(unittest.TestCase):
         assert "test" in info_simu["rewards"]
         assert np.abs(info_simu["rewards"]["test"] - reward_simu) <= self.tol_one
 
+    def test_copy(self):
+        env2 = self.env.copy()
+        obs = env2.reset()
+        obs, reward, done, info = env2.step(env2.action_space())
+
 
 class TestResetOk(unittest.TestCase):
     """

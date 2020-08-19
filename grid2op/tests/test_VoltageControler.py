@@ -20,6 +20,15 @@ class TestLoadingVoltageControl(unittest.TestCase):
             with make("rte_case5_example", test=True) as env:
                 volt_cont = ControlVoltageFromFile(controler_backend=env.backend, gridobj=env.backend)
 
+    def test_copy(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env:
+                volt_cont = ControlVoltageFromFile(controler_backend=env.backend, gridobj=env.backend)
+
+                res = volt_cont.copy()
+                assert isinstance(res, ControlVoltageFromFile)
+
 
 if __name__ == "__main__":
     unittest.main()
