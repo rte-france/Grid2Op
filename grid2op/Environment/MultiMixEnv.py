@@ -28,7 +28,6 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     """
     def __init__(self,
                  envs_dir,
-                 _for_copy=False,
                  **kwargs):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -36,11 +35,6 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env = None
         self.env_index = None
         self.mix_envs = []
-
-        if _for_copy:
-            # used for making copy of this environment
-            # do not set
-            return
 
         # Special case handling for backend 
         backendClass = None
