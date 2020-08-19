@@ -31,7 +31,7 @@ WORKDIR /Grid2Op
 RUN git pull
 RUN git remote update
 RUN git fetch --all --tags
-RUN git checkout "tags/v1.2.1" -b "v1.2.1-branch"
+RUN git checkout "tags/v1.2.2" -b "v1.2.2-branch"
 # Install Dependencies
 RUN pip3 install .[optional,challenge]
 WORKDIR /
