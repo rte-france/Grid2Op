@@ -16,9 +16,10 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
-[1.2.2] - 2020-08-18
+[1.2.2] - 2020-08-xx
 ---------------------
 - [FIXED] `LightSim Issue #10<https://github.com/BDonnot/lightsim2grid/issues/10>`_: tests were
+  not covering every usecase
 
 [1.2.1] - 2020-08-18
 ---------------------
