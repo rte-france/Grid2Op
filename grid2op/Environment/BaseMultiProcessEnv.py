@@ -215,6 +215,9 @@ class BaseMultiProcessEnvironment(GridObjects):
         obs = [self.envs[e].observation_space.from_vect(ob) for e, ob in enumerate(obs)]
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
+    def copy(self):
+        raise NotImplementedError("It is not possible to copy multiprocessing environments at the moment.")
+
     def step(self, actions):
         """
         Perform a step in all the underlying environments.
