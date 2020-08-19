@@ -139,14 +139,16 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.mix_envs = None
         current_env = self.current_env
         self.current_env = None
-        res = MultiMixEnvironment(envs_dir=None,
-                                  _for_copy=True)
-        for k, v in self.__dict__.items():
-            if v is not None:
-                setattr(res, k, copy.deepcopy(v))
+
+        cls = self.__class__
+        res = cls.__new__(cls)
+        for k in self.__dict__:
+            if k == "mix_envs" or k == "current_env":
+                # this is handled elswhere
+                continue
+            setattr(res, k, copy.deepcopy(getattr(self, k)))
         res.mix_envs = [mix.copy() for mix in mix_envs]
         res.current_env = res.mix_envs[res.env_index]
-        res.__class__ = self.__class__
 
         self.mix_envs = mix_envs
         self.current_env = current_env
