@@ -114,6 +114,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs = self.env.helper_observation(self.env)
         obs.size()
 
+    def test_copy_space(self):
+        obs_space2 = self.env.helper_observation.copy()
+        assert isinstance(obs_space2, ObservationSpace)
+
     def test_proper_size(self):
         obs = self.env.helper_observation(self.env)
         assert obs.size() == self.size_obs

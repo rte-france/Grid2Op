@@ -63,6 +63,7 @@ class BaseVoltageController(RandomObject, ABC):
         res = copy.deepcopy(self)
         res.backend = backend_tmp.copy()
         self.backend = backend_tmp
+        return res
 
     def attach_layout(self, grid_layout):
         self.action_space.attach_layout(grid_layout)
