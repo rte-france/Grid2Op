@@ -186,7 +186,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._injection = None
         self._maintenance = None
         self._hazards = None
-        self.env_modification = None
+        self._env_modification = None
 
         # to use the data
         self.done = False
@@ -562,9 +562,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # modification of the environment always override the modification of the agents (if any)
         # TODO have a flag there if this is the case.
-        if "prod_p" in self.env_modification._dict_inj:
+        if "prod_p" in self._env_modification._dict_inj:
             # modification of the production setpoint value
-            tmp = self.env_modification._dict_inj["prod_p"]
+            tmp = self._env_modification._dict_inj["prod_p"]
             indx_ok = np.isfinite(tmp)
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
@@ -822,10 +822,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # computes which generator will be turned on after the action
         gen_up_after = 1.0 * self._gen_activeprod_t
-        if "prod_p" in self.env_modification._dict_inj:
-            tmp = self.env_modification._dict_inj["prod_p"]
+        if "prod_p" in self._env_modification._dict_inj:
+            tmp = self._env_modification._dict_inj["prod_p"]
             indx_ok = np.isfinite(tmp)
-            gen_up_after[indx_ok] = self.env_modification._dict_inj["prod_p"][indx_ok]
+            gen_up_after[indx_ok] = self._env_modification._dict_inj["prod_p"][indx_ok]
         gen_up_after += redisp_act
         gen_up_after = gen_up_after > 0.
 
@@ -1027,8 +1027,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 except_.append(except_tmp)
 
             # get the modification of generator active setpoint from the environment
-            self.env_modification, prod_v_chronics = self._update_actions()
-            self.env_modification._single_act = False  # because it absorbs all redispatching actions
+            self._env_modification, prod_v_chronics = self._update_actions()
+            self._env_modification._single_act = False  # because it absorbs all redispatching actions
             new_p = self._get_new_prod_setpoint(action)
 
             if self.redispatching_unit_commitment_availble:
@@ -1063,7 +1063,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._backend_action += action
             action._redispatch[:] = init_disp
 
-            self._backend_action += self.env_modification
+            self._backend_action += self._env_modification
             self._backend_action.set_redispatch(self._actual_dispatch)
 
             # now get the new generator voltage setpoint
@@ -1076,7 +1076,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             tick = time.time()
             attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
                                                             agent_action=action,
-                                                            env_action=self.env_modification)
+                                                            env_action=self._env_modification)
             if attack is not None:
                 # the opponent choose to attack
                 # i update the "cooldown" on these things

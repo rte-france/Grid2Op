@@ -360,7 +360,7 @@ class Environment(BaseEnv):
         """
         volt_control_act = self.voltage_controler.fix_voltage(self.current_obs,
                                                               agent_action,
-                                                              self.env_modification,
+                                                              self._env_modification,
                                                               prod_v_chronics)
         return volt_control_act
 
@@ -552,7 +552,7 @@ class Environment(BaseEnv):
                                          self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
-        self.env_modification = None
+        self._env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been

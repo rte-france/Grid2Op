@@ -701,7 +701,7 @@ class Runner(object):
                 pbar_.update(1)
                 opp_attack = env.oppSpace.last_attack
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   float(reward), env.env_modification,
+                                   float(reward), env._env_modification,
                                    act, obs, opp_attack,
                                    info)
             end_ = time.time()
