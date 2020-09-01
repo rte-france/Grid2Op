@@ -243,6 +243,20 @@ class EpisodeData:
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.name))
 
+    def reboot(self):
+        """
+        do as if the data just got read from the hard drive (loop again from the
+        initial observation and action)
+        """
+        self.actions.reboot()
+        self.observations.reboot()
+        self.env_actions.reboot()
+
+    def go_to(self, index):
+        self.actions.go_to(index)
+        self.observations.go_to(index+1)
+        self.env_actions.go_to(index)
+
     def get_actions(self):
         return self.actions.collection
 
@@ -253,7 +267,7 @@ class EpisodeData:
         return int(self.meta["chronics_max_timestep"])
 
     @classmethod
-    def from_disk(cls, agent_path, name=str(1)):
+    def from_disk(cls, agent_path, name="1"):
         """
         This function allows you to reload an episode stored using the runner.
 
@@ -643,6 +657,14 @@ class CollectionWrapper:
 
     def save(self, path):
         np.savez_compressed(path, data=self.collection)  # do not change keyword arguments
+
+    def reboot(self):
+        self.i = 0
+
+    def go_to(self, index):
+        if index >= len(self):
+            raise Grid2OpException("index too long for collection {}".format(self.collection_name))
+        self.i = index
 
 
 if __name__ == "__main__":

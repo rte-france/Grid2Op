@@ -571,6 +571,7 @@ class BaseObservation(GridObjects):
                         "target_dispatch", "actual_dispatch"
                         ]:
             if not self.__compare_stats(other, stat_nm):
+                print("error for {}".format(stat_nm))
                 # one of the above stat is not equal in this and in other
                 return False
 
@@ -693,9 +694,9 @@ class BaseObservation(GridObjects):
         return prod_p_f, prod_v_f, load_p_f, load_q_f
 
     def get_time_stamp(self):
-        """get the time stamp of the current observation as a datetime.datetim object"""
+        """get the time stamp of the current observation as a datetime.datetime object"""
         res = datetime.datetime(year=self.year, month=self.month, day=self.day,
-                          hour=self.hour_of_day, minute=self.minute_of_hour)
+                                hour=self.hour_of_day, minute=self.minute_of_hour)
         return res
 
     def simulate(self, action, time_step=1):

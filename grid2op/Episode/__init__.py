@@ -1,8 +1,10 @@
 __all__ = [
-    "EpisodeData"
+    "EpisodeData",
+    "EpisodeReboot"
 ]
 
 from grid2op.Episode.EpisodeData import EpisodeData
+from grid2op.Episode.EpisodeReboot import EpisodeReboot
 
 # Try to import optional module
 try:
