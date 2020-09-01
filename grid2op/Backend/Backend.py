@@ -616,12 +616,12 @@ class Backend(GridObjects, ABC):
         infos = []
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
         conv_ = self._runpf_with_diverging_exception(is_dc)
-        if env.no_overflow_disconnection or conv_ is not None:
+        if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
         # the environment disconnect some
 
-        init_time_step_overflow = copy.deepcopy(env.timestep_overflow)
+        init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
         while True:
             # simulate the cascading failure
             lines_flows = self.get_line_flow()
@@ -629,11 +629,11 @@ class Backend(GridObjects, ABC):
             lines_status = self.get_line_status()
 
             # a) disconnect lines on hard overflow
-            to_disc = lines_flows > env.hard_overflow_threshold * thermal_limits
+            to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
 
             # b) deals with soft overflow
             init_time_step_overflow[ (lines_flows >= thermal_limits) & (lines_status)] += 1
-            to_disc[init_time_step_overflow > env.nb_timestep_overflow_allowed] = True
+            to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
 
             # disconnect the current power lines
             if np.sum(to_disc[lines_status]) == 0:

@@ -159,8 +159,8 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         env.reset()
-        # action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
-        action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
+        # action = env.action_space({"change_bus": {"lines_or_id": [17]}})
+        action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
@@ -172,7 +172,7 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         env.reset()
-        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
@@ -184,14 +184,14 @@ class TestChangeBusAffectRightBus2(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         env.reset()
-        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert not done
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend._grid["bus"]["in_service"]) == 15
         assert env.backend._grid["trafo"]["hv_bus"][2] == 18
 
-        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert not done
         assert np.all(np.isfinite(obs.v_or))

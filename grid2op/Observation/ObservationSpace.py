@@ -77,7 +77,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.rewardClass = rewardClass
 
         # helpers
-        self.action_helper_env = env.helper_action_env
+        self.action_helper_env = env._helper_action_env
         self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
         self.reward_helper.initialize(env)
 
@@ -92,13 +92,13 @@ class ObservationSpace(SerializableObservationSpace):
                                      parameters=env.parameters,
                                      reward_helper=self.reward_helper,
                                      action_helper=self.action_helper_env,
-                                     thermal_limit_a=env._thermal_limit_a,
-                                     legalActClass=env.legalActClass,
-                                     donothing_act=env.helper_action_player(),
+                                     thermal_limit_a=env.get_thermal_limit(),
+                                     legalActClass=env._legalActClass,
+                                     donothing_act=env._helper_action_player(),
                                      other_rewards=other_rewards,
-                                     completeActionClass=env.helper_action_env.actionClass,
-                                     helper_action_class=env.helper_action_class,
-                                     helper_action_env=env.helper_action_env)
+                                     completeActionClass=env._helper_action_env.actionClass,
+                                     helper_action_class=env._helper_action_class,
+                                     helper_action_env=env._helper_action_env)
 
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)

@@ -142,7 +142,7 @@ class CompleteObservation(BaseObservation):
         self.day_of_week = dt_int(env.time_stamp.weekday())
 
         # get the values related to topology
-        self.timestep_overflow[:] = env.timestep_overflow
+        self.timestep_overflow[:] = env._timestep_overflow
         self.line_status[:] = env.backend.get_line_status()
         self.topo_vect[:] = env.backend.get_topo_vect()
 
@@ -170,14 +170,14 @@ class CompleteObservation(BaseObservation):
         self.rho[:] = env.backend.get_relative_flow().astype(dt_float)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line[:] = env.times_before_line_status_actionable
-        self.time_before_cooldown_sub[:] = env.times_before_topology_actionable
-        self.time_next_maintenance[:] = env.time_next_maintenance
-        self.duration_next_maintenance[:] = env.duration_next_maintenance
+        self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
+        self.time_before_cooldown_sub[:] = env._times_before_topology_actionable
+        self.time_next_maintenance[:] = env._time_next_maintenance
+        self.duration_next_maintenance[:] = env._duration_next_maintenance
 
         # redispatching
-        self.target_dispatch[:] = env.target_dispatch
-        self.actual_dispatch[:] = env.actual_dispatch
+        self.target_dispatch[:] = env._target_dispatch
+        self.actual_dispatch[:] = env._actual_dispatch
 
     def from_vect(self, vect, check_legit=True):
         """

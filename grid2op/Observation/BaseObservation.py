@@ -19,6 +19,7 @@ from grid2op.Space import GridObjects
 
 # TODO fix "bug" when action not initalized, return nan in to_vect
 
+
 class BaseObservation(GridObjects):
     """
     Basic class representing an observation.

@@ -33,6 +33,12 @@ class SerializableActionSpace(SerializableSpace):
         action (see :func:`Action.size`) or to sample a new Action (see :func:`grid2op.Action.Action.sample`)
 
     """
+    SET_STATUS = 0
+    CHANGE_STATUS = 1
+    SET_BUS = 2
+    CHANGE_BUS = 3
+    REDISPATCHING = 3
+
     def __init__(self, gridobj, actionClass=BaseAction):
         """
 
@@ -72,11 +78,71 @@ class SerializableActionSpace(SerializableSpace):
         res = SerializableActionSpace(gridobj=tmp, actionClass=tmp.subtype)
         return res
 
+    def _get_possible_action_types(self):
+        rnd_types = []
+        if "set_line_status" in self.actionClass.authorized_keys:
+            rnd_types.append(self.SET_STATUS)
+        if "change_line_status" in self.actionClass.authorized_keys:
+            rnd_types.append(self.CHANGE_STATUS)
+        if "set_bus" in self.actionClass.authorized_keys:
+            rnd_types.append(self.SET_BUS)
+        if "change_bus" in self.actionClass.authorized_keys:
+            rnd_types.append(self.CHANGE_BUS)
+        if "redispatch" in self.actionClass.authorized_keys:
+            rnd_types.append(self.REDISPATCHING)
+        return rnd_types
+
+    def _sample_set_line_status(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        rnd_line = self.space_prng.randint(self.n_line)
+        rnd_status = self.space_prng.choice([1, -1])
+        rnd_update["set_line_status"] = [(rnd_line, rnd_status)]
+        return rnd_update
+
+    def _sample_change_line_status(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        rnd_line = self.space_prng.randint(self.n_line)
+        rnd_update["change_line_status"] = [rnd_line]
+        return rnd_update
+
+    def _sample_set_bus(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        rnd_sub = self.space_prng.randint(self.n_sub)
+        sub_size = self.sub_info[rnd_sub]
+        rnd_topo = self.space_prng.choice([-1, 0, 1, 2], sub_size)
+        rnd_update["set_bus"] = {"substations_id": [(rnd_sub, rnd_topo)] }
+        return rnd_update
+
+    def _sample_change_bus(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        rnd_sub = self.space_prng.randint(self.n_sub)
+        sub_size = self.sub_info[rnd_sub]
+        rnd_topo = self.space_prng.choice([0, 1], sub_size)
+        rnd_update["change_bus"] = {"substations_id": [(rnd_sub, rnd_topo)] }
+        return rnd_update
+
+    def _sample_redispatch(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        gens = np.arange(self.n_gen)[self.gen_redispatchable]
+        rnd_gen = self.space_prng.choice(gens)
+        rd = -self.gen_max_ramp_down[rnd_gen]
+        ru = self.gen_max_ramp_up[rnd_gen]
+        rnd_gen_disp = (ru - rd) * self.space_prng.random() + rd
+        rnd_disp = np.zeros(self.n_gen)
+        rnd_disp[rnd_gen] = rnd_gen_disp
+        rnd_update["redispatch"] = rnd_disp
+        return rnd_update
+
     def sample(self):
         """
         A utility used to sample a new random :class:`Action`.
 
-        The sampled action is unitary: 
+        The sampled action is unitary:
         It has an impact on a single line/substation/generator.
 
         Returns
@@ -86,64 +152,26 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         rnd_act = self.actionClass()
-        
-        rnd_types = []
-        if "set_line_status" in self.actionClass.authorized_keys:
-            rnd_types.append(0)
-        if "change_line_status" in self.actionClass.authorized_keys:
-            rnd_types.append(1)
-        if "set_bus" in self.actionClass.authorized_keys:
-            rnd_types.append(2)
-        if "change_bus" in self.actionClass.authorized_keys:
-            rnd_types.append(3)
-        if "redispatch" in self.actionClass.authorized_keys:
-            rnd_types.append(4)
 
         # Cannot sample this space, return do nothing
+        rnd_types = self._get_possible_action_types()
         if not len(rnd_types):
             return rnd_act
-
+        # this sampling
         rnd_type = self.space_prng.choice(rnd_types)
-        if rnd_type == 0:
-            rnd_line = self.space_prng.randint(self.n_line)
-            rnd_status = self.space_prng.choice([1, -1])
-            rnd_update = {
-                "set_line_status": [(rnd_line, rnd_status)]
-            }
-        elif rnd_type == 1:
-            rnd_line = self.space_prng.randint(self.n_line)
-            rnd_update = {
-                "change_line_status": [rnd_line]
-            }
-        elif rnd_type == 2:
-            rnd_sub = self.space_prng.randint(self.n_sub)
-            sub_size = self.sub_info[rnd_sub]
-            rnd_topo = self.space_prng.choice([-1, 0, 1, 2], sub_size)
-            rnd_update = {
-                "set_bus": {
-                    "substations_id": [(rnd_sub, rnd_topo)]
-                }
-            }
-        elif rnd_type == 3:
-            rnd_sub = self.space_prng.randint(self.n_sub)
-            sub_size = self.sub_info[rnd_sub]
-            rnd_topo = self.space_prng.choice([0, 1], sub_size)
-            rnd_update = {
-                "change_bus": {
-                    "substations_id": [(rnd_sub, rnd_topo)]
-                }
-            }
+
+        if rnd_type == self.SET_STATUS:
+            rnd_update = self._sample_set_line_status()
+        elif rnd_type == self.CHANGE_STATUS:
+            rnd_update = self._sample_change_line_status()
+        elif rnd_type == self.SET_BUS:
+            rnd_update = self._sample_set_bus()
+        elif rnd_type == self.CHANGE_BUS:
+            rnd_update = self._sample_change_bus()
+        elif rnd_types == self.REDISPATCHING:
+            rnd_update = self._sample_redispatch()
         else:
-            gens = np.arange(self.n_gen)[self.gen_redispatchable]
-            rnd_gen = self.space_prng.choice(gens)
-            ru = -self.gen_max_ramp_down[rnd_gen]
-            rd = self.gen_max_ramp_up[rnd_gen]
-            rnd_gen_disp = (ru - rd) * self.space_prng.random() + rd
-            rnd_disp = np.zeros(self.n_gen)
-            rnd_disp[rnd_gen] = rnd_gen_disp
-            rnd_update = {
-                "redispatch" : rnd_disp
-            }
+            raise Grid2OpException("Impossible to sample action of type {}".format(rnd_type))
 
         rnd_act.update(rnd_update)
         return rnd_act

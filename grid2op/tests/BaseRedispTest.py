@@ -92,7 +92,7 @@ class BaseTestRedispatch(MakeBackend):
         obs, reward, done, info = self.env.step(act)
         assert self.compare_vect(obsinit.prod_p, ref_data)
 
-        target_val = obs.prod_p + self.env.actual_dispatch
+        target_val = obs.prod_p + self.env._actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
         assert np.all(obs.prod_p >= self.env.gen_pmin)
         assert np.all(target_val <= self.env.gen_pmax)
@@ -104,17 +104,17 @@ class BaseTestRedispatch(MakeBackend):
         self.skip_if_needed()
         act = self.env.action_space({"redispatch": [2, 5]})
         obs, reward, done, info = self.env.step(act)
-        assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
+        assert np.abs(np.sum(self.env._actual_dispatch)) <= self.tol_one
         th_dispatch = np.array([ 0. , -2.5,  5. ,  0. , -2.5])
-        assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
-        target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
+        assert self.compare_vect(self.env._actual_dispatch, th_dispatch)
+        target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env._actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
         assert np.all(obs.prod_p >= self.env.gen_pmin)
         assert np.all(target_val <= self.env.gen_pmax)
 
         # check that the redispatching is apply in the right direction
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        indx_ok = self.env._target_dispatch != 0.
+        assert np.all(np.sign(self.env._actual_dispatch[indx_ok]) == np.sign(self.env._target_dispatch[indx_ok]))
 
     def test_redispatch_act_above_pmax(self):
         # in this test, the asked redispatching for generator 2 would make it above pmax, so the environment
@@ -122,10 +122,10 @@ class BaseTestRedispatch(MakeBackend):
         self.skip_if_needed()
         act = self.env.action_space({"redispatch": [2, 60]})
         obs, reward, done, info = self.env.step(act)
-        assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
+        assert np.abs(np.sum(self.env._actual_dispatch)) <= self.tol_one
         th_dispatch = np.array([0.0000000e+00, -2.3289999e+01,  5.0890003e+01,  9.9999998e-03, -2.7610004e+01])
-        assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
-        target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env.actual_dispatch
+        assert self.compare_vect(self.env._actual_dispatch, th_dispatch)
+        target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env._actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
         assert np.all(obs.prod_p >= self.env.gen_pmin)
         assert np.all(target_val <= self.env.gen_pmax)
@@ -138,17 +138,17 @@ class BaseTestRedispatch(MakeBackend):
         obs, reward, done, info = self.env.step(act)
         th_dispatch = np.array([0., 10, 20., 0., 0.])
         th_dispatch[1] += obs_first.actual_dispatch[1]
-        assert self.compare_vect(self.env.target_dispatch, th_dispatch)
+        assert self.compare_vect(self.env._target_dispatch, th_dispatch)
         # check that the redispatching is apply in the right direction
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        indx_ok = self.env._target_dispatch != 0.
+        assert np.all(np.sign(self.env._actual_dispatch[indx_ok]) == np.sign(self.env._target_dispatch[indx_ok]))
         th_dispatch = np.array([0.,  10.,  20.,   0., -30.])
         th_dispatch = np.array([ 0.0000000e+00, -5.0001135e-03, 2.0000000e+01,  9.9999998e-03, -2.0005001e+01])
-        assert self.compare_vect(self.env.actual_dispatch, th_dispatch)
+        assert self.compare_vect(self.env._actual_dispatch, th_dispatch)
 
-        target_val = self.chronics_handler.real_data.prod_p[2, :] + self.env.actual_dispatch
+        target_val = self.chronics_handler.real_data.prod_p[2, :] + self.env._actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus
-        assert np.abs(np.sum(self.env.actual_dispatch)) <= self.tol_one
+        assert np.abs(np.sum(self.env._actual_dispatch)) <= self.tol_one
         assert np.all(target_val <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -158,12 +158,12 @@ class BaseTestRedispatch(MakeBackend):
         obs, reward, done, info = self.env.step(act)
         assert not done
         th_dispatch = np.array([0., 10, 20., 0., 0.])
-        assert self.compare_vect(self.env.target_dispatch, th_dispatch)
-        assert self.compare_vect(self.env.actual_dispatch, self.array_double_dispatch)
+        assert self.compare_vect(self.env._target_dispatch, th_dispatch)
+        assert self.compare_vect(self.env._actual_dispatch, self.array_double_dispatch)
 
         # check that the redispatching is apply in the right direction
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        indx_ok = self.env._target_dispatch != 0.
+        assert np.all(np.sign(self.env._actual_dispatch[indx_ok]) == np.sign(self.env._target_dispatch[indx_ok]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -174,12 +174,12 @@ class BaseTestRedispatch(MakeBackend):
         obs, reward, done, info = self.env.step(act)
 
         th_dispatch = np.array([0., 10, 20., 0., -30.])
-        assert self.compare_vect(self.env.target_dispatch, th_dispatch)
-        assert self.compare_vect(self.env.actual_dispatch, self.array_double_dispatch)
+        assert self.compare_vect(self.env._target_dispatch, th_dispatch)
+        assert self.compare_vect(self.env._actual_dispatch, self.array_double_dispatch)
 
         # check that the redispatching is apply in the right direction
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        indx_ok = self.env._target_dispatch != 0.
+        assert np.all(np.sign(self.env._actual_dispatch[indx_ok]) == np.sign(self.env._target_dispatch[indx_ok]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -189,14 +189,14 @@ class BaseTestRedispatch(MakeBackend):
 
         # recoded it: it's the normal behavior to call "env.reset()" to get the first time step
         obs = self.env.reset()
-        assert np.all(self.env.gen_uptime == np.array([0, 1, 1, 0, 1]))
-        assert np.all(self.env.gen_downtime == np.array([1, 0, 0, 1, 0]))
+        assert np.all(self.env._gen_uptime == np.array([0, 1, 1, 0, 1]))
+        assert np.all(self.env._gen_downtime == np.array([1, 0, 0, 1, 0]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
         obs, reward, done, info = self.env.step(act)
-        assert np.all(self.env.gen_uptime == np.array([0, 2, 2, 0, 2]))
-        assert np.all(self.env.gen_downtime == np.array([2, 0, 0, 2, 0]))
+        assert np.all(self.env._gen_uptime == np.array([0, 2, 2, 0, 2]))
+        assert np.all(self.env._gen_downtime == np.array([2, 0, 0, 2, 0]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -206,14 +206,14 @@ class BaseTestRedispatch(MakeBackend):
             assert np.all(obs.prod_p >= self.env.gen_pmin)
 
         obs, reward, done, info = self.env.step(act)
-        assert np.all(self.env.gen_uptime == np.array([0, 67, 67,  1, 67]))
-        assert np.all(self.env.gen_downtime == np.array([67, 0, 0, 0, 0]))
+        assert np.all(self.env._gen_uptime == np.array([0, 67, 67, 1, 67]))
+        assert np.all(self.env._gen_downtime == np.array([67, 0, 0, 0, 0]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
         obs, reward, done, info = self.env.step(act)
-        assert np.all(self.env.gen_uptime == np.array([1, 68, 68,  2, 68]))
-        assert np.all(self.env.gen_downtime == np.array([0, 0, 0, 0, 0]))
+        assert np.all(self.env._gen_uptime == np.array([1, 68, 68, 2, 68]))
+        assert np.all(self.env._gen_downtime == np.array([0, 0, 0, 0, 0]))
         assert np.all(obs.prod_p <= self.env.gen_pmax)
         assert np.all(obs.prod_p >= self.env.gen_pmin)
 
@@ -266,7 +266,7 @@ class BaseTestRedispatch(MakeBackend):
         # Check that generator 0 isn't redispatchable
         assert self.env.gen_redispatchable[0] == False
         # Check that generator 0 is off
-        assert self.env.gen_downtime[0] >= 1
+        assert self.env._gen_downtime[0] >= 1
 
         # Try to redispatch
         redispatch_act = self.env.action_space({"redispatch": [(0, 5.)]})
@@ -335,7 +335,7 @@ class BaseTestRedispatchChangeNothingEnvironment(MakeBackend):
 
         # Check that generator 1 is off
         assert obs.prod_p[1] == 0
-        assert self.env.gen_downtime[1] >= 1
+        assert self.env._gen_downtime[1] >= 1
 
         # Try to redispatch generator 1
         redispatch_act = self.env.action_space({"redispatch": [(1, 5.)]})

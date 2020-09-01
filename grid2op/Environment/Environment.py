@@ -203,9 +203,9 @@ class Environment(BaseEnv):
         if not issubclass(rewardClass, BaseReward):
             raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
                                    "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
-        self.rewardClass = rewardClass
-        self.actionClass = actionClass
-        self.observationClass = observationClass
+        self._rewardClass = rewardClass
+        self._actionClass = actionClass
+        self._observationClass = observationClass
 
         # backend
         self.init_grid_path = os.path.abspath(init_grid_path)
@@ -241,8 +241,8 @@ class Environment(BaseEnv):
                 "Parameter \"legalActClass\" used to build the Environment should derived form the "
                 "grid2op.BaseRules class, type provided is \"{}\"".format(
                     type(legalActClass)))
-        self.game_rules = RulesChecker(legalActClass=legalActClass)
-        self.legalActClass = legalActClass
+        self._game_rules = RulesChecker(legalActClass=legalActClass)
+        self._legalActClass = legalActClass
 
         # action helper
         if not isinstance(actionClass, type):
@@ -266,20 +266,20 @@ class Environment(BaseEnv):
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent
-        self.helper_action_class = ActionSpace.init_grid(gridobj=self.backend)
-        self.helper_action_player = self.helper_action_class(gridobj=self.backend,
-                                                             actionClass=actionClass,
-                                                             legal_action=self.game_rules.legal_action)
+        self._helper_action_class = ActionSpace.init_grid(gridobj=self.backend)
+        self._helper_action_player = self._helper_action_class(gridobj=self.backend,
+                                                               actionClass=actionClass,
+                                                               legal_action=self._game_rules.legal_action)
 
         # action that affect the grid made by the environment.
-        self.helper_action_env = self.helper_action_class(gridobj=self.backend,
-                                                          actionClass=CompleteAction,
-                                                          legal_action=self.game_rules.legal_action)
-        self.helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
-        self.helper_observation = self.helper_observation_class(gridobj=self.backend,
-                                                                observationClass=observationClass,
-                                                                rewardClass=rewardClass,
-                                                                env=self)
+        self._helper_action_env = self._helper_action_class(gridobj=self.backend,
+                                                            actionClass=CompleteAction,
+                                                            legal_action=self._game_rules.legal_action)
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
+        self._helper_observation = self._helper_observation_class(gridobj=self.backend,
+                                                                  observationClass=observationClass,
+                                                                  rewardClass=rewardClass,
+                                                                  env=self)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
@@ -297,8 +297,8 @@ class Environment(BaseEnv):
         self.chronics_handler.check_validity(self.backend)
 
         # reward function
-        self.reward_helper = RewardHelper(self.rewardClass)
-        self.reward_helper.initialize(self)
+        self._reward_helper = RewardHelper(self._rewardClass)
+        self._reward_helper.initialize(self)
         for k, v in self.other_rewards.items():
             v.initialize(self)
 
@@ -317,7 +317,7 @@ class Environment(BaseEnv):
         # first injections given)
         self._reset_maintenance()
         self._reset_redispatching()
-        do_nothing = self.helper_action_env({})
+        do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
             raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
@@ -327,9 +327,9 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct_after_powerflow()
 
         # for gym compatibility
-        self.action_space = self.helper_action_player  # this should be an action !!!
-        self.observation_space = self.helper_observation  # this return an observation.
-        self.reward_range = self.reward_helper.range()
+        self.action_space = self._helper_action_player  # this should be an action !!!
+        self.observation_space = self._helper_observation  # this return an observation.
+        self.reward_range = self._reward_helper.range()
         self.viewer = None
         self.viewer_fig = None
 
@@ -491,7 +491,7 @@ class Environment(BaseEnv):
                       "Please install matplotlib or run pip install grid2op[optional]"
             raise Grid2OpException(err_msg) from None
 
-        self.viewer = PlotMatplot(self.helper_observation)
+        self.viewer = PlotMatplot(self._helper_observation)
         self.viewer_fig = None
         # Set renderer modes
         self.metadata = {'render.modes': ["human", "silent"]}
@@ -514,7 +514,7 @@ class Environment(BaseEnv):
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         self._backend_action = self._backend_action_class()
-        do_nothing = self.helper_action_env({})
+        do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
             raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
@@ -564,7 +564,7 @@ class Environment(BaseEnv):
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
 
         # reset the opponent
-        self.oppSpace.reset()
+        self._oppSpace.reset()
         return self.get_obs()
 
     def render(self, mode='human'):
@@ -607,9 +607,9 @@ class Environment(BaseEnv):
         tmp_backend = self.backend
         self.backend = None
 
-        tmp_obs_space = self.helper_observation
+        tmp_obs_space = self._helper_observation
         self.observation_space = None
-        self.helper_observation = None
+        self._helper_observation = None
 
         obs_tmp = self.current_obs
         self.current_obs = None
@@ -619,8 +619,8 @@ class Environment(BaseEnv):
 
         res = copy.deepcopy(self)
         res.backend = tmp_backend.copy()
-        res.helper_observation = tmp_obs_space.copy()
-        res.observation_space = res.helper_observation
+        res._helper_observation = tmp_obs_space.copy()
+        res.observation_space = res._helper_observation
         res.current_obs = obs_tmp.copy()
         res.voltage_controler = volt_cont.copy()
 
@@ -628,7 +628,7 @@ class Environment(BaseEnv):
             res.backend.set_thermal_limit(self._thermal_limit_a)
         self.backend = tmp_backend
         self.observation_space = tmp_obs_space
-        self.helper_observation = tmp_obs_space
+        self._helper_observation = tmp_obs_space
         self.current_obs = obs_tmp
         self.voltage_controler = volt_cont
         return res
@@ -667,10 +667,10 @@ class Environment(BaseEnv):
             res["backend"] = self.backend.copy()
         res["parameters"] = copy.deepcopy(self.parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
-        res["actionClass"] = self.actionClass
-        res["observationClass"] = self.observationClass
-        res["rewardClass"] = self.rewardClass
-        res["legalActClass"] = self.legalActClass
+        res["actionClass"] = self._actionClass
+        res["observationClass"] = self._observationClass
+        res["rewardClass"] = self._rewardClass
+        res["legalActClass"] = self._legalActClass
         res["epsilon_poly"] = self._epsilon_poly
         res["tol_poly"] = self._tol_poly
         res["thermal_limit_a"] = self._thermal_limit_a
@@ -680,14 +680,14 @@ class Environment(BaseEnv):
         res["_raw_backend_class"] = self._raw_backend_class
         res["with_forecast"] = self.with_forecast
 
-        res["opponent_action_class"] = self.opponent_action_class
-        res["opponent_class"] = self.opponent_class
-        res["opponent_init_budget"] = self.opponent_init_budget
-        res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
-        res["opponent_budget_class"] = self.opponent_budget_class
-        res["opponent_attack_duration"] = self.opponent_attack_duration
-        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
-        res["kwargs_opponent"] = self.kwargs_opponent
+        res["opponent_action_class"] = self._opponent_action_class
+        res["opponent_class"] = self._opponent_class
+        res["opponent_init_budget"] = self._opponent_init_budget
+        res["opponent_budget_per_ts"] = self._opponent_budget_per_ts
+        res["opponent_budget_class"] = self._opponent_budget_class
+        res["opponent_attack_duration"] = self._opponent_attack_duration
+        res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
+        res["kwargs_opponent"] = self._kwargs_opponent
         return res
 
     def get_params_for_runner(self):
@@ -717,10 +717,10 @@ class Environment(BaseEnv):
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self.parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
-        res["actionClass"] = self.actionClass
-        res["observationClass"] = self.observationClass
-        res["rewardClass"] = self.rewardClass
-        res["legalActClass"] = self.legalActClass
+        res["actionClass"] = self._actionClass
+        res["observationClass"] = self._observationClass
+        res["rewardClass"] = self._rewardClass
+        res["legalActClass"] = self._legalActClass
         res["envClass"] = Environment
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
@@ -736,12 +736,12 @@ class Environment(BaseEnv):
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
 
-        res["opponent_action_class"] = self.opponent_action_class
-        res["opponent_class"] = self.opponent_class
-        res["opponent_init_budget"] = self.opponent_init_budget
-        res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
-        res["opponent_budget_class"] = self.opponent_budget_class
-        res["opponent_attack_duration"] = self.opponent_attack_duration
-        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
-        res["opponent_kwargs"] = self.kwargs_opponent
+        res["opponent_action_class"] = self._opponent_action_class
+        res["opponent_class"] = self._opponent_class
+        res["opponent_init_budget"] = self._opponent_init_budget
+        res["opponent_budget_per_ts"] = self._opponent_budget_per_ts
+        res["opponent_budget_class"] = self._opponent_budget_class
+        res["opponent_attack_duration"] = self._opponent_attack_duration
+        res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
+        res["opponent_kwargs"] = self._kwargs_opponent
         return res
