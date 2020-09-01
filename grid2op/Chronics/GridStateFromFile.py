@@ -41,6 +41,26 @@ class GridStateFromFile(GridValue):
     In this values, only 1 episode is stored. If the end of the episode is reached and another one should start, then
     it will loop from the beginning.
 
+    It reads the following files from the "path" location specified:
+
+    - "prod_p.csv": for each time steps, this file contains the value for the active production of
+      each generators of the grid (it counts as many rows as the number of time steps - and its header)
+      and as many columns as the number of generators on the grid. The header must contains the names of
+      the generators used to map their value on the grid. Values must be convertible to floating point.
+    - "prod_v.csv": same as "prod_p.csv" but for the production voltage setpoint.
+    - "load_p.csv": same as "prod_p.csv" but for the load active value (number of columns = number of loads)
+    - "load_q.csv": same as "prod_p.csv" but for the load reactive value (number of columns = number of loads)
+    - "maintenance.csv": that contains whether or not there is a maintenance for a given powerline (column) at
+      each time step (row).
+    - "hazards.csv": that contains whether or not there is a hazard for a given powerline (column) at
+      each time step (row).
+
+    If a file is missing, it is understood as "this value will not be modified". For example, if the file
+    "prod_v.csv" is not present, it will be equivalent as not modifying the production voltage setpoint, never.
+
+    Except if the attribute :attr:`GridStateFromFile.sep` is modified, the above tables should be "semi colon" (;)
+    separated.
+
     Attributes
     ----------
     path: ``str``
@@ -85,6 +105,8 @@ class GridStateFromFile(GridValue):
                  start_datetime=datetime(year=2019, month=1, day=1),
                  chunk_size=None):
         """
+        /!\ Internal, do not use /!\
+
         Build an instance of GridStateFromFile. Such an instance should be built before an :class:`grid2op.Environment`
         is created.
 
@@ -290,6 +312,8 @@ class GridStateFromFile(GridValue):
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
         """
+        /!\ Internal, do not use /!\
+
         In this function, the numpy arrays are read from the csv using the panda.dataframe engine.
 
         In order to be valid, the folder located at :attr:`GridStateFromFile.path` can contain:
@@ -324,10 +348,6 @@ class GridStateFromFile(GridValue):
         Parameters
         ----------
         See help of :func:`GridValue.initialize` for a detailed help about the parameters.
-
-        Returns
-        -------
-        ``None``
 
         """
         self.n_gen = len(order_backend_prods)
@@ -463,13 +483,6 @@ class GridStateFromFile(GridValue):
 
     @staticmethod
     def _file_len(fname, ext_):
-        # i = -1
-        # reading_mode = "r"
-        # if ext_ != ".csv":
-        #     reading_mode += "b"
-        # with open(fname, reading_mode) as f:
-        #     for i, l in enumerate(f):
-        #         pass
         res = pd.read_csv(fname, sep="@", dtype=str).shape[0]
         return res
 
@@ -520,6 +533,8 @@ class GridStateFromFile(GridValue):
 
     def done(self):
         """
+        /!\ Internal, do not use /!\
+
         Compare to :func:`GridValue.done` an episode can be over for 2 main reasons:
 
           - :attr:`GridValue.max_iter` has been reached
@@ -618,6 +633,8 @@ class GridStateFromFile(GridValue):
 
     def check_validity(self, backend):
         """
+        /!\ Internal, do not use /!\
+
         A call to this method ensure that the action that will be sent to the current :class:`grid2op.Environment`
         can be properly implemented by its :class:`grid2op.Backend`.
         This specific method check that the dimension of all vectors are consistent
@@ -805,6 +822,22 @@ class GridStateFromFile(GridValue):
                 self._order_backend_lines, self._order_backend_lines]
 
     def split_and_save(self, datetime_beg, datetime_end, path_out):
+        """
+        you can use this function to save the values of the chronics in a format that will be loadable
+        by :class:`GridStateFromFile`
+
+        TODO example on how to use this.
+
+        Parameters
+        ----------
+        datetime_beg
+        datetime_end
+        path_out
+
+        Returns
+        -------
+
+        """
         # work on a copy of myself
         tmp = copy.deepcopy(self)
         datetime_beg = self._convert_datetime(datetime_beg)
@@ -857,4 +890,3 @@ class GridStateFromFile(GridValue):
         tmp_for_time_delta = datetime(year=2018, month=1, day=1, hour=0, minute=0, second=0) + self.time_interval
         with open(os.path.join(path_out, "time_interval.info"), "w") as f:
             f.write("{:%H:%M}\n".format(tmp_for_time_delta))
-

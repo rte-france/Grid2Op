@@ -27,6 +27,8 @@ def update_env(env_name=None):
     This function allows you to retrieve the latest version of the some of files used to create the
     environment.
 
+    File can be for example "config.py" or "prod_charac.csv" or "difficulty_levels.json".
+
     Parameters
     ----------
     env_name: ``str``
@@ -34,12 +36,25 @@ def update_env(env_name=None):
         have already downloaded). If ``None`` it will look for updates for all the environments
         locally available.
 
+    Examples
+    --------
+    Here is an example on how to for the update of your environments:
+
+    .. code-block:: python
+
+        import grid2op
+        grid2op.update_env()
+        # it will download the files "config.py" or "prod_charac.csv" or "difficulty_levels.json"
+        # of your local environment to match the latest version available.
+
     """
     _update_files(env_name=env_name)
 
 
 def _update_file(dict_, env_name, file_name):
     """
+    /!\ Internal, do not use /!\
+
     Update a single file of a single environment.
 
     File can be for example "config.py" or "prod_charac.csv" or "difficulty_levels.json".
@@ -64,6 +79,7 @@ def _update_file(dict_, env_name, file_name):
 
 def _update_files(env_name=None):
     """
+    /!\ Internal, do not use /!\
 
     Update all the "modified" files of a given environment. If ``None`` is provided as input, all local environments
     will be checked for update.

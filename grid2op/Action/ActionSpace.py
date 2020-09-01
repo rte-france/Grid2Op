@@ -31,9 +31,8 @@ class ActionSpace(SerializableActionSpace):
 
     Attributes
     ----------
-    game_rules: :class:`grid2op.RulesChecker.RulesChecker`
+    legal_action: :class:`grid2op.RulesChecker.BaseRules`
         Class specifying the rules of the game used to check the legality of the actions.
-
 
     """
     

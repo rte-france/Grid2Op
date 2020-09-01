@@ -43,7 +43,7 @@ class BaseReward(ABC):
     def initialize(self, env):
         """
         If :attr:`BaseReward.reward_min`, :attr:`BaseReward.reward_max` or other custom attributes require to have a
-        valid :class:`grid2op.Environement.Environment` to be initialized, this should be done in this method.
+        valid :class:`grid2op.Environment.Environment` to be initialized, this should be done in this method.
 
         **NB** reward_min and reward_max are used by the environment to compute the maximum and minimum reward and
         cast it in "reward_range" which is part of the openAI gym public interface. If you don't define them, some

@@ -74,7 +74,7 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example", test=True, opponent_class=TestSuiteOpponent_001) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
-                assert isinstance(env.opponent, TestSuiteOpponent_001)
+                assert isinstance(env._opponent, TestSuiteOpponent_001)
 
     def test_env_modif_oppobudg(self):
         with warnings.catch_warnings():
@@ -82,7 +82,7 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example", test=True, opponent_budget_class=TestSuiteBudget_001) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
-                assert isinstance(env.compute_opp_budget, TestSuiteBudget_001)
+                assert isinstance(env._compute_opp_budget, TestSuiteBudget_001)
 
     def test_env_modif_opponent_init_budget(self):
         with warnings.catch_warnings():
@@ -91,7 +91,7 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example", test=True, opponent_init_budget=init_budg) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
-                assert env.opponent_init_budget == init_budg
+                assert env._opponent_init_budget == init_budg
 
     def test_env_modif_opponent_init_budget_ts(self):
         with warnings.catch_warnings():
@@ -100,7 +100,7 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example", test=True, opponent_budget_per_ts=init_budg) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
-                assert env.opponent_budget_per_ts == init_budg
+                assert env._opponent_budget_per_ts == init_budg
 
     def test_env_modif_opponent_action_class(self):
         with warnings.catch_warnings():
@@ -108,7 +108,7 @@ class TestLoadingOpp(unittest.TestCase):
             with make("rte_case5_example", test=True, opponent_action_class=TopologyAction) as env:
                 obs = env.reset()
                 obs, reward, done, info = env.step(env.action_space())
-                assert issubclass(env.opponent_action_class, TopologyAction)
+                assert issubclass(env._opponent_action_class, TopologyAction)
 
     def test_env_opp_attack(self):
         # and test reset, which apparently is NOT done correctly
@@ -126,15 +126,15 @@ class TestLoadingOpp(unittest.TestCase):
                 obs = env.reset()
                 # opponent should not attack at the first time step
                 assert np.all(obs.line_status)
-                assert env.opponent_init_budget == init_budg
+                assert env._opponent_init_budget == init_budg
                 obs, reward, done, info = env.step(env.action_space())
-                assert env.oppSpace.budget == init_budg - 1.0
+                assert env._oppSpace.budget == init_budg - 1.0
 
                 obs = env.reset()
                 # opponent should not attack at the first time step
                 assert np.all(obs.line_status)
-                assert env.opponent_init_budget == init_budg
-                assert env.oppSpace.budget == init_budg
+                assert env._opponent_init_budget == init_budg
+                assert env._oppSpace.budget == init_budg
 
     def test_env_opp_attack_budget_ts(self):
         with warnings.catch_warnings():
@@ -149,18 +149,18 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_attack_cooldown=ATTACK_COOLDOWN,
                       opponent_class=TestSuiteOpponent_001) as env:
                 obs = env.reset()
-                assert env.opponent_init_budget == 0.
+                assert env._opponent_init_budget == 0.
                 obs, reward, done, info = env.step(env.action_space())
                 # no attack possible
-                assert env.oppSpace.budget == init_budg_ts
+                assert env._oppSpace.budget == init_budg_ts
                 obs, reward, done, info = env.step(env.action_space())
                 # i can attack at the second time steps, and budget of an attack is 1, so I have 0 now
-                assert env.oppSpace.budget == 0.
+                assert env._oppSpace.budget == 0.
 
                 obs = env.reset()
-                assert env.opponent_init_budget == 0.
-                assert env.opponent_budget_per_ts == 0.5
-                assert env.oppSpace.budget == 0.
+                assert env._opponent_init_budget == 0.
+                assert env._opponent_budget_per_ts == 0.5
+                assert env._oppSpace.budget == 0.
 
     def test_RandomLineOpponent_not_enough_budget(self):
         """Tests that the attack is ignored when the budget is too low"""
@@ -179,18 +179,18 @@ class TestLoadingOpp(unittest.TestCase):
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
                 obs = env.reset()
-                assert env.oppSpace.budget == init_budget
+                assert env._oppSpace.budget == init_budget
                 # The opponent can attack
-                for i in range(env.oppSpace.attack_duration):
+                for i in range(env._oppSpace.attack_duration):
                     obs, reward, done, info = env.step(env.action_space())
-                    attack = env.oppSpace.last_attack
-                    assert env.oppSpace.budget == init_budget - i - 1
+                    attack = env._oppSpace.last_attack
+                    assert env._oppSpace.budget == init_budget - i - 1
                     assert any(attack._set_line_status != 0)
 
                 # There is not enough budget for a second attack
-                assert abs(env.oppSpace.budget - (init_budget - ATTACK_DURATION)) <= 1e-5
+                assert abs(env._oppSpace.budget - (init_budget - ATTACK_DURATION)) <= 1e-5
                 obs, reward, done, info = env.step(env.action_space())
-                attack = env.oppSpace.last_attack
+                attack = env._oppSpace.last_attack
                 assert attack is None
 
     def test_RandomLineOpponent_attackable_lines(self):
@@ -214,11 +214,11 @@ class TestLoadingOpp(unittest.TestCase):
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
                     obs = env.reset()
-                    assert env.oppSpace.budget == init_budget
+                    assert env._oppSpace.budget == init_budget
                     obs, reward, done, info = env.step(env.action_space())
-                    assert env.oppSpace.budget == init_budget - 1
+                    assert env._oppSpace.budget == init_budget - 1
 
-                    attack = env.oppSpace.last_attack
+                    attack = env._oppSpace.last_attack
                     attacked_line = np.where(attack._set_line_status == -1)[0][0]
                     line_name = env.action_space.name_line[attacked_line]
                     assert line_name in attackable_lines_case14
@@ -243,11 +243,11 @@ class TestLoadingOpp(unittest.TestCase):
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
                     obs = env.reset()
-                    assert env.oppSpace.budget == init_budget
+                    assert env._oppSpace.budget == init_budget
                     obs, reward, done, info = env.step(env.action_space())
-                    assert env.oppSpace.budget == init_budget - 1
+                    assert env._oppSpace.budget == init_budget - 1
 
-                    attack = env.oppSpace.last_attack
+                    attack = env._oppSpace.last_attack
                     n_disconnected = np.sum(attack._set_line_status == -1)
                     assert n_disconnected == 1
 
@@ -281,7 +281,7 @@ class TestLoadingOpp(unittest.TestCase):
                 env.seed(0)
                 obs = env.reset()
                 reward = 0
-                assert env.oppSpace.budget == init_budget
+                assert env._oppSpace.budget == init_budget
                 assert np.all(obs.time_before_cooldown_line == 0)
                 # the "agent" does an action (on the same powerline as the opponent attacks)
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(line_opponent_attack, 1)]}))
@@ -418,13 +418,13 @@ class TestLoadingOpp(unittest.TestCase):
             # and check that they belong to the correct lines
             pre_obs = env.reset()
             done = False
-            assert env.oppSpace.budget == init_budget
+            assert env._oppSpace.budget == init_budget
             for i in range(length):
                 obs, reward, done, info = env.step(env.action_space())
                     
-                attack = env.oppSpace.last_attack
+                attack = env._oppSpace.last_attack
                 attacked_line = np.where(attack._set_line_status == -1)[0][0]
-                if env.oppSpace.current_attack_duration < env.oppSpace.attack_duration:
+                if env._oppSpace.current_attack_duration < env._oppSpace.attack_duration:
                     # The attack is ungoing. The line must have been disconnected already
                     assert not pre_obs.line_status[attacked_line]
                 else:
@@ -468,14 +468,14 @@ class TestLoadingOpp(unittest.TestCase):
                 # Collect some attacks and check that they belong to the correct lines
                 obs = env.reset()
                 done = False
-                assert env.oppSpace.budget == init_budget
+                assert env._oppSpace.budget == init_budget
                 for i in range(length):
                     if done:
                         obs = env.reset()
                     pre_done = done
                     obs, reward, done, info = env.step(env.action_space())
 
-                    attack = env.oppSpace.last_attack
+                    attack = env._oppSpace.last_attack
                     if attack is None: # should only happen here if all attackable lines are already disconnected
                         assert np.sum(obs.line_status == False) == 6
                         continue
@@ -583,10 +583,10 @@ class TestLoadingOpp(unittest.TestCase):
                       opponent_class=RandomLineOpponent,
                       kwargs_opponent={"lines_attacked": LINES_ATTACKED}) as env:
                 env.seed(0)
-                assert env.opponent_action_class == opponent_action_class
-                assert issubclass(env.oppSpace.action_space.actionClass, opponent_action_class)
-                assert issubclass(env.opponent_action_space.actionClass, opponent_action_class)
-                opp_space = env.oppSpace
+                assert env._opponent_action_class == opponent_action_class
+                assert issubclass(env._oppSpace.action_space.actionClass, opponent_action_class)
+                assert issubclass(env._opponent_action_space.actionClass, opponent_action_class)
+                opp_space = env._oppSpace
                 attack, duration = opp_space.attack(env.get_obs(), env.action_space(), env.action_space())
                 assert isinstance(attack, opponent_action_class)
 
@@ -616,7 +616,7 @@ class TestLoadingOpp(unittest.TestCase):
                 observation = env.get_obs()
                 env_action = env.action_space()
 
-                opp_space = env.oppSpace
+                opp_space = env._oppSpace
                 # FIRST CHECK: WHEN NO ATTACK ARE PERFORMED
                 # test that if i do "a loop of get / set" i get the same stuff
                 init_state = opp_space._get_state()
@@ -706,10 +706,10 @@ class TestLoadingOpp(unittest.TestCase):
             env = make("rte_case14_opponent", test=True, param=param)
         env.seed(0)  # make sure i have reproducible experiments
         obs = env.reset()
-        assert env.oppSpace.budget == 0
+        assert env._oppSpace.budget == 0
         assert np.all(obs.line_status)
         obs, reward, done, info = env.step(env.action_space())
-        assert env.oppSpace.budget == 0.5
+        assert env._oppSpace.budget == 0.5
         assert np.all(obs.line_status)
         obs, reward, done, info = env.step(env.action_space())
 
@@ -726,8 +726,8 @@ class TestLoadingOpp(unittest.TestCase):
         obs = multi_env.reset()
         for ob in obs:
             assert np.all(ob.line_status)
-        assert np.all(multi_env.opponent[0]._lines_ids == [3, 4, 15, 12, 13, 14])
-        assert np.all(multi_env.opponent[1]._lines_ids == [3, 4, 15, 12, 13, 14])
+        assert np.all(multi_env._opponent[0]._lines_ids == [3, 4, 15, 12, 13, 14])
+        assert np.all(multi_env._opponent[1]._lines_ids == [3, 4, 15, 12, 13, 14])
         env.close()
         multi_env.close()
 
@@ -750,18 +750,18 @@ class TestLoadingOpp(unittest.TestCase):
                                        "attack_period": 1}) as env:
                 env.seed(0)
                 obs = env.reset()
-                assert env.oppSpace.budget == init_budget
+                assert env._oppSpace.budget == init_budget
                 # The opponent can attack
-                for i in range(env.oppSpace.attack_duration):
+                for i in range(env._oppSpace.attack_duration):
                     obs, reward, done, info = env.step(env.action_space())
-                    attack = env.oppSpace.last_attack
-                    assert env.oppSpace.budget == init_budget - i - 1
+                    attack = env._oppSpace.last_attack
+                    assert env._oppSpace.budget == init_budget - i - 1
                     assert any(attack._set_line_status != 0)
 
                 # There is not enough budget for a second attack
-                assert abs(env.oppSpace.budget - (init_budget - ATTACK_DURATION)) <= 1e-5
+                assert abs(env._oppSpace.budget - (init_budget - ATTACK_DURATION)) <= 1e-5
                 obs, reward, done, info = env.step(env.action_space())
-                attack = env.oppSpace.last_attack
+                attack = env._oppSpace.last_attack
                 assert attack is None
 
     def test_WeightedRandomOpponent_attackable_lines(self):
@@ -787,11 +787,11 @@ class TestLoadingOpp(unittest.TestCase):
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
                     obs = env.reset()
-                    assert env.oppSpace.budget == init_budget
+                    assert env._oppSpace.budget == init_budget
                     obs, reward, done, info = env.step(env.action_space())
-                    assert env.oppSpace.budget == init_budget - 1
+                    assert env._oppSpace.budget == init_budget - 1
 
-                    attack = env.oppSpace.last_attack
+                    attack = env._oppSpace.last_attack
                     attacked_line = np.where(attack._set_line_status == -1)[0][0]
                     line_name = env.action_space.name_line[attacked_line]
                     assert line_name in attackable_lines_case14
@@ -818,11 +818,11 @@ class TestLoadingOpp(unittest.TestCase):
                 # Collect some attacks and check that they belong to the correct lines
                 for _ in range(tries):
                     obs = env.reset()
-                    assert env.oppSpace.budget == init_budget
+                    assert env._oppSpace.budget == init_budget
                     obs, reward, done, info = env.step(env.action_space())
-                    assert env.oppSpace.budget == init_budget - 1
+                    assert env._oppSpace.budget == init_budget - 1
 
-                    attack = env.oppSpace.last_attack
+                    attack = env._oppSpace.last_attack
                     n_disconnected = np.sum(attack._set_line_status == -1)
                     assert n_disconnected == 1
 
@@ -859,7 +859,7 @@ class TestLoadingOpp(unittest.TestCase):
                 env.seed(0)
                 obs = env.reset()
                 reward = 0
-                assert env.oppSpace.budget == init_budget
+                assert env._oppSpace.budget == init_budget
                 assert np.all(obs.time_before_cooldown_line == 0)
                 # the "agent" does an action (on the same powerline as the opponent attacks)
                 obs, reward, done, info = env.step(env.action_space({"set_line_status": [(line_opponent_attack, 1)]}))
@@ -1004,13 +1004,13 @@ class TestLoadingOpp(unittest.TestCase):
             # and check that they belong to the correct lines
             pre_obs = env.reset()
             done = False
-            assert env.oppSpace.budget == init_budget
+            assert env._oppSpace.budget == init_budget
             for i in range(length):
                 obs, reward, done, info = env.step(env.action_space())
                     
-                attack = env.oppSpace.last_attack
+                attack = env._oppSpace.last_attack
                 attacked_line = np.where(attack._set_line_status == -1)[0][0]
-                if env.oppSpace.current_attack_duration < env.oppSpace.attack_duration:
+                if env._oppSpace.current_attack_duration < env._oppSpace.attack_duration:
                     # The attack is ungoing. The line must have been disconnected already
                     assert not pre_obs.line_status[attacked_line]
                 else:
@@ -1053,14 +1053,14 @@ class TestLoadingOpp(unittest.TestCase):
                 # Collect some attacks and check that they belong to the correct lines
                 obs = env.reset()
                 done = False
-                assert env.oppSpace.budget == init_budget
+                assert env._oppSpace.budget == init_budget
                 for i in range(length):
                     if done:
                         obs = env.reset()
                     pre_done = done
                     obs, reward, done, info = env.step(env.action_space())
 
-                    attack = env.oppSpace.last_attack
+                    attack = env._oppSpace.last_attack
                     if attack is None: # should only happen here if all attackable lines are already disconnected
                         assert np.sum(obs.line_status == False) == 6
                         continue
@@ -1096,15 +1096,15 @@ class TestLoadingOpp(unittest.TestCase):
                 # Collect some attacks and check that they belong to the correct lines
                 obs = env.reset()
                 done = False
-                assert env.oppSpace.budget == init_budget
+                assert env._oppSpace.budget == init_budget
                 for i in range(length):
                     if done:
                         obs = env.reset()
                     obs, reward, done, info = env.step(env.action_space())
-                assert env.oppSpace.opponent._attack_counter == 56
-                assert env.oppSpace.opponent._attack_continues_counter == 44
-                assert env.oppSpace.opponent._attack_counter \
-                     + env.oppSpace.opponent._attack_continues_counter \
+                assert env._oppSpace.opponent._attack_counter == 56
+                assert env._oppSpace.opponent._attack_continues_counter == 44
+                assert env._oppSpace.opponent._attack_counter \
+                     + env._oppSpace.opponent._attack_continues_counter \
                        == length
 
 

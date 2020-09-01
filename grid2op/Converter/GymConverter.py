@@ -98,7 +98,7 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
     def __init__(self, env):
         self.initial_obs_space = env.observation_space
         dict_ = {}
-        self._fill_dict_obs_space(dict_, env.observation_space, env.parameters, env.oppSpace)
+        self._fill_dict_obs_space(dict_, env.observation_space, env.parameters, env._oppSpace)
         spaces.Dict.__init__(self, dict_)
 
     def _fill_dict_obs_space(self, dict_, observation_space, env_params, opponent_space):

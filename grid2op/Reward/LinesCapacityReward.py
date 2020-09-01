@@ -10,6 +10,7 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class LinesCapacityReward(BaseReward):
     """
     Reward based on lines capacity usage
@@ -33,7 +34,7 @@ class LinesCapacityReward(BaseReward):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
-        obs = env.current_obs
+        obs = env.get_obs()
         n_connected = np.sum(obs.line_status.astype(dt_float))
         usage = np.sum(obs.rho[obs.line_status == True])
         usage = np.clip(usage, 0.0, float(n_connected))

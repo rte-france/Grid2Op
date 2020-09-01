@@ -374,26 +374,26 @@ class BaseTestRedispTooLowHigh(MakeBackend):
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"] is False
-        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
+        assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
         act = self.env.action_space({"redispatch": [0, 0]})
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"] is False
-        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
+        assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
 
         # this one is not correct: too high decrease
         act = self.env.action_space({"redispatch": [0, self.env.gen_pmin[0] - self.env.gen_pmax[0]]})
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"]
-        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0., 0.])
+        assert np.all(self.env._target_dispatch == [-1., 0., 0., 0., 0.])
 
         # this one is not correct: too high increase
         act = self.env.action_space({"redispatch": [0, self.env.gen_pmax[0] - self.env.gen_pmin[0] +2 ]})
         obs, reward, done, info = self.env.step(act)
         assert not done
         assert info["is_dispatching_illegal"]
-        assert np.all(self.env.target_dispatch == [-1., 0., 0., 0. ,0.])
+        assert np.all(self.env._target_dispatch == [-1., 0., 0., 0. ,0.])
 
     def test_error_message_notzerosum_oneshot(self):
         self.skipTest("Ok with new redispatching implementation")
@@ -473,14 +473,14 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
         act = self.env.action_space({"redispatch": [(0, +5)]})
         obs, reward, done, info = self.env.step(act)
         assert not done
-        assert np.all(self.env.target_dispatch == [5., 0., 0., 0., 0.])
+        assert np.all(self.env._target_dispatch == [5., 0., 0., 0., 0.])
         target_p = self.env.chronics_handler.real_data.data.prod_p[3, :]
         target_p_t = self.env.chronics_handler.real_data.data.prod_p[2, :]
         assert self.compare_vect(obsinit.prod_p[:-1], target_p_t[:-1])
         # only look at dispatchable generator, remove slack bus (last generator)
         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
         assert np.all(obs.prod_p[0:2] - obsinit.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
-        assert np.all(np.abs(self.env.actual_dispatch - np.array([5., -2.5,  0.,  0., -2.5])) <= self.tol_one)
+        assert np.all(np.abs(self.env._actual_dispatch - np.array([5., -2.5,  0.,  0., -2.5])) <= self.tol_one)
 
     def test_sum0_again(self):
         # perform a valid redispatching action
@@ -490,8 +490,8 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
         act = self.env.action_space({"redispatch": [(0, +10)]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        indx_ok = self.env._target_dispatch != 0.
+        assert np.all(np.sign(self.env._actual_dispatch[indx_ok]) == np.sign(self.env._target_dispatch[indx_ok]))
 
     def test_sum0_again2(self):
         self.skip_if_needed()
@@ -503,8 +503,8 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
         act = env.action_space({"redispatch": [(0, +5)]})
         obs, reward, done, info = env.step(act)
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        indx_ok = self.env._target_dispatch != 0.
+        assert np.all(np.sign(self.env._actual_dispatch[indx_ok]) == np.sign(self.env._target_dispatch[indx_ok]))
         donothing = env.action_space()
         obsinit, reward, done, info = env.step(donothing)
         act = env.action_space({"redispatch": [(0, -5)]})
@@ -525,8 +525,8 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
         act = env.action_space({"redispatch": [(0, +5)]})
         obs, reward, done, info = env.step(act)
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one
-        indx_ok = self.env.target_dispatch != 0.
-        assert np.all(np.sign(self.env.actual_dispatch[indx_ok]) == np.sign(self.env.target_dispatch[indx_ok]))
+        indx_ok = self.env._target_dispatch != 0.
+        assert np.all(np.sign(self.env._actual_dispatch[indx_ok]) == np.sign(self.env._target_dispatch[indx_ok]))
         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2])
         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2])
         assert np.all(obs.actual_dispatch == np.array([5.0, -2.5, 0., 0., -2.5]))

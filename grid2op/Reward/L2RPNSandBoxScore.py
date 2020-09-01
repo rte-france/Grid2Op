@@ -33,10 +33,12 @@ class L2RPNSandBoxScore(BaseReward):
         losses = np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)
 
         # compute the marginal cost
-        p_t = np.max(env.gen_cost_per_MW[env.gen_activeprod_t > 0.]).astype(dt_float)
+        gen_activeprod_t = env._gen_activeprod_t
+        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.]).astype(dt_float)
 
         # redispatching amount
-        c_redispatching = dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(env.actual_dispatch)) * p_t
+        actual_dispatch = env._actual_dispatch
+        c_redispatching = dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(actual_dispatch)) * p_t
 
         # cost of losses
         c_loss = losses * p_t

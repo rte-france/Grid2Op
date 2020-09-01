@@ -12,6 +12,8 @@ from grid2op.Exceptions import OpponentError
 
 class BaseActionBudget:
     """
+    /!\ Internal, do not use /!\
+
     This is the base class representing the action bugdet.
     It makes sure the opponent uses the correct type of "action", and  compute the bugdet associated to it.
 
@@ -21,6 +23,8 @@ class BaseActionBudget:
 
     def __call__(self, attack):
         """
+        /!\ Internal, do not use /!\
+
         This function takes an attack as input and compute the cost associated to it.
 
         **NB** The cost of a "None" attack is necessarily 0 !

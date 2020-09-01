@@ -16,7 +16,7 @@ from grid2op.Observation._ObsEnv import _ObsEnv
 
 class ObservationSpace(SerializableObservationSpace):
     """
-    Helper that provides usefull functions to manipulate :class:`BaseObservation`.
+    Helper that provides useful functions to manipulate :class:`BaseObservation`.
 
     BaseObservation should only be built using this Helper. It is absolutely not recommended to make an observation
     directly form its constructor.
@@ -60,6 +60,8 @@ class ObservationSpace(SerializableObservationSpace):
                  observationClass=CompleteObservation,
                  with_forecast=True):
         """
+        /!\ Internal, do not use /!\
+
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
 
@@ -132,10 +134,19 @@ class ObservationSpace(SerializableObservationSpace):
         return self.n
 
     def get_empty_observation(self):
-        """return an empty observation, for internal use only."""
+        """
+        /!\ Internal, do not use /!\
+
+        return an empty observation, for internal use only."""
         return copy.deepcopy(self._empty_obs)
 
     def copy(self):
+        """
+        /!\ Internal, do not use /!\
+
+        Perform a deep copy of the Observation space.
+
+        """
         backend = self._backend_obs
         self._backend_obs = None
         obs_ = self._empty_obs

@@ -507,7 +507,6 @@ class Runner(object):
                             legalActClass=self.legalActClass,
                             voltagecontrolerClass=self.voltageControlerClass,
                             other_rewards=self._other_rewards,
-
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
                             opponent_init_budget=self.opponent_init_budget,
@@ -516,9 +515,7 @@ class Runner(object):
                             opponent_attack_duration=self.opponent_attack_duration,
                             opponent_attack_cooldown=self.opponent_attack_cooldown,
                             kwargs_opponent=self.opponent_kwargs,
-
                             with_forecast=self.with_forecast,
-
                             _raw_backend_class=self.backendClass
                             )
 
@@ -529,7 +526,7 @@ class Runner(object):
             res.attach_layout(self.grid_layout)
 
         if self._useclass:
-            agent = self.agentClass(res.helper_action_player)
+            agent = self.agentClass(res.action_space)
         else:
             if self.__can_copy_agent:
                 agent = copy.copy(self.agent)
@@ -541,11 +538,6 @@ class Runner(object):
         """
         Function used to initialized the environment and the agent.
         It is called by :func:`Runner.reset`.
-
-        Returns
-        -------
-        ``None``
-
         """
         self.env, self.agent = self._new_env(self.chronics_handler, self.backend, self.parameters)
 
@@ -553,11 +545,6 @@ class Runner(object):
         """
         Used to reset an environment. This method is called at the beginning of each new episode.
         If the environment is not initialized, then it initializes it with :func:`Runner.make_env`.
-
-        Returns
-        -------
-        ``None``
-
         """
         if self.env is None:
             self.init_env()
@@ -633,27 +620,27 @@ class Runner(object):
             (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
 
         attack_templ = np.full(
-            (1, env.oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
+            (1, env._oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
         if efficient_storing:
             times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
             actions = np.full((nb_timestep_max, env.action_space.n),
                               fill_value=np.NaN, dtype=dt_float)
             env_actions = np.full(
-                (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
+                (nb_timestep_max, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
             observations = np.full(
                 (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full(
                 (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            attack = np.full((nb_timestep_max, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
+            attack = np.full((nb_timestep_max, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
         else:
             times = np.full(0, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
             actions = np.full((0, env.action_space.n), fill_value=np.NaN, dtype=dt_float)
-            env_actions = np.full((0, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
+            env_actions = np.full((0, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
             observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            attack = np.full((0, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
+            attack = np.full((0, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
 
         if path_save is not None:
             # store observation at timestep 0
@@ -670,12 +657,12 @@ class Runner(object):
                               times=times,
                               observation_space=env.observation_space,
                               action_space=env.action_space,
-                              helper_action_env=env.helper_action_env,
+                              helper_action_env=env._helper_action_env,
                               path_save=path_save,
                               disc_lines_templ=disc_lines_templ,
                               attack_templ=attack_templ,
                               attack=attack,
-                              attack_space=env.opponent_action_space,
+                              attack_space=env._opponent_action_space,
                               logger=logger,
                               name=env.chronics_handler.get_name(),
                               other_rewards=[])
@@ -699,7 +686,7 @@ class Runner(object):
                 cum_reward += reward
                 time_step += 1
                 pbar_.update(1)
-                opp_attack = env.oppSpace.last_attack
+                opp_attack = env._oppSpace.last_attack
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
                                    float(reward), env._env_modification,
                                    act, obs, opp_attack,

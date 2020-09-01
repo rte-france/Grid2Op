@@ -370,7 +370,8 @@ class BackendConverter(Backend):
     def set_thermal_limit(self, limits):
         super().set_thermal_limit(limits=limits)
         self.source_backend.set_thermal_limit(limits=limits)
-        self.target_backend.set_thermal_limit(limits=limits[self._line_sr2tg])
+        if limits is not None:
+            self.target_backend.set_thermal_limit(limits=limits[self._line_sr2tg])
 
     def get_thermal_limit(self):
         tmp = self.target_backend.get_thermal_limit()

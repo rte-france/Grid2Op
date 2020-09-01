@@ -121,6 +121,8 @@ class CompleteObservation(BaseObservation):
 
     def update(self, env, with_forecast=True):
         """
+        /!\ Internal, do not use /!\
+
         This use the environement to update properly the BaseObservation.
 
         Parameters
@@ -181,9 +183,12 @@ class CompleteObservation(BaseObservation):
 
     def from_vect(self, vect, check_legit=True):
         """
+        /!\ Internal, do not use /!\
+        To reload an observation from a vector, use the "env.observation_space.from_vect()".
+
         Convert back an observation represented as a vector into a proper observation.
 
-        Some convertion are done silently from float to the type of the corresponding observation attribute.
+        Some conversion are done silently from float to the type of the corresponding observation attribute.
 
         Parameters
         ----------

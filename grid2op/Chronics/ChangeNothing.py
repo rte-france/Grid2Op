@@ -15,6 +15,11 @@ from grid2op.Chronics.GridValue import GridValue
 
 class ChangeNothing(GridValue):
     """
+    This set of class is mainly internal.
+
+    We don't recommend you, unless you want to code a custom "chroncis class" to change anything
+    on these classes.
+
     This class is the most basic class to modify a powergrid values.
     It does nothing exceptie increasing :attr:`GridValue.max_iter` and the :attr:`GridValue.current_datetime`.
     """
@@ -37,6 +42,8 @@ class ChangeNothing(GridValue):
 
     def load_next(self):
         """
+        /!\ Internal, do not use /!\
+
         This function does nothing but the two requirements of load_next ie:
 
           - increasing :attr:`GridValue.curr_iter` of 1
@@ -71,6 +78,7 @@ class ChangeNothing(GridValue):
 
     def check_validity(self, backend):
         """
+        /!\ Internal, do not use /!\
 
         Parameters
         ----------
@@ -86,6 +94,8 @@ class ChangeNothing(GridValue):
 
     def next_chronics(self):
         """
+        /!\ Internal, do not use /!\
+
         Restarts:
 
           - :attr:`GridValue.current_datetime` to its origin value ( 2019 / 01 / 01)

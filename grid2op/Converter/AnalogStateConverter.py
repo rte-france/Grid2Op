@@ -46,15 +46,12 @@ class AnalogStateConverter(Converter):
         obs: :class:`grid2op.Observation.Observation`
             The input observation.
 
-        bias: ``float``
-            Bias to add to the vector, defaults to 0.0
-
         Returns
         -------
         ``np.array`` 1D array of np.float32 normalized values
 
         """
-        # Store the obs for action convertion
+        # Store the obs for action conversion
         self.__obs = obs
         # Store some shortcuts
         topo = obs.topo_vect

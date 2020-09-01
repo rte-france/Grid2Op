@@ -67,7 +67,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                name="test_rules_env1")
 
-        self.helper_action = self.env.helper_action_env
+        self.helper_action = self.env._helper_action_env
 
     def test_AlwaysLegal(self):
         # build a random action acting on everything

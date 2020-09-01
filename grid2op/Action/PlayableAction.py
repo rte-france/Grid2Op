@@ -45,7 +45,6 @@ class PlayableAction(BaseAction):
             "redispatch": self._digest_redispatching
         }
 
-
     def __call__(self):
         """
         Compare to the ancestor :func:`BaseAction.__call__` this type of BaseAction doesn't allow internal actions

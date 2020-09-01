@@ -406,6 +406,8 @@ class BaseObservation(GridObjects):
 
     def reset(self):
         """
+        /!\ Internal, do not use /!\
+
         Reset the :class:`BaseObservation` to a blank state, where everything is set to either ``None`` or to its default
         value.
 
@@ -486,7 +488,9 @@ class BaseObservation(GridObjects):
 
     def __eq__(self, other):
         """
-        Test the equality of two actions.
+        /!\ Internal, do not use /!\
+
+        Test the equality of two observations.
 
         2 actions are said to be identical if the have the same impact on the powergrid. This is unlrelated to their
         respective class. For example, if an BaseAction is of class :class:`BaseAction` and doesn't act on the _injection, it
@@ -575,6 +579,8 @@ class BaseObservation(GridObjects):
     @abstractmethod
     def update(self, env, with_forecast=True):
         """
+        /!\ Internal, do not use /!\
+
         Update the actual instance of BaseObservation with the new received value from the environment.
 
         An observation is a description of the powergrid perceived by an agent. The agent takes his decision based on
@@ -697,7 +703,6 @@ class BaseObservation(GridObjects):
         This method is used to simulate the effect of an action on a forecasted powergrid state. It has the same return
         value as the :func:`grid2op.Environment.Environment.step` function.
 
-
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
@@ -755,6 +760,8 @@ class BaseObservation(GridObjects):
 
     def copy(self):
         """
+        /!\ Internal, do not use /!\
+
         Make a (deep) copy of the observation.
 
         Returns

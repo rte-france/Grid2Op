@@ -17,6 +17,8 @@ from grid2op.Exceptions import Grid2OpException
 
 class _ObsCH(ChangeNothing):
     """
+    /!\ Internal, do not use /!\
+
     This class is reserved to internal use. Do not attempt to do anything with it.
     """
     def forecasts(self):
@@ -25,6 +27,8 @@ class _ObsCH(ChangeNothing):
 
 class _ObsEnv(BaseEnv):
     """
+    /!\ Internal, do not use /!\
+
     This class is an 'Emulator' of a :class:`grid2op.Environment.Environment` used to be able to 'simulate'
     forecasted grid states.
     It should not be used outside of an :class:`grid2op.Observation.BaseObservation` instance, or one of its derivative.
@@ -60,17 +64,15 @@ class _ObsEnv(BaseEnv):
         self.duration_next_maintenance_init = np.zeros(self.n_line, dtype=dt_int)
         self.target_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
         self.actual_dispatch_init = np.zeros(self.n_gen, dtype=dt_float)
-        self.last_bus_line_or_init = np.zeros(self.n_line, dtype=dt_int)
-        self.last_bus_line_ex_init = np.zeros(self.n_line, dtype=dt_int)
 
-        self.init_backend(init_grid_path=None,
-                          chronics_handler=_ObsCH(),
-                          backend=backend_instanciated,
-                          names_chronics_to_backend=None,
-                          actionClass=action_helper.actionClass,
-                          observationClass=obsClass,
-                          rewardClass=None,
-                          legalActClass=legalActClass)
+        self._init_backend(init_grid_path=None,
+                           chronics_handler=_ObsCH(),
+                           backend=backend_instanciated,
+                           names_chronics_to_backend=None,
+                           actionClass=action_helper.actionClass,
+                           observationClass=obsClass,
+                           rewardClass=None,
+                           legalActClass=legalActClass)
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
 
         self._load_p, self._load_q, self._load_v =  None, None, None
@@ -89,32 +91,14 @@ class _ObsEnv(BaseEnv):
         self.opp_space_state = None
         self.opp_state = None
 
-    def init_backend(self,
-                     init_grid_path,
-                     chronics_handler,
-                     backend,
-                     names_chronics_to_backend,
-                     actionClass,
-                     observationClass,
-                     rewardClass, legalActClass):
-        """
-        backend should not be the backend of the environment!!!
-
-        Parameters
-        ----------
-        init_grid_path
-        chronics_handler
-        backend
-        names_chronics_to_backend
-        actionClass
-        observationClass
-        rewardClass
-        legalActClass
-
-        Returns
-        -------
-
-        """
+    def _init_backend(self,
+                      init_grid_path,
+                      chronics_handler,
+                      backend,
+                      names_chronics_to_backend,
+                      actionClass,
+                      observationClass,
+                      rewardClass, legalActClass):
         self._env_dc = self.parameters.FORECAST_DC
         self.chronics_handler = chronics_handler
         self.backend = backend

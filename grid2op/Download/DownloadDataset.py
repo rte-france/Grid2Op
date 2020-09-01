@@ -39,6 +39,8 @@ LI_VALID_ENV = sorted(["\"{}\"".format(el) for el in DICT_URL_GRID2OP_DL.keys()]
 
 class DownloadProgressBar(tqdm):
     """
+     /!\ Internal, do not use /!\
+
     This class is here to show the progress bar when downloading this dataset
     """
     def update_to(self, b=1, bsize=1, tsize=None):
@@ -49,7 +51,10 @@ class DownloadProgressBar(tqdm):
 
 def download_url(url, output_path):
     """
+     /!\ Internal, do not use /!\
+
     This function download the file located at 'url' and save it to 'output_path'
+
     Parameters
     ----------
     url: ``str``
@@ -63,6 +68,9 @@ def download_url(url, output_path):
 
 
 def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
+    """
+    /!\ Internal, do not use /!\
+    """
     if ds_name_dl is None:
         ds_name_dl = dataset_name
     final_path = os.path.join(path_data, ds_name_dl)
@@ -116,7 +124,9 @@ def _aux_download(url, dataset_name, path_data, ds_name_dl=None):
 
 
 def main_download(dataset_name, path_data):
-
+    """
+     /!\ Internal, do not use /!\
+    """
     dataset_name = dataset_name.lower().rstrip().lstrip()
     dataset_name = re.sub('"', "", dataset_name)
 

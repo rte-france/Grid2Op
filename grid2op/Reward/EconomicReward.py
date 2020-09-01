@@ -38,7 +38,7 @@ class EconomicReward(BaseReward):
             res = self.reward_min
         else:
             # compute the cost of the grid
-            res = dt_float(np.sum(env.current_obs.prod_p * env.gen_cost_per_MW))
+            res = dt_float(np.sum(env.get_obs().prod_p * env.gen_cost_per_MW))
             # we want to minimize the cost by maximizing the reward so let's take the opposite
             res *= dt_float(-1.0)
             # to be sure it's positive, add the highest possible cost

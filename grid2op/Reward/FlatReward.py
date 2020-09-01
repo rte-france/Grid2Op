@@ -9,6 +9,7 @@
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class FlatReward(BaseReward):
     """
     This reward return a fixed number (if there are not error) or 0 if there is an error.

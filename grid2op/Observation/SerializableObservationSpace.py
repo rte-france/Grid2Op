@@ -19,7 +19,6 @@ class SerializableObservationSpace(SerializableSpace):
 
     Attributes
     ----------
-
     observationClass: ``type``
         Type used to build the :attr:`SerializableActionSpace._template_act`
 
@@ -46,17 +45,19 @@ class SerializableObservationSpace(SerializableSpace):
     @staticmethod
     def from_dict(dict_):
         """
-        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
+        /!\ Internal, do not use /!\
+
+        Allows the de-serialization of an object stored as a dictionary (for example in the case of json saving).
 
         Parameters
         ----------
         dict_: ``dict``
-            Representation of an BaseObservation Space (aka SerializableObservationSpace) as a dictionnary.
+            Representation of an BaseObservation Space (aka SerializableObservationSpace) as a dictionary.
 
         Returns
         -------
         res: :class:``SerializableObservationSpace``
-            An instance of an action space matching the dictionnary.
+            An instance of an action space matching the dictionary.
 
         """
         tmp = SerializableSpace.from_dict(dict_)

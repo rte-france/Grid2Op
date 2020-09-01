@@ -50,6 +50,9 @@ _REQUEST_EXCEPT_RETRY_ERR = "Exception in getting an answer from \"{}\".\n" \
 
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
+    """
+    /!\ Internal, do not use /!\
+    """
     if nb_retry <= 0:
         raise Grid2OpException(_REQUEST_FAIL_EXHAUSTED_ERR.format(url))
 

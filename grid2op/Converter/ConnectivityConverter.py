@@ -173,6 +173,9 @@ class ConnectivityConverter(Converter):
 
         Returns
         -------
+        act: :class:`grid2op.Action.BaseAction`
+            The action that is usable by grid2op (after conversion) [the action space must be compatible with
+            the "set_bus" key word]
 
         """
         argsort = np.argsort(np.minimum(encoded_act, 1-encoded_act))
@@ -215,6 +218,8 @@ class ConnectivityConverter(Converter):
 
     def _compute_disagreement(self, encoded_act, topo_vect):
         """
+         /!\ Internal, do not use /!\
+
         computes the disagreement between the encoded act and the proposed topo_vect
 
         **NB** if encoded act is random uniform, and topo_vect is full of 1, then disagreement is, on average 0.5.
@@ -231,4 +236,3 @@ class ConnectivityConverter(Converter):
     def sample(self):
         coded_act = self.space_prng.rand(self.n)
         return self.convert_act(coded_act)
-

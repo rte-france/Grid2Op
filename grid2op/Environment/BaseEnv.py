@@ -38,28 +38,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     Attributes
     ----------
 
-    _no_overflow_disconnection: ``bool``
-        Whether or not cascading failures are computed or not (TRUE = the powerlines above their thermal limits will
-        not be disconnected). This is initialized based on the attribute
-        :attr:`grid2op.Parameters.Parameters.NO_OVERFLOW_DISCONNECTION`.
-
-    timestep_overflow: ``numpy.ndarray``, dtype: int
-        Number of consecutive timesteps each powerline has been on overflow.
-
-    nb_timestep_overflow_allowed: ``numpy.ndarray``, dtype: int
-        Number of consecutive timestep each powerline can be on overflow. It is usually read from
-        :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_POWERFLOW_ALLOWED`.
-
-    hard_overflow_threshold: ``float``
-        Number of timestep before an :class:`grid2op.BaseAgent.BaseAgent` can reconnet a powerline that has been
-        disconnected
-        by the environment due to an overflow.
-
-    _env_dc: ``bool``
-        Whether the environment computes the powerflow using the DC approximation or not. It is usually read from
-        :attr:`grid2op.Parameters.Parameters.ENV_DC`.
-
-
     parameters: :class:`grid2op.Parameters.Parameters`
         The parameters of the game (to expose more control on what is being simulated)
 
@@ -70,31 +48,110 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     logger:
         TO BE DONE: a way to log what is happening (**currently not implemented**)
 
-    # and calendar data
     time_stamp: ``datetime.datetime``
         The actual time stamp of the current observation.
 
     nb_time_step: ``int``
         Number of time steps played in the current environment
 
-    # observation
     current_obs: :class:`grid2op.Observation.BaseObservation`
-        The current observation
+        The current observation (or None if it's not intialized)
 
+    backend: :class:`grid2op.Backend.Backend`
+        The backend used to compute the powerflows and cascading failures.
 
-    TODO update docs here...
+    done: ``bool``
+        Whether the environment is "done". If ``True`` you need to call :func:`Environment.reset` in order
+        to continue.
 
-    _gen_activeprod_t:
-        Should be initialized at 0. for "step" to properly recognize it's the first time step of the game
+    current_reward: ``float``
+        The last computed reward (reward of the current step)
 
     other_rewards: ``dict``
-        Dictionnary with key being the name (identifier) and value being some RewardHelper. At each time step, all the
+        Dictionary with key being the name (identifier) and value being some RewardHelper. At each time step, all the
         values will be computed by the :class:`Environment` and the information about it will be returned in the
         "reward" key of the "info" dictionnary of the :func:`Environment.step`.
+
+    chronics_handler: :class:`grid2op.Chronics.ChronicsHandler`
+        The object in charge managing the "chronics", which store the information about load and generator for example.
+
+    reward_range: ``tuple``
+        For open ai gym compatibility. It represents the range of the rewards: reward min, reward max
+
+    viewer
+        For open ai gym compatibility.
+
+    viewer_fig
+        For open ai gym compatibility.
+
+    _gen_activeprod_t:
+        /!\ Internal, do not use /!\
+        Should be initialized at 0. for "step" to properly recognize it's the first time step of the game
+
+    _no_overflow_disconnection: ``bool``
+        /!\ Internal, do not use /!\
+        Whether or not cascading failures are computed or not (TRUE = the powerlines above their thermal limits will
+        not be disconnected). This is initialized based on the attribute
+        :attr:`grid2op.Parameters.Parameters.NO_OVERFLOW_DISCONNECTION`.
+
+    _timestep_overflow: ``numpy.ndarray``, dtype: int
+        /!\ Internal, do not use /!\
+        Number of consecutive timesteps each powerline has been on overflow.
+
+    _nb_timestep_overflow_allowed: ``numpy.ndarray``, dtype: int
+        /!\ Internal, do not use /!\
+        Number of consecutive timestep each powerline can be on overflow. It is usually read from
+        :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_POWERFLOW_ALLOWED`.
+
+    _hard_overflow_threshold: ``float``
+        /!\ Internal, do not use /!\
+        Number of timestep before an :class:`grid2op.BaseAgent.BaseAgent` can reconnet a powerline that has been
+        disconnected
+        by the environment due to an overflow.
+
+    _env_dc: ``bool``
+        /!\ Internal, do not use /!\
+        Whether the environment computes the powerflow using the DC approximation or not. It is usually read from
+        :attr:`grid2op.Parameters.Parameters.ENV_DC`.
+
+    _names_chronics_to_backend: ``dict``
+        Configuration file used to associated the name of the objects in the backend
+        (both extremities of powerlines, load or production for
+        example) with the same object in the data (:attr:`Environment.chronics_handler`). The idea is that, usually
+        data generation comes from a different software that does not take into account the powergrid infrastructure.
+        Hence, the same "object" can have a different name. This mapping is present to avoid the need to rename
+        the "object" when providing data. A more detailed description is available at
+        :func:`grid2op.ChronicsHandler.GridValue.initialize`.
+
+    _env_modification: :class:`grid2op.Action.Action`
+        Representation of the actions of the environment for the modification of the powergrid.
+
+    _rewardClass: ``type``
+        Type of reward used. Should be a subclass of :class:`grid2op.BaseReward.BaseReward`
+
+    _init_grid_path: ``str``
+        The path where the description of the powergrid is located.
+
+    _game_rules: :class:`grid2op.Rules.RulesChecker`
+        The rules of the game (define which actions are legal and which are not)
+
+    _helper_action_player: :class:`grid2op.Action.ActionSpace`
+        Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent.BaseAgent`
+        (player)
+
+    _helper_action_env: :class:`grid2op.Action.ActionSpace`
+        Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
+
+    _helper_observation: :class:`grid2op.Observation.ObservationSpace`
+        Helper used to generate the observation that will be given to the :class:`grid2op.BaseAgent`
+
+    _reward_helper: :class:`grid2p.BaseReward.RewardHelper`
+        Helper that is called to compute the reward at each time step.
 
     """
     def __init__(self,
                  parameters,
+                 voltagecontrolerClass,
                  thermal_limit_a=None,
                  epsilon_poly=1e-2,
                  tol_poly=1e-6,
@@ -132,6 +189,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # define logger
         self.logger = None
 
+        # the voltage controler
+
         # class used for the action spaces
         self._helper_action_class = None
         self._helper_observation_class = None
@@ -168,10 +227,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         self._env_dc = self.parameters.ENV_DC
 
-        # Remember last line buses
-        # self.last_bus_line_or = None
-        # self.last_bus_line_ex = None
-
         # redispatching data
         self._target_dispatch = None
         self._actual_dispatch = None
@@ -201,8 +256,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._observationClass = None
         self._legalActClass = None
         self._helper_observation = None
-        self.names_chronics_to_backend = None
+        self._names_chronics_to_backend = None
         self._reward_helper = None
+
+        # gym compatibility
         self.reward_range = None, None
         self.viewer = None
         self.viewer_fig = None
@@ -234,10 +291,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._oppSpace = None
 
         # voltage
-        self.voltage_controler = None
+        self._voltagecontrolerClass = voltagecontrolerClass
+        self._voltage_controler = None
 
         # backend
-        self.init_grid_path = None
+        self._init_grid_path = None
 
         # backend action
         self._backend_action_class = None
@@ -305,12 +363,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # hard overflow part
-        self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
+        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self._env_dc = self.parameters.ENV_DC
-
-        # Remember lines last bus
-        # self.last_bus_line_or = np.full(shape=self.n_line, fill_value=1, dtype=dt_int)
-        # self.last_bus_line_ex = np.full(shape=self.n_line, fill_value=1, dtype=dt_int)
 
         # initialize maintenance / hazards
         self._time_next_maintenance = np.full(self.n_line, -1, dtype=dt_int)
@@ -409,9 +463,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._helper_action_env is not None:
             seed = self.space_prng.randint(max_int)
             seed_env_modif = self._helper_action_env.seed(seed)
-        if self.voltage_controler is not None:
+        if self._voltage_controler is not None:
             seed = self.space_prng.randint(max_int)
-            seed_volt_cont = self.voltage_controler.seed(seed)
+            seed_volt_cont = self._voltage_controler.seed(seed)
         if self._opponent is not None:
             seed = self.space_prng.randint(max_int)
             seed_opponent = self._opponent.seed(seed)
@@ -496,9 +550,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.with_forecast = True
 
     @abstractmethod
-    def init_backend(self, init_grid_path, chronics_handler, backend,
-                     names_chronics_to_backend, actionClass, observationClass,
-                     rewardClass, legalActClass):
+    def _init_backend(self, init_grid_path, chronics_handler, backend,
+                      names_chronics_to_backend, actionClass, observationClass,
+                      rewardClass, legalActClass):
+        """
+        /!\ Internal, do not use /!\
+
+        This method is used for Environment specific implementation. Only use it if you know exactly what
+        you are doing.
+
+        """
         pass
 
     def set_thermal_limit(self, thermal_limit):
@@ -1205,7 +1266,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
         self.nb_time_step = 0
-        self.hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
+        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
         self._env_dc = self.parameters.ENV_DC
 
         self._times_before_line_status_actionable[:] = 0
@@ -1323,8 +1384,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._helper_action_env.attach_layout(res)
             if self._helper_observation is not None:
                 self._helper_observation.attach_layout(res)
-            if self.voltage_controler is not None:
-                self.voltage_controler.attach_layout(res)
+            if self._voltage_controler is not None:
+                self._voltage_controler.attach_layout(res)
             if self._opponent_action_space is not None:
                 self._opponent_action_space.attach_layout(res)
 
@@ -1337,12 +1398,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
         the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
 
-
         Parameters
         ----------
         nb_timestep: ``int``
             Number of time step to "fast forward"
-
 
         Examples
         ---------

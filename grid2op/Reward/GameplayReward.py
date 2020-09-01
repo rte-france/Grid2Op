@@ -9,6 +9,7 @@
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class GameplayReward(BaseReward):
     """
     This rewards is strictly computed based on the Game status.

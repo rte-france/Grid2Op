@@ -28,7 +28,7 @@ class LinesReconnectedReward(BaseReward):
             return self.reward_min
 
         # Get obs from env
-        obs = env.current_obs
+        obs = env.get_obs()
 
         # All lines ids
         lines_id = np.arange(env.n_line)

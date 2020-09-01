@@ -6,49 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-This module provides a way to serialize on disk et deserialize one run episode along with some 
-methods and utilities to ease its manipulation.
-
-If enabled when usign the :class:`Runner`, the :class:`EpisodeData`
-will save the information in a structured way. For each episode there will be a folder with:
-
-  - "episode_meta.json" that represents some meta information about:
-
-    - "backend_type": the name of the :class:`grid2op.Backend.Backend` class used
-    - "chronics_max_timestep": the **maximum** number of timestep for the chronics used
-    - "chronics_path": the path where the temporal data (chronics) are located
-    - "env_type": the name of the :class:`grid2op.Environment` class used.
-    - "grid_path": the path where the powergrid has been loaded from
-    - "nb_timestep_played": number of time step the agent has succesfully managed
-    - "cumulative_reward": its total cumulative reward
-
-  - "episode_times.json": gives some information about the total time spend in multiple part of the runner, mainly the
-    :class:`grid2op.Agent.BaseAgent` (and especially its method :func:`grid2op.BaseAgent.act`) and amount of time
-    spent in the :class:`grid2op.Environment.Environment`
-
-  - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters.Parameters` used for this episode
-  - "rewards.npy" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
-    reward at index `i` is the one observed by the agent at time `i` and **NOT** the reward sent by the
-    :class:`grid2op.Environment` after the action has been implemented.
-  - "exec_times.npy" is a numpy 1d array giving the execution time of each time step of the episode
-  - "actions.npy" gives the actions that has been taken by the :class:`grid2op.BaseAgent.BaseAgent`. At row `i` of
-    "actions.npy" is a
-    vectorized representation of the action performed by the agent at timestep `i` *ie.* **after** having observed
-    the observation present at row `i` of "observation.npy" and the reward showed in row `i` of "rewards.npy".
-  - "disc_lines.npy" gives which lines have been disconnected during the simulation of the cascading failure at each
-    time step. The same convention as for "rewards.npy" has been adopted. This means that the powerlines are
-    disconnected when the :class:`grid2op.Agent.BaseAgent` takes the :class:`grid2op.BaseAction` at time step `i`.
-  - "observations.npy" is a numpy 2d array representing the :class:`grid2op.BaseObservation.BaseObservation` at the
-    disposal of the
-    :class:`grid2op.Agent.BaseAgent` when he took his action.
-  - "env_modifications.npy" is a 2d numpy array representing the modification of the powergrid from the environment.
-    these modification usually concerns the hazards, maintenance, as well as modification of the generators production
-    setpoint or the loads consumption.
-
-All of the above should allow to read back, and better understand the behaviour of some
-:class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
-"""
 import json
 import os
 
@@ -60,6 +17,86 @@ from grid2op.Observation import ObservationSpace
 
 
 class EpisodeData:
+    """
+    This module provides a way to serialize on disk et deserialize one run episode along with some
+    methods and utilities to ease its manipulation.
+
+    If enabled when usign the :class:`Runner`, the :class:`EpisodeData`
+    will save the information in a structured way. For each episode there will be a folder with:
+
+      - "episode_meta.json" that represents some meta information about:
+
+        - "backend_type": the name of the :class:`grid2op.Backend.Backend` class used
+        - "chronics_max_timestep": the **maximum** number of timestep for the chronics used
+        - "chronics_path": the path where the temporal data (chronics) are located
+        - "env_type": the name of the :class:`grid2op.Environment` class used.
+        - "grid_path": the path where the powergrid has been loaded from
+        - "nb_timestep_played": number of time step the agent has succesfully managed
+        - "cumulative_reward": its total cumulative reward
+
+      - "episode_times.json": gives some information about the total time spend in multiple part of the runner, mainly the
+        :class:`grid2op.Agent.BaseAgent` (and especially its method :func:`grid2op.BaseAgent.act`) and amount of time
+        spent in the :class:`grid2op.Environment.Environment`
+
+      - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters.Parameters` used for this episode
+      - "rewards.npy" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
+        reward at index `i` is the one observed by the agent at time `i` and **NOT** the reward sent by the
+        :class:`grid2op.Environment` after the action has been implemented.
+      - "exec_times.npy" is a numpy 1d array giving the execution time of each time step of the episode
+      - "actions.npy" gives the actions that has been taken by the :class:`grid2op.BaseAgent.BaseAgent`. At row `i` of
+        "actions.npy" is a
+        vectorized representation of the action performed by the agent at timestep `i` *ie.* **after** having observed
+        the observation present at row `i` of "observation.npy" and the reward showed in row `i` of "rewards.npy".
+      - "disc_lines.npy" gives which lines have been disconnected during the simulation of the cascading failure at each
+        time step. The same convention as for "rewards.npy" has been adopted. This means that the powerlines are
+        disconnected when the :class:`grid2op.Agent.BaseAgent` takes the :class:`grid2op.BaseAction` at time step `i`.
+      - "observations.npy" is a numpy 2d array representing the :class:`grid2op.BaseObservation.BaseObservation` at the
+        disposal of the
+        :class:`grid2op.Agent.BaseAgent` when he took his action.
+      - "env_modifications.npy" is a 2d numpy array representing the modification of the powergrid from the environment.
+        these modification usually concerns the hazards, maintenance, as well as modification of the generators production
+        setpoint or the loads consumption.
+
+    All of the above should allow to read back, and better understand the behaviour of some
+    :class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
+
+    Examples
+    --------
+
+    Here is an example on how to save the action your agent was doing by the :class:`grid2op.Runner.Runner` of grid2op.
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Runner import Runner
+
+        # I create an environment
+        env = grid2op.make("rte_case5_example", test=True)
+
+        # I create the runner
+        runner = Runner(**env.get_params_for_runner())
+
+        # I start the runner and save the results in "/I/SAVED/RESULTS/THERE"
+        # I start the evaluation on 2 different episode
+        res = runner.run(path_save="/I/SAVED/RESULTS/THERE", nb_episode=2)
+
+    And now i can reload the data easily with the EpisodeData class:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Episode import EpisodeData
+        episode_studied = "001"
+        this_episode = EpisodeData.from_disk(path_agent, episode_studied)
+
+        # now the episode is loaded, and you can easily iterate through the observation, the actions etc.
+        for act in this_episode.actions:
+            print(act)
+
+        for i, obs in enumerate(this_episode.observations):
+            print("At step {} the active productions were {}".format(i, obs.prod_p))
+
+    """
     ACTION_SPACE = "dict_action_space.json"
     OBS_SPACE = "dict_observation_space.json"
     ENV_MODIF_SPACE = "dict_env_modification_space.json"
@@ -217,7 +254,24 @@ class EpisodeData:
 
     @classmethod
     def from_disk(cls, agent_path, name=str(1)):
+        """
+        This function allows you to reload an episode stored using the runner.
 
+        See the example at the definition of the class for more information on how to use it.
+
+        Parameters
+        ----------
+        agent_path: ``str``
+            Path pass at the "runner.run" method
+
+        name: ``str``
+            The name of the episode you want to reload.
+
+        Returns
+        -------
+        res:
+            The data loaded properly in memory.
+        """
         if agent_path is None:
             raise Grid2OpException("A path to an episode should be provided, please call \"from_disk\" with "
                                    "\"agent_path other\" than None")
@@ -278,17 +332,47 @@ class EpisodeData:
                    other_rewards=other_rewards)
 
     def set_parameters(self, env):
+        """
+         /!\ Internal, do not use /!\
+
+        TODO
+
+        Parameters
+        ----------
+        env
+
+        Returns
+        -------
+
+        """
         if self.serialize:
             self.parameters = env.parameters.to_dict()
 
     def set_meta(self, env, time_step, cum_reward, env_seed, agent_seed):
+        """
+         /!\ Internal, do not use /!\
+
+        TODO
+
+        Parameters
+        ----------
+        env
+        time_step
+        cum_reward
+        env_seed
+        agent_seed
+
+        Returns
+        -------
+
+        """
         if self.serialize:
             self.meta = {}
             self.meta["chronics_path"] = "{}".format(
                 env.chronics_handler.get_id())
             self.meta["chronics_max_timestep"] = "{}".format(
                 env.chronics_handler.max_timestep())
-            self.meta["grid_path"] = "{}".format(env.init_grid_path)
+            self.meta["grid_path"] = "{}".format(env._init_grid_path)
             self.meta["backend_type"] = "{}".format(
                 type(env.backend).__name__)
             self.meta["env_type"] = "{}".format(type(env).__name__)
@@ -305,6 +389,27 @@ class EpisodeData:
 
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, opp_attack, info):
+        """
+         /!\ Internal, do not use /!\
+
+        TODO
+
+        Parameters
+        ----------
+        efficient_storing
+        time_step
+        time_step_duration
+        reward
+        env_act
+        act
+        obs
+        opp_attack
+        info
+
+        Returns
+        -------
+
+        """
 
         if self.serialize:
             self.actions.update(time_step, act.to_vect(), efficient_storing)
@@ -359,6 +464,22 @@ class EpisodeData:
         return res
 
     def set_episode_times(self, env, time_act, beg_, end_):
+        """
+         /!\ Internal, do not use /!\
+
+         TODO
+
+        Parameters
+        ----------
+        env
+        time_act
+        beg_
+        end_
+
+        Returns
+        -------
+
+        """
         if self.serialize:
             self.episode_times = {}
             self.episode_times["Env"] = {}
@@ -374,6 +495,15 @@ class EpisodeData:
             self.episode_times["total"] = float(end_ - beg_)
 
     def to_disk(self):
+        """
+         /!\ Internal, do not use /!\
+
+         TODO
+
+        Returns
+        -------
+
+        """
         if self.serialize:
             parameters_path = os.path.join(
                 self.episode_path, EpisodeData.PARAMS)
@@ -414,6 +544,8 @@ class EpisodeData:
 
 class CollectionWrapper:
     """
+     /!\ Internal, do not use /!\
+
     A wrapping class to add some behaviors (iterability, item access, update, save)
     to grid2op object collections (:class:`grid2op.Action.BaseAction` and :class:`grid2op.Observation.BaseObservation`
     classes essentially).

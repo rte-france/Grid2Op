@@ -21,10 +21,9 @@ class DoNothingAgent(BaseAgent):
         As better explained in the document of :func:`grid2op.BaseAction.update` or
         :func:`grid2op.BaseAction.ActionSpace.__call__`.
 
-        The preferred way to make an object of type action is to call :func:`grid2op.BaseAction.ActionSpace.__call__` with
-        the
-        dictionnary representing the action. In this case, the action is "do nothing" and it is represented by the
-        empty dictionnary.
+        The preferred way to make an object of type action is to call :func:`grid2op.BaseAction.ActionSpace.__call__`
+        with the dictionary representing the action. In this case, the action is "do nothing" and it is represented by
+        the empty dictionary.
 
         Parameters
         ----------

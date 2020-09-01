@@ -197,16 +197,16 @@ class BaseAction(GridObjects):
 
     def __init__(self):
         """
+        /!\ Internal, do not use /!\
+
         This is used to create an BaseAction instance. Preferably, :class:`BaseAction` should be created with
         :class:`ActionSpace`.
 
-        **It is NOT recommended** to create an action with this method. Please use :func:`ActionSpace.__call__` or
-        :func:`ActionSpace.sample` to create a valid action.
+        **It is NOT recommended** to create an action with this method.
 
-        Parameters
-        ----------
-        gridobj: :class:`grid2op.Space.GridObjects`
-            Representation of the objects present in the powergrid
+        IMPORTANT: Use :func:`ActionSpace.__call__` or
+        :func:`ActionSpace.sample` to generate a valid action.
+
 
         """
         GridObjects.__init__(self)
@@ -528,10 +528,9 @@ class BaseAction(GridObjects):
 
     def reset(self):
         """
-        Reset the action to the "do nothing" state.
+        /!\ Internal, do not use /!\
 
-        Returns
-        -------
+        Reset the action to the "do nothing" state.
 
         """
         # False(line is disconnected) / True(line is connected)
@@ -577,6 +576,8 @@ class BaseAction(GridObjects):
 
     def __iadd__(self, other):
         """
+        /!\ Internal, do not use /!\
+
         Add an action to this one.
         Adding an action to myself is equivalent to perform myself, and then perform other.
 
@@ -588,9 +589,6 @@ class BaseAction(GridObjects):
         Parameters
         ----------
         other: :class:`BaseAction`
-
-        Returns
-        -------
 
         """
 
@@ -704,6 +702,8 @@ class BaseAction(GridObjects):
 
     def __call__(self):
         """
+        /!\ Internal, do not use /!\
+
         This method is used to return the effect of the current action in a format understandable by the backend.
         This format is detailed below.
 
@@ -1072,10 +1072,9 @@ class BaseAction(GridObjects):
 
     def _reset_vect(self):
         """
-        Need to be called when update is called !
+        /!\ Internal, do not use /!\
 
-        Returns
-        -------
+        Need to be called when update is called !
 
         """
         self._vectorized = None
@@ -1789,7 +1788,6 @@ class BaseAction(GridObjects):
         -------
         res: ``dict``
             The action represented as a dictionary. See above for a description of it.
-
 
         """
         res = {}

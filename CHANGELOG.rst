@@ -7,7 +7,6 @@ Change Log
 - [???] Extensive tests for DistanceReward
 - [???] better logging
 - [???] add a "plot action" method
-- [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
@@ -19,6 +18,15 @@ Change Log
 [1.2.3] - 2020-xx-yy
 ----------------------
 - [FIXED] an issue in the sampling of redispatching action (ramp up and ramp down were inverted)
+- [FIXED] an issue in the sampling: redispatching and "change_bus" where always performed at the
+  same time
+- [FIXED] `Issue #144 <https://github.com/rte-france/Grid2Op/issues/144>`_: typo that could lead to not
+  display some error messages in some cases.
+- [IMPROVED] overall documentation of `BaseEnv` and `Environment`
+- [IMPROVED] rationalize the public and private part of the API for `Environment` and `BaseEnv`.
+  Some members have been moved to private attribute (their modification would largely alterate the
+  behaviour of grid2op).
+- [IMPROVED] internal functions are tagged as "Internal, do not use".
 
 [1.2.2] - 2020-08-19
 ---------------------

@@ -31,7 +31,7 @@ class IncreasingFlatReward(BaseReward):
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if not has_error:
-            res = dt_float(env.nb_time_step * self.per_timestep)
+            res = dt_float(env._nb_time_step * self.per_timestep)
         else:
             res = self.reward_min
         return res

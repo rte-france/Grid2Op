@@ -26,60 +26,11 @@ class Environment(BaseEnv):
     """
     This class is the grid2op implementation of the "Environment" entity in the RL framework.
 
-    TODO clean the attribute, make a doc for all of them, move the description of some of them in BaseEnv when relevant.
     Attributes
     ----------
-    logger: ``logger``
-        Use to store some information (currently in beta status)
 
-    time_stamp: ``datetime.time``
-        Current time of the chronics
-
-    nb_time_step: ``int``
-        Number of time steps played this episode
-
-    parameters: :class:`grid2op.Parameters.Parameters`
-        Parameters used for the game
-
-    rewardClass: ``type``
-        Type of reward used. Should be a subclass of :class:`grid2op.BaseReward.BaseReward`
-
-    init_grid_path: ``str``
-        The path where the description of the powergrid is located.
-
-    backend: :class:`grid2op.Backend.Backend`
-        The backend used to compute powerflows and cascading failures.
-
-    game_rules: :class:`grid2op.Rules.RulesChecker`
-        The rules of the game (define which actions are legal and which are not)
-
-    helper_action_player: :class:`grid2op.Action.ActionSpace`
-        Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent.BaseAgent`
-        (player)
-
-    helper_action_env: :class:`grid2op.Action.ActionSpace`
-        Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
-
-    helper_observation: :class:`grid2op.Observation.ObservationSpace`
-        Helper used to generate the observation that will be given to the :class:`grid2op.BaseAgent`
-
-    current_obs: :class:`grid2op.Observation.Observation`
-        The current observation (or None if it's not intialized)
-
-    chronics_handler: :class:`grid2op.ChronicsHandler.ChronicsHandler`
-        Helper to get the modification of each time step during the episode.
-
-    names_chronics_to_backend: ``dict``
-        Configuration file used to associated the name of the objects in the backend
-        (both extremities of powerlines, load or production for
-        example) with the same object in the data (:attr:`Environment.chronics_handler`). The idea is that, usually
-        data generation comes from a different software that does not take into account the powergrid infrastructure.
-        Hence, the same "object" can have a different name. This mapping is present to avoid the need to rename
-        the "object" when providing data. A more detailed description is available at
-        :func:`grid2op.ChronicsHandler.GridValue.initialize`.
-
-    reward_helper: :class:`grid2p.BaseReward.RewardHelper`
-        Helper that is called to compute the reward at each time step.
+    name: ``str``
+        The name of the environment
 
     action_space: :class:`grid2op.Action.ActionSpace`
         Another name for :attr:`Environment.helper_action_player` for gym compatibility.
@@ -99,11 +50,6 @@ class Environment(BaseEnv):
     viewer: ``object``
         Used to display the powergrid. Currently not supported.
 
-    env_modification: :class:`grid2op.Action.Action`
-        Representation of the actions of the environment for the modification of the powergrid.
-
-    current_reward: ``float``
-        The reward of the current time step
     """
     def __init__(self,
                  init_grid_path: str,
@@ -139,6 +85,7 @@ class Environment(BaseEnv):
                          tol_poly=tol_poly,
                          other_rewards=other_rewards,
                          with_forecast=with_forecast,
+                         voltagecontrolerClass=voltagecontrolerClass,
                          opponent_action_class=opponent_action_class,
                          opponent_class=opponent_class,
                          opponent_budget_class=opponent_budget_class,
@@ -151,9 +98,6 @@ class Environment(BaseEnv):
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
         self.name = name
-        # the voltage controler
-        self.voltagecontrolerClass = voltagecontrolerClass
-        self.voltage_controler = None
 
         # for gym compatibility (initialized below)
         self.action_space = None
@@ -169,31 +113,18 @@ class Environment(BaseEnv):
             self._raw_backend_class = _raw_backend_class
 
         # for plotting
-        self.init_backend(init_grid_path, chronics_handler, backend,
-                          names_chronics_to_backend, actionClass, observationClass,
-                          rewardClass, legalActClass)
+        self._init_backend(init_grid_path, chronics_handler, backend,
+                           names_chronics_to_backend, actionClass, observationClass,
+                           rewardClass, legalActClass)
 
-    def init_backend(self,
-                     init_grid_path, chronics_handler, backend,
-                     names_chronics_to_backend, actionClass, observationClass,
-                     rewardClass, legalActClass):
+    def _init_backend(self,
+                      init_grid_path, chronics_handler, backend,
+                      names_chronics_to_backend, actionClass, observationClass,
+                      rewardClass, legalActClass):
         """
-        TODO documentation
+        /!\ Internal, do not use /!\
 
-        Parameters
-        ----------
-        init_grid_path
-        chronics_handler
-        backend
-        names_chronics_to_backend
-        actionClass
-        observationClass
-        rewardClass
-        legalActClass
-
-        Returns
-        -------
-
+        Create a proper and valid environment.
         """
 
         if not isinstance(rewardClass, type):
@@ -208,7 +139,7 @@ class Environment(BaseEnv):
         self._observationClass = observationClass
 
         # backend
-        self.init_grid_path = os.path.abspath(init_grid_path)
+        self._init_grid_path = os.path.abspath(init_grid_path)
 
         if not isinstance(backend, Backend):
             raise Grid2OpException( "Parameter \"backend\" used to build the Environment should derived form the "
@@ -217,9 +148,9 @@ class Environment(BaseEnv):
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
-        self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
-        self.backend.load_redispacthing_data(os.path.split(self.init_grid_path)[0])
-        self.backend.load_grid_layout(os.path.split(self.init_grid_path)[0])
+        self.backend.load_grid(self._init_grid_path)  # the real powergrid of the environment
+        self.backend.load_redispacthing_data(os.path.split(self._init_grid_path)[0])
+        self.backend.load_grid_layout(os.path.split(self._init_grid_path)[0])
         self.backend.assert_grid_correct()
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
@@ -303,11 +234,11 @@ class Environment(BaseEnv):
             v.initialize(self)
 
         # controler for voltage
-        if not issubclass(self.voltagecontrolerClass, BaseVoltageController):
+        if not issubclass(self._voltagecontrolerClass, BaseVoltageController):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
-        self.voltage_controler = self.voltagecontrolerClass(gridobj=self.backend,
-                                                            controler_backend=self.backend)
+        self._voltage_controler = self._voltagecontrolerClass(gridobj=self.backend,
+                                                              controler_backend=self.backend)
 
         # create the opponent
         # At least the 3 following attributes should be set before calling _create_opponent
@@ -344,6 +275,9 @@ class Environment(BaseEnv):
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
+
+        /!\ Internal, do not use /!\
+
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
         function can be overide for a more complex handling of the voltages.
 
@@ -358,10 +292,10 @@ class Environment(BaseEnv):
             The voltages that has been specified in the chronics
 
         """
-        volt_control_act = self.voltage_controler.fix_voltage(self.current_obs,
-                                                              agent_action,
-                                                              self._env_modification,
-                                                              prod_v_chronics)
+        volt_control_act = self._voltage_controler.fix_voltage(self.current_obs,
+                                                               agent_action,
+                                                               self._env_modification,
+                                                               prod_v_chronics)
         return volt_control_act
 
     def set_chunk_size(self, new_chunk_size):
@@ -377,7 +311,7 @@ class Environment(BaseEnv):
         learning agent) at the beginning when the agent performs poorly, the software might spend most of its time
         loading the data.
 
-        **NB** this has no effect if the chronics does not support this feature. TODO see xxx for more information
+        **NB** this has no effect if the chronics does not support this feature.
 
         **NB** The environment need to be **reset** for this to take effect (it won't affect the chronics already
         loaded)
@@ -386,6 +320,20 @@ class Environment(BaseEnv):
         ----------
         new_chunk_size: ``int`` or ``None``
             The new chunk size (positive integer)
+
+        Examples
+        ---------
+        Here is an example on how to use this function
+
+        .. code-block:: python
+
+            import grid2op
+
+            # I create an environment
+            env = grid2op.make("rte_case5_example", test=True)
+            env.set_chunk_size(100)
+            # and now data will be read from the hard drive 100 time steps per 100 time steps
+            # instead of the whole episode at once.
 
         """
         if new_chunk_size is None:
@@ -408,7 +356,7 @@ class Environment(BaseEnv):
         """
         Set the id that will be used at the next call to :func:`Environment.reset`.
 
-        **NB** this has no effect if the chronics does not support this feature. TODO see xxx for more information
+        **NB** this has no effect if the chronics does not support this feature.
 
         **NB** The environment need to be **reset** for this to take effect.
 
@@ -475,8 +423,43 @@ class Environment(BaseEnv):
         Parameters
         ----------
         graph_layout: ``dict``
+            Here for backward compatibility. Currently not used.
+
+            If you want to set a specific layout call :func:`BaseEnv.attach_layout`
+
             If ``None`` this class will use the default substations layout provided when the environment was created.
             Otherwise it will use the data provided.
+
+        Examples
+        ---------
+        Here is how to use the function
+
+        .. code-block:: python
+
+            import grid2op
+
+            # create the environment
+            env = grid2op.make()
+
+            if False:
+                # if you want to change the default layout of the powergrid
+                # assign coordinates (0., 0.) to all substations (this is a dummy thing to do here!)
+                layout = {sub_name: (0., 0.) for sub_name in env.name_sub}
+                env.attach_layout(layout)
+                # NB again, this code will make everything look super ugly !!!! Don't change the
+                # default layout unless you have a reason to.
+
+            # and if you want to use the renderer
+            env.attach_renderer()
+
+            # and now you can "render" (plot) the state of the grid
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                env.render()
+                action = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(action)
 
         """
         # Viewer already exists: skip
@@ -497,17 +480,20 @@ class Environment(BaseEnv):
         self.metadata = {'render.modes': ["human", "silent"]}
 
     def __str__(self):
-        return '<{} instance>'.format(type(self).__name__)
+        return '<{} instance named {}>'.format(type(self).__name__, self.name)
         # TODO be closer to original gym implementation
 
     def reset_grid(self):
         """
-        Reset the backend to a clean state by reloading the powergrid from the hard drive. This might takes some time.
+        /!\ Internal, do not use /!\
+
+        Reset the backend to a clean state by reloading the powergrid from the hard drive.
+        This might takes some time.
 
         If the thermal has been modified, it also modify them into the new backend.
 
         """
-        self.backend.reset(self.init_grid_path)  # the real powergrid of the environment
+        self.backend.reset(self._init_grid_path)  # the real powergrid of the environment
         self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:
@@ -524,8 +510,7 @@ class Environment(BaseEnv):
         """
         Add a text logger to this  :class:`Environment`
 
-        Logging is for now an incomplete feature, really incomplete (beta)
-
+        Logging is for now an incomplete feature, really incomplete (not used)
 
         Parameters
         ----------
@@ -545,6 +530,25 @@ class Environment(BaseEnv):
         to ensure the episode is fully over.
 
         This method should be called only at the end of an episode.
+
+        Examples
+        --------
+        The standard "gym loop" can be done with the following code:
+
+        .. code-block:: python
+
+            import grid2op
+
+            # create the environment
+            env = grid2op.make()
+
+            # and now you can "render" (plot) the state of the grid
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                action = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(action)
         """
         super().reset()
         self.chronics_handler.next_chronics()
@@ -571,6 +575,29 @@ class Environment(BaseEnv):
         """
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
+
+        Examples
+        --------
+        Rendering need first to define a "renderer" which can be done with the following code:
+
+        .. code-block:: python
+
+            import grid2op
+
+            # create the environment
+            env = grid2op.make()
+
+            # if you want to use the renderer
+            env.attach_renderer()
+
+            # and now you can "render" (plot) the state of the grid
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                env.render()  # this piece of code plot the grid
+                action = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(action)
         """
         # Try to create a plotter instance
         # Does nothing if viewer exists
@@ -598,11 +625,9 @@ class Environment(BaseEnv):
 
     def copy(self):
         """
-        performs a deep copy of the environment
+        Performs a deep copy of the environment
 
-        Returns
-        -------
-
+        Unless you have a reason to, it is not advised to make copy of an Environment.
         """
         tmp_backend = self.backend
         self.backend = None
@@ -614,15 +639,15 @@ class Environment(BaseEnv):
         obs_tmp = self.current_obs
         self.current_obs = None
 
-        volt_cont = self.voltage_controler
-        self.voltage_controler = None
+        volt_cont = self._voltage_controler
+        self._voltage_controler = None
 
         res = copy.deepcopy(self)
         res.backend = tmp_backend.copy()
         res._helper_observation = tmp_obs_space.copy()
         res.observation_space = res._helper_observation
         res.current_obs = obs_tmp.copy()
-        res.voltage_controler = volt_cont.copy()
+        res._voltage_controler = volt_cont.copy()
 
         if self._thermal_limit_a is not None:
             res.backend.set_thermal_limit(self._thermal_limit_a)
@@ -630,7 +655,7 @@ class Environment(BaseEnv):
         self.observation_space = tmp_obs_space
         self._helper_observation = tmp_obs_space
         self.current_obs = obs_tmp
-        self.voltage_controler = volt_cont
+        self._voltage_controler = volt_cont
         return res
 
     def get_kwargs(self, with_backend=True):
@@ -661,7 +686,7 @@ class Environment(BaseEnv):
 
         """
         res = {}
-        res["init_grid_path"] = self.init_grid_path
+        res["init_grid_path"] = self._init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             res["backend"] = self.backend.copy()
@@ -674,7 +699,7 @@ class Environment(BaseEnv):
         res["epsilon_poly"] = self._epsilon_poly
         res["tol_poly"] = self._tol_poly
         res["thermal_limit_a"] = self._thermal_limit_a
-        res["voltagecontrolerClass"] = self.voltagecontrolerClass
+        res["voltagecontrolerClass"] = self._voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["name"] = self.name
         res["_raw_backend_class"] = self._raw_backend_class
@@ -713,7 +738,7 @@ class Environment(BaseEnv):
 
         """
         res = {}
-        res["init_grid_path"] = self.init_grid_path
+        res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self.parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
@@ -731,7 +756,7 @@ class Environment(BaseEnv):
             del dict_["path"]
         res["gridStateclass_kwargs"] = dict_
         res["thermal_limit_a"] = self._thermal_limit_a
-        res["voltageControlerClass"] = self.voltagecontrolerClass
+        res["voltageControlerClass"] = self._voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name

@@ -17,6 +17,8 @@ from grid2op.Action import BaseAction
 
 class RemoteEnv(Process):
     """
+     /!\ Internal, do not use /!\
+
     This class represent the environment that is executed on a remote process.
 
     Note that the environment is only created in the subprocess, and is not available in the main process. Once created
@@ -38,6 +40,8 @@ class RemoteEnv(Process):
 
     def init_env(self):
         """
+         /!\ Internal, do not use /!\
+
         Initialize the environment  that will perform all the computation of this process.
         Remember the environment only lives in this process. It cannot
         be transfer to / from the main process.

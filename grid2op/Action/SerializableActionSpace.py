@@ -37,7 +37,7 @@ class SerializableActionSpace(SerializableSpace):
     CHANGE_STATUS = 1
     SET_BUS = 2
     CHANGE_BUS = 3
-    REDISPATCHING = 3
+    REDISPATCHING = 4
 
     def __init__(self, gridobj, actionClass=BaseAction):
         """
@@ -157,6 +157,7 @@ class SerializableActionSpace(SerializableSpace):
         rnd_types = self._get_possible_action_types()
         if not len(rnd_types):
             return rnd_act
+
         # this sampling
         rnd_type = self.space_prng.choice(rnd_types)
 
@@ -168,7 +169,7 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = self._sample_set_bus()
         elif rnd_type == self.CHANGE_BUS:
             rnd_update = self._sample_change_bus()
-        elif rnd_types == self.REDISPATCHING:
+        elif rnd_type == self.REDISPATCHING:
             rnd_update = self._sample_redispatch()
         else:
             raise Grid2OpException("Impossible to sample action of type {}".format(rnd_type))
@@ -464,6 +465,28 @@ class SerializableActionSpace(SerializableSpace):
 
     @staticmethod
     def get_all_unitary_line_set(action_space):
+        """
+        Return all unitary actions that "set" powerline status.
+
+        For each powerline, there are 5 such actions:
+
+        - disconnect it
+        - connected it origin at bus 1 and extremity at bus 1
+        - connected it origin at bus 1 and extremity at bus 2
+        - connected it origin at bus 2 and extremity at bus 1
+        - connected it origin at bus 2 and extremity at bus 2
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionSpace`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all "set" action acting on powerline status
+
+        """
         res = []
 
         # powerline switch: disconnection
@@ -481,6 +504,22 @@ class SerializableActionSpace(SerializableSpace):
 
     @staticmethod
     def get_all_unitary_line_change(action_space):
+        """
+        Return all unitary actions that "change" powerline status.
+
+        For each powerline, there is only one such action that consist in change its status.
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionSpace`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all "change" action acting on powerline status
+
+        """
         res = []
 
         for i in range(action_space.n_line):
@@ -500,7 +539,7 @@ class SerializableActionSpace(SerializableSpace):
 
         Parameters
         ----------
-        action_space: :class:`grid2op.BaseAction.ActionHelper`
+        action_space: :class:`grid2op.BaseAction.ActionSpace`
             The action space used.
 
         Returns
@@ -597,7 +636,33 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_redispatch(action_space):
+    def get_all_unitary_redispatch(action_space, num_down=5, num_up=5):
+        """
+        Redispatching action are continuous action. This method is an helper to convert the continuous
+        action into discrete action (by rounding).
+
+        The number of actions is equal to num_down + num_up (by default 10) per dispatchable generator.
+
+
+        This method acts as followed:
+
+        - it will divide the interval [-gen_max_ramp_down, 0] into `num_down`, each will make
+          a distinct action (then counting `num_down` different action, because 0.0 is removed)
+        - it will do the same for [0, gen_maw_ramp_up]
+
+
+        Parameters
+        ----------
+        action_space: :class:`grid2op.BaseAction.ActionHelper`
+            The action space used.
+
+        Returns
+        -------
+        res: ``list``
+            The list of all discretized redispatching actions.
+
+        """
+
         res = []
         n_gen = len(action_space.gen_redispatchable)
 
@@ -607,11 +672,11 @@ class SerializableActionSpace(SerializableSpace):
                 continue
 
             # Create evenly spaced positive interval
-            ramps_up = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=5)
-            ramps_up = ramps_up[1:] # Exclude redispatch of 0MW
+            ramps_up = np.linspace(0.0, action_space.gen_max_ramp_up[gen_idx], num=num_up)
+            ramps_up = ramps_up[1:]  # Exclude redispatch of 0MW
 
             # Create evenly spaced negative interval
-            ramps_down = np.linspace(-action_space.gen_max_ramp_down[gen_idx], 0.0, num=5)
+            ramps_down = np.linspace(-action_space.gen_max_ramp_down[gen_idx], 0.0, num=num_down)
             ramps_down = ramps_down[:-1] # Exclude redispatch of 0MW
 
             # Merge intervals
