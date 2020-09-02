@@ -18,9 +18,11 @@ class PowerLineSwitch(GreedyAgent):
     It will choose among:
 
       - doing nothing
-      - disconnecting one powerline
+      - changing the status of one powerline
 
-    which action that will maximize the reward. All powerlines are tested.
+    which action that will maximize the simulated reward. All powerlines are tested at each steps. This means
+    that if `n` is the number of powerline on the grid, at each steps this actions will perform `n` +1
+    calls to "simulate" (one to do nothing and one that change the status of each powerline)
 
     """
 

@@ -50,9 +50,6 @@ class Multifolder(GridValue):
         :attr:`Multifolder.path`. Each one should contain data in a format that is readable by
         :attr:`MultiFolder.gridvalueClass`.
 
-    id_chron_folder_current: ``int``
-        Id (in :attr:`MultiFolder.subpaths`) for which data are generated in the current episode.
-
     """
     def __init__(self, path,
                  time_interval=timedelta(minutes=5),

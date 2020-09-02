@@ -33,7 +33,11 @@ except (ImportError, ModuleNotFoundError):
 
 class PandaPowerBackend(Backend):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        If you want to code a backend to use grid2op with another powerflow, you can get inspired
+        from this class. Note However that implies knowning the behaviour
+        of PandaPower.
 
     This module presents an example of an implementation of a `grid2op.Backend` when using the powerflow
     implementation "pandapower" available at `PandaPower <https://www.pandapower.org/>`_ for more details about
@@ -155,7 +159,7 @@ class PandaPowerBackend(Backend):
 
     def get_nb_active_bus(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Compute the amount of buses "in service" eg with at least a powerline connected to it.
 
@@ -184,7 +188,7 @@ class PandaPowerBackend(Backend):
 
     def reset(self, path=None, grid_filename=None):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Reload the grid.
         For pandapower, it is a bit faster to store of a copy of itself at the end of load_grid
@@ -197,7 +201,7 @@ class PandaPowerBackend(Backend):
 
     def load_grid(self, path=None, filename=None):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Load the _grid, and initialize all the member of the class. Note that in order to perform topological
         modification of the substation of the underlying powergrid, some buses are added to the test case loaded. They
@@ -476,7 +480,7 @@ class PandaPowerBackend(Backend):
 
     def _convert_id_topo(self, id_big_topo):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         convert an id of the big topo vector into:
 
@@ -488,7 +492,7 @@ class PandaPowerBackend(Backend):
 
     def apply_action(self, backendAction=None):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Specific implementation of the method to apply an action modifying a powergrid in the pandapower format.
         """
@@ -627,7 +631,7 @@ class PandaPowerBackend(Backend):
 
     def runpf(self, is_dc=False):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Run a power flow on the underlying _grid. This implements an optimization of the powerflow
         computation: if the number of
@@ -725,7 +729,7 @@ class PandaPowerBackend(Backend):
 
     def copy(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Performs a deep copy of the power :attr:`_grid`.
         As pandapower is pure python, the deep copy operator is perfectly suited for the task.
@@ -735,7 +739,7 @@ class PandaPowerBackend(Backend):
 
     def close(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Called when the :class:`grid2op;Environment` has terminated, this function only reset the grid to a state
         where it has not been loaded.
@@ -745,7 +749,8 @@ class PandaPowerBackend(Backend):
 
     def save_file(self, full_path):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         You might want to use it for debugging purpose only, and only if you develop yourself a backend.
 
         Save the file to json.
@@ -756,7 +761,7 @@ class PandaPowerBackend(Backend):
 
     def get_line_status(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         As all the functions related to powerline, pandapower split them into multiple dataframe (some for transformers,
         some for 3 winding transformers etc.). We make sure to get them all here.

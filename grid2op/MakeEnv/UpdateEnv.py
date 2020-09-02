@@ -53,7 +53,7 @@ def update_env(env_name=None):
 
 def _update_file(dict_, env_name, file_name):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Update a single file of a single environment.
 
@@ -79,7 +79,7 @@ def _update_file(dict_, env_name, file_name):
 
 def _update_files(env_name=None):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Update all the "modified" files of a given environment. If ``None`` is provided as input, all local environments
     will be checked for update.

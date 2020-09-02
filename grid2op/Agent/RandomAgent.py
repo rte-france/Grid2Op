@@ -12,12 +12,19 @@ from grid2op.Agent.AgentWithConverter import AgentWithConverter
 
 class RandomAgent(AgentWithConverter):
     """
-    This agent acts randomnly on the powergrid. It uses the :class:`grid2op.Converters.IdToAct` to compute all the
+    This agent acts randomly on the powergrid. It uses the :class:`grid2op.Converters.IdToAct` to compute all the
     possible actions available for the environment. And then chooses a random one among all these.
 
-    **NB** Action are taken randomly among unary actions. For example, if a game rules allows to take actions that
+    Notes
+    ------
+    Actions are taken uniformly at random among unary actions. For example, if a game rules allows to take actions that
     can disconnect a powerline AND modify the topology of a substation an action that do both will not be sampled
     by this class.
+
+    This agent is not equivalent to calling `env.action_space.sample()` because the sampling is not
+    done the same manner. This agent sample uniformly among all unary actions whereas
+    `env.action_space.sample()` (see :func:`grid2op.Action.SerializableActionSpace.sample` for more
+    information about the later).
 
     """
     def __init__(self, action_space, action_space_converter=IdToAct, **kwargs_converter):

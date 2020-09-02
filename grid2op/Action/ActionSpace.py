@@ -38,6 +38,10 @@ class ActionSpace(SerializableActionSpace):
     
     def __init__(self, gridobj, legal_action, actionClass=BaseAction):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            The actions space is created by the environment. Do not attempt to create one yourself.
+
         All parameters (name_gen, name_load, name_line, sub_info, etc.) are used to fill the attributes having the
         same name. See :class:`ActionSpace` for more information.
 
@@ -61,9 +65,9 @@ class ActionSpace(SerializableActionSpace):
     def __call__(self, dict_=None, check_legal=False, env=None):
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
-        dictionnary.
+        dictionary.
 
-        More information about this dictionnary can be found in the :func:`Action.update` help. This dictionnary
+        More information about this dictionary can be found in the :func:`Action.update` help. This dictionary
         is not changed in this method.
 
         **NB** This is the only recommended way to make a valid, with proper dimension :class:`Action` object:
@@ -82,16 +86,16 @@ class ActionSpace(SerializableActionSpace):
 
         Parameters
         ----------
-        dict_ : :class:`dict`
+        dict_ : ``dict``
             see :func:`Action.__call__` documentation for an extensive help about this parameter
 
-        check_legal: :class:`bool`
+        check_legal: ``bool``
             is there a test performed on the legality of the action. **NB** When an object of class :class:`Action` is
             used, it is automatically tested for ambiguity. If this parameter is set to ``True`` then a legality test
             is performed. An action can be illegal if the environment doesn't allow it, for example if an agent tries
             to reconnect a powerline during a maintenance.
 
-        env: :class:`grid2op.Environment`, optional
+        env: :class:`grid2op.Environment.Environment`, optional
             An environment used to perform a legality check.
 
         Returns
@@ -114,11 +118,18 @@ class ActionSpace(SerializableActionSpace):
 
     def _is_legal(self, action, env):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Whether an action is legal or not is checked by the environment at each call
+            to `env.step`
 
         Parameters
         ----------
-        action
-        env
+        action: :class:`BaseAction`
+            The action to test
+
+        env: :class:`grid2op.Environment.Environment`
+            The current environment
 
         Returns
         -------

@@ -558,7 +558,8 @@ class EpisodeData:
 
 class CollectionWrapper:
     """
-     /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        Utility to make the interaction with stored actions and stored observations more pythonic
 
     A wrapping class to add some behaviors (iterability, item access, update, save)
     to grid2op object collections (:class:`grid2op.Action.BaseAction` and :class:`grid2op.Observation.BaseObservation`

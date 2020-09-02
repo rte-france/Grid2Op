@@ -22,6 +22,11 @@ from grid2op.Chronics.GridValue import GridValue
 
 class GridStateFromFile(GridValue):
     """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Do not attempt to create an object of this class. This is initialized by the environment
+        at its creation.
+
     Read the injections values from a file stored on hard drive. More detailed about the files is provided in the
     :func:`GridStateFromFile.initialize` method.
 
@@ -105,7 +110,11 @@ class GridStateFromFile(GridValue):
                  start_datetime=datetime(year=2019, month=1, day=1),
                  chunk_size=None):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Do not attempt to create an object of this class. This is initialized by the environment
+        at its creation.
+
 
         Build an instance of GridStateFromFile. Such an instance should be built before an :class:`grid2op.Environment`
         is created.
@@ -312,7 +321,9 @@ class GridStateFromFile(GridValue):
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Called at the creation of the environment.
 
         In this function, the numpy arrays are read from the csv using the panda.dataframe engine.
 
@@ -533,7 +544,7 @@ class GridStateFromFile(GridValue):
 
     def done(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Compare to :func:`GridValue.done` an episode can be over for 2 main reasons:
 
@@ -632,22 +643,6 @@ class GridStateFromFile(GridValue):
         return self.current_datetime, res, maintenance_time, maintenance_duration, hazard_duration, prod_v
 
     def check_validity(self, backend):
-        """
-        /!\ Internal, do not use /!\
-
-        A call to this method ensure that the action that will be sent to the current :class:`grid2op.Environment`
-        can be properly implemented by its :class:`grid2op.Backend`.
-        This specific method check that the dimension of all vectors are consistent
-
-        Parameters
-        ----------
-        backend: :class:`grid2op.Backend.Backend`
-            The backend used by the :class:`grid2op.Environment.Environment`
-
-        Returns
-        -------
-        ``None``
-        """
         at_least_one = False
         if self.load_p is not None:
             if self.load_p.shape[1] != backend.n_load:
@@ -823,19 +818,25 @@ class GridStateFromFile(GridValue):
 
     def split_and_save(self, datetime_beg, datetime_end, path_out):
         """
-        you can use this function to save the values of the chronics in a format that will be loadable
+        You can use this function to save the values of the chronics in a format that will be loadable
         by :class:`GridStateFromFile`
 
-        TODO example on how to use this.
+        Notes
+        -----
+        Prefer using the :func:`Multifolder.split_and_save` that handles different chronics
 
         Parameters
         ----------
-        datetime_beg
-        datetime_end
-        path_out
+        datetime_beg: ``str``
+            Time stamp of the beginning of the data you want to save (time stamp in "%Y-%m-%d %H:%M"
+            format)
 
-        Returns
-        -------
+        datetime_end: ``str``
+            Time stamp of the end of the data you want to save (time stamp in "%Y-%m-%d %H:%M"
+            format)
+
+        path_out: ``str``
+            Location where to save the data
 
         """
         # work on a copy of myself

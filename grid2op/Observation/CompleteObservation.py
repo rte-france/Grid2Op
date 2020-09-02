@@ -120,17 +120,6 @@ class CompleteObservation(BaseObservation):
         self.dictionnarized = None
 
     def update(self, env, with_forecast=True):
-        """
-        /!\ Internal, do not use /!\
-
-        This use the environement to update properly the BaseObservation.
-
-        Parameters
-        ----------
-        env: :class:`grid2op.Environment.Environment`
-            The environment from which to update this observation.
-
-        """
         # reset the matrices
         self._reset_matrices()
         self.reset()
@@ -183,8 +172,9 @@ class CompleteObservation(BaseObservation):
 
     def from_vect(self, vect, check_legit=True):
         """
-        /!\ Internal, do not use /!\
-        To reload an observation from a vector, use the "env.observation_space.from_vect()".
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            To reload an observation from a vector, use the "env.observation_space.from_vect()".
 
         Convert back an observation represented as a vector into a proper observation.
 
@@ -349,4 +339,3 @@ class CompleteObservation(BaseObservation):
                 self.bus_connectivity_matrix_[bus_id_or, bus_id_ex] = 1
                 self.bus_connectivity_matrix_[bus_id_ex, bus_id_or] = 1
         return self.bus_connectivity_matrix_
-

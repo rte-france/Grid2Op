@@ -28,7 +28,7 @@ from grid2op.Action._BackendAction import _BackendAction
 
 class BaseEnv(GridObjects, RandomObject, ABC):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class represent some usefull abstraction that is re used by :class:`Environment` and
     :class:`grid2op.Observation._Obsenv` for example.
@@ -85,36 +85,44 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         For open ai gym compatibility.
 
     _gen_activeprod_t:
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Should be initialized at 0. for "step" to properly recognize it's the first time step of the game
 
     _no_overflow_disconnection: ``bool``
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Whether or not cascading failures are computed or not (TRUE = the powerlines above their thermal limits will
         not be disconnected). This is initialized based on the attribute
         :attr:`grid2op.Parameters.Parameters.NO_OVERFLOW_DISCONNECTION`.
 
     _timestep_overflow: ``numpy.ndarray``, dtype: int
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Number of consecutive timesteps each powerline has been on overflow.
 
     _nb_timestep_overflow_allowed: ``numpy.ndarray``, dtype: int
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Number of consecutive timestep each powerline can be on overflow. It is usually read from
         :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_POWERFLOW_ALLOWED`.
 
     _hard_overflow_threshold: ``float``
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Number of timestep before an :class:`grid2op.BaseAgent.BaseAgent` can reconnet a powerline that has been
         disconnected
         by the environment due to an overflow.
 
     _env_dc: ``bool``
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Whether the environment computes the powerflow using the DC approximation or not. It is usually read from
         :attr:`grid2op.Parameters.Parameters.ENV_DC`.
 
     _names_chronics_to_backend: ``dict``
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Configuration file used to associated the name of the objects in the backend
         (both extremities of powerlines, load or production for
         example) with the same object in the data (:attr:`Environment.chronics_handler`). The idea is that, usually
@@ -124,28 +132,44 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         :func:`grid2op.ChronicsHandler.GridValue.initialize`.
 
     _env_modification: :class:`grid2op.Action.Action`
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Representation of the actions of the environment for the modification of the powergrid.
 
     _rewardClass: ``type``
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Type of reward used. Should be a subclass of :class:`grid2op.BaseReward.BaseReward`
 
     _init_grid_path: ``str``
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         The path where the description of the powergrid is located.
 
     _game_rules: :class:`grid2op.Rules.RulesChecker`
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         The rules of the game (define which actions are legal and which are not)
 
     _helper_action_player: :class:`grid2op.Action.ActionSpace`
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent.BaseAgent`
         (player)
 
     _helper_action_env: :class:`grid2op.Action.ActionSpace`
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
 
     _helper_observation: :class:`grid2op.Observation.ObservationSpace`
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Helper used to generate the observation that will be given to the :class:`grid2op.BaseAgent`
 
     _reward_helper: :class:`grid2p.BaseReward.RewardHelper`
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Helper that is called to compute the reward at each time step.
 
     """
@@ -554,7 +578,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method is used for Environment specific implementation. Only use it if you know exactly what
         you are doing.
@@ -730,12 +754,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                               (actual_dispatchable[already_modified_gen_me] - target_vals_me)
             return res
 
-        # hessian is not used for the optimization method
-        # hess_mat = np.zeros((nb_dispatchable, nb_dispatchable))
-        # hess_mat[already_modified_gen_me, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me]
-        # def hess(actual_dispatchable):
-        #     return hess_mat
-
         mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable))
         const_sum_O_no_turn_on = np.zeros(1)
         equality_const = LinearConstraint(mat_sum_0_no_turn_on,
@@ -787,7 +805,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _update_actions(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Retrieve the actions to perform the update of the underlying powergrid represented by
         the :class:`grid2op.Backend`in the next time step.
@@ -822,7 +840,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _update_time_reconnection_hazards_maintenance(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This supposes that :attr:`Environment.times_before_line_status_actionable` is already updated
         with the cascading failure, soft overflow and hard overflow.
@@ -851,7 +869,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
         function can be overide for a more complex handling of the voltages.
@@ -874,7 +892,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _handle_updown_times(self, gen_up_before, redisp_act):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Handles the up and down tims for the generators.
         """
@@ -1245,7 +1263,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def get_reward_instance(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Returns the instance of the object that is used to compute the reward.
         """
@@ -1257,7 +1275,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _reset_vectors_and_timings(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
         """
@@ -1437,11 +1455,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def get_current_line_status(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            prefer using :attr:`grid2op.BaseObservation.line_status`
 
         This method allows to retrieve the line status.
-
-        /!\ Internal, do not use /!\ prefer using :attr:`grid2op.BaseObservation.line_status`
         """
         if self.current_obs is not None:
             powerline_status = self.current_obs.line_status

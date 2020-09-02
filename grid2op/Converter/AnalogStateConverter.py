@@ -30,7 +30,7 @@ class AnalogStateConverter(Converter):
         self.__bias = 0.0
 
     @staticmethod
-    def to_norm_vect(inputv, pad_v = 0.0, scale_v = 1.0):
+    def to_norm_vect(inputv, pad_v=0.0, scale_v=1.0):
         v = np.asarray(inputv)
         v = v / scale_v
         vsafe = np.nan_to_num(v, nan=pad_v, posinf=pad_v, neginf=pad_v)
@@ -142,7 +142,7 @@ class AnalogStateConverter(Converter):
         Parameters
         ----------
         netstate: ``tuple``
-        A tuple containning the following (3) elements:
+            A tuple containning the following (3) elements:
 
         netbus: ``np.array``
         A numpy array of dimension n_bus(2) x dim_topo and range [0.0; 1.0].
@@ -285,6 +285,3 @@ class AnalogStateConverter(Converter):
         disp_rnd[rnd_gen] = rnd_ramp
 
         return disp_rnd
-
-
-    

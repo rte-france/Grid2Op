@@ -10,6 +10,7 @@ from grid2op.Exceptions import OpponentError
 
 class OpponentSpace(object):
     """
+    Is similar to the action space, but for the opponent.
 
     Attributes
     ----------

@@ -218,7 +218,7 @@ class ConnectivityConverter(Converter):
 
     def _compute_disagreement(self, encoded_act, topo_vect):
         """
-         /!\ Internal, do not use /!\
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         computes the disagreement between the encoded act and the proposed topo_vect
 

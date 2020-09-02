@@ -15,9 +15,10 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
-[1.2.3] - 2020-xx-yy
+[1.3.0] - 2020-xx-yy
 ----------------------
 - [FIXED] an issue in the sampling of redispatching action (ramp up and ramp down were inverted)
+- [FIXED] an issue causing errors when using `action_space.change_bus` and `action_space.set_bus`
 - [FIXED] an issue in the sampling: redispatching and "change_bus" where always performed at the
   same time
 - [FIXED] `Issue #144 <https://github.com/rte-france/Grid2Op/issues/144>`_: typo that could lead to not
@@ -27,6 +28,7 @@ Change Log
   Some members have been moved to private attribute (their modification would largely alterate the
   behaviour of grid2op).
 - [IMPROVED] internal functions are tagged as "Internal, do not use".
+- [IMPROVED] Improved documentation for the `Environment` and `MultiMixEnvironment`.
 
 [1.2.2] - 2020-08-19
 ---------------------

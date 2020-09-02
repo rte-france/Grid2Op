@@ -197,16 +197,16 @@ class BaseAction(GridObjects):
 
     def __init__(self):
         """
-        /!\ Internal, do not use /!\
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            **It is NOT recommended** to create an action with this method, use the action space
+            of the environment :attr:`grid2op.Environment.Environment.action_space` instead.
 
         This is used to create an BaseAction instance. Preferably, :class:`BaseAction` should be created with
         :class:`ActionSpace`.
 
-        **It is NOT recommended** to create an action with this method.
-
-        IMPORTANT: Use :func:`ActionSpace.__call__` or
-        :func:`ActionSpace.sample` to generate a valid action.
-
+        IMPORTANT: Use :func:`ActionSpace.__call__` or :func:`ActionSpace.sample` to generate a valid action.
 
         """
         GridObjects.__init__(self)
@@ -528,7 +528,8 @@ class BaseAction(GridObjects):
 
     def reset(self):
         """
-        /!\ Internal, do not use /!\
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Reset the action to the "do nothing" state.
 
@@ -576,15 +577,11 @@ class BaseAction(GridObjects):
 
     def __iadd__(self, other):
         """
-        /!\ Internal, do not use /!\
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Add an action to this one.
         Adding an action to myself is equivalent to perform myself, and then perform other.
-
-        Add will have the following properties:
-
-            - it erase the previous changes to injections
-            -
 
         Parameters
         ----------
@@ -702,7 +699,8 @@ class BaseAction(GridObjects):
 
     def __call__(self):
         """
-        /!\ Internal, do not use /!\
+
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method is used to return the effect of the current action in a format understandable by the backend.
         This format is detailed below.
@@ -907,7 +905,7 @@ class BaseAction(GridObjects):
                         s_id = int(s_id)
                         beg_ = int(np.sum(self.sub_info[:s_id]))
                         end_ = int(beg_ + self.sub_info[s_id])
-                        self._change_bus_vect[beg_:end_][arr] = ~self._change_bus_vect[beg_:end_][arr]
+                        self._change_bus_vect[beg_:end_][arr] = True
             elif dict_["change_bus"] is None:
                 pass
             else:
@@ -1072,7 +1070,7 @@ class BaseAction(GridObjects):
 
     def _reset_vect(self):
         """
-        /!\ Internal, do not use /!\
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Need to be called when update is called !
 

@@ -12,10 +12,13 @@ from grid2op.Agent import BaseAgent
 
 class DeltaRedispatchRandomAgent(BaseAgent):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-    Used for test. Prefer using a random agent by selecting only the redispatching action
-    that you want.
+        Used for test. Prefer using a random agent by selecting only the redispatching action
+        that you want.
+
+    This agent will perform some redispatch of a given amount among randomly selected dispatchable
+    generators.
 
     Parameters
     ----------

@@ -25,14 +25,14 @@ class OneChangeThenNothing(BaseAgent):
 
     Examples
     ---------
-
     We advise to use this class as following
 
     .. code-block:: python
 
         import grid2op
         from grid2op.Agent import OneChangeThenNothing
-        acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionnaries. Each dictionnaries representing a valid action
+        acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionaries. Each dictionary
+        # represents a valid action
 
         env = grid2op.make()  # create an environment
         for act_as_dict in zip(acts_dict_):

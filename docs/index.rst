@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to Grid2Op's technical documentation!
-=============================================
+**********************************************
 
 Grid2Op is a pythonic, easy to use framework, to be able to develop, train or evaluate performances of "agent" or
 "controler" that acts on a power grid in  different ways.

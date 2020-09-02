@@ -44,8 +44,11 @@ _IS_WINDOWS = sys.platform.startswith('win')
 # TODO use gym logger if specified by the user.
 # TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
+
 class DoNothingLog:
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     A class to emulate the behaviour of a logger, but that does absolutely nothing.
     """
     INFO = 2
@@ -70,6 +73,8 @@ class DoNothingLog:
 
 class ConsoleLog(DoNothingLog):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     A class to emulate the behaviour of a logger, but that prints on the console
     """
 
@@ -222,6 +227,11 @@ class Runner(object):
 
     grid_layout: ``dict``, optional
         The layout of the grid (position of each substation) usefull if you need to plot some things for example.
+
+    Examples
+    --------
+    Different examples are showed in the description of the main method :func:`Runner.run`
+
     """
 
     def __init__(self,
@@ -536,6 +546,8 @@ class Runner(object):
 
     def init_env(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Function used to initialized the environment and the agent.
         It is called by :func:`Runner.reset`.
         """
@@ -543,6 +555,8 @@ class Runner(object):
 
     def reset(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Used to reset an environment. This method is called at the beginning of each new episode.
         If the environment is not initialized, then it initializes it with :func:`Runner.make_env`.
         """
@@ -553,6 +567,8 @@ class Runner(object):
 
     def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
 
         Parameters
@@ -714,6 +730,8 @@ class Runner(object):
     @staticmethod
     def _make_progress_bar(pbar, total, next_pbar):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Parameters
         ----------
         pbar: ``bool`` or ``type`` or ``object``
@@ -748,6 +766,8 @@ class Runner(object):
 
     def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         This method is called to see how well an agent performed on a sequence of episode.
 
         Parameters
@@ -839,7 +859,9 @@ class Runner(object):
 
     def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None):
         """
-        This method will run in parrallel, independantly the nb_episode over nb_process.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This method will run in parallel, independently the nb_episode over nb_process.
 
         In case the agent cannot be cloned using `copy.copy`: nb_process is set to 1
 
@@ -847,7 +869,7 @@ class Runner(object):
         is actually performed with more than 1 cores (nb_process > 1)
 
         It uses the python multiprocess, and especially the :class:`multiprocess.Pool` to perform the computations.
-        This implies that all runs are completely independant (they happen in different process) and that the
+        This implies that all runs are completely independent (they happen in different process) and that the
         memory consumption can be big. Tests may be recommended if the amount of RAM is low.
 
         It has the same return type as the :func:`Runner.run_sequential`.
@@ -928,7 +950,10 @@ class Runner(object):
         return res
 
     def _clean_up(self):
-        """close the environment is it has been created"""
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        close the environment is it has been created
+        """
         if self.env is not None:
             self.env.close()
         self.env = None

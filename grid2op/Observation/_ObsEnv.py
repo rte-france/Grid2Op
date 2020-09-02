@@ -17,7 +17,7 @@ from grid2op.Exceptions import Grid2OpException
 
 class _ObsCH(ChangeNothing):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class is reserved to internal use. Do not attempt to do anything with it.
     """
@@ -27,7 +27,7 @@ class _ObsCH(ChangeNothing):
 
 class _ObsEnv(BaseEnv):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class is an 'Emulator' of a :class:`grid2op.Environment.Environment` used to be able to 'simulate'
     forecasted grid states.

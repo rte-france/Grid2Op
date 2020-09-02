@@ -29,7 +29,7 @@ class BaseObservation(GridObjects):
     Attributes
     ----------
     action_helper: :class:`grid2op.Action.ActionSpace`
-        A reprensentation of the possible action space.
+        A representation of the possible action space.
 
     year: ``int``
         The current year
@@ -406,7 +406,9 @@ class BaseObservation(GridObjects):
 
     def reset(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Resetting a single observation is unlikely to do what you want to do.
 
         Reset the :class:`BaseObservation` to a blank state, where everything is set to either ``None`` or to its default
         value.
@@ -488,7 +490,7 @@ class BaseObservation(GridObjects):
 
     def __eq__(self, other):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Test the equality of two observations.
 
@@ -580,7 +582,8 @@ class BaseObservation(GridObjects):
     @abstractmethod
     def update(self, env, with_forecast=True):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is carried out automatically by the environment in `env.step`
 
         Update the actual instance of BaseObservation with the new received value from the environment.
 
@@ -761,7 +764,7 @@ class BaseObservation(GridObjects):
 
     def copy(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Make a (deep) copy of the observation.
 

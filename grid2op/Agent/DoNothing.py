@@ -12,6 +12,10 @@ from grid2op.Agent.BaseAgent import BaseAgent
 class DoNothingAgent(BaseAgent):
     """
     This is the most basic BaseAgent. It is purely passive, and does absolutely nothing.
+
+    As opposed to most reinforcement learning environments, in grid2op, doing nothing is often
+    the best solution.
+
     """
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)

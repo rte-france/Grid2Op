@@ -16,7 +16,8 @@ from grid2op.Space import GridObjects
 # TODO see if it can be done in c++ easily
 class ValueStore:
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     """
     def __init__(self, size, dtype):
         ## TODO at the init it's mandatory to have everything at "1" here
@@ -164,7 +165,7 @@ class ValueStore:
 
 class _BackendAction(GridObjects):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Internal class, use at your own risk.
 
@@ -201,7 +202,7 @@ class _BackendAction(GridObjects):
 
     def reorder(self, no_load, no_gen, no_topo, no_shunt):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         reorder the element modified, this is use when converting backends only and should not be use
         outside of this usecase
@@ -263,7 +264,7 @@ class _BackendAction(GridObjects):
 
     def __iadd__(self, other):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         other: a grid2op action standard
 
@@ -382,7 +383,7 @@ class _BackendAction(GridObjects):
 
     def update_state(self, powerline_disconnected):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update the internal state. Should be called after the cascading failures
 

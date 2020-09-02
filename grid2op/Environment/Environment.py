@@ -122,7 +122,7 @@ class Environment(BaseEnv):
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Create a proper and valid environment.
         """
@@ -275,8 +275,7 @@ class Environment(BaseEnv):
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
-
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
         function can be overide for a more complex handling of the voltages.
@@ -485,7 +484,9 @@ class Environment(BaseEnv):
 
     def reset_grid(self):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is automatically called when using `env.reset`
 
         Reset the backend to a clean state by reloading the powergrid from the hard drive.
         This might takes some time.

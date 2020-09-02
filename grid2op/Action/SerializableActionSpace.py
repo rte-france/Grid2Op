@@ -41,6 +41,10 @@ class SerializableActionSpace(SerializableSpace):
 
     def __init__(self, gridobj, actionClass=BaseAction):
         """
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+           The :class:`grid2op.Environment.Environment` is responsible for the creation of the
+           action space. Do not attempt to make one yourself.
 
         Parameters
         ----------
@@ -60,6 +64,8 @@ class SerializableActionSpace(SerializableSpace):
     @staticmethod
     def from_dict(dict_):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Allows the de-serialization of an object stored as a dictionary (for example in the case of JSON saving).
 
         Parameters
@@ -71,7 +77,6 @@ class SerializableActionSpace(SerializableSpace):
         -------
         res: :class:``SerializableActionSpace``
             An instance of an action space matching the dictionary.
-
 
         """
         tmp = SerializableSpace.from_dict(dict_)
@@ -140,15 +145,51 @@ class SerializableActionSpace(SerializableSpace):
 
     def sample(self):
         """
-        A utility used to sample a new random :class:`Action`.
+        A utility used to sample a new random :class:`BaseAction`.
 
-        The sampled action is unitary:
-        It has an impact on a single line/substation/generator.
+        The sampled action is unitary: It has an impact on a single line/substation/generator.
+
+        There is no guarantee concerning the "legality" of the action (see the description of the
+        Action module for more information about illegal action).
+
+        It will only act by doing action supported by the action space. For example, if the action space
+        does not support "redispatching" then this method will NOT sample any redispatching action.
 
         Returns
         -------
         res: :class:`BaseAction`
             A random action sampled from the :attr:`ActionSpace.actionClass`
+
+        Examples
+        ---------
+        The first usage is to sample uniform **unary** actions, you can do this with the
+        following:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # and now you can sample from the action space
+            random_action = env.action_space.sample()
+
+        *Note* that the random action can be illegal depending on the game rules defined in the
+        rules :class:`grid2op.Rules`
+
+        If for some reason you want to sample more complex actions, you can do this the following way:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # and now you can sample from the action space
+            random_action = env.action_space()
+            for i in range(5):
+                # my resulting action will be a complex action
+                # that will be the results of applying 5 random actions
+                random_action += env.action_space.sample()
+            print(random_action)
 
         """
         rnd_act = self.actionClass()
@@ -190,12 +231,40 @@ class SerializableActionSpace(SerializableSpace):
             Name of the powerline. Note that either line_id or line_name should be provided. If both are provided, it is
             an error, if none are provided it is an error.
 
-        previous_action
+        previous_action: :class:`BaseAction`
+            If you want to stack up multiple actions.
 
         Returns
         -------
         res: :class:`BaseAction`
             The action that will disconnect the powerline.
+
+        Notes
+        ------
+        If you use `previous_action` it will modify the action **in place** which means that
+        `previous_action` will be modified by this method.
+
+        Examples
+        ---------
+        You can use it this way:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # and now you can disconnect line 0
+            disco_line_0 = env.action_space.disconnect_powerline(line_id=0)
+
+            # or line with name "0_4_1"
+            disco_line_1 = env.action_space.disconnect_powerline(line_name="0_4_1")
+
+            # and you can disconnect both line 2 and 3 with:
+            disco_line_2 = env.action_space.disconnect_powerline(line_id=2)
+            disco_line_2_and_3 = env.action_space.disconnect_powerline(line_id=3, previous_action=disco_line_2)
+            print(disco_line_2_and_3)
+            # be careful, "disco_line_2" is affected and is in fact equal to "disco_line_2_and_3"
+            # after the last call!
 
         """
         if line_id is None and line_name is None:
@@ -231,6 +300,18 @@ class SerializableActionSpace(SerializableSpace):
         Note that in case "bus_or" or "bus_ex" are not the current bus to which the powerline is connected, they
         will be affected by this action.
 
+        Notes
+        ------
+        This utility requires you to specify on which bus you want to connect each end
+        ("*origin*" or "*extremity*") of the powerline you want to reconnect.
+
+        If you don't want to specify them, you can set them to ``0`` and it will reconnect them
+        to the last known buses to which they were connected (this is automatically done by the
+        Environment since version `0.8.0`).
+
+        If you use `previous_action` it will modify the action **in place** which means that
+        `previous_action` will be modified by this method.
+
         Parameters
         ----------
         line_id: ``int``
@@ -247,6 +328,30 @@ class SerializableActionSpace(SerializableSpace):
         -------
         res: :class:`BaseAction`
             The action that will reconnect the powerline.
+
+        Examples
+        ---------
+        You can use it this way:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # and now you can reconnect line 0
+            reco_line_0 = env.action_space.reconnect_powerline(line_id=0, bus_or=1, bus_ex=0)
+
+            # or line with name "0_4_1" to bus 1 on its "origin" end and bus 2 on its "extremity" end
+            reco_line_1 = env.action_space.reconnect_powerline(line_name="0_4_1", bus_or=1, bus_ex=2)
+
+            # and you can reconnect both line 2 and 3 with:
+            reco_line_2 = env.action_space.reconnect_powerline(line_id=2, bus_or=1, bus_ex=2)
+            reco_line_2_and_3 = env.action_space.reconnect_powerline(line_id=3,
+                                                                    bus_or=0, bus_ex=1,
+                                                                    previous_action=reco_line_2)
+            print(reco_line_2_and_3)
+            # be careful, "reco_line_2" is affected and is in fact equal to "reco_line_2_and_3"
+            # after the last call!
 
         """
         if line_id is None and line_name is None:
@@ -292,10 +397,15 @@ class SerializableActionSpace(SerializableSpace):
             "or" or "ex" for origin or extremity, ignored if an element is not a powerline.
         substation: ``int``, optional
             Its substation ID, if you know it will increase the performance. Otherwise, the method will search for it.
-        type_element: ``int``, optional
+        type_element: ``str``, optional
             Type of the element to look for. It is here to speed up the computation. One of "line", "gen" or "load"
         previous_action: :class:`Action`, optional
             The (optional) action to update. It should be of the same type as :attr:`ActionSpace.actionClass`
+
+        Notes
+        ------
+        If you use `previous_action` it will modify the action **in place** which means that
+        `previous_action` will be modified by this method.
 
         Returns
         -------
@@ -306,6 +416,34 @@ class SerializableActionSpace(SerializableSpace):
         ------
         res :class:`grid2op.Exception.AmbiguousAction`
             If *previous_action* has not the same type as :attr:`ActionSpace.actionClass`.
+
+        Examples
+        ---------
+        You can use it this way:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # change bus of element named 'gen_1_0'
+            change_gen_0 = env.action_space.change_bus('gen_1_0', type_element="gen")
+
+            # you are not forced to specify the element types
+            change_load_1 = env.action_space.change_bus('load_2_1')
+
+            # dealing with powerline, you can affect one of its extremity
+            # (handy when you don't know on which substation it is located)
+            change_line_8_or = env.action_space.change_bus('5_11_8', extremity="or")
+
+            # and you can combine the action with
+            change_line_14_ex = env.action_space.change_bus('12_13_14', extremity="ex")
+            change_line_14_ex_load_2 = env.action_space.change_bus("load_3_2",
+                                                                   previous_action=change_line_14_ex)
+            print(change_line_14_ex_load_2)
+            # be careful, "change_line_14_ex" is affected and is in fact equal to
+            # "change_line_14_ex_load_2"
+            # after the last call!
 
         """
         if previous_action is None:
@@ -319,9 +457,10 @@ class SerializableActionSpace(SerializableSpace):
 
         dict_, to_sub_pos, my_id, my_sub_id = self._extract_dict_action(name_element, extremity, substation,
                                                                         type_element, res)
-        dict_["change_bus"][to_sub_pos[my_id]] = True
-        res.update({"change_bus": {"substations_id": [(my_sub_id, dict_["change_bus"])]}})
-        # res.update(dict_)
+        arr_ = dict_["change_bus"]
+        me_id_ = to_sub_pos[my_id]
+        arr_[me_id_] = True
+        res.update({"change_bus": {"substations_id": [(my_sub_id, arr_)]}})
         return res
 
     def _extract_database_powerline(self, extremity):
@@ -345,17 +484,7 @@ class SerializableActionSpace(SerializableSpace):
         to_sub_pos = None
         to_name = None
 
-        if type_element == "line":
-            to_subid, to_sub_pos, to_name = self._extract_database_powerline(extremity)
-        elif type_element[:3] == "gen" or type_element[:4] == "prod":
-            to_subid = self.gen_to_subid
-            to_sub_pos = self.gen_to_sub_pos
-            to_name = self.name_gen
-        elif type_element == "load":
-            to_subid = self.load_to_subid
-            to_sub_pos = self.load_to_sub_pos
-            to_name = self.name_load
-        elif type_element is None:
+        if type_element is None:
             # i have to look through all the objects to find it
             if name_element in self.name_load:
                 to_subid = self.load_to_subid
@@ -371,6 +500,16 @@ class SerializableActionSpace(SerializableSpace):
                 AmbiguousAction(
                     "Element \"{}\" not found in the powergrid".format(
                         name_element))
+        elif type_element == "line":
+            to_subid, to_sub_pos, to_name = self._extract_database_powerline(extremity)
+        elif type_element[:3] == "gen" or type_element[:4] == "prod":
+            to_subid = self.gen_to_subid
+            to_sub_pos = self.gen_to_sub_pos
+            to_name = self.name_gen
+        elif type_element == "load":
+            to_subid = self.load_to_subid
+            to_sub_pos = self.load_to_sub_pos
+            to_name = self.name_load
         else:
             raise AmbiguousAction("unknown type_element specifier \"{}\". type_element should be \"line\" or \"load\" "
                                   "or \"gen\"".format(extremity))
@@ -426,6 +565,34 @@ class SerializableActionSpace(SerializableSpace):
         ------
         AmbiguousAction
             If *previous_action* has not the same type as :attr:`ActionSpace.actionClass`.
+
+        Examples
+        ---------
+        You can use it this way:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # set bus of element named 'gen_1_0' to bus 2
+            setbus_gen_0 = env.action_space.set_bus('gen_1_0', new_bus=2, type_element="gen")
+
+            # are not forced to specify the element types (example with load set to bus 1)
+            setbus_load_1 = env.action_space.set_bus('load_2_1', new_bus=1)
+
+            # dealing with powerline, you can affect one of its extremity
+            # (handy when you don't know on which substation it is located)
+            setbus_line_8_or = env.action_space.set_bus('5_11_8', new_bus=1, extremity="or")
+
+            # and you can combine the actions with:
+            setbus_line_14_ex = env.action_space.set_bus('12_13_14', new_bus=2, extremity="ex")
+            setbus_line_14_ex_load_2 = env.action_space.set_bus("load_3_2", new_bus=1,
+                                                                previous_action=setbus_line_14_ex)
+            print(setbus_line_14_ex_load_2)
+            # be careful, "setbus_line_14_ex" is affected and is in fact equal to
+            # "setbus_line_14_ex_load_2"
+            # after the last call!
 
         """
         if previous_action is None:
@@ -530,7 +697,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_topologies_change(action_space):
+    def get_all_unitary_topologies_change(action_space, sub_id=None):
         """
         This methods allows to compute and return all the unitary topological changes that can be performed on a
         powergrid.
@@ -542,15 +709,40 @@ class SerializableActionSpace(SerializableSpace):
         action_space: :class:`grid2op.BaseAction.ActionSpace`
             The action space used.
 
+        sub_id: ``int``, optional
+            The substation ID. If ``None`` it is done for all substations.
+
+        Notes
+        -----
+        This might take a long time on large grid (possibly 10-15 mins for the IEEE 118 for example)
+
         Returns
         -------
         res: ``list``
             The list of all the topological actions that can be performed.
 
+        Examples
+        ---------
+        You can use it this way:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # all "change bus" action for all the substations
+            all_change_actions = env.action_space.get_all_unitary_topologies_change(env.action_space)
+
+            # you can only study "change_bus" action for a given substation (can dramatically improve the computation time)
+            all_change_actions_sub4 = env.action_space.get_all_unitary_topologies_change(env.action_space, sub_id=4)
+
         """
         res = []
         S = [0, 1]
-        for sub_id, num_el in enumerate(action_space.sub_info):
+        for sub_id_, num_el in enumerate(action_space.sub_info):
+            if sub_id is not None:
+                if sub_id_ != sub_id:
+                    continue
             already_set = set()
             # remove the "do nothing" action, which is either equivalent to not change anything
             # or to change everything
@@ -562,7 +754,7 @@ class SerializableActionSpace(SerializableSpace):
                     # tup = np.array((0, *tup)).astype(dt_bool)  # add a zero to first element -> break symmetry
                     tup = np.array(tup_).astype(dt_bool)  # add a zero to first element -> break symmetry
                     indx[tup] = True
-                    action = action_space({"change_bus": {"substations_id": [(sub_id, indx)]}})
+                    action = action_space({"change_bus": {"substations_id": [(sub_id_, indx)]}})
                     already_set.add(tup_)
                     already_set.add(tuple([1-el for el in tup_]))
                     res.append(action)
@@ -571,7 +763,7 @@ class SerializableActionSpace(SerializableSpace):
         return res
 
     @staticmethod
-    def get_all_unitary_topologies_set(action_space):
+    def get_all_unitary_topologies_set(action_space, sub_id=None):
         """
         This methods allows to compute and return all the unitary topological changes that can be performed on a
         powergrid.
@@ -584,23 +776,49 @@ class SerializableActionSpace(SerializableSpace):
         action_space: :class:`grid2op.BaseAction.ActionHelper`
             The action space used.
 
+        sub_id: ``int``, optional
+            The substation ID. If ``None`` it is done for all substations.
+
+        Notes
+        -----
+        This might take a long time on large grid (possibly 10-15 mins for the IEEE 118 for example)
+
         Returns
         -------
         res: ``list``
             The list of all the topological actions that can be performed.
 
+        Examples
+        ---------
+        You can use it this way:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # all "set_bus" actions
+            all_change_actions = env.action_space.get_all_unitary_topologies_set(env.action_space)
+
+            # you can only study "set_bus" action for a given substation (can dramatically improve the computation time)
+            all_change_actions_sub4 = env.action_space.get_all_unitary_topologies_set(env.action_space, sub_id=4)
+
         """
         res = []
         S = [0, 1]
-        for sub_id, num_el in enumerate(action_space.sub_info):
+        for sub_id_, num_el in enumerate(action_space.sub_info):
             tmp = []
+            if sub_id is not None:
+                if sub_id_ != sub_id:
+                    continue
+
             new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
             # perform the action "set everything on bus 1"
-            action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
+            action = action_space({"set_bus": {"substations_id": [(sub_id_, new_topo)]}})
             tmp.append(action)
 
-            powerlines_or_id = action_space.line_or_to_sub_pos[action_space.line_or_to_subid == sub_id]
-            powerlines_ex_id = action_space.line_ex_to_sub_pos[action_space.line_ex_to_subid == sub_id]
+            powerlines_or_id = action_space.line_or_to_sub_pos[action_space.line_or_to_subid == sub_id_]
+            powerlines_ex_id = action_space.line_ex_to_sub_pos[action_space.line_ex_to_subid == sub_id_]
             powerlines_id = np.concatenate((powerlines_or_id, powerlines_ex_id))
 
             # computes all the topologies at 2 buses for this substation
@@ -618,14 +836,14 @@ class SerializableActionSpace(SerializableSpace):
                         # if there is a "node" without a powerline, the topology is not valid
                         continue
 
-                    action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
+                    action = action_space({"set_bus": {"substations_id": [(sub_id_, new_topo)]}})
                     tmp.append(action)
                 else:
                     # i need to take into account the case where 1 powerline is alone on a bus too
                     if np.sum(indx[powerlines_id]) >= 1 and np.sum(~indx[powerlines_id]) >= 1:
                         new_topo = np.full(shape=num_el, fill_value=1, dtype=dt_int)
                         new_topo[~indx] = 2
-                        action = action_space({"set_bus": {"substations_id": [(sub_id, new_topo)]}})
+                        action = action_space({"set_bus": {"substations_id": [(sub_id_, new_topo)]}})
                         tmp.append(action)
 
             if len(tmp) >= 2:

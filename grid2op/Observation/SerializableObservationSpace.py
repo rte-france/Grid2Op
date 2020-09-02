@@ -45,7 +45,8 @@ class SerializableObservationSpace(SerializableSpace):
     @staticmethod
     def from_dict(dict_):
         """
-        /!\ Internal, do not use /!\
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is used internally by EpisodeData to restore the state of the powergrid
 
         Allows the de-serialization of an object stored as a dictionary (for example in the case of json saving).
 

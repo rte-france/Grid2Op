@@ -16,8 +16,11 @@ from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 from grid2op.dtypes import dt_float, dt_int
 
+
 class BasePlot(ABC):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     Abstract interface to plot the state of the powergrid
 
     Implement the interface with a plotting library to generate drawings 

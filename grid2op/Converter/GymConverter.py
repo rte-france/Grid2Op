@@ -16,7 +16,10 @@ from gym import spaces
 
 class BaseGymConverter:
     """
-    Internal class, do not use.
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        Used as a base class to convert grid2op state to gym state (wrapper for some useful function
+        for both the action space and the observation space).
+
     """
     def __init__(self):
         pass
@@ -179,11 +182,13 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
 
         Parameters
         ----------
-        gymlike_observation
+        gymlike_observation: :class:`gym.spaces.dict.OrderedDict`
+            The observation represented as a gym ordered dict
 
         Returns
         -------
-
+        grid2oplike_observation: :class:`grid2op.Observation.BaseObservation`
+            The corresponding grid2op observation
         """
         res = self.initial_obs_space.get_empty_observation()
         for k, v in gymlike_observation.items():
@@ -191,6 +196,20 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
         return res
 
     def to_gym(self, grid2op_observation: BaseObservation) -> spaces.dict.OrderedDict:
+        """
+        Convert a grid2op observation into a gym ordered dict.
+
+        Parameters
+        ----------
+        grid2op_observation: :class:`grid2op.Observation.BaseObservation`
+            The observation represented as a grid2op observation
+
+        Returns
+        -------
+        gymlike_observation: :class:`gym.spaces.dict.OrderedDict`
+           The corresponding gym ordered dict
+
+        """
         return self._base_to_gym(self.spaces.keys(), grid2op_observation,
                                  dtypes={k: self.spaces[k].dtype for k in self.spaces})
 
@@ -349,10 +368,13 @@ class GymActionSpace(spaces.Dict, BaseGymConverter):
 
         Parameters
         ----------
-        gymlike_action
+        gymlike_action: :class:`gym.spaces.dict.OrderedDict`
+            The action, represented as a gym action (ordered dict)
 
         Returns
         -------
+        An action that can be understood by the given action_space (either a grid2Op action if the
+        original action space was used, or a Converter)
 
         """
         if self.__is_converter:

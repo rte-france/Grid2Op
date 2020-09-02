@@ -18,12 +18,136 @@ from grid2op.Exceptions import EnvError, Grid2OpException
 class MultiMixEnvironment(GridObjects, RandomObject):
     """
     This class represent a single powergrid configuration,
-    backed by multiple enviromnents parameters and chronics
+    backed by multiple environments parameters and chronics
 
-    It implements most of the BaseEnv public interface:
+    It implements most of the :class:`BaseEnv` public interface:
     so it can be used as a more classic environment.
 
-    # TODO example on how to use it
+    MultiMixEnvironment environments behave like a superset of the environment: they
+    are made of sub environments (called mixes) that are grid2op regular :class:`Environment`.
+    You might think the MultiMixEnvironment as a dictionary of :class:`Environment` that implements
+    some of the :class:`BaseEnv` interface such as :func:`BaseEnv.step` or :func:`BaseEnv.reset`.
+
+    By default, each time you call the "step" function a different mix is used. Mixes, by default
+    are looped through always in the same order. You can see the Examples section for information
+    about control of these
+
+
+    Examples
+    --------
+    In this section we present some common use of the MultiMix environment.
+
+    **Basic Usage**
+
+    You can think of a MultiMixEnvironment as any :class:`Environment`. So this is a perfectly
+    valid way to use a MultiMix:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent
+
+        # we use an example of a multimix dataset attached with grid2op pacakage
+        multimix_env = grid2op.make("l2rpn_neurips_2020_track2", test=True)
+
+        # define an agent like in any environment
+        agent = RandomAgent(multimix_env.action_space)
+
+        # and now you can do the open ai gym loop
+        NB_EPISODE = 10
+        for i in range(NB_EPISODE):
+            obs = multimix_env.reset()
+            # each time "reset" is called, another mix is used.
+            reward = multimix_env.reward_range[0]
+            done = False
+            while not done:
+                act = agent.act(obs, reward, done)
+                obs, reward, done, info = multimix_env.step(act)
+
+    **Use each mix one after the other**
+
+    In case you want to study each mix independently, you can iterate through the MultiMix
+    in a pythonic way. This makes it easy to perform, for example, 10 episode for a given mix
+    before passing to the next one.
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent
+
+        # we use an example of a multimix dataset attached with grid2op pacakage
+        multimix_env = grid2op.make("l2rpn_neurips_2020_track2", test=True)
+
+        NB_EPISODE = 10
+        for mix in multimix_env:
+            # mix is a regular environment, you can do whatever you want with it
+            # for example
+            for i in range(NB_EPISODE):
+                obs = multimix_env.reset()
+                # each time "reset" is called, another mix is used.
+                reward = multimix_env.reward_range[0]
+                done = False
+                while not done:
+                    act = agent.act(obs, reward, done)
+                    obs, reward, done, info = multimix_env.step(act)
+
+
+    **Selecting a given Mix**
+
+    Sometimes it might be interesting to study only a given mix.
+    For that you can use the `[]` operator to select only a given mix (which is a grid2op environment)
+    and use it as you would.
+
+    This can be done with:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent
+
+        # we use an example of a multimix dataset attached with grid2op pacakage
+        multimix_env = grid2op.make("l2rpn_neurips_2020_track2", test=True)
+
+        # define an agent like in any environment
+        agent = RandomAgent(multimix_env.action_space)
+
+        # list all available mixes:
+        mixes_names = list(multimix_env.keys())
+
+        # and now supposes we want to study only the first one
+        mix = multimix_env[mixes_names[0]]
+
+        # and now you can do the open ai gym loop, or anything you want with it
+        NB_EPISODE = 10
+        for i in range(NB_EPISODE):
+            obs = mix.reset()
+            # each time "reset" is called, another mix is used.
+            reward = mix.reward_range[0]
+            done = False
+            while not done:
+                act = agent.act(obs, reward, done)
+                obs, reward, done, info = mix.step(act)
+
+    **Using the Runner**
+
+    For MultiMixEnvironment using the :class:`grid2op.Runner.Runner` cannot be done in a
+    straightforward manner. Here we give an example on how to do it.
+
+    .. code-block:: python
+
+        import os
+        import grid2op
+        from grid2op.Agent import RandomAgent
+
+        # we use an example of a multimix dataset attached with grid2op pacakage
+        multimix_env = grid2op.make("l2rpn_neurips_2020_track2", test=True)
+
+        # you can use the runner as following
+        PATH = "PATH/WHERE/YOU/WANT/TO/SAVE/THE/RESULTS"
+        for mix in multimix_env:
+            runner = Runner(**mix.get_params_for_runner(), agentClass=RandomAgent)
+            runner.run(nb_episode=1,
+                       path_save=os.path.join(PATH,mix.name))
 
     """
     def __init__(self,
@@ -184,7 +308,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     def seed(self, seed=None):
         """
-        Set the seed of this :class:`Environment` for a better control 
+        Set the seed of this :class:`Environment` for a better control
         and to ease reproducible experiments.
 
         Parameters
@@ -195,7 +319,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         Returns
         ---------
         seeds: ``list``
-            The seed used to set the prng (pseudo random number generator) 
+            The seed used to set the prng (pseudo random number generator)
             for all environments, and each environment ``tuple`` seeds
 
         """
@@ -234,7 +358,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     def set_thermal_limit(self, thermal_limit):
         """
         Set the thermal limit effectively.
-        Will propagate to all underlying environments
+        Will propagate to all underlying mixes
         """
         for mix in self.mix_envs:
             mix.set_thermal_limit(thermal_limit)
@@ -260,17 +384,5 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             mix.close()
 
     def attach_layout(self, grid_layout):
-        """
-        Compare to the method of the base class, this one performs a check.
-        This method must be called after initialization.
-
-        Parameters
-        ----------
-        grid_layout
-
-        Returns
-        -------
-
-        """
         for mix in self.mix_envs:
             mix.attach_layout(grid_layout)

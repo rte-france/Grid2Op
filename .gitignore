@@ -218,6 +218,7 @@ test_if_bug.py
 getting_started/saved_agent_DDDQN_10000/
 getting_started/saved_agent_DDDQN_10000_results/
 test_reboot.py
+test_multimixrunner/
 
 # profiling files
 **.prof

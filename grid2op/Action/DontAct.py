@@ -11,6 +11,10 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class DontAct(PlayableAction):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This type of action is only compatible with "do nothing"...
+
     This class is model the action where you force someone to do absolutely nothing. It is not the "do nothing"
     action.
 
@@ -23,6 +27,8 @@ class DontAct(PlayableAction):
 
     def __init__(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing
         more is done in this constructor.
 
