@@ -30,7 +30,6 @@ Main module content
 .. toctree::
    :maxdepth: 2
 
-   intro
    quickstart
    grid2op
    makeenv

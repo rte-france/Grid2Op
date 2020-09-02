@@ -1,7 +1,7 @@
 Getting started
 ===================================
 
-TODO lots of modifications have been made, this section needs to be re written.
+In this chapter we present how to install grid2op.
 
 ############
 Installation
@@ -10,13 +10,32 @@ Installation
 *************
 Requirements
 *************
-This software uses python (at tested with version >= 3.5).
+This software uses python (at tested with version >= 3.6).
 
 To install it i's also recommended to have `git`.
 
 *************
 Installation
 *************
+
+Using pip (recommended)
+++++++++++++++++++++++++
+Grid2op is hosted on pypi and can be installed like most python package with:
+
+.. code-block:: bash
+
+    pip install grid2op
+
+It should be now installed. Don't hesitate to visit the section `Start Using grid2op`_ for more information on its
+usage or the :ref:`grid2op-module` for a more in depth presentation of this package. If you
+would rather start directly to interact with a powergrid you can visit the :ref:`make-env-module`.
+
+From source (advanced user)
++++++++++++++++++++++++++++
+If you want to develop new grid2op module (for example a new types of Backend, or a new kind of Chronics to
+read new types of data) this section is made for you.
+
+
 First, it is recommended (but optionnal) to make a virtual environment:
 
 .. code-block:: bash
@@ -50,33 +69,9 @@ After this, this simulator is available under the name grid2op (from a python co
     import grid2op
 
 ####################
-Getting started
+Start Using grid2op
 ####################
-Some Jupyter notebook are provided as example of the use of the Grid2Op package. They are located in the
-[getting_start](getting_started) directories.
-
-These notebooks will help you in understanding how this framework is used and cover the most
-interesting part of this framework:
-
-* 0_basic_functionalities covers the basics
-  of reinforcement learning (only the main concepts), how they are implemented in the
-  Grid2Op framework. It also covers how to create a valid environment and how to use the
-  `grid2op.main` function to assess how well an agent is performing.
-* 1_Observation_Agents details how to create
-  an "expert agent" that will take pre defined actions based on the observation it gets from
-  the environment. This Notebook also covers the functioning of the BaseObservation class.
-* 2_Action_GridManipulation demonstrates
-  how to use the BaseAction class and how to manipulate the powergrid.
-* 3_TrainingAnAgent shows how to get started with
-  reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
-  available on `his blog <https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368>`_
-  or on `this github repository <https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial>`_ . This code will
-  be adapted (only minor changes, most of them to fit the shape of the data)
-  and a (D)DQN will be trained on this problem.
-* 4_StudyYourAgent shows how to study an BaseAgent, for example
-  the methods to reload a saved experiment, or to plot the powergrid given an observation for
-  example. This is an introductory notebook. More user friendly graphical interface should
-  come soon.
-
-These notebooks are available without any installation thanks to
-`mybinder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_
+To get started into the grid2op ecosystem, we made a set of notebooks
+that are available, without any installation thanks to
+`Binder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_ . Feel free to visit the "getting_started" page for
+more information and a detailed tour about the issue that grid2op tries to address.

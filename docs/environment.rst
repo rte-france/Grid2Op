@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.Environment
+.. _environment-module:
 
 Environment
 ===================================
@@ -15,6 +16,8 @@ and returns an
 
 An environment is better used inside a :class:`grid2op.Runner.Runner`, mainly because runners abstract the interaction
 between environment and agent, and ensure the environment are properly reset after each episode.
+
+.. _environment-module-usage:
 
 Usage
 ------

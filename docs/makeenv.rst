@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.MakeEnv
+.. _make-env-module:
 
 Make: Using pre defined Environments
 ====================================
@@ -71,7 +72,7 @@ renamed :func:`make_old`, merges the behaviour of "grid2op.download" script and 
 It has the following behavior:
 
 1) if you specify a full path to a local environment (containing the chronics and the default parameters),
-   it will be used (see section :sec:`usage`)
+   it will be used (see section :ref:`usage`)
 2) if you specify the name of an environment that you have already downloaded, it will use this environment (NB
    currently no checks are implemented if the environment has been updated remotely, which can happen if
    we realize there were some issues with it.)
@@ -137,6 +138,8 @@ context of the L2RPN competition, we don't recommend to modify them.
 - \* `opponent_action_class`, `opponent_class`, `opponent_init_budget`, `opponent_budget_per_ts`,
   `opponent_budget_class`: all configuration for the opponent.
 
+More information about the "customization" of the environment, especially to optimize the I/O or to manipulate
+which data you interact with are available in the :ref:`environment-module` module (:ref:`environment-module-usage` section).
 
 Detailed Documentation by class
 --------------------------------
