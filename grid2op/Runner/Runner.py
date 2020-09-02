@@ -952,7 +952,9 @@ class Runner(object):
     def _clean_up(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-        close the environment is it has been created
+
+        close the environment if it has been created
+
         """
         if self.env is not None:
             self.env.close()

@@ -604,21 +604,37 @@ class GridValue(RandomObject, ABC):
         # warnings.warn("Class {} has possibly and infinite duration.".format(type(self).__name__))
         return self.max_iter
 
-    def shuffle(self, shuffler):
+    def shuffle(self, shuffler=None):
         """
-        This method can be overiden if the data that are represented by this object need to be shuffle.
+        This method can be overridden if the data that are represented by this object need to be shuffle.
 
         By default it does nothing.
+
         Parameters
         ----------
         shuffler: ``object``
             Any function that can be used to shuffle the data.
 
-        Returns
-        -------
-
         """
         pass
+
+    def sample_next_chronics(self, probabilities=None):
+        """
+        this is used to sample the next chronics used with given probabilities
+
+        Parameters
+        -----------
+        probabilities: ``np.ndarray``
+            Array of integer with the same size as the number of chronics in the cache.
+            If it does not sum to one, it is rescaled such that it sums to one.
+
+        Returns
+        -------
+        selected: ``int``
+            The integer that was selected.
+
+        """
+        return -1
 
     def set_chunk_size(self, new_chunk_size):
         """
@@ -637,7 +653,7 @@ class GridValue(RandomObject, ABC):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-            Use the :class:`ChroncisHandler` for such purpose
+            Prefer using :func:`grid2op.Environment.BaseEnv.fast_forward_chronics`
 
         This method allows you to skip some time step at the beginning of the chronics.
 

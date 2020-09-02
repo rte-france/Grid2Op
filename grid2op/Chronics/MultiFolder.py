@@ -147,7 +147,7 @@ class Multifolder(GridValue):
         #     self.space_prng.shuffle(self._order)
         self._prev_cache_id %= len(self._order)
 
-    def sample_next_chronics(self, probabilities):
+    def sample_next_chronics(self, probabilities=None):
         """
         This function should be called before "next_chronics".
         It can be used to sample non uniformly for the next next chronics.
@@ -192,6 +192,9 @@ class Multifolder(GridValue):
 
         """
         self._prev_cache_id = -1
+        if probabilities is None:
+            probabilities = np.ones(self._order.shape[0])
+
         # make sure it sums to 1
         probabilities /= np.sum(probabilities)
         # take one at "random" among these
@@ -345,7 +348,7 @@ class Multifolder(GridValue):
     def max_timestep(self):
         return self.data.max_timestep()
 
-    def shuffle(self, shuffler):
+    def shuffle(self, shuffler=None):
         """
         This method is used to have a better control on the order in which the subfolder containing the episode are
         processed.
@@ -382,6 +385,10 @@ class Multifolder(GridValue):
             data.shuffle(shuffler=lambda x: x[1, 5, 6])
 
         """
+        if shuffler is None:
+            def shuffler(x):
+                return x[np.random.choice(len(x), size=len(x), replace=False)]
+
         self._order = shuffler(self._order)
         return self.subpaths[self._order]
 
@@ -394,16 +401,52 @@ class Multifolder(GridValue):
         save it on your local machine. This is espacially handy if you want to extract only a piece of the dataset we
         provide for example.
 
-        # TODO add an example somewhere
-
         Parameters
         ----------
-        datetime_beg:
-            See example (coming soon)
-        datetime_end:
-            See example (coming soon)
+        datetime_beg: ``dict``
+            Keys are the name id of the scenarios you want to save. Values
+            are the corresponding starting date and time (in "%Y-%m-ùd %H:%M"
+            format). See example for more information.
+        datetime_end: ``dict``
+            keys must be the same as in the "datetime_beg" argument.
+
+            See example for more information
+
         path_out: ``str``
             The path were the data will be stored.
+
+        Examples
+        ---------
+
+        Here is a short example on how to use it
+
+        .. code-block:: python
+
+            import grid2op
+            import os
+            env = grid2op.make()
+
+            env.chronics_handler.real_data.split_and_save({"004": "2019-01-08 02:00",
+                                                 "005": "2019-01-30 08:00",
+                                                 "006": "2019-01-17 00:00",
+                                                 "007": "2019-01-17 01:00",
+                                                 "008": "2019-01-21 09:00",
+                                                 "009": "2019-01-22 12:00",
+                                                 "010": "2019-01-27 19:00",
+                                                 "011": "2019-01-15 12:00",
+                                                 "012": "2019-01-08 13:00",
+                                                 "013": "2019-01-22 00:00"},
+                                                {"004": "2019-01-11 02:00",
+                                                 "005": "2019-02-01 08:00",
+                                                 "006": "2019-01-18 00:00",
+                                                 "007": "2019-01-18 01:00",
+                                                 "008": "2019-01-22 09:00",
+                                                 "009": "2019-01-24 12:00",
+                                                 "010": "2019-01-29 19:00",
+                                                 "011": "2019-01-17 12:00",
+                                                 "012": "2019-01-10 13:00",
+                                                 "013": "2019-01-24 00:00"},
+                                      path_out=os.path.join("/tmp"))
 
         """
         if not isinstance(datetime_beg, dict):
@@ -456,22 +499,3 @@ class Multifolder(GridValue):
             except Exception as exc_:
                 warnings.warn("Impossible to save the \"metadata\" for the chronics with error:\n\"{}\""
                               "".format(exc_))
-
-    def fast_forward(self, nb_timestep):
-        """
-        This method allows you to skip some time step at the beginning of the chronics.
-
-        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
-        Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
-        00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
-        the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
-
-
-        Parameters
-        ----------
-        nb_timestep: ``int``
-            Number of time step to "fast forward"
-
-        """
-        for _ in range(nb_timestep):
-            self.data.load_next()

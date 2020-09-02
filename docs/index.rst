@@ -19,8 +19,8 @@ for example.
 **Features**
 
   - abstract the computation of the cascading failures
-  - ability to have the same code running with multiple powerflow calculator
-  - parallel execution of one agent on multiple independent scenarios (multiprocessing)
+  - ability to have the same code running with multiple powerflows
+  - parallel execution of one agent / controler on multiple independent scenarios (multiprocessing)
   - fully customisable: this software has been built to be fully customizable to serve different
     purposes and not only reinforcement learning, or the L2RPN competition.
 
