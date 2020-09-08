@@ -7,6 +7,7 @@ dependencies:
   - keras
   - pip:
     - grid2op[challenge]
+    - l2rpn-baselines
     - jyquickhelper
     - numpy
     - numba

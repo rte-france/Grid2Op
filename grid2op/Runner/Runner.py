@@ -112,10 +112,42 @@ class ConsoleLog(DoNothingLog):
 
 class Runner(object):
     """
-    A runner is a utilitary tool that allows to create environment, and run simulations more easily.
-    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.BaseAgent`, rather
-    than to train it. Of course, it is possible to adapt it for a specific training mechanisms. Examples of such
-    will be made available in the future.
+    A runner is a utilitary tool that allows to run simulations more easily. It is a more convenient way to execute the following loops:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent # for example...
+        from grid2op.Runner import Runner
+
+        env = grid2op.make()
+
+        ###############
+        # the gym loops
+        nb_episode = 5
+        for i in range(nb_episode):
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                act = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(act)
+
+        ###############
+        # equivalent with use of a Runner
+        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+        res = runner.run(nb_episode=nn_episode)
+
+
+    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.BaseAgent`,
+    rather than to train it.
+
+    It has also the good property to be able to save the results of a experiment in a standardized
+    manner described in the :class:`grid2op.Episode.EpisodeData`.
+
+    **NB** we do not recommend to create a runner from scratch by providing all the arguments. We strongly
+    encourage you to use the :func:`grid2op.Environment.Environment.get_params_for_runner` for
+    creating a runner.
 
     Attributes
     ----------

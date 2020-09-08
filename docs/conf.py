@@ -48,7 +48,10 @@ extensions = [
     # 'sphinx.ext.autosectionlabel',
 
     # 'details',
-    #'exception_hierarchy'
+    #'exception_hierarchy',
+
+    # for pdf
+    'rst2pdf.pdfbuilder'
 ]
 # Add any paths that contain templates here, relative to this directory.
 templates_path = [] #'_templates']
@@ -72,6 +75,9 @@ highlight_language = 'python3'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# for pdf
+pdf_documents = [('index', u'rst2pdf', u'Sample rst2pdf doc', u'Your Name'),]
 
 
 def setup(app):

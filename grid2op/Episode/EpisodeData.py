@@ -15,9 +15,14 @@ from grid2op.Exceptions import Grid2OpException, AmbiguousAction
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
+# TODO refacto the "save / load" logic. For now save is in the CollectionWrapper and load in the EpisodeData
+
 
 class EpisodeData:
     """
+    .. warning:: The attributes of this class are not up to date.
+        TODO be consistent with the real behaviour now.
+
     This module provides a way to serialize on disk et deserialize one run episode along with some
     methods and utilities to ease its manipulation.
 
@@ -26,20 +31,21 @@ class EpisodeData:
 
       - "episode_meta.json" that represents some meta information about:
 
+        - "agent_seed": the seed used to seed the agent (if any)
         - "backend_type": the name of the :class:`grid2op.Backend.Backend` class used
         - "chronics_max_timestep": the **maximum** number of timestep for the chronics used
-        - "chronics_path": the path where the temporal data (chronics) are located
+        - "chronics_path": the path where the time dependant data (chronics) are located
+        - "cumulative_reward": the cumulative reward over all the episode
+        - "env_seed": the seed used to seed the environment (if any)
         - "env_type": the name of the :class:`grid2op.Environment` class used.
         - "grid_path": the path where the powergrid has been loaded from
         - "nb_timestep_played": number of time step the agent has succesfully managed
-        - "cumulative_reward": its total cumulative reward
 
       - "episode_times.json": gives some information about the total time spend in multiple part of the runner, mainly the
         :class:`grid2op.Agent.BaseAgent` (and especially its method :func:`grid2op.BaseAgent.act`) and amount of time
         spent in the :class:`grid2op.Environment.Environment`
-
       - "_parameters.json": is a representation as json of a the :class:`grid2op.Parameters.Parameters` used for this episode
-      - "rewards.npy" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
+      - "rewards.npz" is a numpy 1d array giving the rewards at each time step. We adopted the convention that the stored
         reward at index `i` is the one observed by the agent at time `i` and **NOT** the reward sent by the
         :class:`grid2op.Environment` after the action has been implemented.
       - "exec_times.npy" is a numpy 1d array giving the execution time of each time step of the episode
@@ -62,7 +68,6 @@ class EpisodeData:
 
     Examples
     --------
-
     Here is an example on how to save the action your agent was doing by the :class:`grid2op.Runner.Runner` of grid2op.
 
     .. code-block:: python
@@ -86,7 +91,9 @@ class EpisodeData:
 
         import grid2op
         from grid2op.Episode import EpisodeData
-        episode_studied = "001"
+        # I study only the first episode saved, because... why not
+        li_episode = EpisodeData.list_episode(path_save)
+        full_path, episode_studied = li_episode[0]
         this_episode = EpisodeData.from_disk(path_agent, episode_studied)
 
         # now the episode is loaded, and you can easily iterate through the observation, the actions etc.
@@ -101,11 +108,11 @@ class EpisodeData:
     OBS_SPACE = "dict_observation_space.json"
     ENV_MODIF_SPACE = "dict_env_modification_space.json"
     ATTACK_SPACE = "dict_attack_space.json"  # action space of the attack (this is NOT the OpponentSpace) this is the "opponent action space"
+
     PARAMS = "_parameters.json"
     META = "episode_meta.json"
     TIMES = "episode_times.json"
     OTHER_REWARDS = "other_rewards.json"
-
     AG_EXEC_TIMES = "agent_exec_times.npz"
     ACTIONS = "actions.npz"
     ENV_ACTIONS = "env_modifications.npz"
@@ -113,6 +120,9 @@ class EpisodeData:
     LINES_FAILURES = "disc_lines_cascading_failure.npz"
     ATTACK = "opponent_attack.npz"
     REWARDS = "rewards.npz"
+
+    ATTR_EPISODE = [PARAMS, META, TIMES, OTHER_REWARDS, AG_EXEC_TIMES, ACTIONS,
+                    ENV_ACTIONS, OBSERVATIONS, LINES_FAILURES, ATTACK, REWARDS]
 
     def __init__(self,
                  actions=None,
@@ -243,9 +253,77 @@ class EpisodeData:
                 logger.info(
                     "Creating path \"{}\" to save the episode {}".format(self.episode_path, self.name))
 
+    @staticmethod
+    def list_episode(path_agent):
+        """
+        From a given path where a runner is supposed to have run, it extracts the subdirectories that can
+        store values from an episode.
+
+        Parameters
+        ----------
+        path_agent: ``str``
+            The path where to look for data coming from "episode"
+
+        Returns
+        -------
+        res: ``list``
+            A list of possible episodes. Each element of this list is a tuple: (full_path, episode_name)
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            import grid2op
+            import os
+            import numpy as np
+            from grid2op.Runner import Runner
+            from grid2op.Episode import EpisodeData
+
+            ################
+            # INTRO
+            # create a runner
+            env = grid2op.make()
+            # see the documentation of the Runner if you want to change the agent.
+            # in this case it will be "do nothing"
+            runner = Runner(**env.get_params_for_runner())
+
+            # execute it a given number of chronics
+            nb_episode = 2
+            path_save = "i_saved_the_runner_here"
+            res = runner.run(nb_episode=nb_episode, path_save=path_save)
+
+            # END INTRO
+            ##################
+
+            li_episode = EpisodeData.list_episode(path_save)
+            # and now you can iterate through it:
+            for full_episode_path, episode_name in li_episode:
+                this_episode = EpisodeData.from_disk(path_agent, episode_name)
+                # you can do something with it now
+
+        """
+        res = []
+        li_subfiles = list(os.listdir(path_agent))
+        for el in sorted(li_subfiles):
+            # loop through the files that stores the agent's logs
+            this_dir = os.path.join(path_agent, el)
+            if not os.path.isdir(this_dir):
+                # it cannot be the result of an episode if it is not a directory.
+                continue
+            ok_ = True
+            for file_that_should_be in EpisodeData.ATTR_EPISODE:
+                if not os.path.exists(os.path.join(this_dir, file_that_should_be)):
+                    # one file is missing
+                    ok_ = False
+                    break
+            if ok_:
+                res.append((os.path.abspath(this_dir), el))
+        return res
+
     def reboot(self):
         """
-        do as if the data just got read from the hard drive (loop again from the
+        Do as if the data just got read from the hard drive (loop again from the
         initial observation and action)
         """
         self.actions.reboot()
@@ -347,7 +425,8 @@ class EpisodeData:
 
     def set_parameters(self, env):
         """
-         /!\ Internal, do not use /!\
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used by the Runner to serialize properly an episode
 
         TODO
 
@@ -364,7 +443,8 @@ class EpisodeData:
 
     def set_meta(self, env, time_step, cum_reward, env_seed, agent_seed):
         """
-         /!\ Internal, do not use /!\
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used by he runner to serialize properly an episode
 
         TODO
 
@@ -404,7 +484,8 @@ class EpisodeData:
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, opp_attack, info):
         """
-         /!\ Internal, do not use /!\
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used by he runner to serialize properly an episode
 
         TODO
 
@@ -479,7 +560,8 @@ class EpisodeData:
 
     def set_episode_times(self, env, time_act, beg_, end_):
         """
-         /!\ Internal, do not use /!\
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used by he runner to serialize properly an episode
 
          TODO
 
@@ -510,7 +592,8 @@ class EpisodeData:
 
     def to_disk(self):
         """
-         /!\ Internal, do not use /!\
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used by he runner to serialize properly an episode
 
          TODO
 

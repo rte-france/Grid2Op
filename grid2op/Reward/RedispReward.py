@@ -15,8 +15,30 @@ from grid2op.dtypes import dt_float
 
 class RedispReward(BaseReward):
     """
-    This reward can be used for environments where redispatching is availble. It assigns a cost to redispatching action
+    This reward can be used for environments where redispatching is available. It assigns a cost to redispatching action
     and penalizes with the losses.
+
+    This is the closest reward to the score used for the l2RPN competitions.
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import RedispReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=RedispReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the RedispReward class
+
+        # NB this is the default reward of many environments in the grid2op framework
+
     """
     def __init__(self, alpha_redisph=5.0):
         BaseReward.__init__(self)

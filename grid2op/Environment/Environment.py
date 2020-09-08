@@ -629,6 +629,18 @@ class Environment(BaseEnv):
         Performs a deep copy of the environment
 
         Unless you have a reason to, it is not advised to make copy of an Environment.
+
+        Examples
+        --------
+        It should be used as follow:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+            cpy_of_env = env.copy()
+
+
         """
         tmp_backend = self.backend
         self.backend = None
@@ -668,10 +680,15 @@ class Environment(BaseEnv):
         code are used) but you still want to make parallel processing using "MultiProcessing" module. In that case,
         you can send this dictionary to each child process, and have each child process make a copy of ``self``
 
+        **NB** This function should not be used to make a copy of an environment. Prefer using :func:`Environment.copy`
+        for such purpose.
+
+
         Returns
         -------
         res: ``dict``
-            A dictionary that helps build an environment like ``self``
+            A dictionary that helps build an environment like ``self`` (which is NOT a copy of self) but rather
+            an instance of an environment with the same properties.
 
         Examples
         --------
@@ -684,6 +701,9 @@ class Environment(BaseEnv):
             env = grid2op.make()  # create the environment of your choice
             copy_of_env = Environment(**env.get_kwargs())
             # And you can use this one as you would any other environment.
+            # NB this is not a "proper" copy. for example it will not be at the same step, it will be possible
+            # seeded with a different seed.
+            # use `env.copy()` to make a proper copy of an environment.
 
         """
         res = {}
@@ -728,8 +748,8 @@ class Environment(BaseEnv):
 
             import grid2op
             from grid2op.Runner import Runner
+            from grid2op.Agent import DoNothingAgent  # for example
             env = grid2op.make()  # create the environment of your choice
-            agent = DoNothingAgent(env.actoin_space)
 
             # create the proper runner
             runner = Runner(**env.get_params_for_runner(), agentClass=DoNothingAgent)

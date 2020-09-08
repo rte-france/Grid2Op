@@ -9,8 +9,13 @@
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.Reward.ConstantReward import ConstantReward
 
+
 class RewardHelper:
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        It is a class internal to the :class:`grid2op.Environment.Environment` do not use outside
+        of its purpose and do not attempt to modify it.
+
     This class aims at making the creation of rewards class more automatic by the :class:`grid2op.Environment`.
 
     It is not recommended to derived or modified this class. If a different reward need to be used, it is recommended
@@ -85,6 +90,8 @@ class RewardHelper:
 
         Returns
         -------
+        res: ``float``
+            The computed reward
 
         """
         if not has_error:

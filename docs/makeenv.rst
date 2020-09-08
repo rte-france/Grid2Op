@@ -58,7 +58,7 @@ And on windows based machine this will look like:
 .. code-block:: python
 
     import grid2op
-    env = grid2op.make("C:\\the\\full\\path\\where\\the\\env\\is\\located\\rte_case14_realistic")
+    env = grid2op.make("C:\\where\\the\\env\\is\\located\\rte_case14_realistic")
 
 In bot cases it will load the environment named "rte_case14_realistic" (provided that you found a way to get it on your
 machine) located at the path "/full/path/where/the/env/is/located/rte_case14_realistic" (or
@@ -105,10 +105,12 @@ an internet connection)
 .. code-block:: python
 
     import grid2op
-    print("The current local directory where the environment are downloaded is {}"
-           "".format(grid2op.get_current_local_dir()))
-    print("The environments available without necessary download are: {}".format(grid2op.list_available_local_env()))
-    print("I can download these environments from the internet: {}".format(grid2op.list_available_remote_env()))
+    print("The current local directory where the environment are downloaded is \n{}"
+          "".format(grid2op.get_current_local_dir()))
+    print("The environments available without necessary download are: \n{}"
+          "".format(grid2op.list_available_local_env()))
+    print("I can download these environments from the internet: \n{}"
+          "".format(grid2op.list_available_remote_env()))
 
 **NB** if you change the cache directory, all previously downloaded environments will not be visible by grid2op and they
 will not be removed from your local hard drive. This is why we don't recommend to change this folder unless you have a

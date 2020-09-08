@@ -10,11 +10,29 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class IncreasingFlatReward(BaseReward):
     """
-    This reward just counts the number of timestep the agent has sucessfully manage to perform.
+    This reward just counts the number of timestep the agent has successfully manage to perform.
 
-    It adds a constant reward for each time step sucessfully handled.
+    It adds a constant reward for each time step successfully handled.
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import IncreasingFlatReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=IncreasingFlatReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the IncreasingFlatReward class
 
     """
     def __init__(self, per_timestep=1):

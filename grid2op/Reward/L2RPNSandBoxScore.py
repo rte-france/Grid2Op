@@ -14,10 +14,15 @@ from grid2op.dtypes import dt_float
 
 class L2RPNSandBoxScore(BaseReward):
     """
-    This score represent the L2RPN score.
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            It **must not** serve as a reward. This scored needs to be minimized,
+            and a reward needs to be maximized! Also, this "reward" is not scaled or anything. Use it as your
+            own risk.
 
-    It **must not** serve as a reward, as the aim of L2RPN competition is to minimize the score, and a reward
-    needs to be maximize! Also, this "reward" is not scaled or anything. Use it as your own risk
+    Implemented as a reward to make it easier to use in the context of the L2RPN competitions, this "reward"
+    computed the "grid operation cost". It should not be used to train an agent.
+
+    The "reward" the closest to this score is given by the :class:`RedispReward` class.
 
     """
     def __init__(self, alpha_redisph=1.0):

@@ -15,6 +15,11 @@ from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 
 class Plotting:
+    """
+
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
+    """
     allwed_display_mod = {"pygame": PlotPyGame,
                           "plotly": PlotPlotly,
                           "matplotlib": PlotMatplotlib}

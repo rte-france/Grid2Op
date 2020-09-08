@@ -20,6 +20,11 @@ from grid2op.Space.RandomObject import RandomObject
 
 class SerializableSpace(GridObjects, RandomObject):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        This is a higher level wrapper that allows to avoid code duplicates for
+        the action_space and observation_space. None of the methods here should be
+        used outside of `env.action_space` or `env.observation_space`
+
     This class allows to serialize / de serialize the action space or observation space.
 
     It should not be used inside an Environment, as some functions of the action might not be compatible with
@@ -96,7 +101,12 @@ class SerializableSpace(GridObjects, RandomObject):
     @staticmethod
     def from_dict(dict_):
         """
-        Allows the de-serialization of an object stored as a dictionnary (for example in the case of json saving).
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is used internally only to restore action_space or observation_space if they
+            have been saved by `to_dict`. Do not
+            attempt to use it in a different context.
+
+        Allows the de-serialization of an object stored as a dictionary (for example in the case of json saving).
 
         Parameters
         ----------
@@ -108,7 +118,7 @@ class SerializableSpace(GridObjects, RandomObject):
         Returns
         -------
         res: :class:`SerializableSpace`
-            An instance of an SerializableSpace matching the dictionnary.
+            An instance of an SerializableSpace matching the dictionary.
 
         """
 
@@ -168,7 +178,11 @@ class SerializableSpace(GridObjects, RandomObject):
 
     def to_dict(self):
         """
-        Serialize this object as a dictionnary.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is used internally only to save action_space or observation_space for example. Do not
+            attempt to use it in a different context.
+
+        Serialize this object as a dictionary.
 
         Returns
         -------
@@ -190,12 +204,18 @@ class SerializableSpace(GridObjects, RandomObject):
         -------
         n: ``int``
             The size of the action space.
+
+        Examples
+        --------
+        See :func:`GridObjects.size` for more information.
+
         """
         return self.n
 
     def from_vect(self, obj_as_vect, check_legit=True):
         """
-        Convert an action, represented as a vector to a valid :class:`BaseAction` instance
+        Convert an action, represented as a vector to a valid :class:`BaseAction` instance. It works the
+        same way for observations.
 
         Parameters
         ----------
@@ -209,17 +229,125 @@ class SerializableSpace(GridObjects, RandomObject):
             The corresponding action (or observation) as an object (and not as a vector). The return type is given
             by the type of :attr:`SerializableSpace._template_obj`
 
+        Examples
+        --------
+        See :func:`GridObjects.from_vect` for more information.
+
         """
         res = copy.deepcopy(self._template_obj)
         res.from_vect(obj_as_vect, check_legit=check_legit)
         return res
 
     def extract_from_vect(self, obj_as_vect, attr_name):
+        """
+        This method allows you to extract only a given part of the observation / action  if this one
+        is represented as a vector.
+
+        Parameters
+        ----------
+        obj_as_vect: ``numpy.ndarray``
+            the object (action or observation) represented as a vector.
+
+        attr_name: ``str``
+            the name of the attribute you want to extract from the object
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            The value of the attribute with name `attr_name`
+
+        Examples
+        ---------
+        We detail only the process for the observation, but it works the same way for the action too.
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make()
+
+            # get the vector representation of an observation:
+            obs = env.reset()
+            obs_as_vect = obs.to_vect()
+
+            # and now you can extract for example the load
+            load_p = env.observation_space.extract_from_vect(obs_as_vect, "load_p")
+            assert np.all(load_p == obs.load_p)
+            # and this should assert to True
+
+        """
         beg_, end_, dtype = self.get_indx_extract(attr_name)
         res = obj_as_vect[beg_:end_].astype(dtype)
         return res
 
     def get_indx_extract(self, attr_name):
+        """
+        Retrieve the type, the beginning and the end of a given attribute in the action or observation
+        once it is represented as vector.
+
+        [advanced usage] This is particularly useful to avoid parsing of all the observation / action when you want only
+        to extract a subset of them (see example)
+
+        Parameters
+        ----------
+        attr_name: ``str``
+            The name of the attribute you want to extract information from
+
+        Returns
+        -------
+        beg_: ``int``
+            The first component of the vector that concerns the attribute
+        end_: ``int``
+            The las component of the vector that concerns the attribute
+        dtype:
+            The type of the attribute
+
+        Examples
+        --------
+        This is an "advanced" function used to accelerate the study of an agent. Supposes you have an environment
+        and you want to compute a runner from it. Then you want to have a quick look at the "relative flows" that
+        this agent provides:
+
+        .. code-block:: python
+
+            import grid2op
+            import os
+            import numpy as np
+            from grid2op.Runner import Runner
+            from grid2op.Episode import EpisodeData
+
+            ################
+            # INTRO
+            # create a runner
+            env = grid2op.make()
+            # see the documentation of the Runner if you want to change the agent.
+            # in this case it will be "do nothing"
+            runner = Runner(**env.get_params_for_runner())
+
+            # execute it a given number of chronics
+            nb_episode = 2
+            path_save = "i_saved_the_runner_here"
+            res = runner.run(nb_episode=nb_episode, path_save=path_save)
+
+            # END INTRO
+            ##################
+
+            # now let's load only the flows for each of the computed episode
+            li_episode = EpisodeData.list_episode(path_save)  # retrieve the list of where each episode is stored
+            beg_, end_, dtype = env.observation_space.get_indx_extract("rho")
+            observation_space_name = "observations.npz"
+
+            for full_episode_path, episode_name in li_episode:
+                all_obs = np.load(os.path.join(full_episode_path, observation_space_name))["data"]
+
+                # and you use the function like this:
+                all_flows = all_obs[beg_:end_, :].astype(dtype)
+
+                # you can now do something with the computed flows
+                # each row will be a time step, each column a powerline
+                # you can have "nan" if the episode "game over" before the end.
+
+        """
         if attr_name not in self._to_extract_vect:
             raise Grid2OpException("Attribute \"{}\" is not found in the object of type \"{}\"."
                                    "".format(attr_name, self.subtype))

@@ -12,6 +12,7 @@ from grid2op.Exceptions import Grid2OpException
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class EconomicReward(BaseReward):
     """
     This reward computes the marginal cost of the powergrid. As RL is about maximising a reward, while we want to
@@ -19,6 +20,23 @@ class EconomicReward(BaseReward):
 
     - the reward is positive if there is no game over, no error etc.
     - the reward is inversely proportional to the cost of the grid (the higher the reward, the lower the economic cost).
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import EconomicReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=EconomicReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the EconomicReward class
 
     """
     def __init__(self):

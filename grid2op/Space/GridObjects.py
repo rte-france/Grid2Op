@@ -28,6 +28,10 @@ from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 class GridObjects:
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        Almost every class inherit from this class, so they have its methods and attributes.
+        Do not attempt to use it outside of grid2op environment.
+
     This class stores in a Backend agnostic way some information about the powergrid.
 
     It stores information about numbers of objects, and which objects are where, their names, etc.
@@ -36,7 +40,6 @@ class GridObjects:
     :class:`grid2op.Observation.BaseObservation`, :class:`grid2op.Observation.ObservationSpace` and
     :class:`grid2op.Backend.Backend` all inherit from this class. This means that each of the above has its own
     representation of the powergrid.
-
 
     The modeling adopted for describing a powergrid is the following:
 
@@ -168,36 +171,37 @@ class GridObjects:
     ----------
 
     n_line: :class:`int`
-        number of powerlines in the powergrid
+        number of powerlines in the powergrid [*class attribute*]
 
     n_gen: :class:`int`
-        number of generators in the powergrid
+        number of generators in the powergrid [*class attribute*]
 
     n_load: :class:`int`
-        number of loads in the
+        number of loads in the powergrid. [*class attribute*]
 
     n_sub: :class:`int`
-        number of loads in the powergrid
+        number of loads in the powergrid. [*class attribute*]
 
     dim_topo: :class:`int`
-        The total number of objects in the powergrid. This is also the dimension of the "topology vector" defined above.
+        The total number of objects in the powergrid.
+        This is also the dimension of the "topology vector" defined above. [*class attribute*]
 
     sub_info: :class:`numpy.ndarray`, dtype:int
-        for each substation, gives the number of elements connected to it
+        for each substation, gives the number of elements connected to it [*class attribute*]
 
     load_to_subid: :class:`numpy.ndarray`, dtype:int
         for each load, gives the id the substation to which it is connected. For example,
         :attr:`GridObjects.load_to_subid` [load_id] gives the id of the substation to which the load of id
-        `load_id` is connected.
+        `load_id` is connected. [*class attribute*]
 
     gen_to_subid: :class:`numpy.ndarray`, dtype:int
-        for each generator, gives the id the substation to which it is connected
+        for each generator, gives the id the substation to which it is connected [*class attribute*]
 
     line_or_to_subid: :class:`numpy.ndarray`, dtype:int
-        for each line, gives the id the substation to which its "origin" end is connected
+        for each line, gives the id the substation to which its "origin" end is connected [*class attribute*]
 
     line_ex_to_subid: :class:`numpy.ndarray`, dtype:int
-        for each line, gives the id the substation to which its "extremity" end is connected
+        for each line, gives the id the substation to which its "extremity" end is connected [*class attribute*]
 
     load_to_sub_pos: :class:`numpy.ndarray`, dtype:int
         Suppose you represent the topoology of the substation *s* with a vector (each component of this vector will
@@ -206,16 +210,16 @@ class GridObjects:
         current load. Suppose that load of id `l` is connected to the substation of id `s` (this information is
         stored in :attr:`GridObjects.load_to_subid` [l]), then if you represent the topology of the substation
         `s` with a vector `sub_topo_vect`, then "`sub_topo_vect` [ :attr:`GridObjects.load_to_subid` [l] ]" will encode
-        on which bus the load of id `l` is stored.
+        on which bus the load of id `l` is stored. [*class attribute*]
 
     gen_to_sub_pos: :class:`numpy.ndarray`, dtype:int
-        same as :attr:`GridObjects.load_to_sub_pos` but for generators.
+        same as :attr:`GridObjects.load_to_sub_pos` but for generators. [*class attribute*]
 
     line_or_to_sub_pos: :class:`numpy.ndarray`, dtype:int
-        same as :attr:`GridObjects.load_to_sub_pos`  but for "origin" end of powerlines.
+        same as :attr:`GridObjects.load_to_sub_pos`  but for "origin" end of powerlines. [*class attribute*]
 
     line_ex_to_sub_pos: :class:`numpy.ndarray`, dtype:int
-        same as :attr:`GridObjects.load_to_sub_pos` but for "extremity" end of powerlines.
+        same as :attr:`GridObjects.load_to_sub_pos` but for "extremity" end of powerlines. [*class attribute*]
 
     load_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
         The topology if the entire grid is given by a vector, say *topo_vect* of size
@@ -223,100 +227,101 @@ class GridObjects:
         :attr:`GridObjects.load_to_sub_pos` [l] is the index
         of the load *l* in the vector :attr:`grid2op.BaseObservation.BaseObservation.topo_vect` . This means that, if
         "`topo_vect` [ :attr:`GridObjects.load_pos_topo_vect` \[l\] ]=2"
-        then load of id *l* is connected to the second bus of the substation.
+        then load of id *l* is connected to the second bus of the substation. [*class attribute*]
 
     gen_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
-        same as :attr:`GridObjects.load_pos_topo_vect` but for generators.
+        same as :attr:`GridObjects.load_pos_topo_vect` but for generators. [*class attribute*]
 
     line_or_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
-        same as :attr:`GridObjects.load_pos_topo_vect` but for "origin" end of powerlines.
+        same as :attr:`GridObjects.load_pos_topo_vect` but for "origin" end of powerlines. [*class attribute*]
 
     line_ex_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
-        same as :attr:`GridObjects.load_pos_topo_vect` but for "extremity" end of powerlines.
+        same as :attr:`GridObjects.load_pos_topo_vect` but for "extremity" end of powerlines. [*class attribute*]
 
     name_load: :class:`numpy.ndarray`, dtype:str
-        ordered names of the loads in the grid.
+        ordered names of the loads in the grid. [*class attribute*]
 
     name_gen: :class:`numpy.ndarray`, dtype:str
-        ordered names of the productions in the grid.
+        ordered names of the productions in the grid. [*class attribute*]
 
     name_line: :class:`numpy.ndarray`, dtype:str
-        ordered names of the powerline in the grid.
+        ordered names of the powerline in the grid. [*class attribute*]
 
     name_sub: :class:`numpy.ndarray`, dtype:str
-        ordered names of the substation in the grid
+        ordered names of the substation in the grid [*class attribute*]
 
     attr_list_vect: ``list``, static
         List of string. It represents the attributes that will be stored to/from vector when the BaseObservation is converted
         to/from it. This parameter is also used to compute automatically :func:`GridObjects.dtype` and
         :func:`GridObjects.shape` as well as :func:`GridObjects.size`. If this class is derived, then it's really
         important that this vector is properly set. All the attributes with the name on this vector should have
-        consistently the same size and shape, otherwise, some methods will not behave as expected.
+        consistently the same size and shape, otherwise, some methods will not behave as expected. [*class attribute*]
 
     _vectorized: :class:`numpy.ndarray`, dtype:float
         The representation of the GridObject as a vector. See the help of :func:`GridObjects.to_vect` and
         :func:`GridObjects.from_vect` for more information. **NB** for performance reason, the conversion of the internal
         representation to a vector is not performed at any time. It is only performed when :func:`GridObjects.to_vect` is
-        called the first time. Otherwise, this attribute is set to ``None``.
+        called the first time. Otherwise, this attribute is set to ``None``. [*class attribute*]
 
     gen_type: :class:`numpy.ndarray`, dtype:str
         Type of the generators, among: "solar", "wind", "hydro", "thermal" and "nuclear". Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_pmin: :class:`numpy.ndarray`, dtype:float
         Minimum active power production needed for a generator to work properly. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_pmax: :class:`numpy.ndarray`, dtype:float
         Maximum active power production needed for a generator to work properly. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_redispatchable: :class:`numpy.ndarray`, dtype:bool
         For each generator, it says if the generator is dispatchable or not. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_max_ramp_up: :class:`numpy.ndarray`, dtype:float
         Maximum active power variation possible between two consecutive timestep for each generator:
         a redispatching action
         on generator `g_id` cannot be above :attr:`GridObjects.gen_ramp_up_max` [`g_id`]. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_max_ramp_down: :class:`numpy.ndarray`, dtype:float
         Minimum active power variationpossible between two consecutive timestep for each generator: a redispatching
         action
         on generator `g_id` cannot be below :attr:`GridObjects.gen_ramp_down_min` [`g_id`]. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_min_uptime: :class:`numpy.ndarray`, dtype:float
         The minimum time (expressed in the number of timesteps) a generator needs to be turned on: it's not possible to
         turn off generator `gen_id` that has been turned on less than `gen_min_time_on` [`gen_id`] timesteps
         ago. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_min_downtime: :class:`numpy.ndarray`, dtype:float
         The minimum time (expressed in the number of timesteps) a generator needs to be turned off: it's not possible to
         turn on generator `gen_id` that has been turned off less than `gen_min_time_on` [`gen_id`] timesteps
         ago. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_cost_per_MW: :class:`numpy.ndarray`, dtype:float
         For each generator, it gives the "operating cost", eg the cost, in terms of "used currency" for the production
         of one MW with this generator, if it is already turned on. It's a positive real number. It's the marginal cost
         for each MW. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_startup_cost: :class:`numpy.ndarray`, dtype:float
         The cost to start a generator. It's a positive real number. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     gen_shutdown_cost: :class:`numpy.ndarray`, dtype:float
         The cost to shut down a generator. It's a positive real number. Optional. Used
-        for unit commitment problems or redispacthing action.
+        for unit commitment problems or redispacthing action. [*class attribute*]
 
     redispatching_unit_commitment_availble: ``bool``
         Does the current grid allow for redispatching and / or unit commit problem. If not, any attempt to use it
-        will raise a :class:`grid2op.Exceptions.UnitCommitorRedispachingNotAvailable` error.
+        will raise a :class:`grid2op.Exceptions.UnitCommitorRedispachingNotAvailable` error. [*class attribute*]
         For an environment to be compatible with this feature, you need to set up, when loading the backend:
+
           - :attr:`GridObjects.gen_type`
           - :attr:`GridObjects.gen_pmin`
           - :attr:`GridObjects.gen_pmax`
@@ -331,19 +336,19 @@ class GridObjects:
 
     grid_layout: ``dict`` or ``None``
         The layout of the powergrid in a form of a dictionnary with keys the substation name, and value a tuple of
-        the coordinate of this substation. If no layout are provided, it defaults to ``None``
+        the coordinate of this substation. If no layout are provided, it defaults to ``None`` [*class attribute*]
 
     shunts_data_available: ``bool``
-        Whether or not the backend support the shunt data.
+        Whether or not the backend support the shunt data. [*class attribute*]
 
     n_shunt: ``int`` or ``None``
-        Number of shunts on the grid. It might be ``None`` if the backend does not support shunts.
+        Number of shunts on the grid. It might be ``None`` if the backend does not support shunts. [*class attribute*]
 
     name_shunt: ``numpy.ndarray``, dtype:``str`` or ``None``
-        Name of each shunt on the grid, or ``None`` if the backend does not support shunts.
+        Name of each shunt on the grid, or ``None`` if the backend does not support shunts. [*class attribute*]
 
     shunt_to_subid: :class:`numpy.ndarray`, dtype:int
-        for each shunt (if supported), gives the id the substation to which it is connected
+        for each shunt (if supported), gives the id the substation to which it is connected [*class attribute*]
 
     """
 
@@ -434,12 +439,16 @@ class GridObjects:
     @classmethod
     def _update_value_set(cls):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Update the class attribute `attr_list_vect_set` from  `attr_list_vect`
         """
         cls.attr_list_set = set(cls.attr_list_vect)
 
     def _raise_error_attr_list_none(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Raise a "NotImplementedError" if :attr:`GridObjects.attr_list_vect` is not defined.
 
         Raises
@@ -454,6 +463,8 @@ class GridObjects:
 
     def _get_array_from_attr_name(self, attr_name):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         This function returns the proper attribute vector that can be inspected in the
         :func:`GridObject.shape`, :func:`GridObject.size`, :func:`GridObject.dtype`,
         :func:`GridObject.from_vect` and :func:`GridObject.to_vect` method.
@@ -487,6 +498,23 @@ class GridObjects:
         res: ``numpy.ndarray``
             The representation of this action as a flat numpy ndarray
 
+        Examples
+        --------
+        It is mainly used for converting Observation of Action to vector:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # for an observation:
+            obs = env.reset()
+            obs_as_vect = obs.to_vect()
+
+            # for an action
+            act = env.action_space.sample()
+            ac_as_vect = act.to_vec()
+
         """
 
         if self._vectorized is None:
@@ -503,7 +531,10 @@ class GridObjects:
         The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
         part of the action.
 
-        It is a numpy integer array.
+        It is mainly used to know of which "sub spaces the action space and observation space are made of, but
+        you can also directly use it on an observation or an action.
+
+        It returns a numpy integer array.
 
         This function must return a vector from which the sum is equal to the return value of "size()".
 
@@ -518,6 +549,22 @@ class GridObjects:
         -------
         res: ``numpy.ndarray``
             The shape of the :class:`GridObjects`
+
+        Examples
+        --------
+        It is mainly used to know of which "sub spaces the action space and observation space are made of.
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # for an observation:
+            obs_space_shapes = env.observation_space.shape()
+
+            # for an action
+            act_space_shapes = env.action_space.shape()
+
         """
         self._raise_error_attr_list_none()
         res = np.array([self._get_array_from_attr_name(el).shape[0] for el in self.attr_list_vect]).astype(dt_int)
@@ -527,6 +574,9 @@ class GridObjects:
         """
         The types of the components of the GridObjects, mainly used for gym compatibility is the shape of all part
         of the action.
+
+        It is mainly used to know of which types each "sub spaces" the action space and observation space are made of,
+        but you can also directly use it on an observation or an action.
 
         It is a numpy array of objects.
 
@@ -541,6 +591,22 @@ class GridObjects:
         -------
         res: ``numpy.ndarray``
             The dtype of the :class:`GridObjects`
+
+        Examples
+        --------
+        It is mainly used to know of which "sub spaces the action space and observation space are made of.
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # for an observation:
+            obs_space_types = env.observation_space.dtype()
+
+            # for an action
+            act_space_types = env.action_space.dtype()
+
         """
 
         self._raise_error_attr_list_none()
@@ -549,6 +615,8 @@ class GridObjects:
 
     def _assign_attr_from_name(self, attr_nm, vect):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Assign the proper attributes with name 'attr_nm' with the value of the vector vect
 
         If this function is overloaded, then the _get_array_from_attr_name must be too.
@@ -556,11 +624,7 @@ class GridObjects:
         Parameters
         ----------
         attr_nm
-        vect
-
-        Returns
-        -------
-        ``None``
+        vect:
         """
         tmp = getattr(self, attr_nm)
         if isinstance(tmp, (dt_bool, dt_int, dt_float)):
@@ -582,6 +646,8 @@ class GridObjects:
         either :attr:`GridObjects.attr_list_vect` is properly defined for the derived class, or this function must be
         redefined.
 
+        It is recommended to use it from the action_space and the observation_space exclusively.
+
         Only the size is checked. If it does not match, an :class:`grid2op.Exceptions.AmbiguousAction` is thrown.
         Otherwise the component of the vector are coerced into the proper type silently.
 
@@ -592,6 +658,30 @@ class GridObjects:
         ----------
         vect: ``numpy.ndarray``
             A vector representing an BaseAction.
+
+        Examples
+        --------
+        It is mainly used for converting back vector representing action or observation into "grid2op" action
+        or observation. **NB** You should use it only with the "env.action_space" and "env.observation_space"
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # get the vector representation of an observation:
+            obs = env.reset()
+            obs_as_vect = obs.to_vect()
+
+            # convert it back to an observation (which will be equal to the first one)
+            obs_cpy = env.observation_space.from_vect(obs_as_vect)
+
+            # get the vector representation of an action:
+            act = env.action_space.sample()
+            act_as_vect = act.to_vec()
+
+            # convert it back to an action (which will be equal to the first one)
+            act_cpy = env.action_space.from_vect(act_as_vect)
 
         """
 
@@ -618,9 +708,13 @@ class GridObjects:
 
     def size(self):
         """
-        When the action is converted to a vector, this method return its size.
+        When the action / observation is converted to a vector, this method return its size.
 
         NB that it is a requirement that converting an GridObjects gives a vector of a fixed size throughout a training.
+
+        The size of an object if constant, but more: for a given environment the size of each action or the size
+        of each observations is constant. This allows us to also define the size of the "action_space" and
+        "observation_space": this method also applies to these spaces (see the examples bellow).
 
         **NB**: in case the class GridObjects is derived,
         either :attr:`GridObjects.attr_list_vect` is properly defined for the derived class, or this function must be
@@ -631,12 +725,35 @@ class GridObjects:
         size: ``int``
             The size of the GridObjects if it's converted to a flat vector.
 
+        Examples
+        --------
+        It is mainly used to know the size of the vector that would represent these objects
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # get the vector representation of an observation:
+            obs = env.reset()
+            print("The size of this observation is {}".format(obs.size()))
+
+            # get the vector representation of an action:
+            act = env.action_space.sample()
+            print("The size of this action is {}".format(act.size()))
+
+            # it can also be used with the action_space and observation_space
+            print("The size of the observation space is {}".format(env.observation_space.size()))
+            print("The size of the action space is {}".format(env.action_space.size()))
+
         """
         res = np.sum(self.shape()).astype(dt_int)
         return res
 
     def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Return the proper "_pos_big_topo" vector given "to_subid" vector and "to_sub_pos" vectors.
         This function is also called to performed sanity check after the load on the powergrid.
 
@@ -656,6 +773,8 @@ class GridObjects:
 
     def _compute_pos_big_topo(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Compute the position of each element in the big topological vector.
 
         Topology action are represented by numpy vector of size np.sum(self.sub_info).
@@ -683,6 +802,10 @@ class GridObjects:
 
     def assert_grid_correct(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is used at the initialization of the environment.
+
         Performs some checking on the loaded _grid to make sure it is consistent.
         It also makes sure that the vector such as *sub_info*, *load_to_subid* or *gen_to_sub_pos* are of the
         right type eg. numpy.ndarray with dtype: dt_int
@@ -1097,7 +1220,11 @@ class GridObjects:
 
     def attach_layout(self, grid_layout):
         """
-        grid layout is a dictionnary with the keys the name of the substations, and the value the tuple of coordinates
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            We do not recommend to "attach layout" outside of the environment. Please refer to the function
+            :func:`grid2op.Environment.BaseEnv.attach_layout` for more information.
+
+        grid layout is a dictionary with the keys the name of the substations, and the value the tuple of coordinates
         of each substations. No check are made it to ensure it is correct.
 
         Parameters
@@ -1110,11 +1237,21 @@ class GridObjects:
 
     @classmethod
     def set_env_name(cls, name):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Do not attempt in any case to modify the name of the environment once it has been loaded. If you
+            do that, you might experience undefined behaviours, notably with the multi processing but not only.
+
+        """
         cls.env_name = name
 
     @classmethod
     def init_grid(cls, gridobj):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is done at the creation of the environment. Use of this class outside of this particular
+            use is really dangerous and will lead to undefined behaviours. **Do not use this function**.
+
         Initialize this :class:`GridObjects` subclass with a provided class.
 
         It does not perform any check on the validity of the `gridobj` parameters, but it guarantees that  if `gridobj`
@@ -1197,7 +1334,8 @@ class GridObjects:
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
-        Get all the object connected to a given substation:
+        Get all the object connected to a given substation. This is particularly usefull if you want to know the
+        names of the generator / load connected to a given substation, or which extremity etc.
 
         Parameters
         ----------
@@ -1210,7 +1348,7 @@ class GridObjects:
         Returns
         -------
         res: ``dict``
-            A dictionnary with keys:
+            A dictionary with keys:
 
               - "loads_id": a vector giving the id of the loads connected to this substation, empty if none
               - "generators_id": a vector giving the id of the generators connected to this substation, empty if none
@@ -1219,6 +1357,26 @@ class GridObjects:
               - "lines_ex_id": a vector giving the id of the extermity end of the powerlines connected to this
                 substation, empty if none.
               - "nb_elements" : number of elements connected to this substation
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+
+            # get the vector representation of an observation:
+            sub_id = 1
+            dict_ = env.get_obj_connect_to(substation_id=sub_id)
+            print("The names of the loads connected to substation {} are: {}".format(
+                   sub_id, env.name_load[dict_["loads_id"]]))
+            print("The names of the generators connected to substation {} are: {}".format(
+                   sub_id, env.name_gen[dict_["loads_id"]]))
+            print("The powerline whose origin end is connected to substation {} are: {}".format(
+                   sub_id, env.name_line[dict_["lines_or_id"]]))
+            print("The powerline whose extremity end is connected to substation {} are: {}".format(
+                   sub_id, env.name_line[dict_["lines_ex_id"]]))
 
         """
         if _sentinel is not None:
@@ -1239,9 +1397,81 @@ class GridObjects:
         return res
 
     def get_obj_substations(self, _sentinel=None, substation_id=None):
+        """
+        Return the object connected as a substation in form of a numpy array instead of a dictionary (as
+        opposed to :func:`GridObjects.get_obj_connect_to`).
+
+        This format is particularly useful for example if you want to know the number of generator connected
+        to a given substation for example (see section examples).
+
+        Parameters
+        ----------
+        _sentinel: ``None``
+            Used to prevent positional parameters. Internal, do not use.
+
+        substation_id: ``int``
+            ID of the substation we want to inspect
+
+        Returns
+        -------
+        res: ``numpy.ndarray``
+            A matrix with as many rows as the number of element of the substation and 5 columns:
+
+              1. column 0: the id of the substation
+              2. column 1: -1 if this object is not a load, or `LOAD_ID` is this object is a load (see example)
+              3. column 2: -1 if this object is not a generator, or `GEN_ID` is this object is a generator (see example)
+              4. column 3: -1 if this object is not the origin end of a line, or `LOR_ID` is this object is the
+                 origin end of a powerline(see example)
+              5. column 4: -1 if this object is not a extremity end, or `LEX_ID` is this object is the extremity
+                 end of a powerline
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make()
+
+            # get the vector representation of an observation:
+            sub_id = 1
+            mat = env.get_obj_substations(substation_id=sub_id)
+
+            # the first element of the substation is:
+            mat[0,:]
+            # array([ 1, -1, -1, -1,  0], dtype=int32)
+            # we know it's connected to substation 1... no kidding...
+            # we can also get that:
+            # 1. this is not a load (-1 at position 1 - so 2nd component)
+            # 2. this is not a generator (-1 at position 2 - so 3rd component)
+            # 3. this is not the origin end of a powerline (-1 at position 3)
+            # 4. this is the extremity end of powerline 0 (there is a 0 at position 4 - so last component)
+
+            # likewise, the second element connected at this substation is:
+            mat[1,:]
+            # array([ 1, -1, -1,  2, -1], dtype=int32)
+            # it represents the origin end of powerline 2
+
+            # the 5th element connected at this substation is:
+            mat[4,:]
+            # which is equal to  array([ 1, -1,  0, -1, -1], dtype=int32)
+            # so it's represents a generator, and this generator has the id 0
+
+            # the 6th element connected at this substation is:
+            mat[5,:]
+            # which is equal to  array([ 1, 0,  -1, -1, -1], dtype=int32)
+            # so it's represents a generator, and this generator has the id 0
+
+            # and, last example, if you want to count the number of generator connected at this
+            # substation you can
+            is_gen = mat[:,env.GEN_COL] != -1  # a boolean vector saying ``True`` if the object is a generator
+            nb_gen = np.sum(is_gen)
+
+        """
         # TODO finish the doc
         if _sentinel is not None:
-            raise Grid2OpException("get_obj_connect_to should be used only with key-word arguments")
+            raise Grid2OpException("get_obj_substations should be used only with key-word arguments")
 
         if substation_id is None:
             raise Grid2OpException("You ask the composition of a substation without specifying its id."
@@ -1283,6 +1513,20 @@ class GridObjects:
         ------
         :class:`grid2op.Exceptions.BackendError` if no match is found.
 
+
+        Examples
+        --------
+        It can be used like:
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make()
+
+            l_ids = env.get_lines_id(from_=0, to_=1)
+            print("The powerlines connecting substation 0 to substation 1 have for ids: {}".format(l_ids))
+
         """
         res = []
         if from_ is None:
@@ -1321,6 +1565,19 @@ class GridObjects:
         :class:`grid2op.Exceptions.BackendError` if no match is found.
 
 
+        Examples
+        --------
+        It can be used like:
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make()
+
+            g_ids = env.get_generators_id(sub_id=1)
+            print("The generators connected to substation 1 have for ids: {}".format(g_ids))
+
         """
         res = []
         if sub_id is None:
@@ -1357,6 +1614,19 @@ class GridObjects:
         ------
         :class:`grid2op.Exceptions.BackendError` if no match found.
 
+        Examples
+        --------
+        It can be used like:
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make()
+
+            c_ids = env.get_loads_id(sub_id=1)
+            print("The loads connected to substation 1 have for ids: {}".format(c_ids))
+
         """
         res = []
         if sub_id is None:
@@ -1377,8 +1647,12 @@ class GridObjects:
     @classmethod
     def to_dict(cls):
         """
-        Convert the object as a dictionnary.
-        Note that unless this method is overidden, a call to it will only output the
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is used internally only to save action_space or observation_space for example. Do not
+            attempt to use it in a different context.
+
+        Convert the object as a dictionary.
+        Note that unless this method is overridden, a call to it will only output the
 
         Returns
         -------
@@ -1435,6 +1709,11 @@ class GridObjects:
     @staticmethod
     def from_dict(dict_):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            This is used internally only to restore action_space or observation_space if they
+            have been saved by `to_dict`. Do not
+            attempt to use it in a different context.
+
         Create a valid GridObject (or one of its derived class if this method is overide) from a dictionnary (usually
         read from a json file)
 

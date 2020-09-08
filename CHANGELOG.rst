@@ -17,6 +17,7 @@ Change Log
 
 [1.3.0] - 2020-xx-yy
 ----------------------
+- [ADDED] `l2rpn-baselines` package dependency in the "binder" environment.
 - [FIXED] an issue in the sampling of redispatching action (ramp up and ramp down were inverted)
 - [FIXED] an issue causing errors when using `action_space.change_bus` and `action_space.set_bus`
 - [FIXED] an issue in the sampling: redispatching and "change_bus" where always performed at the

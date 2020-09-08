@@ -1359,6 +1359,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             should be the substation names, and the values a tuple (with two float) representing
             the coordinate of the substation.
 
+        Examples
+        ---------
+        Here is an example on how to attach a layout for an environment:
+
         .. code-block:: python
 
             import grid2op

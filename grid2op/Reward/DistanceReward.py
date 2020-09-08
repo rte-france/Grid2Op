@@ -10,9 +10,29 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class DistanceReward(BaseReward):
     """
-    This reward computes a penalty based on the distance of the current grid to the grid at time 0.
+    This reward computes a penalty based on the distance of the current grid to the grid at time 0 where
+    everything is connected to bus 1.
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import DistanceReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=DistanceReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the DistanceReward class
+
     """
     def __init__(self):
         BaseReward.__init__(self)

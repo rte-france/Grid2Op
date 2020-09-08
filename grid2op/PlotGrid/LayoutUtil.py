@@ -50,6 +50,7 @@ def layout_obs_sub_only(obs, scale=1000.0):
 
     return improved_layout
 
+
 def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
     # Create a graph of substations vertices
     G = nx.Graph()

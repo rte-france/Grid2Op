@@ -9,6 +9,7 @@ import os
 import sys
 import numpy as np
 from datetime import datetime
+import warnings
 
 from grid2op.Episode import EpisodeData
 from grid2op.Exceptions import Grid2OpException
@@ -34,6 +35,11 @@ except:
 
 class EpisodeReplay(object):
     """
+
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
+        Prefer using the class `grid2op.Episode.EpisodeReplay`
+
     This class allows to see visually what an agent has done during an episode. It uses for now the "PlotPygame" as the
     method to plot the different states of the system. It reads directly data from the runner.
 
@@ -66,18 +72,24 @@ class EpisodeReplay(object):
         The last data of the episode inspected.
     """
     def __init__(self, agent_path):
+        warnings.warn("This whole class has been deprecated. Use `grid2op.PlotGrid module instead`",
+                      category=DeprecationWarning)
+
         if not os.path.exists(agent_path):
             raise Grid2OpException("Nothing is found at \"{}\" where an agent path should have been.".format(agent_path))
         self.agent_path = agent_path
         self.episode_data = None
 
         if not can_save_gif:
-            import warnings
             warnings.warn("The final video will not be saved as \"imageio\" and \"imageio_ffmpeg\" packages cannot be "
                           "imported. Please try \"{} -m pip install imageio imageio-ffmpeg\"".format(sys.executable))
 
     def replay_episode(self, episode_id, max_fps=10, video_name=None, display=True):
         """
+        .. warning:: /!\\\\ This class is deprecated /!\\\\
+
+            Prefer using the class `grid2op.Episode.EpisodeReplay`
+
         When called, this function will start the display of the episode in a "mini movie" format.
 
         Parameters

@@ -14,8 +14,26 @@ class GameplayReward(BaseReward):
     """
     This rewards is strictly computed based on the Game status.
     It yields a negative reward in case of game over.
-    A half negative reward on rules infringment.
+    A half negative reward on rules infringement.
     Otherwise the reward is positive.
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import GameplayReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=GameplayReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the GameplayReward class
+
     """
     def __init__(self):
         BaseReward.__init__(self)
