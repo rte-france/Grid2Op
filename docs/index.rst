@@ -31,7 +31,7 @@ Grid2Op philosophy
 Grid2Op is a python module that aims to make easier the research on sequential decision making applied to power systems.
 
 This package adopt the "reinforcement learning" point of view and is compatible with the openAI gym programming
-interface (see :sec:`openai-gym` for more information).
+interface (see section :ref:`openai-gym` for more information).
 
 Applied to power system, the "reinforcement learning" framework ask:
 
@@ -47,7 +47,8 @@ changing the configuration of some "substations" as demonstrate in the figure be
 
 Any kind of "controller" can be implemented using this framework even though it has been inspired by the
 "reinforcement learning" community. You can implement some heuristic "controllers" (some examples are available in the
-:sec:`agent-module`), "controllers" that comes from the Optimization community (for example "Optimal Power Flow") or
+:ref:`agent-module` module description), "controllers" that comes from the Optimization community
+(for example "Optimal Power Flow") or
 "Model Predictive Control". One of the goal of Grid2Op is to allow everyone to contribute to closing the gap
 between all these research communities.
 

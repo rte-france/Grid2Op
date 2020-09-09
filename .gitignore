@@ -223,6 +223,8 @@ test_N1reward.py
 i_saved_the_runner_here/
 output_pdf/
 test_make_plot_injj.ipynb
+plot_inj_prez_gdrive.ipynb
+where_i_want_to_save_it/
 
 # profiling files
 **.prof

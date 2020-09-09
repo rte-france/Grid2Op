@@ -9,7 +9,7 @@ import numpy as np
 from grid2op.Agent.GreedyAgent import GreedyAgent
 
 
-class RecoPowerlineAgent(GreedyAgent):
+class RecoPowerlineAgent2(GreedyAgent):
     """
     This is a :class:`GreedyAgent` example, which will attempt to reconnect powerlines: for each disconnected powerline
     that can be reconnected, it will simulate the effect of reconnecting it. And reconnect the one that lead to the
@@ -27,4 +27,3 @@ class RecoPowerlineAgent(GreedyAgent):
         if np.any(can_be_reco):
             res = [self.action_space({"set_line_status": [(id_, +1)]}) for id_ in np.where(can_be_reco)[0]]
         return res
-

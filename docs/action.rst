@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.Action
+.. _action-module:
 
 Action
 ===================================
@@ -38,6 +39,20 @@ Finally, :class:`BaseAction` class define some strict behavior to follow if reim
 instances of BaseAction is assessed both when calling :func:`BaseAction.update` or with a call to
 :func:`BaseAction._check_for_ambiguity` performed for example by the Backend when it must implement its effect on the
 powergrid through a call to :func:`BaseAction.__call__`
+
+Constructing an action in grid2op is made in the following manner:
+
+.. code-block:: python
+
+    import grid2op
+    env = grid2op.make()
+    dictionary_describing_the_action = {}
+    my_action = env.action_space(dictionary_describing_the_action)
+    print(my_action)
+
+On the above code, `dictionary_describing_the_action` should be a dictionary that describe what action
+you want to perform on the grid. For more information you can consult the help of the :func:`BaseAction.update`.
+
 
 .. _Illegal-vs-Ambiguous:
 
@@ -136,6 +151,8 @@ action                                         original status   final status   
 =============================================  ================  ============   ==============  ========================
 
 \* means that this bus is affected: if it was on bus 1 it moves on bus 2 and vice versa.
+
+.. _action-module-converter:
 
 Easier actions manipulation
 ----------------------------
