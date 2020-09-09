@@ -1,9 +1,8 @@
+.. module:: grid2op
 .. _grid2op-module:
 
 Grid2Op module
 ===================================
-.. module:: grid2op
-
 The grid2op module allows to model sequential decision making on a powergrid.
 
 It is modular in the sense that it allows to use different powerflow solver. It proposes an internal representation
@@ -14,7 +13,7 @@ also know that it's not possible to do this for every powerplant (for example, a
 energy is not possible: the only way would be to increase the speed of the wind). It is possible to implement
 these kind of restrictions in this "game like" environment.
 
-Today, the main usage of this plateform is to serve as a computation engine for the `L2RPN <www.l2rpn.chalearn.com>`_
+Today, the main usage of this platform is to serve as a computation engine for the `L2RPN <www.l2rpn.chalearn.com>`_
 competitions.
 
 This platform is still under development. If you notice a bug, let us know with a github issue at
@@ -36,7 +35,6 @@ Thanks to a careful separation between:
 - the controller / agent that takes action on the powergrid.
 
 All bound together thanks to the :class:`grid2op.Environment` module.
-
 
 Grid2op attempts also to make the development of new control methods as easy as possible: it is relatively simple
 to generate fake data and train agent on them and to use a fast (but less precise powerflow) while trying
@@ -69,7 +67,7 @@ Along with the topology, grid2op allows easily to manipulate (and thus control):
 - the voltages: by manipulating shunts, or by changing the setpoint value of the generators
 - the active generation: by the use of the "redispatching" action.
 
-Other flexibilities are coming soon (-:
+Other "flexibilities" are coming soon (-:
 
 
 What is modeled in an grid2op environment

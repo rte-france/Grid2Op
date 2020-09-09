@@ -75,3 +75,34 @@ To get started into the grid2op ecosystem, we made a set of notebooks
 that are available, without any installation thanks to
 `Binder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_ . Feel free to visit the "getting_started" page for
 more information and a detailed tour about the issue that grid2op tries to address.
+
+The most basic code, for those familiar with openAI gym (a well-known framework in reinforcement learning) is:
+
+.. code-block:: python
+
+    import grid2op
+    # create an environment
+    env_name = "rte_case14_realistic"  # for example, other environments might be usable
+    env = grid2op.make(env_name)
+
+    # create an agent
+    from grid2op.Agent import RandomAgent
+    my_agent = RandomAgent(env.action_space)
+
+    # proceed as you would any open ai gym loop
+    nb_episode = 10
+    for _ in range(nb_episde):
+        # you perform in this case 10 different episodes
+        obs = env.reset()
+        reward = env.reward_range[0]
+        done = False
+        while not done:
+            # here you loop on the time steps: at each step your agent receive an observation
+            # takes an action
+            # and the environment computes the next observation that will be used at the next step.
+            act = agent.act(obs, reward, done)
+            obs, reward, done, info = env.step(act)
+
+ **NB** Grid2Op environments implements the interface of any openAI gym environment, but they don't
+inherit from them. You can use the Grid2Op environment as you would any Gym environment but they are
+not strictly speaking gym environment. More information about that on the section :sec:`openai-gym`

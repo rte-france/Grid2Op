@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.Agent
+.. _agent-module:
 
 Agent
 ============
