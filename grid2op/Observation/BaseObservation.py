@@ -304,14 +304,14 @@ class BaseObservation(GridObjects):
                 - "maintenance": information about the maintenance operation (time of the next maintenance and duration
                   of this next maintenance.
                 - "cooldown_time": for how many timestep i am not supposed to act on the powerline due to cooldown
-                  (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_LINE_STATUS_REMODIF` for more information)
+                  (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_LINE` for more information)
 
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
                 - "topo_vect": the representation of which object is connected where
                 - "nb_bus": number of active buses in this substations
                 - "cooldown_time": for how many timestep i am not supposed to act on the substation due to cooldown
-                  (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_TOPOLOGY_REMODIF` for more information)
+                  (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_SUB` for more information)
 
         Raises
         ------
@@ -631,12 +631,68 @@ class BaseObservation(GridObjects):
         -------
         res: ``numpy.ndarray``, shape:dim_topo,dim_topo, dtype:float
             The connectivity matrix, as defined above
+
+        Examples
+        ---------
+        If you want to know if powerline 0 is connected at its "extremity" side with the load of id 0 you can do
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+            obs = env.reset()
+
+            # retrieve the id of extremity of powerline 1:
+            id_lineex_0 = obs.line_ex_pos_topo_vect[0]
+            id_load_1 = obs.load_pos_topo_vect[0]
+
+            # get the connectivity matrix
+            connectivity_matrix = obs.connectivity_matrix()
+
+            # know if the objects are connected or not
+            are_connected = connectivity_matrix[id_lineex_0, id_load_1]
+            # as `are_connected` is 1.0 then these objects are indeed connected
+
+        And now, supposes we do an action that changes the topology of the substation to which these
+        two objects are connected, then we get (same example continues)
+
+        .. code-block:: python
+
+            topo_action = env.action_space({"set_bus": {"substations_id": [(1, [1,1,1,2,2,2])]}})
+            print(topo_action)
+            # This action will:
+            #   - NOT change anything to the injections
+            #   - NOT perform any redispatching action
+            #   - NOT force any line status
+            #   - NOT switch any line status
+            #   - NOT switch anything in the topology
+            #   - Set the bus of the following element:
+            #     - assign bus 1 to line (extremity) 0 [on substation 1]
+            #     - assign bus 1 to line (origin) 2 [on substation 1]
+            #     - assign bus 1 to line (origin) 3 [on substation 1]
+            #     - assign bus 2 to line (origin) 4 [on substation 1]
+            #     - assign bus 2 to generator 0 [on substation 1]
+            #     - assign bus 2 to load 0 [on substation 1]
+
+            obs, reward, done, info = env.step(topo_action)
+            # and now retrieve the matrix
+            connectivity_matrix = obs.connectivity_matrix()
+
+            # know if the objects are connected or not
+            are_connected = connectivity_matrix[id_lineex_0, id_load_1]
+            # as `are_connected` is 0.0 then these objects are not connected anymore
+            # this is visible when you "print" the action (see above) in the two following lines:
+            #     - assign bus 1 to line (extremity) 0 [on substation 1]
+            #     - assign bus 2 to load 0 [on substation 1]
+            # -> one of them is on bus 1 [line (extremity) 0] and the other on bus 2 [load 0]
         """
         raise NotImplementedError("This method is not implemented")
 
     def bus_connectivity_matrix(self):
         """
-        If we denote by `nb_bus` the total number bus of the powergrid.
+        If we denote by `nb_bus` the total number bus of the powergrid (you can think of a "bus" being
+        a "node" if you represent a powergrid as a graph [mathematical object, not a plot] with the lines
+        being the "edges"].
 
         The `bus_connectivity_matrix` will have a size nb_bus, nb_bus and will be made of 0 and 1.
 
@@ -652,23 +708,26 @@ class BaseObservation(GridObjects):
 
     def get_forecasted_inj(self, time_step=1):
         """
-        This function allows you to retrieve directly the "planned" injections for the timestep `time_step`
+        This function allows you to retrieve directly the "forecast" injections for the step `time_step`.
+
+        We remind that the environment, under some conditions, can produce these forecasts automatically.
+        This function allows to retrieve what has been forecast.
 
         Parameters
         ----------
         time_step: ``int``
-            The horizon of the forecast;
+            The horizon of the forecast (given in number of time steps)
 
         Returns
         -------
         prod_p_f: ``numpy.ndarray``
-            The forecasted generators active values
+            The forecast generators active values
         prod_v_f: ``numpy.ndarray``
-            The forecasted generators voltage setpoins
+            The forecast generators voltage setpoins
         load_p_f: ``numpy.ndarray``
-            The forecasted load active consumption
+            The forecast load active consumption
         load_q_f: ``numpy.ndarray``
-            The forecasted load reactive consumption
+            The forecast load reactive consumption
         """
         if time_step >= len(self._forecasted_inj):
             raise NoForecastAvailable("Forecast for {} timestep ahead is not possible with your chronics.".format(time_step))
@@ -698,7 +757,7 @@ class BaseObservation(GridObjects):
 
     def get_time_stamp(self):
         """
-        get the time stamp of the current observation as a datetime.datetime object
+        Get the time stamp of the current observation as a `datetime.datetime` object
         """
         res = datetime.datetime(year=self.year, month=self.month, day=self.day,
                                 hour=self.hour_of_day, minute=self.minute_of_hour)
@@ -706,7 +765,18 @@ class BaseObservation(GridObjects):
 
     def simulate(self, action, time_step=1):
         """
-        This method is used to simulate the effect of an action on a forecasted powergrid state. It has the same return
+        This method is used to simulate the effect of an action on a forecast powergrid state. This forecast
+        state is built upon the current observation.
+
+        The forecast are pre computed by the environment.
+
+        More concretely, if not deactivated by the environment
+        (see :func:`grid2op.Environment.BaseEnv.deactivate_forecast`) and the environment has the capacity to
+        generate these forecasts (which is the case in most grid2op environments) this function will simulate
+        the effect of doing an action now and return the "next state" (often the state you would get at
+        time `t + 5` mins) if you were to do the action at this step.
+
+        It has the same return
         value as the :func:`grid2op.Environment.Environment.step` function.
 
         Parameters
@@ -725,18 +795,59 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-            observation: :class:`grid2op.Observation.Observation`
-                agent's observation of the current environment
-            reward: ``float``
-                amount of reward returned after previous action
-            done: ``bool``
-                whether the episode has ended, in which case further step() calls will return undefined results
-            info: ``dict``
-                contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+        simulated_observation: :class:`grid2op.Observation.Observation`
+            agent's observation of the current environment after the application of the action "act" on the
+            the current state.
+
+        reward: ``float``
+            amount of reward returned after previous action
+
+        done: ``bool``
+            whether the episode has ended, in which case further step() calls will return undefined results
+
+        info: ``dict``
+            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+
+        Notes
+        ------
+        This is a simulation in the sense that the "next grid state" is not the real grid state you will get. As you
+        don't know the future, the "injections you forecast for the next step" will not be the real injection you
+        will get in the next step.
+
+        Also, in some circumstances, the "Backend" (ie the powerflow) used to do the simulation may not be the
+        same one as the one used by the environment. This is to model a real fact: as accurate your powerflow is, it does
+        not model all the reality (*"all models are wrong"*). Having a different solver for the environment (
+        "the reality") than the one used to anticipate the impact of the action (this "simulate" function)
+        is a way to represent this fact.
+
+        Examples
+        --------
+        To simulate what would be the effect of the action "act" if you were to take this action at this step
+        you can do the following:
+
+        .. code-block:: python
+
+            import grid2op
+            # retrieve an environment
+            env = grid2op.make()
+
+            # retrieve an observation, this is the same for all observations
+            obs = env.reset()
+
+            # and now you can simulate the effect of doing nothing in the next time step
+            act = env.action_space()  # this can be any action that grid2op understands
+            simulated_obs, simulated_reward, simulated_done, simulated_info = obs.simulate(act)
+
+            # `simulated_obs` will be the "observation" after the application of action `act` on the
+            #                 " forecast of the grid state (it will be the "forecast state at time t+5mins usually)
+            # `simulated_reward` will be the reward for the same action on the same forecast state
+            # `simulated_done` will indicate whether or not the simulation ended up in a "game over"
+            # `simulated_info` gives extra information on this forecast state
 
         """
         if self.action_helper is None or self._obs_env is None:
-            raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation (no action_space "
+            raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation "
+                                      "(no action_space "
                                       "and no simulated environment are set).")
 
         if time_step < 0:

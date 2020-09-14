@@ -103,6 +103,6 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
             act = agent.act(obs, reward, done)
             obs, reward, done, info = env.step(act)
 
- **NB** Grid2Op environments implements the interface of any openAI gym environment, but they don't
+**NB** Grid2Op environments implements the interface of any openAI gym environment, but they don't
 inherit from them. You can use the Grid2Op environment as you would any Gym environment but they are
-not strictly speaking gym environment. More information about that on the section :sec:`openai-gym`
+not strictly speaking gym environment. More information about that on the section :ref:`openai-gym`

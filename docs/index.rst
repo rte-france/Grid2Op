@@ -5,8 +5,9 @@
 
 .. |episode_example| image:: ./img/grid2op_action.jpg
 
+===============================================
 Welcome to Grid2Op's technical documentation!
-**********************************************
+===============================================
 
 Grid2Op is a pythonic, easy to use framework, to be able to develop, train or evaluate performances of "agent" or
 "controller" that acts on a powergrid in  different ways.
@@ -57,6 +58,7 @@ Main module content
 
 .. toctree::
    :maxdepth: 2
+   :caption: Quickstart
 
    quickstart
    grid2op
@@ -68,6 +70,7 @@ Plotting capabilities
 
 .. toctree::
    :maxdepth: 2
+   :caption: Plot
 
    plot
 
@@ -76,6 +79,7 @@ Technical Documentation
 
 .. toctree::
    :maxdepth: 2
+   :caption: Technical Documentation
 
    action
    agent
@@ -96,6 +100,7 @@ Main Exceptions
 -----------------------
 .. toctree::
    :maxdepth: 2
+   :caption: Miscellaneous
 
    exception
 

@@ -67,19 +67,19 @@ Along with the topology, grid2op allows easily to manipulate (and thus control):
 - the voltages: by manipulating shunts, or by changing the setpoint value of the generators
 - the active generation: by the use of the "redispatching" action.
 
-Other "flexibilities" are coming soon (-:
+Other "flexibilities" (ways to act on the grid) are coming soon (-:
 
 
 What is modeled in an grid2op environment
 -----------------------------------------
 The simulator is able to emulate a power grid (of any size or characteristics) subject to a set of
 temporal injections (productions and consumptions) or maintenance / hazards for discretized
-timesteps.
+time-steps.
 
 More concretely a grid2op environment models "out of the box":
 
-- the mechanism to "implement" a control on the grid, load the next chronics data and compute the appropriate
-  state of the power network
+- the mechanism to "implement" a control on the grid, load the next chronics data (*e.g.* new loads and productions)
+  and compute the appropriate state of the power network
 - the disconnection of powerlines if there are on overflow for too long (known as "time overcurrent (TOC)" see
   this article for more information
   `overcurrent <https://en.wikipedia.org/wiki/Power_system_protection#Overload_and_back-up_for_distance_(overcurrent)>`_ )
