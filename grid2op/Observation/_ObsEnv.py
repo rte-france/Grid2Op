@@ -179,6 +179,7 @@ class _ObsEnv(BaseEnv):
         ``None``
 
         """
+        self._reset_to_orig_state()
         self._topo_vect[:] = topo_vect
         # TODO update maintenance time, duration and cooldown accordingly (see all todos in `update_grid`)
 

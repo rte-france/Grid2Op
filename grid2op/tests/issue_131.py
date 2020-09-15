@@ -3,12 +3,15 @@
 import grid2op
 import unittest
 import numpy as np
+import warnings
 
 
 class Issue131Tester(unittest.TestCase):
 
     def test_issue_131(self):
-        env = grid2op.make("rte_case14_realistic")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("rte_case14_realistic")
 
         # Get forecast after a simulate works
         obs = env.reset()

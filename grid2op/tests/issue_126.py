@@ -20,7 +20,7 @@ class Issue126Tester(unittest.TestCase):
 
       with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        env = make(dataset)
+        env = make(dataset, test=True)
         agent = DeltaRedispatchRandomAgent(env.action_space)
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
