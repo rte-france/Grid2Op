@@ -24,6 +24,12 @@ Change Log
   same time
 - [FIXED] `Issue #144 <https://github.com/rte-france/Grid2Op/issues/144>`_: typo that could lead to not
   display some error messages in some cases.
+- [FIXED] `Issue #146 <https://github.com/rte-france/Grid2Op/issues/146>`_: akward behaviour that lead to not calling
+  the reward function when the episode was over.
+- [FIXED] `Issue #147 <https://github.com/rte-france/Grid2Op/issues/147>`_: un consistency between step and simulate
+  when cooldowns where applied (rule checking was not using the right method).
+- [FIXED] An error preventing the loading of an Ambiguous Action (in case an agent took such action, the `EpisodeData`
+  would not load it properly.
 - [IMPROVED] overall documentation of `BaseEnv` and `Environment`
 - [IMPROVED] rationalize the public and private part of the API for `Environment` and `BaseEnv`.
   Some members have been moved to private attribute (their modification would largely alterate the

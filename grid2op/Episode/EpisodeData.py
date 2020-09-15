@@ -11,7 +11,7 @@ import os
 
 import numpy as np
 
-from grid2op.Exceptions import Grid2OpException, AmbiguousAction
+from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
@@ -140,18 +140,18 @@ class EpisodeData:
                  attack_space=None,
                  path_save=None,
                  disc_lines_templ=None,
-
                  attack_templ=None,
                  attack=None,
-
                  logger=None,
-                 name="EpisodeDAta",
+                 name="EpisodeData",
                  get_dataframes=None,
                  other_rewards=[]):
+        self.parameters = None
 
         self.actions = CollectionWrapper(actions,
                                          action_space,
-                                         "actions")
+                                         "actions",
+                                         check_legit=False)
         self.observations = CollectionWrapper(observations,
                                               observation_space,
                                               "observations")
@@ -404,7 +404,7 @@ class EpisodeData:
         attack_space = ActionSpace.from_dict(
             os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
 
-        return cls(actions,
+        return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
                    rewards=rewards,
@@ -416,7 +416,7 @@ class EpisodeData:
                    observation_space=observation_space,
                    action_space=action_space,
                    helper_action_env=helper_action_env,
-                   path_save=None, # No save when reading
+                   path_save=None,  # No save when reading
                    attack=attack,
                    attack_space=attack_space,
                    name=name,
@@ -704,7 +704,7 @@ class CollectionWrapper:
                 collection_obj = self.helper.from_vect(self.collection[i, :],
                                                        check_legit=check_legit)
                 self.objects.append(collection_obj)
-            except AmbiguousAction:
+            except EnvError as exc_:
                 self._game_over = i
                 break
 

@@ -457,9 +457,9 @@ class GridObjects:
 
         """
         if self.attr_list_vect is None:
-            raise NotImplementedError("attr_list_vect attribute is not defined for class {}. "
-                                      "It is not possible to convert it from/to a vector, "
-                                      "nor to know its size, shape or dtype.".format(type(self)))
+            raise IncorrectNumberOfElements("attr_list_vect attribute is not defined for class {}. "
+                                            "It is not possible to convert it from/to a vector, "
+                                            "nor to know its size, shape or dtype.".format(type(self)))
 
     def _get_array_from_attr_name(self, attr_name):
         """
@@ -693,13 +693,21 @@ class GridObjects:
         try:
             vect = np.array(vect).astype(dt_float)
         except Exception as exc_:
-            raise AmbiguousAction("Impossible to convert the input vector to a floating point numy array with error:\n"
-                                  "\"{}\".".format(exc_))
+            raise EnvError("Impossible to convert the input vector to a floating point numpy array "
+                                            "with error:\n"
+                                            "\"{}\".".format(exc_))
 
         self._raise_error_attr_list_none()
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
-            tmp = vect[prev_:(prev_ + sh)].astype(dt)
+            tmp = vect[prev_:(prev_ + sh)]
+            try:
+                tmp = tmp.astype(dt)
+            except Exception as exc_:
+                raise EnvError("Impossible to convert the input vector to its type ({}) for attribute \"{}\" "
+                               "with error:\n"
+                               "\"{}\".".format(dt, attr_nm, exc_))
+
             self._assign_attr_from_name(attr_nm, tmp)
             prev_ += sh
 

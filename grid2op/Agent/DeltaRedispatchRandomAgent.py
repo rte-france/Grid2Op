@@ -71,4 +71,5 @@ class DeltaRedispatchRandomAgent(BaseAgent):
             self.desired_actions.append(act2)
 
     def act(self, observation, reward, done=False):
-        return self.space_prng.choice(self.desired_actions)
+        act = self.space_prng.choice(self.desired_actions)
+        return act
