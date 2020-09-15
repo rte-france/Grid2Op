@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import grid2op
 import numpy as np
 #!/usr/bin/env python3
@@ -6,6 +14,7 @@ import grid2op
 import unittest
 import numpy as np
 import warnings
+from grid2op.Parameters import Parameters
 import pdb
 
 
@@ -19,9 +28,25 @@ class Issue140Tester(unittest.TestCase):
             # the environment is not downloaded, I skip this test
             self.skipTest("{} is not downloaded".format(env_name))
 
+        param = Parameters()
+        # test was originally designed with these values
+        param.init_from_dict({
+            "NO_OVERFLOW_DISCONNECTION":  False,
+            "NB_TIMESTEP_OVERFLOW_ALLOWED": 3,
+            "NB_TIMESTEP_COOLDOWN_SUB": 3,
+            "NB_TIMESTEP_COOLDOWN_LINE": 3,
+            "HARD_OVERFLOW_THRESHOLD": 200.,
+            "NB_TIMESTEP_RECONNECTION": 12,
+            "IGNORE_MIN_UP_DOWN_TIME": True,
+            "ALLOW_DISPATCH_GEN_SWITCH_OFF": True,
+            "ENV_DC": False,
+            "FORECAST_DC": False,
+            "MAX_SUB_CHANGED": 1,
+            "MAX_LINE_STATUS_CHANGED": 1
+        })
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make(env_name)
+            env = grid2op.make(env_name, param=param)
         ts_per_chronics = 2016
 
         seed = 725
@@ -61,6 +86,7 @@ class Issue140Tester(unittest.TestCase):
                                              "loads_id": [(27, 1)]}})
         obs, reward, done, info = env.step(act0)
         obs, reward, done, info = env.step(act1)
+        assert not done
 
         simulate_obs0, simulate_reward0, simulate_done0, simulate_info0 = obs.simulate(do_nothing)
         simulate_obs1, simulate_reward1, simulate_done1, simulate_info1 = obs.simulate(act2)

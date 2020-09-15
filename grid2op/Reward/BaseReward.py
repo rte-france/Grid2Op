@@ -62,7 +62,11 @@ class BaseReward(ABC):
             def __call__(action, env, has_error, is_done, is_illegal, is_ambiguous):
                 # this method is called at the end of 'env.step' to compute the reward
                 # in our case we just want to sum the flow on each powerline because... why not...
-                res = np.sum(env.get_obs().a_or)
+                if has_error:
+                    # see the "Notes" paragraph for more information
+                    res = self.reward_min
+                else:
+                    res = np.sum(env.get_obs().a_or)
                 return res
 
         # then you create your environment with it:
@@ -73,6 +77,29 @@ class BaseReward(ABC):
         obs, reward, done, info = env.step(env.action_space())
         assert np.sum(obs.a_or) == reward
         # the above should be true
+
+    Notes
+    ------
+    If the flag `has_error` is set to ``True`` this indicates there has been an error in the "env.step" function.
+    This might induce some undefined behaviour if using some method of the environment.
+
+    Please make sure to check whether or not this is the case when defining your reward.
+
+    This "new" behaviour has been introduce to "fix" the akward behavior spotted in
+    # https://github.com/rte-france/Grid2Op/issues/146
+
+    .. code-block:: python
+
+        def __call__(action, env, has_error, is_done, is_illegal, is_ambiguous):
+            if has_error:
+                # DO SOMETHING IN THIS CASE
+                res = self.reward_min
+            else:
+                # DO NOT USE `env.get_obs()` (nor any method of the environment `env.XXX` if the flag `has_error`
+                # is set to ``True``
+                # This might result in undefined behaviour
+                res = np.sum(env.get_obs().a_or)
+            return res
 
     """
     @abstractmethod

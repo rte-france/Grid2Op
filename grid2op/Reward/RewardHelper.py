@@ -64,7 +64,6 @@ class RewardHelper:
         Gives the reward that follows the execution of the :class:`grid2op.BaseAction.BaseAction` action in the
         :class:`grid2op.Environment.Environment` env;
 
-
         Parameters
         ----------
         action: :class:`grid2op.Action.Action`
@@ -94,9 +93,5 @@ class RewardHelper:
             The computed reward
 
         """
-        if not has_error:
-            res = self.template_reward(action, env, has_error, is_done, is_illegal, is_ambiguous)
-        else:
-            # no more data to consider, no powerflow has been run, reward is what it is
-            res = self.template_reward.reward_min
+        res = self.template_reward(action, env, has_error, is_done, is_illegal, is_ambiguous)
         return res

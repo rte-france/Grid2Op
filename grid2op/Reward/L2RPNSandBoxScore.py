@@ -32,6 +32,10 @@ class L2RPNSandBoxScore(BaseReward):
         self.alpha_redisph = dt_float(alpha_redisph)
 
     def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
+        if has_error:
+            # DO SOMETHING IN THIS CASE
+            return self.reward_min
+
         # compute the losses
         gen_p, *_ = env.backend.generators_info()
         load_p, *_ = env.backend.loads_info()
