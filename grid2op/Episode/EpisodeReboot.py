@@ -8,6 +8,9 @@
 
 import warnings
 import copy
+import json
+import os
+import re
 import numpy as np
 
 from datetime import timedelta
@@ -47,15 +50,16 @@ class _GridFromLog(GridValue):
         self.maintenance_time = np.zeros(self.episode_data.observations[0].line_status.shape[0], dtype=int) - 1
         self.maintenance_duration = np.zeros(self.episode_data.observations[0].line_status.shape[0], dtype=int)
         self.hazard_duration = np.zeros(self.episode_data.observations[0].line_status.shape[0], dtype=int)
+        self.curr_iter = 0
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend):
         pass
 
     def load_next(self):
-        obs = next(self.episode_data.observations)
-        self.current_datetime = obs.get_time_stamp()
         self.curr_iter += 1
+        obs = self.episode_data.observations[self.curr_iter]
+        self.current_datetime = obs.get_time_stamp()
 
         res = {}
         injs = {"prod_p": obs.prod_p,
@@ -94,6 +98,8 @@ class EpisodeReboot:
         self.episode_data = None
         self.env = None
         self.chronics_handler = None
+        self.current_time_step = None
+        self.action = None  # the last action played
 
     def load(self, backend, agent_path=None, name=None, data=None, env_kwargs={}):
         if data is None:
@@ -117,26 +123,41 @@ class EpisodeReboot:
             del env_kwargs["backend"]
         if "opponent_class" in env_kwargs:
             del env_kwargs["opponent_class"]
+        if "name" in env_kwargs:
+            del env_kwargs["name"]
+
+        nm = "unknonwn"
+        seed = None
+        with open(os.path.join(agent_path, name, "episode_meta.json")) as f:
+            dict_ = json.load(f)
+            nm = re.sub("Environment_", "", dict_["env_type"])
+            if dict_["env_seed"] is not None:
+                seed = int(dict_["env_seed"])
 
         self.env = Environment(**env_kwargs,
                                backend=backend,
                                chronics_handler=self.chronics_handler,
-                               opponent_class=OpponentFromLog)
+                               opponent_class=OpponentFromLog,
+                               name=nm)
+        if seed is not None:
+            self.env.seed(seed)
 
-    def go_to(self, time_step):
-        if time_step > len(self.episode_data.actions):
-            raise Grid2OpException("The stored episode counts only {} time steps. You cannot go "
-                                   "at time step {}"
-                                   "".format(len(self.episode_data.actions), time_step))
-        if time_step == 0:
-            return
+        tmp = self.env.reset()
 
-        # get the state just before
-        self.episode_data.go_to(time_step-2)
+        # always have the two bellow synch ! otherwise it messes up the "chronics"
+        # in the env, when calling "env.step"
+        self.current_time_step = 0
+        self.env.chronics_handler.real_data.curr_iter = 0
 
-        # now set the environment state to this value
-        obs = next(self.episode_data.observations)
-        act = next(self.episode_data.actions)
+        # first observation of the scenario
+        current_obs = self.episode_data.observations[self.current_time_step]
+        self._assign_state(current_obs)
+        return self.env.get_obs()
+
+    def _assign_state(self, obs):
+        """
+        works only if observation store the complete state of the grid...
+        """
         self.env._gen_activeprod_t[:] = obs.prod_p
         self.env._actual_dispatch[:] = obs.actual_dispatch
         self.env._target_dispatch[:] = obs.target_dispatch
@@ -153,11 +174,57 @@ class EpisodeReboot:
         # kept there (I might need to do a for loop)
         # to test that i might need to use a "change status" and see if powerlines are connected
         # to the right bus
-        self.env._backend_action += self.env.action_space({"set_bus": obs.topo_vect})
+        self.env._backend_action += self.env._helper_action_env({"set_bus": obs.topo_vect,
+                                                                 "injection": {"load_p": obs.load_p,
+                                                                               "load_q": obs.load_q,
+                                                                               "prod_p": obs.prod_p,
+                                                                               "prod_v": obs.prod_v,
+                                                                               }
+                                                           })
         self.env.backend.apply_action(self.env._backend_action)
+
         disc_lines, detailed_info, conv_ = self.env.backend.next_grid_state(env=self.env)
         self.env._backend_action.update_state(disc_lines)
         self.env._backend_action.reset()
-        obs2, reward2, done2, info2 = self.env.step(act)
-        import pdb
-        pdb.set_trace()
+
+    def next(self, update=False):
+        """
+        go to next time step
+        if "update" then i reuse the observation stored to go to this time step, otherwise not
+
+        do as if the environment will execute the action the stored agent did at the next time step
+        (compared to the time step the environment is currently at)
+        """
+        if self.current_time_step is None:
+            raise Grid2OpException("Impossible to go to the next time step with an episode not loaded. "
+                                   "Call \"EpisodeReboot.load\" before.")
+
+        if update:
+            # I put myself at the observation just before the next time step
+            obs = self.episode_data.observations[self.current_time_step]
+            self._assign_state(obs)
+
+        self.action = self.episode_data.actions[self.current_time_step]
+        self.env.chronics_handler.real_data.curr_iter = self.current_time_step
+        new_obs, new_reward, new_done, new_info = self.env.step(self.action)
+        self.current_time_step += 1
+        # the chronics handler handled the "self.env.chronics_handler.curr_iter += 1"
+        return new_obs, new_reward, new_done, new_info
+
+    def go_to(self, time_step):
+        """
+        goes to the step number "time_step".
+
+        So if you go_to timestep 10 then you retrieve the 10th observation and its as if the
+        agent did the 9th action (just before)
+        """
+        if time_step > len(self.episode_data.actions):
+            raise Grid2OpException("The stored episode counts only {} time steps. You cannot go "
+                                   "at time step {}"
+                                   "".format(len(self.episode_data.actions), time_step))
+
+        if time_step <= 0:
+            raise Grid2OpException("You cannot go to timestep <= 0, it does not make sense (as there is not \"-1th\""
+                                   "action). If you want to load the data, please use \"EpisodeReboot.load\".")
+        self.current_time_step = time_step - 1
+        return self.next(update=True)
