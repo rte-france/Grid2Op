@@ -156,7 +156,7 @@ class _ObsEnv(BaseEnv):
         self.backend = backend
         return res
 
-    def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect):
+    def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1):
         """
         Initialize a "forecasted grid state" based on the new injections, possibly new topological modifications etc.
 
@@ -180,13 +180,25 @@ class _ObsEnv(BaseEnv):
 
         """
         self._reset_to_orig_state()
+        self._reset_vect()
         self._topo_vect[:] = topo_vect
         # TODO update maintenance time, duration and cooldown accordingly (see all todos in `update_grid`)
 
         # TODO set the shunts here
         # update the action that set the grid to the real value
-        self._backend_action_set += self._helper_action_env({"set_line_status": np.array(self._line_status, dtype=dt_int),
-                                                             "set_bus": self._topo_vect,
+        still_in_maintenance, reconnected, first_ts_maintenance = self._update_vector_with_timestep(time_step)
+        if np.any(first_ts_maintenance):
+            set_status = np.array(self._line_status, dtype=dt_int)
+            set_status[first_ts_maintenance] = -1
+            topo_vect = np.array(self._topo_vect, dtype=dt_int)
+            topo_vect[self.line_or_pos_topo_vect[first_ts_maintenance]] = -1
+            topo_vect[self.line_ex_pos_topo_vect[first_ts_maintenance]] = -1
+        else:
+            set_status = self._line_status
+            topo_vect = self._topo_vect
+
+        self._backend_action_set += self._helper_action_env({"set_line_status": set_status,
+                                                             "set_bus": topo_vect,
                                                              "injection": {"prod_p": self._prod_p,
                                                                            "prod_v": self._prod_v,
                                                                            "load_p": self._load_p,
@@ -198,17 +210,38 @@ class _ObsEnv(BaseEnv):
         self.time_stamp = time_stamp
         self._timestep_overflow[:] = timestep_overflow
 
+    def _update_vector_with_timestep(self, time_step):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        update the value of the "time dependant" attributes
+        """
+        self._times_before_line_status_actionable[:] = np.maximum(self._times_before_line_status_actionable - time_step,
+                                                                  0.)
+        self._times_before_topology_actionable[:] = np.maximum(self._times_before_topology_actionable - time_step,
+                                                               0.)
+
+        still_in_maintenance = (self._duration_next_maintenance > time_step) & (self._time_next_maintenance == 0)
+        reconnected = (self._duration_next_maintenance < time_step) & (self._time_next_maintenance == 0)
+        first_ts_maintenance = self._time_next_maintenance == time_step
+
+        # powerline that are still in maintenance at this time step
+        self._time_next_maintenance[still_in_maintenance] = 0
+        self._duration_next_maintenance[still_in_maintenance] -= 1
+
+        # powerline that will be in maintenance at this time step
+        self._time_next_maintenance[first_ts_maintenance] = 0
+
+        # powerline that won't be in maintenance at this time step
+        self._time_next_maintenance[reconnected] = -1
+        self._duration_next_maintenance[reconnected] = 0
+        return still_in_maintenance, reconnected, first_ts_maintenance
+
     def reset(self):
         super().reset()
         self.current_obs = self.current_obs_init
 
-    def _reset_to_orig_state(self):
-        """
-        reset this "environment" to the state it should be
-        """
-        self.reset()  # reset the "BaseEnv"
-        # self.time_stamp = None  # TODO this should not throw...
-        self.backend.set_thermal_limit(self._thermal_limit_a)
+    def _reset_vect(self):
         self._gen_activeprod_t[:] = self.gen_activeprod_t_init
         self._gen_activeprod_t_redisp[:] = self.gen_activeprod_t_redisp_init
         self._times_before_line_status_actionable[:] = self.times_before_line_status_actionable_init
@@ -218,6 +251,12 @@ class _ObsEnv(BaseEnv):
         self._target_dispatch[:] = self.target_dispatch_init
         self._actual_dispatch[:] = self.actual_dispatch_init
 
+    def _reset_to_orig_state(self):
+        """
+        reset this "environment" to the state it should be
+        """
+        self.reset()  # reset the "BaseEnv"
+        self.backend.set_thermal_limit(self._thermal_limit_a)
         self._backend_action_set.all_changed()
         self._backend_action = copy.deepcopy(self._backend_action_set)
         self._oppSpace._set_state(self.opp_space_state, self.opp_state)
@@ -261,7 +300,6 @@ class _ObsEnv(BaseEnv):
 
         """
         self._reset_to_orig_state()
-        # TODO set back the "change" to True
         obs, reward, done, info = self.step(action)
         return obs, reward, done, info
 

@@ -869,7 +869,8 @@ class BaseObservation(GridObjects):
         self._obs_env.init(inj_action,
                            time_stamp=timestamp,
                            timestep_overflow=self.timestep_overflow,
-                           topo_vect=self.topo_vect)
+                           topo_vect=self.topo_vect,
+                           time_step=time_step)
 
         sim_obs, *rest = self._obs_env.simulate(action)
         sim_obs = copy.deepcopy(sim_obs)
