@@ -550,6 +550,7 @@ class EpisodeData:
 
             if "rewards" in info:
                 self.other_rewards.append({k: self._convert_to_float(v) for k, v in info["rewards"].items()})
+            # TODO add is_illegal and is_ambiguous flags!
 
     def _convert_to_float(self, el):
         try:

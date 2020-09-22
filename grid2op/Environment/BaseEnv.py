@@ -1438,7 +1438,21 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # skip the first 150 steps of the chronics
             env.fast_forward_chronics(150)
-            obs = env.get_obs()
+            done = env.is_done
+            if not done:
+                obs = env.get_obs()
+                # do something
+            else:
+                # there was a "game over"
+                # you need to reset the env (which will "cancel" the fast_forward)
+                pass
+                # do something else
+
+        Notes
+        -----
+        This method can set the state of the environment in a 'game over' state (`done=True`) for example if the
+        chronics last `xxx` time steps and you ask to "fast foward" more than `xxx` steps. This is why we advise to
+        check the state of the environment after the call to this method if you use it (see the "Examples" paragaph)
 
         """
         # Go to the timestep requested minus one

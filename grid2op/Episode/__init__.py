@@ -1,6 +1,5 @@
 __all__ = [
-    "EpisodeData",
-    "EpisodeReboot"
+    "EpisodeData"
 ]
 
 from grid2op.Episode.EpisodeData import EpisodeData

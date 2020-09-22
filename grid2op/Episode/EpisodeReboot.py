@@ -15,6 +15,7 @@ import numpy as np
 
 from datetime import timedelta
 
+from grid2op.dtypes import dt_float, dt_int, dt_bool
 from grid2op.Exceptions import Grid2OpException
 from grid2op.Chronics import GridValue, ChronicsHandler
 from grid2op.Opponent import BaseOpponent
@@ -25,7 +26,7 @@ from grid2op.Episode.EpisodeData import EpisodeData
 
 class _GridFromLog(GridValue):
     """
-    /!\ Internal, do not use /!\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     """
     def __init__(self, episode_data,
@@ -62,9 +63,9 @@ class _GridFromLog(GridValue):
         self.current_datetime = obs.get_time_stamp()
 
         res = {}
-        injs = {"prod_p": obs.prod_p,
-                "load_p": obs.load_p,
-                "load_q": obs.load_q,
+        injs = {"prod_p": obs.prod_p.astype(dt_float),
+                "load_p": obs.load_p.astype(dt_float),
+                "load_q": obs.load_q.astype(dt_float),
                 }
         res["injection"] = injs
 
@@ -90,16 +91,30 @@ class _GridFromLog(GridValue):
 
 
 class OpponentFromLog(BaseOpponent):
+    """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    """
     pass
 
 
 class EpisodeReboot:
+    """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        This is a first implementation to serve as "what can be done".
+
+        It is a beta feature
+
+    """
     def __init__(self):
         self.episode_data = None
         self.env = None
         self.chronics_handler = None
         self.current_time_step = None
         self.action = None  # the last action played
+
+        warnings.warn("EpisodeReboot is a beta feature, it will likely be renamed, methods will be adapted "
+                      "and it has probably some bugs. Use with care!")
 
     def load(self, backend, agent_path=None, name=None, data=None, env_kwargs={}):
         if data is None:
@@ -158,33 +173,33 @@ class EpisodeReboot:
         """
         works only if observation store the complete state of the grid...
         """
-        self.env._gen_activeprod_t[:] = obs.prod_p
-        self.env._actual_dispatch[:] = obs.actual_dispatch
-        self.env._target_dispatch[:] = obs.target_dispatch
-        self.env._gen_activeprod_t_redisp[:] = obs.prod_p + obs.actual_dispatch
+        self.env._gen_activeprod_t[:] = obs.prod_p.astype(dt_float)
+        self.env._actual_dispatch[:] = obs.actual_dispatch.astype(dt_float)
+        self.env._target_dispatch[:] = obs.target_dispatch.astype(dt_float)
+        self.env._gen_activeprod_t_redisp[:] = obs.prod_p.astype(dt_float) + obs.actual_dispatch.astype(dt_float)
         self.env.current_obs = obs
-        self.env._timestep_overflow[:] = obs.timestep_overflow
-        self.env._times_before_line_status_actionable[:] = obs.time_before_cooldown_line
-        self.env._times_before_topology_actionable[:] = obs.time_before_cooldown_sub
+        self.env._timestep_overflow[:] = obs.timestep_overflow.astype(dt_int)
+        self.env._times_before_line_status_actionable[:] = obs.time_before_cooldown_line.astype(dt_int)
+        self.env._times_before_topology_actionable[:] = obs.time_before_cooldown_sub.astype(dt_int)
 
-        self.env._duration_next_maintenance[:] = obs.duration_next_maintenance
-        self.env._time_next_maintenance[:] = obs.time_next_maintenance
+        self.env._duration_next_maintenance[:] = obs.duration_next_maintenance.astype(dt_int)
+        self.env._time_next_maintenance[:] = obs.time_next_maintenance.astype(dt_int)
 
         # TODO check that the "stored" "last bus for when the powerline were connected" are
         # kept there (I might need to do a for loop)
         # to test that i might need to use a "change status" and see if powerlines are connected
         # to the right bus
-        self.env._backend_action += self.env._helper_action_env({"set_bus": obs.topo_vect,
-                                                                 "injection": {"load_p": obs.load_p,
-                                                                               "load_q": obs.load_q,
-                                                                               "prod_p": obs.prod_p,
-                                                                               "prod_v": obs.prod_v,
+        self.env._backend_action += self.env._helper_action_env({"set_bus": obs.topo_vect.astype(dt_int),
+                                                                 "injection": {"load_p": obs.load_p.astype(dt_float),
+                                                                               "load_q": obs.load_q.astype(dt_float),
+                                                                               "prod_p": obs.prod_p.astype(dt_float),
+                                                                               "prod_v": obs.prod_v.astype(dt_float),
                                                                                }
-                                                           })
+                                                                 })
         self.env.backend.apply_action(self.env._backend_action)
-
         disc_lines, detailed_info, conv_ = self.env.backend.next_grid_state(env=self.env)
-        self.env._backend_action.update_state(disc_lines)
+        if conv_ is None:
+            self.env._backend_action.update_state(disc_lines)
         self.env._backend_action.reset()
 
     def next(self, update=False):
@@ -202,11 +217,13 @@ class EpisodeReboot:
         if update:
             # I put myself at the observation just before the next time step
             obs = self.episode_data.observations[self.current_time_step]
+            self.env._backend_action = self.env._backend_action_class()
             self._assign_state(obs)
 
         self.action = self.episode_data.actions[self.current_time_step]
         self.env.chronics_handler.real_data.curr_iter = self.current_time_step
         new_obs, new_reward, new_done, new_info = self.env.step(self.action)
+
         self.current_time_step += 1
         # the chronics handler handled the "self.env.chronics_handler.curr_iter += 1"
         return new_obs, new_reward, new_done, new_info
