@@ -126,6 +126,8 @@ class _ObsEnv(BaseEnv):
 
     def _update_actions(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Retrieve the actions to perform the update of the underlying powergrid represented by
          the :class:`grid2op.Backend`in the next time step.
         A call to this function will also read the next state of :attr:`chronics_handler`, so it must be called only
@@ -142,6 +144,8 @@ class _ObsEnv(BaseEnv):
 
     def copy(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Implement the deep copy of this instance.
 
         Returns
@@ -158,6 +162,8 @@ class _ObsEnv(BaseEnv):
 
     def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Initialize a "forecasted grid state" based on the new injections, possibly new topological modifications etc.
 
         Parameters
@@ -253,6 +259,8 @@ class _ObsEnv(BaseEnv):
 
     def _reset_to_orig_state(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         reset this "environment" to the state it should be
         """
         self.reset()  # reset the "BaseEnv"
@@ -263,6 +271,9 @@ class _ObsEnv(BaseEnv):
 
     def simulate(self, action):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Prefer using `obs.simulate(action)`
+
         This function is the core method of the :class:`ObsEnv`. It allows to perform a simulation of what would
         give and action if it were to be implemented on the "forecasted" powergrid.
 
@@ -305,6 +316,8 @@ class _ObsEnv(BaseEnv):
 
     def get_obs(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Method to retrieve the "forecasted grid" as a valid observation object.
 
         Returns
@@ -318,16 +331,14 @@ class _ObsEnv(BaseEnv):
 
     def update_grid(self, env):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Update this "emulated" environment with the real powergrid.
 
         Parameters
         ----------
-        env: :class:`grid2op.Environement.BaseEnv`
-            A reference to the environement
-
-        Returns
-        -------
-
+        env: :class:`grid2op.Environment.BaseEnv`
+            A reference to the environment
         """
         real_backend = env.backend
         self._reward_helper = env._reward_helper
