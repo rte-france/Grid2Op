@@ -12,6 +12,10 @@ from grid2op.Agent.BaseAgent import BaseAgent
 class DoNothingAgent(BaseAgent):
     """
     This is the most basic BaseAgent. It is purely passive, and does absolutely nothing.
+
+    As opposed to most reinforcement learning environments, in grid2op, doing nothing is often
+    the best solution.
+
     """
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
@@ -21,10 +25,9 @@ class DoNothingAgent(BaseAgent):
         As better explained in the document of :func:`grid2op.BaseAction.update` or
         :func:`grid2op.BaseAction.ActionSpace.__call__`.
 
-        The preferred way to make an object of type action is to call :func:`grid2op.BaseAction.ActionSpace.__call__` with
-        the
-        dictionnary representing the action. In this case, the action is "do nothing" and it is represented by the
-        empty dictionnary.
+        The preferred way to make an object of type action is to call :func:`grid2op.BaseAction.ActionSpace.__call__`
+        with the dictionary representing the action. In this case, the action is "do nothing" and it is represented by
+        the empty dictionary.
 
         Parameters
         ----------

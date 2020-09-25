@@ -5,6 +5,16 @@ Backend
 
 Objectives
 -----------
+
+.. warning:: Backends are internal to grid2op. You should not have to recode any backend if you are "simply"
+    using grid2op, for example to develop new controller.
+
+    Backend is an abstraction that represents the physical system (the powergrid). In theory every powerflow can be
+    used as a backend. For now we only provide a Backend that uses  `Pandapower <http://www.pandapower.org/>`_ and
+    a port in c++ to a subset of pandapower called `LightSim2Grid <https://github.com/BDonnot/lightsim2grid>`_ .
+
+    Both can serve as example if you want to code a new backend.
+
 This Module defines the template of a backend class.
 Backend instances are responsible to translate action (performed either by an BaseAgent or by the Environment) into
 comprehensive powergrid modifications.
@@ -33,7 +43,6 @@ To be a valid backend, some properties are mandatory:
 The order of the values returned are always the same and determined when the backend is loaded by its attribute
 '\*_names'. For example, when the ith element of the results of a call to :func:`Backend.get_line_flow` is the
 flow on the powerline with name `lines_names[i]`.
-
 
 Detailed Documentation by class
 -------------------------------

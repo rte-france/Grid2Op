@@ -16,13 +16,25 @@ import numpy as np
 import pandas as pd
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Exceptions import *
+from grid2op.Exceptions import EnvError, DivergingPowerFlow, IncorrectNumberOfElements, IncorrectNumberOfLoads
+from grid2op.Exceptions import IncorrectNumberOfGenerators, BackendError, IncorrectNumberOfLines
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction
 
 
 class Backend(GridObjects, ABC):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Unless if you want to code yourself a backend this is not recommend to alter it
+        or use it directly in any way.
+
+        If you want to code a backend, an example is given in :class:`PandaPowerBackend` (
+        or in the repository lightsim2grid on github)
+
+    This documentation is present mainly for exhaustivity. It is not recommended to manipulate a Backend
+    directly. Prefer using an :class:`grid2op.Environment.Environment`
+
     This is a base class for each :class:`Backend` object.
     It allows to run power flow smoothly, and abstract the method of computing cascading failures.
     This class allow the user or the agent to interact with an power flow calculator, while relying on dedicated
@@ -51,7 +63,6 @@ class Backend(GridObjects, ABC):
     And, if the flag :attr:Backend.shunts_data_available` is set to ``True`` the method :func:`Backend.shunt_info`
     should also be implemented.
 
-
     In order to be valid and carry out some computations, you should call :func:`Backend.load_grid` and later
     :func:`grid2op.Spaces.GridObjects.assert_grid_correct`. It is also more than recommended to call
     :func:`Backend.assert_grid_correct_after_powerflow` after the first powerflow. This is all carried ou in the
@@ -65,6 +76,7 @@ class Backend(GridObjects, ABC):
     thermal_limit_a: :class:`numpy.array`, dtype:float
         Thermal limit of the powerline in amps for each powerline. Thie thermal limit is relevant on only one
         side of the powerline: the same side returned by :func:`Backend.get_line_overflow`
+
     """
     env_name = "unknown"
 
@@ -91,6 +103,10 @@ class Backend(GridObjects, ABC):
 
     def assert_grid_correct_after_powerflow(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done as it should be by the Environment
+
         This method is called by the environment. It ensure that the backend remains consistent even after a powerflow
         has be run with :func:`Backend.runpf` method.
 
@@ -154,6 +170,10 @@ class Backend(GridObjects, ABC):
 
     def reset(self, grid_path, grid_filename=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done in the `env.reset()` method and should be performed otherwise.
+
         Reload the power grid.
         For backwards compatibility this method calls `Backend.load_grid`.
         But it is encouraged to overload it in the subclasses.
@@ -163,6 +183,10 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def load_grid(self, path, filename=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is called once at the loading of the powergrid.
+
         Load the powergrid.
         It should first define self._grid.
 
@@ -185,6 +209,10 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def close(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is called by `env.close()` do not attempt to use it otherwise.
+
         This function is called when the environment is over.
         After calling this function, the backend might not behave properly, and in any case should not be used before
         another call to :func:`Backend.load_grid` is performed
@@ -197,6 +225,13 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def apply_action(self, action):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Don't attempt to apply an action directly to a backend. This function will modify
+            the powergrid state given the action in input.
+
+            This is one of the core function if you want to code a backend.
+
         Modify the powergrid with the action given by an agent or by the envir.
         For the L2RPN project, this action is mainly for topology if it has been sent by the agent.
         Or it can also affect production and loads, if the action is made by the environment.
@@ -205,7 +240,7 @@ class Backend(GridObjects, ABC):
         the implementation of this method.
 
         :param action: the action to be implemented on the powergrid.
-        :type action: :class:`grid2op.Action.Action`
+        :type action: :class:`grid2op.Action._BackendAction._BackendAction`
 
         :return: ``None``
         """
@@ -214,6 +249,15 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def runpf(self, is_dc=False):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is called by :func:`Backend.next_grid_state` (that computes some kind of
+            cascading failures).
+
+            This is one of the core function if you want to code a backend. It will carry out
+            a powerflow.
+
+
         Run a power flow on the underlying _grid.
         Powerflow can be AC (is_dc = False) or DC (is_dc = True)
 
@@ -229,6 +273,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def copy(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Performs a deep copy of the backend.
 
         :return: An instance of Backend equal to :attr:`.self`, but deep copied.
@@ -238,6 +284,8 @@ class Backend(GridObjects, ABC):
 
     def save_file(self, full_path):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Save the current power _grid in a human readable format supported by the backend.
         The format is not modified by this wrapper.
 
@@ -253,6 +301,10 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def get_line_status(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.line_status` instead
+
         Return the status of each lines (connected : True / disconnected: False )
 
         It is assume that the order of the powerline is fixed: if the status of powerline "l1" is put at the 42nd element
@@ -271,6 +323,11 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def get_line_flow(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.a_or` or
+            :attr:`grid2op.Observation.BaseObservation.a_ex` for example
+
         Return the current flow in each lines of the powergrid. Only one value per powerline is returned.
 
         If the AC mod is used, this shall return the current flow on the end of the powerline where there is a protection.
@@ -292,6 +349,10 @@ class Backend(GridObjects, ABC):
 
     def set_thermal_limit(self, limits):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            You can set the thermal limit directly in the environment.
+
         This function is used as a convenience function to set the thermal limits :attr:`Backend.thermal_limit_a`
         in amperes.
 
@@ -312,11 +373,6 @@ class Backend(GridObjects, ABC):
               - as key the powerline names (not all names are mandatory, in that case only the powerlines with the name
                 in this dictionnary will be modified)
               - as value the new thermal limit (should be a strictly positive float).
-
-
-        Returns
-        -------
-        ``None``
 
         """
         if isinstance(limits, np.ndarray):
@@ -341,7 +397,13 @@ class Backend(GridObjects, ABC):
 
     def update_thermal_limit(self, env):
         """
-        Upade the new thermal limit in case of DLR for example.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done in a call to `env.step` in case of DLR for example.
+
+            If you don't want this feature, do not implement it.
+
+        Update the new thermal limit in case of DLR for example.
 
         By default it does nothing.
 
@@ -352,21 +414,22 @@ class Backend(GridObjects, ABC):
         weather condition are accessible by the backend. Our methodology doesn't make any assumption on the method
         used to get these thermal limits.
 
-
         Parameters
         ----------
         env: :class:`grid2op.Environment.Environment`
             The environment used to compute the thermal limit
 
-        Returns
-        -------
-        ``None``
         """
 
         pass
 
     def get_thermal_limit(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Retrieve the thermal limit directly from the environment instead (with a call
+            to :func:`grid2op.Environment.BaseEnc.get_thermal_limit` for example)
+
         Gives the thermal limit (in amps) for each powerline of the _grid. Only one value per powerline is returned.
 
         It is assumed that both :func:`Backend.get_line_flow` and *_get_thermal_limit* gives the value of the same
@@ -384,6 +447,10 @@ class Backend(GridObjects, ABC):
 
     def get_relative_flow(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.rho`
+
         This method return the relative flows, *eg.* the current flow divided by the thermal limits. It has a pretty
         straightforward default implementation, but it can be overriden for example for transformer if the limits are
         on the lower voltage side or on the upper voltage level.
@@ -400,6 +467,15 @@ class Backend(GridObjects, ABC):
 
     def get_line_overflow(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.rho` and
+            check whether or not the flow is higher tha 1. or have a look at
+            :attr:`grid2op.Observation.BaseObservation.timestep_overflow` and check the
+            non zero index.
+
+        Prefer using the attribute of the :class:`grid2op.Observation.BaseObservation`
+
         faster accessor to the line that are on overflow.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
@@ -415,6 +491,10 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def get_topo_vect(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
+
         Get the topology vector from the :attr:`Backend._grid`.
         The topology vector defines, for each object, on which bus it is connected.
         It returns -1 if the object is not connected.
@@ -442,38 +522,59 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def generators_info(self):
         """
-        This method is used to retrieve informations about the generators.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
+            :attr:`grid2op.Observation.BaseObservation.prod_q` and
+            :attr:`grid2op.Observation.BaseObservation.prod_v` instead.
+
+        This method is used to retrieve information about the generators (active, reactive production
+        and voltage magnitude of the bus to which it is connected).
 
         Returns
         -------
         prod_p ``numpy.ndarray``
-            The active power production for each generator
+            The active power production for each generator (in MW)
         prod_q ``numpy.ndarray``
-            The reactive power production for each generator
+            The reactive power production for each generator (in MVAr)
         prod_v ``numpy.ndarray``
-            The voltage magnitude of the bus to which each generators is connected
+            The voltage magnitude of the bus to which each generators is connected (in kV)
         """
         pass
 
     @abstractmethod
     def loads_info(self):
         """
-        This method is used to retrieve informations about the loads.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.load_p`,
+            :attr:`grid2op.Observation.BaseObservation.load_q` and
+            :attr:`grid2op.Observation.BaseObservation.load_v` instead.
+
+        This method is used to retrieve information about the loads (active, reactive consumption
+        and voltage magnitude of the bus to which it is connected).
 
         Returns
         -------
         load_p ``numpy.ndarray``
-            The active power consumption for each load
+            The active power consumption for each load (in MW)
         load_q ``numpy.ndarray``
-            The reactive power consumption for each load
+            The reactive power consumption for each load (in MVAr)
         load_v ``numpy.ndarray``
-            The voltage magnitude of the bus to which each load is connected
+            The voltage magnitude of the bus to which each load is connected (in kV)
         """
         pass
 
     @abstractmethod
     def lines_or_info(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.p_or`,
+            :attr:`grid2op.Observation.BaseObservation.q_or`,
+            :attr:`grid2op.Observation.BaseObservation.a_or` and,
+            :attr:`grid2op.Observation.BaseObservation.v_or` instead
+
         It returns the information extracted from the _grid at the origin end of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
@@ -482,19 +583,26 @@ class Backend(GridObjects, ABC):
         Returns
         -------
         p_or ``numpy.ndarray``
-            the origin active power flowing on the lines
+            the origin active power flowing on the lines (in MW)
         q_or ``numpy.ndarray``
-            the origin reactive power flowing on the lines
+            the origin reactive power flowing on the lines (in MVAr)
         v_or ``numpy.ndarray``
-            the voltage magnitude at the origin of each powerlines
+            the voltage magnitude at the origin of each powerlines (in kV)
         a_or ``numpy.ndarray``
-            the current flow at the origin of each powerlines
+            the current flow at the origin of each powerlines (in A)
         """
         pass
 
     @abstractmethod
     def lines_ex_info(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.p_ex`,
+            :attr:`grid2op.Observation.BaseObservation.q_ex`,
+            :attr:`grid2op.Observation.BaseObservation.a_ex` and,
+            :attr:`grid2op.Observation.BaseObservation.v_ex` instead
+
         It returns the information extracted from the _grid at the extremity end of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
@@ -503,18 +611,20 @@ class Backend(GridObjects, ABC):
         Returns
         -------
         p_ex ``numpy.ndarray``
-            the extremity active power flowing on the lines
+            the extremity active power flowing on the lines (in MW)
         q_ex ``numpy.ndarray``
-            the extremity reactive power flowing on the lines
+            the extremity reactive power flowing on the lines (in MVAr)
         v_ex ``numpy.ndarray``
-            the voltage magnitude at the extremity of each powerlines
+            the voltage magnitude at the extremity of each powerlines (in kV)
         a_ex ``numpy.ndarray``
-            the current flow at the extremity of each powerlines
+            the current flow at the extremity of each powerlines (in A)
         """
         pass
 
     def shunt_info(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         This method is optional. If implemented, it should return the proper information about the shunt in the
         powergrid.
 
@@ -541,6 +651,8 @@ class Backend(GridObjects, ABC):
 
     def sub_from_bus_id(self, bus_id):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Optionnal method that allows to get the substation if the bus id is provided.
 
         :param bus_id:
@@ -551,30 +663,41 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def _disconnect_line(self, id_):
         """
-        Disconnect the line of id "id" in the backend.
-        In this scenario, the *id* of a powerline is its position (counted starting from O) in the vector returned by
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using the action space to disconnect a powerline.
+
+
+        Disconnect the line of id "id\\_ " in the backend.
+        In this scenario, the *id\\_* of a powerline is its position (counted starting from O) in the vector returned by
         :func:`Backend.get_line_status` or :func:`Backend.get_line_flow` for example.
         For example, if the current flow on powerline "l1" is the 42nd element of the vector returned by :func:`Backend.get_line_flow`
         then :func:`Backend._disconnect_line(42)` will disconnect this same powerline "l1".
 
         For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
 
-        :param id: id of the powerline to be disconnected
-        :type id: int
+        :param id_: id of the powerline to be disconnected
+        :type id_: int
 
-        :return: ``None``
         """
         pass
 
     def _runpf_with_diverging_exception(self, is_dc):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+
         Computes a power flow on the _grid and raises an exception in case of diverging power flow, or any other
         exception that can be thrown by the backend.
 
         :param is_dc: mode of the power flow. If *is_dc* is True, then the powerlow is run using the DC approximation otherwise it uses the AC powerflow.
         :type is_dc: bool
 
-        :return: ``None``
+        Raises
+        ------
+        exc_: :class:`grid2op.Exceptions.DivergingPowerFlow`
+            In case of divergence of the powerflow
+
         """
         conv = False
         try:
@@ -590,7 +713,11 @@ class Backend(GridObjects, ABC):
 
     def next_grid_state(self, env, is_dc=False):
         """
-        This method is called by the environment to compute the next _grid states.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is called by `env.step`
+
+        This method is called by the environment to compute the next\\_grid\\_states.
         It allows to compute the powerline and approximate the "cascading failures" if there are some overflows.
 
         Attributes
@@ -616,12 +743,12 @@ class Backend(GridObjects, ABC):
         infos = []
         disconnected_during_cf = np.full(self.n_line, fill_value=False, dtype=dt_bool)
         conv_ = self._runpf_with_diverging_exception(is_dc)
-        if env.no_overflow_disconnection or conv_ is not None:
+        if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
         # the environment disconnect some
 
-        init_time_step_overflow = copy.deepcopy(env.timestep_overflow)
+        init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
         while True:
             # simulate the cascading failure
             lines_flows = self.get_line_flow()
@@ -629,11 +756,11 @@ class Backend(GridObjects, ABC):
             lines_status = self.get_line_status()
 
             # a) disconnect lines on hard overflow
-            to_disc = lines_flows > env.hard_overflow_threshold * thermal_limits
+            to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
 
             # b) deals with soft overflow
             init_time_step_overflow[ (lines_flows >= thermal_limits) & (lines_status)] += 1
-            to_disc[init_time_step_overflow > env.nb_timestep_overflow_allowed] = True
+            to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
 
             # disconnect the current power lines
             if np.sum(to_disc[lines_status]) == 0:
@@ -654,6 +781,8 @@ class Backend(GridObjects, ABC):
 
     def check_kirchoff(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Check that the powergrid respects kirchhoff's law.
         This function can be called at any moment to make sure a powergrid is in a consistent state, or to perform
         some tests for example.
@@ -665,15 +794,15 @@ class Backend(GridObjects, ABC):
         Returns
         -------
         p_subs ``numpy.ndarray``
-            sum of injected active power at each substations
+            sum of injected active power at each substations (MW)
         q_subs ``numpy.ndarray``
-            sum of injected reactive power at each substations
+            sum of injected reactive power at each substations (MVAr)
         p_bus ``numpy.ndarray``
             sum of injected active power at each buses. It is given in form of a matrix, with number of substations as
-            row, and number of columns equal to the maximum number of buses for a substation
+            row, and number of columns equal to the maximum number of buses for a substation (MW)
         q_bus ``numpy.ndarray``
             sum of injected reactive power at each buses. It is given in form of a matrix, with number of substations as
-            row, and number of columns equal to the maximum number of buses for a substation
+            row, and number of columns equal to the maximum number of buses for a substation (MVAr)
         """
 
         p_or, q_or, v_or, *_ = self.lines_or_info()
@@ -741,16 +870,17 @@ class Backend(GridObjects, ABC):
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):
         """
-        This method will load everything needed for the redispatching and unit commitment problem.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
+        This method will load everything needed for the redispatching and unit commitment problem.
 
         Parameters
         ----------
-        path
-        name
+        path: ``str``
+            Location of the datafram containing the redispatching data.
 
-        Returns
-        -------
+        name: ``str``
+            Name of the dataframe containing the redispatching data
 
         """
         # for redispatching
@@ -850,9 +980,4 @@ class Backend(GridObjects, ABC):
         set_me = complete_action_class(self)
         set_me.update({"set_line_status": line_status,
                        "set_bus": topo_vect})
-
-        #injs = {"prod_p": prod_p, "prod_v": prod_v,
-        #              "load_p": load_p, "load_q": load_q}}
-
-        # set_me.update({"injection": injs})
         return set_me

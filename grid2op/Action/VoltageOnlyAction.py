@@ -14,7 +14,11 @@ from grid2op.Action.BaseAction import BaseAction
 
 class VoltageOnlyAction(BaseAction):
     """
-    This class is here to serve as a base class for the controler of the voltages (if any). It allows to perform
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This is the main class used by the voltage controller.
+
+    This class is here to serve as a base class for the controller of the voltages (if any). It allows to perform
     only modification of the generator voltage set point.
 
     Only action of type "injection" are supported, and only setting "prod_v" keyword.
@@ -45,6 +49,8 @@ class VoltageOnlyAction(BaseAction):
 
     def _check_dict(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Check that nothing, beside prod_v has been updated with this action.
 
         Returns
@@ -59,6 +65,8 @@ class VoltageOnlyAction(BaseAction):
 
     def update(self, dict_):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         As its original implementation, this method allows modifying the way a dictionary can be mapped to a valid
         :class:`BaseAction`.
 

@@ -19,10 +19,10 @@ class ToVect(Converter):
 
     - `encoded_act` are numpy ndarray
     - `transformed_obs` are numpy ndarray
-    (read more about these concepts by looking at the documentation of :class:`grid2op.Converter.Converters`)
+      (read more about these concepts by looking at the documentation of :class:`grid2op.Converter.Converters`)
 
     It is convertible to a gym representation (like the original action space) in the form of a spaces.Box
-    representing a coutinuous action space (even though most component are probably discrete).
+    representing a continuous action space (even though most component are probably discrete).
     Note that if converted to a gym space, it is unlikely the method "sample" will yield to valid results.
     Most of the time it should generate Ambiguous action that will not be handled by grid2op.
 
@@ -70,7 +70,7 @@ class ToVect(Converter):
         Parameters
         ----------
         encoded_act: ``numpy.ndarray``
-            The action, representated as a vector
+            The action, represented as a vector
 
         Returns
         -------

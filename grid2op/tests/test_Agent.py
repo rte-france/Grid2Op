@@ -91,7 +91,7 @@ class TestAgent(HelperTests):
         return i, cum_reward, all_acts
 
     def test_0_donothing(self):
-        agent = DoNothingAgent(self.env.helper_action_player)
+        agent = DoNothingAgent(self.env.action_space)
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent)
@@ -100,7 +100,7 @@ class TestAgent(HelperTests):
         assert np.abs(cum_reward - expected_reward, dtype=dt_float) <= self.tol_one, "The reward has not been properly computed"
 
     def test_1_powerlineswitch(self):
-        agent = PowerLineSwitch(self.env.helper_action_player)
+        agent = PowerLineSwitch(self.env.action_space)
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent)
@@ -110,7 +110,7 @@ class TestAgent(HelperTests):
         assert np.abs(cum_reward - expected_reward) <= self.tol_one, "The reward has not been properly computed"
 
     def test_2_busswitch(self):
-        agent = TopologyGreedy(self.env.helper_action_player)
+        agent = TopologyGreedy(self.env.action_space)
         with warnings.catch_warnings():
             warnings.filterwarnings("error")
             i, cum_reward, all_acts = self._aux_test_agent(agent, i_max=10)

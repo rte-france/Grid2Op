@@ -44,8 +44,11 @@ _IS_WINDOWS = sys.platform.startswith('win')
 # TODO use gym logger if specified by the user.
 # TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
+
 class DoNothingLog:
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     A class to emulate the behaviour of a logger, but that does absolutely nothing.
     """
     INFO = 2
@@ -70,6 +73,8 @@ class DoNothingLog:
 
 class ConsoleLog(DoNothingLog):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     A class to emulate the behaviour of a logger, but that prints on the console
     """
 
@@ -107,10 +112,42 @@ class ConsoleLog(DoNothingLog):
 
 class Runner(object):
     """
-    A runner is a utilitary tool that allows to create environment, and run simulations more easily.
-    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.BaseAgent`, rather
-    than to train it. Of course, it is possible to adapt it for a specific training mechanisms. Examples of such
-    will be made available in the future.
+    A runner is a utilitary tool that allows to run simulations more easily. It is a more convenient way to execute the following loops:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent # for example...
+        from grid2op.Runner import Runner
+
+        env = grid2op.make()
+
+        ###############
+        # the gym loops
+        nb_episode = 5
+        for i in range(nb_episode):
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                act = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(act)
+
+        ###############
+        # equivalent with use of a Runner
+        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+        res = runner.run(nb_episode=nn_episode)
+
+
+    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.BaseAgent`,
+    rather than to train it.
+
+    It has also the good property to be able to save the results of a experiment in a standardized
+    manner described in the :class:`grid2op.Episode.EpisodeData`.
+
+    **NB** we do not recommend to create a runner from scratch by providing all the arguments. We strongly
+    encourage you to use the :func:`grid2op.Environment.Environment.get_params_for_runner` for
+    creating a runner.
 
     Attributes
     ----------
@@ -222,6 +259,11 @@ class Runner(object):
 
     grid_layout: ``dict``, optional
         The layout of the grid (position of each substation) usefull if you need to plot some things for example.
+
+    Examples
+    --------
+    Different examples are showed in the description of the main method :func:`Runner.run`
+
     """
 
     def __init__(self,
@@ -507,7 +549,6 @@ class Runner(object):
                             legalActClass=self.legalActClass,
                             voltagecontrolerClass=self.voltageControlerClass,
                             other_rewards=self._other_rewards,
-
                             opponent_action_class=self.opponent_action_class,
                             opponent_class=self.opponent_class,
                             opponent_init_budget=self.opponent_init_budget,
@@ -516,9 +557,7 @@ class Runner(object):
                             opponent_attack_duration=self.opponent_attack_duration,
                             opponent_attack_cooldown=self.opponent_attack_cooldown,
                             kwargs_opponent=self.opponent_kwargs,
-
                             with_forecast=self.with_forecast,
-
                             _raw_backend_class=self.backendClass
                             )
 
@@ -529,7 +568,7 @@ class Runner(object):
             res.attach_layout(self.grid_layout)
 
         if self._useclass:
-            agent = self.agentClass(res.helper_action_player)
+            agent = self.agentClass(res.action_space)
         else:
             if self.__can_copy_agent:
                 agent = copy.copy(self.agent)
@@ -539,25 +578,19 @@ class Runner(object):
 
     def init_env(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Function used to initialized the environment and the agent.
         It is called by :func:`Runner.reset`.
-
-        Returns
-        -------
-        ``None``
-
         """
         self.env, self.agent = self._new_env(self.chronics_handler, self.backend, self.parameters)
 
     def reset(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Used to reset an environment. This method is called at the beginning of each new episode.
         If the environment is not initialized, then it initializes it with :func:`Runner.make_env`.
-
-        Returns
-        -------
-        ``None``
-
         """
         if self.env is None:
             self.init_env()
@@ -566,6 +599,8 @@ class Runner(object):
 
     def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
 
         Parameters
@@ -633,27 +668,27 @@ class Runner(object):
             (1, env.backend.n_line), fill_value=False, dtype=dt_bool)
 
         attack_templ = np.full(
-            (1, env.oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
+            (1, env._oppSpace.action_space.size()), fill_value=0., dtype=dt_float)
         if efficient_storing:
             times = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(nb_timestep_max, fill_value=np.NaN, dtype=dt_float)
             actions = np.full((nb_timestep_max, env.action_space.n),
                               fill_value=np.NaN, dtype=dt_float)
             env_actions = np.full(
-                (nb_timestep_max, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
+                (nb_timestep_max, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
             observations = np.full(
                 (nb_timestep_max+1, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full(
                 (nb_timestep_max, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            attack = np.full((nb_timestep_max, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
+            attack = np.full((nb_timestep_max, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
         else:
             times = np.full(0, fill_value=np.NaN, dtype=dt_float)
             rewards = np.full(0, fill_value=np.NaN, dtype=dt_float)
             actions = np.full((0, env.action_space.n), fill_value=np.NaN, dtype=dt_float)
-            env_actions = np.full((0, env.helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
+            env_actions = np.full((0, env._helper_action_env.n), fill_value=np.NaN, dtype=dt_float)
             observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
             disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
-            attack = np.full((0, env.opponent_action_space.n), fill_value=0., dtype=dt_float)
+            attack = np.full((0, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
 
         if path_save is not None:
             # store observation at timestep 0
@@ -670,12 +705,12 @@ class Runner(object):
                               times=times,
                               observation_space=env.observation_space,
                               action_space=env.action_space,
-                              helper_action_env=env.helper_action_env,
+                              helper_action_env=env._helper_action_env,
                               path_save=path_save,
                               disc_lines_templ=disc_lines_templ,
                               attack_templ=attack_templ,
                               attack=attack,
-                              attack_space=env.opponent_action_space,
+                              attack_space=env._opponent_action_space,
                               logger=logger,
                               name=env.chronics_handler.get_name(),
                               other_rewards=[])
@@ -699,9 +734,9 @@ class Runner(object):
                 cum_reward += reward
                 time_step += 1
                 pbar_.update(1)
-                opp_attack = env.oppSpace.last_attack
+                opp_attack = env._oppSpace.last_attack
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                                   float(reward), env.env_modification,
+                                   float(reward), env._env_modification,
                                    act, obs, opp_attack,
                                    info)
             end_ = time.time()
@@ -727,6 +762,8 @@ class Runner(object):
     @staticmethod
     def _make_progress_bar(pbar, total, next_pbar):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Parameters
         ----------
         pbar: ``bool`` or ``type`` or ``object``
@@ -761,6 +798,8 @@ class Runner(object):
 
     def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         This method is called to see how well an agent performed on a sequence of episode.
 
         Parameters
@@ -852,7 +891,9 @@ class Runner(object):
 
     def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None):
         """
-        This method will run in parrallel, independantly the nb_episode over nb_process.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This method will run in parallel, independently the nb_episode over nb_process.
 
         In case the agent cannot be cloned using `copy.copy`: nb_process is set to 1
 
@@ -860,7 +901,7 @@ class Runner(object):
         is actually performed with more than 1 cores (nb_process > 1)
 
         It uses the python multiprocess, and especially the :class:`multiprocess.Pool` to perform the computations.
-        This implies that all runs are completely independant (they happen in different process) and that the
+        This implies that all runs are completely independent (they happen in different process) and that the
         memory consumption can be big. Tests may be recommended if the amount of RAM is low.
 
         It has the same return type as the :func:`Runner.run_sequential`.
@@ -941,7 +982,12 @@ class Runner(object):
         return res
 
     def _clean_up(self):
-        """close the environment is it has been created"""
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        close the environment if it has been created
+
+        """
         if self.env is not None:
             self.env.close()
         self.env = None

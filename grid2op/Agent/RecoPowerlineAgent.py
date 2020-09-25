@@ -27,4 +27,3 @@ class RecoPowerlineAgent(GreedyAgent):
         if np.any(can_be_reco):
             res = [self.action_space({"set_line_status": [(id_, +1)]}) for id_ in np.where(can_be_reco)[0]]
         return res
-

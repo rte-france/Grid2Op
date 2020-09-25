@@ -25,15 +25,14 @@ class OneChangeThenNothing(BaseAgent):
 
     Examples
     ---------
-
     We advise to use this class as following
 
     .. code-block:: python
 
-
         import grid2op
         from grid2op.Agent import OneChangeThenNothing
-        acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionnaries. Each dictionnaries representing a valid action
+        acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionaries. Each dictionary
+        # represents a valid action
 
         env = grid2op.make()  # create an environment
         for act_as_dict in zip(acts_dict_):
@@ -55,21 +54,6 @@ class OneChangeThenNothing(BaseAgent):
         self.do_nothing_action = self.action_space({})
 
     def act(self, observation, reward, done=False):
-        """
-        If this agent had not acted, then it does (first time step).
-
-        Afterwards it does nothing.
-
-        Parameters
-        ----------
-        observation
-        reward
-        done
-
-        Returns
-        -------
-
-        """
         if self.has_changed:
             res = self.do_nothing_action
         else:
@@ -82,7 +66,7 @@ class OneChangeThenNothing(BaseAgent):
 
     def _get_dict_act(self):
         """
-        Function that need to be overridden to indicate which action to perfom.
+        Function that need to be overridden to indicate which action to perform.
 
         Returns
         -------
@@ -92,11 +76,12 @@ class OneChangeThenNothing(BaseAgent):
         """
         return self.my_dict
 
-
     @classmethod
     def gen_next(cls, dict_):
         """
         This function allows to change the dictionnary of the action that the agent will perform.
+
+        See the class level documentation for an example on how to use this.
 
         Parameters
         ----------

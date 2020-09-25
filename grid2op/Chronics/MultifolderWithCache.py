@@ -123,6 +123,8 @@ class MultifolderWithCache(Multifolder):
         if self.cache_size == 0:
             raise RuntimeError("Impossible to initialize the new cache.")
 
+        return self.subpaths[self._order]
+
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
         self._order_backend_loads = order_backend_loads

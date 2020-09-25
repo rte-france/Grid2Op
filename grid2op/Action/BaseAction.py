@@ -59,7 +59,8 @@ class BaseAction(GridObjects):
             - +1 force line reconnection
             - 0 do nothing to this line
 
-    - the third element is the switch line status vector. It is made of a vector of size :attr:`BaseAction._n_lines` and is
+    - the third element is the switch line status vector. It is made of a vector of size :attr:`BaseAction._n_lines`
+      and is
       interpreted as:
 
         - ``True``: change the line status
@@ -82,7 +83,8 @@ class BaseAction(GridObjects):
     - the sixth element is a vector, representing the redispatching. Component of this vector is added to the
       generators active setpoint value (if set) of the first elements.
 
-    **NB** the difference between :attr:`BaseAction._set_topo_vect` and :attr:`BaseAction._change_bus_vect` is the following:
+    **NB** the difference between :attr:`BaseAction._set_topo_vect` and :attr:`BaseAction._change_bus_vect` is the
+    following:
 
         - If  a component of :attr:`BaseAction._set_topo_vect` is 1, then the object (load, generator or powerline)
           will be moved to bus 1 of the substation to which it is connected. If it is already to bus 1 nothing will be
@@ -134,7 +136,8 @@ class BaseAction(GridObjects):
 
     _set_topo_vect: :class:`numpy.ndarray`, dtype:int
         Similar to :attr:`BaseAction._set_line_status` but instead of affecting the status of powerlines, it affects the
-        bus connectivity at a substation. It has the same size as the full topological vector (:attr:`BaseAction._dim_topo`)
+        bus connectivity at a substation. It has the same size as the full topological vector
+        (:attr:`BaseAction._dim_topo`)
         and for each element it should be understood as:
 
             - 0 -> don't change
@@ -143,8 +146,8 @@ class BaseAction(GridObjects):
             - -1 -> disconnect the object.
 
     _change_bus_vect: :class:`numpy.ndarray`, dtype:bool
-         Similar to :attr:`BaseAction._switch_line_status` but it affects the topology at substations instead of the status
-         of
+         Similar to :attr:`BaseAction._switch_line_status` but it affects the topology at substations instead of the
+         status of
          the powerline. It has the same size as the full topological vector (:attr:`BaseAction._dim_topo`) and each
          component should mean:
 
@@ -194,16 +197,16 @@ class BaseAction(GridObjects):
 
     def __init__(self):
         """
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            **It is NOT recommended** to create an action with this method, use the action space
+            of the environment :attr:`grid2op.Environment.Environment.action_space` instead.
+
         This is used to create an BaseAction instance. Preferably, :class:`BaseAction` should be created with
         :class:`ActionSpace`.
 
-        **It is NOT recommended** to create an action with this method. Please use :func:`ActionSpace.__call__` or
-        :func:`ActionSpace.sample` to create a valid action.
-
-        Parameters
-        ----------
-        gridobj: :class:`grid2op.Space.GridObjects`
-            Representation of the objects present in the powergrid
+        IMPORTANT: Use :func:`ActionSpace.__call__` or :func:`ActionSpace.sample` to generate a valid action.
 
         """
         GridObjects.__init__(self)
@@ -447,10 +450,19 @@ class BaseAction(GridObjects):
         is legal or not.
         **NB** The impacted are the elements that can potentially be impacted by the action. This does not mean they
         will be impacted. For examples:
-        * If an action from an :class:`grid2op.BaseAgent` reconnect a powerline, but this powerline is being disconnected by a hazard at the same time step, then this action will not be implemented on the grid.
-        However, it this powerline couldn't be reconnected for some reason (for example it was already out of order) the action will still be declared illegal, even if it has NOT impacted the powergrid.
-        * If an action tries to disconnect a powerline already disconnected, it will "impact" this powergrid. This means that even if the action will do nothing, it disconnecting this powerline is against the rules, then the action will be illegal.
-        * If an action tries to change the topology of a substation, but this substation is already at the target topology, the same mechanism applies. The action will "impact" the substation, even if, in the end, it consists of doing nothing.
+
+        * If an action from an :class:`grid2op.BaseAgent` reconnect a powerline, but this powerline is being
+          disconnected by a hazard at the same time step, then this action will not be implemented on the grid.
+
+        However, it this powerline couldn't be reconnected for some reason (for example it was already out of order)
+        the action will still be declared illegal, even if it has NOT impacted the powergrid.
+
+        * If an action tries to disconnect a powerline already disconnected, it will "impact" this powergrid.
+          This means that even if the action will do nothing, it disconnecting this powerline is against the rules,
+          then the action will be illegal.
+        * If an action tries to change the topology of a substation, but this substation is already at the target
+          topology, the same mechanism applies. The action will "impact" the substation, even if, in the end, it
+          consists of doing nothing.
 
         Any such "change" that would be illegal is declared as "illegal" regardless of the real impact of this action
         on the powergrid.
@@ -458,8 +470,8 @@ class BaseAction(GridObjects):
         Returns
         -------
         lines_impacted: :class:`numpy.array`, dtype:dt_bool
-            A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for each
-            component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
+            A vector with the same size as the number of powerlines in the grid (:attr:`BaseAction.n_line`) with for
+            each component ``True`` if the line STATUS is impacted by the action, and ``False`` otherwise. See
             :attr:`BaseAction._lines_impacted` for more information.
 
         subs_impacted: :class:`numpy.array`, dtype:dt_bool
@@ -516,10 +528,10 @@ class BaseAction(GridObjects):
 
     def reset(self):
         """
-        Reset the action to the "do nothing" state.
 
-        Returns
-        -------
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Reset the action to the "do nothing" state.
 
         """
         # False(line is disconnected) / True(line is connected)
@@ -565,20 +577,15 @@ class BaseAction(GridObjects):
 
     def __iadd__(self, other):
         """
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Add an action to this one.
         Adding an action to myself is equivalent to perform myself, and then perform other.
-
-        Add will have the following properties:
-
-            - it erase the previous changes to injections
-            -
 
         Parameters
         ----------
         other: :class:`BaseAction`
-
-        Returns
-        -------
 
         """
 
@@ -692,6 +699,9 @@ class BaseAction(GridObjects):
 
     def __call__(self):
         """
+
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         This method is used to return the effect of the current action in a format understandable by the backend.
         This format is detailed below.
 
@@ -796,7 +806,8 @@ class BaseAction(GridObjects):
                     if k in self.attr_list_set:
                         self._dict_inj[k] = np.array(tmp_d[k]).astype(dt_float)
                     else:
-                        warn = "The key {} is not recognized by BaseAction when trying to modify the injections.".format(k)
+                        warn = "The key {} is not recognized by BaseAction when trying to modify the injections." \
+                               "".format(k)
                         warnings.warn(warn)
 
     def _digest_setbus(self, dict_):
@@ -812,7 +823,7 @@ class BaseAction(GridObjects):
                     tmp = ddict_["loads_id"]
                     handled = True
                     for (c_id, bus) in tmp:
-                        if c_id >= self.n_line:
+                        if c_id >= self.n_load:
                             raise AmbiguousAction("Load {} doesn't exist".format(c_id))
                         self._set_topo_vect[self.load_pos_topo_vect[c_id]] = bus
                         # print("self.load_pos_topo_vect[l_id] {}".format(self.load_pos_topo_vect[l_id]))
@@ -855,8 +866,8 @@ class BaseAction(GridObjects):
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
-            elif dict_["set_bus"] is None:
-                pass
+                else:
+                    pass
             else:
                 raise AmbiguousAction(
                     "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
@@ -894,7 +905,7 @@ class BaseAction(GridObjects):
                         s_id = int(s_id)
                         beg_ = int(np.sum(self.sub_info[:s_id]))
                         end_ = int(beg_ + self.sub_info[s_id])
-                        self._change_bus_vect[beg_:end_][arr] = ~self._change_bus_vect[beg_:end_][arr]
+                        self._change_bus_vect[beg_:end_][arr] = True
             elif dict_["change_bus"] is None:
                 pass
             else:
@@ -931,7 +942,8 @@ class BaseAction(GridObjects):
                     tmp = np.array(tmp)
                 except:
                     raise AmbiguousAction(
-                        "You ask to perform hazard on powerlines, this can only be done if \"hazards\" is castable into a numpy ndarray")
+                        "You ask to perform hazard on powerlines, this can only be done if \"hazards\" can be casted "
+                        "into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
@@ -956,7 +968,8 @@ class BaseAction(GridObjects):
                     tmp = np.array(tmp)
                 except:
                     raise AmbiguousAction(
-                        "You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" is castable into a numpy ndarray")
+                        "You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" can "
+                        "be casted into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
@@ -982,12 +995,13 @@ class BaseAction(GridObjects):
                     tmp = np.array(tmp)
                 except:
                     raise AmbiguousAction(
-                        "You ask to change the bus status, this can only be done if \"change_status\" is castable into a numpy ndarray")
+                        "You ask to change the bus status, this can only be done if \"change_status\" can be casted "
+                        "into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
-                            "This \"change_line_status\" action acts on {} lines while there are {} in the _grid".format(
-                                len(tmp), self.n_line))
+                            "This \"change_line_status\" action acts on {} lines while there are {} in the _grid"
+                            "".format(len(tmp), self.n_line))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
                 self._switch_line_status[dict_["change_line_status"]] = True
@@ -1056,10 +1070,9 @@ class BaseAction(GridObjects):
 
     def _reset_vect(self):
         """
-        Need to be called when update is called !
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Returns
-        -------
+        Need to be called when update is called !
 
         """
         self._vectorized = None
@@ -1419,11 +1432,12 @@ class BaseAction(GridObjects):
 
                         raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
                                                 " which bus.".format(q_id))
-
-        if np.any(self._set_topo_vect[self.line_ex_pos_topo_vect][self._set_topo_vect[self.line_or_pos_topo_vect] == -1] > 0):
+        disco_or = self._set_topo_vect[self.line_or_pos_topo_vect] == -1
+        if np.any(self._set_topo_vect[self.line_ex_pos_topo_vect][disco_or] > 0):
             raise InvalidLineStatus("A powerline is connected (set to a bus at extremity end) and "
                                     "disconnected (set to bus -1 at origin end)")
-        if np.any(self._set_topo_vect[self.line_or_pos_topo_vect][self._set_topo_vect[self.line_ex_pos_topo_vect] == -1] > 0):
+        disco_ex = self._set_topo_vect[self.line_ex_pos_topo_vect] == -1
+        if np.any(self._set_topo_vect[self.line_or_pos_topo_vect][disco_ex] > 0):
             raise InvalidLineStatus("A powerline is connected (set to a bus at origin end) and "
                                     "disconnected (set to bus -1 at extremity end)")
 
@@ -1717,8 +1731,8 @@ class BaseAction(GridObjects):
     def as_dict(self):
         """
         Represent an action "as a" dictionary. This dictionary is useful to further inspect on which elements
-        the actions had an impact. It is not recommended to use it as a way to serialize actions. The "do nothing" action
-        should always be represented by an empty dictionary.
+        the actions had an impact. It is not recommended to use it as a way to serialize actions. The "do nothing"
+        action should always be represented by an empty dictionary.
 
         The following keys (all optional) are present in the results:
 
@@ -1772,7 +1786,6 @@ class BaseAction(GridObjects):
         -------
         res: ``dict``
             The action represented as a dictionary. See above for a description of it.
-
 
         """
         res = {}
@@ -1953,7 +1966,8 @@ class BaseAction(GridObjects):
             - If "set_bus" is 1, then the object (load, generator or powerline) will be moved to bus 1 of the substation
               to which it is connected. If it is already to bus 1 nothing will be done. If it's on another bus it will
               connect it to bus 1. It's disconnected, it will reconnect it and connect it to bus 1.
-            - If "change_bus" is True, then the object will be moved from one bus to another. If the object were on bus 1
+            - If "change_bus" is True, then the object will be moved from one bus to another. If the object were on
+              bus 1
               then it will be moved on bus 2, and if it were on bus 2, it will be moved on bus 1. If the object were
               disconnected, then it will be connected to the affected bus.
 

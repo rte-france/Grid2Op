@@ -7,9 +7,12 @@ from grid2op.Runner import Runner
 from tqdm import tqdm
 
 path_agents = "getting_started/study_agent_getting_started"
+
+# if i start from grid2op/getting started (eg cd ~/Documents/grid2op/getting_started)
+path_agents = "path_agents/"
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore")
-    env = grid2op.make("case14_realistic")
+    env = grid2op.make("rte_case14_realistic")
 
 
 class CustomRandom(RandomAgent):
@@ -27,13 +30,12 @@ class CustomRandom(RandomAgent):
 
 
 runner = Runner(**env.get_params_for_runner(), agentClass=CustomRandom)
-path_agent = os.path.join(path_agents, "RandomAgent")
-res = runner.run(nb_episode=2, path_save=path_agent, pbar=tqdm)
+path_agent = os.path.join(path_agents, "awesome_agent_logs")
+res = runner.run(nb_episode=2, path_save=path_agent, pbar=tqdm, agent_seeds=[0, 1])
 
 ep_replay = EpisodeReplay(agent_path=path_agent)
 for _, chron_name, cum_reward, nb_time_step, max_ts in res:
     ep_replay.replay_episode(chron_name,
-                             video_name=os.path.join(path_agent, chron_name, "epidose.gif"),
                              display=False)
 if False:
     plot_epi = EpisodeReplay(path_agent)

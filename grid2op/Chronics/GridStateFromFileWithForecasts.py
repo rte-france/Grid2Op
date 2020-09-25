@@ -97,10 +97,6 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         ----------
         See help of :func:`GridValue.initialize` for a detailed help about the _parameters.
 
-        Returns
-        -------
-        ``None``
-
         """
         super().initialize(order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                            names_chronics_to_backend)

@@ -71,7 +71,6 @@ class GreedyAgent(BaseAgent):
 
         From this list, the one that achieve the best "simulated reward" is used.
 
-
         Parameters
         ----------
         observation: :class:`grid2op.Observation.Observation`

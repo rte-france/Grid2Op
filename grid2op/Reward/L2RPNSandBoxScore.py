@@ -14,10 +14,15 @@ from grid2op.dtypes import dt_float
 
 class L2RPNSandBoxScore(BaseReward):
     """
-    This score represent the L2RPN score.
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            It **must not** serve as a reward. This scored needs to be minimized,
+            and a reward needs to be maximized! Also, this "reward" is not scaled or anything. Use it as your
+            own risk.
 
-    It **must not** serve as a reward, as the aim of L2RPN competition is to minimize the score, and a reward
-    needs to be maximize! Also, this "reward" is not scaled or anything. Use it as your own risk
+    Implemented as a reward to make it easier to use in the context of the L2RPN competitions, this "reward"
+    computed the "grid operation cost". It should not be used to train an agent.
+
+    The "reward" the closest to this score is given by the :class:`RedispReward` class.
 
     """
     def __init__(self, alpha_redisph=1.0):
@@ -27,16 +32,22 @@ class L2RPNSandBoxScore(BaseReward):
         self.alpha_redisph = dt_float(alpha_redisph)
 
     def __call__(self,  action, env, has_error, is_done, is_illegal, is_ambiguous):
+        if has_error:
+            # DO SOMETHING IN THIS CASE
+            return self.reward_min
+
         # compute the losses
         gen_p, *_ = env.backend.generators_info()
         load_p, *_ = env.backend.loads_info()
         losses = np.sum(gen_p, dtype=dt_float) - np.sum(load_p, dtype=dt_float)
 
         # compute the marginal cost
-        p_t = np.max(env.gen_cost_per_MW[env.gen_activeprod_t > 0.]).astype(dt_float)
+        gen_activeprod_t = env._gen_activeprod_t
+        p_t = np.max(env.gen_cost_per_MW[gen_activeprod_t > 0.]).astype(dt_float)
 
         # redispatching amount
-        c_redispatching = dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(env.actual_dispatch)) * p_t
+        actual_dispatch = env._actual_dispatch
+        c_redispatching = dt_float(2.0) * self.alpha_redisph * np.sum(np.abs(actual_dispatch)) * p_t
 
         # cost of losses
         c_loss = losses * p_t

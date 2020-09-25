@@ -13,12 +13,11 @@ from grid2op.Environment.BaseMultiProcessEnv import BaseMultiProcessEnvironment
 
 class SingleEnvMultiProcess(BaseMultiProcessEnvironment):
     """
-    This class allows to evaluate a single agent instance on multiple environments running in parrallel.
+    This class allows to evaluate a single agent instance on multiple environments running in parallel.
 
     It is a kind of :class:`BaseMultiProcessEnvironment`. For more information you can consult the
     documentation of this parent class. It allows to interact at the same time with different copy of the
     (same) environment in parallel
-
 
     Attributes
     -----------
@@ -33,7 +32,8 @@ class SingleEnvMultiProcess(BaseMultiProcessEnvironment):
     Examples
     --------
 
-    An example on how you can best leverage this class is given in the getting_started notebooks. Another simple example is:
+    An example on how you can best leverage this class is given in the getting_started notebooks. Another simple
+    example is:
 
     .. code-block:: python
 

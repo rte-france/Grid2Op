@@ -18,6 +18,10 @@ class BaseReward(ABC):
 
     One of the goal of Reinforcement Learning is to maximize the (discounted) sum of (expected) rewards over time.
 
+
+    You can create all rewards you want in grid2op. The only requirement is that all rewards should inherit this
+    BaseReward.
+
     Attributes
     ----------
     reward_min: ``float``
@@ -29,6 +33,73 @@ class BaseReward(ABC):
         The maximum reward an :class:`grid2op.Agent.BaseAgent` can get performing the best possible
         :class:`grid2op.Action.BaseAction` in
         the best possible scenario.
+
+    Examples
+    ---------
+    If you want the environment to compute a reward that is the sum of the flow (this is not a good reward, but
+    we use it as an example on how to do it) you can achieve it with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import BaseReward
+
+        # first you create your reward
+        class SumOfFlowReward(BaseReward):
+            def __init__(self):
+                BaseReward.__init__(self)
+
+            def initialize(self, env):
+                # this function is used to inform the class instance about the environment specification
+                # you can use `env.n_line` or `env.n_load` or `env.get_thermal_limit()` for example
+                # do not forget to initialize "reward_min" and "reward_max"
+                self.reward_min = 0.
+                self.reward_max = np.sum(env.get_thermal_limit)
+
+                # in this case the maximum reward is obtained when i compute the sum of the maximum flows
+                # on each powerline
+
+            def __call__(action, env, has_error, is_done, is_illegal, is_ambiguous):
+                # this method is called at the end of 'env.step' to compute the reward
+                # in our case we just want to sum the flow on each powerline because... why not...
+                if has_error:
+                    # see the "Notes" paragraph for more information
+                    res = self.reward_min
+                else:
+                    res = np.sum(env.get_obs().a_or)
+                return res
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=SumOfFlowReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        assert np.sum(obs.a_or) == reward
+        # the above should be true
+
+    Notes
+    ------
+    If the flag `has_error` is set to ``True`` this indicates there has been an error in the "env.step" function.
+    This might induce some undefined behaviour if using some method of the environment.
+
+    Please make sure to check whether or not this is the case when defining your reward.
+
+    This "new" behaviour has been introduce to "fix" the akward behavior spotted in
+    # https://github.com/rte-france/Grid2Op/issues/146
+
+    .. code-block:: python
+
+        def __call__(action, env, has_error, is_done, is_illegal, is_ambiguous):
+            if has_error:
+                # DO SOMETHING IN THIS CASE
+                res = self.reward_min
+            else:
+                # DO NOT USE `env.get_obs()` (nor any method of the environment `env.XXX` if the flag `has_error`
+                # is set to ``True``
+                # This might result in undefined behaviour
+                res = np.sum(env.get_obs().a_or)
+            return res
 
     """
     @abstractmethod
@@ -43,7 +114,7 @@ class BaseReward(ABC):
     def initialize(self, env):
         """
         If :attr:`BaseReward.reward_min`, :attr:`BaseReward.reward_max` or other custom attributes require to have a
-        valid :class:`grid2op.Environement.Environment` to be initialized, this should be done in this method.
+        valid :class:`grid2op.Environment.Environment` to be initialized, this should be done in this method.
 
         **NB** reward_min and reward_max are used by the environment to compute the maximum and minimum reward and
         cast it in "reward_range" which is part of the openAI gym public interface. If you don't define them, some
@@ -53,10 +124,6 @@ class BaseReward(ABC):
         ----------
         env: :class:`grid2op.Environment.Environment`
             An environment instance properly initialized.
-
-        Returns
-        -------
-        ``None``
 
         """
         pass
@@ -95,6 +162,17 @@ class BaseReward(ABC):
         -------
         res: ``float``
             The reward associated to the input parameters.
+
+        Notes
+        ------
+        All the flags can be used to know on which type of situation the reward is computed.
+
+        For example, if `has_error` is ``True`` it means there was an error during the computation of the powerflow.
+        this means there is a "game_over", so ``is_done`` is ``True`` in this case.
+
+        But, if there is ``is_done`` equal to ``True`` but ``has_error`` equal to ``False`` this means that the episode
+        is over without any error. In other word, your agent sucessfully managed all the scenario and to get to the
+        end of the episode.
 
         """
         pass

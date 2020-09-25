@@ -124,6 +124,9 @@ def _draw_arrow(surf, color, start_pos, end_pos, positive_flow, width=1, num_arr
 
 class PlotPyGame(BasePlot):
     """
+
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
     This renderer should be used only for "online" representation of a powergrid.
 
     """
@@ -215,6 +218,8 @@ class PlotPyGame(BasePlot):
 
     def change_duration_timestep_display(self, new_timestep_duration_seconds):
         """
+         .. warning:: /!\\\\ This class is deprecated /!\\\\
+
         Change the duration on which the screen is displayed.
         """
         self.timestep_duration_seconds = new_timestep_duration_seconds
@@ -229,7 +234,7 @@ class PlotPyGame(BasePlot):
 
     def reset(self, env):
         """
-        Reset the runner in a consistent state, equivalent to a state where it has not run at all.
+         .. warning:: /!\\\\ This class is deprecated /!\\\\
 
         Parameters
         ----------
@@ -282,6 +287,9 @@ class PlotPyGame(BasePlot):
 
     def _press_key_to_quit(self):
         """
+
+         .. warning:: /!\\\\ This class is deprecated /!\\\\
+
         This utility function waits for the player to press a key to exit the renderer (called when the episode is done)
 
         Returns
@@ -364,6 +372,9 @@ class PlotPyGame(BasePlot):
 
     def get_rgb(self, obs, reward=None, done=None, timestamp=None):
         """
+
+         .. warning:: /!\\\\ This class is deprecated /!\\\\
+
         Computes and returns the rgb 3d array from an observation, and potentially other informations.
 
         Parameters
@@ -432,6 +443,9 @@ class PlotPyGame(BasePlot):
 
     def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
         """
+
+         .. warning:: /!\\\\ This class is deprecated /!\\\\
+
         In canse of plotply, fig is whether the player press "quit" or not
 
         Parameters

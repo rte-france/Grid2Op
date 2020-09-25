@@ -357,12 +357,12 @@ class TestMakeFromPathConfig(unittest.TestCase):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
         with make_from_dataset_path(dataset_path) as env:
             # Check config is loaded from config.py
-            assert env.rewardClass == L2RPNReward
-            assert env.actionClass == TopologyAction
-            assert env.observationClass == CompleteObservation
+            assert env._rewardClass == L2RPNReward
+            assert env._actionClass == TopologyAction
+            assert env._observationClass == CompleteObservation
             assert isinstance(env.backend, PandaPowerBackend)
-            assert env.legalActClass == DefaultRules
-            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert env._legalActClass == DefaultRules
+            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
             assert env.action_space.grid_layout != None
             
@@ -378,12 +378,12 @@ class TestMakeFromPathConfig(unittest.TestCase):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
         with make_from_dataset_path(dataset_path) as env:
             # Check config is loaded from config.py
-            assert env.rewardClass == RedispReward
-            assert env.actionClass == TopologyAndDispatchAction
-            assert env.observationClass == CompleteObservation
+            assert env._rewardClass == RedispReward
+            assert env._actionClass == TopologyAndDispatchAction
+            assert env._observationClass == CompleteObservation
             assert isinstance(env.backend, PandaPowerBackend)
-            assert env.legalActClass == DefaultRules
-            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert env._legalActClass == DefaultRules
+            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
             assert env.action_space.grid_layout != None
             
@@ -400,12 +400,12 @@ class TestMakeFromPathConfig(unittest.TestCase):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_redisp")
         with make_from_dataset_path(dataset_path) as env:
             # Check config is loaded from config.py
-            assert env.rewardClass == RedispReward
-            assert env.actionClass == TopologyAndDispatchAction
-            assert env.observationClass == CompleteObservation
+            assert env._rewardClass == RedispReward
+            assert env._actionClass == TopologyAndDispatchAction
+            assert env._observationClass == CompleteObservation
             assert isinstance(env.backend, PandaPowerBackend)
-            assert env.legalActClass == DefaultRules
-            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert env._legalActClass == DefaultRules
+            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
             
     def test_case14_redisp_runs(self):
@@ -422,12 +422,12 @@ class TestMakeFromPathConfig(unittest.TestCase):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
         with make_from_dataset_path(dataset_path) as env:
             # Check config is loaded from config.py
-            assert env.rewardClass == L2RPNReward
-            assert env.actionClass == TopologyAction
-            assert env.observationClass == CompleteObservation
+            assert env._rewardClass == L2RPNReward
+            assert env._actionClass == TopologyAction
+            assert env._observationClass == CompleteObservation
             assert isinstance(env.backend, PandaPowerBackend)
-            assert env.legalActClass == DefaultRules
-            assert isinstance(env.voltage_controler, ControlVoltageFromFile)
+            assert env._legalActClass == DefaultRules
+            assert isinstance(env._voltage_controler, ControlVoltageFromFile)
             assert isinstance(env.chronics_handler.real_data, Multifolder)
             assert env.action_space.grid_layout != None
 
@@ -436,34 +436,34 @@ class TestMakeFromPathConfigOverride(unittest.TestCase):
     def test_case5_override_reward(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
         with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
-            assert env.rewardClass == FlatReward
+            assert env._rewardClass == FlatReward
 
     def test_case14_test_override_reward(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
         with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
-            assert env.rewardClass == FlatReward
+            assert env._rewardClass == FlatReward
 
     def test_l2rpn19_override_reward(self):
         self.skipTest("l2rpn has been removed")
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
         with make_from_dataset_path(dataset_path, reward_class=FlatReward) as env:
-            assert env.rewardClass == FlatReward
+            assert env._rewardClass == FlatReward
 
     def test_case5_override_action(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
         with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert env.actionClass == VoltageOnlyAction
+            assert env._actionClass == VoltageOnlyAction
 
     def test_case14_test_override_action(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
         with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert env.actionClass == VoltageOnlyAction
+            assert env._actionClass == VoltageOnlyAction
 
     def test_l2rpn19_override_action(self):
         self.skipTest("l2rpn has been removed")
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
         with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert env.actionClass == VoltageOnlyAction
+            assert env._actionClass == VoltageOnlyAction
 
     def test_case5_override_chronics(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")

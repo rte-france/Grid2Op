@@ -42,6 +42,61 @@ class RandomObject(object):
     If you really need other sources of randomness (for example if you use tensorflow or torch) we strongly
     recommend you to overload the :func:`BaseAgent.seed` accordingly so that the neural networks are always initialized
     in the same order using the same weights.
+
+    Examples
+    ---------
+    If you don't use any :class:`grid2op.Runner.Runner` we recommend using this method twice:
+
+      1. to set the seed of the :class:`grid2op.Environment.Environment`
+      2. to set the seed of your :class:`grid2op.Agent.BaseAgent`
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent # or any other agent of course. It might also be a custom you developed
+        # create the environment
+        env = grid2op.make()
+        agent = RandomAgent(env.action_space)
+
+        # and now set the seed
+        env_seed = 42
+        agent_seed = 12345
+        env.seed(env_seed)
+        agent.seed(agent_seed)
+
+        # continue your experiments
+
+    If you are using a :class:`grid2op.Runner.Runner`we recommend using the "env_seeds" and "agent_seeds" when
+    calling the function :func:`grid2op.Runner.Runner.run` like this:
+
+    .. code-block:: python
+
+        import grid2op
+        import numpy as np
+        from grid2op.dtypes import dt_int
+        from grid2op.Agent import RandomAgent # or any other agent of course. It might also be a custom you developed
+        from grid2op.Runner import Runner
+
+        np.random.seed(42)  # or any other seed of course :-)
+
+        # create the environment
+        env = grid2op.make()
+        # NB setting a seed in this environment will have absolutely no effect on the runner
+
+        # and now set the seed
+        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+
+        # and now start your experiments
+        nb_episode = 2
+        maximum_int_poss = np.iinfo(dt_int).max  # this will be the maximum integer your computer can represent
+        res = runner.run(nb_episode=nb_episode,
+                         # generate the seeds for the agent
+                         agent_seeds=[np.random.randint(0, maximum_int_poss) for _ in range(nb_episode)],
+                         # generate the seeds for the environment
+                         env_seeds=[np.random.randint(0, maximum_int_poss) for _ in range(nb_episode)]
+                         )
+        # NB for fully reproducible expriment you have to have called "np.random.seed" before using this method.
+
     """
     def __init__(self):
         self.space_prng = np.random.RandomState()
@@ -49,6 +104,9 @@ class RandomObject(object):
 
     def seed(self, seed):
         """
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            We do not recommend to use this function outside of the two examples given in the description of this class.
+
         Set the seed of the source of pseudo random number used for this RandomObject.
 
         Parameters

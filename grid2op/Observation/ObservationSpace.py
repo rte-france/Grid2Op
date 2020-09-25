@@ -16,7 +16,7 @@ from grid2op.Observation._ObsEnv import _ObsEnv
 
 class ObservationSpace(SerializableObservationSpace):
     """
-    Helper that provides usefull functions to manipulate :class:`BaseObservation`.
+    Helper that provides useful functions to manipulate :class:`BaseObservation`.
 
     BaseObservation should only be built using this Helper. It is absolutely not recommended to make an observation
     directly form its constructor.
@@ -60,6 +60,8 @@ class ObservationSpace(SerializableObservationSpace):
                  observationClass=CompleteObservation,
                  with_forecast=True):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
         """
 
@@ -77,7 +79,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.rewardClass = rewardClass
 
         # helpers
-        self.action_helper_env = env.helper_action_env
+        self.action_helper_env = env._helper_action_env
         self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
         self.reward_helper.initialize(env)
 
@@ -92,13 +94,13 @@ class ObservationSpace(SerializableObservationSpace):
                                      parameters=env.parameters,
                                      reward_helper=self.reward_helper,
                                      action_helper=self.action_helper_env,
-                                     thermal_limit_a=env._thermal_limit_a,
-                                     legalActClass=env.legalActClass,
-                                     donothing_act=env.helper_action_player(),
+                                     thermal_limit_a=env.get_thermal_limit(),
+                                     legalActClass=env._legalActClass,
+                                     donothing_act=env._helper_action_player(),
                                      other_rewards=other_rewards,
-                                     completeActionClass=env.helper_action_env.actionClass,
-                                     helper_action_class=env.helper_action_class,
-                                     helper_action_env=env.helper_action_env)
+                                     completeActionClass=env._helper_action_env.actionClass,
+                                     helper_action_class=env._helper_action_class,
+                                     helper_action_env=env._helper_action_env)
 
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
@@ -132,10 +134,19 @@ class ObservationSpace(SerializableObservationSpace):
         return self.n
 
     def get_empty_observation(self):
-        """return an empty observation, for internal use only."""
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        return an empty observation, for internal use only."""
         return copy.deepcopy(self._empty_obs)
 
     def copy(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Perform a deep copy of the Observation space.
+
+        """
         backend = self._backend_obs
         self._backend_obs = None
         obs_ = self._empty_obs

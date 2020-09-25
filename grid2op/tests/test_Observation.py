@@ -107,26 +107,26 @@ class TestLoadingBackendFunc(unittest.TestCase):
         self.env.close()
 
     def test_sum_shape_equal_size(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         assert obs.size() == np.sum(obs.shape())
 
     def test_size(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         obs.size()
 
     def test_copy_space(self):
-        obs_space2 = self.env.helper_observation.copy()
+        obs_space2 = self.env.observation_space.copy()
         assert isinstance(obs_space2, ObservationSpace)
 
     def test_proper_size(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         assert obs.size() == self.size_obs
 
     def test_size_action_space(self):
-        assert self.env.helper_observation.size() == self.size_obs
+        assert self.env.observation_space.size() == self.size_obs
 
     def test_bus_conn_mat(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         mat1 = obs.bus_connectivity_matrix()
         ref_mat = np.array([[1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
                            [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -145,7 +145,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(mat1 == ref_mat)
 
     def test_conn_mat(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         mat = obs.connectivity_matrix()
         ref_mat = np.array([[0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -191,11 +191,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(mat[:10,:] == ref_mat)
 
     def test_observation_space(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         assert self.env.observation_space.n == obs.size()
 
     def test_shape_correct(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         assert obs.shape().shape == obs.dtype().shape
         assert np.all(obs.dtype() == self.dtypes)
         assert np.all(obs.shape() == self.shapes)
@@ -207,12 +207,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_1_generating_obs(self):
         # test that helper_obs is abl to generate a valid observation
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         pass
 
     def test_2_reset(self):
         # test that helper_obs is abl to generate a valid observation
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         assert obs.prod_p[0] is not None
         obs.reset()
         assert np.all(np.isnan(obs.prod_p))
@@ -221,7 +221,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_3_reset(self):
         # test that helper_obs is able to generate a valid observation
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         obs2 = obs.copy()
         assert obs == obs2
         obs2.reset()
@@ -231,7 +231,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # assert obs.prod_p is not None
 
     def test_shapes_types(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         dtypes = obs.dtype()
         assert np.all(dtypes == self.dtypes)
         shapes = obs.shape()
@@ -239,8 +239,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_4_to_from_vect(self):
         # test that helper_obs is abl to generate a valid observation
-        obs = self.env.helper_observation(self.env)
-        obs2 = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
+        obs2 = self.env.observation_space(self.env)
         vect = obs.to_vect()
         assert vect.shape[0] == obs.size()
         obs2.reset()
@@ -255,9 +255,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_5_simulate_proper_timestep(self):
         self.skipTest("This is extensively tested elswhere, and the chronics have been changed.")
-        obs_orig = self.env.helper_observation(self.env)
-        action = self.env.helper_action_player({})
-        action2 = self.env.helper_action_player({})
+        obs_orig = self.env.observation_space(self.env)
+        action = self.env.action_space({})
+        action2 = self.env.action_space({})
 
         simul_obs, simul_reward, simul_has_error, simul_info = obs_orig.simulate(action)
         real_obs, real_reward, real_has_error, real_info = self.env.step(action2)
@@ -269,21 +269,21 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.abs(simul_reward - real_reward) <= self.tol_one
 
     def test_6_simulate_dont_affect_env(self):
-        obs_orig = self.env.helper_observation(self.env)
+        obs_orig = self.env.observation_space(self.env)
         obs_orig = obs_orig.copy()
 
         for i in range(self.env.backend.n_line):
             # simulate lots of action
             tmp = np.full(self.env.backend.n_line, fill_value=False, dtype=np.bool)
             tmp[i] = True
-            action = self.env.helper_action_player({"change_line_status": tmp})
+            action = self.env.action_space({"change_line_status": tmp})
             simul_obs, simul_reward, simul_has_error, simul_info = obs_orig.simulate(action)
 
-        obs_after = self.env.helper_observation(self.env)
+        obs_after = self.env.observation_space(self.env)
         assert obs_orig == obs_after
 
     def test_inspect_load(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         dict_ = obs.state_of(load_id=0)
         assert "p" in dict_
         assert np.abs(dict_["p"] - 21.2) <= self.tol_one
@@ -297,7 +297,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert dict_["sub_id"] == 1
 
     def test_inspect_gen(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         dict_ = obs.state_of(gen_id=0)
         assert "p" in dict_
         assert np.abs(dict_["p"] - 93.6) <= self.tol_one
@@ -311,7 +311,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert dict_["sub_id"] == 1
 
     def test_inspect_line(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         dict_both = obs.state_of(line_id=0)
         assert "origin" in dict_both
         dict_ = dict_both["origin"]
@@ -340,7 +340,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert dict_["sub_id"] == 1
 
     def test_inspect_topo(self):
-        obs = self.env.helper_observation(self.env)
+        obs = self.env.observation_space(self.env)
         dict_ = obs.state_of(substation_id=1)
         assert "topo_vect" in dict_
         assert np.all(dict_["topo_vect"] == [1, 1, 1, 1, 1, 1])
@@ -348,7 +348,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert dict_["nb_bus"] == 1
 
     def test_get_obj_connect_to(self):
-        dict_ = self.env.helper_observation.get_obj_connect_to(substation_id=1)
+        dict_ = self.env.observation_space.get_obj_connect_to(substation_id=1)
         assert 'loads_id' in dict_
         assert np.all(dict_['loads_id'] == 0)
         assert 'generators_id' in dict_
@@ -361,56 +361,56 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert dict_['nb_elements'] == 6
 
     def test_to_dict(self):
-        dict_ = self.env.helper_observation.to_dict()
+        dict_ = self.env.observation_space.to_dict()
         self.maxDiff = None
         self.assertDictEqual(dict_, self.dict_)
 
     def test_from_dict(self):
         res = ObservationSpace.from_dict(self.dict_)
-        assert res.n_gen == self.env.helper_observation.n_gen
-        assert res.n_load == self.env.helper_observation.n_load
-        assert res.n_line == self.env.helper_observation.n_line
-        assert np.all(res.sub_info == self.env.helper_observation.sub_info)
-        assert np.all(res.load_to_subid == self.env.helper_observation.load_to_subid)
-        assert np.all(res.gen_to_subid == self.env.helper_observation.gen_to_subid)
-        assert np.all(res.line_or_to_subid == self.env.helper_observation.line_or_to_subid)
-        assert np.all(res.line_ex_to_subid == self.env.helper_observation.line_ex_to_subid)
-        assert np.all(res.load_to_sub_pos == self.env.helper_observation.load_to_sub_pos)
-        assert np.all(res.gen_to_sub_pos == self.env.helper_observation.gen_to_sub_pos)
-        assert np.all(res.line_or_to_sub_pos == self.env.helper_observation.line_or_to_sub_pos)
-        assert np.all(res.line_ex_to_sub_pos == self.env.helper_observation.line_ex_to_sub_pos)
-        assert np.all(res.load_pos_topo_vect == self.env.helper_observation.load_pos_topo_vect)
-        assert np.all(res.gen_pos_topo_vect == self.env.helper_observation.gen_pos_topo_vect)
-        assert np.all(res.line_or_pos_topo_vect == self.env.helper_observation.line_or_pos_topo_vect)
-        assert np.all(res.line_ex_pos_topo_vect == self.env.helper_observation.line_ex_pos_topo_vect)
-        assert issubclass(res.observationClass, self.env.helper_observation._init_subtype)
+        assert res.n_gen == self.env.observation_space.n_gen
+        assert res.n_load == self.env.observation_space.n_load
+        assert res.n_line == self.env.observation_space.n_line
+        assert np.all(res.sub_info == self.env.observation_space.sub_info)
+        assert np.all(res.load_to_subid == self.env.observation_space.load_to_subid)
+        assert np.all(res.gen_to_subid == self.env.observation_space.gen_to_subid)
+        assert np.all(res.line_or_to_subid == self.env.observation_space.line_or_to_subid)
+        assert np.all(res.line_ex_to_subid == self.env.observation_space.line_ex_to_subid)
+        assert np.all(res.load_to_sub_pos == self.env.observation_space.load_to_sub_pos)
+        assert np.all(res.gen_to_sub_pos == self.env.observation_space.gen_to_sub_pos)
+        assert np.all(res.line_or_to_sub_pos == self.env.observation_space.line_or_to_sub_pos)
+        assert np.all(res.line_ex_to_sub_pos == self.env.observation_space.line_ex_to_sub_pos)
+        assert np.all(res.load_pos_topo_vect == self.env.observation_space.load_pos_topo_vect)
+        assert np.all(res.gen_pos_topo_vect == self.env.observation_space.gen_pos_topo_vect)
+        assert np.all(res.line_or_pos_topo_vect == self.env.observation_space.line_or_pos_topo_vect)
+        assert np.all(res.line_ex_pos_topo_vect == self.env.observation_space.line_ex_pos_topo_vect)
+        assert issubclass(res.observationClass, self.env.observation_space._init_subtype)
 
     def test_json_serializable(self):
-        dict_ = self.env.helper_observation.to_dict()
+        dict_ = self.env.observation_space.to_dict()
         res = json.dumps(obj=dict_, indent=4, sort_keys=True)
 
     def test_json_loadable(self):
-        dict_ = self.env.helper_observation.to_dict()
+        dict_ = self.env.observation_space.to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
         res = ObservationSpace.from_dict(json.loads(tmp))
 
-        assert res.n_gen == self.env.helper_observation.n_gen
-        assert res.n_load == self.env.helper_observation.n_load
-        assert res.n_line == self.env.helper_observation.n_line
-        assert np.all(res.sub_info == self.env.helper_observation.sub_info)
-        assert np.all(res.load_to_subid == self.env.helper_observation.load_to_subid)
-        assert np.all(res.gen_to_subid == self.env.helper_observation.gen_to_subid)
-        assert np.all(res.line_or_to_subid == self.env.helper_observation.line_or_to_subid)
-        assert np.all(res.line_ex_to_subid == self.env.helper_observation.line_ex_to_subid)
-        assert np.all(res.load_to_sub_pos == self.env.helper_observation.load_to_sub_pos)
-        assert np.all(res.gen_to_sub_pos == self.env.helper_observation.gen_to_sub_pos)
-        assert np.all(res.line_or_to_sub_pos == self.env.helper_observation.line_or_to_sub_pos)
-        assert np.all(res.line_ex_to_sub_pos == self.env.helper_observation.line_ex_to_sub_pos)
-        assert np.all(res.load_pos_topo_vect == self.env.helper_observation.load_pos_topo_vect)
-        assert np.all(res.gen_pos_topo_vect == self.env.helper_observation.gen_pos_topo_vect)
-        assert np.all(res.line_or_pos_topo_vect == self.env.helper_observation.line_or_pos_topo_vect)
-        assert np.all(res.line_ex_pos_topo_vect == self.env.helper_observation.line_ex_pos_topo_vect)
-        assert issubclass(res.observationClass, self.env.helper_observation._init_subtype)
+        assert res.n_gen == self.env.observation_space.n_gen
+        assert res.n_load == self.env.observation_space.n_load
+        assert res.n_line == self.env.observation_space.n_line
+        assert np.all(res.sub_info == self.env.observation_space.sub_info)
+        assert np.all(res.load_to_subid == self.env.observation_space.load_to_subid)
+        assert np.all(res.gen_to_subid == self.env.observation_space.gen_to_subid)
+        assert np.all(res.line_or_to_subid == self.env.observation_space.line_or_to_subid)
+        assert np.all(res.line_ex_to_subid == self.env.observation_space.line_ex_to_subid)
+        assert np.all(res.load_to_sub_pos == self.env.observation_space.load_to_sub_pos)
+        assert np.all(res.gen_to_sub_pos == self.env.observation_space.gen_to_sub_pos)
+        assert np.all(res.line_or_to_sub_pos == self.env.observation_space.line_or_to_sub_pos)
+        assert np.all(res.line_ex_to_sub_pos == self.env.observation_space.line_ex_to_sub_pos)
+        assert np.all(res.load_pos_topo_vect == self.env.observation_space.load_pos_topo_vect)
+        assert np.all(res.gen_pos_topo_vect == self.env.observation_space.gen_pos_topo_vect)
+        assert np.all(res.line_or_pos_topo_vect == self.env.observation_space.line_or_pos_topo_vect)
+        assert np.all(res.line_ex_pos_topo_vect == self.env.observation_space.line_ex_pos_topo_vect)
+        assert issubclass(res.observationClass, self.env.observation_space._init_subtype)
 
 
 class TestObservationHazard(unittest.TestCase):
@@ -487,7 +487,7 @@ class TestObservationHazard(unittest.TestCase):
         # test that helper_obs is abl to generate a valid observation
         obs = self.env.get_obs()
         assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        action = self.env.helper_action_player({})
+        action = self.env.action_space({})
         _ = self.env.step(action)
         obs = self.env.get_obs()
         assert np.all(obs.time_before_cooldown_line == [0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -573,7 +573,7 @@ class TestObservationMaintenance(unittest.TestCase):
                                                               -1,  -1, -1,  -1,  -1,  -1,  -1,  -1,  -1]))
         assert np.all(obs.duration_next_maintenance == np.array([ 0,  0,  0,  0, 12,  0, 12,  0,  0,  0,  0,  0,  0,
                                                                   0,  0,  0,  0, 0,  0,  0]))
-        action = self.env.helper_action_player({})
+        action = self.env.action_space({})
         _ = self.env.step(action)
         obs = self.env.get_obs()
         assert np.all(obs.time_next_maintenance == np.array([ -1,  -1,  -1,  -1,   0,  -1, 275,  -1,  -1,  -1,  -1,

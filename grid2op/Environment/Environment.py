@@ -26,60 +26,11 @@ class Environment(BaseEnv):
     """
     This class is the grid2op implementation of the "Environment" entity in the RL framework.
 
-    TODO clean the attribute, make a doc for all of them, move the description of some of them in BaseEnv when relevant.
     Attributes
     ----------
-    logger: ``logger``
-        Use to store some information (currently in beta status)
 
-    time_stamp: ``datetime.time``
-        Current time of the chronics
-
-    nb_time_step: ``int``
-        Number of time steps played this episode
-
-    parameters: :class:`grid2op.Parameters.Parameters`
-        Parameters used for the game
-
-    rewardClass: ``type``
-        Type of reward used. Should be a subclass of :class:`grid2op.BaseReward.BaseReward`
-
-    init_grid_path: ``str``
-        The path where the description of the powergrid is located.
-
-    backend: :class:`grid2op.Backend.Backend`
-        The backend used to compute powerflows and cascading failures.
-
-    game_rules: :class:`grid2op.Rules.RulesChecker`
-        The rules of the game (define which actions are legal and which are not)
-
-    helper_action_player: :class:`grid2op.Action.ActionSpace`
-        Helper used to manipulate more easily the actions given to / provided by the :class:`grid2op.Agent.BaseAgent`
-        (player)
-
-    helper_action_env: :class:`grid2op.Action.ActionSpace`
-        Helper used to manipulate more easily the actions given to / provided by the environment to the backend.
-
-    helper_observation: :class:`grid2op.Observation.ObservationSpace`
-        Helper used to generate the observation that will be given to the :class:`grid2op.BaseAgent`
-
-    current_obs: :class:`grid2op.Observation.Observation`
-        The current observation (or None if it's not intialized)
-
-    chronics_handler: :class:`grid2op.ChronicsHandler.ChronicsHandler`
-        Helper to get the modification of each time step during the episode.
-
-    names_chronics_to_backend: ``dict``
-        Configuration file used to associated the name of the objects in the backend
-        (both extremities of powerlines, load or production for
-        example) with the same object in the data (:attr:`Environment.chronics_handler`). The idea is that, usually
-        data generation comes from a different software that does not take into account the powergrid infrastructure.
-        Hence, the same "object" can have a different name. This mapping is present to avoid the need to rename
-        the "object" when providing data. A more detailed description is available at
-        :func:`grid2op.ChronicsHandler.GridValue.initialize`.
-
-    reward_helper: :class:`grid2p.BaseReward.RewardHelper`
-        Helper that is called to compute the reward at each time step.
+    name: ``str``
+        The name of the environment
 
     action_space: :class:`grid2op.Action.ActionSpace`
         Another name for :attr:`Environment.helper_action_player` for gym compatibility.
@@ -99,11 +50,6 @@ class Environment(BaseEnv):
     viewer: ``object``
         Used to display the powergrid. Currently not supported.
 
-    env_modification: :class:`grid2op.Action.Action`
-        Representation of the actions of the environment for the modification of the powergrid.
-
-    current_reward: ``float``
-        The reward of the current time step
     """
     def __init__(self,
                  init_grid_path: str,
@@ -139,6 +85,7 @@ class Environment(BaseEnv):
                          tol_poly=tol_poly,
                          other_rewards=other_rewards,
                          with_forecast=with_forecast,
+                         voltagecontrolerClass=voltagecontrolerClass,
                          opponent_action_class=opponent_action_class,
                          opponent_class=opponent_class,
                          opponent_budget_class=opponent_budget_class,
@@ -151,9 +98,6 @@ class Environment(BaseEnv):
             warnings.warn("It is NOT recommended to create an environment without \"make\" and EVEN LESS "
                           "to use an environment without a name")
         self.name = name
-        # the voltage controler
-        self.voltagecontrolerClass = voltagecontrolerClass
-        self.voltage_controler = None
 
         # for gym compatibility (initialized below)
         self.action_space = None
@@ -169,31 +113,18 @@ class Environment(BaseEnv):
             self._raw_backend_class = _raw_backend_class
 
         # for plotting
-        self.init_backend(init_grid_path, chronics_handler, backend,
-                          names_chronics_to_backend, actionClass, observationClass,
-                          rewardClass, legalActClass)
+        self._init_backend(init_grid_path, chronics_handler, backend,
+                           names_chronics_to_backend, actionClass, observationClass,
+                           rewardClass, legalActClass)
 
-    def init_backend(self,
-                     init_grid_path, chronics_handler, backend,
-                     names_chronics_to_backend, actionClass, observationClass,
-                     rewardClass, legalActClass):
+    def _init_backend(self,
+                      init_grid_path, chronics_handler, backend,
+                      names_chronics_to_backend, actionClass, observationClass,
+                      rewardClass, legalActClass):
         """
-        TODO documentation
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Parameters
-        ----------
-        init_grid_path
-        chronics_handler
-        backend
-        names_chronics_to_backend
-        actionClass
-        observationClass
-        rewardClass
-        legalActClass
-
-        Returns
-        -------
-
+        Create a proper and valid environment.
         """
 
         if not isinstance(rewardClass, type):
@@ -203,12 +134,12 @@ class Environment(BaseEnv):
         if not issubclass(rewardClass, BaseReward):
             raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
                                    "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
-        self.rewardClass = rewardClass
-        self.actionClass = actionClass
-        self.observationClass = observationClass
+        self._rewardClass = rewardClass
+        self._actionClass = actionClass
+        self._observationClass = observationClass
 
         # backend
-        self.init_grid_path = os.path.abspath(init_grid_path)
+        self._init_grid_path = os.path.abspath(init_grid_path)
 
         if not isinstance(backend, Backend):
             raise Grid2OpException( "Parameter \"backend\" used to build the Environment should derived form the "
@@ -217,9 +148,9 @@ class Environment(BaseEnv):
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
-        self.backend.load_grid(self.init_grid_path)  # the real powergrid of the environment
-        self.backend.load_redispacthing_data(os.path.split(self.init_grid_path)[0])
-        self.backend.load_grid_layout(os.path.split(self.init_grid_path)[0])
+        self.backend.load_grid(self._init_grid_path)  # the real powergrid of the environment
+        self.backend.load_redispacthing_data(os.path.split(self._init_grid_path)[0])
+        self.backend.load_grid_layout(os.path.split(self._init_grid_path)[0])
         self.backend.assert_grid_correct()
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
@@ -241,8 +172,8 @@ class Environment(BaseEnv):
                 "Parameter \"legalActClass\" used to build the Environment should derived form the "
                 "grid2op.BaseRules class, type provided is \"{}\"".format(
                     type(legalActClass)))
-        self.game_rules = RulesChecker(legalActClass=legalActClass)
-        self.legalActClass = legalActClass
+        self._game_rules = RulesChecker(legalActClass=legalActClass)
+        self._legalActClass = legalActClass
 
         # action helper
         if not isinstance(actionClass, type):
@@ -266,20 +197,20 @@ class Environment(BaseEnv):
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent
-        self.helper_action_class = ActionSpace.init_grid(gridobj=self.backend)
-        self.helper_action_player = self.helper_action_class(gridobj=self.backend,
-                                                             actionClass=actionClass,
-                                                             legal_action=self.game_rules.legal_action)
+        self._helper_action_class = ActionSpace.init_grid(gridobj=self.backend)
+        self._helper_action_player = self._helper_action_class(gridobj=self.backend,
+                                                               actionClass=actionClass,
+                                                               legal_action=self._game_rules.legal_action)
 
         # action that affect the grid made by the environment.
-        self.helper_action_env = self.helper_action_class(gridobj=self.backend,
-                                                          actionClass=CompleteAction,
-                                                          legal_action=self.game_rules.legal_action)
-        self.helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
-        self.helper_observation = self.helper_observation_class(gridobj=self.backend,
-                                                                observationClass=observationClass,
-                                                                rewardClass=rewardClass,
-                                                                env=self)
+        self._helper_action_env = self._helper_action_class(gridobj=self.backend,
+                                                            actionClass=CompleteAction,
+                                                            legal_action=self._game_rules.legal_action)
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
+        self._helper_observation = self._helper_observation_class(gridobj=self.backend,
+                                                                  observationClass=observationClass,
+                                                                  rewardClass=rewardClass,
+                                                                  env=self)
 
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
@@ -297,17 +228,17 @@ class Environment(BaseEnv):
         self.chronics_handler.check_validity(self.backend)
 
         # reward function
-        self.reward_helper = RewardHelper(self.rewardClass)
-        self.reward_helper.initialize(self)
+        self._reward_helper = RewardHelper(self._rewardClass)
+        self._reward_helper.initialize(self)
         for k, v in self.other_rewards.items():
             v.initialize(self)
 
         # controler for voltage
-        if not issubclass(self.voltagecontrolerClass, BaseVoltageController):
+        if not issubclass(self._voltagecontrolerClass, BaseVoltageController):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
-        self.voltage_controler = self.voltagecontrolerClass(gridobj=self.backend,
-                                                            controler_backend=self.backend)
+        self._voltage_controler = self._voltagecontrolerClass(gridobj=self.backend,
+                                                              controler_backend=self.backend)
 
         # create the opponent
         # At least the 3 following attributes should be set before calling _create_opponent
@@ -317,7 +248,7 @@ class Environment(BaseEnv):
         # first injections given)
         self._reset_maintenance()
         self._reset_redispatching()
-        do_nothing = self.helper_action_env({})
+        do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
             raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
@@ -327,9 +258,9 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct_after_powerflow()
 
         # for gym compatibility
-        self.action_space = self.helper_action_player  # this should be an action !!!
-        self.observation_space = self.helper_observation  # this return an observation.
-        self.reward_range = self.reward_helper.range()
+        self.action_space = self._helper_action_player  # this should be an action !!!
+        self.observation_space = self._helper_observation  # this return an observation.
+        self.reward_range = self._reward_helper.range()
         self.viewer = None
         self.viewer_fig = None
 
@@ -344,6 +275,8 @@ class Environment(BaseEnv):
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
         function can be overide for a more complex handling of the voltages.
 
@@ -358,10 +291,10 @@ class Environment(BaseEnv):
             The voltages that has been specified in the chronics
 
         """
-        volt_control_act = self.voltage_controler.fix_voltage(self.current_obs,
-                                                              agent_action,
-                                                              self.env_modification,
-                                                              prod_v_chronics)
+        volt_control_act = self._voltage_controler.fix_voltage(self.current_obs,
+                                                               agent_action,
+                                                               self._env_modification,
+                                                               prod_v_chronics)
         return volt_control_act
 
     def set_chunk_size(self, new_chunk_size):
@@ -377,7 +310,7 @@ class Environment(BaseEnv):
         learning agent) at the beginning when the agent performs poorly, the software might spend most of its time
         loading the data.
 
-        **NB** this has no effect if the chronics does not support this feature. TODO see xxx for more information
+        **NB** this has no effect if the chronics does not support this feature.
 
         **NB** The environment need to be **reset** for this to take effect (it won't affect the chronics already
         loaded)
@@ -386,6 +319,20 @@ class Environment(BaseEnv):
         ----------
         new_chunk_size: ``int`` or ``None``
             The new chunk size (positive integer)
+
+        Examples
+        ---------
+        Here is an example on how to use this function
+
+        .. code-block:: python
+
+            import grid2op
+
+            # I create an environment
+            env = grid2op.make("rte_case5_example", test=True)
+            env.set_chunk_size(100)
+            # and now data will be read from the hard drive 100 time steps per 100 time steps
+            # instead of the whole episode at once.
 
         """
         if new_chunk_size is None:
@@ -408,7 +355,7 @@ class Environment(BaseEnv):
         """
         Set the id that will be used at the next call to :func:`Environment.reset`.
 
-        **NB** this has no effect if the chronics does not support this feature. TODO see xxx for more information
+        **NB** this has no effect if the chronics does not support this feature.
 
         **NB** The environment need to be **reset** for this to take effect.
 
@@ -475,8 +422,43 @@ class Environment(BaseEnv):
         Parameters
         ----------
         graph_layout: ``dict``
+            Here for backward compatibility. Currently not used.
+
+            If you want to set a specific layout call :func:`BaseEnv.attach_layout`
+
             If ``None`` this class will use the default substations layout provided when the environment was created.
             Otherwise it will use the data provided.
+
+        Examples
+        ---------
+        Here is how to use the function
+
+        .. code-block:: python
+
+            import grid2op
+
+            # create the environment
+            env = grid2op.make()
+
+            if False:
+                # if you want to change the default layout of the powergrid
+                # assign coordinates (0., 0.) to all substations (this is a dummy thing to do here!)
+                layout = {sub_name: (0., 0.) for sub_name in env.name_sub}
+                env.attach_layout(layout)
+                # NB again, this code will make everything look super ugly !!!! Don't change the
+                # default layout unless you have a reason to.
+
+            # and if you want to use the renderer
+            env.attach_renderer()
+
+            # and now you can "render" (plot) the state of the grid
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                env.render()
+                action = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(action)
 
         """
         # Viewer already exists: skip
@@ -491,30 +473,35 @@ class Environment(BaseEnv):
                       "Please install matplotlib or run pip install grid2op[optional]"
             raise Grid2OpException(err_msg) from None
 
-        self.viewer = PlotMatplot(self.helper_observation)
+        self.viewer = PlotMatplot(self._helper_observation)
         self.viewer_fig = None
         # Set renderer modes
         self.metadata = {'render.modes': ["human", "silent"]}
 
     def __str__(self):
-        return '<{} instance>'.format(type(self).__name__)
+        return '<{} instance named {}>'.format(type(self).__name__, self.name)
         # TODO be closer to original gym implementation
 
     def reset_grid(self):
         """
-        Reset the backend to a clean state by reloading the powergrid from the hard drive. This might takes some time.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is automatically called when using `env.reset`
+
+        Reset the backend to a clean state by reloading the powergrid from the hard drive.
+        This might takes some time.
 
         If the thermal has been modified, it also modify them into the new backend.
 
         """
-        self.backend.reset(self.init_grid_path)  # the real powergrid of the environment
+        self.backend.reset(self._init_grid_path)  # the real powergrid of the environment
         self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         self._backend_action = self._backend_action_class()
-        do_nothing = self.helper_action_env({})
+        do_nothing = self._helper_action_env({})
         *_, fail_to_start, info = self.step(do_nothing)
         if fail_to_start:
             raise Grid2OpException("Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
@@ -524,8 +511,7 @@ class Environment(BaseEnv):
         """
         Add a text logger to this  :class:`Environment`
 
-        Logging is for now an incomplete feature, really incomplete (beta)
-
+        Logging is for now an incomplete feature, really incomplete (not used)
 
         Parameters
         ----------
@@ -545,6 +531,25 @@ class Environment(BaseEnv):
         to ensure the episode is fully over.
 
         This method should be called only at the end of an episode.
+
+        Examples
+        --------
+        The standard "gym loop" can be done with the following code:
+
+        .. code-block:: python
+
+            import grid2op
+
+            # create the environment
+            env = grid2op.make()
+
+            # and now you can "render" (plot) the state of the grid
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                action = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(action)
         """
         super().reset()
         self.chronics_handler.next_chronics()
@@ -552,7 +557,7 @@ class Environment(BaseEnv):
                                          self.backend.name_line, self.backend.name_sub,
                                          names_chronics_to_backend=self.names_chronics_to_backend)
         self.current_obs = None
-        self.env_modification = None
+        self._env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
@@ -564,13 +569,36 @@ class Environment(BaseEnv):
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
 
         # reset the opponent
-        self.oppSpace.reset()
+        self._oppSpace.reset()
         return self.get_obs()
 
     def render(self, mode='human'):
         """
         Render the state of the environment on the screen, using matplotlib
         Also returns the Matplotlib figure
+
+        Examples
+        --------
+        Rendering need first to define a "renderer" which can be done with the following code:
+
+        .. code-block:: python
+
+            import grid2op
+
+            # create the environment
+            env = grid2op.make()
+
+            # if you want to use the renderer
+            env.attach_renderer()
+
+            # and now you can "render" (plot) the state of the grid
+            obs = env.reset()
+            done = False
+            reward = env.reward_range[0]
+            while not done:
+                env.render()  # this piece of code plot the grid
+                action = agent.act(obs, reward, done)
+                obs, reward, done, info = env.step(action)
         """
         # Try to create a plotter instance
         # Does nothing if viewer exists
@@ -598,39 +626,49 @@ class Environment(BaseEnv):
 
     def copy(self):
         """
-        performs a deep copy of the environment
+        Performs a deep copy of the environment
 
-        Returns
-        -------
+        Unless you have a reason to, it is not advised to make copy of an Environment.
+
+        Examples
+        --------
+        It should be used as follow:
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make()
+            cpy_of_env = env.copy()
+
 
         """
         tmp_backend = self.backend
         self.backend = None
 
-        tmp_obs_space = self.helper_observation
+        tmp_obs_space = self._helper_observation
         self.observation_space = None
-        self.helper_observation = None
+        self._helper_observation = None
 
         obs_tmp = self.current_obs
         self.current_obs = None
 
-        volt_cont = self.voltage_controler
-        self.voltage_controler = None
+        volt_cont = self._voltage_controler
+        self._voltage_controler = None
 
         res = copy.deepcopy(self)
         res.backend = tmp_backend.copy()
-        res.helper_observation = tmp_obs_space.copy()
-        res.observation_space = res.helper_observation
+        res._helper_observation = tmp_obs_space.copy()
+        res.observation_space = res._helper_observation
         res.current_obs = obs_tmp.copy()
-        res.voltage_controler = volt_cont.copy()
+        res._voltage_controler = volt_cont.copy()
 
         if self._thermal_limit_a is not None:
             res.backend.set_thermal_limit(self._thermal_limit_a)
         self.backend = tmp_backend
         self.observation_space = tmp_obs_space
-        self.helper_observation = tmp_obs_space
+        self._helper_observation = tmp_obs_space
         self.current_obs = obs_tmp
-        self.voltage_controler = volt_cont
+        self._voltage_controler = volt_cont
         return res
 
     def get_kwargs(self, with_backend=True):
@@ -642,10 +680,15 @@ class Environment(BaseEnv):
         code are used) but you still want to make parallel processing using "MultiProcessing" module. In that case,
         you can send this dictionary to each child process, and have each child process make a copy of ``self``
 
+        **NB** This function should not be used to make a copy of an environment. Prefer using :func:`Environment.copy`
+        for such purpose.
+
+
         Returns
         -------
         res: ``dict``
-            A dictionary that helps build an environment like ``self``
+            A dictionary that helps build an environment like ``self`` (which is NOT a copy of self) but rather
+            an instance of an environment with the same properties.
 
         Examples
         --------
@@ -658,36 +701,39 @@ class Environment(BaseEnv):
             env = grid2op.make()  # create the environment of your choice
             copy_of_env = Environment(**env.get_kwargs())
             # And you can use this one as you would any other environment.
+            # NB this is not a "proper" copy. for example it will not be at the same step, it will be possible
+            # seeded with a different seed.
+            # use `env.copy()` to make a proper copy of an environment.
 
         """
         res = {}
-        res["init_grid_path"] = self.init_grid_path
+        res["init_grid_path"] = self._init_grid_path
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             res["backend"] = self.backend.copy()
         res["parameters"] = copy.deepcopy(self.parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
-        res["actionClass"] = self.actionClass
-        res["observationClass"] = self.observationClass
-        res["rewardClass"] = self.rewardClass
-        res["legalActClass"] = self.legalActClass
+        res["actionClass"] = self._actionClass
+        res["observationClass"] = self._observationClass
+        res["rewardClass"] = self._rewardClass
+        res["legalActClass"] = self._legalActClass
         res["epsilon_poly"] = self._epsilon_poly
         res["tol_poly"] = self._tol_poly
         res["thermal_limit_a"] = self._thermal_limit_a
-        res["voltagecontrolerClass"] = self.voltagecontrolerClass
+        res["voltagecontrolerClass"] = self._voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["name"] = self.name
         res["_raw_backend_class"] = self._raw_backend_class
         res["with_forecast"] = self.with_forecast
 
-        res["opponent_action_class"] = self.opponent_action_class
-        res["opponent_class"] = self.opponent_class
-        res["opponent_init_budget"] = self.opponent_init_budget
-        res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
-        res["opponent_budget_class"] = self.opponent_budget_class
-        res["opponent_attack_duration"] = self.opponent_attack_duration
-        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
-        res["kwargs_opponent"] = self.kwargs_opponent
+        res["opponent_action_class"] = self._opponent_action_class
+        res["opponent_class"] = self._opponent_class
+        res["opponent_init_budget"] = self._opponent_init_budget
+        res["opponent_budget_per_ts"] = self._opponent_budget_per_ts
+        res["opponent_budget_class"] = self._opponent_budget_class
+        res["opponent_attack_duration"] = self._opponent_attack_duration
+        res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
+        res["kwargs_opponent"] = self._kwargs_opponent
         return res
 
     def get_params_for_runner(self):
@@ -702,8 +748,8 @@ class Environment(BaseEnv):
 
             import grid2op
             from grid2op.Runner import Runner
+            from grid2op.Agent import DoNothingAgent  # for example
             env = grid2op.make()  # create the environment of your choice
-            agent = DoNothingAgent(env.actoin_space)
 
             # create the proper runner
             runner = Runner(**env.get_params_for_runner(), agentClass=DoNothingAgent)
@@ -713,14 +759,14 @@ class Environment(BaseEnv):
 
         """
         res = {}
-        res["init_grid_path"] = self.init_grid_path
+        res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self.parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
-        res["actionClass"] = self.actionClass
-        res["observationClass"] = self.observationClass
-        res["rewardClass"] = self.rewardClass
-        res["legalActClass"] = self.legalActClass
+        res["actionClass"] = self._actionClass
+        res["observationClass"] = self._observationClass
+        res["rewardClass"] = self._rewardClass
+        res["legalActClass"] = self._legalActClass
         res["envClass"] = Environment
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
@@ -731,17 +777,17 @@ class Environment(BaseEnv):
             del dict_["path"]
         res["gridStateclass_kwargs"] = dict_
         res["thermal_limit_a"] = self._thermal_limit_a
-        res["voltageControlerClass"] = self.voltagecontrolerClass
+        res["voltageControlerClass"] = self._voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
 
-        res["opponent_action_class"] = self.opponent_action_class
-        res["opponent_class"] = self.opponent_class
-        res["opponent_init_budget"] = self.opponent_init_budget
-        res["opponent_budget_per_ts"] = self.opponent_budget_per_ts
-        res["opponent_budget_class"] = self.opponent_budget_class
-        res["opponent_attack_duration"] = self.opponent_attack_duration
-        res["opponent_attack_cooldown"] = self.opponent_attack_cooldown
-        res["opponent_kwargs"] = self.kwargs_opponent
+        res["opponent_action_class"] = self._opponent_action_class
+        res["opponent_class"] = self._opponent_class
+        res["opponent_init_budget"] = self._opponent_init_budget
+        res["opponent_budget_per_ts"] = self._opponent_budget_per_ts
+        res["opponent_budget_class"] = self._opponent_budget_class
+        res["opponent_attack_duration"] = self._opponent_attack_duration
+        res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
+        res["opponent_kwargs"] = self._kwargs_opponent
         return res

@@ -1,24 +1,40 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import numpy as np
 from grid2op.Agent import BaseAgent
 
-class DeltaRedispatchRandomAgent(BaseAgent):        
+
+class DeltaRedispatchRandomAgent(BaseAgent):
+    """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Used for test. Prefer using a random agent by selecting only the redispatching action
+        that you want.
+
+    This agent will perform some redispatch of a given amount among randomly selected dispatchable
+    generators.
+
+    Parameters
+    ----------
+    action_space: :class:`grid2op.Action.ActionSpace`
+         the Grid2Op action space
+
+    n_gens_to_redispatch: `int`
+      The maximum number of dispatchable generators to play with
+
+    redispatching_delta: `float`
+      The redispatching MW value used in both directions
+
+    """
     def __init__(self, action_space,
                  n_gens_to_redispatch=2,
                  redispatching_delta=1.0):
-        """
-        Agent constructor
-
-        Parameters
-        ----------
-        :action_space: :class:`grid2op.Action.ActionSpace`
-             the Grid2Op action space
-
-        :n_gens_to_redispatch: `int`
-          The maximum number of dispatchable generators to play with 
-
-        :redispatching_delta: `float`
-          The redispatching MW value used in both directions
-        """
         super().__init__(action_space)
         self.desired_actions = []
 
@@ -54,24 +70,6 @@ class DeltaRedispatchRandomAgent(BaseAgent):
             self.desired_actions.append(act1)
             self.desired_actions.append(act2)
 
-        
     def act(self, observation, reward, done=False):
-        """
-        Parameters
-        ----------
-        observation: :class:`grid2op.Observation.Observation`
-            The current observation of the 
-            :class:`grid2op.Environment.Environment`
-        reward: ``float``
-            The current reward. 
-            This is the reward obtained by the previous action
-        done: ``bool``
-            Whether the episode has ended or not. 
-            Used to maintain gym compatibility
-        Returns
-        -------
-        res: :class:`grid2op.Action.Action`
-            The action chosen by agent.
-        """
-        
-        return self.space_prng.choice(self.desired_actions)
+        act = self.space_prng.choice(self.desired_actions)
+        return act

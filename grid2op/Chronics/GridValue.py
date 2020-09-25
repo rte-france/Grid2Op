@@ -37,6 +37,10 @@ class GridValue(RandomObject, ABC):
     data to be generated from this object, then :func:`GridValue.load_next` should raise a :class:`StopIteration`
     exception and a call to :func:`GridValue.done` should return True.
 
+    In grid2op, the production and loads (and hazards or maintenance) can be stored in this type of
+    of "GridValue". This class will map things generated (or read from a file) and assign the given element
+    of the powergrid with its proper value at each time steps.
+
     Attributes
     ----------
     time_interval: :class:`.datetime.timedelta`
@@ -47,15 +51,6 @@ class GridValue(RandomObject, ABC):
 
     current_datetime: :class:`datetime.datetime`
         The timestamp of the current scenario.
-
-    n_gen: ``int``
-        Number of generators in the powergrid
-
-    n_load: ``int``
-        Number of loads in the powergrid
-
-    n_line: ``int``
-        Number of powerline in the powergrid
 
     max_iter: ``int``
         Number maximum of data to generate for one episode.
@@ -99,9 +94,6 @@ class GridValue(RandomObject, ABC):
         self.time_interval = time_interval
         self.current_datetime = start_datetime
         self.start_datetime = start_datetime
-        self.n_gen = None
-        self.n_load = None
-        self.n_line = None
         self.max_iter = max_iter
         self.curr_iter = 0
 
@@ -157,10 +149,6 @@ class GridValue(RandomObject, ABC):
 
         names_chronics_to_backend: ``dict``
             See in the description of the method for more information about its format.
-
-        Returns
-        -------
-        ``None``
 
         Examples
         --------
@@ -382,14 +370,14 @@ class GridValue(RandomObject, ABC):
 
         Parameters
         ----------
-        maintenance: ``numpy.ndarray``
-            1 dimensional array representing the time series of the maintenance (0 there is no maintenance, 1 there
-            is a maintenance at this time step)
+        hazard: ``numpy.ndarray``
+            1 dimensional array representing the time series of the hazards (0 there is no hazard, 1 there
+            is a hazard at this time step)
 
         Returns
         -------
-        maintenance_duration: ``numpy.ndarray``
-            Array representing the time series of the duration of the next maintenance forseeable.
+        hazard_duration: ``numpy.ndarray``
+            Array representing the time series of the duration of the next hazard forseeable.
 
         Examples
         --------
@@ -443,14 +431,20 @@ class GridValue(RandomObject, ABC):
     @abstractmethod
     def load_next(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is automatically called by the "env.step" function. It loads the next information
+            about the grid state (load p and load q, prod p and prod v as well as some maintenance
+            or hazards information)
+
         Generate the next values, either by reading from a file, or by generating on the fly and return a dictionnary
         compatible with the :class:`grid2op.BaseAction` class allowed for the :class:`Environment`.
 
-        More information about this dictionnary can be found at :func:`grid2op.BaseAction.update`.
+        More information about this dictionary can be found at :func:`grid2op.BaseAction.update`.
 
-        As a (quick) reminder: this dictionnary has for keys:
+        As a (quick) reminder: this dictionary has for keys:
 
-          - "injection" (optional): a dictionnary with keys (optional) "load_p", "load_q", "prod_p", "prod_v"
+          - "injection" (optional): a dictionary with keys (optional) "load_p", "load_q", "prod_p", "prod_v"
           - "hazards" (optional) : the outage suffered from the _grid
           - "maintenance" (optional) : the maintenance operations planned on the grid for the current time step.
 
@@ -460,8 +454,7 @@ class GridValue(RandomObject, ABC):
             The current timestamp for which the modifications have been generated.
 
         dict_: ``dict``
-            A dictionnary understandable by the ::func:`grid2op.BaseAction.update` method. **NB** this function should
-            return the dictionnary that will be converted, is should not, in any case, return an action.
+            Always empty, indicating i do nothing.
 
         maintenance_time: ``numpy.ndarray``, dtype:``int``
             Information about the next planned maintenance. See :attr:`GridValue.maintenance_time` for more information.
@@ -474,36 +467,43 @@ class GridValue(RandomObject, ABC):
             Information about the current hazard. See :attr:`GridValue.hazard_duration`
             for more information.
 
+        prod_v: ``numpy.ndarray``, dtype:``float``
+            the (stored) value of the generator voltage setpoint
+
         Raises
         ------
         StopIteration
             if the chronics is over
+
         """
         self.current_datetime += self.time_interval
-        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration
+        return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration, None
 
     @abstractmethod
     def check_validity(self, backend):
         """
-        To make sure that the data returned by this class are of the proper dimension, a call to this method
-        must be performed before actually using the data generated by this class.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        In the grid2op framework, this is ensure because the :class:`grid2op.Environment` calls this method
-        in its initialization.
+            This is called at the creation of the environment to ensure the Backend and the chronics
+            are consistent with one another.
+
+        A call to this method ensure that the action that will be sent to the current :class:`grid2op.Environment`
+        can be properly implemented by its :class:`grid2op.Backend`.
+        This specific method check that the dimension of all vectors are consistent
 
         Parameters
         ----------
-        backend: :class:`grid2op.Backend`
-            The backend used by the :class;`Environment`.
-
-        Returns
-        -------
-
+        backend: :class:`grid2op.Backend.Backend`
+            The backend used by the :class:`grid2op.Environment.Environment`
         """
         raise EnvError("check_validity not implemented")
 
     def done(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Use the :class:`ChroncisHandler` for such purpose
+
         Whether the episode is over or not.
 
         Returns
@@ -520,6 +520,10 @@ class GridValue(RandomObject, ABC):
 
     def forecasts(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Use the :class:`ChroncisHandler` for such purpose
+
         This method is used to generate the forecasts that are made available to the :class:`grid2op.BaseAgent`.
         This forecasts are behaving the same way than a list of tuple as the one returned by
         :func:`GridValue.load_next` method.
@@ -531,19 +535,23 @@ class GridValue(RandomObject, ABC):
         -------
         res: ``list``
             Each element of this list having the same type as what is returned by :func:`GridValue.load_next`.
+
         """
         return []
 
     @abstractmethod
     def next_chronics(self):
         """
-        Load the next batch of chronics. This function is called after an episode has finished by the
-        :class:`grid2op.Environment` or the :class:`grid2op.Runner`.
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        A call to this function should also reset :attr:`GridValue.curr_iter` to 0.
-        Returns
-        -------
-        ``None``
+            Move to the next "chronics", representing the next "level" if we make the parallel
+            with video games.
+
+        A call to this function should at least restart:
+
+          - :attr:`GridValue.current_datetime` to its origin value
+          - :attr:`GridValue.curr_iter`
+
         """
         pass
 
@@ -559,9 +567,6 @@ class GridValue(RandomObject, ABC):
 
         By default it does nothing.
 
-        Returns
-        -------
-        ``None``
         """
         warnings.warn("Class {} doesn't handle different input folder. \"tell_id\" method has no impact."
                       "".format(type(self).__name__))
@@ -592,28 +597,44 @@ class GridValue(RandomObject, ABC):
 
         Returns
         -------
-        res: int
+        res: ``int``
             -1 if possibly infinite length of a positive integer representing the maximum duration of this episode
 
         """
         # warnings.warn("Class {} has possibly and infinite duration.".format(type(self).__name__))
         return self.max_iter
 
-    def shuffle(self, shuffler):
+    def shuffle(self, shuffler=None):
         """
-        This method can be overiden if the data that are represented by this object need to be shuffle.
+        This method can be overridden if the data that are represented by this object need to be shuffle.
 
         By default it does nothing.
+
         Parameters
         ----------
         shuffler: ``object``
             Any function that can be used to shuffle the data.
 
-        Returns
-        -------
-
         """
         pass
+
+    def sample_next_chronics(self, probabilities=None):
+        """
+        this is used to sample the next chronics used with given probabilities
+
+        Parameters
+        -----------
+        probabilities: ``np.ndarray``
+            Array of integer with the same size as the number of chronics in the cache.
+            If it does not sum to one, it is rescaled such that it sums to one.
+
+        Returns
+        -------
+        selected: ``int``
+            The integer that was selected.
+
+        """
+        return -1
 
     def set_chunk_size(self, new_chunk_size):
         """
@@ -630,9 +651,13 @@ class GridValue(RandomObject, ABC):
 
     def fast_forward(self, nb_timestep):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :func:`grid2op.Environment.BaseEnv.fast_forward_chronics`
+
         This method allows you to skip some time step at the beginning of the chronics.
 
-        This is usefull at the beginning of the training, if you want your agent to learn on more diverse scenarios.
+        This is useful at the beginning of the training, if you want your agent to learn on more diverse scenarios.
         Indeed, the data provided in the chronics usually starts always at the same date time (for example Jan 1st at
         00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
         the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.

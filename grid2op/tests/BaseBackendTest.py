@@ -979,7 +979,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
 
-        env.timestep_overflow[self.id_2nd_line_disco] = 0
+        env._timestep_overflow[self.id_2nd_line_disco] = 0
         thermal_limit = 10 * self.lines_flows_init
         thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
         thermal_limit[self.id_2nd_line_disco] = 400
@@ -1011,7 +1011,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
 
-        env.timestep_overflow[self.id_2nd_line_disco] = 1
+        env._timestep_overflow[self.id_2nd_line_disco] = 1
 
         thermal_limit = 10 * self.lines_flows_init
         thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
@@ -1044,7 +1044,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
 
-        env.timestep_overflow[self.id_2nd_line_disco] = 2
+        env._timestep_overflow[self.id_2nd_line_disco] = 2
 
         thermal_limit = 10 * self.lines_flows_init
         thermal_limit[self.id_first_line_disco] = self.lines_flows_init[self.id_first_line_disco] / 2
@@ -1072,7 +1072,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         env.reset()
-        action = env.helper_action_player({"set_bus": {"lines_or_id": [(17, 2)]}})
+        action = env.action_space({"set_bus": {"lines_or_id": [(17, 2)]}})
         obs, reward, done, info = env.step(action)
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend.get_topo_vect() == 2) == 1
@@ -1086,7 +1086,7 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         env.reset()
-        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend.get_topo_vect() == 2) == 1
@@ -1099,13 +1099,13 @@ class BaseTestChangeBusAffectRightBus(MakeBackend):
             warnings.filterwarnings("ignore")
             env = make(test=True, backend=backend)
         env.reset()
-        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert not done
         assert np.all(np.isfinite(obs.v_or))
         assert np.sum(env.backend.get_topo_vect() == 2) == 1
 
-        action = env.helper_action_player({"change_bus": {"lines_or_id": [17]}})
+        action = env.action_space({"change_bus": {"lines_or_id": [17]}})
         obs, reward, done, info = env.step(action)
         assert not done
         assert np.all(np.isfinite(obs.v_or))

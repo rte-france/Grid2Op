@@ -19,6 +19,8 @@ from matplotlib.lines import Line2D
 
 class PlotMatplot(BasePlot):
     """
+    This class uses the python library "matplotlib" to draw the powergrid.
+
     Attributes
     ----------
 
@@ -78,6 +80,25 @@ class PlotMatplot(BasePlot):
         Length of the arrow on the powerlines
     _line_arrow_width: ``int``
        Width of the arrow on the powerlines
+
+    Examples
+    --------
+    You can use it this way:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.PlotGrid import PlotMatplot
+        env = grid2op.make()
+        plot_helper = PlotMatplot(env.observation_space)
+
+        # and now plot an observation (for example)
+        obs = env.reset()
+        fig = plot_helper.plot_obs(obs)
+        fig.show()
+
+        # more information about it on the `getting_started/8_PlottingCapabilities.ipynb` notebook of grid2op
+
     """
 
     def __init__(self,
@@ -92,7 +113,7 @@ class PlotMatplot(BasePlot):
                  load_radius=8,
                  load_name=False,
                  load_id=False,
-                 gen_radius = 8,
+                 gen_radius=8,
                  gen_name=False,
                  gen_id=False,
                  line_name=False,
