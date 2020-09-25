@@ -15,7 +15,7 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
-[1.3.0] - 2020-xx-yy
+[1.2.3] - 2020-09-25
 ----------------------
 - [ADDED] `l2rpn-baselines` package dependency in the "binder" environment.
 - [FIXED] an issue in the sampling of redispatching action (ramp up and ramp down were inverted)
@@ -34,7 +34,7 @@ Change Log
 - [IMPROVED] rationalize the public and private part of the API for `Environment` and `BaseEnv`.
   Some members have been moved to private attribute (their modification would largely alterate the
   behaviour of grid2op).
-- [IMPROVED] internal functions are tagged as "Internal, do not use".
+- [IMPROVED] internal functions are tagged as "Internal, do not use" in the documentation.
 - [IMPROVED] Improved documentation for the `Environment` and `MultiMixEnvironment`.
 
 [1.2.2] - 2020-08-19
