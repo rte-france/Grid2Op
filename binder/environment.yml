@@ -5,6 +5,7 @@ dependencies:
   - python
   - numpy
   - keras
+  - pip
   - pip:
     - grid2op[challenge]
     - l2rpn-baselines
