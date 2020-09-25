@@ -15,8 +15,18 @@ from grid2op.Chronics.GridValue import GridValue
 
 class ChangeNothing(GridValue):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Do not attempt to create an object of this class. This is initialized by the environment
+        at its creation.
+
+    This set of class is mainly internal.
+
+    We don't recommend you, unless you want to code a custom "chroncis class" to change anything
+    on these classes.
+
     This class is the most basic class to modify a powergrid values.
-    It does nothing exceptie increasing :attr:`GridValue.max_iter` and the :attr:`GridValue.current_datetime`.
+    It does nothing aside from increasing :attr:`GridValue.max_iter` and the :attr:`GridValue.current_datetime`.
     """
     def __init__(self, time_interval=timedelta(minutes=5), max_iter=-1,
                  start_datetime=datetime(year=2019, month=1, day=1),
@@ -36,64 +46,13 @@ class ChangeNothing(GridValue):
         self.hazard_duration = np.zeros(shape=(self.n_line, ), dtype=dt_int)
 
     def load_next(self):
-        """
-        This function does nothing but the two requirements of load_next ie:
-
-          - increasing :attr:`GridValue.curr_iter` of 1
-          - increasing :attr:`GridValue.current_datetime`
-
-        Returns
-        -------
-        timestamp: ``datetime.datetime``
-            The current timestamp for which the modifications have been generated.
-
-        dict_: ``dict``
-            Always empty, indicating i do nothing.
-
-        maintenance_time: ``numpy.ndarray``, dtype:``int``
-            Information about the next planned maintenance. See :attr:`GridValue.maintenance_time` for more information.
-
-        maintenance_duration: ``numpy.ndarray``, dtype:``int``
-            Information about the duration of next planned maintenance. See :attr:`GridValue.maintenance_duration`
-            for more information.
-
-        hazard_duration: ``numpy.ndarray``, dtype:``int``
-            Information about the current hazard. See :attr:`GridValue.hazard_duration`
-            for more information.
-
-        prod_v: ``numpy.ndarray``, dtype:``float``
-            the (stored) value of the generator voltage setpoint
-
-        """
         self.current_datetime += self.time_interval
         self.curr_iter += 1
         return self.current_datetime, {}, self.maintenance_time, self.maintenance_duration, self.hazard_duration, None
 
     def check_validity(self, backend):
-        """
-
-        Parameters
-        ----------
-        backend: :class:`grid2op.Backend`
-            The backend, not used here.
-
-        Returns
-        -------
-        res: ``bool``
-            Always ``True``. As this doesn't change the powergird, there is no way to make invalid changed.
-        """
         return True
 
     def next_chronics(self):
-        """
-        Restarts:
-
-          - :attr:`GridValue.current_datetime` to its origin value ( 2019 / 01 / 01)
-          - :attr:`GridValue.curr_iter` to 0
-
-        Returns
-        -------
-
-        """
         self.current_datetime = self.start_datetime
         self.curr_iter = 0

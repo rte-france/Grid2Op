@@ -155,7 +155,7 @@ class Parameters:
 
     def init_from_dict(self, dict_):
         """
-        Initialize the object given a dictionary. All keys are optional. If a key is not present in the dictionnary,
+        Initialize the object given a dictionary. All keys are optional. If a key is not present in the dictionary,
         the default parameters is used.
 
         Parameters
@@ -263,7 +263,7 @@ class Parameters:
     @staticmethod
     def from_json(json_path):
         """
-        Create instance from a json path.
+        Create instance of a Parameters from a path where is a json is saved.
 
         Parameters
         ----------

@@ -13,6 +13,11 @@ from grid2op.Exceptions import OpponentError
 
 
 class RandomLineOpponent(BaseOpponent):
+    """
+    An opponent that disconnect at random any powerlines among a specified list given
+    at the initialization.
+
+    """
     def __init__(self, action_space):
         BaseOpponent.__init__(self, action_space)
         self._do_nothing = None
@@ -23,6 +28,19 @@ class RandomLineOpponent(BaseOpponent):
         # it should have the exact same signature as here
 
     def init(self, lines_attacked=[], **kwargs):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used when the opponent is created.
+
+        Parameters
+        ----------
+        lines_attacked
+        kwargs
+
+        Returns
+        -------
+
+        """
         # this if the function used to properly set the object.
         # It has the generic signature above,
         # and it's way more flexible that the other one.

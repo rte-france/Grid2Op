@@ -24,9 +24,12 @@ from grid2op.Space import GridObjects
 from grid2op.Exceptions import PlotError
 
 
-
 class BasePlot(GridObjects):
     """
+    .. warning:: /!\\\\ This module is deprecated /!\\\\
+
+        Prefer using the module `grid2op.PlotGrid
+
     Utility class that allows to compute the position of the objects of the powergrid.
 
     Deriving from this class allows to perform the display of the powergrid.
@@ -47,6 +50,8 @@ class BasePlot(GridObjects):
                  load_prod_dist=70.,
                  bus_radius=6.):
 
+        warnings.warn("This whole class has been deprecated. Use `grid2op.PlotGrid module instead`",
+                      category=DeprecationWarning)
         if substation_layout is None:
             if observation_space.grid_layout is None:
                 # if no layout is provided, and observation_space has no layout, then it fails
@@ -119,6 +124,10 @@ class BasePlot(GridObjects):
 
     def plot_layout(self, fig=None, reward=None, done=None, timestamp=None):
         """
+        .. warning:: /!\\\\ This module is deprecated /!\\\\
+
+            Prefer using the module `grid2op.PlotGrid
+
         This function plot the layout of the grid, as well as the object. You will see the name of each elements and
         their id.
         """
@@ -139,6 +148,10 @@ class BasePlot(GridObjects):
                   colormap=None, unit=None):
 
         """
+        .. warning:: /!\\\\ This module is deprecated /!\\\\
+
+            Prefer using the module `grid2op.PlotGrid
+
         Plot some information on the powergrid. For now, only numeric data are supported.
 
         Parameters
@@ -231,6 +244,10 @@ class BasePlot(GridObjects):
                  gen_info="p",
                  colormap="line"):
         """
+        .. warning:: /!\\\\ This module is deprecated /!\\\\
+
+            Prefer using the module `grid2op.PlotGrid
+
         Plot the given observation in the given figure.
 
         For now it represents information about load and generator active values.
@@ -332,6 +349,11 @@ class BasePlot(GridObjects):
 
     def _compute_layout(self):
         """
+
+        .. warning:: /!\\\\ This module is deprecated /!\\\\
+
+            Prefer using the module `grid2op.PlotGrid
+
         Compute the position of each of the objects.
 
         Parameters
@@ -762,26 +784,16 @@ class BasePlot(GridObjects):
         pass
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     ## DEPRECATED FUNCTIONS
     def plot_observation(self, observation, fig=None,
                          line_info="rho",
                          load_info="p",
                          gen_info="p"):
         """
+
+        .. warning:: /!\\\\ This module is deprecated /!\\\\
+
+            Prefer using the module `grid2op.PlotGrid
 
         Parameters
         ----------
@@ -821,6 +833,10 @@ class BasePlot(GridObjects):
                          load_info="p",
                          gen_info="p"):
         """
+
+        .. warning:: /!\\\\ This module is deprecated /!\\\\
+
+            Prefer using the module `grid2op.PlotGrid
 
         Parameters
         ----------

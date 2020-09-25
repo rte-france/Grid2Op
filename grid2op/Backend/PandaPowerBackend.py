@@ -6,14 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-This module presents an example of an implementation of a `grid2op.Backend` when using the powerflow
-implementation "pandapower" available at `PandaPower <https://www.pandapower.org/>`_ for more details about
-this backend. This file is provided as an example of a proper :class:`grid2op.Backend.Backend` implementation.
-
-This backend currently does not work with 3 winding transformers and other exotic object.
-"""
-
 import os  # load the python os default module
 import sys  # laod the python sys default module
 import copy
@@ -41,6 +33,18 @@ except (ImportError, ModuleNotFoundError):
 
 class PandaPowerBackend(Backend):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        If you want to code a backend to use grid2op with another powerflow, you can get inspired
+        from this class. Note However that implies knowning the behaviour
+        of PandaPower.
+
+    This module presents an example of an implementation of a `grid2op.Backend` when using the powerflow
+    implementation "pandapower" available at `PandaPower <https://www.pandapower.org/>`_ for more details about
+    this backend. This file is provided as an example of a proper :class:`grid2op.Backend.Backend` implementation.
+
+    This backend currently does not work with 3 winding transformers and other exotic object.
+
     As explained in the `grid2op.Backend` module, every module must inherit the `grid2op.Backend` class.
 
     This class have more attributes that are used internally for faster information retrieval.
@@ -82,6 +86,20 @@ class PandaPowerBackend(Backend):
 
     v_ex: :class:`numpy.array`, dtype:float
         The voltage magnitude at the extremity bus of the powerline
+
+    Examples
+    ---------
+    The only recommended way to use this class is by passing an instance of a Backend into the "make"
+    function of grid2op. Do not attempt to use a backend outside of this specific usage.
+
+    .. code-block:: python
+
+            import grid2op
+            from grid2op.Backend import PandaPowerBackend
+            backend = PandaPowerBackend()
+
+            env = grid2op.make(backend=backend)
+            # and use "env" as any open ai gym environment.
 
     """
     def __init__(self, detailed_infos_for_cascading_failures=False):
@@ -141,6 +159,8 @@ class PandaPowerBackend(Backend):
 
     def get_nb_active_bus(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Compute the amount of buses "in service" eg with at least a powerline connected to it.
 
         Returns
@@ -168,6 +188,8 @@ class PandaPowerBackend(Backend):
 
     def reset(self, path=None, grid_filename=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Reload the grid.
         For pandapower, it is a bit faster to store of a copy of itself at the end of load_grid
         and deep_copy it to itself instead of calling load_grid again
@@ -179,6 +201,8 @@ class PandaPowerBackend(Backend):
 
     def load_grid(self, path=None, filename=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Load the _grid, and initialize all the member of the class. Note that in order to perform topological
         modification of the substation of the underlying powergrid, some buses are added to the test case loaded. They
         are set as "out of service" unless a topological action acts on these specific substations.
@@ -456,6 +480,8 @@ class PandaPowerBackend(Backend):
 
     def _convert_id_topo(self, id_big_topo):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         convert an id of the big topo vector into:
 
         - the id of the object in its "only object" (eg if id_big_topo represents load 2, then it will be 2)
@@ -466,6 +492,8 @@ class PandaPowerBackend(Backend):
 
     def apply_action(self, backendAction=None):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Specific implementation of the method to apply an action modifying a powergrid in the pandapower format.
         """
         if backendAction is None:
@@ -603,6 +631,8 @@ class PandaPowerBackend(Backend):
 
     def runpf(self, is_dc=False):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Run a power flow on the underlying _grid. This implements an optimization of the powerflow
         computation: if the number of
         buses has not changed between two calls, the previous results are re used. This speeds up the computation
@@ -699,6 +729,8 @@ class PandaPowerBackend(Backend):
 
     def copy(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Performs a deep copy of the power :attr:`_grid`.
         As pandapower is pure python, the deep copy operator is perfectly suited for the task.
         """
@@ -707,6 +739,8 @@ class PandaPowerBackend(Backend):
 
     def close(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Called when the :class:`grid2op;Environment` has terminated, this function only reset the grid to a state
         where it has not been loaded.
         """
@@ -715,6 +749,10 @@ class PandaPowerBackend(Backend):
 
     def save_file(self, full_path):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        You might want to use it for debugging purpose only, and only if you develop yourself a backend.
+
         Save the file to json.
         :param full_path:
         :return:
@@ -723,6 +761,8 @@ class PandaPowerBackend(Backend):
 
     def get_line_status(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         As all the functions related to powerline, pandapower split them into multiple dataframe (some for transformers,
         some for 3 winding transformers etc.). We make sure to get them all here.
         """
@@ -732,10 +772,6 @@ class PandaPowerBackend(Backend):
         return np.concatenate((self._grid.line["in_service"].values, self._grid.trafo["in_service"].values)).astype(dt_bool)
 
     def get_line_flow(self):
-        """
-        return the powerflow in amps in all powerlines.
-        :return:
-        """
         return self.a_or
 
     def _disconnect_line(self, id_):

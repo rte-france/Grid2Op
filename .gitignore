@@ -217,7 +217,15 @@ test_sac
 test_if_bug.py
 getting_started/saved_agent_DDDQN_10000/
 getting_started/saved_agent_DDDQN_10000_results/
-
+test_reboot.py
+test_multimixrunner/
+test_N1reward.py
+i_saved_the_runner_here/
+output_pdf/
+test_make_plot_injj.ipynb
+plot_inj_prez_gdrive.ipynb
+where_i_want_to_save_it/
+test_issue147.py
 
 # profiling files
 **.prof

@@ -10,6 +10,11 @@ import numpy as np
 
 
 class PlotUtil:
+    """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    This is a wrapper that contains utilities to draw the information on the plots more easily.
+    """
     @staticmethod
     def format_value_unit(value, unit):
         if isinstance(value, float):

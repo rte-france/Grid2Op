@@ -9,12 +9,31 @@
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class ConstantReward(BaseReward):
     """
-    Most basic implementation of reward: everything has the same values.
+    Most basic implementation of reward: everything has the same values: 0.0
 
-    Note that this :class:`BaseReward` subtype is not usefull at all, whether to train an :attr:`BaseAgent` nor to assess its
-    performance of course.
+    Note that this :class:`BaseReward` subtype is not useful at all, whether to train an :attr:`BaseAgent`
+    nor to assess its performance of course.
+
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import ConstantReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=ConstantReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is 0., always... Not really useful
 
     """
     def __init__(self):

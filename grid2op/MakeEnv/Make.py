@@ -48,8 +48,44 @@ _REQUEST_FAIL_RETRY_ERR = "Failure to get a reponse from the url \"{}\".\n" \
 _REQUEST_EXCEPT_RETRY_ERR = "Exception in getting an answer from \"{}\".\n" \
                             "Retrying.. {} attempt(s) remaining"
 
+_LIST_REMOTE_URL = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/datasets.json"
+_LIST_REMOTE_KEY = "download_url"
+_LIST_REMOTE_INVALID_CONTENT_JSON_ERR = "Impossible to retrieve available datasets. " \
+                                        "File could not be converted to json. " \
+                                        "Parsing error:\n {}"
+_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = "Corrupted json retrieved from github api. " \
+                                         "Please wait a few minutes and try again. " \
+                                         "If the error persist, contact grid2op organizers"
+_LIST_REMOTE_INVALID_DATASETS_JSON_ERR = "Impossible to retrieve available datasets. " \
+                                         "File could not be converted to json. " \
+                                         "The error was \n\"{}\""
+
+_FETCH_ENV_UNKNOWN_ERR = "Impossible to find the environment named \"{}\".\n" \
+                         "Current available environments are:\n{}"
+
+_MULTIMIX_FILE = ".multimix"
+
+_MAKE_DEV_ENV_WARN = "You are using a development environment. " \
+                     "This environment is not intended for training agents. It might not be up to date "\
+                     "and its primary use if for tests (hence the \"test=True\" you passed as argument). "\
+                     "Use at your own risk."
+_MAKE_DEV_ENV_DEPRECATED_WARN = "Dev env \"{}\" has been deprecated " \
+                                "and will be removed in future version.\n" \
+                                "Please update to dev envs starting by \"rte\" or \"l2rpn\""
+_MAKE_FIRST_TIME_WARN = "It is the first time you use the environment \"{}\".\n" \
+                        "We will attempt to download this environment from remote"
+_MAKE_UNKNOWN_ENV = "Impossible to load the environment named \"{}\"."
+
+_EXTRACT_DS_NAME_CONVERT_ERR = "The \"dataset_name\" argument " \
+                               "should be convertible to string, " \
+                               "but \"{}\" was provided."
+_EXTRACT_DS_NAME_RECO_ERR = "Impossible to recognize the environment name from path \"{}\""
+
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
+    """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+    """
     if nb_retry <= 0:
         raise Grid2OpException(_REQUEST_FAIL_EXHAUSTED_ERR.format(url))
 
@@ -71,24 +107,6 @@ def _send_request_retry(url, nb_retry=10, gh_session=None):
         warnings.warn(_REQUEST_EXCEPT_RETRY_ERR.format(url, nb_retry-1))
         time.sleep(1)
         return _send_request_retry(url, nb_retry=nb_retry-1, gh_session=gh_session)
-
-
-# _LIST_REMOTE_URL = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/contents.json"
-_LIST_REMOTE_URL = "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/datasets.json"
-_LIST_REMOTE_KEY = "download_url"
-_LIST_REMOTE_INVALID_CONTENT_JSON_ERR = "Impossible to retrieve available datasets. " \
-                                        "File could not be converted to json. " \
-                                        "Parsing error:\n {}"
-_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = "Corrupted json retrieved from github api. " \
-                                         "Please wait a few minutes and try again. " \
-                                         "If the error persist, contact grid2op organizers"
-_LIST_REMOTE_INVALID_DATASETS_JSON_ERR = "Impossible to retrieve available datasets. " \
-                                         "File could not be converted to json. " \
-                                         "The error was \n\"{}\""
-
-_FETCH_ENV_UNKNOWN_ERR = "Impossible to find the environment named \"{}\".\n" \
-                         "Current available environments are:\n{}"
-# _FETCH_ENV_TAR_URL = "https://github.com/BDonnot/grid2op-datasets/releases/download/{}/{}.tar.bz2"
 
 
 def _retrieve_github_content(url, is_json=True):
@@ -130,12 +148,6 @@ def _fecth_environments(dataset_name):
     return url, ds_name_dl
 
 
-_EXTRACT_DS_NAME_CONVERT_ERR = "The \"dataset_name\" argument " \
-                               "should be convertible to string, " \
-                               "but \"{}\" was provided."
-_EXTRACT_DS_NAME_RECO_ERR = "Impossible to recognize the environment name from path \"{}\""
-
-
 def _extract_ds_name(dataset_path):
     """
     If a path is provided, clean it to have a proper datasetname.
@@ -167,29 +179,18 @@ def _extract_ds_name(dataset_path):
     dataset_name = os.path.splitext(dataset_name)[0]
     return dataset_name
 
-_MULTIMIX_FILE = ".multimix"
 
 def _aux_is_multimix(dataset_path):
     if os.path.exists(os.path.join(dataset_path, _MULTIMIX_FILE)):
         return True
     return False
 
+
 def _aux_make_multimix(dataset_path, **kwargs):
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
 
     return MultiMixEnvironment(dataset_path, **kwargs)
-
-_MAKE_DEV_ENV_WARN = "You are using a development environment. " \
-                     "This environment is not intended for training agents. It might not be up to date "\
-                     "and its primary use if for tests (hence the \"test=True\" you passed as argument). "\
-                     "Use at your own risk."
-_MAKE_DEV_ENV_DEPRECATED_WARN = "Dev env \"{}\" has been deprecated " \
-                                "and will be removed in future version.\n" \
-                                "Please update to dev envs starting by \"rte\" or \"l2rpn\""
-_MAKE_FIRST_TIME_WARN = "It is the first time you use the environment \"{}\".\n" \
-                        "We will attempt to download this environment from remote"
-_MAKE_UNKNOWN_ENV = "Impossible to load the environment named \"{}\"."
 
 
 def make(dataset="rte_case14_realistic", test=False, **kwargs):
@@ -288,4 +289,3 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     if _aux_is_multimix(real_ds_path):
         make_from_path_fn = _aux_make_multimix
     return make_from_path_fn(dataset_path=real_ds_path, **kwargs)
-

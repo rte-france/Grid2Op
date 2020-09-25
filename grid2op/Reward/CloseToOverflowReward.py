@@ -9,11 +9,30 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class CloseToOverflowReward(BaseReward):
     """
     This reward finds all lines close to overflowing.
     Returns max reward when there is no overflow, min reward if more than one line is close to overflow
     and the mean between max and min reward if one line is close to overflow
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import CloseToOverflowReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=CloseToOverflowReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with this class (computing the penalty based on the number of overflow)
+
     """
     def __init__(self, max_lines=5):
         BaseReward.__init__(self)

@@ -120,15 +120,6 @@ class CompleteObservation(BaseObservation):
         self.dictionnarized = None
 
     def update(self, env, with_forecast=True):
-        """
-        This use the environement to update properly the BaseObservation.
-
-        Parameters
-        ----------
-        env: :class:`grid2op.Environment.Environment`
-            The environment from which to update this observation.
-
-        """
         # reset the matrices
         self._reset_matrices()
         self.reset()
@@ -142,7 +133,7 @@ class CompleteObservation(BaseObservation):
         self.day_of_week = dt_int(env.time_stamp.weekday())
 
         # get the values related to topology
-        self.timestep_overflow[:] = env.timestep_overflow
+        self.timestep_overflow[:] = env._timestep_overflow
         self.line_status[:] = env.backend.get_line_status()
         self.topo_vect[:] = env.backend.get_topo_vect()
 
@@ -170,20 +161,24 @@ class CompleteObservation(BaseObservation):
         self.rho[:] = env.backend.get_relative_flow().astype(dt_float)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line[:] = env.times_before_line_status_actionable
-        self.time_before_cooldown_sub[:] = env.times_before_topology_actionable
-        self.time_next_maintenance[:] = env.time_next_maintenance
-        self.duration_next_maintenance[:] = env.duration_next_maintenance
+        self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
+        self.time_before_cooldown_sub[:] = env._times_before_topology_actionable
+        self.time_next_maintenance[:] = env._time_next_maintenance
+        self.duration_next_maintenance[:] = env._duration_next_maintenance
 
         # redispatching
-        self.target_dispatch[:] = env.target_dispatch
-        self.actual_dispatch[:] = env.actual_dispatch
+        self.target_dispatch[:] = env._target_dispatch
+        self.actual_dispatch[:] = env._actual_dispatch
 
     def from_vect(self, vect, check_legit=True):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            To reload an observation from a vector, use the "env.observation_space.from_vect()".
+
         Convert back an observation represented as a vector into a proper observation.
 
-        Some convertion are done silently from float to the type of the corresponding observation attribute.
+        Some conversion are done silently from float to the type of the corresponding observation attribute.
 
         Parameters
         ----------
@@ -344,4 +339,3 @@ class CompleteObservation(BaseObservation):
                 self.bus_connectivity_matrix_[bus_id_or, bus_id_ex] = 1
                 self.bus_connectivity_matrix_[bus_id_ex, bus_id_or] = 1
         return self.bus_connectivity_matrix_
-

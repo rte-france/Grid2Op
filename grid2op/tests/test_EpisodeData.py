@@ -7,10 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import tempfile
+import warnings
 import pdb
 
+import grid2op
 from grid2op.tests.helper_path_test import *
-
 from grid2op.Exceptions import *
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
@@ -18,6 +19,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Runner import Runner
 from grid2op.Episode import EpisodeData
 from grid2op.dtypes import dt_float
+from grid2op.Agent import BaseAgent
 
 DEBUG = True
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
@@ -69,6 +71,36 @@ class TestEpisodeData(unittest.TestCase):
                              other_rewards={"test": L2RPNReward},
                              max_iter=self.max_iter,
                              name_env="test_episodedata_env")
+
+    def test_load_ambiguous(self):
+        f = tempfile.mkdtemp()
+
+        class TestSuitAgent(BaseAgent):
+            def __init__(self, *args, **kwargs):
+                BaseAgent.__init__(self, *args, **kwargs)
+
+            def act(self, observation, reward, done=False):
+                # do a ambiguous action
+                return self.action_space({"set_line_status": [(0, 1)],
+                                          "change_line_status": [0]}
+                                         )
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case14_test", test=True) as env:
+                my_agent = TestSuitAgent(env.action_space)
+                runner = Runner(**env.get_params_for_runner(),
+                                agentClass=None,
+                                agentInstance=my_agent)
+
+                # test that the right seeds are assigned to the agent
+                res = runner.run(nb_episode=1,
+                                 max_iter=self.max_iter,
+                                 path_save=f)
+            episode_data = EpisodeData.from_disk(agent_path=f, name=res[0][1])
+        assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
+        assert len(episode_data.actions) == self.max_iter
+        assert len(episode_data.observations) == self.max_iter + 1
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()

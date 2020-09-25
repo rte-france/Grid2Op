@@ -99,9 +99,9 @@ class TestMultiMixEnvironment(unittest.TestCase):
         assert mme.current_obs is not None
         assert mme.current_env is not None
         for env in mme:
-            assert env.opponent_class == BaseOpponent
-            assert env.opponent_init_budget == dt_float(42.0)
-            assert env.opponent_budget_per_ts == dt_float(0.42)
+            assert env._opponent_class == BaseOpponent
+            assert env._opponent_init_budget == dt_float(42.0)
+            assert env._opponent_budget_per_ts == dt_float(0.42)
 
     def test_reset(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
@@ -163,9 +163,9 @@ class TestMultiMixEnvironment(unittest.TestCase):
         mme.reset()
         assert mme.current_obs is not None
         assert mme.current_env is not None
-        assert mme.opponent_class == BaseOpponent
-        assert mme.opponent_init_budget == dt_float(42.0)
-        assert mme.opponent_budget_per_ts == dt_float(0.42)
+        assert mme._opponent_class == BaseOpponent
+        assert mme._opponent_init_budget == dt_float(42.0)
+        assert mme._opponent_budget_per_ts == dt_float(0.42)
 
     def test_reset_seq(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX)
@@ -182,7 +182,6 @@ class TestMultiMixEnvironment(unittest.TestCase):
             assert mme.current_obs is not None
             assert mme.current_env is not None
 
-        
     def test_seeding(self):
         mme1 = MultiMixEnvironment(PATH_DATA_MULTIMIX)
         seeds_1 = mme1.seed(2)

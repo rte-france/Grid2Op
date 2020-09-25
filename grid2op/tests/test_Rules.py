@@ -67,7 +67,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                name="test_rules_env1")
 
-        self.helper_action = self.env.helper_action_env
+        self.helper_action = self.env._helper_action_env
 
     def test_AlwaysLegal(self):
         # build a random action acting on everything
@@ -190,7 +190,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         try:
             self.env.parameters.MAX_SUB_CHANGED = 2
             self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-            self.env.times_before_line_status_actionable[id_line] = 1
+            self.env._times_before_line_status_actionable[id_line] = 1
             _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
                                     "set_bus": {"substations_id": [(id_2, arr2)]},
                                     "change_line_status": arr_line1,
@@ -201,10 +201,10 @@ class TestLoadingBackendFunc(unittest.TestCase):
         except IllegalAction:
             pass
 
-        self.env.times_before_line_status_actionable[:] = 0
+        self.env._times_before_line_status_actionable[:] = 0
         self.env.parameters.MAX_SUB_CHANGED = 2
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
-        self.env.times_before_line_status_actionable[1] = 1
+        self.env._times_before_line_status_actionable[1] = 1
         _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
                                                          "set_bus": {"substations_id": [(id_2, arr2)]},
                                                          "change_line_status": arr_line1,
@@ -226,7 +226,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
-        self.env.max_timestep_line_status_deactivated = 1
+        self.env._max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
 
         # i act a first time on powerline 15
@@ -257,7 +257,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
-        self.env.max_timestep_line_status_deactivated = 1
+        self.env._max_timestep_line_status_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
 
         # i act a first time on powerline 15
@@ -287,7 +287,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
-        self.env.max_timestep_line_status_deactivated = 2
+        self.env._max_timestep_line_status_deactivated = 2
         self.env.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF = 2
 
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
@@ -325,7 +325,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
-        self.env.max_timestep_topology_deactivated = 1
+        self.env._max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
 
         # i act a first time on powerline 15
@@ -356,7 +356,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
-        self.env.max_timestep_topology_deactivated = 1
+        self.env._max_timestep_topology_deactivated = 1
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
 
         # i act a first time on powerline 15
@@ -386,7 +386,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
         arr_line2[id_line2] = -1
 
-        self.env.max_timestep_topology_deactivated = 2
+        self.env._max_timestep_topology_deactivated = 2
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
 
         # i act a first time on powerline 15

@@ -10,6 +10,7 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class LinesCapacityReward(BaseReward):
     """
     Reward based on lines capacity usage
@@ -19,6 +20,24 @@ class LinesCapacityReward(BaseReward):
     Compared to `:class:L2RPNReward`:
     This reward is linear (instead of quadratic) and only 
     considers connected lines capacities
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import LinesCapacityReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=LinesCapacityReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the LinesCapacityReward class
+
     """
     def __init__(self):
         BaseReward.__init__(self)
@@ -33,7 +52,7 @@ class LinesCapacityReward(BaseReward):
         if has_error or is_illegal or is_ambiguous:
             return self.reward_min
 
-        obs = env.current_obs
+        obs = env.get_obs()
         n_connected = np.sum(obs.line_status.astype(dt_float))
         usage = np.sum(obs.rho[obs.line_status == True])
         usage = np.clip(usage, 0.0, float(n_connected))

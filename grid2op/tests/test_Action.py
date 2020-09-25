@@ -299,6 +299,7 @@ class TestActionBase(ABC):
 
     def test_update_set_topo_by_dict_obj(self):
         self._skipMissingKey('set_bus')
+        self._skipMissingKey('change_bus')
 
         action = self.helper_action({"set_bus": {"loads_id": [(1, 3)]}})
         assert action.effect_on(load_id=1)["set_bus"] == 3
@@ -339,6 +340,7 @@ class TestActionBase(ABC):
 
     def test_update_undo_change_bus(self):
         self._skipMissingKey('change_bus')
+        self._skipMissingKey('set_bus')
 
         # Create dummy change_bus action
         action = self.helper_action({"change_bus": {"loads_id": [1]}})
@@ -371,6 +373,7 @@ class TestActionBase(ABC):
 
     def test_update_change_bus_by_dict_obj(self):
         self._skipMissingKey('change_bus')
+        self._skipMissingKey('set_bus')
 
         action = self.helper_action({"change_bus": {"loads_id": [1]}})
         assert action.effect_on(load_id=1)["set_bus"] == 0
@@ -1193,6 +1196,7 @@ class TestIADD:
         assert act1._change_bus_vect[0] == False
         assert act1._change_bus_vect[1] == False
         assert np.any(act1._set_topo_vect != 0) == False
+
 
 # TODO a generic method to build them all maybe ?
 class TestDontAct_PowerlineChangeAndDispatchAction(TestIADD, unittest.TestCase):

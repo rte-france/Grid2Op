@@ -7,7 +7,6 @@ Change Log
 - [???] Extensive tests for DistanceReward
 - [???] better logging
 - [???] add a "plot action" method
-- [???] rationalize the public and private part of the API. Some members now are public but should be private.
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parrallel and transfer the resulting data.
@@ -15,6 +14,29 @@ Change Log
 - [???] model curtailment
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+
+[1.2.3] - 2020-09-25
+----------------------
+- [ADDED] `l2rpn-baselines` package dependency in the "binder" environment.
+- [FIXED] binder integration that was broken momentarily
+- [FIXED] an issue in the sampling of redispatching action (ramp up and ramp down were inverted)
+- [FIXED] an issue causing errors when using `action_space.change_bus` and `action_space.set_bus`
+- [FIXED] an issue in the sampling: redispatching and "change_bus" where always performed at the
+  same time
+- [FIXED] `Issue #144 <https://github.com/rte-france/Grid2Op/issues/144>`_: typo that could lead to not
+  display some error messages in some cases.
+- [FIXED] `Issue #146 <https://github.com/rte-france/Grid2Op/issues/146>`_: akward behaviour that lead to not calling
+  the reward function when the episode was over.
+- [FIXED] `Issue #147 <https://github.com/rte-france/Grid2Op/issues/147>`_: un consistency between step and simulate
+  when cooldowns where applied (rule checking was not using the right method).
+- [FIXED] An error preventing the loading of an Ambiguous Action (in case an agent took such action, the `EpisodeData`
+  would not load it properly.
+- [IMPROVED] overall documentation of `BaseEnv` and `Environment`
+- [IMPROVED] rationalize the public and private part of the API for `Environment` and `BaseEnv`.
+  Some members have been moved to private attribute (their modification would largely alterate the
+  behaviour of grid2op).
+- [IMPROVED] internal functions are tagged as "Internal, do not use" in the documentation.
+- [IMPROVED] Improved documentation for the `Environment` and `MultiMixEnvironment`.
 
 [1.2.2] - 2020-08-19
 ---------------------

@@ -45,9 +45,10 @@ class PlayableAction(BaseAction):
             "redispatch": self._digest_redispatching
         }
 
-
     def __call__(self):
         """
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Compare to the ancestor :func:`BaseAction.__call__` this type of BaseAction doesn't allow internal actions
         The returned tuple is same, but with empty dictionaries for internal actions
 
@@ -85,6 +86,8 @@ class PlayableAction(BaseAction):
 
     def update(self, dict_):
         """
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Similar to :class:`BaseAction`, except that the allowed entries are limited to the playable action set
 
         Parameters

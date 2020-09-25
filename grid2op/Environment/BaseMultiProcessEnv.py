@@ -17,6 +17,8 @@ from grid2op.Action import BaseAction
 
 class RemoteEnv(Process):
     """
+     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     This class represent the environment that is executed on a remote process.
 
     Note that the environment is only created in the subprocess, and is not available in the main process. Once created
@@ -38,6 +40,8 @@ class RemoteEnv(Process):
 
     def init_env(self):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Initialize the environment  that will perform all the computation of this process.
         Remember the environment only lives in this process. It cannot
         be transfer to / from the main process.
@@ -47,8 +51,6 @@ class RemoteEnv(Process):
         is provided in :func:`grid2op.Chronics.Multifolder.shuffle`.
 
         """
-        # TODO documentation
-
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)
         self.backend = self.env_params["_raw_backend_class"]()

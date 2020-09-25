@@ -165,7 +165,7 @@ class TestRunner(HelperTests):
         res = runner.run(nb_episode=3, max_iter=self.max_iter, env_seeds=[1, 2, 3], agent_seeds=[5, 6, 7])
         assert np.all(my_agent.seeds == [5, 6, 7])
 
-        # test that is no seeds are set, then the "seed" funciton of the agent is not called.
+        # test that is no seeds are set, then the "seed" function of the agent is not called.
         my_agent.seeds = []
         res = runner.run(nb_episode=3, max_iter=self.max_iter, env_seeds=[1, 2, 3])
         assert my_agent.seeds == []

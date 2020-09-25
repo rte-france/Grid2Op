@@ -15,6 +15,10 @@ from grid2op.Space import GridObjects
 
 # TODO see if it can be done in c++ easily
 class ValueStore:
+    """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    """
     def __init__(self, size, dtype):
         ## TODO at the init it's mandatory to have everything at "1" here
         # if topo is not "fully connected" it will not work
@@ -161,6 +165,8 @@ class ValueStore:
 
 class _BackendAction(GridObjects):
     """
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
     Internal class, use at your own risk.
 
     This class "digest" the players / environment / opponent / voltage controlers "action",
@@ -195,7 +201,10 @@ class _BackendAction(GridObjects):
         self._status_ex = np.ones(self.n_line, dtype=dt_int)
 
     def reorder(self, no_load, no_gen, no_topo, no_shunt):
-        """reorder the element modified, this is use when converting backends only and should not be use
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        reorder the element modified, this is use when converting backends only and should not be use
         outside of this usecase
 
         no_* stands for "new order"
@@ -255,6 +264,8 @@ class _BackendAction(GridObjects):
 
     def __iadd__(self, other):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         other: a grid2op action standard
 
         Parameters
@@ -372,6 +383,8 @@ class _BackendAction(GridObjects):
 
     def update_state(self, powerline_disconnected):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Update the internal state. Should be called after the cascading failures
 
         """

@@ -20,6 +20,30 @@ from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 
 
 class PlotPlotly(BasePlot):
+    """
+
+    This class uses the python library "plotly" to draw the powergrid. Plotly has the ability to generate
+    interactive graphs.
+
+    Examples
+    --------
+    You can use it this way:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.PlotGrid import PlotPlotly
+        env = grid2op.make()
+        plot_helper = PlotPlotly(env.observation_space)
+
+        # and now plot an observation (for example)
+        obs = env.reset()
+        fig = plot_helper.plot_obs(obs)
+        fig.show()
+
+        # more information about it on the `getting_started/8_PlottingCapabilities.ipynb` notebook of grid2op
+
+    """
     def __init__(self,
                  observation_space,
                  width=1280,

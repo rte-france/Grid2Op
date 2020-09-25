@@ -32,9 +32,11 @@ TODO
     fig.show()
 
 """
+import warnings
 
 from grid2op.Exceptions import PlotError
 from grid2op.Plot.BasePlot import BasePlot
+
 try:
     import matplotlib
     import matplotlib.pyplot as plt
@@ -49,6 +51,11 @@ except Exception as e:
 
 class PlotMatplotlib(BasePlot):
     """
+
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
+        Prefer using the class `grid2op.PlotGrid.PlotMatplot`
+
     This class aims at simplifying the representation of the grid using matplotlib graphical libraries.
 
     It can be used to inspect position of elements, or to project some static data on this plot. It can be usefull
@@ -70,6 +77,10 @@ class PlotMatplotlib(BasePlot):
                           radius_sub=radius_sub,
                           load_prod_dist=load_prod_dist,
                           bus_radius=bus_radius)
+
+        warnings.warn("This whole class has been deprecated. Use `grid2op.PlotGrid.PlotMatplot` instead`",
+                      category=DeprecationWarning)
+
         if not can_plot:
             raise RuntimeError("Impossible to plot as matplotlib cannot be imported. Please install \"matplotlib\" "
                                " with \"pip install --update matplotlib\"")
@@ -203,16 +214,6 @@ class PlotMatplotlib(BasePlot):
                         [ buses_z[this_el_bus].imag, dict_el["z"].imag],
                         color=color, alpha=self.alpha_obj)
         return []
-
-
-
-
-
-
-
-
-
-
 
     def _draw_powerlines____________(self, ax, texts=None, colormap=None):
         colormap_ = lambda x: self.col_line

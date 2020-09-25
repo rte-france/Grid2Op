@@ -94,7 +94,7 @@ class TestDistanceReward(TestLoadingReward, unittest.TestCase):
         dn_action = self.env.action_space({})
 
         obs, r, d, info = self.env.step(dn_action)
-        max_reward = self.env.reward_helper.range()[1]
+        max_reward = self.env._reward_helper.range()[1]
         assert r == max_reward
     
     def test_disconnect(self):
@@ -126,14 +126,14 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         return CombinedReward
 
     def test_add_reward(self):
-        cr = self.env.reward_helper.template_reward
+        cr = self.env._reward_helper.template_reward
         assert cr is not None
         cr.addReward("Gameplay", GameplayReward(), 1.0)
         cr.addReward("Flat", FlatReward(), 1.0)
         cr.initialize(self.env)
 
     def test_remove_reward(self):
-        cr = self.env.reward_helper.template_reward
+        cr = self.env._reward_helper.template_reward
         assert cr is not None
         added = cr.addReward("Gameplay", GameplayReward(), 1.0)
         assert added == True
@@ -143,7 +143,7 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         assert removed == False
 
     def test_update_reward_weight(self):
-        cr = self.env.reward_helper.template_reward
+        cr = self.env._reward_helper.template_reward
         assert cr is not None
         added = cr.addReward("Gameplay", GameplayReward(), 1.0)
         assert added == True
@@ -153,7 +153,7 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         assert updated == False
 
     def test_combine_distance_gameplay(self):
-        cr = self.env.reward_helper.template_reward
+        cr = self.env._reward_helper.template_reward
         assert cr is not None
         added = cr.addReward("Gameplay", GameplayReward(), 0.5)
         assert added == True
@@ -168,7 +168,7 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         assert r < 1.0
 
     def test_combine_simulate(self):
-        cr = self.env.reward_helper.template_reward
+        cr = self.env._reward_helper.template_reward
         assert cr is not None
         gr = GameplayReward()
         gr.set_range(-21.0, 21.0)

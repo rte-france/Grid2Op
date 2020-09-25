@@ -13,9 +13,35 @@ from grid2op.dtypes import dt_float
 
 class L2RPNReward(BaseReward):
     """
-    This is the historical :class:`BaseReward` used for the Learning To Run a Power Network competition.
+    This is the historical :class:`BaseReward` used for the Learning To Run a Power Network competition on WCCI 2019
 
     See `L2RPN <https://l2rpn.chalearn.org/>`_ for more information.
+
+    This rewards makes the sum of the "squared margin" on each powerline.
+
+    The margin is defined, for each powerline as:
+    `margin of a powerline = (thermal limit - flow in amps) / thermal limit`
+    (if flow in amps <= thermal limit) else `margin of a powerline  = 0.`
+
+    This rewards is then: `sum (margin of this powerline) ^ 2`, for each powerline.
+
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import L2RPNReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=L2RPNReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the L2RPNReward class
 
     """
     def __init__(self):

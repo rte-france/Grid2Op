@@ -64,6 +64,9 @@ except Exception as e:
 # Some utilities to plot substation, lines or get the color id for the colormap.
 def draw_sub(pos, radius=50, line_color="LightSeaGreen"):
     """
+
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
     This function will draw the contour of a unique substation.
 
     Parameters
@@ -97,6 +100,8 @@ def draw_sub(pos, radius=50, line_color="LightSeaGreen"):
 
 def get_col(rho):
     """
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
     Get the index (in the color palette) of the current  capacity usage.
 
     Parameters
@@ -125,6 +130,9 @@ def get_col(rho):
 
 def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status, line_color="gray"):
     """
+
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
     Draw a powerline with the color depending on its line capacity usage.
 
     Parameters
@@ -172,6 +180,11 @@ def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status, line_color="gr
 
 class PlotPlotly(BasePlot):
     """
+
+    .. warning:: /!\\\\ This class is deprecated /!\\\\
+
+        Prefer using the class `grid2op.PlotGrid.PlotPlotly`
+
     This class aims at simplifying the representation of an observation as a plotly object given a layout of a given
     powergrid substation.
     It "automatically" handles the positionning of the powerlines, loads and generators based on that.
@@ -328,6 +341,10 @@ class PlotPlotly(BasePlot):
 
     def _draw_powerlines_one_powerline(self, fig, l_id, pos_or, pos_ex, status, value, txt_, or_to_ex, this_col):
         """
+        .. warning:: /!\\\\ This class is deprecated /!\\\\
+
+            Prefer using the class `grid2op.PlotGrid.PlotPlotly`
+
         Draw the powerline, between two substations.
 
         Parameters

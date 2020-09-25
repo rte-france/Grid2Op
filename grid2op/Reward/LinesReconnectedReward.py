@@ -11,10 +11,30 @@ import numpy as np
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.dtypes import dt_float
 
+
 class LinesReconnectedReward(BaseReward):
     """
     This reward computes a penalty
-    based on the number of off cooldown disconnected lines
+    based on the number of powerline that could have been reconnected (cooldown at 0.) but
+    are still disconnected.
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import LinesReconnectedReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=LinesReconnectedReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the LinesReconnectedReward class
+
     """
     def __init__(self):
         BaseReward.__init__(self)
@@ -28,7 +48,7 @@ class LinesReconnectedReward(BaseReward):
             return self.reward_min
 
         # Get obs from env
-        obs = env.current_obs
+        obs = env.get_obs()
 
         # All lines ids
         lines_id = np.arange(env.n_line)

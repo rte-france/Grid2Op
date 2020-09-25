@@ -22,6 +22,9 @@ class EpisodeReplay(object):
     This class allows to see visually what an agent has done during an episode. It uses for now the "PlotPygame" as the
     method to plot the different states of the system. It reads directly data from the runner.
 
+    Examples
+    --------
+
     It can be used the following manner.
 
     .. code-block:: python

@@ -198,8 +198,6 @@ class BackendConverter(Backend):
             # grid layout data were available
             super().load_grid_layout(self.path_grid_layout, self.name_grid_layout)
 
-
-
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
         id_sub_source = source_2_id_sub[id_source]
         id_sub_target = self._sub_tg2sr[id_sub_source]
@@ -370,7 +368,8 @@ class BackendConverter(Backend):
     def set_thermal_limit(self, limits):
         super().set_thermal_limit(limits=limits)
         self.source_backend.set_thermal_limit(limits=limits)
-        self.target_backend.set_thermal_limit(limits=limits[self._line_sr2tg])
+        if limits is not None:
+            self.target_backend.set_thermal_limit(limits=limits[self._line_sr2tg])
 
     def get_thermal_limit(self):
         tmp = self.target_backend.get_thermal_limit()
@@ -425,11 +424,6 @@ class BackendConverter(Backend):
                               no_gen=self._gen_sr2tg,
                               no_topo=self._topo_sr2tg,
                               no_shunt=self._shunt_sr2tg)
-        """        if False:
-            target_action.reorder(no_load=self._load_tg2sr,
-                                  no_gen=self._gen_tg2sr,
-                                  no_topo=self._topo_tg2sr,
-                                  no_shunt=self._shunt_tg2sr)"""
         return target_action
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):

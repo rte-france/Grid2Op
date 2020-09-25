@@ -135,7 +135,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         assert self.compare_vect(injs_act, vect)
 
     def test_proper_voltage_modification(self):
-        do_nothing = self.env.helper_action_player({})
+        do_nothing = self.env.action_space({})
         obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
         vect = np.array([143.9, 139.1,   0.2,  13.3, 146. ])
         assert self.compare_vect(obs.prod_v, vect), "Production voltages setpoint have not changed at first time step"
@@ -145,7 +145,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
 
     def test_number_of_timesteps(self):
         for i in range(287):
-            do_nothing = self.env.helper_action_player({})
+            do_nothing = self.env.action_space({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
         injs_act, *_ = self.env.backend.loads_info()
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
@@ -156,7 +156,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         done = False
         i = 0
         while not done:
-            do_nothing = self.env.helper_action_player({})
+            do_nothing = self.env.action_space({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
             i += 1
         assert i == 287
@@ -177,7 +177,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.enable()
         beg_ = time.time()
         cum_reward = dt_float(0.0)
-        do_nothing = self.env.helper_action_player({})
+        do_nothing = self.env.action_space({})
         while not done:
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
             cum_reward += reward
@@ -219,22 +219,22 @@ class TestIllegalAmbiguous(unittest.TestCase):
 
     def test_ambiguous_detected(self):
         self.skipTest("deprecated test as the reconnection is handled by backend action")
-        act = self.env.helper_action_player({"set_line_status": [(1, 1)]})
+        act = self.env.action_space({"set_line_status": [(1, 1)]})
         obs, reward, done, info = self.env.step(act)
         assert info['is_ambiguous']
         assert not info["is_illegal"]
 
     def test_notambiguous_correct(self):
-        act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
+        act = self.env.action_space({"set_line_status": [(1, -1)]})
         obs, reward, done, info = self.env.step(act)
         assert not info['is_ambiguous']
         assert not info["is_illegal"]
         assert np.sum(obs.line_status) == 7
 
     def test_illegal_detected(self):
-        act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
+        act = self.env.action_space({"set_line_status": [(1, -1)]})
         self.env.game_rules = RulesChecker(legalActClass=DefaultRules)
-        self.env.times_before_line_status_actionable[1] = 1
+        self.env._times_before_line_status_actionable[1] = 1
         obs, reward, done, info = self.env.step(act)
 
         # the action is illegal and it has not been implemented on the powergrid
@@ -387,16 +387,16 @@ class TestAttachLayout(unittest.TestCase):
                 dict_act = act.to_dict()
                 assert "grid_layout" in dict_act
                 assert dict_act["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.helper_action_player.to_dict()
+                dict_ = env.action_space.to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.helper_action_env.to_dict()
+                dict_ = env._helper_action_env.to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.helper_observation.to_dict()
+                dict_ = env.observation_space.to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.opponent_action_space.to_dict()
+                dict_ = env._opponent_action_space.to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 
