@@ -6,8 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import numpy as np
 import copy
+import warnings
+
+import numpy as np
 from abc import ABC, abstractmethod
 
 from grid2op.Observation import BaseObservation
@@ -594,7 +596,8 @@ class BasePlot(ABC):
                   load_unit="",
                   gen_values=None,
                   gen_unit="",
-                  observation=None):
+                  observation=None,
+                  coloring=None):
         """
         Plot an observation with custom values
         
@@ -628,6 +631,10 @@ class BasePlot(ABC):
         observation: :class:`grid2op.Observation.BaseObservation`
             An observation to plot, can be None if no values are drawn from the observation
 
+        coloring:
+            ``None`` for no special coloring, or "line" to color the powerline based on the value
+            ("gen" and "load" coming soon)
+
         Returns
         -------
         res: ``object``
@@ -636,13 +643,16 @@ class BasePlot(ABC):
         # Check values are in the correct format
         if line_values is not None and len(line_values) != self.observation_space.n_line:
             raise PlotError("Impossible to display these values on the powerlines: there are {} values"
-                            "provided for {} powerlines in the grid".format(len(line_values), self.observation_space.n_line))
+                            "provided for {} powerlines in the grid".format(len(line_values),
+                                                                            self.observation_space.n_line))
         if load_values is not None and len(load_values) != self.observation_space.n_load:
             raise PlotError("Impossible to display these values on the loads: there are {} values"
-                            "provided for {} loads in the grid".format(len(load_values), self.observation_space.n_load))
+                            "provided for {} loads in the grid".format(len(load_values),
+                                                                       self.observation_space.n_load))
         if gen_values is not None and len(gen_values) != self.observation_space.n_gen:
             raise PlotError("Impossible to display these values on the generators: there are {} values"
-                            "provided for {} generators in the grid".format(len(gen_values), self.observation_space.n_gen))
+                            "provided for {} generators in the grid".format(len(gen_values),
+                                                                            self.observation_space.n_gen))
 
         # Get a valid figure to draw into
         if figure is None:
@@ -658,7 +668,25 @@ class BasePlot(ABC):
         if observation is None:
             # See dummy data added in the constructor
             observation = self.observation_space
-            
+            if coloring is not None:
+                observation = copy.deepcopy(observation)
+                if coloring == "line":
+                    observation.rho = line_values
+                    observation.rho = np.array(observation.rho)
+                    # rescaling to have range 0 - 100
+                    tmp = observation.rho[np.isfinite(observation.rho)]
+                    observation.rho -= np.min(tmp)
+                    tmp = observation.rho[np.isfinite(observation.rho)]
+                    observation.rho /= np.max(tmp)
+                elif coloring == "load":
+                    # TODO
+                    warnings.warn("")
+                elif coloring == "gen":
+                    # TODO
+                    pass
+                else:
+                    raise PlotError("coloring must be one of \"line\", \"load\" or \"gen\"")
+
         # Trigger draw calls
         self._plot_lines(fig, observation, line_values, line_unit, redraw)
         self._plot_loads(fig, observation, load_values, load_unit, redraw)
