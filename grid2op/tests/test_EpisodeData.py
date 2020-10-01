@@ -20,6 +20,15 @@ from grid2op.Runner import Runner
 from grid2op.Episode import EpisodeData
 from grid2op.dtypes import dt_float
 from grid2op.Agent import BaseAgent
+from grid2op.Action import TopologyAction
+from grid2op.Parameters import Parameters
+from grid2op.MakeEnv import make
+from grid2op.Opponent.BaseActionBudget import BaseActionBudget
+from grid2op.Opponent import RandomLineOpponent
+
+
+
+
 
 DEBUG = True
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
@@ -136,6 +145,41 @@ class TestEpisodeData(unittest.TestCase):
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
             assert np.abs(
                 dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
+
+    def test_with_opponent(self):
+        init_budget = 1000
+        opponent_attack_duration = 15
+        opponent_attack_cooldown = 30
+        opponent_budget_per_ts = 0.
+        opponent_action_class = TopologyAction
+
+        LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
+
+        p = Parameters()
+        p.NO_OVERFLOW_DISCONNECTION = True
+        env = make("rte_case14_realistic",
+                   test=True, param=p,
+                   opponent_init_budget=init_budget,
+                   opponent_budget_per_ts=opponent_budget_per_ts,
+                   opponent_attack_cooldown=opponent_attack_cooldown,
+                   opponent_attack_duration=opponent_attack_duration,
+                   opponent_action_class=opponent_action_class,
+                   opponent_budget_class=BaseActionBudget,
+                   opponent_class=RandomLineOpponent,
+                   kwargs_opponent={
+                       "lines_attacked": LINES_ATTACKED
+                   })
+        env.seed(0)
+        runner = Runner(**env.get_params_for_runner())
+
+        f = tempfile.mkdtemp()
+        res = runner.run(nb_episode=1,
+                         env_seeds=[4], agent_seeds=[0],
+                         max_iter=opponent_attack_cooldown - 1,
+                         path_save=f)
+
+        episode_data = EpisodeData.from_disk(agent_path=f, name=res[0][1])
+        assert episode_data.attacks[0].as_dict()['set_line_status']['disconnected_id'][0] == 3
 
 
 if __name__ == "__main__":

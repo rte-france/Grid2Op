@@ -159,6 +159,11 @@ class EpisodeData:
                                              helper_action_env,
                                              "env_actions",
                                              check_legit=False)
+
+        self.attacks = CollectionWrapper(attack,
+                                         attack_space,
+                                         "attacks")
+
         # gives a unique game over for everyone
         # TODO this needs testing!
         action_go = self.actions._game_over
@@ -181,7 +186,6 @@ class EpisodeData:
             self.observations._game_over = real_go + 1
             self.env_actions._game_over = real_go
 
-        self.attack = attack
         self.other_rewards = other_rewards
         self.observation_space = observation_space
         self.rewards = rewards
@@ -194,7 +198,6 @@ class EpisodeData:
         self.disc_lines_templ = disc_lines_templ
 
         self.attack_templ = attack_templ
-        self.attack_space = attack_space
 
         self.logger = logger
         self.serialize = False
@@ -512,6 +515,16 @@ class EpisodeData:
                 time_step, env_act.to_vect(), efficient_storing)
             self.observations.update(
                 time_step + 1, obs.to_vect(), efficient_storing)
+            if opp_attack is not None:
+                self.attacks.update(
+                    time_step, opp_attack.to_vect(), efficient_storing)
+            else:
+                if efficient_storing:
+                    self.attacks.collection[time_step - 1, :] = 0.
+                else:
+                    self.attack = np.concatenate(
+                        (self.attack, self.attack_templ))
+
             if efficient_storing:
                 # efficient way of writing
                 self.times[time_step - 1] = time_step_duration
@@ -522,11 +535,6 @@ class EpisodeData:
                         self.disc_lines[time_step - 1, :] = arr
                     else:
                         self.disc_lines[time_step - 1, :] = self.disc_lines_templ
-
-                if opp_attack is not None:
-                    self.attack[time_step - 1, :] = opp_attack.to_vect()
-                else:
-                    self.attack[time_step - 1, :] = 0.
             else:
                 # completely inefficient way of writing
                 self.times = np.concatenate(
@@ -540,13 +548,6 @@ class EpisodeData:
                     else:
                         self.disc_lines = np.concatenate(
                             (self.disc_lines, self.disc_lines_templ))
-
-                if opp_attack is not None:
-                    self.attack = np.concatenate(
-                        (self.attack, opp_attack.to_vect().reshape(1, -1)))
-                else:
-                    self.attack = np.concatenate(
-                        (self.attack, self.attack_templ))
 
             if "rewards" in info:
                 self.other_rewards.append({k: self._convert_to_float(v) for k, v in info["rewards"].items()})
@@ -632,12 +633,13 @@ class EpisodeData:
                 os.path.join(self.episode_path, EpisodeData.ENV_ACTIONS))
             self.observations.save(
                 os.path.join(self.episode_path, EpisodeData.OBSERVATIONS))
+            self.attacks.save(
+                os.path.join(os.path.join(self.episode_path,
+                                          EpisodeData.ATTACK)))
             np.savez_compressed(os.path.join(
                 self.episode_path, EpisodeData.LINES_FAILURES), data=self.disc_lines)
             np.savez_compressed(os.path.join(self.episode_path,
                                  EpisodeData.REWARDS), data=self.rewards)
-            np.savez_compressed(os.path.join(self.episode_path,
-                                 EpisodeData.ATTACK), data=self.attack)
 
 
 class CollectionWrapper:
