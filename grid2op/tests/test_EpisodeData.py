@@ -179,7 +179,8 @@ class TestEpisodeData(unittest.TestCase):
                          path_save=f)
 
         episode_data = EpisodeData.from_disk(agent_path=f, name=res[0][1])
-        assert episode_data.attacks[0].as_dict()['set_line_status']['disconnected_id'][0] == 3
+        lines_impacted, subs_impacted = episode_data.attacks[0].get_topological_impact()
+        assert lines_impacted[3]
 
 
 if __name__ == "__main__":
