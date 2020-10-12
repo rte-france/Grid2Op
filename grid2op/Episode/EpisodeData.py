@@ -66,6 +66,21 @@ class EpisodeData:
     All of the above should allow to read back, and better understand the behaviour of some
     :class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
 
+    Attributes
+    ----------
+    actions: ``type``
+        Stores the Agent actions as a collection of :class:`grid2op.BaseAction`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+    observations: ``type``
+        Stores the Observations as a collection of :class:`grid2op.BaseObservation`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+    env_actions: ``type``
+        Stores the Environment actions as a collection of :class:`grid2op.BaseAction`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+    attacks: ``type``
+        Stores the Opponent actions as a collection of :class:`grid2op.BaseAction`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+
     Examples
     --------
     Here is an example on how to save the action your agent was doing by the :class:`grid2op.Runner.Runner` of grid2op.
