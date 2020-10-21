@@ -146,6 +146,7 @@ class PandaPowerBackend(Backend):
         self.cst_1 = dt_float(1.0)
         self._topo_vect = None
         self.slack_id = None
+        self.comp_time = 0.
 
         # Mapping some fun to apply bus updates
         self._type_to_bus_set = [
@@ -198,6 +199,7 @@ class PandaPowerBackend(Backend):
         # This overide all the attributes with the attributes from the copy in __pp_backend_initial_state
         self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
         self._topo_vect[:] = self._get_topo_vect()
+        self.comp_time = 0.
 
     def load_grid(self, path=None, filename=None):
         """
@@ -664,6 +666,9 @@ class PandaPowerBackend(Backend):
                     self._nb_bus_before = None  # if dc i start normally next time i call an ac powerflow
                 else:
                     pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
+                if "_ppc" in self._grid:
+                    if "et" in self._grid["_ppc"]:
+                        self.comp_time += self._grid["_ppc"]["et"]
 
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
