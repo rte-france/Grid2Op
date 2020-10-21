@@ -55,6 +55,7 @@ from grid2op.Environment import MultiMixEnvironment, Environment
 import warnings
 warnings.simplefilter("error")
 
+
 class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_blank(self):
         with warnings.catch_warnings():

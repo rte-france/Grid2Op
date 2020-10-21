@@ -999,9 +999,9 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_budget_class=BaseActionBudget,
                        opponent_attack_duration=ATTACK_DURATION,
                        opponent_class=WeightedRandomOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
-                                       "rho_normalization": RHO_NORMALIZATION,
-                                       "attack_period": 1})
+                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                        "rho_normalization": RHO_NORMALIZATION,
+                                        "attack_period": 1})
             env.seed(0)
             # Collect some attacks
             # and check that they belong to the correct lines
