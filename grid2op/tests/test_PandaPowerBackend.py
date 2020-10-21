@@ -31,6 +31,9 @@ from grid2op.tests.BaseBackendTest import BaseStatusActions
 PATH_DATA_TEST_INIT = PATH_DATA_TEST
 PATH_DATA_TEST = PATH_DATA_TEST_PP
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestNames(HelperTests, BaseTestNames):
     def make_backend(self, detailed_infos_for_cascading_failures=False):

@@ -670,12 +670,26 @@ class PandaPowerBackend(Backend):
                     # sometimes pandapower does not detect divergence and put Nan.
                     raise pp.powerflow.LoadflowNotConverged("Isolated gen")
 
+                self.prod_p[:], self.prod_q[:], self.prod_v[:] = self._gens_info()
                 self.load_p[:], self.load_q[:], self.load_v[:] = self._loads_info()
                 if not is_dc:
                     if not np.all(np.isfinite(self.load_v)):
                         # TODO see if there is a better way here
                         # some loads are disconnected: it's a game over case!
                         raise pp.powerflow.LoadflowNotConverged("Isolated load")
+                else:
+                    # fix voltages magnitude that are always "nan" for dc case
+                    # self._grid.res_bus["vm_pu"] is always nan when computed in DC
+                    self.load_v[:] = self.load_pu_to_kv  # TODO
+                    # need to assign the correct value when a generator is present at the same bus
+                    # TODO optimize this ugly loop
+                    for l_id in range(self.n_load):
+                        if self.load_to_subid[l_id] in self.gen_to_subid:
+                            ind_gens = np.where(self.gen_to_subid == self.load_to_subid[l_id])[0]
+                            for g_id in ind_gens:
+                                if self._topo_vect[self.load_pos_topo_vect[l_id]] == self._topo_vect[self.load_pos_topo_vect[g_id]]:
+                                    self.load_v[l_id] = self.prod_v[g_id]
+                                    break
 
                 self.line_status[:] = self._get_line_status()
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
@@ -686,10 +700,6 @@ class PandaPowerBackend(Backend):
                 self.a_or[~np.isfinite(self.a_or)] = 0.
                 self.v_or[~np.isfinite(self.v_or)] = 0.
 
-                # it seems that pandapower does not take into account disconencted powerline for their voltage
-                self.v_or[~self.line_status] = 0.
-                self.v_ex[~self.line_status] = 0.
-
                 self.p_ex[:] = self._aux_get_line_info("p_to_mw", "p_lv_mw")
                 self.q_ex[:] = self._aux_get_line_info("q_to_mvar", "q_lv_mvar")
                 self.v_ex[:] = self._aux_get_line_info("vm_to_pu", "vm_lv_pu")
@@ -697,10 +707,12 @@ class PandaPowerBackend(Backend):
                 self.a_ex[~np.isfinite(self.a_ex)] = 0.
                 self.v_ex[~np.isfinite(self.v_ex)] = 0.
 
+                # it seems that pandapower does not take into account disconencted powerline for their voltage
+                self.v_or[~self.line_status] = 0.
+                self.v_ex[~self.line_status] = 0.
+
                 self.v_or[:] *= self.lines_or_pu_to_kv
                 self.v_ex[:] *= self.lines_ex_pu_to_kv
-
-                self.prod_p[:], self.prod_q[:], self.prod_v[:] = self._gens_info()
 
                 self._nb_bus_before = None
                 self._grid._ppc["gen"][self._iref_slack, 1] = 0.
@@ -866,7 +878,7 @@ class PandaPowerBackend(Backend):
         return self.cst_1 * self.p_or, self.cst_1 * self.q_or, self.cst_1 * self.v_or, self.cst_1 * self.a_or
 
     def lines_ex_info(self):
-        return self.cst_1 * self.p_ex, self.cst_1 * self.q_ex,self.cst_1 * self.v_ex, self.cst_1 * self.a_ex
+        return self.cst_1 * self.p_ex, self.cst_1 * self.q_ex, self.cst_1 * self.v_ex, self.cst_1 * self.a_ex
 
     def shunt_info(self):
         shunt_p = self.cst_1 * self._grid.res_shunt["p_mw"].values.astype(dt_float)

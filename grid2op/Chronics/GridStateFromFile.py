@@ -22,7 +22,7 @@ from grid2op.Chronics.GridValue import GridValue
 
 class GridStateFromFile(GridValue):
     """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Do not attempt to create an object of this class. This is initialized by the environment
         at its creation.

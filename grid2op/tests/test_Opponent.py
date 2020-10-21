@@ -26,6 +26,9 @@ ATTACK_COOLDOWN = 100
 LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
 RHO_NORMALIZATION = [1, 1, 1, 1, 1, 1]
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestSuiteBudget_001(BaseActionBudget):
     """just for testing"""

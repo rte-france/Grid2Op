@@ -15,6 +15,9 @@ from grid2op.Converter import ConnectivityConverter, IdToAct
 import tempfile
 import pdb
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestConverter(HelperTests):
     def setUp(self):

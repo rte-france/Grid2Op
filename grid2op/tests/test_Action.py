@@ -26,6 +26,9 @@ from grid2op.Space.space_utils import save_to_dict
 
 # TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestActionBase(ABC):
 

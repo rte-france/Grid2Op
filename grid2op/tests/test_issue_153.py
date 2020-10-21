@@ -6,16 +6,12 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import grid2op
 import numpy as np
-import os
-from grid2op.tests.helper_path_test import PATH_CHRONICS
 
 import grid2op
 import unittest
 from grid2op.Parameters import Parameters
 import warnings
-import pdb
 
 
 class Issue153Tester(unittest.TestCase):
@@ -33,6 +29,10 @@ class Issue153Tester(unittest.TestCase):
             env = grid2op.make("rte_case14_realistic", test=True)
         env.gen_max_ramp_up[:] = env.gen_pmax
         env.gen_max_ramp_down[:] = env.gen_pmax
+        env.action_space.gen_max_ramp_up[:] = env.gen_pmax
+        env.action_space.gen_max_ramp_down[:] = env.gen_pmax
+        env.action_space.actionClass.gen_max_ramp_up[:] = env.gen_pmax
+        env.action_space.actionClass.gen_max_ramp_down[:] = env.gen_pmax
         obs = env.reset()
         # prod 1 do [74.8, 77. , 75.1, 76.4, 76.3, 75. , 74.5, 74.2, 73. , 72.6]
         for i in range(3):

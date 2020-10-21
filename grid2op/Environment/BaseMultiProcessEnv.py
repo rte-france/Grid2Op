@@ -408,7 +408,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         for remote in self._remotes:
             remote.send(('seed', None))
         res = [remote.recv() for remote in self._remotes]
-        return np.stack(res)
+        return res
 
     def get_parameters(self):
         """

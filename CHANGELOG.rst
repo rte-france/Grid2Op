@@ -18,7 +18,16 @@ Change Log
 [1.2.4] - 2020-10-xx
 ---------------------
 - [FIXED] wrong computation of voltage magnitude at extremity of powerlines when the powerlines were disconnected.
+- [FIXED] `Issue #151 <https://github.com/rte-france/Grid2Op/issues/151>`_: modification of observation attributes could
+  lead to crash
+- [FIXED] `Issue #153 <https://github.com/rte-france/Grid2Op/issues/153>`_: negative generator could happen in some
+  cases
+- [FIXED] an error that lead to wrong normalization of some generator (due to slack bus) when using the
+  gymconverter.
 - [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
+  `GridStateFromFileWithForecastsWithoutMaintenance`
+- [ADDED] Support the attack of the opponent in the `EpisodeData` class
+- [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
 
 [1.2.3] - 2020-09-25
 ----------------------

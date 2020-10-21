@@ -33,6 +33,9 @@ class ChangeNothing(GridValue):
                  chunk_size=None, **kargs):
         GridValue.__init__(self, time_interval=time_interval, max_iter=max_iter, start_datetime=start_datetime,
                            chunk_size=chunk_size)
+        self.n_gen = None
+        self.n_load = None
+        self.n_line = None
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):

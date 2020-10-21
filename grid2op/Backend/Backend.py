@@ -21,6 +21,8 @@ from grid2op.Exceptions import IncorrectNumberOfGenerators, BackendError, Incorr
 from grid2op.Space import GridObjects
 from grid2op.Action import CompleteAction
 
+# TODO compute a method to update a backend state from an observation.
+
 
 class Backend(GridObjects, ABC):
     """

@@ -206,6 +206,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_powerflow = dt_float(0)
         self._time_extract_obs = dt_float(0)
         self._time_opponent = dt_float(0)
+        self._time_redisp = dt_float(0)
 
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
@@ -463,7 +464,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         try:
             seed = np.array(seed).astype(dt_int)
-        except Exception as e:
+        except Exception as exc_:
             raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
                                    "numpy 64 integer.")
         # example from gym
@@ -1125,6 +1126,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 gen_up_before = self._gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
+                beg__redisp = time.time()
                 already_modified_gen = self._get_already_modified_gen(action)
                 valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
 
@@ -1153,6 +1155,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     is_illegal_reco = True
                     action = self._helper_action_player({})
                     except_.append(except_tmp)
+                self._time_redisp += time.time() - beg__redisp
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
@@ -1316,10 +1319,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # reset timings
-        self._time_apply_act = 0
-        self._time_powerflow = 0
-        self._time_extract_obs = 0
-        self._time_opponent = 0
+        self._time_apply_act = dt_float(0.)
+        self._time_powerflow = dt_float(0.)
+        self._time_extract_obs = dt_float(0.)
+        self._time_opponent = dt_float(0.)
+        self._time_redisp = dt_float(0.)
 
         # reward and others
         self.current_reward = self.reward_range[0]
