@@ -25,16 +25,18 @@ class Issue126Tester(unittest.TestCase):
         dataset = "rte_case14_realistic"
         nb_episode = 1
         nb_timesteps = 100
-
+        print("test_issue_126: 1")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make(dataset, test=True)
 
+        print("test_issue_126: 2")
         agent = DeltaRedispatchRandomAgent(env.action_space)
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
                         agentInstance=agent)
 
+        print("test_issue_126: 3")
         with tempfile.TemporaryDirectory() as tmpdirname:
             res = runner.run(nb_episode=nb_episode,
                              path_save=tmpdirname,
@@ -45,10 +47,11 @@ class Issue126Tester(unittest.TestCase):
                              pbar=False)
             episode_data = EpisodeData.from_disk(tmpdirname, res[0][1])
 
-        assert len(episode_data.actions.objects) - nb_timesteps == 0, "wrong number of actions"
-        assert len(episode_data.actions) - nb_timesteps == 0, "wrong number of actions"
-        assert len(episode_data.observations.objects) - (nb_timesteps + 1) == 0, "wrong number of observations"
-        assert len(episode_data.observations) - (nb_timesteps + 1) == 0, "wrong number of observations"
+        print("test_issue_126: 3")
+        assert len(episode_data.actions.objects) - nb_timesteps == 0, "wrong number of actions {}".format(len(episode_data.actions.objects))
+        assert len(episode_data.actions) - nb_timesteps == 0, "wrong number of actions {}".format(len(episode_data.actions))
+        assert len(episode_data.observations.objects) - (nb_timesteps + 1) == 0, "wrong number of observations: {}".format(len(episode_data.observations.objects))
+        assert len(episode_data.observations) - (nb_timesteps + 1) == 0, "wrong number of observations {}".format( len(episode_data.observations))
 
 
 if __name__ == "__main__":
