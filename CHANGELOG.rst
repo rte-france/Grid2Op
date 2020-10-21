@@ -15,6 +15,11 @@ Change Log
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
 
+[1.2.4] - 2020-10-xx
+---------------------
+- [FIXED] wrong computation of voltage magnitude at extremity of powerlines when the powerlines were disconnected.
+- [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
+
 [1.2.3] - 2020-09-25
 ----------------------
 - [ADDED] `l2rpn-baselines` package dependency in the "binder" environment.

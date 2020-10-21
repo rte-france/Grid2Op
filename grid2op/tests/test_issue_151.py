@@ -18,8 +18,8 @@ import warnings
 import pdb
 
 
-class Issue153Tester(unittest.TestCase):
-    def test_issue_153(self):
+class Issue151Tester(unittest.TestCase):
+    def test_issue_151(self):
         """
         The rule "Prevent Reconnection" was not properly applied, this was because the
         observation of the _ObsEnv was not properly updated.
@@ -31,23 +31,12 @@ class Issue153Tester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True)
-        env.gen_max_ramp_up[:] = env.gen_pmax
-        env.gen_max_ramp_down[:] = env.gen_pmax
-        obs = env.reset()
-        # prod 1 do [74.8, 77. , 75.1, 76.4, 76.3, 75. , 74.5, 74.2, 73. , 72.6]
-        for i in range(3):
-            obs, reward, done, info = env.step(env.action_space())
+        do_nothing = env.action_space({})
+        obs, reward, done, info = env.step(do_nothing)
+        obs.line_status = obs.line_status / 1  # do some weird things to the vector "line_status"
 
-        # now generator 1 decreases: 76.3, 75. , 74.5, 74.2, 73. , 72.6
-        action = env.action_space({"redispatch": [(0, -76)]})
-        obs, reward, done, info = env.step(action)
-        # should be at 0.3
-        assert np.abs(obs.prod_p[0] - 0.3) <= 1e-2, "wrong data"
-
-        # I do an illegal action
-        obs, reward, done, info = env.step(action)
-        # and the redispatching was negative (this was the issue)
-        assert obs.prod_p[0] >= 0., "generator should be positive"
+        # the next line of cod
+        _, _, _, _ = env.step(do_nothing)
 
 
 if __name__ == "__main__":

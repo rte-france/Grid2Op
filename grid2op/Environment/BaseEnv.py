@@ -226,6 +226,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # observation
         self.current_obs = None
+        self._line_status = None
 
         self._ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
         self._forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
@@ -414,6 +415,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         self.__is_init = True
         self.current_obs = None
+        self._line_status[:] = True
 
     def seed(self, seed=None):
         """
@@ -1233,6 +1235,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # of the system. So basically, when it's too high (higher than the ramp) it can
                     # mess up the rest of the environment
                     self._gen_activeprod_t_redisp[:] = new_p + self._actual_dispatch
+
+                    # set the line status
+                    self._line_status[:] = self.backend.get_line_status()
+
                     has_error = False
             except Grid2OpException as e:
                 except_.append(e)
@@ -1496,7 +1502,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         This method allows to retrieve the line status.
         """
         if self.current_obs is not None:
-            powerline_status = self.current_obs.line_status
+            powerline_status = self._line_status
         else:
             # at first time step, every powerline is connected
             powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
