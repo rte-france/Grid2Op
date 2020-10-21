@@ -9,7 +9,6 @@ executors:
 jobs:
   test:
     executor: grid2op-executor
-    parallelism: 4
     steps:
       - checkout
       - run:
