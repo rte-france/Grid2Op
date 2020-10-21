@@ -697,9 +697,9 @@ class TestLoadingOpp(unittest.TestCase):
                              path_save=f)
             for i, episode_name, cum_reward, timestep, total_ts in res:
                 episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
-                assert np.any(episode_data.attack[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
-                assert np.sum(episode_data.attack[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
-                assert np.all(episode_data.attack[:, 0] == 0.)
+                assert np.any(episode_data.attacks.collection[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
+                assert np.sum(episode_data.attacks.collection[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
+                assert np.all(episode_data.attacks.collection[:, 0] == 0.)
 
     def test_env_opponent(self):
         param = Parameters()
