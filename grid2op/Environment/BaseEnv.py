@@ -193,6 +193,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
 
+        self._DEBUG = False
         # specific to power system
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
@@ -654,7 +655,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _make_redisp(self, action, new_p):
+    def _get_already_modified_gen(self, action):
+
+        redisp_act_orig = 1. * action._redispatch
+
+        already_modified_gen = self._target_dispatch != 0.
+        self._target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
+        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
+        self._target_dispatch[first_modified] = self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
+        already_modified_gen |= first_modified
+        return already_modified_gen
+
+    def _prepare_redisp(self, action, new_p, already_modified_gen):
         # trying with an optimization method
         except_ = None
         info_ = []
@@ -666,13 +678,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if np.all(redisp_act_orig == 0.) and np.all(self._target_dispatch == 0.) and np.all(self._actual_dispatch == 0.):
             return valid, except_, info_
-
-        # I update the target dispatch of generator i have never modified
-        already_modified_gen = self._target_dispatch != 0.
-        self._target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
-        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
-        self._target_dispatch[first_modified] = self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
-        already_modified_gen |= first_modified
 
         # check that everything is consistent with pmin, pmax:
         if np.any(self._target_dispatch > self.gen_pmax - self.gen_pmin):
@@ -709,13 +714,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if np.any(redisp_act_orig_cut != redisp_act_orig):
                 info_.append({"INFO: redispatching cut because generator will be turned_off":
                               np.where(redisp_act_orig_cut != redisp_act_orig)[0]})
-        else:
-            redisp_act_orig_cut = redisp_act_orig
+        return valid, except_, info_
 
+    def _make_redisp(self, already_modified_gen, new_p):
+        except_ = None
+        info_ = []
+        valid = True
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
-                   np.sum(mismatch) >= self._tol_poly:
+           np.sum(mismatch) >= self._tol_poly:
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
@@ -1115,19 +1123,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 gen_up_before = self._gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                valid_disp, except_tmp, info_ = self._make_redisp(action, new_p)
-                if not valid_disp:
-                    # game over case
-                    action = self._helper_action_player({})
-                    is_illegal_redisp = True
-                    except_.append(except_tmp)
-                    is_done = True
-                    except_.append("Game over due to infeasible redispatching state. A generator would "
-                                               "\"behave abnormally\" in a real system.")
+                already_modified_gen = self._get_already_modified_gen(action)
+                valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
+
                 if except_tmp is not None:
                     action = self._helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
+
+                valid_disp, except_tmp, info_ = self._make_redisp(already_modified_gen, new_p)
+                if not valid_disp or except_tmp is not None:
+                    # game over case (divergence of the scipy routine to compute redispatching)
+                    action = self._helper_action_player({})
+                    is_illegal_redisp = True
+                    except_.append(except_tmp)
+                    is_done = True
+                    except_.append("Game over due to infeasible redispatching state. "
+                                   "The routine used to compute the \"next state\" has diverged. "
+                                   "This means that there is no way to compute a physically valid generator state "
+                                   "(one that meets all pmin / pmax - ramp min / ramp max with the information "
+                                   "provided. As one of the physical constraints would be violated, this means that "
+                                   "a generator would be damaged in real life. This is a game over.")
 
                 # check the validity of min downtime and max uptime
                 except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
