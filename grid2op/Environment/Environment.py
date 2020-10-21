@@ -8,8 +8,9 @@
 import os
 import copy
 import warnings
+import numpy as np
 
-from grid2op.dtypes import dt_float
+from grid2op.dtypes import dt_float, dt_bool
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
@@ -154,6 +155,7 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct()
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
+        self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         if self._thermal_limit_a is None:
             self._thermal_limit_a = self.backend.thermal_limit_a.astype(dt_float)

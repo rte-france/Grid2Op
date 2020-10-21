@@ -226,6 +226,10 @@ test_make_plot_injj.ipynb
 plot_inj_prez_gdrive.ipynb
 where_i_want_to_save_it/
 test_issue147.py
+test_rllib.py
+bug_neg_prod.py
+test_ray/
+test.py
 
 # profiling files
 **.prof

@@ -146,6 +146,7 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
             elif dt == dt_bool:
                 # boolean observation space
                 my_type = self._boolean_type(sh)
+                continue
             else:
                 # continuous observation space
                 low = float("-inf")
@@ -154,7 +155,7 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
                 SpaceType = spaces.Box
                 if attr_nm == "prod_p":
                     low = observation_space.gen_pmin
-                    high = observation_space.gen_pmax
+                    high = observation_space.gen_pmax*1.2  # because of the slack bus... # TODO
                     shape = None
                 elif attr_nm == "prod_v" or attr_nm == "load_v" or attr_nm == "v_or" or attr_nm == "v_ex":
                     # voltages can't be negative

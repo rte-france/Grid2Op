@@ -30,6 +30,9 @@ from grid2op.MakeEnv import make
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = True
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):

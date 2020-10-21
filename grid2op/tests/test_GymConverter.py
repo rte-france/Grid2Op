@@ -19,6 +19,9 @@ from grid2op.Converter import GymActionSpace, GymObservationSpace, IdToAct, ToVe
 
 import pdb
 
+import warnings
+warnings.simplefilter("error")
+
 
 class BaseTestGymConverter:
     def __init__(self):

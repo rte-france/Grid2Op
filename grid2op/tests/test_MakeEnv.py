@@ -52,6 +52,9 @@ from grid2op.Environment import MultiMixEnvironment, Environment
 #    default_action_class = TopologyAction
 #    default_reward_class = L2RPNReward
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestLoadingPredefinedEnv(unittest.TestCase):
     def test_blank(self):

@@ -27,11 +27,11 @@ from grid2op.Opponent.BaseActionBudget import BaseActionBudget
 from grid2op.Opponent import RandomLineOpponent
 
 
-
-
-
 DEBUG = True
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
+
+import warnings
+warnings.simplefilter("error")
 
 
 class TestEpisodeData(unittest.TestCase):
@@ -157,18 +157,21 @@ class TestEpisodeData(unittest.TestCase):
 
         p = Parameters()
         p.NO_OVERFLOW_DISCONNECTION = True
-        env = make("rte_case14_realistic",
-                   test=True, param=p,
-                   opponent_init_budget=init_budget,
-                   opponent_budget_per_ts=opponent_budget_per_ts,
-                   opponent_attack_cooldown=opponent_attack_cooldown,
-                   opponent_attack_duration=opponent_attack_duration,
-                   opponent_action_class=opponent_action_class,
-                   opponent_budget_class=BaseActionBudget,
-                   opponent_class=RandomLineOpponent,
-                   kwargs_opponent={
-                       "lines_attacked": LINES_ATTACKED
-                   })
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_realistic",
+                       test=True,
+                       param=p,
+                       opponent_init_budget=init_budget,
+                       opponent_budget_per_ts=opponent_budget_per_ts,
+                       opponent_attack_cooldown=opponent_attack_cooldown,
+                       opponent_attack_duration=opponent_attack_duration,
+                       opponent_action_class=opponent_action_class,
+                       opponent_budget_class=BaseActionBudget,
+                       opponent_class=RandomLineOpponent,
+                       kwargs_opponent={
+                           "lines_attacked": LINES_ATTACKED
+                       })
         env.seed(0)
         runner = Runner(**env.get_params_for_runner())
 

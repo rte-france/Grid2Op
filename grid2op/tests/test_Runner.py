@@ -21,6 +21,9 @@ from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestRunner(HelperTests):
     def setUp(self):

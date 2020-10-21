@@ -193,6 +193,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
 
+        self._DEBUG = False
         # specific to power system
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
@@ -205,6 +206,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_powerflow = dt_float(0)
         self._time_extract_obs = dt_float(0)
         self._time_opponent = dt_float(0)
+        self._time_redisp = dt_float(0)
 
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
@@ -225,6 +227,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # observation
         self.current_obs = None
+        self._line_status = None
 
         self._ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
         self._forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
@@ -413,6 +416,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         self.__is_init = True
         self.current_obs = None
+        self._line_status[:] = True
 
     def seed(self, seed=None):
         """
@@ -460,7 +464,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         try:
             seed = np.array(seed).astype(dt_int)
-        except Exception as e:
+        except Exception as exc_:
             raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
                                    "numpy 64 integer.")
         # example from gym
@@ -654,7 +658,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _make_redisp(self, action, new_p):
+    def _get_already_modified_gen(self, action):
+
+        redisp_act_orig = 1. * action._redispatch
+
+        already_modified_gen = self._target_dispatch != 0.
+        self._target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
+        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
+        self._target_dispatch[first_modified] = self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
+        already_modified_gen |= first_modified
+        return already_modified_gen
+
+    def _prepare_redisp(self, action, new_p, already_modified_gen):
         # trying with an optimization method
         except_ = None
         info_ = []
@@ -666,13 +681,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if np.all(redisp_act_orig == 0.) and np.all(self._target_dispatch == 0.) and np.all(self._actual_dispatch == 0.):
             return valid, except_, info_
-
-        # I update the target dispatch of generator i have never modified
-        already_modified_gen = self._target_dispatch != 0.
-        self._target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
-        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
-        self._target_dispatch[first_modified] = self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
-        already_modified_gen |= first_modified
 
         # check that everything is consistent with pmin, pmax:
         if np.any(self._target_dispatch > self.gen_pmax - self.gen_pmin):
@@ -709,13 +717,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if np.any(redisp_act_orig_cut != redisp_act_orig):
                 info_.append({"INFO: redispatching cut because generator will be turned_off":
                               np.where(redisp_act_orig_cut != redisp_act_orig)[0]})
-        else:
-            redisp_act_orig_cut = redisp_act_orig
+        return valid, except_, info_
 
+    def _make_redisp(self, already_modified_gen, new_p):
+        except_ = None
+        info_ = []
+        valid = True
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
-                   np.sum(mismatch) >= self._tol_poly:
+           np.sum(mismatch) >= self._tol_poly:
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
@@ -1115,19 +1126,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 gen_up_before = self._gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                valid_disp, except_tmp, info_ = self._make_redisp(action, new_p)
-                if not valid_disp:
-                    # game over case
-                    action = self._helper_action_player({})
-                    is_illegal_redisp = True
-                    except_.append(except_tmp)
-                    is_done = True
-                    except_.append("Game over due to infeasible redispatching state. A generator would "
-                                               "\"behave abnormally\" in a real system.")
+                beg__redisp = time.time()
+                already_modified_gen = self._get_already_modified_gen(action)
+                valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
+
                 if except_tmp is not None:
                     action = self._helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
+
+                valid_disp, except_tmp, info_ = self._make_redisp(already_modified_gen, new_p)
+                if not valid_disp or except_tmp is not None:
+                    # game over case (divergence of the scipy routine to compute redispatching)
+                    action = self._helper_action_player({})
+                    is_illegal_redisp = True
+                    except_.append(except_tmp)
+                    is_done = True
+                    except_.append("Game over due to infeasible redispatching state. "
+                                   "The routine used to compute the \"next state\" has diverged. "
+                                   "This means that there is no way to compute a physically valid generator state "
+                                   "(one that meets all pmin / pmax - ramp min / ramp max with the information "
+                                   "provided. As one of the physical constraints would be violated, this means that "
+                                   "a generator would be damaged in real life. This is a game over.")
 
                 # check the validity of min downtime and max uptime
                 except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
@@ -1135,6 +1155,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     is_illegal_reco = True
                     action = self._helper_action_player({})
                     except_.append(except_tmp)
+                self._time_redisp += time.time() - beg__redisp
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
@@ -1217,6 +1238,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # of the system. So basically, when it's too high (higher than the ramp) it can
                     # mess up the rest of the environment
                     self._gen_activeprod_t_redisp[:] = new_p + self._actual_dispatch
+
+                    # set the line status
+                    self._line_status[:] = self.backend.get_line_status()
+
                     has_error = False
             except Grid2OpException as e:
                 except_.append(e)
@@ -1294,10 +1319,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # reset timings
-        self._time_apply_act = 0
-        self._time_powerflow = 0
-        self._time_extract_obs = 0
-        self._time_opponent = 0
+        self._time_apply_act = dt_float(0.)
+        self._time_powerflow = dt_float(0.)
+        self._time_extract_obs = dt_float(0.)
+        self._time_opponent = dt_float(0.)
+        self._time_redisp = dt_float(0.)
 
         # reward and others
         self.current_reward = self.reward_range[0]
@@ -1480,7 +1506,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         This method allows to retrieve the line status.
         """
         if self.current_obs is not None:
-            powerline_status = self.current_obs.line_status
+            powerline_status = self._line_status
         else:
             # at first time step, every powerline is connected
             powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)

@@ -7,8 +7,10 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import io
+import copy
 import numpy as np
 
+import matplotlib.pyplot as plt
 from matplotlib.path import Path
 
 from grid2op.PlotGrid.BasePlot import BasePlot
@@ -148,7 +150,10 @@ class PlotMatplot(BasePlot):
         #self._line_color_scheme = cm.get_cmap("inferno")(cx)
         self._line_name = line_name
         self._line_id = line_id
-        self._line_color_scheme = ["blue", "orange", "red"]
+        self._line_color_scheme_orig = ["blue", "orange", "red"]
+        self._line_color_scheme = None
+        self.restore_line_palette()
+
         self._line_color_width = 1
         self._line_bus_radius = bus_radius
         self._line_bus_face_colors = ["black", "red", "lime"]
@@ -465,7 +470,45 @@ class PlotMatplot(BasePlot):
                                    edgecolor=color,
                                    facecolor=color)
         self.ax.add_patch(patch)
-    
+
+    def assign_line_palette(self, palette_name="YlOrRd", nb_color=10):
+        """
+        Assign a new color palette when you want to plot information on the powerline.
+
+        Parameters
+        ----------
+        palette_name: ``str``
+            Name of the Maplotlib.plyplot palette to use
+        nb_color: ``int``
+            Number of color to use
+
+        Examples
+        -------
+        .. code-block:: python
+
+            # color a grid based on the value of the thermal limit
+            plot_helper.assign_line_palette(nb_color=100)
+
+            # plot this grid
+            _ = plot_helper.plot_info(line_values=env.get_thermal_limit(), line_unit="A", coloring="line")
+
+            # restore the default coloring (["blue", "orange", "red"])
+            plot_helper.restore_line_palette()
+
+        Notes
+        -----
+        Some palette are available there `colormaps <https://matplotlib.org/tutorials/colors/colormaps.html>`_
+
+        """
+        palette = plt.get_cmap(palette_name)
+        cols = []
+        for i in range(nb_color):
+            cols.append(palette(i / nb_color))
+        self._line_color_scheme = cols
+
+    def restore_line_palette(self):
+        self._line_color_scheme = self._line_color_scheme_orig
+
     def draw_powerline(self, figure, observation,
                        line_id, line_name, connected,
                        line_value, line_unit,
@@ -473,7 +516,10 @@ class PlotMatplot(BasePlot):
                        ex_bus, pos_ex_x, pos_ex_y):
         rho = observation.rho[line_id]
         n_colors = len(self._line_color_scheme) - 1
-        color_idx = max(0, min(n_colors, int(rho * n_colors)))
+        if np.isfinite(rho):
+            color_idx = max(0, min(n_colors, int(rho * n_colors)))
+        else:
+            color_idx = 0
         color = "black"
         if connected and rho > 0.0:
             color = self._line_color_scheme[color_idx]

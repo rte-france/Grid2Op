@@ -26,6 +26,9 @@ ATTACK_COOLDOWN = 100
 LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
 RHO_NORMALIZATION = [1, 1, 1, 1, 1, 1]
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestSuiteBudget_001(BaseActionBudget):
     """just for testing"""
@@ -996,9 +999,9 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_budget_class=BaseActionBudget,
                        opponent_attack_duration=ATTACK_DURATION,
                        opponent_class=WeightedRandomOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
-                                       "rho_normalization": RHO_NORMALIZATION,
-                                       "attack_period": 1})
+                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                        "rho_normalization": RHO_NORMALIZATION,
+                                        "attack_period": 1})
             env.seed(0)
             # Collect some attacks
             # and check that they belong to the correct lines
