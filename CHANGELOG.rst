@@ -26,6 +26,10 @@ Change Log
   gymconverter.
 - [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
   `GridStateFromFileWithForecastsWithoutMaintenance`
+- [ADDED] a keyword argument in the matplotlib plot information on the grid
+  (`plot_helper.plot_info(..., coloring=...)`)
+- [ADDED] a function to change the color palette of powerlines (`plot_helper.assign_line_palette`)
+- [ADDED] a function to change the color palette of generators (`plot_helper.assign_gen_palette`)
 - [ADDED] Support the attack of the opponent in the `EpisodeData` class
 - [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
 
@@ -39,7 +43,7 @@ Change Log
   same time
 - [FIXED] `Issue #144 <https://github.com/rte-france/Grid2Op/issues/144>`_: typo that could lead to not
   display some error messages in some cases.
-- [FIXED] `Issue #146 <https://github.com/rte-france/Grid2Op/issues/146>`_: akward behaviour that lead to not calling
+- [FIXED] `Issue #146 <https://github.com/rte-france/Grid2Op/issues/146>`_: awkward behaviour that lead to not calling
   the reward function when the episode was over.
 - [FIXED] `Issue #147 <https://github.com/rte-france/Grid2Op/issues/147>`_: un consistency between step and simulate
   when cooldowns where applied (rule checking was not using the right method).

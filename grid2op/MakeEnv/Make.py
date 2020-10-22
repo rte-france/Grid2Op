@@ -38,6 +38,7 @@ TEST_DEV_ENVS = {
     "case14_test": DEV_DATASET.format("rte_case14_test"),
     "case5_example": DEV_DATASET.format("rte_case5_example"),
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
+    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
 }
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
@@ -264,7 +265,7 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     if test:
         warnings.warn(_MAKE_DEV_ENV_WARN)
         # Warning for deprecated dev envs
-        if not (dataset_name.startswith("rte") or dataset_name.startswith("l2rpn")):
+        if not (dataset_name.startswith("rte") or dataset_name.startswith("l2rpn") or dataset_name.startswith("educ")):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
         ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
