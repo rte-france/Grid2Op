@@ -228,13 +228,18 @@ class TestRunner(HelperTests):
                       encoding="utf-8") as f:
                 meta_data = json.load(f)
             nb_ts = int(meta_data["nb_timestep_played"])
-            assert len(this_episode.actions) == nb_ts, f"wrong number of actions for env_actions for version " \
-                                                       f"{g2op_version}: {len(this_episode.actions)} vs {nb_ts}"
-            assert len(this_episode.observations) == nb_ts + 1, f"wrong number of observations for env_actions for " \
-                                                                f"version {g2op_version}: " \
-                                                                f"{len(this_episode.observations)} vs {nb_ts}"
-            assert len(this_episode.env_actions) == nb_ts, f"wrong number of env action for env_actions for version " \
-                                                           f"{g2op_version}: {len(this_episode.env_actions)} vs {nb_ts}"
+            try:
+                assert len(this_episode.actions) == nb_ts, f"wrong number of elements for actions for version " \
+                                                           f"{g2op_version}: {len(this_episode.actions)} vs {nb_ts}"
+                assert len(this_episode.observations) == nb_ts + 1, f"wrong number of elements for observations " \
+                                                                    f"for version {g2op_version}: " \
+                                                                    f"{len(this_episode.observations)} vs {nb_ts}"
+                assert len(this_episode.env_actions) == nb_ts, f"wrong number of elements for env_actions for " \
+                                                               f"version {g2op_version}: " \
+                                                               f"{len(this_episode.env_actions)} vs {nb_ts}"
+            except:
+                import pdb
+                pdb.set_trace()
 
     def test_backward_compatibility(self):
         backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3"]

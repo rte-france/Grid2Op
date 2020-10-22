@@ -1254,7 +1254,7 @@ class GridObjects:
         cls.env_name = name
 
     @classmethod
-    def init_grid(cls, gridobj):
+    def init_grid(cls, gridobj, force=False):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is done at the creation of the environment. Use of this class outside of this particular
@@ -1273,7 +1273,12 @@ class GridObjects:
         # nothing to do now that the value are class member
         name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
         if name_res in globals():
-            return globals()[name_res]
+            if not force:
+                # no need to recreate the class, it already exists
+                return globals()[name_res]
+            else:
+                # i recreate the variable
+                del globals()[name_res]
 
         class res(cls):
             pass
@@ -1672,6 +1677,7 @@ class GridObjects:
         save_to_dict(res, cls, "name_load", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_line", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_sub", lambda li: [str(el) for el in li])
+        save_to_dict(res, cls, "env_name", str)
 
         save_to_dict(res, cls, "sub_info", lambda li: [int(el) for el in li])
 
@@ -1742,6 +1748,12 @@ class GridObjects:
         cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
         cls.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
+        if "env_name" in dict_:
+             # new saved in version >= 1.2.4
+            cls.env_name = str(dict_["env_name"])
+        else:
+            # environment name was not stored, this make the tsk to retrieve this hard
+            pass
 
         cls.sub_info = extract_from_dict(dict_, "sub_info", lambda x: np.array(x).astype(dt_int))
         cls.load_to_subid = extract_from_dict(dict_, "load_to_subid", lambda x: np.array(x).astype(dt_int))
@@ -1787,5 +1799,5 @@ class GridObjects:
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo()
-        cls.init_grid(obj_)
+        cls.init_grid(obj_, force=True)
         return cls()

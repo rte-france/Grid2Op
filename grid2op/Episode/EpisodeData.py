@@ -430,7 +430,6 @@ class EpisodeData:
             os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
         attack_space = ActionSpace.from_dict(
             os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
-
         return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
