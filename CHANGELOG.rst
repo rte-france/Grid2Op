@@ -24,6 +24,8 @@ Change Log
   cases
 - [FIXED] an error that lead to wrong normalization of some generator (due to slack bus) when using the
   gymconverter.
+- [FIXED] a bug that prevented runner to read back previously stored data (and now a test to check
+  backward compatibility down to version 1.0.0)
 - [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
   `GridStateFromFileWithForecastsWithoutMaintenance`
 - [ADDED] a keyword argument in the matplotlib plot information on the grid
