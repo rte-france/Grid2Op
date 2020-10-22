@@ -412,11 +412,14 @@ class BasePlot(ABC):
 
         topo = observation.topo_vect
         topo_pos = observation.gen_pos_topo_vect
-        for gen_idx, (gen_name, gen_value) in enumerate(zip(observation.name_gen, gen_values)):
+        for gen_idx, gen_name in enumerate(observation.name_gen):
             if gen_name not in self._grid_layout:
                 continue
-            if gen_value is not None:
-                gen_value = np.round(float(gen_values[gen_idx]), 2)
+            gen_value = None
+            if gen_values is not None:
+                gen_value = gen_values[gen_idx]
+                if gen_value is not None:
+                    gen_value = np.round(float(gen_values[gen_idx]), 2)
             gen_x = self._grid_layout[gen_name][0]
             gen_y = self._grid_layout[gen_name][1]
             gen_subid = observation.gen_to_subid[gen_idx]
