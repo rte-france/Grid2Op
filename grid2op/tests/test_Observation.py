@@ -54,6 +54,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                     '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3',
                                    'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
+                      'env_name': 'rte_case14_test',
                       'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                       'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
                       'gen_to_subid': [1, 2, 5, 7, 0],

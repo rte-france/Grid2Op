@@ -179,12 +179,22 @@ class EpisodeData:
                                          attack_space,
                                          "attacks")
 
+        self.meta = meta
         # gives a unique game over for everyone
         # TODO this needs testing!
         action_go = self.actions._game_over
         obs_go = self.observations._game_over
         env_go = self.env_actions._game_over
         real_go = action_go
+        if self.meta is not None:
+            # when initialized by the runner, meta is None
+            if "nb_timestep_played" in self.meta:
+                real_go = int(self.meta["nb_timestep_played"])
+        if real_go is None:
+            real_go = action_go
+        else:
+            if action_go is not None:
+                real_go = min(action_go, real_go)
         if real_go is None:
             real_go = obs_go
         else:
@@ -207,7 +217,6 @@ class EpisodeData:
         self.disc_lines = disc_lines
         self.times = times
         self.params = params
-        self.meta = meta
         self.episode_times = episode_times
         self.name = name
         self.disc_lines_templ = disc_lines_templ
@@ -336,7 +345,7 @@ class EpisodeData:
                     ok_ = False
                     break
             if ok_:
-                res.append((os.path.abspath(this_dir), el))
+                res.append((os.path.abspath(path_agent), el))
         return res
 
     def reboot(self):
@@ -421,7 +430,6 @@ class EpisodeData:
             os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
         attack_space = ActionSpace.from_dict(
             os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
-
         return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
@@ -719,8 +727,7 @@ class CollectionWrapper:
         self.objects = []
         for i, elem in enumerate(self.collection):
             try:
-                collection_obj = self.helper.from_vect(self.collection[i, :],
-                                                       check_legit=check_legit)
+                collection_obj = self.helper.from_vect(self.collection[i, :], check_legit=check_legit)
                 self.objects.append(collection_obj)
             except EnvError as exc_:
                 self._game_over = i

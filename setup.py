@@ -35,7 +35,7 @@ pkgs = {
             "imageio>=2.8.0",
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0",
-            "gym>=0.17.1",
+            "gym>=0.17.2",
         ],
         "challenge": [
             "numpy==1.18.5",

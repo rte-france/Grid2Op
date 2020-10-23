@@ -213,7 +213,6 @@ class Environment(BaseEnv):
                                                                   observationClass=observationClass,
                                                                   rewardClass=rewardClass,
                                                                   env=self)
-
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(

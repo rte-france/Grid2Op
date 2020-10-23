@@ -230,6 +230,10 @@ test_rllib.py
 bug_neg_prod.py
 test_ray/
 test.py
+getting_started/chronics_educ/
+grid2op/data/educ_case14_redisp/
+getting_started/prepare_env_aub.ipynb
+test_log_122/
 
 # profiling files
 **.prof

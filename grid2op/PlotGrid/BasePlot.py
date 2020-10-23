@@ -175,6 +175,8 @@ class BasePlot(ABC):
                         sub_id, sub_name,
                         pos_x, pos_y):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Update a substation into the figure
         """
         pass
@@ -223,6 +225,8 @@ class BasePlot(ABC):
                     pos_x, pos_y,
                     sub_x, sub_y):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Update a load into the figure
         """
         pass
@@ -272,6 +276,8 @@ class BasePlot(ABC):
                    pos_x, pos_y,
                    sub_x, sub_y):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Updates a generator into the figure
         """
         pass
@@ -324,6 +330,8 @@ class BasePlot(ABC):
                          or_bus, pos_or_x, pos_or_y,
                          ex_bus, pos_ex_x, pos_ex_y):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Draws a powerline into the figure
         """
         pass
@@ -345,6 +353,8 @@ class BasePlot(ABC):
     
     def update_legend(self, figure, observation):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         Updates the legend for the given figure.
         """
         pass
@@ -407,7 +417,9 @@ class BasePlot(ABC):
                 continue
             gen_value = None
             if gen_values is not None:
-                gen_value = np.round(float(gen_values[gen_idx]), 2)
+                gen_value = gen_values[gen_idx]
+                if gen_value is not None:
+                    gen_value = np.round(float(gen_values[gen_idx]), 2)
             gen_x = self._grid_layout[gen_name][0]
             gen_y = self._grid_layout[gen_name][1]
             gen_subid = observation.gen_to_subid[gen_idx]
@@ -495,7 +507,8 @@ class BasePlot(ABC):
         return self.plot_info(observation=self.observation_space,
                               figure=None, redraw=True)
         
-    def plot_obs(self, observation,
+    def plot_obs(self,
+                 observation,
                  figure=None,
                  redraw=True,
                  line_info="rho",
@@ -635,6 +648,33 @@ class BasePlot(ABC):
             ``None`` for no special coloring, or "line" to color the powerline based on the value
             ("gen" and "load" coming soon)
 
+        Examples
+        --------
+
+        More examples on how to use this function is given in the "8_PlottingCapabilities.ipynb" notebook.
+
+        The basic concept is:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.PlotGrid import PlotMatplot
+            env = grid2op.make()
+            plot_helper = PlotMatplot(env.observation_space)
+
+
+            # plot the layout (position of each elements) of the powergrid
+            plot_helper.plot_layout()
+
+            # project some data on the grid
+            line_values = env.get_thermal_limit()
+            plot_helper.plot_info(line_values=line_values)
+
+            # to plot an observation
+            obs = env.reset()
+            plot_helper.plot_obs(obs)
+
+
         Returns
         -------
         res: ``object``
@@ -671,19 +711,40 @@ class BasePlot(ABC):
             if coloring is not None:
                 observation = copy.deepcopy(observation)
                 if coloring == "line":
-                    observation.rho = line_values
-                    observation.rho = np.array(observation.rho)
-                    # rescaling to have range 0 - 100
+                    if line_values is None:
+                        raise PlotError("Impossible to color the grid based on the line information (key word argument "
+                                        "\"line_values\") if this argument is None.")
+
+                    observation.rho = copy.deepcopy(line_values)
+                    try:
+                        observation.rho = np.array(observation.rho).astype(np.float)
+                    except:
+                        raise PlotError("Impossible to convert the input values (line_values) to floating point")
+
+                    # rescaling to have range 0 - 1.0
                     tmp = observation.rho[np.isfinite(observation.rho)]
-                    observation.rho -= np.min(tmp)
+                    observation.rho -= (np.min(tmp) - 1e-1)  # so the min is 1e-1 otherwise 0.0 is plotted as black
                     tmp = observation.rho[np.isfinite(observation.rho)]
                     observation.rho /= np.max(tmp)
                 elif coloring == "load":
                     # TODO
                     warnings.warn("")
                 elif coloring == "gen":
-                    # TODO
-                    pass
+                    if gen_values is None:
+                        raise PlotError("Impossible to color the grid based on the gen information (key word argument "
+                                        "\"gen_values\") if this argument is None.")
+
+                    observation.prod_p = copy.deepcopy(gen_values)
+                    try:
+                        observation.prod_p = np.array(observation.prod_p).astype(np.float)
+                    except:
+                        raise PlotError("Impossible to convert the input values (gen_values) to floating point")
+
+                    # rescaling to have range 0 - 1.0
+                    tmp = observation.prod_p[np.isfinite(observation.prod_p)]
+                    observation.prod_p -= (np.min(tmp) - 1e-1)  # so the min is 1e-1 otherwise 0.0 is plotted as black
+                    tmp = observation.prod_p[np.isfinite(observation.prod_p)]
+                    observation.prod_p /= np.max(tmp)
                 else:
                     raise PlotError("coloring must be one of \"line\", \"load\" or \"gen\"")
 

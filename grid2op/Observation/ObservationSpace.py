@@ -101,7 +101,6 @@ class ObservationSpace(SerializableObservationSpace):
                                      completeActionClass=env._helper_action_env.actionClass,
                                      helper_action_class=env._helper_action_class,
                                      helper_action_env=env._helper_action_env)
-
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
 

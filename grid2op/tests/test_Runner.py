@@ -12,7 +12,9 @@ import pdb
 
 from grid2op.tests.helper_path_test import *
 PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
+PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
 
+import grid2op
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
@@ -20,6 +22,8 @@ from grid2op.MakeEnv import make
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
+from grid2op.Episode import EpisodeData
+import json
 
 import warnings
 warnings.simplefilter("error")
@@ -215,6 +219,48 @@ class TestRunner(HelperTests):
         res = runner.run(nb_episode=2, nb_process=2)
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 2*self.max_iter
+
+    def _aux_backward(self, base_path, g2op_version):
+        episode_studied = EpisodeData.list_episode(os.path.join(base_path, g2op_version))
+        for base_path, episode_path in episode_studied:
+            this_episode = EpisodeData.from_disk(base_path, episode_path)
+            with open(os.path.join(os.path.join(base_path, episode_path), "episode_meta.json"), "r",
+                      encoding="utf-8") as f:
+                meta_data = json.load(f)
+            nb_ts = int(meta_data["nb_timestep_played"])
+            try:
+                assert len(this_episode.actions) == nb_ts, f"wrong number of elements for actions for version " \
+                                                           f"{g2op_version}: {len(this_episode.actions)} vs {nb_ts}"
+                assert len(this_episode.observations) == nb_ts + 1, f"wrong number of elements for observations " \
+                                                                    f"for version {g2op_version}: " \
+                                                                    f"{len(this_episode.observations)} vs {nb_ts}"
+                assert len(this_episode.env_actions) == nb_ts, f"wrong number of elements for env_actions for " \
+                                                               f"version {g2op_version}: " \
+                                                               f"{len(this_episode.env_actions)} vs {nb_ts}"
+            except:
+                import pdb
+                pdb.set_trace()
+
+    def test_backward_compatibility(self):
+        backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3"]
+        curr_version = "current_version"
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env, \
+                 tempfile.TemporaryDirectory() as path:
+                runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+                runner.run(nb_episode=2,
+                           path_save=os.path.join(path, curr_version),
+                           pbar=False,
+                           max_iter=100,
+                           env_seeds=[1, 0],
+                           agent_seeds=[42, 69])
+                # check that i can read this data generate for this runner
+                self._aux_backward(path, curr_version)
+
+        for grid2op_version in backward_comp_version:
+            # check that i can read previous data stored from previous grid2Op version
+            self._aux_backward(PATH_PREVIOUS_RUNNER, f"res_agent_{grid2op_version}")
 
 
 if __name__ == "__main__":
