@@ -610,7 +610,7 @@ class Runner(object):
 
         name_chron = env.chronics_handler.get_name()
 
-        return name_chron, cum_reward, int(time_step)
+        return name_chron, cum_reward, int(time_step), episode
 
     @staticmethod
     def _make_progress_bar(pbar, total, next_pbar):
@@ -709,11 +709,11 @@ class Runner(object):
             env, agent = runner._new_env(chronics_handler=chronics_handler,
                                          backend=backend,
                                          parameters=parameters)
-            name_chron, cum_reward, nb_time_step = Runner._run_one_episode(
+            name_chron, cum_reward, nb_time_step, episode_data = Runner._run_one_episode(
                 env, agent, runner.logger, p_id, path_save)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
-            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts)
+            res[i] = (id_chron, name_chron, cum_reward, nb_time_step, max_ts, episode_data)
         return res
 
     def run_parrallel(self, nb_episode, nb_process=1, path_save=None):
@@ -805,6 +805,30 @@ class Runner(object):
                 returned list are not necessarily sorted by this value)
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
+              :param pbar:
+              :param max_iter:
+
+        """
+        res = self.run_detailed(nb_episode, nb_process, path_save, max_iter, pbar)
+        # Filter out the last element of each tuple in res (which is EpisodeData)
+        res_without_episode_data = [x[:-1] for x in res]
+        return res_without_episode_data
+
+    def run_detailed(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False):
+        """
+        Run and produces a more detailed depiction of the run
+        See :func:`Runner.run` as only the return type changes here
+
+        Returns
+        -------
+        res: ``list``
+            List of tuple. Each tuple having 4 elements:
+
+              - "i" unique identifier of the episode (compared to :func:`Runner.run_sequential`, the elements of the
+                returned list are not necessarily sorted by this value)
+              - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
+              - "nb_time_step": the number of time steps played in this episode.
+              - "episode_data" : The :class:`EpisodeData` corresponding to this episode run
 
         """
         if nb_episode < 0:
