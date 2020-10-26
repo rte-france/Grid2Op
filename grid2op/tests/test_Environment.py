@@ -1,23 +1,28 @@
-# making some test that the backned is working as expected
-import os
-import sys
-import unittest
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import copy
-import numpy as np
 import pdb
-
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
-
-from Exceptions import *
-from Environment import Environment
-from BackendPandaPower import PandaPowerBackend
-from Parameters import Parameters
-from ChronicsHandler import ChronicsHandler, GridStateFromFile
-from Reward import L2RPNReward
-from MakeEnv import make
-from GameRules import GameRules, DefaultRules
 import time
+import warnings
 
+from grid2op.tests.helper_path_test import *
+
+from grid2op.Exceptions import *
+from grid2op.Environment import Environment
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
+from grid2op.Reward import L2RPNReward
+from grid2op.MakeEnv import make
+from grid2op.Rules import RulesChecker, DefaultRules
+from grid2op.Action import *
+from grid2op.dtypes import dt_float
 
 DEBUG = False
 PROFILE_CODE = False
@@ -36,8 +41,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         self.path_chron = os.path.join(PATH_CHRONICS, "chronics")
         self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
 
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
         self.id_chron_to_back_load = np.array([0, 1, 10, 2, 3, 4, 5, 6, 7, 8, 9])
 
         # force the verbose backend
@@ -70,13 +75,28 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                backend=self.backend,
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
-                               names_chronics_to_backend=self.names_chronics_to_backend)
+                               names_chronics_to_backend=self.names_chronics_to_backend,
+                               name="test_env_env1")
 
     def tearDown(self):
         pass
 
     def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        return dt_float(np.max(np.abs(pred - true))) <= self.tolvect
+
+    def test_copy_env(self):
+        cpy = Environment(**self.env.get_kwargs())
+        obs1 = cpy.reset()
+        obs2 = self.env.reset()
+        assert obs1 == obs2
+        obs1, reward1, done1, info1 = cpy.step(self.env.action_space())
+        obs2, reward2, done2, info2 = self.env.step(self.env.action_space())
+        assert abs(reward1 - reward2) <= self.tol_one
+        assert done1 == done2
+        assert info1.keys() == info2.keys()
+        for kk in info1.keys():
+            assert np.all(info1[kk] == info2[kk])
+        assert obs1 == obs2
 
     def test_step_doesnt_change_action(self):
         act = self.env.action_space()
@@ -115,7 +135,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         assert self.compare_vect(injs_act, vect)
 
     def test_proper_voltage_modification(self):
-        do_nothing = self.env.helper_action_player({})
+        do_nothing = self.env.action_space({})
         obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
         vect = np.array([143.9, 139.1,   0.2,  13.3, 146. ])
         assert self.compare_vect(obs.prod_v, vect), "Production voltages setpoint have not changed at first time step"
@@ -125,7 +145,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
 
     def test_number_of_timesteps(self):
         for i in range(287):
-            do_nothing = self.env.helper_action_player({})
+            do_nothing = self.env.action_space({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
         injs_act, *_ = self.env.backend.loads_info()
         vect = np.array([19.0, 87.9, 44.4, 7.2, 10.4, 27.5, 8.4, 3.2, 5.7, 12.2, 13.6])
@@ -136,7 +156,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         done = False
         i = 0
         while not done:
-            do_nothing = self.env.helper_action_player({})
+            do_nothing = self.env.action_space({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
             i += 1
         assert i == 287
@@ -150,20 +170,22 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
                                chronics_handler=self.chronics_handler,
                                parameters=self.env_params,
                                rewardClass=L2RPNReward,
-                               names_chronics_to_backend=self.names_chronics_to_backend)
+                               names_chronics_to_backend=self.names_chronics_to_backend,
+                               name="test_env_env2")
         if PROFILE_CODE:
             cp = cProfile.Profile()
             cp.enable()
         beg_ = time.time()
-        cum_reward = 0
+        cum_reward = dt_float(0.0)
+        do_nothing = self.env.action_space({})
         while not done:
-            do_nothing = self.env.helper_action_player({})
             obs, reward, done, info = self.env.step(do_nothing)  # should load the first time stamp
             cum_reward += reward
             i += 1
         end_ = time.time()
         if DEBUG:
-            msg_ = "\nEnv: {:.2f}s\n\t - apply act {:.2f}s\n\t - run pf: {:.2f}s\n\t - env update + observation: {:.2f}s\nTotal time: {:.2f}\nCumulative reward: {:1f}"
+            msg_ = "\nEnv: {:.2f}s\n\t - apply act {:.2f}s\n\t - run pf: {:.2f}s\n" \
+                   "\t - env update + observation: {:.2f}s\nTotal time: {:.2f}\nCumulative reward: {:1f}"
             print(msg_.format(
                 self.env._time_apply_act+self.env._time_powerflow+self.env._time_extract_obs,
                 self.env._time_apply_act, self.env._time_powerflow, self.env._time_extract_obs, end_-beg_, cum_reward))
@@ -171,7 +193,8 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.disable()
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
-        assert np.abs(cum_reward - 5739.92911) <= self.tol_one, "Wrong reward"
+        expected_reward = dt_float(5739.9336)
+        assert dt_float(np.abs(cum_reward - expected_reward)) <= self.tol_one, "Wrong reward"
 
 
 class TestIllegalAmbiguous(unittest.TestCase):
@@ -184,34 +207,406 @@ class TestIllegalAmbiguous(unittest.TestCase):
         # powergrid
         self.tolvect = 1e-2
         self.tol_one = 1e-4
-        self.env = make("case5_example")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case5_example", test=True)
+
+    def tearDown(self):
+        self.env.close()
 
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred- true)) <= self.tolvect
 
     def test_ambiguous_detected(self):
-        act = self.env.helper_action_player({"set_line_status": [(1, 1)]})
+        self.skipTest("deprecated test as the reconnection is handled by backend action")
+        act = self.env.action_space({"set_line_status": [(1, 1)]})
         obs, reward, done, info = self.env.step(act)
         assert info['is_ambiguous']
         assert not info["is_illegal"]
 
     def test_notambiguous_correct(self):
-        act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
+        act = self.env.action_space({"set_line_status": [(1, -1)]})
         obs, reward, done, info = self.env.step(act)
         assert not info['is_ambiguous']
         assert not info["is_illegal"]
         assert np.sum(obs.line_status) == 7
 
     def test_illegal_detected(self):
-        act = self.env.helper_action_player({"set_line_status": [(1, -1)]})
-        self.env.game_rules = GameRules(legalActClass=DefaultRules)
-        self.env.times_before_line_status_actionable[1] = 1
+        act = self.env.action_space({"set_line_status": [(1, -1)]})
+        self.env.game_rules = RulesChecker(legalActClass=DefaultRules)
+        self.env._times_before_line_status_actionable[1] = 1
         obs, reward, done, info = self.env.step(act)
 
         # the action is illegal and it has not been implemented on the powergrid
         assert not info['is_ambiguous']
         assert info["is_illegal"]
         assert np.sum(obs.line_status) == 8
+
+
+class TestOtherReward(unittest.TestCase):
+    """
+    This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
+    or illegal
+
+    """
+    def setUp(self):
+        # powergrid
+        self.tolvect = 1e-2
+        self.tol_one = 1e-4
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+                                other_rewards={"test": L2RPNReward})
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_make(self):
+        _ = self.env.reset()
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert "rewards" in info
+        assert "test" in info["rewards"]
+        assert np.abs(info["rewards"]["test"] - reward) <= self.tol_one
+
+    def test_simulate(self):
+        obs = self.env.reset()
+        obs_simu, reward_simu, done_simu, info_simu = obs.simulate(self.env.action_space())
+        assert "rewards" in info_simu
+        assert "test" in info_simu["rewards"]
+        assert np.abs(info_simu["rewards"]["test"] - reward_simu) <= self.tol_one
+
+    def test_copy(self):
+        # https://github.com/BDonnot/lightsim2grid/issues/10
+        for i in range(5):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        env2 = self.env.copy()
+
+        obsnew = env2.get_obs()
+        assert obsnew == obs
+
+        # after the same action, the original env and its copy are the same
+        obs0, reward0, done0, info0 = self.env.step(self.env.action_space())
+        obs1, reward1, done1, info1 = env2.step(env2.action_space())
+        assert obs0 == obs1
+        assert reward0 == reward1
+        assert done1 == done0
+
+        # reset has the correct behaviour
+        obs_after = env2.reset()
+        obs00, reward00, done00, info00 = self.env.step(self.env.action_space())
+        # i did not affect the other environment
+        assert obs00.minute_of_hour == obs0.minute_of_hour + self.env.chronics_handler.time_interval.seconds // 60
+        # reset read the right chronics
+        assert obs_after.minute_of_hour == 0
+
+
+class TestResetOk(unittest.TestCase):
+    """
+    This function test that the behaviour of "step" is the one we want: it does nothing if an action if ambiguous
+    or illegal
+
+    """
+
+    def setUp(self):
+        # powergrid
+        self.tolvect = 1e-2
+        self.tol_one = 1e-4
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+                            other_rewards={"test": L2RPNReward})
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_reset_after_blackout(self):
+        # make the grid in bad shape
+        act = self.env.action_space({"set_bus": {"substations_id": [(2, [1, 2, 1, 2])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space({"set_bus": {"substations_id": [(0, [1, 1, 2, 2, 1, 2])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space({"set_bus": {"substations_id": [(3, [1, 1, 2, 2, 1])]}})
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space.disconnect_powerline(3)
+        obs, reward, done, info = self.env.step(act)
+        act = self.env.action_space.disconnect_powerline(4)
+        obs, reward, done, info = self.env.step(act)
+        # at this stage there is a cascading failure
+        assert len(info["exception"])
+        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        # reset the grid
+        obs = self.env.reset()
+        assert np.all(obs.topo_vect == 1)
+
+        # check that i can simulate
+        simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
+        assert np.all(simobs.topo_vect == 1)
+
+    def test_reset_after_blackout_withdetailed_info(self):
+        backend = PandaPowerBackend(detailed_infos_for_cascading_failures=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, reward_class=L2RPNReward,
+                       other_rewards={"test": L2RPNReward},
+                       backend=backend)
+
+        # make the grid in bad shape
+        act = env.action_space({"set_bus": {"substations_id": [(2, [1, 2, 1, 2])]}})
+        obs, reward, done, info = env.step(act)
+        act = env.action_space({"set_bus": {"substations_id": [(0, [1, 1, 2, 2, 1, 2])]}})
+        obs, reward, done, info = env.step(act)
+        act = env.action_space({"set_bus": {"substations_id": [(3, [1, 1, 2, 2, 1])]}})
+        obs, reward, done, info = env.step(act)
+        act = env.action_space.disconnect_powerline(3)
+        obs, reward, done, info = env.step(act)
+        obs, reward, done, info = env.step(env.action_space())
+        obs, reward, done, info = env.step(env.action_space())
+        # at this stage there is a cascading failure
+        assert len(info["exception"])
+        assert isinstance(info["exception"][0], DivergingPowerFlow)
+        assert "detailed_infos_for_cascading_failures" in info
+        assert len(info["detailed_infos_for_cascading_failures"])
+        # reset the grid
+        obs = self.env.reset()
+        assert np.all(obs.topo_vect == 1)
+
+        # check that i can simulate
+        simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
+        assert np.all(simobs.topo_vect == 1)
+
+class TestAttachLayout(unittest.TestCase):
+    def test_attach(self):
+        my_layout = [(0, 0), (0, 400), (200, 400), (400, 400), (400, 0)]
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True, reward_class=L2RPNReward, other_rewards={"test": L2RPNReward}) \
+                    as env:
+                env.attach_layout(my_layout)
+                act = env.action_space()
+                dict_act = act.to_dict()
+                assert "grid_layout" in dict_act
+                assert dict_act["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env.action_space.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env._helper_action_env.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env.observation_space.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+                dict_ = env._opponent_action_space.to_dict()
+                assert "grid_layout" in dict_
+                assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
+
+
+class TestLineChangeLastBus(unittest.TestCase):
+    """
+    This function test that the behaviour of "step": it updates the action with the last known bus when reconnecting
+
+    """
+    def setUp(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.params = Parameters()
+            self.params.MAX_SUB_CHANGED = 1
+            self.params.NO_OVERFLOW_DISCONNECTION = True
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=self.params)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_set_reconnect(self):
+        LINE_ID = 4
+        line_ex_topo = self.env.line_ex_pos_topo_vect[LINE_ID]
+        line_or_topo = self.env.line_or_pos_topo_vect[LINE_ID]
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [(LINE_ID, 2)]
+            }
+        })
+        set_status = self.env.action_space.get_set_line_status_vect()
+        set_status[LINE_ID] = -1
+        disconnect_action = self.env.action_space({
+            'set_line_status': set_status
+        })
+        set_status[LINE_ID] = 1
+        reconnect_action = self.env.action_space({
+            'set_line_status': set_status
+        })
+
+        obs, r, d, info = self.env.step(bus_action)
+        assert d is False
+        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.line_status[LINE_ID] == True
+        obs, r, d, _ = self.env.step(disconnect_action)
+        assert d is False
+        assert obs.line_status[LINE_ID] == False
+        obs, r, d, info = self.env.step(reconnect_action)
+        assert d is False, "Diverged powerflow on reconnection"
+        assert info["is_illegal"] == False, "Reconnecting should be legal"
+        assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
+        # Its reconnected to bus 2, without specifying it
+        assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
+
+    def test_change_reconnect(self):
+        LINE_ID = 4
+        line_ex_topo = self.env.line_ex_pos_topo_vect[LINE_ID]
+        line_or_topo = self.env.line_or_pos_topo_vect[LINE_ID]
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [(LINE_ID,2)]
+            }
+        })
+        switch_status = self.env.action_space.get_change_line_status_vect()
+        switch_status[LINE_ID] = True
+        switch_action = self.env.action_space({
+            'change_line_status': switch_status
+        })
+
+        obs, r, d, _ = self.env.step(bus_action)
+        assert d is False
+        assert obs.topo_vect[line_ex_topo] == 2
+        assert obs.line_status[LINE_ID] == True
+        obs, r, d, info = self.env.step(switch_action)
+        assert d is False
+        assert obs.line_status[LINE_ID] == False
+        obs, r, d, info = self.env.step(switch_action)
+        assert d is False, "Diverged powerflow on reconnection"
+        assert info["is_illegal"] == False, "Reconnecting should be legal"
+        assert obs.line_status[LINE_ID] == True, "Line is not reconnected"
+        # Its reconnected to bus 2, without specifying it
+        assert obs.topo_vect[line_ex_topo] == 2, "Line ex should be on bus 2"
+
+
+class TestResetAfterCascadingFailure(unittest.TestCase):
+    """
+    Fake a cascading failure, do a reset of an env, check that it can be loaded
+
+    """
+    def setUp(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 2
+            self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_reset_after_cascading(self):
+        LINE_ID = 4
+        bus_action = self.env.action_space({
+            "set_bus": {
+                "lines_ex_id": [(LINE_ID,2)],
+                "lines_or_id": [(LINE_ID,2)]
+            }
+        })
+        nothing_action = self.env.action_space({})
+
+        for i in range(3):
+            obs, r, d, i = self.env.step(bus_action)
+            # Ensure cascading happened
+            assert d is True
+            # Reset env, this shouldn't raise
+            self.env.reset()
+            # Step once
+            obs, r, d, i = self.env.step(nothing_action)
+            # Ensure stepping has been successful
+            assert d is False
+
+
+class TestCascadingFailure(unittest.TestCase):
+    """
+    There has been a bug preventing to reload an environment if the previous one ended with a cascading failure.
+    It check that here.
+    """
+    def setUp(self):
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            params = Parameters()
+            params.MAX_SUB_CHANGED = 0
+            params.NB_TIMESTEP_POWERFLOW_ALLOWED = 2
+            rules = DefaultRules
+            self.env = make("rte_case14_test", test=True, chronics_class=ChangeNothing, param=params,
+                                gamerules_class=rules)
+
+    def tearDown(self):
+        self.env.close()
+
+    def test_simulate_cf(self):
+        thermal_limit = np.array([  638.28966637,   305.05042301, 17658.9674809 , 26534.04334098,
+                                   10869.23856329,  4686.71726729, 15612.65903298,   300.07915572,
+                                     229.8060832 ,   169.97292682,   100.40192958,   265.47505664,
+                                   21193.86923911, 21216.44452327, 49701.1565287 ,   124.79684388,
+                                      67.59759985,   192.19424706,   666.76961936,  1113.52773632])
+        thermal_limit *= 2
+        thermal_limit[[0,1]] /= 2.1
+        self.env.set_thermal_limit(thermal_limit)
+        obs0 = self.env.reset()
+        obs1, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        obs2, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        obs3, reward, done, info = self.env.step(self.env.action_space())
+        assert done
+        obs_new = self.env.reset()
+        obs1, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+
+
+class TestLoading2envDontCrash(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = make("rte_case14_test", test=True)
+            self.env2 = make("rte_case5_example", test=True)
+
+    def tearDown(self) -> None:
+        self.env1.close()
+        self.env2.close()
+
+    def test_loading(self):
+
+        donotghing1 = self.env1.action_space()
+        donotghing2 = self.env2.action_space()
+
+        assert donotghing1.n_sub == 14
+        assert donotghing2.n_sub == 5
+
+        obs1, *_ = self.env1.step(donotghing1)
+        obs2, *_ = self.env2.step(donotghing2)
+
+        assert obs1.n_sub == 14
+        assert obs2.n_sub == 5
+
+
+class TestDeactivateForecast(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1 = make("rte_case14_test", test=True)
+
+    def tearDown(self) -> None:
+        self.env1.close()
+
+    def test_deactivate_reactivate(self):
+        self.env1.deactivate_forecast()
+        obs = self.env1.reset()
+        # it should not be possible to use forecast
+        with self.assertRaises(NoForecastAvailable):
+            sim_obs, *_ = obs.simulate(self.env1.action_space())
+
+        # i reactivate the forecast
+        self.env1.reactivate_forecast()
+        obs, reward, done, info = self.env1.step(self.env1.action_space())
+        # i check i can use it again
+        sim_obs, *_ = obs.simulate(self.env1.action_space())
 
 
 if __name__ == "__main__":

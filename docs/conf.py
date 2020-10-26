@@ -17,13 +17,13 @@ sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Grdi2Op'
+project = 'Grid2Op'
 copyright = '2019, RTE France'
 author = 'Benjamin Donnot'
 
 # The full version, including alpha/beta/rc tags
-release = '0.5.8'
-version = '0.5'
+release = '1.2.3'
+version = '1.2'
 
 
 # -- General configuration ---------------------------------------------------
@@ -42,12 +42,19 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.napoleon',
     'sphinxcontrib_trio',
-     "sphinx_rtd_theme"
+     "sphinx_rtd_theme",
+    # toc of modules
+    'autodocsumm',
+    # 'sphinx.ext.autosectionlabel',
+
     # 'details',
-    #'exception_hierarchy'
+    #'exception_hierarchy',
+
+    # for pdf
+    # 'rst2pdf.pdfbuilder'
 ]
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = [] #'_templates']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -68,6 +75,9 @@ highlight_language = 'python3'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# for pdf
+pdf_documents = [('index', u'rst2pdf', u'Sample rst2pdf doc', u'Your Name'),]
 
 
 def setup(app):

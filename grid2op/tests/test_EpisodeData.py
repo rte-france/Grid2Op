@@ -1,45 +1,28 @@
-# making some test that the backned is working as expected
-import os
-import sys
-import unittest
-import datetime
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import tempfile
-
-import time
-
-import numpy as np
+import warnings
 import pdb
 
-# making sure test can be ran from:
-# root package directory
-# RL4Grid subdirectory
-# RL4Grid/tests subdirectory
-sys.path.insert(0, os.path.abspath('./'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('Grid2Op/'))
-
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS
-PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
-
-from Exceptions import *
-from Observation import ObservationHelper, CompleteObservation, ObsEnv
-
-from ChronicsHandler import Multifolder
-
-from Exceptions import *
-from Action import HelperAction
-from GameRules import GameRules
-from Reward import L2RPNReward
-from Parameters import Parameters
-
-from BackendPandaPower import PandaPowerBackend
-from Environment import Environment
-
-from Runner import Runner
-
-from EpisodeData import EpisodeData
+import grid2op
+from grid2op.tests.helper_path_test import *
+from grid2op.Exceptions import *
+from grid2op.Chronics import Multifolder
+from grid2op.Reward import L2RPNReward
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Runner import Runner
+from grid2op.Episode import EpisodeData
+from grid2op.dtypes import dt_float
+from grid2op.Agent import BaseAgent
 
 DEBUG = True
+PATH_ADN_CHRONICS_FOLDER = os.path.abspath(os.path.join(PATH_CHRONICS, "test_multi_chronics"))
 
 
 class TestEpisodeData(unittest.TestCase):
@@ -48,8 +31,10 @@ class TestEpisodeData(unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
+        self.max_iter = 10
+        self.real_reward = dt_float(199.99800)
 
         self.init_grid_path = os.path.join(
             PATH_DATA_TEST_PP, "test_case14.json")
@@ -82,34 +67,75 @@ class TestEpisodeData(unittest.TestCase):
                              names_chronics_to_backend=self.names_chronics_to_backend,
                              gridStateclass=self.gridStateclass,
                              backendClass=self.backendClass,
-                             rewardClass=L2RPNReward)
+                             rewardClass=L2RPNReward,
+                             other_rewards={"test": L2RPNReward},
+                             max_iter=self.max_iter,
+                             name_env="test_episodedata_env")
+
+    def test_load_ambiguous(self):
+        f = tempfile.mkdtemp()
+
+        class TestSuitAgent(BaseAgent):
+            def __init__(self, *args, **kwargs):
+                BaseAgent.__init__(self, *args, **kwargs)
+
+            def act(self, observation, reward, done=False):
+                # do a ambiguous action
+                return self.action_space({"set_line_status": [(0, 1)],
+                                          "change_line_status": [0]}
+                                         )
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with grid2op.make("rte_case14_test", test=True) as env:
+                my_agent = TestSuitAgent(env.action_space)
+                runner = Runner(**env.get_params_for_runner(),
+                                agentClass=None,
+                                agentInstance=my_agent)
+
+                # test that the right seeds are assigned to the agent
+                res = runner.run(nb_episode=1,
+                                 max_iter=self.max_iter,
+                                 path_save=f)
+            episode_data = EpisodeData.from_disk(agent_path=f, name=res[0][1])
+        assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
+        assert len(episode_data.actions) == self.max_iter
+        assert len(episode_data.observations) == self.max_iter + 1
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()
         episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
-        assert int(episode_data.meta["chronics_max_timestep"]) == 287
-        assert np.abs(
-            float(episode_data.meta["cumulative_reward"]) - 5739.951023) <= self.tol_one
+        assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
+        assert len(episode_data.other_rewards) == self.max_iter
+        for other, real in zip(episode_data.other_rewards, episode_data.rewards):
+            assert dt_float(np.abs(other["test"] - real)) <= self.tol_one
+        assert np.abs(dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
+
+    def test_len(self):
+        f = tempfile.mkdtemp()
+        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
+        len(episode_data)
 
     def test_3_episode_with_saving(self):
         f = tempfile.mkdtemp()
-        res = self.runner.run_sequential(nb_episode=3, path_save=f)
+        res = self.runner._run_sequential(nb_episode=3, path_save=f)
         for i, episode_name, cum_reward, timestep, total_ts in res:
             episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
-            assert int(episode_data.meta["chronics_max_timestep"]) == 287
+            assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
             assert np.abs(
-                float(episode_data.meta["cumulative_reward"]) - 5739.951023) <= self.tol_one
+                dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
 
     def test_3_episode_3process_with_saving(self):
         f = tempfile.mkdtemp()
-        res = self.runner.run_parrallel(nb_episode=3, nb_process=2, path_save=f)
+        res = self.runner._run_parrallel(nb_episode=3, nb_process=2, path_save=f)
         assert len(res) == 3
         for i, episode_name, cum_reward, timestep, total_ts in res:
             episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
-            assert int(episode_data.meta["chronics_max_timestep"]) == 287
+            assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
             assert np.abs(
-                float(episode_data.meta["cumulative_reward"]) - 5739.951023) <= self.tol_one
+                dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
 
 
 if __name__ == "__main__":

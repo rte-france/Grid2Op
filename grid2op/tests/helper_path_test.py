@@ -1,3 +1,11 @@
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 # making sure test can be ran from:
 # root package directory
 # Grid2Op subdirectory
@@ -6,30 +14,32 @@ import sys
 import os
 import unittest
 import numpy as np
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath('./'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./grid2op'))
-sys.path.insert(0, os.path.abspath('../grid2op/'))
+from grid2op.dtypes import dt_float
 
-PATH_DATA_TEST = os.path.abspath("../data/")
-PATH_CHRONICS = os.path.abspath("../data")
-if not os.path.exists(os.path.join(PATH_DATA_TEST, "chronics_with_forecast")):
-    PATH_DATA_TEST = os.path.abspath("./data/")
-    PATH_CHRONICS = os.path.abspath("./data/")
-    if not os.path.exists(os.path.join(PATH_DATA_TEST, "chronics_with_forecast")):
-        PATH_DATA_TEST = os.path.abspath("grid2op/data/")
-        PATH_CHRONICS = os.path.abspath("grid2op/data")
-        if not os.path.exists(os.path.join(PATH_DATA_TEST, "chronics_with_forecast")):  # I am lost
-            raise RuntimeError("Impossible to find the test data folder")
+test_dir = Path(__file__).parent.absolute()
+grid2op_dir = os.fspath(test_dir.parent.absolute())
+data_dir = os.path.abspath(os.path.join(grid2op_dir, "data_test"))
+
+sys.path.insert(0, grid2op_dir)
+
+PATH_DATA_TEST = data_dir
+PATH_CHRONICS = data_dir
+PATH_CHRONICS_Make2 = os.path.abspath(os.path.join(grid2op_dir, "data"))
 PATH_DATA_TEST_PP = os.path.abspath(os.path.join(PATH_DATA_TEST, "test_PandaPower"))
+EXAMPLE_CHRONICSPATH = os.path.abspath(os.path.join(data_dir, "5bus_example", "chronics"))
+EXAMPLE_CASEFILE = os.path.abspath(os.path.join(data_dir, "5bus_example", "5bus_example.json"))
+PATH_DATA_MULTIMIX = os.path.abspath(os.path.join(data_dir, "multimix"))
 
 
 class HelperTests(unittest.TestCase):
     def __init__(self, methodName='runTest'):
         unittest.TestCase.__init__(self, methodName=methodName)
-        self.tolvect = 1e-2
-        self.tol_one = 1e-5
+        self.tolvect = dt_float(1e-2)
+        self.tol_one = dt_float(1e-5)
 
     def compare_vect(self, pred, true):
-        return np.max(np.abs(pred- true)) <= self.tolvect
+        res = dt_float(np.max(np.abs(pred - true))) <= self.tolvect
+        res = res and dt_float(np.mean(np.abs(pred - true))) <= self.tolvect
+        return res

@@ -3,8 +3,13 @@ from grid2op.Agent import DoNothingAgent
 from grid2op.Agent import GreedyAgent, RandomAgent
 import numpy as np
 import pdb
+import warnings
 
-env = grid2op.make("case14_realistic")
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore")
+    env = grid2op.make("case14_realistic")
+
 
 class MyExpertAgent(GreedyAgent):
     def __init__(self, action_space):
@@ -21,7 +26,7 @@ class MyExpertAgent(GreedyAgent):
 
         Parameters
         ----------
-        observation: :class:`grid2op.Observation.Observation`
+        observation: :class:`grid2op.BaseObservation.BaseObservation`
             The current observation of the :class:`grid2op.Environment`
 
         reward: ``float``
@@ -32,7 +37,7 @@ class MyExpertAgent(GreedyAgent):
 
         Returns
         -------
-        res: :class:`grid2op.Action.Action`
+        res: :class:`grid2op.BaseAction.BaseAction`
             The action chosen by the bot / controller / agent.
 
         """
@@ -49,7 +54,7 @@ class MyExpertAgent(GreedyAgent):
             reward_idx = np.argmax(all_rewards)  # rewards.index(max(rewards))
             expected_reward = np.max(all_rewards)
             best_action = self.tested_action[reward_idx]
-#             print("Action taken:\n{}".format(best_action))
+#             print("BaseAction taken:\n{}".format(best_action))
         else:
             all_rewards = [None]
             expected_reward = None
@@ -99,7 +104,8 @@ class MyExpertAgent(GreedyAgent):
                                     {"substations_id": [(1, np.array([False, False, True, True, False, False]))]}})
         res.append(action)
         return res
-    
+
+
 my_agent = MyExpertAgent(env.action_space)
 # my_agent = RandomAgent(env.action_space)
 print("Total unitary action possible: {}".format(my_agent.action_space.n))
@@ -110,9 +116,6 @@ all_obs.append(obs)
 reward = env.reward_range[0]
 done = False
 nb_step = 0
-# graph_layout = [(280, -81), (100, -270), (-366, -270), (-366, -54), (64, -54), (64, 54), (-450, 0),
-#                 (-550, 0), (-326, 54), (-222, 108), (-79, 162), (170, 270), (64, 270), (-222, 216)]
-# env.attach_renderer(graph_layout)
 while True:
     env.render()
     action = my_agent.act(obs, reward, done)

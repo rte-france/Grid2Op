@@ -170,7 +170,7 @@ getting_started/study_agent_getting_started/
 **Untitled.ipynb
 grid2op/tests/test_agent/
 grid2op/tests/start_datetime.info
-
+# grid2op/data/*/chronics/
 
 l2rpn_2019/data/
 l2rpn_2019/expe_saved/
@@ -185,3 +185,47 @@ l2rpn_2019/exped_saved/
 Untitled*.ipynb
 **config.ini
 getting_started/study_agent_getting_started.zip
+*.gif
+getting_started/awesome_agent_logs/
+getting_started/path_agents/
+**Test.ipynb
+baselines/
+test_saving_chron_proper_format/
+test_split_and_save.py
+getting_started/saved_agent_DDDQN_100/
+getting_started/tf_logs_DDDQN/
+getting_started/logs-train/
+getting_started/saved_agent_DDDQN_1000/
+grid2op/tests.npz
+my_runner_output_dir/
+test_episode_data.py
+agent_logs.txt
+result.txt
+camillo_bug.py
+camillo_bug2.py
+getting_started/path_agents/awesome_agent_logs/
+save_class.pickle
+test_multiproc.py
+test_multiproc2.py
+getting_started/saved_agent2_DDDQN_1500/
+getting_started/saved_agent2_DDDQN_1500_results/
+getting_started/saved_agent_DDDQN_1000_results/
+getting_started/saved_agent_DDDQN_100_multi/
+getting_started/saved_agent_DDDQN_100_multi_results_multi/
+tensorboard
+test_sac
+test_if_bug.py
+getting_started/saved_agent_DDDQN_10000/
+getting_started/saved_agent_DDDQN_10000_results/
+test_reboot.py
+test_multimixrunner/
+test_N1reward.py
+i_saved_the_runner_here/
+output_pdf/
+test_make_plot_injj.ipynb
+plot_inj_prez_gdrive.ipynb
+where_i_want_to_save_it/
+test_issue147.py
+
+# profiling files
+**.prof

@@ -1,23 +1,25 @@
-# making some test that the backned is working as expected
-import os
-import sys
-import unittest
+# Copyright (c) 2019-2020, RTE (https://www.rte-france.com)
+# See AUTHORS.txt
+# This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
+# If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
+# you can obtain one at http://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: MPL-2.0
+# This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import numpy as np
 import pdb
 import warnings
+import pandas as pd
+import tempfile
+from grid2op.tests.helper_path_test import *
 
-# making sure test can be ran from:
-# root package directory
-# RL4Grid subdirectory
-# RL4Grid/tests subdirectory
-from helper_path_test import PATH_DATA_TEST_PP, PATH_CHRONICS, HelperTests
-
-from MakeEnv import make
-from Exceptions import *
-from ChronicsHandler import ChronicsHandler, ChangeNothing, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder
-from ChronicsHandler import GridValue
-from BackendPandaPower import PandaPowerBackend
+from grid2op.dtypes import dt_int, dt_float
+from grid2op.MakeEnv import make
+from grid2op.Exceptions import *
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts, Multifolder, GridValue
+from grid2op.Chronics import MultifolderWithCache
+from grid2op.Backend import PandaPowerBackend
+from grid2op.Parameters import Parameters
+from grid2op.Rules import AlwaysLegal
 
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
@@ -540,8 +542,9 @@ class TestEnvChunk(HelperTests):
         self.max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("case14_realistic")
+            self.env = make("rte_case14_realistic", test=True)
             self.env.chronics_handler.set_max_iter(self.max_iter)
+
     def tearDown(self):
         self.env.close()
 
@@ -570,8 +573,8 @@ class TestMissingData(HelperTests):
     def test_load_error(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with self.assertRaises(ChronicsError):
-                with make("case14_realistic", chronics_path="/answer/life/42"):
+            with self.assertRaises(EnvError):
+                with make("rte_case14_realistic", test=True, chronics_path="/answer/life/42"):
                     pass
 
     def run_env_till_over(self, env, max_iter):
@@ -588,8 +591,9 @@ class TestMissingData(HelperTests):
         max_iter = 10
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("case5_example",
-                      chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) as env:
+            with make("rte_case5_example", test=True,
+                          chronics_path=os.path.join(PATH_CHRONICS, "5bus_example_some_missing", "chronics")) \
+                    as env:
                 # test a first time without chunks
                 env.set_id(0)
                 env.chronics_handler.set_max_iter(max_iter)
@@ -615,6 +619,541 @@ class TestMissingData(HelperTests):
                 nb_it, obs = self.run_env_till_over(env, max_iter)
                 assert nb_it == max_iter
                 pass
+
+
+class TestCFFWFWM(HelperTests):
+    def test_load(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+                env.seed(123456)  # for reproducible tests !
+                obs = env.reset()
+                #get input data, to check they were correctly applied in
+                linesPossiblyInMaintenance = env.chronics_handler.real_data.data.line_to_maintenance
+                assert np.all(np.array(sorted(linesPossiblyInMaintenance)) ==
+                              ['11_12_13', '12_13_14', '16_18_23', '16_21_27', '22_26_39', '26_30_56',
+                               '2_3_0', '30_31_45', '7_9_9', '9_16_18'])
+                ChronicMonth = env.chronics_handler.real_data.data.start_datetime.month
+                assert ChronicMonth == 8
+                maxMaintenancePerDay = env.chronics_handler.real_data.data.max_daily_number_per_month_maintenance[(ChronicMonth-1)]
+                assert maxMaintenancePerDay == 2
+
+                envLines = env.name_line
+                idx_linesPossiblyInMaintenance = [i for i in range(len(envLines)) if envLines[i] in linesPossiblyInMaintenance]
+                idx_linesNotInMaintenance = [i for i in range(len(envLines)) if envLines[i] not in linesPossiblyInMaintenance]
+                
+                 
+                #maintenance dataFrame
+                maintenanceChronic = maintenances_df = pd.DataFrame(env.chronics_handler.real_data.data.maintenance,
+                                                                    columns=envLines)
+                nb_timesteps = maintenanceChronic.shape[0]
+                # identify the timestamps of the chronics to find out the month and day of the week
+                freq = str(int(env.chronics_handler.real_data.data.time_interval.total_seconds())) + "s"  # should be in the timedelta frequency format in pandas
+                datelist = pd.date_range(env.chronics_handler.real_data.data.start_datetime,
+                                         periods=nb_timesteps,
+                                         freq=freq)
+               
+                maintenances_df.index = datelist
+                assert (maintenanceChronic[envLines[idx_linesNotInMaintenance]].sum().sum() == 0)
+
+                assert (maintenanceChronic[linesPossiblyInMaintenance].sum().sum() >= 1)
+
+                nb_mainteance_timestep = maintenanceChronic.sum(axis=1)
+                assert np.all(nb_mainteance_timestep <= maxMaintenancePerDay)
+
+    def test_maintenance_multiple_timesteps(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+                      param=param) as env:
+                env.seed(0)
+                envLines = env.name_line
+                linesPossiblyInMaintenance = np.array(['11_12_13', '12_13_14', '16_18_23', '16_21_27', '22_26_39',
+                                                       '26_30_56', '2_3_0', '30_31_45', '7_9_9', '9_16_18'])
+                idx_linesPossiblyInMaintenance=[i for i in range(len(envLines))
+                                                if envLines[i] in linesPossiblyInMaintenance]
+                idx_linesNotInMaintenance = [i for i in range(len(envLines)) if
+                                             envLines[i] not in linesPossiblyInMaintenance]
+                maxMaintenancePerDay = 2
+
+                obs = env.reset()
+                ####check that at least one line that can go in maintenance actuamlly goes in maintenance
+                assert (np.sum(obs.duration_next_maintenance[idx_linesPossiblyInMaintenance]) >= 1)
+                ####check that at no line that can not go in maintenance actually goes in maintenance
+                assert (np.sum(obs.duration_next_maintenance[idx_linesNotInMaintenance]) == 0)
+
+                done = False
+                max_it = 10
+                it_num = 0
+                while not done:
+                    if np.any(obs.time_next_maintenance > 0):
+                        timestep_nextMaintenance = np.min(obs.time_next_maintenance[obs.time_next_maintenance!=-1])
+                    else:
+                        break
+                    env.fast_forward_chronics(timestep_nextMaintenance)
+                    obs, reward, done, info = env.step(env.action_space())
+                    assert np.sum(obs.time_next_maintenance == 0) <= maxMaintenancePerDay
+                    assert np.all(np.abs(obs.a_or[obs.time_next_maintenance == 0] - 0.) <= self.tol_one)
+                    assert np.all(~obs.line_status[obs.time_next_maintenance == 0])
+                    it_num += 1
+                    if it_num >= max_it:
+                        break
+
+    def test_proba(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_2"),
+                      param=param) as env:
+                env.seed(0)
+                # input data
+                nb_scenario = 30   # if too low then i don't have 1e-3 beteween theory and practice
+                nb_line_in_maintenance = 10
+                assert len(env.chronics_handler.real_data.data.line_to_maintenance) == nb_line_in_maintenance
+                proba = 0.06
+
+                nb_th = proba * 5/7  # for day of week
+                nb_th *= 8/24  # maintenance only between 9 and 17
+
+                nb_maintenance = np.zeros(env.n_line, dtype=dt_float)
+                nb_ts_ = 0
+                for i in range(nb_scenario):
+                    obs = env.reset()
+                    nb_maintenance += np.sum(env.chronics_handler.real_data.data.maintenance, axis=0)
+                    nb_ts_ += env.chronics_handler.real_data.data.maintenance.shape[0]
+                total_maintenance = np.sum(nb_maintenance)
+                total_maintenance /= nb_ts_ * nb_line_in_maintenance
+                assert np.abs(total_maintenance - nb_th) <= 1e-3
+
+    def test_load_fake_january(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+                      param=param) as env:
+                env.seed(0)
+                # get input data, to check they were correctly applied in
+                linesPossiblyInMaintenance = env.chronics_handler.real_data.data.line_to_maintenance
+                assert np.all(np.array(sorted(linesPossiblyInMaintenance)) ==
+                              ['11_12_13', '12_13_14', '16_18_23', '16_21_27', '22_26_39', '26_30_56',
+                               '2_3_0', '30_31_45', '7_9_9', '9_16_18'])
+                ChronicMonth = env.chronics_handler.real_data.data.start_datetime.month
+                assert ChronicMonth == 1
+                maxMaintenancePerDay = env.chronics_handler.real_data.data.max_daily_number_per_month_maintenance[
+                    (ChronicMonth - 1)]
+                assert maxMaintenancePerDay == 0
+                assert np.sum(env.chronics_handler.real_data.data.maintenance) == 0
+
+
+    def test_split_and_save(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+                env.seed(0)
+                env.set_id(0)
+                obs = env.reset()
+                start_d = {
+                    "Scenario_august_00": "2012-08-10 00:00"
+                }
+                end_d = {
+                    "Scenario_august_00": "2012-08-19 00:00"
+                }
+                ts_beg = 2591
+                ts_end = 5184
+
+                # generate some reference data
+                chronics_outdir = tempfile.mkdtemp()
+                env.chronics_handler.real_data.split_and_save(start_d,
+                                                              end_d,
+                                                              chronics_outdir)
+                maintenance_0_0 = pd.read_csv(os.path.join(chronics_outdir,
+                                                         "Scenario_august_00",
+                                                         "maintenance.csv.bz2"),
+                                            sep=";").values
+
+                # test that i got a different result with a different seed
+                env.seed(1)
+                env.set_id(0)
+                obs = env.reset()
+                chronics_outdir2 = tempfile.mkdtemp()
+                env.chronics_handler.real_data.split_and_save(start_d,
+                                                              end_d,
+                                                              chronics_outdir2)
+                maintenance_1 = pd.read_csv(os.path.join(chronics_outdir2,
+                                                         "Scenario_august_00",
+                                                         "maintenance.csv.bz2"),
+                                            sep=";").values
+                assert np.any(maintenance_0_0 != maintenance_1)
+
+                # and now test that i have the same results with the same seed
+                env.seed(0)
+                env.set_id(0)
+                obs = env.reset()
+                chronics_outdir3 = tempfile.mkdtemp()
+                env.chronics_handler.real_data.split_and_save(start_d,
+                                                              end_d,
+                                                              chronics_outdir3)
+                maintenance_0_1 = pd.read_csv(os.path.join(chronics_outdir3,
+                                                         "Scenario_august_00",
+                                                         "maintenance.csv.bz2"),
+                                              sep=";").values
+                assert np.all(maintenance_0_0 == maintenance_0_1)
+
+                # make sure i can reload the environment
+                env2 = make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"),
+                            param=param,
+                            data_feeding_kwargs={"gridvalueClass": GridStateFromFileWithForecasts},
+                            chronics_path=chronics_outdir3)
+                env2.set_id(0)
+                obs = env2.reset()
+                # and that it has the right chroncis
+                assert np.all(env2.chronics_handler.real_data.data.maintenance.astype(dt_float) ==
+                              maintenance_0_0)
+
+    def test_seed(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance"), param=param) as env:
+                nb_scenario = 10
+                nb_maintenance = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
+                nb_maintenance1 = np.zeros((nb_scenario, env.n_line), dtype=dt_float)
+
+                env.seed(0)
+                for i in range(nb_scenario):
+                    obs = env.reset()
+                    nb_maintenance[i, :] = np.sum(env.chronics_handler.real_data.data.maintenance, axis=0)
+
+                env.seed(0)
+                for i in range(nb_scenario):
+                    obs = env.reset()
+                    nb_maintenance1[i, :] = np.sum(env.chronics_handler.real_data.data.maintenance, axis=0)
+                assert np.all(nb_maintenance == nb_maintenance)
+
+    def test_chunk_size(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "ieee118_R2subgrid_wcci_test_maintenance_3"),
+                      param=param) as env:
+                env.seed(0)
+                obs = env.reset()
+                maint = env.chronics_handler.real_data.data.maintenance
+
+                env.seed(0)
+                env.set_chunk_size(10)
+                obs = env.reset()
+                maint2 = env.chronics_handler.real_data.data.maintenance
+                assert np.all(maint == maint2)
+
+
+class TestWithCache(HelperTests):
+    def test_load(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_DATA_TEST, "5bus_example_some_missing"),
+                      param=param,
+                      chronics_class=MultifolderWithCache) as env:
+                env.seed(123456)  # for reproducible tests !
+                nb_steps = 10
+                # I test that the reset ... reset also the date time and the chronics "state"
+                obs = env.reset()
+                assert obs.minute_of_hour == 5
+                assert env.chronics_handler.real_data.data.current_index == 0
+                assert env.chronics_handler.real_data.data.curr_iter == 1
+                for i in range(nb_steps):
+                    obs, reward, done, info = env.step(env.action_space())
+                assert obs.minute_of_hour == 55
+                obs = env.reset()
+                assert obs.minute_of_hour == 5
+                assert env.chronics_handler.real_data.data.current_index == 0
+                assert env.chronics_handler.real_data.data.curr_iter == 1
+
+
+class TestMaintenanceBehavingNormally(HelperTests):
+    def test_withrealistic(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True,
+                      param=param) as env:
+                l_id = 11
+                obs = env.reset()
+                assert np.all(obs.time_before_cooldown_line == 0)
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert info["is_illegal"]
+                assert not obs.line_status[l_id]
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert info["is_illegal"] is True  # it is legal -> no more because of cooldown (and because now this action is counted as an action on a line)
+                assert not obs.line_status[l_id]  # but has no effect (line is still disconnected)
+
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    arr_ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int)
+                    arr_[l_id] = 9-i
+                    assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
+                # i have no more cooldown on line now
+                assert np.all(obs.time_before_cooldown_line == 0)
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert info["is_illegal"] is False  # it is legal
+                assert obs.line_status[l_id]  #  reconnecting only one end has still no effect -> change of behaviour
+
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert info["is_illegal"] is False  # it's legal
+
+                assert obs.line_status[l_id]  # it has reconnected the powerline
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # nothing is in maintenance
+
+                for i in range(obs.time_next_maintenance[12]-1):
+                    obs, reward, done, info = env.step(env.action_space())
+                # no maintenance yet
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # a maintenance now
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+    def test_with_alwayslegal(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True,
+                      param=param,
+                      gamerules_class=AlwaysLegal) as env:
+                l_id = 11
+                obs = env.reset()
+                assert np.all(obs.time_before_cooldown_line == 0)
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert not info["is_illegal"]  # it is legal
+                assert not obs.line_status[l_id]  # yet maintenance should have stayed
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert not info["is_illegal"]  # it is legal
+                assert not obs.line_status[l_id]  # but has no effect (line is still disconnected)
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                for i in range(10):
+                    obs, reward, done, info = env.step(env.action_space())
+                    arr_ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int)
+                    arr_[l_id] = 9-i
+                    assert np.all(obs.time_before_cooldown_line == arr_), "error at time step {}".format(i)
+
+                # i have no more cooldown on line now
+                assert np.all(obs.time_before_cooldown_line == 0)
+
+                obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(11, 1)]}}))
+                assert not info["is_illegal"]  # it is legal -> no more because of cooldown
+                # assert not obs.line_status[11]  # reconnecting only one end has still no effect -> change of behaviour now
+
+                obs, reward, done, info = env.step(env.action_space({"set_line_status": [(11, 1)]}))
+                assert not info["is_illegal"]  # it is legal
+                assert obs.line_status[l_id]  # it has reconnected the powerline
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # nothing is in maintenance
+
+                for i in range(obs.time_next_maintenance[12]-1):
+                    obs, reward, done, info = env.step(env.action_space())
+                # no maintenance yet
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+                # a maintenance now
+                obs, reward, done, info = env.step(env.action_space())
+                assert np.all(obs.time_before_cooldown_line ==
+                              np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0], dtype=dt_int))
+
+
+class TestMultiFolder(HelperTests):
+    def get_multifolder_class(self):
+        return Multifolder
+
+    def _reset_chron_handl(self, chronics_handler):
+        pass
+
+    def setUp(self) -> None:
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case14_realistic", test=True, chronics_class=chronics_class)
+        root_path = self.env.chronics_handler.real_data.path
+        self.chronics_paths = np.array([os.path.join(root_path, '000'),
+                                        os.path.join(root_path, '001')])
+        self._reset_chron_handl(self.env.chronics_handler)
+        self.env.seed(0)
+
+    def test_real_data(self):
+        real_data = self.env.chronics_handler.real_data
+
+    def test_filter(self):
+        class MyFilterForTest:
+            def __init__(self):
+                self.i = -1
+
+            def __call__(self, path):
+                self.i += 1
+                return self.i == 0
+
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0, 1])
+        my_filt = MyFilterForTest()
+        self.env.chronics_handler.set_filter(my_filt)
+        obs = self.env.chronics_handler.reset()
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0])
+
+    def tearDown(self) -> None:
+        self.env.close()
+
+    def test_the_tests(self):
+        assert isinstance(self.env.chronics_handler.real_data, Multifolder)
+
+    def test_shuffler(self):
+        def shuffler(list):
+            return list[[1, 0]]
+
+        # without shuffling it's read this way
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0, 1])
+
+        # i check that shuffling is done properly
+        self.env.chronics_handler.shuffle(shuffler)
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [1, 0])
+
+        # i check that the env is working
+        obs = self.env.reset()
+        # at first chronics is 0, now it's 1
+        # and i have put the subpaths 0 at the element 1 of the order
+        assert self.env.chronics_handler.real_data.data.path == self.chronics_paths[0]
+
+    def test_get_id(self):
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
+
+    def test_set_id(self):
+        self.env.set_id(0)
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        def shuffler(list):
+            return list[[1, 0]]
+        self.env.chronics_handler.shuffle(shuffler)
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        self.env.set_id(0)
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[1]
+
+    def test_reset(self):
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+        self.env.chronics_handler.real_data.reset()
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [0, 1])
+
+        def shuffler(list):
+            return list[[1, 0]]
+        self.env.chronics_handler.real_data.reset()
+        self.env.chronics_handler.shuffle(shuffler)
+        assert np.all(self.env.chronics_handler.real_data.subpaths == self.chronics_paths)
+        assert np.all(self.env.chronics_handler.real_data._order == [1, 0])
+        obs = self.env.reset()
+        assert self.env.chronics_handler.get_id() == self.chronics_paths[0]
+
+    def test_sample_next_chronics(self):
+        res_th = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0]
+        for i in range(20):
+            assert self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == res_th[i], "error for iteration {}" \
+                                                                                            "".format(i)
+        # reseed to test it's working accordingly
+        self.env.seed(0)
+        for i in range(20):
+            assert self.env.chronics_handler.sample_next_chronics([0.9, 0.1]) == res_th[i], "error for iteration {}" \
+                                                                                            "".format(i)
+
+    def test_sample_next_chronics_withfilter(self):
+        chronics_class = self.get_multifolder_class()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case5_example", test=True, chronics_class=chronics_class)
+        self._reset_chron_handl(env.chronics_handler)
+        env.seed(0)
+
+        # test than the filtering
+        class MyFilterForTest:
+            def __init__(self):
+                self.i = -1
+
+            def __call__(self, path):
+                self.i += 1
+                return self.i % 2 == 0
+        root_path = env.chronics_handler.real_data.path
+        chronics_paths = np.array([os.path.join(root_path, "{:02d}".format(i)) for i in range(20)])
+        # if i don't do anything, then everything is normal
+        assert np.all(env.chronics_handler.real_data.subpaths == chronics_paths)
+        assert np.all(env.chronics_handler.real_data._order == [i for i in range(20)])
+        # now i will apply a filter and check it has the correct behaviour
+        my_filt = MyFilterForTest()
+        env.chronics_handler.set_filter(my_filt)
+        obs = env.chronics_handler.reset()
+        # check that reset do what need to be done
+        assert np.all(env.chronics_handler.real_data.subpaths == chronics_paths)
+        assert np.all(env.chronics_handler.real_data._order == [2*i for i in range(10)])
+        # now check the id is correct
+        id_ = self.env.chronics_handler.sample_next_chronics([0.9, 0.1])
+        assert id_ == 0
+        assert np.all(env.chronics_handler.real_data._order == [2*i for i in range(10)])
+
+
+class TestMultiFolderWithCache(TestMultiFolder):
+    def get_multifolder_class(self):
+        return MultifolderWithCache
+
+    def test_the_tests(self):
+        assert isinstance(self.env.chronics_handler.real_data, MultifolderWithCache)
+
+    def _reset_chron_handl(self, chronics_handler):
+        # by default when using the cache, only the first data is kept...
+        # I make sure to keep everything
+        chronics_handler.set_filter(lambda x: True)
+        chronics_handler.reset()
 
 
 if __name__ == "__main__":
