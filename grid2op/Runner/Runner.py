@@ -265,6 +265,7 @@ class Runner(object):
     Different examples are showed in the description of the main method :func:`Runner.run`
 
     """
+    _has_issued_deprecation_warning = False
 
     def __init__(self,
                  init_grid_path: str,
@@ -393,7 +394,7 @@ class Runner(object):
                 "Parameter \"rewardClass\" used to build the Runner should be a type (a class) and not an object "
                 "(an instance of a class). It is currently \"{}\"".format(
                     type(rewardClass)))
-    
+
         if not issubclass(rewardClass, BaseReward):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
                                "grid2op.BaseReward. Please modify \"rewardClass\" parameter.")
@@ -850,15 +851,15 @@ class Runner(object):
                 agt_seed = None
                 if agent_seeds is not None:
                     agt_seed = agent_seeds[i]
-                name_chron, cum_reward, nb_time_step = self.run_one_episode(path_save=path_save,
-                                                                            indx=i,
-                                                                            pbar=next_pbar[0],
-                                                                            env_seed=env_seed,
-                                                                            agent_seed=agt_seed,
-                                                                            max_iter=max_iter)
+                name_chron, cum_reward, nb_time_step, episode_data = self.run_one_episode(path_save=path_save,
+                                                                                          indx=i,
+                                                                                          pbar=next_pbar[0],
+                                                                                          env_seed=env_seed,
+                                                                                          agent_seed=agt_seed,
+                                                                                          max_iter=max_iter)
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
-                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
+                res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts, episode_data)
                 pbar_.update(1)
         return res
 
@@ -1047,12 +1048,15 @@ class Runner(object):
               :param max_iter:
 
         """
-        res = self.run_detailed(nb_episode, nb_process, path_save, max_iter, pbar)
+        if not self._has_issued_deprecation_warning:
+            warnings.warn("Caution, this method will soon have it's return type deprecated, see run_detailed for an updated version")
+            self._has_issued_deprecation_warning = True
+        res = self.run_detailed(nb_episode, nb_process, path_save, max_iter, pbar, env_seeds, agent_seeds)
         # Filter out the last element of each tuple in res (which is EpisodeData)
         res_without_episode_data = [x[:-1] for x in res]
         return res_without_episode_data
 
-    def run_detailed(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False):
+    def run_detailed(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None, agent_seeds=None):
         """
         Run and produces a more detailed depiction of the run
         See :func:`Runner.run` as only the return type changes here
