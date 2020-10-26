@@ -5,15 +5,18 @@ Change Log
 --------------------
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
+- [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
+  flows, and nodes the active production / consumption) and "reactive flow graph"
 - [???] better logging
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
-  it in parrallel and transfer the resulting data.
+  it in parallel and transfer the resulting data.
 - [???] properly model interconnecting powerlines
 - [???] model curtailment
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
+  the available energy)
 
 [1.2.4] - 2020-10-xx
 ---------------------
@@ -34,6 +37,7 @@ Change Log
 - [ADDED] a function to change the color palette of generators (`plot_helper.assign_gen_palette`)
 - [ADDED] Support the attack of the opponent in the `EpisodeData` class
 - [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
+- [IMPROVED] the tolerance of the redipatching algorithm is now consistent: if the precision
 
 [1.2.3] - 2020-09-25
 ----------------------

@@ -234,6 +234,7 @@ getting_started/chronics_educ/
 grid2op/data/educ_case14_redisp/
 getting_started/prepare_env_aub.ipynb
 test_log_122/
+test_issue156.py
 
 # profiling files
 **.prof

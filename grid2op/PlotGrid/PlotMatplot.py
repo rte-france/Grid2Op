@@ -18,6 +18,20 @@ from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 import matplotlib.patches as patches
 from matplotlib.lines import Line2D
 
+NUKE_COLOR = "#e5cd00"
+THERMAL_COLOR = "#7e52a0"
+WIND_COLOR = "#71cdb8"
+SOLAR_COLOR = "#d66b0d"
+HYDRO_COLOR = "#1f73b5"
+NUKE_ID = 0
+THERMAL_ID = 1
+WIND_ID = 2
+SOLAR_ID = 3
+HYDRO_ID = 4
+TYPE_GEN = {'nuclear': NUKE_ID, 'thermal': THERMAL_ID, 'wind': WIND_ID, 'solar': SOLAR_ID, 'hydro': HYDRO_ID}
+COLOR_GEN = {NUKE_ID: NUKE_COLOR, THERMAL_ID: THERMAL_COLOR, WIND_ID: WIND_COLOR,
+             SOLAR_ID: SOLAR_COLOR, HYDRO_ID: HYDRO_COLOR}
+
 
 class GenDraw(patches.CirclePolygon):
     """
@@ -37,6 +51,13 @@ class LoadDraw(patches.CirclePolygon):
     """
     def __init__(self, *args, resolution=3, **kwargs):
         patches.CirclePolygon.__init__(self, *args, resolution=resolution, **kwargs)
+
+
+# TODO refactor this class to make possible some calls like
+# plotmatplot.plot_info(...).plot_gentype(...) is possible
+
+# TODO add some transparency when coloring=... is used in plot_info
+# TODO code the load part in the plot_info
 
 
 class PlotMatplot(BasePlot):
@@ -149,6 +170,7 @@ class PlotMatplot(BasePlot):
         self._sub_face_color = "w"
         self._sub_edge_color = "blue"
         self._sub_txt_color = "black"
+        self._display_sub_name = True
         
         self._load_radius = load_radius
         self._load_name = load_name
@@ -160,6 +182,7 @@ class PlotMatplot(BasePlot):
         self._load_txt_color = "black"
         self._load_line_color = "black"
         self._load_line_width = 1
+        self._display_load_name = True
         
         self._gen_radius_orig = gen_radius
         self._gen_radius = None  # init in self.restore_gen_palette()
@@ -170,10 +193,13 @@ class PlotMatplot(BasePlot):
         self._gen_face_color = "w"
         self._gen_edge_color_orig = "green"
         self._gen_edge_color = None
-        self.restore_gen_palette()
         self._gen_txt_color = "black"
         self._gen_line_color = "black"
-        self._gen_line_width = 1
+        self._gen_line_width_orig = 1
+        self._gen_line_width = None
+        self._display_gen_value = True
+        self._display_gen_name = True
+        self.restore_gen_palette()
 
         self._line_name = line_name
         self._line_id = line_id
@@ -192,10 +218,15 @@ class PlotMatplot(BasePlot):
         self.ylim = [0, 0]
         self.ypad = 5
 
+        # for easize manipulation
+        self.legend = None
+        self.figure = None
+
     def _gen_patch_default(self, xy, radius, edgecolor, facecolor):
         """default patch used to draw generator"""
         # TODO maybe make a better version of this
-        patch = GenDraw(xy, radius=radius, edgecolor=edgecolor, facecolor=facecolor, resolution=self._gen_resolution)
+        patch = GenDraw(xy, radius=radius, edgecolor=edgecolor, facecolor=facecolor,
+                        resolution=self._gen_resolution, linewidth=self._gen_line_width)
         return patch
 
     def _load_patch_default(self, xy, radius, edgecolor, facecolor):
@@ -267,7 +298,8 @@ class PlotMatplot(BasePlot):
         self.ylim[1] = max(self.ylim[1], pos_y + self._sub_radius)
 
         self._draw_substation_circle(pos_x, pos_y)
-        self._draw_substation_txt(pos_x, pos_y, str(sub_id))
+        if self._display_sub_name:
+            self._draw_substation_txt(pos_x, pos_y, str(sub_id))
     
     def _draw_load_txt(self, pos_x, pos_y, sub_x, sub_y, text):
         dir_x, dir_y = pltu.vec_from_points(sub_x, sub_y, pos_x, pos_y)
@@ -342,7 +374,8 @@ class PlotMatplot(BasePlot):
             load_txt += pltu.format_value_unit(load_value, load_unit)
         if load_txt:
             self._draw_load_txt(pos_x, pos_y, sub_x, sub_y, load_txt)
-        self._draw_load_name(pos_x, pos_y, str(load_id))
+        if self._display_load_name:
+            self._draw_load_name(pos_x, pos_y, str(load_id))
         load_dir_x, load_dir_y = pltu.norm_from_points(sub_x, sub_y,
                                                        pos_x, pos_y)
         self._draw_load_bus(sub_x, sub_y, load_dir_x, load_dir_y, load_bus)
@@ -439,11 +472,12 @@ class PlotMatplot(BasePlot):
                 gen_txt += "\"{}\":\n".format(gen_name)
             if self._gen_id:
                 gen_txt += "id: {}\n".format(gen_id)
-            if gen_value is not None:
+            if gen_value is not None and self._display_gen_value:
                 gen_txt += pltu.format_value_unit(gen_value, gen_unit)
             if gen_txt:
                 self._draw_gen_txt(pos_x, pos_y, sub_x, sub_y, gen_txt)
-            self._draw_gen_name(pos_x, pos_y, str(gen_id))
+            if self._display_gen_name:
+                self._draw_gen_name(pos_x, pos_y, str(gen_id))
             gen_dir_x, gen_dir_y = pltu.norm_from_points(sub_x, sub_y,
                                                          pos_x, pos_y)
             self._draw_gen_bus(sub_x, sub_y, gen_dir_x, gen_dir_y, gen_bus)
@@ -563,7 +597,11 @@ class PlotMatplot(BasePlot):
     def restore_line_palette(self):
         self._line_color_scheme = self._line_color_scheme_orig
 
-    def assign_gen_palette(self, palette_name="YlOrRd", nb_color=10, increase_gen_size=None):
+    def assign_gen_palette(self,
+                           palette_name="YlOrRd",
+                           nb_color=10,
+                           increase_gen_size=None,
+                           gen_line_width=None):
         """
         Assign a new color palette when you want to plot information on the generator.
 
@@ -574,8 +612,12 @@ class PlotMatplot(BasePlot):
         nb_color: ``int``
             Number of color to use
 
-        increase_gen_size: ``int``
+        increase_gen_size: ``float``
             Whether or not to increase the generator sizes (``None`` to disable this feature, 1 has no effect)
+
+        gen_line_width: ``float``
+            Increase the width of the generator (if not ``None``)
+
         Examples
         -------
         .. code-block:: python
@@ -594,17 +636,25 @@ class PlotMatplot(BasePlot):
         Some palette are available there `colormaps <https://matplotlib.org/tutorials/colors/colormaps.html>`_
 
         """
-        palette = plt.get_cmap(palette_name)
-        cols = []
-        for i in range(1, nb_color+1):
-            cols.append(palette(i / nb_color))
-        self._gen_edge_color = cols
+        if palette_name is not None and nb_color > 0:
+            # the user changed the palette
+            palette = plt.get_cmap(palette_name)
+            cols = []
+            for i in range(1, nb_color+1):
+                cols.append(palette(i / nb_color))
+            self._gen_edge_color = cols
         if increase_gen_size is not None:
-            self._gen_radius = increase_gen_size * self._gen_radius_orig
+            # the user changed the generator sizes
+            self._gen_radius = float(increase_gen_size) * self._gen_radius_orig
+        if gen_line_width is not None:
+            # the user changed the generator line width
+            self._gen_line_width = float(gen_line_width)
 
     def restore_gen_palette(self):
+        """restore every properties of the default generator layout"""
         self._gen_edge_color = self._gen_edge_color_orig
         self._gen_radius = self._gen_radius_orig
+        self._gen_line_width = self._gen_line_width_orig
 
     def draw_powerline(self, figure, observation,
                        line_id, line_name, connected,
@@ -686,7 +736,6 @@ class PlotMatplot(BasePlot):
                 handlebox.add_artist(pp_)
                 return pp_
 
-        # gen_legend = Line2D([0], [0], color=gen_legend_col, lw=3)
         gen_legend = self._gen_patch((0, 0),
                                      facecolor=self._gen_face_color,
                                      edgecolor=gen_legend_col,
@@ -746,22 +795,27 @@ class PlotMatplot(BasePlot):
             Line2D([0], [0], marker='o', color=self._line_bus_face_colors[1]),
             Line2D([0], [0], marker='o', color=self._line_bus_face_colors[2])
         ]
-        self.ax.legend(legend_help, [
-            "powerline",
-            "substation",
-            "load",
-            "generator",
-            "no bus",
-            "bus 1",
-            "bus 2"
-        ],
-                       title=title_str,
-                       handler_map={GenDraw: gen_handler, LoadDraw: load_handler})
+        self.legend = self.ax.legend(legend_help,
+                                     [
+                                         "powerline",
+                                         "substation",
+                                         "load",
+                                         "generator",
+                                         "no bus",
+                                         "bus 1",
+                                         "bus 2"
+                                     ],
+                                     title=title_str,
+                                     handler_map={GenDraw: gen_handler, LoadDraw: load_handler}
+                                     )
         # Hide axis
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
         # Hide frame
         self.ax.set(frame_on=False)
+
+        # save the figure
+        self.figure = figure
 
     def plot_postprocess(self, figure, observation, update):
         if not update:
@@ -772,3 +826,43 @@ class PlotMatplot(BasePlot):
             ymax = self.ylim[1] + self.ypad
             self.ax.set_ylim(ymin, ymax)
             figure.tight_layout()
+
+    def plot_gen_type(self, increase_gen_size=1.5, gen_line_width=3):
+        # save the sate of the generators config
+        _gen_edge_color_orig = self._gen_edge_color
+        _gen_radius_orig = self._gen_radius
+        _gen_line_width_orig = self._gen_line_width
+        _display_gen_value = self._display_gen_value
+        _display_gen_name = self._display_gen_name
+        _display_sub_name = self._display_sub_name
+        _display_load_name = self._display_load_name
+
+        # do the plot
+        self._display_gen_value = False
+        self._display_gen_name = False
+        self._display_sub_name = False
+        self._display_load_name = False
+        self.assign_gen_palette(nb_color=0, increase_gen_size=increase_gen_size, gen_line_width=gen_line_width)
+        self._gen_edge_color = [COLOR_GEN[i] for i in range(len(TYPE_GEN))]
+        self._gen_edge_color = self._gen_edge_color  # first element is not used !
+        gen_values = [TYPE_GEN[el] for el in self.observation_space.gen_type]
+        self.figure = self.plot_info(gen_values=gen_values, coloring="gen")
+        self.add_legend_gentype()
+
+        # restore the state to its initial configuration
+        self._gen_edge_color = _gen_edge_color_orig
+        self._gen_radius = _gen_radius_orig
+        self._gen_line_width = _gen_line_width_orig
+        self._display_gen_value = _display_gen_value
+        self._display_gen_name = _display_gen_name
+        self._display_sub_name = _display_sub_name
+        self._display_load_name = _display_load_name
+        return self.figure
+
+    def add_legend_gentype(self, loc="lower right"):
+        """add the legend for each generator type"""
+        keys = sorted(TYPE_GEN.keys())
+        ax_ = self.figure.axes[0]
+        legend_help = [Line2D([0], [0], color=COLOR_GEN[TYPE_GEN[k]], label=k) for k in keys]
+        _ = ax_.legend(legend_help, keys, title="generator types", loc=loc)
+        ax_.add_artist(self.legend)

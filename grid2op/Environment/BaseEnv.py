@@ -177,8 +177,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  parameters,
                  voltagecontrolerClass,
                  thermal_limit_a=None,
-                 epsilon_poly=1e-2,
-                 tol_poly=1e-6,
+                 epsilon_poly=1e-4,  # precision of the redispatching algorithm
+                 tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
                  other_rewards={},
                  with_forecast=True,
                  opponent_action_class=DontAct,
@@ -677,7 +677,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # get the redispatching action (if any)
         redisp_act_orig = 1. * action._redispatch
-        previous_redisp = 1. * self._actual_dispatch
 
         if np.all(redisp_act_orig == 0.) and np.all(self._target_dispatch == 0.) and np.all(self._actual_dispatch == 0.):
             return valid, except_, info_
@@ -726,7 +725,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
-           np.sum(mismatch) >= self._tol_poly:
+           np.max(mismatch) >= self._tol_poly:
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
@@ -802,7 +801,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                            init,
                            method="SLSQP",
                            constraints=[equality_const, linear_constraint],
-                           options={'eps': self._tol_poly, "ftol": self._tol_poly, 'disp': False},
+                           options={'eps': self._epsilon_poly, "ftol": self._epsilon_poly, 'disp': False},
                            jac=jac
                            # hess=hess  # not used for SLSQP
                            )

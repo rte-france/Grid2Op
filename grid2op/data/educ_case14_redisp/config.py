@@ -1,5 +1,5 @@
-from grid2op.Action import DispatchAction
-from grid2op.Reward import RedispReward
+from grid2op.Action import PowerlineChangeAndDispatchAction
+from grid2op.Reward import L2RPNReward
 from grid2op.Rules import DefaultRules
 from grid2op.Chronics import Multifolder
 from grid2op.Chronics import GridStateFromFileWithForecasts
@@ -7,9 +7,9 @@ from grid2op.Backend import PandaPowerBackend
 
 config = {
     "backend": PandaPowerBackend,
-    "action_class": DispatchAction,
+    "action_class": PowerlineChangeAndDispatchAction,
     "observation_class": None,
-    "reward_class": RedispReward,
+    "reward_class": L2RPNReward,
     "gamerules_class": DefaultRules,
     "chronics_class": Multifolder,
     "grid_value_class": GridStateFromFileWithForecasts,

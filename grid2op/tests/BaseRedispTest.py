@@ -123,7 +123,7 @@ class BaseTestRedispatch(MakeBackend):
         act = self.env.action_space({"redispatch": [2, 60]})
         obs, reward, done, info = self.env.step(act)
         assert np.abs(np.sum(self.env._actual_dispatch)) <= self.tol_one
-        th_dispatch = np.array([0.0000000e+00, -2.3289999e+01,  5.0890003e+01,  9.9999998e-03, -2.7610004e+01])
+        th_dispatch = np.array([  0.      , -23.2999  ,  50.899902,   0.      , -27.600002])
         assert self.compare_vect(self.env._actual_dispatch, th_dispatch)
         target_val = self.chronics_handler.real_data.prod_p[1, :] + self.env._actual_dispatch
         assert self.compare_vect(obs.prod_p[:-1], target_val[:-1])  # I remove last component which is the slack bus

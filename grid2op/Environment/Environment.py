@@ -67,8 +67,8 @@ class Environment(BaseEnv):
                  other_rewards={},
                  thermal_limit_a=None,
                  with_forecast=True,
-                 epsilon_poly=1e-2,
-                 tol_poly=1e-6,
+                 epsilon_poly=1e-4,  # precision of the redispatching algorithm we don't recommend to go above 1e-4
+                 tol_poly=1e-1,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
