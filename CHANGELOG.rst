@@ -12,6 +12,7 @@ Change Log
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parallel and transfer the resulting data.
+- [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 - [???] model curtailment
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
@@ -21,14 +22,15 @@ Change Log
 [1.2.4] - 2020-10-xx
 ---------------------
 - [FIXED] wrong computation of voltage magnitude at extremity of powerlines when the powerlines were disconnected.
-- [FIXED] `Issue #151 <https://github.com/rte-france/Grid2Op/issues/151>`_: modification of observation attributes could
-  lead to crash
+- [FIXED] `Issue #151 <https://github.com/rte-france/Grid2Op/issues/151>`_: modification of observation attributes 3
+  could lead to crash
 - [FIXED] `Issue #153 <https://github.com/rte-france/Grid2Op/issues/153>`_: negative generator could happen in some
   cases
 - [FIXED] an error that lead to wrong normalization of some generator (due to slack bus) when using the
   gymconverter.
 - [FIXED] a bug that prevented runner to read back previously stored data (and now a test to check
   backward compatibility down to version 1.0.0)
+- [FIXED] small issue that could lead to non reproducibility when shuffling chronics
 - [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
   `GridStateFromFileWithForecastsWithoutMaintenance`
 - [ADDED] a keyword argument in the matplotlib plot information on the grid
@@ -42,6 +44,7 @@ Change Log
 - [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
 - [IMPROVED] the tolerance of the redispatching algorithm is now more consistent between the precision of the solver
   used and the time when it's
+- [IMPROVED] make faster and more robust the optimization routine used during redispatching
 
 [1.2.3] - 2020-09-25
 ----------------------

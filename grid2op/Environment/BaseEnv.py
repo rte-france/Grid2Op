@@ -744,7 +744,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         already_modified_gen_me = already_modified_gen[gen_participating]
         target_vals_me = target_vals[already_modified_gen_me]
         nb_dispatchable = np.sum(gen_participating)
-        tmp_zeros = np.zeros((1, nb_dispatchable))
+        tmp_zeros = np.zeros((1, nb_dispatchable), dtype=dt_float)
         coeffs = 1.0 / (self.gen_max_ramp_up + self.gen_max_ramp_down + self._epsilon_poly)
         weights = np.ones(nb_dispatchable) * coeffs[gen_participating]
         weights /= weights.sum()
@@ -755,33 +755,36 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             target_vals_me = target_vals[already_modified_gen_me]
 
         # for numeric stability
-        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
-        # where they advised to scale the function
-        scale = max(0.5 * np.sum(np.abs(self._actual_dispatch))**2, 1.0)
-        # scale = 1.
-
         # to scale the input also:
         # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
         scale_x = max(np.max(np.abs(self._actual_dispatch)), 1.0)
-        target_vals_me_optim = target_vals_me / scale_x
+        scale_x = 1.0
+        scale_x = dt_float(scale_x)
+        target_vals_me_optim = 1.0 * (target_vals_me / scale_x)
+        target_vals_me_optim = target_vals_me_optim.astype(dt_float)
+
+        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
+        # where they advised to scale the function
+        scale_objective = max(0.5 * np.sum(np.abs(target_vals_me_optim))**2, 1.0)
+        scale_objective = dt_float(scale_objective)
 
         def target(actual_dispatchable):
             # define my real objective
             quad_ = (actual_dispatchable[already_modified_gen_me] - target_vals_me_optim) ** 2
             coeffs_quads = weights[already_modified_gen_me] * quad_
             coeffs_quads_const = coeffs_quads.sum()
-            coeffs_quads_const /= scale  # scaling the function
+            coeffs_quads_const /= scale_objective  # scaling the function
             return coeffs_quads_const
 
         def jac(actual_dispatchable):
-            res = 1.0 * tmp_zeros
-            res[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
+            res_jac = 1.0 * tmp_zeros
+            res_jac[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
                                               (actual_dispatchable[already_modified_gen_me] - target_vals_me_optim)
-            res /= scale  # scaling the function
-            return res
+            res_jac /= scale_objective  # scaling the function
+            return res_jac
 
-        mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable))
-        const_sum_O_no_turn_on = np.zeros(1)
+        mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=dt_float)
+        const_sum_O_no_turn_on = np.zeros(1, dtype=dt_float)
         # equality_const = LinearConstraint(mat_sum_0_no_turn_on,  # do the sum
         #                                   const_sum_O_no_turn_on - self._epsilon_poly,  # lower bound
         #                                   const_sum_O_no_turn_on + self._epsilon_poly  # upper bound
@@ -796,6 +799,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ## second limit delta because of ramps
         ramp_down_const = -self.gen_max_ramp_down[gen_participating] - incr_in_chronics[gen_participating]
         min_disp = np.maximum(p_min_const, ramp_down_const)
+        min_disp = min_disp.astype(dt_float)
         # maximum value available for disp
         ## first limit delta because of pmin
         p_max_const = self.gen_pmax[gen_participating] - new_p[gen_participating] - self._actual_dispatch[
@@ -803,6 +807,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ## second limit delta because of ramps
         ramp_up_const = self.gen_max_ramp_up[gen_participating] - incr_in_chronics[gen_participating]
         max_disp = np.minimum(p_max_const, ramp_up_const)
+        max_disp = max_disp.astype(dt_float)
 
         # add everything into a linear constraint object
         mat_pmin_max_ramps = np.eye(nb_dispatchable)
@@ -813,43 +818,62 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         #                                      upper_pmin_max_ramps)
 
         # now put it back in a single linearconstraint object
-        mat_ineq = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
-        lower_bound = np.concatenate((const_sum_O_no_turn_on, min_disp))
-        upper_bound = np.concatenate((const_sum_O_no_turn_on, max_disp))
-        lower_bound /= scale_x
-        upper_bound /= scale_x
-        # and i must have: np.matmul(mat_ineq, x_) >= lower_bound
-        # and i must have: np.matmul(mat_ineq, x_) <= upper_bound
-        linear_constraint = LinearConstraint(mat_ineq,
-                                             lower_bound,
-                                             upper_bound,
-                                             )
+        # (for performance reason, we need to split equality and inequality constraints)
+        # mat_ineq = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
+        # lower_bound = np.concatenate((const_sum_O_no_turn_on, min_disp))
+        # upper_bound = np.concatenate((const_sum_O_no_turn_on, max_disp))
+        # lower_bound /= scale_x
+        # upper_bound /= scale_x
+        # # and i must have: np.matmul(mat_ineq, x_) >= lower_bound
+        # # and i must have: np.matmul(mat_ineq, x_) <= upper_bound
+        # linear_constraint = LinearConstraint(mat_ineq,
+        #                                      lower_bound,
+        #                                      upper_bound,
+        #                                      )
+        added = 0.  # 0.5 * self._epsilon_poly
+        equality_const = LinearConstraint(mat_sum_0_no_turn_on,  # do the sum
+                                          (const_sum_O_no_turn_on - added) / scale_x,  # lower bound
+                                          (const_sum_O_no_turn_on + added) / scale_x  # upper bound
+                                          )
+        ineq_const = LinearConstraint(mat_pmin_max_ramps,
+                                      (min_disp - added) / scale_x,
+                                      (max_disp + added) / scale_x)
         # initial point
-        x0 = np.zeros(nb_dispatchable)
+        x0 = np.zeros(nb_dispatchable, dtype=dt_float)
+        # x0 = (self._target_dispatch[self.gen_redispatchable] - self._actual_dispatch[self.gen_redispatchable]) / scale_x
 
-        # objective function
-        def f(init):
-            this_res = minimize(target,
-                                init,
-                                method="SLSQP",
-                                # method="trust-constr",
-                                # constraints=[equality_const, linear_constraint],
-                                constraints=[linear_constraint],
-                                options={'eps': self._epsilon_poly, "ftol": self._epsilon_poly, 'disp': False},
-                                jac=jac
-                                # hess=hess  # not used for SLSQP
-                                )
-            return this_res
-        res = f(x0)
+        from scipy.optimize import lsq_linear
+        A = np.eye(nb_dispatchable) * weights
+        tg_disp = 1.0 * self._target_dispatch[gen_participating] * weights
+        print("one more")
+        try:
+            res = lsq_linear(A, tg_disp, bounds=(min_disp * weights, max_disp * weights))
+        except:
+            # objective function
+            def f(init):
+                this_res = minimize(target,
+                                    init,
+                                    method="SLSQP",
+                                    # method="trust-constr",
+                                    constraints=[equality_const, ineq_const],
+                                    # constraints=[linear_constraint],
+                                    options={'eps': max(self._epsilon_poly / scale_x, 1e-6),
+                                             "ftol": max(self._epsilon_poly / scale_x, 1e-6),
+                                             'disp': False},
+                                    jac=jac
+                                    # hess=hess  # not used for SLSQP
+                                    )
+                return this_res
+            res = f(x0)
+            print("error detected !")
+
         if res.success:
             self._actual_dispatch[gen_participating] += res.x * scale_x
         else:
             # TODO try with another method here, maybe
             except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n\"{}\"".format(res.message))
-
-        # if self.debug_dispatch:
-        #     import pdb
-        #     pdb.set_trace()
+            import pdb
+            pdb.set_trace()
         return except_
 
     def _update_actions(self):
