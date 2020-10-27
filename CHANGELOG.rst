@@ -36,8 +36,12 @@ Change Log
 - [ADDED] a function to change the color palette of powerlines (`plot_helper.assign_line_palette`)
 - [ADDED] a function to change the color palette of generators (`plot_helper.assign_gen_palette`)
 - [ADDED] Support the attack of the opponent in the `EpisodeData` class
+- [ADDED] Now the observations are set to a "game over" state when a game over occurred
+  see `BaseObservation.set_game_over`
+- [ADDED] a method to plot the redispatching state of the grid `PlotMatplot.plot_current_dispatch`
 - [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
-- [IMPROVED] the tolerance of the redipatching algorithm is now consistent: if the precision
+- [IMPROVED] the tolerance of the redispatching algorithm is now more consistent between the precision of the solver
+  used and the time when it's
 
 [1.2.3] - 2020-09-25
 ----------------------

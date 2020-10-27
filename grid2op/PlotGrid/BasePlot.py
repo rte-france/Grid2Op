@@ -545,6 +545,8 @@ class BasePlot(ABC):
         res: ``object``
             The figure updated with the data from the new observation.
         """
+        # TODO add gen_info=dispatch and gen_info=target_dispatch
+        # TODO add line_info=cooldown
 
         # Start by checking arguments are valid
         if not isinstance(observation, BaseObservation):            

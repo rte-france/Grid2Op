@@ -827,8 +827,7 @@ class PlotMatplot(BasePlot):
             self.ax.set_ylim(ymin, ymax)
             figure.tight_layout()
 
-    def plot_gen_type(self, increase_gen_size=1.5, gen_line_width=3):
-        # save the sate of the generators config
+    def _save_plot_charact(self):
         _gen_edge_color_orig = self._gen_edge_color
         _gen_radius_orig = self._gen_radius
         _gen_line_width_orig = self._gen_line_width
@@ -836,6 +835,24 @@ class PlotMatplot(BasePlot):
         _display_gen_name = self._display_gen_name
         _display_sub_name = self._display_sub_name
         _display_load_name = self._display_load_name
+
+        return (_gen_edge_color_orig, _gen_radius_orig, _gen_line_width_orig,
+                _display_gen_value, _display_gen_name, _display_sub_name, _display_load_name)
+
+    def _restore_plot_charact(self, data):
+        _gen_edge_color_orig, _gen_radius_orig, _gen_line_width_orig, \
+         _display_gen_value, _display_gen_name, _display_sub_name, _display_load_name = data
+        self._gen_edge_color = _gen_edge_color_orig
+        self._gen_radius = _gen_radius_orig
+        self._gen_line_width = _gen_line_width_orig
+        self._display_gen_value = _display_gen_value
+        self._display_gen_name = _display_gen_name
+        self._display_sub_name = _display_sub_name
+        self._display_load_name = _display_load_name
+
+    def plot_gen_type(self, increase_gen_size=1.5, gen_line_width=3):
+        # save the sate of the generators config
+        data = self._save_plot_charact()
 
         # do the plot
         self._display_gen_value = False
@@ -850,13 +867,32 @@ class PlotMatplot(BasePlot):
         self.add_legend_gentype()
 
         # restore the state to its initial configuration
-        self._gen_edge_color = _gen_edge_color_orig
-        self._gen_radius = _gen_radius_orig
-        self._gen_line_width = _gen_line_width_orig
-        self._display_gen_value = _display_gen_value
-        self._display_gen_name = _display_gen_name
-        self._display_sub_name = _display_sub_name
-        self._display_load_name = _display_load_name
+        self._restore_plot_charact(data)
+
+        return self.figure
+
+    def plot_current_dispatch(self, obs,
+                              do_plot_actual_dispatch=True,
+                              increase_gen_size=1.5,
+                              gen_line_width=3,
+                              palette_name="coolwarm"):
+        # save the sate of the generators config
+        data = self._save_plot_charact()
+
+        # do the plot
+        self._display_sub_name = False
+        self._display_load_name = False
+        self.assign_gen_palette(nb_color=5, palette_name=palette_name,
+                                increase_gen_size=increase_gen_size, gen_line_width=gen_line_width)
+        if do_plot_actual_dispatch:
+            gen_values = obs.actual_dispatch
+        else:
+            gen_values = obs.target_dispatch
+        self.figure = self.plot_info(gen_values=gen_values, coloring="gen", gen_unit="MW")
+
+        # restore the state to its initial configuration
+        self._restore_plot_charact(data)
+
         return self.figure
 
     def add_legend_gentype(self, loc="lower right"):

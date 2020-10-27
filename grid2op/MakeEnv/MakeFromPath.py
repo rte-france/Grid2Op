@@ -87,7 +87,7 @@ def _check_path(path, info):
         raise EnvError("Cannot find {}. {}".format(path, info))
 
 
-def make_from_dataset_path(dataset_path="/", **kwargs):
+def make_from_dataset_path(dataset_path="/", _add_to_name="", **kwargs):
     """
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -183,6 +183,9 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
 
     opponent_budget_class: ``type``, optional
         defaults: :class:`grid2op.Opponent.UnlimitedBudget`
+
+    _add_to_name:
+        Internal, used for test only. Do not attempt to modify under any circumstances.
 
     Returns
     -------
@@ -480,7 +483,7 @@ def make_from_dataset_path(dataset_path="/", **kwargs):
                       chronics_handler=data_feeding,
                       backend=backend,
                       parameters=param,
-                      name=name_env,
+                      name=name_env+_add_to_name,
                       names_chronics_to_backend=names_chronics_to_backend,
                       actionClass=action_class,
                       observationClass=observation_class,

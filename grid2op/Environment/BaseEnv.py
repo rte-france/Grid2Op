@@ -25,6 +25,8 @@ from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 from grid2op.Action._BackendAction import _BackendAction
 
+# TODO put in a separate class the redispatching function
+
 
 class BaseEnv(GridObjects, RandomObject, ABC):
     """
@@ -331,6 +333,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # specific to Basic Env, do not change
         self.backend = None
         self.__is_init = False
+        self.debug_dispatch = False
 
     def _create_opponent(self):
         if not self.__is_init:
@@ -751,24 +754,38 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             already_modified_gen_me[:] = True
             target_vals_me = target_vals[already_modified_gen_me]
 
+        # for numeric stability
+        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
+        # where they advised to scale the function
+        scale = max(0.5 * np.sum(np.abs(self._actual_dispatch))**2, 1.0)
+        # scale = 1.
+
+        # to scale the input also:
+        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
+        scale_x = max(np.max(np.abs(self._actual_dispatch)), 1.0)
+        target_vals_me_optim = target_vals_me / scale_x
+
         def target(actual_dispatchable):
             # define my real objective
-            quad_ = (actual_dispatchable[already_modified_gen_me] - target_vals_me) ** 2
+            quad_ = (actual_dispatchable[already_modified_gen_me] - target_vals_me_optim) ** 2
             coeffs_quads = weights[already_modified_gen_me] * quad_
             coeffs_quads_const = coeffs_quads.sum()
+            coeffs_quads_const /= scale  # scaling the function
             return coeffs_quads_const
 
         def jac(actual_dispatchable):
             res = 1.0 * tmp_zeros
             res[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
-                                              (actual_dispatchable[already_modified_gen_me] - target_vals_me)
+                                              (actual_dispatchable[already_modified_gen_me] - target_vals_me_optim)
+            res /= scale  # scaling the function
             return res
 
         mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable))
         const_sum_O_no_turn_on = np.zeros(1)
-        equality_const = LinearConstraint(mat_sum_0_no_turn_on,
-                                          const_sum_O_no_turn_on,
-                                          const_sum_O_no_turn_on)
+        # equality_const = LinearConstraint(mat_sum_0_no_turn_on,  # do the sum
+        #                                   const_sum_O_no_turn_on - self._epsilon_poly,  # lower bound
+        #                                   const_sum_O_no_turn_on + self._epsilon_poly  # upper bound
+        #                                   )
         # gen increase in the chronics
         incr_in_chronics = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
 
@@ -789,28 +806,50 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # add everything into a linear constraint object
         mat_pmin_max_ramps = np.eye(nb_dispatchable)
-        lower_pmin_max_ramps = min_disp + self._epsilon_poly
-        upper_pmin_max_ramps = max_disp - self._epsilon_poly
-        linear_constraint = LinearConstraint(mat_pmin_max_ramps,
-                                             lower_pmin_max_ramps,
-                                             upper_pmin_max_ramps)
+        # lower_pmin_max_ramps = min_disp + self._epsilon_poly
+        # upper_pmin_max_ramps = max_disp - self._epsilon_poly
+        # linear_constraint = LinearConstraint(mat_pmin_max_ramps,
+        #                                      lower_pmin_max_ramps,
+        #                                      upper_pmin_max_ramps)
 
+        # now put it back in a single linearconstraint object
+        mat_ineq = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
+        lower_bound = np.concatenate((const_sum_O_no_turn_on, min_disp))
+        upper_bound = np.concatenate((const_sum_O_no_turn_on, max_disp))
+        lower_bound /= scale_x
+        upper_bound /= scale_x
+        # and i must have: np.matmul(mat_ineq, x_) >= lower_bound
+        # and i must have: np.matmul(mat_ineq, x_) <= upper_bound
+        linear_constraint = LinearConstraint(mat_ineq,
+                                             lower_bound,
+                                             upper_bound,
+                                             )
+        # initial point
         x0 = np.zeros(nb_dispatchable)
+
+        # objective function
         def f(init):
-            res = minimize(target,
-                           init,
-                           method="SLSQP",
-                           constraints=[equality_const, linear_constraint],
-                           options={'eps': self._epsilon_poly, "ftol": self._epsilon_poly, 'disp': False},
-                           jac=jac
-                           # hess=hess  # not used for SLSQP
-                           )
-            return res
+            this_res = minimize(target,
+                                init,
+                                method="SLSQP",
+                                # method="trust-constr",
+                                # constraints=[equality_const, linear_constraint],
+                                constraints=[linear_constraint],
+                                options={'eps': self._epsilon_poly, "ftol": self._epsilon_poly, 'disp': False},
+                                jac=jac
+                                # hess=hess  # not used for SLSQP
+                                )
+            return this_res
         res = f(x0)
         if res.success:
-            self._actual_dispatch[gen_participating] += res.x
+            self._actual_dispatch[gen_participating] += res.x * scale_x
         else:
-            except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n{}".format(res.message))
+            # TODO try with another method here, maybe
+            except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n\"{}\"".format(res.message))
+
+        # if self.debug_dispatch:
+        #     import pdb
+        #     pdb.set_trace()
         return except_
 
     def _update_actions(self):
@@ -1273,6 +1312,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_illegal or is_illegal_redisp or is_illegal_reco,
                                                              is_ambiguous)
         infos["rewards"] = other_reward
+        if has_error:
+            # update the observation so when it's plotted everything is "down"
+            # generators information
+            self.current_obs.set_game_over()
+
         # TODO documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False

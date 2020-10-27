@@ -466,6 +466,53 @@ class BaseObservation(GridObjects):
         self.target_dispatch[:] = np.NaN
         self.actual_dispatch[:] = np.NaN
 
+    def set_game_over(self):
+        """
+        Set the observation to the "game over" state:
+
+        - all powerlines are disconnected
+        - all loads are 0.
+        - all prods are 0.
+        - etc.
+        """
+        self.prod_p[:] = 0.
+        self.prod_q[:] = 0.
+        self.prod_v[:] = 0.
+        # loads information
+        self.load_p[:] = 0.
+        self.load_q[:] = 0.
+        self.load_v[:] = 0.
+        # lines origin information
+        self.p_or[:] = 0.
+        self.q_or[:] = 0.
+        self.v_or[:] = 0.
+        self.a_or[:] = 0.
+        # lines extremity information
+        self.p_ex[:] = 0.
+        self.q_ex[:] = 0.
+        self.v_ex[:] = 0.
+        self.a_ex[:] = 0.
+        # lines relative flows
+        self.rho[:] = 0.
+        # line status
+        self.line_status[:] = False
+        # topological vector
+        self.topo_vect[:] = -1
+
+        # forecasts
+        self._forecasted_inj = []
+        self._forecasted_grid_act = {}
+
+        # redispatching
+        self.target_dispatch[:] = 0.
+        self.actual_dispatch[:] = 0.
+
+        # cooldown
+        self.time_before_cooldown_line[:] = 99999
+        self.time_before_cooldown_sub[:] = 99999
+        self.time_next_maintenance[:] = 99999
+        self.duration_next_maintenance[:] = 99999
+
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
         attr_other = getattr(other, name)
