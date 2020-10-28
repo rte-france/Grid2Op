@@ -236,6 +236,7 @@ getting_started/prepare_env_aub.ipynb
 test_log_122/
 test_issue156.py
 test_redisp.py
+getting_started/test_env_converter.ipynb
 
 # profiling files
 **.prof

@@ -6,23 +6,31 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from gym import spaces
 import numpy as np
+import copy
+
 from grid2op.Converter.Converters import Converter
-from grid2op.Action import BaseAction
+from grid2op.Converter.BaseGymAttrConverter import BaseGymAttrConverter
+from grid2op.Environment import Environment
+from grid2op.Action import BaseAction, ActionSpace
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from gym import spaces
 
 
-class BaseGymConverter:
+class _BaseGymSpaceConverter(spaces.Dict):
     """
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         Used as a base class to convert grid2op state to gym state (wrapper for some useful function
         for both the action space and the observation space).
 
     """
-    def __init__(self):
-        pass
+    def __init__(self, dict_gym_space, dict_variables=None):
+        spaces.Dict.__init__(self, dict_gym_space)
+        self._keys_encoding = {}
+        if dict_variables is not None:
+            for k, v in dict_variables.items():
+                self._keys_encoding[k] = v
 
     @staticmethod
     def _generic_gym_space(dt, sh, low=None, high=None):
@@ -39,11 +47,9 @@ class BaseGymConverter:
         return spaces.MultiBinary(n=sh)
 
     @staticmethod
-    def _extract_obj_grid2op(grid2op_obj, attr_nm, dtype):
-        res = grid2op_obj._get_array_from_attr_name(attr_nm)
-
-        if len(res) == 1:
-            res = res[0]
+    def _extract_obj_grid2op(vect, dtype):
+        if len(vect) == 1:
+            res = vect[0]
             # convert the types for json serializable
             # this is not automatically done by gym...
             if dtype == dt_int or dtype == np.int64 or dtype == np.int32:
@@ -52,6 +58,8 @@ class BaseGymConverter:
                 res = float(res)
             elif dtype == dt_bool:
                 res = bool(res)
+        else:
+            res = vect
         return res
 
     def _base_to_gym(self, keys, obj, dtypes, converter=None):
@@ -59,12 +67,60 @@ class BaseGymConverter:
         for k in keys:
             conv_k = k
             if converter is not None:
+                # for converting the names between internal names and "human readable names"
                 conv_k = converter[k]
-            res[k] = self._extract_obj_grid2op(obj, conv_k, dtypes[k])
+
+            obj_raw = obj._get_array_from_attr_name(conv_k)
+            if k in self._keys_encoding:
+                if self._keys_encoding[k] is None:
+                    # keys is deactivated
+                    continue
+                else:
+                    # i need to process the "function" part in the keys
+                    obj_json_cleaned = self._keys_encoding[k].g2op_to_gym(obj_raw)
+            else:
+                obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k])
+            res[k] = obj_json_cleaned
+        return res
+
+    def get_dict_encoding(self):
+        return copy.deepcopy(self._keys_encoding)
+
+    def reenc(self, key, fun):
+        """
+        shorthand for :func:`GymObservationSpace.reencode_space` or
+        :func:`GymActionSpace.reencode_space`
+        """
+        return self.reenc(key, fun)
+
+    def keep_only_attr(self, attr_names):
+        """
+        keep only a certain part of the observation
+        """
+        if isinstance(attr_names, str):
+            attr_names = [attr_names]
+
+        dict_ = self.spaces.keys()
+        res = self
+        for k in dict_:
+            if k not in attr_names:
+                res = res.reencode_space(k, None)
+        return res
+
+    def ignore_obs_attr(self, attr_names):
+        """
+        ignore some attribute names from the space
+        """
+        if isinstance(attr_names, str):
+            attr_names = [attr_names]
+        res = self
+        for k in self.spaces.keys():
+            if k in attr_names:
+                res = res.reencode_observation_space(k, None)
         return res
 
 
-class GymObservationSpace(spaces.Dict, BaseGymConverter):
+class GymObservationSpace(_BaseGymSpaceConverter):
     # deals with the observation space (rather easy)
     """
     This class allows to transform the observation space into a gym space.
@@ -98,19 +154,75 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
         # use "obs.simulate" for the observation converted back from this gym action.
 
     """
-    def __init__(self, env):
-        self.initial_obs_space = env.observation_space
-        dict_ = {}
-        self._fill_dict_obs_space(dict_, env.observation_space, env.parameters, env._oppSpace)
-        spaces.Dict.__init__(self, dict_)
+    def __init__(self, env, dict_variables=None):
+        self._init_env = env
+        self.initial_obs_space = self._init_env.observation_space
+        dict_ = {}  # will represent the gym.Dict space
+        if dict_variables is None:
+            dict_variables = {}
+        self._fill_dict_obs_space(dict_,
+                                  env.observation_space,
+                                  env.parameters,
+                                  env._oppSpace,
+                                  dict_variables)
+        _BaseGymSpaceConverter.__init__(self, dict_, dict_variables=dict_variables)
 
-    def _fill_dict_obs_space(self, dict_, observation_space, env_params, opponent_space):
+    def reencode_space(self, key, fun):
+        """
+        This function is used  to reencode the observation space. For example, it can be used to scale
+        the observation into values close to 0., it can also be used to encode continuous variables into
+        discrete variables or the other way around etc.
+
+        Basically, it's a tool that lets you define your own observation space (there is the same for
+        the action space)
+
+        Parameters
+        ----------
+        key: ``str``
+            Which part of the observation space you want to study
+
+        fun: :class:`BaseGymAttrConverter`
+            Put `None` to deactive the feature (it will be hided from the observation space)
+            It can also be a `BaseGymAttrConverter`. See the example for more information.
+
+        Returns
+        -------
+        self:
+            The current instance, to be able to chain these calls
+
+        Notes
+        ------
+        It modifies the observation space. We highly recommend to set it up at the beginning of your script
+        and not to modify it afterwards
+
+        'fun' should be deep copiable (meaning that if `copy.deepcopy(fun)` is called, then it does not crash
+
+        If an attribute has been ignored, for example by :func`GymEnv.keep_only_obs_attr`
+        or and is now present here, it will be re added in the final observation
+        """
+
+        my_dict = self.get_dict_encoding()
+        if fun is not None and not isinstance(fun, BaseGymAttrConverter):
+            raise RuntimeError("Impossible to initialize a converter with a function of type {}".format(type(fun)))
+        my_dict[key] = fun
+        res = GymObservationSpace(self._init_env, my_dict)
+        return res
+
+    def _fill_dict_obs_space(self, dict_, observation_space, env_params, opponent_space,
+                             dict_variables={}):
         for attr_nm, sh, dt in zip(observation_space.attr_list_vect,
                                    observation_space.shape,
                                    observation_space.dtype):
             my_type = None
             shape = (sh,)
-            if dt == dt_int:
+            if attr_nm in dict_variables:
+                # case where the user specified a dedicated encoding
+                if dict_variables[attr_nm] is None:
+                    # none is by default to disable this feature
+                    continue
+                my_type = dict_variables[attr_nm].my_space
+
+            elif dt == dt_int:
                 # discrete observation space
                 if attr_nm == "year":
                     my_type = spaces.Discrete(n=2100)
@@ -146,7 +258,6 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
             elif dt == dt_bool:
                 # boolean observation space
                 my_type = self._boolean_type(sh)
-                continue
             else:
                 # continuous observation space
                 low = float("-inf")
@@ -160,7 +271,7 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
                 elif attr_nm == "prod_v" or attr_nm == "load_v" or attr_nm == "v_or" or attr_nm == "v_ex":
                     # voltages can't be negative
                     low = 0.
-                elif attr_nm == "a_or" or attr_nm == "a_ex":
+                elif attr_nm == "a_or" or attr_nm == "a_ex" or attr_nm == "rho":
                     # amps can't be negative
                     low = 0.
                 elif attr_nm == "target_dispatch" or attr_nm == "actual_dispatch":
@@ -174,7 +285,6 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
             if my_type is None:
                 # if nothing has been found in the specific cases above
                 my_type = self._generic_gym_space(dt, sh)
-
             dict_[attr_nm] = my_type
 
     def from_gym(self, gymlike_observation: spaces.dict.OrderedDict) -> BaseObservation:
@@ -211,11 +321,13 @@ class GymObservationSpace(spaces.Dict, BaseGymConverter):
            The corresponding gym ordered dict
 
         """
-        return self._base_to_gym(self.spaces.keys(), grid2op_observation,
-                                 dtypes={k: self.spaces[k].dtype for k in self.spaces})
+        return self._base_to_gym(self.spaces.keys(),
+                                 grid2op_observation,
+                                 dtypes={k: self.spaces[k].dtype for k in self.spaces}
+                                 )
 
 
-class GymActionSpace(spaces.Dict, BaseGymConverter):
+class GymActionSpace(_BaseGymSpaceConverter):
     """
     This class enables the conversion of the action space into a gym "space".
 
@@ -295,21 +407,76 @@ class GymActionSpace(spaces.Dict, BaseGymConverter):
                             }
     keys_human_2_grid2op = {v: k for k, v in keys_grid2op_2_human.items()}
 
-    def __init__(self, action_space):
-        self.initial_act_space = action_space
+    def __init__(self, action_space, dict_variables=None):
+        """
+        note: for consistency with GymObservationSpace, "action_space" here can be an environment or
+        an action space or a converter
+        """
+        if dict_variables is None:
+            dict_variables = {}
+        if isinstance(action_space, Environment):
+            # action_space is an environment
+            initial_act_space = action_space.action_space
+        elif isinstance(action_space, ActionSpace):
+            initial_act_space = action_space
+
         dict_ = {}
-        if isinstance(action_space, Converter):
+        # TODO Make sure it works well !
+        if isinstance(initial_act_space, Converter):
             # a converter allows to ... convert the data so they have specific gym space
-            dict_ = action_space.get_gym_dict()
+            dict_ = initial_act_space.get_gym_dict()
             self.__is_converter = True
         else:
-            self._fill_dict_act_space(dict_, action_space)
+            self._fill_dict_act_space(dict_, initial_act_space, dict_variables)
             dict_ = self._fix_dict_keys(dict_)
             self.__is_converter = False
 
-        spaces.Dict.__init__(self, dict_)
+        _BaseGymSpaceConverter.__init__(self, dict_, dict_variables)
 
-    def _fill_dict_act_space(self, dict_, action_space):
+    def reencode_space(self, key, fun):
+        """
+        This function is used  to reencode the action space. For example, it can be used to scale
+        the observation into values close to 0., it can also be used to encode continuous variables into
+        discrete variables or the other way around etc.
+
+        Basically, it's a tool that lets you define your own observation space (there is the same for
+        the action space)
+
+        Parameters
+        ----------
+        key: ``str``
+            Which part of the observation space you want to study
+
+        fun: :class:`BaseGymAttrConverter`
+            Put `None` to deactivate the feature (it will be hided from the observation space)
+            It can also be a `BaseGymAttrConverter`. See the example for more information.
+
+        Returns
+        -------
+        self:
+            The current instance, to be able to chain these calls
+
+        Notes
+        ------
+        It modifies the observation space. We highly recommend to set it up at the beginning of your script
+        and not to modify it afterwards
+
+        'fun' should be deep copiable (meaning that if `copy.deepcopy(fun)` is called, then it does not crash
+
+        If an attribute has been ignored, for example by :func`GymEnv.keep_only_obs_attr`
+        or and is now present here, it will be re added in the final observation
+        """
+        # TODO
+        raise NotImplementedError("TODOOOOO")
+        my_dict = self.get_dict_encoding()
+        if fun is not None and not isinstance(fun, BaseGymAttrConverter):
+            raise RuntimeError("Impossible to initialize a converter with a function of type {}".format(type(fun)))
+        my_dict[key] = fun
+        res = GymActionSpace(self._init_env, my_dict)
+        return res
+
+    def _fill_dict_act_space(self, dict_, action_space, dict_variables):
+        # TODO what about dict_variables !!!
         for attr_nm, sh, dt in zip(action_space.attr_list_vect,
                                    action_space.shape,
                                    action_space.dtype):
@@ -379,8 +546,11 @@ class GymActionSpace(spaces.Dict, BaseGymConverter):
 
         """
         if self.__is_converter:
+            # case where the action space comes from a converter, in this case the converter takes the
+            # delegation to convert the action to openai gym
             res = self.initial_act_space.convert_action_from_gym(gymlike_action)
         else:
+            # case where the action space is a "simple" action space
             res = self.initial_act_space()
             for k, v in gymlike_action.items():
                 res._assign_attr_from_name(self.keys_human_2_grid2op[k], v)
@@ -400,13 +570,16 @@ class GymActionSpace(spaces.Dict, BaseGymConverter):
         gym_action:
             The same action converted as a OrderedDict (default used by gym in case of action space
             being Dict)
+
         """
         if self.__is_converter:
             gym_action = self.initial_act_space.convert_action_to_gym(action)
         else:
             # in that case action should be an instance of grid2op BaseAction
             assert isinstance(action, BaseAction), "impossible to convert an action not coming from grid2op"
-            gym_action = self._base_to_gym(self.spaces.keys(), action,
+            gym_action = self._base_to_gym(self.spaces.keys(),
+                                           action,
                                            dtypes={k: self.spaces[k].dtype for k in self.spaces},
-                                           converter=self.keys_human_2_grid2op)
+                                           converter=self.keys_human_2_grid2op
+                                           )
         return gym_action
