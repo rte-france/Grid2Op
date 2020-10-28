@@ -37,7 +37,11 @@ DETAILED_REDISP_ERR_MSG = "\nThis is an attempt to explain why the dispatch did 
                           "\n\t{ramp_up}\n and pmax is:\n\t{gen_pmax}\n" \
                           "Wrapping up, each generator can {increase} at {maximum} of:\n\t{avail_up}\n" \
                           "NB: if you did not do any dispatch during this episode, it would have been possible to " \
-                          "meet these constraints."
+                          "meet these constraints. This situation is caused by not having enough degree of freedom " \
+                          "to \"compensate\" the variation of the load due to (most likely) an \"over usage\" of " \
+                          "redispatching feature (some generators stuck at {pmax} as a consequence of your " \
+                          "redispatching. They can't increase their productions to meet the {increase} in demand or " \
+                          "{decrease} of renewables)"
 
 
 class BaseEnv(GridObjects, RandomObject, ABC):
@@ -747,7 +751,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _compute_dispatch_vect(self, already_modified_gen, new_p):
         except_ = None
-        # first i define the participating generator
+        # first i define the participating generators
+        # these are the generators that will be adjusted for redispatching
         gen_participating = (new_p > 0.) | (self._actual_dispatch != 0.) | (self._target_dispatch != self._actual_dispatch)
         gen_participating[~self.gen_redispatchable] = False
 
@@ -829,9 +834,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if except_ is not None:
             return except_
 
-        # initial point
+        # choose a good initial point (close to the solution)
+        # the idea here is to chose a initial point that would be close to the
+        # desired solution (split the (sum of the) dispatch to the available generators)
         x0 = np.zeros(nb_dispatchable, dtype=dt_float)
-        x0 = (self._target_dispatch[self.gen_redispatchable] - self._actual_dispatch[self.gen_redispatchable]) / scale_x
+        x0 = (self._target_dispatch[gen_participating] - self._actual_dispatch[gen_participating]) / scale_x
+        can_adjust = x0 == 0.
+        if np.any(can_adjust):
+            init_sum = np.sum(x0)
+            denom_adjust = np.sum(1. / weights[can_adjust])
+            if denom_adjust <= 1e-2:
+                # i don't want to divide by something to cloose to 0.
+                denom_adjust = 1.0
+            x0[can_adjust] = - init_sum / (weights[can_adjust] * denom_adjust)
 
         def target(actual_dispatchable):
             # define my real objective
@@ -870,7 +885,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             downs = np.concatenate((const_sum_O_no_turn_on / scale_x, (min_disp - added) / scale_x))
             ups = np.concatenate((const_sum_O_no_turn_on / scale_x, (max_disp + added) / scale_x))
             vals = np.matmul(mat_const, res.x)
-            ok_down = np.all(vals - downs >= self._tol_poly)  # i don't violate "down" constraints
+            ok_down = np.all(vals - downs >= -self._tol_poly)  # i don't violate "down" constraints
             ok_up = np.all(vals - ups <= self._tol_poly)
             if ok_up and ok_down:
                 # it's ok i can tolerate "small" perturbations

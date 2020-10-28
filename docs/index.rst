@@ -87,6 +87,7 @@ Technical Documentation
    chronics
    converter
    environment
+   episode
    rules
    observation
    opponent

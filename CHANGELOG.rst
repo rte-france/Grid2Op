@@ -41,6 +41,7 @@ Change Log
 - [ADDED] Now the observations are set to a "game over" state when a game over occurred
   see `BaseObservation.set_game_over`
 - [ADDED] a method to plot the redispatching state of the grid `PlotMatplot.plot_current_dispatch`
+- [ADDED] the documentation of `Episode` module that was not displayed.
 - [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
 - [IMPROVED] the tolerance of the redispatching algorithm is now more consistent between the precision of the solver
   used and the time when it's
