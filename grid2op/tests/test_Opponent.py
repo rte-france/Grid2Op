@@ -1064,8 +1064,10 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env._oppSpace.last_attack
-                    if attack is None: # should only happen here if all attackable lines are already disconnected
-                        assert np.sum(obs.line_status == False) == 6
+                    if attack is None:
+                        # should only happen here if all attackable lines are already disconnected
+                        # OR if there are a game over
+                        assert np.sum(obs.line_status == False) == 6 or done
                         continue
 
                     assert any(attack._set_line_status == -1)

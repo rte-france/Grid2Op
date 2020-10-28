@@ -47,7 +47,7 @@ class Issue153Tester(unittest.TestCase):
         # I do an illegal action
         obs, reward, done, info = env.step(action)
         # and the redispatching was negative (this was the issue)
-        assert obs.prod_p[0] >= 0., "generator should be positive"
+        assert obs.prod_p[0] >= -env._tol_poly, "generator should be positive"
 
 
 if __name__ == "__main__":
