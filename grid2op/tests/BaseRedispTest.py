@@ -600,8 +600,8 @@ class BaseTestDispatchRampingIllegalETC(MakeBackend):
         obs, reward, done, info = env.step(act)
         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] <= obs.gen_max_ramp_up[0:2] + self.tol_one), "above max_ramp at the end"
         assert np.all(obs.prod_p[0:2] - obs_init.prod_p[0:2] >= -obs.gen_max_ramp_down[0:2] - self.tol_one), "above min_ramp at the end"
-        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2]), "above pmax at the end"
-        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2]), "below pmin at the end"
+        assert np.all(obs.prod_p[0:2] <= obs.gen_pmax[0:2] + self.tol_one), "above pmax at the end"
+        assert np.all(obs.prod_p[0:2] >= -obs.gen_pmin[0:2] - self.tol_one), "below pmin at the end"
         assert np.abs(np.sum(obs.actual_dispatch)) <= self.tol_one, "redisp not 0 at the end"
         # this redispatching is impossible because we ask to increase the value of the generator of 210
         # which is higher than pmax

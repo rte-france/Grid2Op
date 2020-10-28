@@ -45,6 +45,7 @@ Change Log
 - [IMPROVED] the tolerance of the redispatching algorithm is now more consistent between the precision of the solver
   used and the time when it's
 - [IMPROVED] make faster and more robust the optimization routine used during redispatching
+- [IMPROVED] error message when the state fails because of infeasible redispatching
 
 [1.2.3] - 2020-09-25
 ----------------------
