@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import gym
-from grid2op.Converter.GymSpaceConverter import GymActionSpace, GymObservationSpace
+from grid2op.gym.gym_space_converter import GymActionSpace, GymObservationSpace
 
 
 class GymEnv(gym.Env):

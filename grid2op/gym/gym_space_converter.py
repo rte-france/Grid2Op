@@ -11,7 +11,7 @@ import numpy as np
 import copy
 
 from grid2op.Converter.Converters import Converter
-from grid2op.Converter.BaseGymAttrConverter import BaseGymAttrConverter
+from grid2op.gym.base_gym_attr_onverter import BaseGymAttrConverter
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.Observation import BaseObservation
@@ -276,10 +276,10 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     low = 0.
                 elif attr_nm == "target_dispatch" or attr_nm == "actual_dispatch":
                     # TODO check that to be sure
-                    low = np.min([observation_space.gen_pmin,
-                                  -observation_space.gen_pmax])
-                    high = np.max([-observation_space.gen_pmin,
-                                   +observation_space.gen_pmax])
+                    low = np.minimum(observation_space.gen_pmin,
+                                     -observation_space.gen_pmax)
+                    high = np.maximum(-observation_space.gen_pmin,
+                                      +observation_space.gen_pmax)
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 
             if my_type is None:
