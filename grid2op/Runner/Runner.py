@@ -598,7 +598,7 @@ class Runner(object):
         else:
             self.env.reset()
 
-    def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None):
+    def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None, force_detail=False):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -625,12 +625,12 @@ class Runner(object):
         """
         self.reset()
         res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save,
-                                    pbar=pbar, env_seed=env_seed, max_iter=max_iter, agent_seed=agent_seed)
+                                    pbar=pbar, env_seed=env_seed, max_iter=max_iter, agent_seed=agent_seed, force_detail=force_detail)
         return res
 
     @staticmethod
     def _run_one_episode(env, agent, logger, indx, path_save=None,
-                         pbar=False, env_seed=None, agent_seed=None, max_iter=None):
+                         pbar=False, env_seed=None, agent_seed=None, max_iter=None, force_detail=False):
         done = False
         time_step = int(0)
         time_act = 0.
@@ -661,7 +661,7 @@ class Runner(object):
         efficient_storing = nb_timestep_max > 0
         nb_timestep_max = max(nb_timestep_max, 0)
 
-        if path_save is None:
+        if path_save is None and not force_detail:
             # i don't store anything on drive, so i don't need to store anything on memory
             nb_timestep_max = 0
 
@@ -714,6 +714,7 @@ class Runner(object):
                               attack_space=env._opponent_action_space,
                               logger=logger,
                               name=env.chronics_handler.get_name(),
+                              force_detail=force_detail,
                               other_rewards=[])
 
         episode.set_parameters(env)
@@ -739,7 +740,7 @@ class Runner(object):
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
                                    float(reward), env._env_modification,
                                    act, obs, opp_attack,
-                                   info)
+                                   info, force_detail)
             end_ = time.time()
 
         episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)
@@ -797,7 +798,7 @@ class Runner(object):
             pbar_ = pbar
         return pbar_
 
-    def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None):
+    def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None, force_detail=False):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -856,7 +857,8 @@ class Runner(object):
                                                                                           pbar=next_pbar[0],
                                                                                           env_seed=env_seed,
                                                                                           agent_seed=agt_seed,
-                                                                                          max_iter=max_iter)
+                                                                                          max_iter=max_iter,
+                                                                                          force_detail=force_detail)
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
                 res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts, episode_data)
@@ -865,7 +867,7 @@ class Runner(object):
 
     @staticmethod
     def _one_process_parrallel(runner, episode_this_process, process_id, path_save=None,
-                               env_seeds=None, max_iter=None, agent_seeds=None):
+                               env_seeds=None, max_iter=None, force_detail=False, agent_seeds=None):
         chronics_handler = ChronicsHandler(chronicsClass=runner.gridStateclass,
                                            path=runner.path_chron,
                                            **runner.gridStateclass_kwargs)
@@ -884,13 +886,13 @@ class Runner(object):
             if agent_seeds is not None:
                 agt_seed = agent_seeds[i]
             name_chron, cum_reward, nb_time_step, episode_data = Runner._run_one_episode(
-                env, agent, runner.logger, p_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed)
+                env, agent, runner.logger, p_id, path_save, env_seed=env_seed, max_iter=max_iter, agent_seed=agt_seed, force_detail=force_detail)
             id_chron = chronics_handler.get_id()
             max_ts = chronics_handler.max_timestep()
             res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts, episode_data)
         return res
 
-    def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None):
+    def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None, force_detail=False):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -977,7 +979,7 @@ class Runner(object):
             res = []
             with Pool(nb_process) as p:
                 tmp = p.starmap(Runner._one_process_parrallel,
-                                [(self, pn, i, path_save, seeds_res[i], max_iter) for i, pn in enumerate(process_ids)])
+                                [(self, pn, i, path_save, seeds_res[i], max_iter, force_detail) for i, pn in enumerate(process_ids)])
             for el in tmp:
                 res += el
         return res
@@ -1056,7 +1058,7 @@ class Runner(object):
         res_without_episode_data = [x[:-1] for x in res]
         return res_without_episode_data
 
-    def run_detailed(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None, agent_seeds=None):
+    def run_detailed(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None, agent_seeds=None, force_detail=False):
         """
         Run and produces a more detailed depiction of the run
         See :func:`Runner.run` as only the return type changes here
@@ -1147,11 +1149,11 @@ class Runner(object):
                 if nb_process == 1 or _IS_WINDOWS:
                     self.logger.info("Sequential runner used.")
                     res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
-                                               env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
+                                               env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds, force_detail=force_detail)
                 else:
                     self.logger.info("Parallel runner used.")
                     res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save,
-                                              env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds)
+                                              env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds, force_detail=force_detail)
             finally:
                 self._clean_up()
         return res
