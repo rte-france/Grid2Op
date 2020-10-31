@@ -11,7 +11,7 @@ import numpy as np
 from gym.spaces import Tuple, MultiBinary, MultiDiscrete, Discrete
 
 from grid2op.dtypes import dt_int
-from grid2op.gym.base_gym_attr_onverter import BaseGymAttrConverter
+from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 
 
 class MultiToTupleConverter(BaseGymAttrConverter):

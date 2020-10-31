@@ -10,12 +10,13 @@ from gym import spaces
 import numpy as np
 import copy
 
-from grid2op.Converter.Converters import Converter
-from grid2op.gym.base_gym_attr_onverter import BaseGymAttrConverter
+
 from grid2op.Environment import Environment
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.Observation import BaseObservation
 from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.Converter.Converters import Converter
+from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 
 
 class _BaseGymSpaceConverter(spaces.Dict):
@@ -416,18 +417,19 @@ class GymActionSpace(_BaseGymSpaceConverter):
             dict_variables = {}
         if isinstance(action_space, Environment):
             # action_space is an environment
-            initial_act_space = action_space.action_space
+            self.initial_act_space = action_space.action_space
         elif isinstance(action_space, ActionSpace):
-            initial_act_space = action_space
-
+            self.initial_act_space = action_space
+        else:
+            raise RuntimeError("GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)")
         dict_ = {}
         # TODO Make sure it works well !
-        if isinstance(initial_act_space, Converter):
+        if isinstance(self.initial_act_space, Converter):
             # a converter allows to ... convert the data so they have specific gym space
-            dict_ = initial_act_space.get_gym_dict()
+            dict_ = self.initial_act_space.get_gym_dict()
             self.__is_converter = True
         else:
-            self._fill_dict_act_space(dict_, initial_act_space, dict_variables)
+            self._fill_dict_act_space(dict_, self.initial_act_space, dict_variables)
             dict_ = self._fix_dict_keys(dict_)
             self.__is_converter = False
 

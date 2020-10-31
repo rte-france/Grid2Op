@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import gym
-from grid2op.gym.gym_space_converter import GymActionSpace, GymObservationSpace
+from grid2op.gym_compat.gym_space_converter import GymActionSpace, GymObservationSpace
 
 
 class GymEnv(gym.Env):
@@ -17,6 +17,11 @@ class GymEnv(gym.Env):
 
     They can handle action_space_converter or observation_space converter to change the representation of data
     that will be fed to the agent.  #TODO
+
+    Notes
+    ------
+    The environment passed as input is copied. It is not modified by this "gym environment"
+
     """
     def __init__(self, env_init):
         self._init_env = env_init.copy()

@@ -19,8 +19,9 @@ Change Log
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
 
-[1.2.4] - 2020-10-xx
+[1.3.0] - 2020-10-xx
 ---------------------
+- [BREAKING] GymConverter has been moved to `grid2op.gym_compat` module instead of  `grid2op.Converter`
 - [FIXED] wrong computation of voltage magnitude at extremity of powerlines when the powerlines were disconnected.
 - [FIXED] `Issue #151 <https://github.com/rte-france/Grid2Op/issues/151>`_: modification of observation attributes 3
   could lead to crash
@@ -31,6 +32,7 @@ Change Log
 - [FIXED] a bug that prevented runner to read back previously stored data (and now a test to check
   backward compatibility down to version 1.0.0)
 - [FIXED] small issue that could lead to non reproducibility when shuffling chronics
+- [FIXED] a bug in `obs.bus_connectivity_matrix()` when powerlines were disconnected
 - [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
   `GridStateFromFileWithForecastsWithoutMaintenance`
 - [ADDED] a keyword argument in the matplotlib plot information on the grid

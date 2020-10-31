@@ -194,6 +194,18 @@ class TestLoadingBackendFunc(unittest.TestCase):
                             ])
         assert np.all(mat[:10,:] == ref_mat)
 
+    def test_conn_mat2(self):
+        # when a powerline is disconnected
+        obs, *_ = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
+        assert obs.bus_connectivity_matrix().shape == (14, 14)
+        # when there is a substation counts 2 buses
+        obs, *_ = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
+        assert obs.bus_connectivity_matrix().shape == (15, 15)
+        assert obs.bus_connectivity_matrix()[14, 11] == 1.  # first powerline modified
+        assert obs.bus_connectivity_matrix()[14, 12] == 1.  # second powerline modified
+        assert obs.bus_connectivity_matrix()[5, 11] == 0.  # first powerline modified
+        assert obs.bus_connectivity_matrix()[5, 12] == 0.  # second powerline modified
+
     def test_observation_space(self):
         obs = self.env.observation_space(self.env)
         assert self.env.observation_space.n == obs.size()

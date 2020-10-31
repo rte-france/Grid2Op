@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import numpy as np
-import copy
 
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Observation.BaseObservation import BaseObservation
@@ -247,7 +246,7 @@ class CompleteObservation(BaseObservation):
         It is a matrix of size dim_topo, dim_topo, with values 0 or 1.
         For two objects (lines extremity, generator unit, load) i,j :
 
-            - if i and j are connected on the same substation:
+            - if i and j are at the same substation:
                 - if `conn_mat[i,j] = 0` it means the objects id'ed i and j are not connected to the same bus.
                 - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus, are both end
                   of the same powerline
@@ -306,36 +305,19 @@ class CompleteObservation(BaseObservation):
         """
         # TODO voir avec Antoine pour les r,x,h ici !! (surtout les x)
         if self.bus_connectivity_matrix_ is None:
-            # computes the number of buses in the powergrid.
-            nb_bus = 0
-            nb_bus_per_sub = np.zeros(self.sub_info.shape[0], dtype=dt_int)
-            beg_ = 0
-            end_ = 0
-            for sub_id, nb_obj in enumerate(self.sub_info):
-                nb_obj = int(nb_obj)
-                end_ += nb_obj
-
-                tmp = len(np.unique(self.topo_vect[beg_:end_]))
-                nb_bus_per_sub[sub_id] = tmp
-                nb_bus += tmp
-
-                beg_ += nb_obj
-
-            # define the bus_connectivity_matrix
+            bus_or = self.topo_vect[self.line_or_pos_topo_vect]
+            bus_ex = self.topo_vect[self.line_ex_pos_topo_vect]
+            connected = (bus_or > 0) & (bus_ex > 0)
+            bus_or = bus_or[connected]
+            bus_ex = bus_ex[connected]
+            bus_or += self.line_or_to_subid[connected] + (bus_or == 2) * self.n_sub
+            bus_ex += self.line_ex_to_subid[connected] + (bus_ex == 2) * self.n_sub
+            unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
+            unique_bus = np.sort(unique_bus)
+            nb_bus = unique_bus.shape[0]
+            tmplate = np.arange(np.max(unique_bus)+1)
+            tmplate[unique_bus] = np.arange(nb_bus)
             self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
-            np.fill_diagonal(self.bus_connectivity_matrix_, 1)
-
-            for q_id in range(self.n_line):
-                bus_or = int(self.topo_vect[self.line_or_pos_topo_vect[q_id]])
-                sub_id_or = int(self.line_or_to_subid[q_id])
-
-                bus_ex = int(self.topo_vect[self.line_ex_pos_topo_vect[q_id]])
-                sub_id_ex = int(self.line_ex_to_subid[q_id])
-
-                # try:
-                bus_id_or = int(np.sum(nb_bus_per_sub[:sub_id_or])+(bus_or-1))
-                bus_id_ex = int(np.sum(nb_bus_per_sub[:sub_id_ex])+(bus_ex-1))
-
-                self.bus_connectivity_matrix_[bus_id_or, bus_id_ex] = 1
-                self.bus_connectivity_matrix_[bus_id_ex, bus_id_or] = 1
+            self.bus_connectivity_matrix_[tmplate[bus_or], tmplate[bus_ex]] = 1.0
+            self.bus_connectivity_matrix_[tmplate[bus_ex], tmplate[bus_or]] = 1.0
         return self.bus_connectivity_matrix_

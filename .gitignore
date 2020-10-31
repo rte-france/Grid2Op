@@ -237,6 +237,7 @@ test_log_122/
 test_issue156.py
 test_redisp.py
 getting_started/test_env_converter.ipynb
-
+test_spektral.py
+test_spektral_example.py
 # profiling files
 **.prof
