@@ -23,7 +23,7 @@ class MultiToTupleConverter(BaseGymAttrConverter):
     We choose to encode some variable using `MultiBinary` variable in grid2op. This allows for easy
     manipulation of them if using these frameworks.
 
-    MultiBinary are encoded with gyme Tuple of gym Discrete variables.
+    MultiBinary are encoded with gym Tuple of gym Discrete variables.
     """
     def __init__(self, init_space):
         if not isinstance(init_space, (MultiBinary, MultiDiscrete)):
