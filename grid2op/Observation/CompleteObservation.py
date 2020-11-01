@@ -96,7 +96,7 @@ class CompleteObservation(BaseObservation):
                                  obs_env=obs_env,
                                  action_helper=action_helper,
                                  seed=seed)
-        self.dictionnarized = None
+        self._dictionnarized = None
         self.attr_list_vect = [
             "year", "month", "day", "hour_of_day",
             "minute_of_hour", "day_of_week",
@@ -113,10 +113,7 @@ class CompleteObservation(BaseObservation):
         ]
 
     def _reset_matrices(self):
-        self.connectivity_matrix_ = None
-        self.bus_connectivity_matrix_ = None
         self.vectorized = None
-        self.dictionnarized = None
 
     def update(self, env, with_forecast=True):
         # reset the matrices
@@ -202,122 +199,39 @@ class CompleteObservation(BaseObservation):
         A dictionary representing the observation.
 
         """
-        if self.dictionnarized is None:
-            self.dictionnarized = {}
-            self.dictionnarized["timestep_overflow"] = self.timestep_overflow
-            self.dictionnarized["line_status"] = self.line_status
-            self.dictionnarized["topo_vect"] = self.topo_vect
-            self.dictionnarized["loads"] = {}
-            self.dictionnarized["loads"]["p"] = self.load_p
-            self.dictionnarized["loads"]["q"] = self.load_q
-            self.dictionnarized["loads"]["v"] = self.load_v
-            self.dictionnarized["prods"] = {}
-            self.dictionnarized["prods"]["p"] = self.prod_p
-            self.dictionnarized["prods"]["q"] = self.prod_q
-            self.dictionnarized["prods"]["v"] = self.prod_v
-            self.dictionnarized["lines_or"] = {}
-            self.dictionnarized["lines_or"]["p"] = self.p_or
-            self.dictionnarized["lines_or"]["q"] = self.q_or
-            self.dictionnarized["lines_or"]["v"] = self.v_or
-            self.dictionnarized["lines_or"]["a"] = self.a_or
-            self.dictionnarized["lines_ex"] = {}
-            self.dictionnarized["lines_ex"]["p"] = self.p_ex
-            self.dictionnarized["lines_ex"]["q"] = self.q_ex
-            self.dictionnarized["lines_ex"]["v"] = self.v_ex
-            self.dictionnarized["lines_ex"]["a"] = self.a_ex
-            self.dictionnarized["rho"] = self.rho
+        if self._dictionnarized is None:
+            self._dictionnarized = {}
+            self._dictionnarized["timestep_overflow"] = self.timestep_overflow
+            self._dictionnarized["line_status"] = self.line_status
+            self._dictionnarized["topo_vect"] = self.topo_vect
+            self._dictionnarized["loads"] = {}
+            self._dictionnarized["loads"]["p"] = self.load_p
+            self._dictionnarized["loads"]["q"] = self.load_q
+            self._dictionnarized["loads"]["v"] = self.load_v
+            self._dictionnarized["prods"] = {}
+            self._dictionnarized["prods"]["p"] = self.prod_p
+            self._dictionnarized["prods"]["q"] = self.prod_q
+            self._dictionnarized["prods"]["v"] = self.prod_v
+            self._dictionnarized["lines_or"] = {}
+            self._dictionnarized["lines_or"]["p"] = self.p_or
+            self._dictionnarized["lines_or"]["q"] = self.q_or
+            self._dictionnarized["lines_or"]["v"] = self.v_or
+            self._dictionnarized["lines_or"]["a"] = self.a_or
+            self._dictionnarized["lines_ex"] = {}
+            self._dictionnarized["lines_ex"]["p"] = self.p_ex
+            self._dictionnarized["lines_ex"]["q"] = self.q_ex
+            self._dictionnarized["lines_ex"]["v"] = self.v_ex
+            self._dictionnarized["lines_ex"]["a"] = self.a_ex
+            self._dictionnarized["rho"] = self.rho
 
-            self.dictionnarized["maintenance"] = {}
-            self.dictionnarized["maintenance"]['time_next_maintenance'] = self.time_next_maintenance
-            self.dictionnarized["maintenance"]['duration_next_maintenance'] = self.duration_next_maintenance
-            self.dictionnarized["cooldown"] = {}
-            self.dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
-            self.dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
-            self.dictionnarized["redispatching"] = {}
-            self.dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
-            self.dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
+            self._dictionnarized["maintenance"] = {}
+            self._dictionnarized["maintenance"]['time_next_maintenance'] = self.time_next_maintenance
+            self._dictionnarized["maintenance"]['duration_next_maintenance'] = self.duration_next_maintenance
+            self._dictionnarized["cooldown"] = {}
+            self._dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
+            self._dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
+            self._dictionnarized["redispatching"] = {}
+            self._dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
+            self._dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
 
-        return self.dictionnarized
-
-    def connectivity_matrix(self):
-        """
-        Computes and return the "connectivity matrix" `con_mat`.
-        if "dim_topo = 2 * n_line + n_prod + n_conso"
-        It is a matrix of size dim_topo, dim_topo, with values 0 or 1.
-        For two objects (lines extremity, generator unit, load) i,j :
-
-            - if i and j are at the same substation:
-                - if `conn_mat[i,j] = 0` it means the objects id'ed i and j are not connected to the same bus.
-                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus, are both end
-                  of the same powerline
-
-            - if i and j are not connected on the same substation then`conn_mat[i,j] = 0` except if i and j are
-              the two extremities of the same power line, in this case `conn_mat[i,j] = 1`.
-
-        By definition, the diagonal is made of 0.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``, shape:dim_topo,dim_topo, dtype:float
-            The connectivity matrix, as defined above
-
-        """
-        if self.connectivity_matrix_ is None:
-            self.connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
-            # fill it by block for the objects
-            beg_ = 0
-            end_ = 0
-            for sub_id, nb_obj in enumerate(self.sub_info):
-                # it must be a vanilla python integer, otherwise it's not handled by some backend
-                # especially if written in c++
-                nb_obj = int(nb_obj)
-                end_ += nb_obj
-                tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=dt_float)
-                for obj1 in range(nb_obj):
-                    for obj2 in range(obj1+1, nb_obj):
-                        if self.topo_vect[beg_+obj1] == self.topo_vect[beg_+obj2]:
-                            # objects are on the same bus
-                            tmp[obj1, obj2] = 1
-                            tmp[obj2, obj1] = 1
-
-                self.connectivity_matrix_[beg_:end_, beg_:end_] = tmp
-                beg_ += nb_obj
-            # connect the objects together with the lines (both ends of a lines are connected together)
-            for q_id in range(self.n_line):
-                self.connectivity_matrix_[self.line_or_pos_topo_vect[q_id], self.line_ex_pos_topo_vect[q_id]] = 1
-                self.connectivity_matrix_[self.line_ex_pos_topo_vect[q_id], self.line_or_pos_topo_vect[q_id]] = 1
-
-        return self.connectivity_matrix_
-
-    def bus_connectivity_matrix(self):
-        """
-        If we denote by `nb_bus` the total number bus of the powergrid.
-
-        The `bus_connectivity_matrix` will have a size nb_bus, nb_bus and will be made of 0 and 1.
-
-        If `bus_connectivity_matrix[i,j] = 1` then at least a power line connects bus i and bus j.
-        Otherwise, nothing connects it.
-
-        Returns
-        -------
-        res: ``numpy.ndarray``, shape:nb_bus,nb_bus dtype:float
-            The bus connectivity matrix
-        """
-        # TODO voir avec Antoine pour les r,x,h ici !! (surtout les x)
-        if self.bus_connectivity_matrix_ is None:
-            bus_or = self.topo_vect[self.line_or_pos_topo_vect]
-            bus_ex = self.topo_vect[self.line_ex_pos_topo_vect]
-            connected = (bus_or > 0) & (bus_ex > 0)
-            bus_or = bus_or[connected]
-            bus_ex = bus_ex[connected]
-            bus_or += self.line_or_to_subid[connected] + (bus_or == 2) * self.n_sub
-            bus_ex += self.line_ex_to_subid[connected] + (bus_ex == 2) * self.n_sub
-            unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
-            unique_bus = np.sort(unique_bus)
-            nb_bus = unique_bus.shape[0]
-            tmplate = np.arange(np.max(unique_bus)+1)
-            tmplate[unique_bus] = np.arange(nb_bus)
-            self.bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
-            self.bus_connectivity_matrix_[tmplate[bus_or], tmplate[bus_ex]] = 1.0
-            self.bus_connectivity_matrix_[tmplate[bus_ex], tmplate[bus_or]] = 1.0
-        return self.bus_connectivity_matrix_
+        return self._dictionnarized

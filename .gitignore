@@ -239,5 +239,6 @@ test_redisp.py
 getting_started/test_env_converter.ipynb
 test_spektral.py
 test_spektral_example.py
+test_training_gnn*.pdf
 # profiling files
 **.prof

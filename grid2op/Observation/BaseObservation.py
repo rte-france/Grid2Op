@@ -238,8 +238,12 @@ class BaseObservation(GridObjects):
 
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
-
         self.attr_list_vect = None
+
+        # to save some computation time
+        self._connectivity_matrix_ = None
+        self._bus_connectivity_matrix_ = None
+        self._dictionnarized = None
 
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
@@ -466,6 +470,11 @@ class BaseObservation(GridObjects):
         self.target_dispatch[:] = np.NaN
         self.actual_dispatch[:] = np.NaN
 
+        # to save up computation time
+        self._dictionnarized = None
+        self._connectivity_matrix_ = None
+        self._bus_connectivity_matrix_ = None
+
     def set_game_over(self):
         """
         Set the observation to the "game over" state:
@@ -679,6 +688,10 @@ class BaseObservation(GridObjects):
         res: ``numpy.ndarray``, shape:dim_topo,dim_topo, dtype:float
             The connectivity matrix, as defined above
 
+        Notes
+        -------
+        For now this matrix is stored as a dense matrix. Support for sparse matrix will be added in the future.
+
         Examples
         ---------
         If you want to know if powerline 0 is connected at its "extremity" side with the load of id 0 you can do
@@ -733,7 +746,32 @@ class BaseObservation(GridObjects):
             #     - assign bus 2 to load 0 [on substation 1]
             # -> one of them is on bus 1 [line (extremity) 0] and the other on bus 2 [load 0]
         """
-        raise NotImplementedError("This method is not implemented")
+        if self._connectivity_matrix_ is None:
+            self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
+            # fill it by block for the objects
+            beg_ = 0
+            end_ = 0
+            for sub_id, nb_obj in enumerate(self.sub_info):
+                # it must be a vanilla python integer, otherwise it's not handled by some backend
+                # especially if written in c++
+                nb_obj = int(nb_obj)
+                end_ += nb_obj
+                tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=dt_float)
+                for obj1 in range(nb_obj):
+                    for obj2 in range(obj1+1, nb_obj):
+                        if self.topo_vect[beg_+obj1] == self.topo_vect[beg_+obj2]:
+                            # objects are on the same bus
+                            tmp[obj1, obj2] = 1
+                            tmp[obj2, obj1] = 1
+
+                self._connectivity_matrix_[beg_:end_, beg_:end_] = tmp
+                beg_ += nb_obj
+            # connect the objects together with the lines (both ends of a lines are connected together)
+            for q_id in range(self.n_line):
+                self._connectivity_matrix_[self.line_or_pos_topo_vect[q_id], self.line_ex_pos_topo_vect[q_id]] = 1
+                self._connectivity_matrix_[self.line_ex_pos_topo_vect[q_id], self.line_or_pos_topo_vect[q_id]] = 1
+
+        return self._connectivity_matrix_
 
     def bus_connectivity_matrix(self):
         """
@@ -750,8 +788,33 @@ class BaseObservation(GridObjects):
         -------
         res: ``numpy.ndarray``, shape:nb_bus,nb_bus dtype:float
             The bus connectivity matrix
+
+        Notes
+        ------
+        By convention we say that a bus is connected to itself. So the diagonal of this matrix is 1.
+
+        For now this matrix is stored as a dense matrix. Support for sparse matrix will be added in the future.
         """
-        raise NotImplementedError("This method is not implemented. ")
+        if self._bus_connectivity_matrix_ is None:
+            bus_or = self.topo_vect[self.line_or_pos_topo_vect]
+            bus_ex = self.topo_vect[self.line_ex_pos_topo_vect]
+            connected = (bus_or > 0) & (bus_ex > 0)
+            bus_or = bus_or[connected]
+            bus_ex = bus_ex[connected]
+            bus_or += self.line_or_to_subid[connected] + (bus_or == 2) * self.n_sub
+            bus_ex += self.line_ex_to_subid[connected] + (bus_ex == 2) * self.n_sub
+            unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
+            unique_bus = np.sort(unique_bus)
+            nb_bus = unique_bus.shape[0]
+            all_indx = np.arange(nb_bus)
+            tmplate = np.arange(np.max(unique_bus)+1)
+            tmplate[unique_bus] = all_indx
+            self._bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
+            self._bus_connectivity_matrix_[tmplate[bus_or], tmplate[bus_ex]] = 1.0
+            self._bus_connectivity_matrix_[tmplate[bus_ex], tmplate[bus_or]] = 1.0
+            self._bus_connectivity_matrix_[all_indx, all_indx] = 1.0
+        return self._bus_connectivity_matrix_
+
 
     def get_forecasted_inj(self, time_step=1):
         """
