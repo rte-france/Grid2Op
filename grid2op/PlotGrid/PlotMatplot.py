@@ -861,7 +861,6 @@ class PlotMatplot(BasePlot):
         self._display_load_name = False
         self.assign_gen_palette(nb_color=0, increase_gen_size=increase_gen_size, gen_line_width=gen_line_width)
         self._gen_edge_color = [COLOR_GEN[i] for i in range(len(TYPE_GEN))]
-        self._gen_edge_color = self._gen_edge_color  # first element is not used !
         gen_values = [TYPE_GEN[el] for el in self.observation_space.gen_type]
         self.figure = self.plot_info(gen_values=gen_values, coloring="gen")
         self.add_legend_gentype()

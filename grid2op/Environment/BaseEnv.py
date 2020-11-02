@@ -787,7 +787,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # add the "sum to 0"
         mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=dt_float)
-        const_sum_O_no_turn_on = np.zeros(1, dtype=dt_float)
+        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float)
 
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
@@ -815,8 +815,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # equality
         added = 0.5 * self._epsilon_poly
         equality_const = LinearConstraint(mat_sum_0_no_turn_on,  # do the sum
-                                          (const_sum_O_no_turn_on ) / scale_x,  # lower bound
-                                          (const_sum_O_no_turn_on ) / scale_x  # upper bound
+                                          (const_sum_0_no_turn_on ) / scale_x,  # lower bound
+                                          (const_sum_0_no_turn_on ) / scale_x  # upper bound
                                           )
         mat_pmin_max_ramps = np.eye(nb_dispatchable)
         ineq_const = LinearConstraint(mat_pmin_max_ramps,
@@ -837,7 +837,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # choose a good initial point (close to the solution)
         # the idea here is to chose a initial point that would be close to the
         # desired solution (split the (sum of the) dispatch to the available generators)
-        x0 = np.zeros(nb_dispatchable, dtype=dt_float)
         x0 = (self._target_dispatch[gen_participating] - self._actual_dispatch[gen_participating]) / scale_x
         can_adjust = x0 == 0.
         if np.any(can_adjust):
@@ -882,8 +881,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             # check if constraints are "approximately" met
             mat_const = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
-            downs = np.concatenate((const_sum_O_no_turn_on / scale_x, (min_disp - added) / scale_x))
-            ups = np.concatenate((const_sum_O_no_turn_on / scale_x, (max_disp + added) / scale_x))
+            downs = np.concatenate((const_sum_0_no_turn_on / scale_x, (min_disp - added) / scale_x))
+            ups = np.concatenate((const_sum_0_no_turn_on / scale_x, (max_disp + added) / scale_x))
             vals = np.matmul(mat_const, res.x)
             ok_down = np.all(vals - downs >= -self._tol_poly)  # i don't violate "down" constraints
             ok_up = np.all(vals - ups <= self._tol_poly)
