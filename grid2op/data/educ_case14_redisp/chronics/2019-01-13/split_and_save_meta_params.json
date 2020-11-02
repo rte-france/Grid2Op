@@ -1,12 +1,12 @@
 {
     "all_seeds": {
-        "/home/donnotben/Documents/Grid2Op_dev/getting_started/grid2op/data/educ_case14_redisp/chronics/0000": 174711705
+        "/home/benjamin/data_grid2op/l2rpn_case14_sandbox/chronics/0003": 296761640
     },
     "datetime_beg": {
-        "0000": "2019-01-13 00:00"
+        "0003": "2019-01-13 00:00"
     },
     "datetime_end": {
-        "0000": "2019-01-14 00:00"
+        "0003": "2019-01-14 00:00"
     },
     "path_out": "chronics_educ/2019-01-13"
 }

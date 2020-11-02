@@ -259,11 +259,74 @@ class TestContinuousToDiscrete(unittest.TestCase):
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [1, 2, 0, 0, 0, 1])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            # assert np.all(np.abs(res2 - [0., 6.66666, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(np.abs(res2 - [0., 5.0, 0., 0., 0., 0.]) <= self.tol)
 
             # test one is 0
             g2op_object = np.array([0., -3.4, 0., 0., 0., 0.])
             res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
             assert np.all(res == [1, 0, 0, 0, 0, 1])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
-            # assert np.all(np.abs(res2 - [0., -6.66666, 0., 0., 0., 0.]) <= self.tol)
+            assert np.all(np.abs(res2 - [0., -5.0, 0., 0., 0., 0.]) <= self.tol)
+
+    def test_split_in_5(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("educ_case14_redisp", test=True)
+            gym_env = GymEnv(env)
+            act_space = gym_env.action_space
+            act_space = act_space.reencode_space("redispatch",
+                                                 ContinuousToDiscreteConverter(nb_bins=5,
+                                                                               init_space=act_space["redispatch"])
+                                                 )
+
+            # with 5
+            g2op_object = np.array([0., 0., 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 2, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(res2 == 0.)
+
+            # test the all 0 action, but one is not 0 (negative)
+            g2op_object = np.array([0., -1.9, 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 2, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(res2 == 0.)
+
+            # positive side
+            g2op_object = np.array([0., 2.1, 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 3, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(np.abs(res2 - [0., 3.33333, 0., 0., 0., 0.]) <= self.tol)
+
+            g2op_object = np.array([0., 5.9, 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 3, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(np.abs(res2 - [0., 3.33333, 0., 0., 0., 0.]) <= self.tol)
+
+            g2op_object = np.array([0., 6.1, 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 4, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(np.abs(res2 - [0., 6.666666, 0., 0., 0., 0.]) <= self.tol)
+
+            # negative side
+            g2op_object = np.array([0., -2.1, 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 1, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(np.abs(res2 - [0., -3.3333, 0., 0., 0., 0.]) <= self.tol)
+
+            g2op_object = np.array([0., -5.9, 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 1, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(np.abs(res2 - [0., -3.33333, 0., 0., 0., 0.]) <= self.tol)
+
+            g2op_object = np.array([0., -6.1, 0., 0., 0., 0.])
+            res = act_space._keys_encoding["_redispatch"].g2op_to_gym(g2op_object)
+            assert np.all(res == [2, 0, 0, 0, 0, 2])
+            res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
+            assert np.all(np.abs(res2 - [0., -6.666666, 0., 0., 0., 0.]) <= self.tol)

@@ -33,9 +33,25 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
 
     And reciprocally, this action with :  # TODO
 
-    - 0 is understand as -6.666... (middle of the interval represented by 0)
-    - 1 is understand as 0.0 (middle of the interval represented by 1)
-    - 2 is understand as 6.666 (middle of the interval represented by 2)
+    - 0 is understand as -5... (middle of the interval -10 / 0)
+    - 1 is understand as 0.0 (middle of the interval represented by -10 / 10)
+    - 2 is understand as 6.666 (middle of the interval represented by 0 / 10)
+
+    If `nb_bins` is 5 and  the original input space is [-10, 10], then the split is the following:
+
+    - 0 encodes all numbers in [-10, -6)
+    - 1 encodes all numbers in  [-6, -2)
+    - 2 encode all numbers in [-2, 2)
+    - 3 encode all numbers in [2, 4)
+    - 3 encode all numbers in [4, 10]
+
+    And reciprocally, this action with :  # TODO
+
+    - 0 is understand as -6.6666...
+    - 1 is understand as -3.333...
+    - 2 is understand as 0.
+    - 3 is understand as 3.333...
+    - 4 is understand as 6.6666...
 
     """
     def __init__(self, init_space, nb_bins):
@@ -56,7 +72,8 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
         self._values = np.linspace(min_, max_, num=nb_bins+2)
         self._values = self._values[1:-1, :]  # the values that will be used when using #gym_to_glop
 
-        self._bins_size = np.linspace(min_, max_, num=nb_bins+4)
+        # TODO there might a cleaner approach here
+        self._bins_size = np.linspace(min_, max_, num=2*nb_bins+1)
         self._bins_size = self._bins_size[2:-1:2, :]  # the values defining the "cuts"
 
         self._gen_idx = np.arange(self._bins_size.shape[-1])

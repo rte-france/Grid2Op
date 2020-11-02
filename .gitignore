@@ -240,5 +240,9 @@ getting_started/test_env_converter.ipynb
 test_spektral.py
 test_spektral_example.py
 test_training_gnn*.pdf
+getting_started/donothing_case14_realistic.ipynb
+getting_started/first_plot_attempt.ipynb
+getting_started/investigate_redisp_bug.ipynb
+
 # profiling files
 **.prof
