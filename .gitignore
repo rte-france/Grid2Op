@@ -234,6 +234,16 @@ getting_started/chronics_educ/
 grid2op/data/educ_case14_redisp/
 getting_started/prepare_env_aub.ipynb
 test_log_122/
+test_issue156.py
+test_redisp.py
+getting_started/test_env_converter.ipynb
+test_spektral.py
+test_spektral_example.py
+test_training_gnn*.pdf
+getting_started/donothing_case14_realistic.ipynb
+getting_started/first_plot_attempt.ipynb
+getting_started/investigate_redisp_bug.ipynb
+**/split_and_save_meta_params.json
 
 # profiling files
 **.prof

@@ -36,6 +36,8 @@
 .. _target_dispatch: ./observation.html#grid2op.Observation.BaseObservation.target_dispatch
 .. _actual_dispatch: ./observation.html#grid2op.Observation.BaseObservation.actual_dispatch
 
+.. _observation_module:
+
 Observation
 ===================================
 

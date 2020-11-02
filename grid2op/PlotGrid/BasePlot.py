@@ -545,6 +545,8 @@ class BasePlot(ABC):
         res: ``object``
             The figure updated with the data from the new observation.
         """
+        # TODO add gen_info=dispatch and gen_info=target_dispatch
+        # TODO add line_info=cooldown
 
         # Start by checking arguments are valid
         if not isinstance(observation, BaseObservation):            
@@ -728,7 +730,7 @@ class BasePlot(ABC):
                     observation.rho /= np.max(tmp)
                 elif coloring == "load":
                     # TODO
-                    warnings.warn("")
+                    warnings.warn("ooloring = loads is not available at the moment")
                 elif coloring == "gen":
                     if gen_values is None:
                         raise PlotError("Impossible to color the grid based on the gen information (key word argument "
@@ -742,9 +744,10 @@ class BasePlot(ABC):
 
                     # rescaling to have range 0 - 1.0
                     tmp = observation.prod_p[np.isfinite(observation.prod_p)]
-                    observation.prod_p -= (np.min(tmp) - 1e-1)  # so the min is 1e-1 otherwise 0.0 is plotted as black
-                    tmp = observation.prod_p[np.isfinite(observation.prod_p)]
-                    observation.prod_p /= np.max(tmp)
+                    if np.any(np.isfinite(observation.prod_p)):
+                        observation.prod_p -= (np.min(tmp) - 1e-1)  # so the min is 1e-1 otherwise 0.0 is plotted as black
+                        tmp = observation.prod_p[np.isfinite(observation.prod_p)]
+                        observation.prod_p /= np.max(tmp)
                 else:
                     raise PlotError("coloring must be one of \"line\", \"load\" or \"gen\"")
 

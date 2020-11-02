@@ -26,7 +26,7 @@ class Issue153Tester(unittest.TestCase):
         param.NB_TIMESTEP_COOLDOWN_SUB = 3
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("rte_case14_realistic", test=True)
+            env = grid2op.make("rte_case14_realistic", test=True, _add_to_name="test_issue_153")
         env.gen_max_ramp_up[:] = env.gen_pmax
         env.gen_max_ramp_down[:] = env.gen_pmax
         env.action_space.gen_max_ramp_up[:] = env.gen_pmax
@@ -47,7 +47,7 @@ class Issue153Tester(unittest.TestCase):
         # I do an illegal action
         obs, reward, done, info = env.step(action)
         # and the redispatching was negative (this was the issue)
-        assert obs.prod_p[0] >= 0., "generator should be positive"
+        assert obs.prod_p[0] >= -env._tol_poly, "generator should be positive"
 
 
 if __name__ == "__main__":

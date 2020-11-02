@@ -5,27 +5,34 @@ Change Log
 --------------------
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
+- [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
+  flows, and nodes the active production / consumption) and "reactive flow graph"
 - [???] better logging
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
-  it in parrallel and transfer the resulting data.
+  it in parallel and transfer the resulting data.
+- [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 - [???] model curtailment
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
+  the available energy)
 
-[1.2.4] - 2020-10-xx
+[1.3.0] - 2020-10-xx
 ---------------------
+- [BREAKING] GymConverter has been moved to `grid2op.gym_compat` module instead of  `grid2op.Converter`
 - [FIXED] wrong computation of voltage magnitude at extremity of powerlines when the powerlines were disconnected.
-- [FIXED] `Issue #151 <https://github.com/rte-france/Grid2Op/issues/151>`_: modification of observation attributes could
-  lead to crash
+- [FIXED] `Issue #151 <https://github.com/rte-france/Grid2Op/issues/151>`_: modification of observation attributes 3
+  could lead to crash
 - [FIXED] `Issue #153 <https://github.com/rte-france/Grid2Op/issues/153>`_: negative generator could happen in some
   cases
 - [FIXED] an error that lead to wrong normalization of some generator (due to slack bus) when using the
   gymconverter.
 - [FIXED] a bug that prevented runner to read back previously stored data (and now a test to check
   backward compatibility down to version 1.0.0)
+- [FIXED] small issue that could lead to non reproducibility when shuffling chronics
+- [FIXED] a bug in `obs.bus_connectivity_matrix()` when powerlines were disconnected
 - [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
   `GridStateFromFileWithForecastsWithoutMaintenance`
 - [ADDED] a keyword argument in the matplotlib plot information on the grid
@@ -33,7 +40,15 @@ Change Log
 - [ADDED] a function to change the color palette of powerlines (`plot_helper.assign_line_palette`)
 - [ADDED] a function to change the color palette of generators (`plot_helper.assign_gen_palette`)
 - [ADDED] Support the attack of the opponent in the `EpisodeData` class
+- [ADDED] Now the observations are set to a "game over" state when a game over occurred
+  see `BaseObservation.set_game_over`
+- [ADDED] a method to plot the redispatching state of the grid `PlotMatplot.plot_current_dispatch`
+- [ADDED] the documentation of `Episode` module that was not displayed.
 - [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
+- [IMPROVED] the tolerance of the redispatching algorithm is now more consistent between the precision of the solver
+  used and the time when it's
+- [IMPROVED] make faster and more robust the optimization routine used during redispatching
+- [IMPROVED] error message when the state fails because of infeasible redispatching
 
 [1.2.3] - 2020-09-25
 ----------------------
