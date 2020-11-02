@@ -114,9 +114,9 @@ do not hesitate to write us a "feature request" for the documentation, thanks in
 ======================================   ============================================================
 Converter name                           Objective
 ======================================   ============================================================
-:class:`ContinuousToDiscreteConverter`
-MultiToTupleConverter
-ScalerAttrConverter
+:class:`ContinuousToDiscreteConverter`   TODO
+:class:`MultiToTupleConverter`           TODO
+:class:`ScalerAttrConverter`             TODO
 ======================================   ============================================================
 
 

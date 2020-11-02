@@ -31,21 +31,21 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
     - 1 encodes all numbers in  [-3.33, 3.33)
     - 2 encode all numbers in [3.33, 10.]
 
-    And reciprocally, this action with :  # TODO
+    And reciprocally, this action with :
 
-    - 0 is understand as -5... (middle of the interval -10 / 0)
+    - 0 is understand as -5.0 (middle of the interval -10 / 0)
     - 1 is understand as 0.0 (middle of the interval represented by -10 / 10)
-    - 2 is understand as 6.666 (middle of the interval represented by 0 / 10)
+    - 2 is understand as 5.0 (middle of the interval represented by 0 / 10)
 
     If `nb_bins` is 5 and  the original input space is [-10, 10], then the split is the following:
 
     - 0 encodes all numbers in [-10, -6)
     - 1 encodes all numbers in  [-6, -2)
     - 2 encode all numbers in [-2, 2)
-    - 3 encode all numbers in [2, 4)
-    - 3 encode all numbers in [4, 10]
+    - 3 encode all numbers in [2, 6)
+    - 3 encode all numbers in [6, 10]
 
-    And reciprocally, this action with :  # TODO
+    And reciprocally, this action with :
 
     - 0 is understand as -6.6666...
     - 1 is understand as -3.333...
