@@ -150,14 +150,16 @@ if __name__ == "__main__":
     import grid2op
     from grid2op.Agent import RandomAgent
     from grid2op.Runner import Runner
-    from grid2op.tests.helper_path_test import data_dir
-    PATH_PREVIOUS_RUNNER = os.path.join(data_dir, "runner_data")
-    env = grid2op.make("rte_case5_example", test=True)
-    runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
-    runner.run(nb_episode=2,
-               path_save=os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}"),
-               pbar=True,
-               max_iter=100)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
+        env = grid2op.make("rte_case5_example", test=True)
+        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+        runner.run(nb_episode=2,
+                   path_save=os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}"),
+                   pbar=True,
+                   max_iter=100)
     # Stage in git
     start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
 
