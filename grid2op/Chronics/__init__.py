@@ -7,6 +7,7 @@ __all__ = [
     "GridStateFromFile",
     "GridStateFromFileWithForecasts",
     "GridStateFromFileWithForecastsWithMaintenance",
+    "GridStateFromFileWithForecastsWithoutMaintenance",
     "ReadPypowNetData"
 ]
 
@@ -18,4 +19,5 @@ from grid2op.Chronics.GridStateFromFileWithForecasts import GridStateFromFileWit
 from grid2op.Chronics.MultiFolder import Multifolder
 from grid2op.Chronics.ReadPypowNetData import ReadPypowNetData
 from grid2op.Chronics.GSFFWFWM import GridStateFromFileWithForecastsWithMaintenance
+from grid2op.Chronics.FromFileWithoutMaintenance import GridStateFromFileWithForecastsWithoutMaintenance
 from grid2op.Chronics.MultifolderWithCache import MultifolderWithCache

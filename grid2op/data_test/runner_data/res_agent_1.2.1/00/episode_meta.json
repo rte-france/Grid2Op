@@ -1,0 +1,11 @@
+{
+    "agent_seed": null,
+    "backend_type": "LightSimBackend_rte_case5_example",
+    "chronics_max_timestep": "100",
+    "chronics_path": "/home/donnotben/Documents/Grid2Op_dev/test_log_122/venv122/lib/python3.7/site-packages/grid2op/data/rte_case5_example/chronics/00",
+    "cumulative_reward": 27.032939910888672,
+    "env_seed": null,
+    "env_type": "Environment_rte_case5_example",
+    "grid_path": "/home/donnotben/Documents/Grid2Op_dev/test_log_122/venv122/lib/python3.7/site-packages/grid2op/data/rte_case5_example/grid.json",
+    "nb_timestep_played": 6
+}

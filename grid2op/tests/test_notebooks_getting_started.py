@@ -15,6 +15,9 @@ import unittest
 
 # TODO check these tests, they don't appear to be working
 
+import warnings
+warnings.simplefilter("error")
+
 
 def delete_all(folder):
     """

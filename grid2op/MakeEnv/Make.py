@@ -38,6 +38,7 @@ TEST_DEV_ENVS = {
     "case14_test": DEV_DATASET.format("rte_case14_test"),
     "case5_example": DEV_DATASET.format("rte_case5_example"),
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
+    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
 }
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
@@ -193,7 +194,7 @@ def _aux_make_multimix(dataset_path, **kwargs):
     return MultiMixEnvironment(dataset_path, **kwargs)
 
 
-def make(dataset="rte_case14_realistic", test=False, **kwargs):
+def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -214,6 +215,9 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     kwargs:
         Other keyword argument to give more control on the environment you are creating. See
         the Parameters information of the :func:`make_from_dataset_path`.
+
+    _add_to_name:
+        Internal, do not use
 
     Returns
     -------
@@ -264,14 +268,14 @@ def make(dataset="rte_case14_realistic", test=False, **kwargs):
     if test:
         warnings.warn(_MAKE_DEV_ENV_WARN)
         # Warning for deprecated dev envs
-        if not (dataset_name.startswith("rte") or dataset_name.startswith("l2rpn")):
+        if not (dataset_name.startswith("rte") or dataset_name.startswith("l2rpn") or dataset_name.startswith("educ")):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
         ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
             make_from_path_fn = _aux_make_multimix
 
-        return make_from_path_fn(dataset_path=ds_path, **kwargs)
+        return make_from_path_fn(dataset_path=ds_path, _add_to_name=_add_to_name, **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):

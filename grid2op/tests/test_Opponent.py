@@ -26,6 +26,9 @@ ATTACK_COOLDOWN = 100
 LINES_ATTACKED = ["1_3_3", "1_4_4", "3_6_15", "9_10_12", "11_12_13", "12_13_14"]
 RHO_NORMALIZATION = [1, 1, 1, 1, 1, 1]
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestSuiteBudget_001(BaseActionBudget):
     """just for testing"""
@@ -694,9 +697,9 @@ class TestLoadingOpp(unittest.TestCase):
                              path_save=f)
             for i, episode_name, cum_reward, timestep, total_ts in res:
                 episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
-                assert np.any(episode_data.attack[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
-                assert np.sum(episode_data.attack[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
-                assert np.all(episode_data.attack[:, 0] == 0.)
+                assert np.any(episode_data.attacks.collection[:, line_id] == -1.), "no attack on powerline {}".format(line_id)
+                assert np.sum(episode_data.attacks.collection[:, line_id]) == -opponent_attack_duration, "too much / not enought attack on powerline {}".format(line_id)
+                assert np.all(episode_data.attacks.collection[:, 0] == 0.)
 
     def test_env_opponent(self):
         param = Parameters()
@@ -996,9 +999,9 @@ class TestLoadingOpp(unittest.TestCase):
                        opponent_budget_class=BaseActionBudget,
                        opponent_attack_duration=ATTACK_DURATION,
                        opponent_class=WeightedRandomOpponent,
-                      kwargs_opponent={"lines_attacked": LINES_ATTACKED,
-                                       "rho_normalization": RHO_NORMALIZATION,
-                                       "attack_period": 1})
+                       kwargs_opponent={"lines_attacked": LINES_ATTACKED,
+                                        "rho_normalization": RHO_NORMALIZATION,
+                                        "attack_period": 1})
             env.seed(0)
             # Collect some attacks
             # and check that they belong to the correct lines
@@ -1061,8 +1064,10 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env._oppSpace.last_attack
-                    if attack is None: # should only happen here if all attackable lines are already disconnected
-                        assert np.sum(obs.line_status == False) == 6
+                    if attack is None:
+                        # should only happen here if all attackable lines are already disconnected
+                        # OR if there are a game over
+                        assert np.sum(obs.line_status == False) == 6 or done
                         continue
 
                     assert any(attack._set_line_status == -1)

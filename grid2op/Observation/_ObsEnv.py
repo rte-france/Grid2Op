@@ -8,7 +8,7 @@
 
 import copy
 import numpy as np
-from grid2op.dtypes import dt_int, dt_float
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
@@ -120,6 +120,9 @@ class _ObsEnv(BaseEnv):
                                                obs_env=None,
                                                action_helper=None)
         self.current_obs = self.current_obs_init
+
+        # backend has loaded everything
+        self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
     def _do_nothing(self, x):
         return self._do_nothing_act

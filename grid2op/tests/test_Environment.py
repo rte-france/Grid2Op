@@ -29,6 +29,9 @@ PROFILE_CODE = False
 if PROFILE_CODE:
     import cProfile
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestLoadingBackendPandaPower(unittest.TestCase):
     def setUp(self):

@@ -14,9 +14,9 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 
 class Parameters:
     """
-    Main classes representing the _parameters of the game. The main paratemeters are describe bellow.
+    Main classes representing the parameters of the game. The main parameters are described bellow.
 
-    Note that changing the values of these _parameters might not be enough. If these _parameters are not used in the
+    Note that changing the values of these parameters might not be enough. If these _parameters are not used in the
     :class:`grid2op.Rules.RulesChecker`, then modifying them will have no impact at all.
 
     Attributes

@@ -30,6 +30,9 @@ from grid2op.MakeEnv import make
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = True
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):
@@ -51,6 +54,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                     '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3',
                                    'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
+                      'env_name': 'rte_case14_test',
                       'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                       'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
                       'gen_to_subid': [1, 2, 5, 7, 0],
@@ -189,6 +193,18 @@ class TestLoadingBackendFunc(unittest.TestCase):
                              0., 0., 0., 0., 0.]
                             ])
         assert np.all(mat[:10,:] == ref_mat)
+
+    def test_conn_mat2(self):
+        # when a powerline is disconnected
+        obs, *_ = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
+        assert obs.bus_connectivity_matrix().shape == (14, 14)
+        # when there is a substation counts 2 buses
+        obs, *_ = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
+        assert obs.bus_connectivity_matrix().shape == (15, 15)
+        assert obs.bus_connectivity_matrix()[14, 11] == 1.  # first powerline modified
+        assert obs.bus_connectivity_matrix()[14, 12] == 1.  # second powerline modified
+        assert obs.bus_connectivity_matrix()[5, 11] == 0.  # first powerline modified
+        assert obs.bus_connectivity_matrix()[5, 12] == 0.  # second powerline modified
 
     def test_observation_space(self):
         obs = self.env.observation_space(self.env)

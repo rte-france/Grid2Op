@@ -26,6 +26,9 @@ from grid2op.Space.space_utils import save_to_dict
 
 # TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestActionBase(ABC):
 
@@ -105,6 +108,7 @@ class TestActionBase(ABC):
             'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
                          'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
                          'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
+            'env_name': 'test_action_env',
             'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
             'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
             'gen_to_subid': [0, 1, 2, 5, 7],

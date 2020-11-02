@@ -8,8 +8,9 @@
 import os
 import copy
 import warnings
+import numpy as np
 
-from grid2op.dtypes import dt_float
+from grid2op.dtypes import dt_float, dt_bool
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation
@@ -66,8 +67,8 @@ class Environment(BaseEnv):
                  other_rewards={},
                  thermal_limit_a=None,
                  with_forecast=True,
-                 epsilon_poly=1e-2,
-                 tol_poly=1e-6,
+                 epsilon_poly=1e-4,  # precision of the redispatching algorithm we don't recommend to go above 1e-4
+                 tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
                  opponent_action_class=DontAct,
                  opponent_class=BaseOpponent,
                  opponent_init_budget=0.,
@@ -154,6 +155,7 @@ class Environment(BaseEnv):
         self.backend.assert_grid_correct()
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
+        self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         if self._thermal_limit_a is None:
             self._thermal_limit_a = self.backend.thermal_limit_a.astype(dt_float)
@@ -211,7 +213,6 @@ class Environment(BaseEnv):
                                                                   observationClass=observationClass,
                                                                   rewardClass=rewardClass,
                                                                   env=self)
-
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(

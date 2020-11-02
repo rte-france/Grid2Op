@@ -8,6 +8,9 @@ import grid2op
 from grid2op.Action import *
 from grid2op.dtypes import dt_float
 
+import warnings
+warnings.simplefilter("error")
+
 
 class Test_iadd_Base(ABC):
 

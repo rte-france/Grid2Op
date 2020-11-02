@@ -19,6 +19,9 @@ from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules import *
 from grid2op.MakeEnv import make
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):
