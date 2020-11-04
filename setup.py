@@ -65,7 +65,7 @@ pkgs = {
 
 
 setup(name='Grid2Op',
-      version='1.3.0',
+      version='1.3.1',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations '
                        'independently of the software used to compute powerflow or method to generate grid '
