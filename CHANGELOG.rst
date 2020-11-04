@@ -19,6 +19,11 @@ Change Log
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
 
+[1.3.1] - 2020-11-04
+----------------------
+- [FIXED] the environment "educ_case14_redisp"
+- [FIXED] notebooks are now working perfectly
+
 [1.3.0] - 2020-11-02
 ---------------------
 - [BREAKING] GymConverter has been moved to `grid2op.gym_compat` module instead of  `grid2op.Converter`
