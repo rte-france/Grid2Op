@@ -245,6 +245,10 @@ getting_started/investigate_redisp_bug.ipynb
 **/split_and_save_meta_params.json
 getting_started/saved_agent_DDDQN_BDA_1000/
 getting_started/saved_agent_DDDQN_BDA_1000_results/
+getting_started/saved_agent2_DDDQN_300/
+getting_started/saved_agent2_DDDQN_300_results/
+getting_started/saved_agent_DDDQN_200/
+getting_started/saved_agent_DDDQN_200_results/
 
 # profiling files
 **.prof

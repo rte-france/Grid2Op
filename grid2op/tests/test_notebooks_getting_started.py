@@ -7,8 +7,12 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import shutil
-import pdb
+import os
+import copy
 
+import pdb
+import nbformat
+from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 from grid2op.tests.helper_path_test import *
 import os
 import unittest
@@ -17,6 +21,7 @@ import unittest
 
 import warnings
 warnings.simplefilter("error")
+NOTEBOOK_PATHS = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
 
 
 def delete_all(folder):
@@ -68,39 +73,89 @@ def export_all_notebook(folder_in):
     return res
 
 
+class RAII_tf_log():
+    def __init__(self):
+        self.previous = None
+        if "TF_CPP_MIN_LOG_LEVEL" in os.environ:
+            self.previous = copy.deepcopy(os.environ['TF_CPP_MIN_LOG_LEVEL'])
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+    def __del__(self):
+        if self.previous is not None:
+            os.environ['TF_CPP_MIN_LOG_LEVEL'] = self.previous
+# # notebook names are hard coded because if i change them, i need also to change the
+# # readme and the documentation
+
+
 class TestNotebook(unittest.TestCase):
-    pass
+    def _aux_funct_notebook(self, notebook_filename):
+        with open(notebook_filename) as f:
+            nb = nbformat.read(f, as_version=4)
+        try:
+            ep = ExecutePreprocessor(timeout=600, store_widget_state=True)
+            try:
+                ep.preprocess(nb, {'metadata': {'path': NOTEBOOK_PATHS}})
+            except CellExecutionError as exc_:
+                raise
+            except Exception as exc_:
+                # error with tqdm progress bar i believe
+                pass
+        except CellExecutionError as exc_:
+            raise
+        except Exception:
+            pass
+
+    def test_notebook0_1(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "0_SmallExample.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook1(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "1_Grid2opFramework.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook2(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "2_Observation_Agents.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook3(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "3_Action_GridManipulation.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook4(self):
+        raii_ = RAII_tf_log()
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "4_TrainingAnAgent.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook5(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "5_StudyYourAgent.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook6(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "6_RedispathingAgent.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook7(self):
+        raii_ = RAII_tf_log()
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "7_MultiEnv.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook8(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "8_PlottingCapabilities.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook9(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "9_EnvironmentModifications.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook_aub(self):
+        raii_ = RAII_tf_log()
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "AUB_EECE699_20201103_ReinforcementLearningApplication.ipynb")
+        self._aux_funct_notebook(notebook_filename)
+
+    def test_notebook_ieeebda(self):
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "IEEE BDA Tutorial Series.ipynb")
+        self._aux_funct_notebook(notebook_filename)
 
 
 if __name__ == "__main__":
-    if False:
-        import nbformat
-        from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
-        notebooks_path = os.path.abspath(os.path.join(PATH_DATA_TEST, "../../getting_started"))
-        path_save_notebook = os.path.join(PATH_DATA_TEST, "../tests/test_notebooks")
-
-        if not os.path.exists(path_save_notebook):
-            os.mkdir(path_save_notebook)
-        else:
-            delete_all(path_save_notebook)
-
-        all_notebook = export_all_notebook(notebooks_path)
-
-        all_funs = []
-        for notebook_filename in all_notebook:
-            def f(self):
-                with open(notebook_filename) as f:
-                    nb = nbformat.read(f, as_version=4)
-                    ep = ExecutePreprocessor(timeout=600)
-                    try:
-                        ep.preprocess(nb, {'metadata': {'path': path_save_notebook}})
-                    except CellExecutionError:
-                        raise
-            all_funs.append(("test_{}".format(os.path.split(notebook_filename)[-1]), f))
-
-        for nm, f in all_funs:
-            pass
-            setattr(TestNotebook, nm, f)
-
-    # unittest.main()
-
+    unittest.main()
