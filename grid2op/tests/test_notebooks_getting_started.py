@@ -105,6 +105,12 @@ class TestNotebook(unittest.TestCase):
         except Exception:
             pass
 
+    def _check_for_baselines(self):
+        try:
+            import l2rpn_baselines
+        except ImportError as exc_:
+            self.skipTest("l2rpn baseline is not available")
+
     def test_notebook0_1(self):
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "0_SmallExample.ipynb")
         self._aux_funct_notebook(notebook_filename)
@@ -122,6 +128,7 @@ class TestNotebook(unittest.TestCase):
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook4(self):
+        self._check_for_baselines()
         raii_ = RAII_tf_log()
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "4_TrainingAnAgent.ipynb")
         self._aux_funct_notebook(notebook_filename)
@@ -135,6 +142,7 @@ class TestNotebook(unittest.TestCase):
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook7(self):
+        self._check_for_baselines()
         raii_ = RAII_tf_log()
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "7_MultiEnv.ipynb")
         self._aux_funct_notebook(notebook_filename)
@@ -153,6 +161,7 @@ class TestNotebook(unittest.TestCase):
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook_ieeebda(self):
+        self._check_for_baselines()
         notebook_filename = os.path.join(NOTEBOOK_PATHS, "IEEE BDA Tutorial Series.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
