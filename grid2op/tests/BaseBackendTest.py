@@ -836,12 +836,14 @@ class BaseTestTopoAction(MakeBackend):
         prod_p3, prod_q3, prod_v3 = self.backend.generators_info()
         load_p3, load_q3, load_v3 = self.backend.loads_info()
         p_or3, *_ = self.backend.lines_or_info()
-        _, sh_q3, *_ = self.backend.shunt_info()
+        if self.backend.shunts_data_available:
+            _, sh_q3, *_ = self.backend.shunt_info()
         assert np.all(np.abs(prod_p3 - prod_p) <= self.tol_one), "wrong generators value"
         assert np.all(np.abs(load_p3 - load_p) <= self.tol_one), "wrong load value"
         assert np.all(np.abs(p_or3 - p_or) <= self.tol_one), "wrong value for active flow origin"
         assert np.all(np.abs(p_or3 - p_or) <= self.tol_one), "wrong value for active flow origin"
-        assert np.all(np.abs(sh_q3 - sh_q) <= self.tol_one), "wrong value for shunt readtive"
+        if self.backend.shunts_data_available:
+            assert np.all(np.abs(sh_q3 - sh_q) <= self.tol_one), "wrong value for shunt readtive"
 
     def test_get_action_to_set(self):
         """this tests the """
@@ -854,7 +856,11 @@ class BaseTestTopoAction(MakeBackend):
         prod_p, prod_q, prod_v = self.backend.generators_info()
         load_p, load_q, load_v = self.backend.loads_info()
         p_or, *_ = self.backend.lines_or_info()
-        _, sh_q, *_ = self.backend.shunt_info()
+
+        if self.backend.shunts_data_available:
+            _, sh_q, *_ = self.backend.shunt_info()
+        else:
+            sh_q = None
 
         # modify its state for injection
         act2 = copy.deepcopy(act)
@@ -912,23 +918,24 @@ class BaseTestTopoAction(MakeBackend):
             raise AssertionError("Error for topo: {}".format(exc_))
 
         # change shunt
-        act2 = copy.deepcopy(act)
-        act2.shunt_q[:] = -25.
-        bk_act2 = self.backend.my_bk_act_class()
-        bk_act2 += act2
-        self.backend.apply_action(bk_act2)
-        self.backend.runpf()
-        prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
-        _, sh_q2, *_ = self.backend.shunt_info()
-        p_or2, *_ = self.backend.lines_or_info()
-        assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
-        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
-        assert np.any(np.abs(sh_q2 - sh_q) >= self.tol_one)
-        # check i can put it back to orig state
-        try:
-            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
-        except AssertionError as exc_:
-            raise AssertionError("Error for shunt: {}".format(exc_))
+        if self.backend.shunts_data_available:
+            act2 = copy.deepcopy(act)
+            act2.shunt_q[:] = -25.
+            bk_act2 = self.backend.my_bk_act_class()
+            bk_act2 += act2
+            self.backend.apply_action(bk_act2)
+            self.backend.runpf()
+            prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
+            _, sh_q2, *_ = self.backend.shunt_info()
+            p_or2, *_ = self.backend.lines_or_info()
+            assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
+            assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+            assert np.any(np.abs(sh_q2 - sh_q) >= self.tol_one)
+            # check i can put it back to orig state
+            try:
+                self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+            except AssertionError as exc_:
+                raise AssertionError("Error for shunt: {}".format(exc_))
 
 
 class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
