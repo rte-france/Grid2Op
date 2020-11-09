@@ -440,6 +440,7 @@ class PandaPowerBackend(Backend):
             name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
             self.shunt_to_subid[i] = bus
         self.name_shunt = np.array(name_shunt)
+        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(dt_float)
         self.shunts_data_available = True
 
         # store the topoid -> objid
@@ -888,8 +889,8 @@ class PandaPowerBackend(Backend):
     def shunt_info(self):
         shunt_p = self.cst_1 * self._grid.res_shunt["p_mw"].values.astype(dt_float)
         shunt_q = self.cst_1 * self._grid.res_shunt["q_mvar"].values.astype(dt_float)
-        shunt_v = self._grid.res_bus["vm_pu"].values[self._grid.shunt["bus"].values]
-        shunt_v *= self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
+        shunt_v = self._grid.res_bus["vm_pu"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
+        shunt_v *= self._grid.bus["vn_kv"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
         shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
         shunt_bus = 1 * shunt_bus
         shunt_bus = shunt_bus.astype(dt_int)

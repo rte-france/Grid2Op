@@ -34,7 +34,7 @@ class WeightedRandomOpponent(BaseOpponent):
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self, lines_attacked=[], rho_normalization=[], attack_period=12*24, **kwargs):
+    def init(self, partial_env, lines_attacked=[], rho_normalization=[], attack_period=12*24, **kwargs):
         """
         Generic function used to initialize the derived classes. For example, if an opponent reads from a file, the
         path where is the file is located should be pass with this method.

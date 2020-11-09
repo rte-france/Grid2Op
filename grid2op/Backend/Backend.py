@@ -19,7 +19,6 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import EnvError, DivergingPowerFlow, IncorrectNumberOfElements, IncorrectNumberOfLoads
 from grid2op.Exceptions import IncorrectNumberOfGenerators, BackendError, IncorrectNumberOfLines
 from grid2op.Space import GridObjects
-from grid2op.Action import CompleteAction
 
 # TODO compute a method to update a backend state from an observation.
 
@@ -91,6 +90,10 @@ class Backend(GridObjects, ABC):
         :type detailed_infos_for_cascading_failures: :class:`bool`
 
         """
+        # lazy loading
+        from grid2op.Action import CompleteAction
+        from grid2op.Action._BackendAction import _BackendAction
+
         GridObjects.__init__(self)
 
         # the following parameter is used to control the amount of verbosity when computing a cascading failure
@@ -102,6 +105,14 @@ class Backend(GridObjects, ABC):
 
         # thermal limit setting, in ampere, at the same "side" of the powerline than self.get_line_overflow
         self.thermal_limit_a = None
+
+        # action to set me
+        self.my_bk_act_class = _BackendAction
+        self._complete_action_class = CompleteAction
+
+        # for the shunt (only if supported)
+        self._sh_vnkv = None  # for each shunt gives the nominal value at the bus at which it is connected
+        # if this information is not present, then "get_action_to_set" might not behave correctly
 
     def assert_grid_correct_after_powerflow(self):
         """
@@ -117,6 +128,9 @@ class Backend(GridObjects, ABC):
         """
         # test the results gives the proper size
         self.__class__ = self.init_grid(self)
+        self.my_bk_act_class = self.my_bk_act_class.init_grid(self)
+        self._complete_action_class = self._complete_action_class.init_grid(self)
+
         tmp = self.get_line_status()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
@@ -660,7 +674,7 @@ class Backend(GridObjects, ABC):
         :param bus_id:
         :return: the substation to which an object connected to bus with id `bus_id` is connected to.
         """
-        raise Grid2OpException("This backend doesn't allow to get the substation from the bus id.")
+        raise BackendError("This backend doesn't allow to get the substation from the bus id.")
 
     @abstractmethod
     def _disconnect_line(self, id_):
@@ -971,15 +985,93 @@ class Backend(GridObjects, ABC):
 
         self.attach_layout(grid_layout=new_grid_layout)
 
-    def get_action_to_set(self):
-        line_status = self.get_line_status()
+    def _aux_get_line_status_to_set(self, line_status):
+        line_status = line_status
         line_status = 2 * line_status - 1
         line_status = line_status.astype(dt_int)
+        return line_status
+
+    def get_action_to_set(self):
+        """
+        Get the action to set another backend to represent the internal state of this current backend.
+
+        It handles also the information about the shunts if available
+
+        Returns
+        -------
+        res: :class:`grid2op.Action.CompleteAction`
+            The complete action to set a backend to the internal state of `self`
+
+        """
+        line_status = self._aux_get_line_status_to_set(self.get_line_status())
         topo_vect = self.get_topo_vect()
         prod_p, _, prod_v = self.generators_info()
         load_p, load_q, _ = self.loads_info()
-        complete_action_class = CompleteAction.init_grid(self)
-        set_me = complete_action_class(self)
-        set_me.update({"set_line_status": line_status,
-                       "set_bus": topo_vect})
+        set_me = self._complete_action_class()
+        dict_ = {"set_line_status": line_status,
+                 "set_bus": 1 * topo_vect,
+                 "injection": {
+                     "prod_p": prod_p,
+                     "prod_v": prod_v,
+                     "load_p": load_p,
+                     "load_q": load_q,
+        }}
+        if self.shunts_data_available:
+            p_s, q_s, sh_v, bus_s = self.shunt_info()
+            p_s *= (self._sh_vnkv / sh_v)**2
+            q_s *= (self._sh_vnkv / sh_v)**2
+            dict_["shunt"] = {"shunt_p": p_s, "shunt_q": q_s, "shunt_bus": bus_s}
+        set_me.update(dict_)
         return set_me
+
+    def update_from_obs(self, obs):
+        """
+        Takes an observation as input and update the internal state of `self` to match the state of the backend
+        that produced this observation.
+
+        Only the "line_status", "topo_vect", "prod_p", "prod_v", "load_p" and "load_q" attributes of the
+        observations are used.
+
+        TODO we plan to set also the shunt information in the future.
+
+        Notes
+        -----
+        If the observation is not perfect (for example with noise, or partial) this method will not work. You need
+        to pass it a complete observation.
+
+        For example, you might want to consider to have a state estimator if that is the case.
+
+        Parameters
+        ----------
+        obs: :class:`grid2op.Observation.CompleteObservation`
+            A complete observation describing the state of the grid you want this backend to be in.
+
+        """
+        # lazy loading to prevent circular reference
+        from grid2op.Observation import CompleteObservation
+
+        if not isinstance(obs, CompleteObservation):
+            raise BackendError("Impossible to set a backend to a state not represented by a \"complete observation.\"")
+
+        res = self.my_bk_act_class()
+        act = self._complete_action_class()
+        line_status = self._aux_get_line_status_to_set(obs.line_status)
+        # skip the action part and update directly the backend action !
+        dict_ = {"set_bus": obs.topo_vect,
+                 "set_line_status": line_status,
+                 "injection": {
+                     "prod_p": obs.prod_p,
+                     "prod_v": obs.prod_v,
+                     "load_p": obs.load_p,
+                     "load_q": obs.load_q,
+                 }
+                 }
+
+        if self.shunts_data_available and obs.shunts_data_available:
+            # TODO shunt information are not present in the observation at the moment.
+            pass
+            # dict_["shunt"] = {"shunt_p": obs.shunt_p, "shunt_q": obs.shunt_p}
+
+        act.update(dict_)
+        res += act
+        self.apply_action(res)

@@ -19,6 +19,12 @@ Change Log
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
 
+[1.3.2] - 2020-11-xx
+----------------------
+- [FIXED] and test the method `backend.get_action_to_set`
+- [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
+- [ADDED] a method to set the state of a backend given a complete observation.
+
 [1.3.1] - 2020-11-04
 ----------------------
 - [FIXED] the environment "educ_case14_redisp"

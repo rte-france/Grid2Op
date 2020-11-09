@@ -828,6 +828,108 @@ class BaseTestTopoAction(MakeBackend):
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
         self._check_kirchoff()
 
+    def _aux_test_back_orig(self, act_set, prod_p, load_p, p_or, sh_q):
+        bk_act = self.backend.my_bk_act_class()
+        bk_act += act_set
+        self.backend.apply_action(bk_act)
+        self.backend.runpf()
+        prod_p3, prod_q3, prod_v3 = self.backend.generators_info()
+        load_p3, load_q3, load_v3 = self.backend.loads_info()
+        p_or3, *_ = self.backend.lines_or_info()
+        _, sh_q3, *_ = self.backend.shunt_info()
+        assert np.all(np.abs(prod_p3 - prod_p) <= self.tol_one), "wrong generators value"
+        assert np.all(np.abs(load_p3 - load_p) <= self.tol_one), "wrong load value"
+        assert np.all(np.abs(p_or3 - p_or) <= self.tol_one), "wrong value for active flow origin"
+        assert np.all(np.abs(p_or3 - p_or) <= self.tol_one), "wrong value for active flow origin"
+        assert np.all(np.abs(sh_q3 - sh_q) <= self.tol_one), "wrong value for shunt readtive"
+
+    def test_get_action_to_set(self):
+        """this tests the """
+        self.skip_if_needed()
+        self.backend.runpf()
+        self.backend.assert_grid_correct_after_powerflow()
+
+        self.backend.runpf()
+        act = self.backend.get_action_to_set()
+        prod_p, prod_q, prod_v = self.backend.generators_info()
+        load_p, load_q, load_v = self.backend.loads_info()
+        p_or, *_ = self.backend.lines_or_info()
+        _, sh_q, *_ = self.backend.shunt_info()
+
+        # modify its state for injection
+        act2 = copy.deepcopy(act)
+        act2._dict_inj["prod_p"] *= 1.5
+        act2._dict_inj["load_p"] *= 1.5
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
+        load_p2, load_q2, load_v2 = self.backend.loads_info()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
+        assert np.any(np.abs(load_p2 - load_p) >= self.tol_one)
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for injection: {}".format(exc_))
+
+        # disconnect a powerline
+        act2 = copy.deepcopy(act)
+        l_id = 0
+        act2._set_line_status[l_id] = -1
+        act2._set_topo_vect[act2.line_or_pos_topo_vect[l_id]] = -1
+        act2._set_topo_vect[act2.line_ex_pos_topo_vect[l_id]] = -1
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.abs(p_or2[l_id]) <= self.tol_one, "line has not been disconnected"
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for line_status: {}".format(exc_))
+
+        # change topology
+        act2 = copy.deepcopy(act)
+        act2._set_topo_vect[6:9] = 2
+        act2._set_topo_vect[6:9] = 2
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for topo: {}".format(exc_))
+
+        # change shunt
+        act2 = copy.deepcopy(act)
+        act2.shunt_q[:] = -25.
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
+        _, sh_q2, *_ = self.backend.shunt_info()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        assert np.any(np.abs(sh_q2 - sh_q) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for shunt: {}".format(exc_))
+
 
 class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
     """
