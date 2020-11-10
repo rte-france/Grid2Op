@@ -418,6 +418,7 @@ class BackendConverter(Backend):
 
     def _transform_action(self, source_action):
         # transform the source action into the target backend action
+        # source_action: a backend action!
         target_action = copy.deepcopy(source_action)
         # consistent with TestLoadingBackendFunc, otherwise it's not correct
         target_action.reorder(no_load=self._load_sr2tg,
@@ -436,8 +437,36 @@ class BackendConverter(Backend):
         self.name_grid_layout = name
 
     def get_action_to_set(self):
-        # TODO
-        pass
+        act = self.target_backend.get_action_to_set()
+        line_vect = self._line_sr2tg
+        gen_vect = self._gen_sr2tg
+        load_vect = self._load_sr2tg
+        topo_vect = self._topo_sr2tg
+        dict_ = act._dict_inj
+        if "prod_p" in dict_:
+            dict_["dict_"] = dict_["prod_p"][gen_vect]
+        if "prod_v" in dict_:
+            dict_["dict_"] = dict_["prod_v"][gen_vect]
+        if "load_p" in dict_:
+            dict_["dict_"] = dict_["load_p"][load_vect]
+        if "load_q" in dict_:
+            dict_["dict_"] = dict_["load_q"][load_vect]
+
+        act._set_topo_vect[:] = act._set_topo_vect[topo_vect]
+        act._change_bus_vect[:] = act._change_bus_vect[topo_vect]
+        act._hazards[:] = act._hazards[line_vect]
+        act._maintenance[:] = act._hazards[line_vect]
+        act._redispatch[:] = act._redispatch[gen_vect]
+        act._set_line_status[:] = act._set_line_status[line_vect]
+        act._switch_line_status[:] = act._switch_line_status[line_vect]
+
+        if act.shunt_added and act.shunts_data_available:
+            shunt_vect = self._shunt_sr2tg
+            act.shunt_p[:] = act.shunt_p[shunt_vect]
+            act.shunt_q[:] = act.shunt_q[shunt_vect]
+            act.shunt_bus[:] = act.shunt_bus[shunt_vect]
+
+        return act
 
     def update_thermal_limit(self, env):
         # TODO

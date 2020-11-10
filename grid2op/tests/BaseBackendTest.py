@@ -846,13 +846,14 @@ class BaseTestTopoAction(MakeBackend):
             assert np.all(np.abs(sh_q3 - sh_q) <= self.tol_one), "wrong value for shunt readtive"
 
     def test_get_action_to_set(self):
-        """this tests the """
+        """this tests the "get_action_to_set" method"""
         self.skip_if_needed()
         self.backend.runpf()
         self.backend.assert_grid_correct_after_powerflow()
 
         self.backend.runpf()
         act = self.backend.get_action_to_set()
+
         prod_p, prod_q, prod_v = self.backend.generators_info()
         load_p, load_q, load_v = self.backend.loads_info()
         p_or, *_ = self.backend.lines_or_info()
