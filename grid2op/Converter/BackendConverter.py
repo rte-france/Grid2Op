@@ -75,11 +75,13 @@ class BackendConverter(Backend):
         self.target_backend = target_backend_class(detailed_infos_for_cascading_failures=difcf)
         self.target_backend_grid_path = target_backend_grid_path
 
-        self.sub_source_target = sub_source_target  # key: name in the source backend, value name in the target backend, for the substations
-        # TODO
+        # key: name in the source backend, value name in the target backend, for the substations
+        self.sub_source_target = sub_source_target
+
+        # if tmp is from the target backend, then tmp[self._line_tg2sr] is ordered according to the source backend
         self._sub_tg2sr = None
         self._sub_sr2tg = None
-        self._line_tg2sr = None  # if tmp is from the target backend, then tmp[self._line_tg2sr] is ordered according to the source backend
+        self._line_tg2sr = None
         self._line_sr2tg = None
         self._gen_tg2sr = None
         self._gen_sr2tg = None
@@ -320,6 +322,7 @@ class BackendConverter(Backend):
         # because obviously no powerflow are run using the source backend.
         self.target_backend.assert_grid_correct_after_powerflow()
         super().assert_grid_correct_after_powerflow()
+        self._sh_vnkv = self.target_backend._sh_vnkv
 
     def reset(self, grid_path, grid_filename=None):
         """
@@ -473,3 +476,5 @@ class BackendConverter(Backend):
         # env has the powerline stored in the order of the source backend, but i need
         # to have them stored in the order of the target backend for such function
         pass
+
+    # TODO update_from_obs too, maybe ?

@@ -245,6 +245,13 @@ class BaseObservation(GridObjects):
         self._bus_connectivity_matrix_ = None
         self._dictionnarized = None
 
+        # for shunt (these are not stored!)
+        if self.shunts_data_available:
+            self._shunt_p = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
+            self._shunt_q = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
+            self._shunt_v = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
+            self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=-1)
+
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
         Return the state of this action on a give unique load, generator unit, powerline of substation.

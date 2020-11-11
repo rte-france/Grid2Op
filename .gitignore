@@ -252,6 +252,7 @@ getting_started/saved_agent_DDDQN_200_results/
 test_stable_baselines.py
 grid2op/Opponent/DCOPFOpponent.py
 test_dcopponent.py
+getting_started/0_SmallExample.html
 
 # profiling files
 **.prof

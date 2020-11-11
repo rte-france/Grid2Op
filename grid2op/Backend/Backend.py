@@ -222,7 +222,6 @@ class Backend(GridObjects, ABC):
         """
         pass
 
-    @abstractmethod
     def close(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -232,11 +231,8 @@ class Backend(GridObjects, ABC):
         This function is called when the environment is over.
         After calling this function, the backend might not behave properly, and in any case should not be used before
         another call to :func:`Backend.load_grid` is performed
-
-        Returns
-        -------
-        ``None``
         """
+        pass
 
     @abstractmethod
     def apply_action(self, action):
@@ -986,7 +982,6 @@ class Backend(GridObjects, ABC):
         self.attach_layout(grid_layout=new_grid_layout)
 
     def _aux_get_line_status_to_set(self, line_status):
-        line_status = line_status
         line_status = 2 * line_status - 1
         line_status = line_status.astype(dt_int)
         return line_status
@@ -1051,9 +1046,10 @@ class Backend(GridObjects, ABC):
         from grid2op.Observation import CompleteObservation
 
         if not isinstance(obs, CompleteObservation):
-            raise BackendError("Impossible to set a backend to a state not represented by a \"complete observation.\"")
+            raise BackendError("Impossible to set a backend to a state not represented by a "
+                               "\"grid2op.CompleteObservation\".")
 
-        res = self.my_bk_act_class()
+        backend_action = self.my_bk_act_class()
         act = self._complete_action_class()
         line_status = self._aux_get_line_status_to_set(obs.line_status)
         # skip the action part and update directly the backend action !
@@ -1068,10 +1064,11 @@ class Backend(GridObjects, ABC):
                  }
 
         if self.shunts_data_available and obs.shunts_data_available:
-            # TODO shunt information are not present in the observation at the moment.
-            pass
-            # dict_["shunt"] = {"shunt_p": obs.shunt_p, "shunt_q": obs.shunt_p}
+            mults = (self._sh_vnkv / obs._shunt_v)**2
+            dict_["shunt"] = {"shunt_p": obs._shunt_p * mults,
+                              "shunt_q": obs._shunt_q * mults,
+                              "shunt_bus": obs._shunt_bus}
 
         act.update(dict_)
-        res += act
-        self.apply_action(res)
+        backend_action += act
+        self.apply_action(backend_action)
