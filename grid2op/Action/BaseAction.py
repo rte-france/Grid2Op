@@ -1383,28 +1383,30 @@ class BaseAction(GridObjects):
 
 
         """
-        if np.any(self._set_line_status[self._switch_line_status] != 0):
+        if self._modif_change_status and self._modif_set_status and \
+                np.any(self._set_line_status[self._switch_line_status] != 0):
             raise InvalidLineStatus("You asked to change the status (connected / disconnected) of a powerline by"
                                     " using the keyword \"change_status\" and set this same line state in "
                                     "\"set_status\" "
                                     "(or \"hazard\" or \"maintenance\"). This ambiguous behaviour is not supported")
         # check size
-        if "load_p" in self._dict_inj:
-            if len(self._dict_inj["load_p"]) != self.n_load:
-                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} "
-                                           "in the _grid".format(len(self._dict_inj["load_p"]), self.n_load))
-        if "load_q" in self._dict_inj:
-            if len(self._dict_inj["load_q"]) != self.n_load:
-                raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in "
-                                           "the _grid".format(len(self._dict_inj["load_q"]), self.n_load))
-        if "prod_p" in self._dict_inj:
-            if len(self._dict_inj["prod_p"]) != self.n_gen:
-                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in "
-                                                "the _grid".format(len(self._dict_inj["prod_p"]), self.n_gen))
-        if "prod_v" in self._dict_inj:
-            if len(self._dict_inj["prod_v"]) != self.n_gen:
-                raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in "
-                                                "the _grid".format(len(self._dict_inj["prod_v"]), self.n_gen))
+        if self._modif_inj:
+            if "load_p" in self._dict_inj:
+                if len(self._dict_inj["load_p"]) != self.n_load:
+                    raise InvalidNumberOfLoads("This action acts on {} loads while there are {} "
+                                               "in the _grid".format(len(self._dict_inj["load_p"]), self.n_load))
+            if "load_q" in self._dict_inj:
+                if len(self._dict_inj["load_q"]) != self.n_load:
+                    raise InvalidNumberOfLoads("This action acts on {} loads while there are {} in "
+                                               "the _grid".format(len(self._dict_inj["load_q"]), self.n_load))
+            if "prod_p" in self._dict_inj:
+                if len(self._dict_inj["prod_p"]) != self.n_gen:
+                    raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in "
+                                                    "the _grid".format(len(self._dict_inj["prod_p"]), self.n_gen))
+            if "prod_v" in self._dict_inj:
+                if len(self._dict_inj["prod_v"]) != self.n_gen:
+                    raise InvalidNumberOfGenerators("This action acts on {} generators while there are {} in "
+                                                    "the _grid".format(len(self._dict_inj["prod_v"]), self.n_gen))
 
         if len(self._switch_line_status) != self.n_line:
                 raise InvalidNumberOfLines("This action acts on {} lines while there are {} in "
@@ -1422,7 +1424,7 @@ class BaseAction(GridObjects):
                                             "there are {} in the grid".format(len(self._redispatch), self.n_gen))
 
         # redispatching specific check
-        if np.any(self._redispatch != 0.):
+        if self._modif_redispatch:
             if not self.redispatching_unit_commitment_availble:
                 raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
                                                            "environment. Please set up the proper costs for generator")
@@ -1449,19 +1451,19 @@ class BaseAction(GridObjects):
                                                    "are below pmin for some generator.")
 
         # topological action
-        if np.any(self._set_topo_vect[self._change_bus_vect] != 0):
+        if self._modif_set_bus and self._modif_change_bus and np.any(self._set_topo_vect[self._change_bus_vect] != 0):
             raise InvalidBusStatus("You asked to change the bus of an object with"
                                    " using the keyword \"change_bus\" and set this same object state in \"set_bus\""
                                    ". This ambiguous behaviour is not supported")
-        if np.any(self._set_topo_vect < -1):
+        if self._modif_set_bus and np.any(self._set_topo_vect < -1):
             raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
                                    "1 (assign this object to bus one) or 2 (assign this object to bus"
                                    "2). A negative number has been found.")
-        if np.any(self._set_topo_vect > 2):
+        if self._modif_set_bus and np.any(self._set_topo_vect > 2):
             raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
                                    "1 (assign this object to bus one) or 2 (assign this object to bus"
                                    "2). A number higher than 2 has been found: substations with more than 2 busbars"
-                                   "are not supported by grid2op.")
+                                   "are not supported by grid2op yet.")
 
         if False:
             # TODO find an elegant way to disable that
@@ -1474,32 +1476,38 @@ class BaseAction(GridObjects):
 
                         raise InvalidLineStatus("You ask to reconnect powerline {} yet didn't tell on"
                                                 " which bus.".format(q_id))
-        disco_or = self._set_topo_vect[self.line_or_pos_topo_vect] == -1
-        if np.any(self._set_topo_vect[self.line_ex_pos_topo_vect][disco_or] > 0):
-            raise InvalidLineStatus("A powerline is connected (set to a bus at extremity end) and "
-                                    "disconnected (set to bus -1 at origin end)")
-        disco_ex = self._set_topo_vect[self.line_ex_pos_topo_vect] == -1
-        if np.any(self._set_topo_vect[self.line_or_pos_topo_vect][disco_ex] > 0):
-            raise InvalidLineStatus("A powerline is connected (set to a bus at origin end) and "
-                                    "disconnected (set to bus -1 at extremity end)")
+
+        if self._modif_set_bus:
+            disco_or = self._set_topo_vect[self.line_or_pos_topo_vect] == -1
+            if np.any(self._set_topo_vect[self.line_ex_pos_topo_vect][disco_or] > 0):
+                raise InvalidLineStatus("A powerline is connected (set to a bus at extremity end) and "
+                                        "disconnected (set to bus -1 at origin end)")
+            disco_ex = self._set_topo_vect[self.line_ex_pos_topo_vect] == -1
+            if np.any(self._set_topo_vect[self.line_or_pos_topo_vect][disco_ex] > 0):
+                raise InvalidLineStatus("A powerline is connected (set to a bus at origin end) and "
+                                        "disconnected (set to bus -1 at extremity end)")
 
         # if i disconnected of a line, but i modify also the bus where it's connected
-        idx = self._set_line_status == -1
-        id_disc = np.where(idx)[0]
-        if np.any(self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
-                np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
-                    raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
-                                            "to a certain bus.")
-        if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
-                np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
-            raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
+        if self._modif_set_bus or self._modif_change_bus:
+            idx = self._set_line_status == -1
+            id_disc = np.where(idx)[0]
 
-        if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[self._set_line_status == 1]]):
-            raise InvalidLineStatus("You ask to connect an origin powerline but also to *change* the bus  to which it "
-                                    "is connected. This is ambiguous. You must *set* this bus instead.")
-        if np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[self._set_line_status == 1]]):
-            raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to which "
-                                    "it is connected. This is ambiguous. You must *set* this bus instead.")
+        if self._modif_set_bus:
+            if np.any(self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
+                    np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
+                        raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
+                                                "to a certain bus.")
+        if self._modif_change_bus:
+            if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
+                    np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
+                raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
+
+            if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[self._set_line_status == 1]]):
+                raise InvalidLineStatus("You ask to connect an origin powerline but also to *change* the bus  to which "
+                                        "it  is connected. This is ambiguous. You must *set* this bus instead.")
+            if np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[self._set_line_status == 1]]):
+                raise InvalidLineStatus("You ask to connect an extremity powerline but also to *change* the bus  to "
+                                        "which it is connected. This is ambiguous. You must *set* this bus instead.")
 
         if self.shunts_data_available:
             if self.shunt_p.shape[0] != self.n_shunt:

@@ -1212,7 +1212,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
-        attack = None
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch
@@ -1292,7 +1291,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # have the opponent here
             # TODO code the opponent part here and split more the timings! here "opponent time" is
-            # included in time_apply_act
+            # TODO included in time_apply_act
             tick = time.time()
             attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
                                                             agent_action=action,
@@ -1321,7 +1320,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     beg_ = time.time()
                     self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                     overflow_lines = self.backend.get_line_overflow()
-                    self._backend_action.update_state(disc_lines)
+                    if np.any(disc_lines):
+                        self._backend_action.update_state(disc_lines)
 
                     # one timestep passed, i can maybe reconnect some lines
                     self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
@@ -1350,10 +1350,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
                     # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
-                    # if self.current_obs is None:
-                    #     self.current_obs = self.get_obs()
-                    # else:
-                    #     self.current_obs.update(env=self, with_forecast=self.with_forecast)
                     self._time_extract_obs += time.time() - beg_
 
                     # extract production active value at this time step (should be independant of action class)

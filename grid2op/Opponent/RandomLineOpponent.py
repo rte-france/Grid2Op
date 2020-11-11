@@ -122,4 +122,5 @@ class RandomLineOpponent(BaseOpponent):
 
         # Pick a line among the connected lines
         attack = self.space_prng.choice(self._attacks[status])
+        print(f"attack: {attack}")
         return attack
