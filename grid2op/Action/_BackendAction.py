@@ -9,7 +9,6 @@
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
 
@@ -163,8 +162,6 @@ class ValueStore:
         outside of this usecase"""
         self.changed[:] = self.changed[new_order]
         self.values[:] = self.values[new_order]
-        # self.changed[new_order] = self.changed[:]
-        # self.values[new_order] = self.values[:]
 
 
 class _BackendAction(GridObjects):

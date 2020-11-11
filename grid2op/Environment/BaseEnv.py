@@ -434,7 +434,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         It is (and must be) overloaded in other :class:`grid2op.Environment`
         """
         self.__is_init = True
-        self.current_obs = None
+        self.current_obs.reset()
         self._line_status[:] = True
 
     def seed(self, seed=None):
@@ -516,7 +516,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._opponent is not None:
             seed = self.space_prng.randint(max_int)
             seed_opponent = self._opponent.seed(seed)
-        return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent)
+        return seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent
 
     def deactivate_forecast(self):
         """
@@ -1348,8 +1348,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         self._times_before_topology_actionable[self._times_before_topology_actionable > 0] -= 1
                         self._times_before_topology_actionable[aff_subs] = self._max_timestep_topology_deactivated
 
-                    # build the observation
+                    # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
+                    # if self.current_obs is None:
+                    #     self.current_obs = self.get_obs()
+                    # else:
+                    #     self.current_obs.update(env=self, with_forecast=self.with_forecast)
                     self._time_extract_obs += time.time() - beg_
 
                     # extract production active value at this time step (should be independant of action class)
@@ -1360,7 +1364,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self._gen_activeprod_t_redisp[:] = new_p + self._actual_dispatch
 
                     # set the line status
-                    self._line_status[:] = self.backend.get_line_status()
+                    self._line_status[:] = self.current_obs.line_status
 
                     has_error = False
             except Grid2OpException as e:
@@ -1630,9 +1634,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         This method allows to retrieve the line status.
         """
-        if self.current_obs is not None:
-            powerline_status = self._line_status
-        else:
-            # at first time step, every powerline is connected
-            powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        # if self.current_obs is not None:
+        #     powerline_status = self._line_status
+        # else:
+        #     # at first time step, every powerline is connected
+        #     powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        powerline_status = self._line_status
         return powerline_status

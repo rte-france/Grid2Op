@@ -195,34 +195,34 @@ class BaseObservation(GridObjects):
         self.line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         # topological vector
-        self.topo_vect = np.full(shape=self.dim_topo, dtype=dt_int, fill_value=0)
+        self.topo_vect = np.zeros(shape=self.dim_topo, dtype=dt_int)
 
         # generators information
         self.prod_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.prod_q = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.prod_v = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.prod_q = 1.0 * self.prod_p
+        self.prod_v = 1.0 * self.prod_p
         # loads information
         self.load_p = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
-        self.load_q = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
-        self.load_v = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
+        self.load_q = 1.0 * self.load_p
+        self.load_v = 1.0 * self.load_p
         # lines origin information
         self.p_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.q_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.v_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.a_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_or = 1.0 * self.p_or
+        self.v_or = 1.0 * self.p_or
+        self.a_or = 1.0 * self.p_or
         # lines extremity information
-        self.p_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.q_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.v_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.a_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.p_ex = 1.0 * self.p_or
+        self.q_ex = 1.0 * self.p_or
+        self.v_ex = 1.0 * self.p_or
+        self.a_ex = 1.0 * self.p_or
         # lines relative flows
-        self.rho = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.rho = 1.0 * self.p_or
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
         self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=dt_int, fill_value=-1)
-        self.time_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
-        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.time_next_maintenance = 1 * self.time_before_cooldown_line
+        self.duration_next_maintenance = 1 * self.time_before_cooldown_line
 
         # calendar data
         self.year = dt_int(1970)
@@ -233,8 +233,8 @@ class BaseObservation(GridObjects):
         self.day_of_week = dt_int(0)
 
         # redispatching
-        self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.target_dispatch = 1.0 * self.prod_p
+        self.actual_dispatch = 1.0 * self.prod_p
 
         # value to assess if two observations are equal
         self._tol_equal = 5e-1
@@ -248,8 +248,8 @@ class BaseObservation(GridObjects):
         # for shunt (these are not stored!)
         if self.shunts_data_available:
             self._shunt_p = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
-            self._shunt_q = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
-            self._shunt_v = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
+            self._shunt_q = 1.0 * self._shunt_p
+            self._shunt_v = 1.0 * self._shunt_p
             self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=-1)
 
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
@@ -670,6 +670,11 @@ class BaseObservation(GridObjects):
 
         This class is really what a dispatcher observes from it environment.
         It can also include some temperatures, nebulosity, wind etc. can also be included in this class.
+
+        Notes
+        -----
+        We strongly recommend to call :attr:`BaseObservation.reset` when implementing this function.
+
         """
         pass
 
