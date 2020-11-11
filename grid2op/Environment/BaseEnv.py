@@ -434,7 +434,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         It is (and must be) overloaded in other :class:`grid2op.Environment`
         """
         self.__is_init = True
-        self.current_obs.reset()
+        # current = None is an indicator that this is the first step of the environment
+        # so don't change the setting of current_obs = None unless you are willing to change that
+        self.current_obs = None
         self._line_status[:] = True
 
     def seed(self, seed=None):
@@ -949,7 +951,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         res: :class:`grid2op.Action.Action`
             The action representing the modification of the powergrid induced by the Backend.
         """
-        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration, prod_v = self.chronics_handler.next_time_step()
+        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration, prod_v = \
+            self.chronics_handler.next_time_step()
         if "injection" in tmp:
             self._injection = tmp["injection"]
         else:
@@ -966,8 +969,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._duration_next_maintenance = maintenance_duration
         self._time_next_maintenance = maintenance_time
         self._hazard_duration = hazard_duration
-        return self._helper_action_env({"injection": self._injection, "maintenance": self._maintenance,
-                                       "hazards": self._hazards}), prod_v
+        act = self._helper_action_env({"injection": self._injection,
+                                       "maintenance": self._maintenance,
+                                       "hazards": self._hazards})
+        return act, prod_v
 
     def _update_time_reconnection_hazards_maintenance(self):
         """
@@ -1320,8 +1325,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     beg_ = time.time()
                     self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                     overflow_lines = self.backend.get_line_overflow()
-                    if np.any(disc_lines):
-                        self._backend_action.update_state(disc_lines)
+                    # save the current topology as "last" topology (for connected powerlines)
+                    # and update the state of the disconnected powerline due to cascading failure
+                    self._backend_action.update_state(disc_lines)
 
                     # one timestep passed, i can maybe reconnect some lines
                     self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
@@ -1339,7 +1345,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     aff_lines, aff_subs = action.get_topological_impact(init_line_status)
                     if self._max_timestep_line_status_deactivated > 0:
                         # i update the cooldown only when this does not impact the line disconnected for the
-                        # opponent or by maitnenance for example
+                        # opponent or by maintenance for example
                         cond = aff_lines  # powerlines i modified
                         # powerlines that are not affected by any other "forced disconnection"
                         cond &= self._times_before_line_status_actionable < self._max_timestep_line_status_deactivated
@@ -1630,10 +1636,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         This method allows to retrieve the line status.
         """
-        # if self.current_obs is not None:
-        #     powerline_status = self._line_status
-        # else:
-        #     # at first time step, every powerline is connected
-        #     powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
-        powerline_status = self._line_status
+        if self.current_obs is not None:
+            powerline_status = self._line_status
+        else:
+            # at first time step, every powerline is connected
+            powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        # powerline_status = self._line_status
         return powerline_status

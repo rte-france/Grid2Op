@@ -391,11 +391,12 @@ class _BackendAction(GridObjects):
         Update the internal state. Should be called after the cascading failures
 
         """
-        arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
-        arr_[powerline_disconnected] = -1
-        self.current_topo.set_status(arr_,
-                                     self.line_or_pos_topo_vect,
-                                     self.line_ex_pos_topo_vect,
-                                     self.last_topo_registered)
+        if np.any(powerline_disconnected):
+            arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
+            arr_[powerline_disconnected] = -1
+            self.current_topo.set_status(arr_,
+                                         self.line_or_pos_topo_vect,
+                                         self.line_ex_pos_topo_vect,
+                                         self.last_topo_registered)
         self.last_topo_registered.update_connected(self.current_topo)
         self.current_topo.reset()

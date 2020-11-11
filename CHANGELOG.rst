@@ -28,8 +28,8 @@ Change Log
 - [FIXED] and test the method `backend.get_action_to_set`
 - [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
 - [ADDED] a method to set the state of a backend given a complete observation.
-- [IMPROVED] `PandaPowerBackend` now should take less time to reset.
-- [IMPROVED] some speed up in the computation
+- [IMPROVED] `PandaPowerBackend` now should take less time to when `reset`.
+- [IMPROVED] some speed up in the grid2op computation
 
 [1.3.1] - 2020-11-04
 ----------------------
