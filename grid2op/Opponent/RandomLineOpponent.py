@@ -27,13 +27,14 @@ class RandomLineOpponent(BaseOpponent):
         # this is the constructor:
         # it should have the exact same signature as here
 
-    def init(self, lines_attacked=[], **kwargs):
+    def init(self, partial_env, lines_attacked=[], **kwargs):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used when the opponent is created.
 
         Parameters
         ----------
+        partial_env
         lines_attacked
         kwargs
 

@@ -166,6 +166,14 @@ class CompleteObservation(BaseObservation):
         self.target_dispatch[:] = env._target_dispatch
         self.actual_dispatch[:] = env._actual_dispatch
 
+        # handle shunts (if avaialble)
+        if self.shunts_data_available:
+            sh_p, sh_q, sh_v, sh_bus = env.backend.shunt_info()
+            self._shunt_p[:] = sh_p
+            self._shunt_q[:] = sh_q
+            self._shunt_v[:] = sh_v
+            self._shunt_bus[:] = sh_bus
+
     def from_vect(self, vect, check_legit=True):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\

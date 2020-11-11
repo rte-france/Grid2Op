@@ -381,7 +381,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                        budget_per_timestep=self._opponent_budget_per_ts,
                                        opponent=self._opponent
                                        )
-        self._oppSpace.init_opponent(**self._kwargs_opponent)
+        self._oppSpace.init_opponent(partial_env=self, **self._kwargs_opponent)
         self._oppSpace.reset()
 
     def _has_been_initialized(self):

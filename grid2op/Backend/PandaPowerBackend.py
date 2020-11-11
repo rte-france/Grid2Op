@@ -197,7 +197,9 @@ class PandaPowerBackend(Backend):
         """
         # Assign the content of itself as saved at the end of load_grid
         # This overide all the attributes with the attributes from the copy in __pp_backend_initial_state
-        self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
+        # self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
+        self._grid = copy.deepcopy(self.__pp_backend_initial_state._grid)
+        self._reset_all_nan()
         self._topo_vect[:] = self._get_topo_vect()
         self.comp_time = 0.
 
@@ -440,6 +442,7 @@ class PandaPowerBackend(Backend):
             name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
             self.shunt_to_subid[i] = bus
         self.name_shunt = np.array(name_shunt)
+        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(dt_float)
         self.shunts_data_available = True
 
         # store the topoid -> objid
@@ -726,23 +729,25 @@ class PandaPowerBackend(Backend):
 
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
-            self.p_or[:] = np.NaN
-            self.q_or[:] = np.NaN
-            self.v_or[:] = np.NaN
-            self.a_or[:] = np.NaN
-            self.p_ex[:] = np.NaN
-            self.q_ex[:] = np.NaN
-            self.v_ex[:] = np.NaN
-            self.a_ex[:] = np.NaN
-            self.prod_p[:] = np.NaN
-            self.prod_q[:] = np.NaN
-            self.prod_v[:] = np.NaN
-            self.load_p[:] = np.NaN
-            self.load_q[:] = np.NaN
-            self.load_v[:] = np.NaN
-
-            self._nb_bus_before = None
+            self._reset_all_nan()
             return False
+
+    def _reset_all_nan(self):
+        self.p_or[:] = np.NaN
+        self.q_or[:] = np.NaN
+        self.v_or[:] = np.NaN
+        self.a_or[:] = np.NaN
+        self.p_ex[:] = np.NaN
+        self.q_ex[:] = np.NaN
+        self.v_ex[:] = np.NaN
+        self.a_ex[:] = np.NaN
+        self.prod_p[:] = np.NaN
+        self.prod_q[:] = np.NaN
+        self.prod_v[:] = np.NaN
+        self.load_p[:] = np.NaN
+        self.load_q[:] = np.NaN
+        self.load_v[:] = np.NaN
+        self._nb_bus_before = None
 
     def copy(self):
         """
@@ -888,8 +893,8 @@ class PandaPowerBackend(Backend):
     def shunt_info(self):
         shunt_p = self.cst_1 * self._grid.res_shunt["p_mw"].values.astype(dt_float)
         shunt_q = self.cst_1 * self._grid.res_shunt["q_mvar"].values.astype(dt_float)
-        shunt_v = self._grid.res_bus["vm_pu"].values[self._grid.shunt["bus"].values]
-        shunt_v *= self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
+        shunt_v = self._grid.res_bus["vm_pu"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
+        shunt_v *= self._grid.bus["vn_kv"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
         shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
         shunt_bus = 1 * shunt_bus
         shunt_bus = shunt_bus.astype(dt_int)
