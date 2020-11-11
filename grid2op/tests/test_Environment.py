@@ -377,6 +377,7 @@ class TestResetOk(unittest.TestCase):
         simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
         assert np.all(simobs.topo_vect == 1)
 
+
 class TestAttachLayout(unittest.TestCase):
     def test_attach(self):
         my_layout = [(0, 0), (0, 400), (200, 400), (400, 400), (400, 0)]

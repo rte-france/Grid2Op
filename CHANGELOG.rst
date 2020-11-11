@@ -17,6 +17,8 @@ Change Log
 - [???] model curtailment
 - [???] model multi agent
 - [???] model agent acting at different time frame
+- [???] model delay in observations
+- [???] model delay in action
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
@@ -27,6 +29,7 @@ Change Log
 - [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
 - [ADDED] a method to set the state of a backend given a complete observation.
 - [IMPROVED] `PandaPowerBackend` now should take less time to reset.
+- [IMPROVED] some speed up in the computation
 
 [1.3.1] - 2020-11-04
 ----------------------

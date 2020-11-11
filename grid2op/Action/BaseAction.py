@@ -251,6 +251,24 @@ class BaseAction(GridObjects):
 
         self._single_act = True
 
+        # change the stuff
+        self._modif_inj = False
+        self._modif_set_bus = False
+        self._modif_change_bus = False
+        self._modif_set_bus = False
+        self._modif_change_status = False
+        self._modif_set_status = False
+        self._modif_redispatch = False
+
+    def _reset_modified_flags(self):
+        self._modif_inj = False
+        self._modif_set_bus = False
+        self._modif_change_bus = False
+        self._modif_set_bus = False
+        self._modif_change_status = False
+        self._modif_set_status = False
+        self._modif_redispatch = False
+
     def _get_array_from_attr_name(self, attr_name):
         if hasattr(self, attr_name):
             res = super()._get_array_from_attr_name(attr_name)
@@ -562,6 +580,8 @@ class BaseAction(GridObjects):
             self.shunt_q[:] = np.NaN
             self.shunt_bus[:] = 0
 
+        self._reset_modified_flags()
+
     def _assign_iadd_or_warn(self, attr_name, new_value):
         if attr_name not in self.attr_list_set:
             old_value = getattr(self, attr_name)
@@ -695,6 +715,13 @@ class BaseAction(GridObjects):
             shunt_bus[ok_ind] = val[ok_ind]
             self._assign_iadd_or_warn("shunt_bus", shunt_bus)
 
+        self._modif_change_bus |= other._modif_change_bus
+        self._modif_set_bus |= other._modif_set_bus
+        self._modif_change_status |= other._modif_change_status
+        self._modif_set_status |= other._modif_set_status
+        self._modif_inj |= other._modif_inj
+        self._modif_redispatch |= other._modif_redispatch
+
         return self
 
     def __call__(self):
@@ -802,6 +829,7 @@ class BaseAction(GridObjects):
         if "injection" in dict_:
             if dict_["injection"] is not None:
                 tmp_d = dict_["injection"]
+                self._modif_inj = True
                 for k in tmp_d:
                     if k in self.attr_list_set:
                         self._dict_inj[k] = np.array(tmp_d[k]).astype(dt_float)
@@ -812,6 +840,7 @@ class BaseAction(GridObjects):
 
     def _digest_setbus(self, dict_):
         if "set_bus" in dict_:
+            self._modif_set_bus = True
             if isinstance(dict_["set_bus"], np.ndarray):
                 # complete nodal topology vector is already provided
                 self._set_topo_vect = dict_["set_bus"]
@@ -869,11 +898,13 @@ class BaseAction(GridObjects):
                 else:
                     pass
             else:
+                self._modif_set_bus = False
                 raise AmbiguousAction(
                     "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
 
     def _digest_change_bus(self, dict_):
         if "change_bus" in dict_:
+            self._modif_change_bus = True
             if isinstance(dict_["change_bus"], np.ndarray):
                 # topology vector is already provided
                 self._change_bus_vect = dict_["change_bus"]
@@ -907,13 +938,15 @@ class BaseAction(GridObjects):
                         end_ = int(beg_ + self.sub_info[s_id])
                         self._change_bus_vect[beg_:end_][arr] = True
             elif dict_["change_bus"] is None:
-                pass
+                self._modif_change_bus = False
             else:
+                self._modif_change_bus = False
                 raise AmbiguousAction(
                     "Invalid way to set the topology. dict_[\"change_bus\"] should be a numpy array or a dictionnary.")
 
     def _digest_set_status(self, dict_):
         if "set_line_status" in dict_:
+            self._modif_set_status = True
             # the action will disconnect a powerline
             # note that if a powerline is already disconnected, it does nothing
             # this action can both disconnect or reconnect a powerlines
@@ -937,6 +970,7 @@ class BaseAction(GridObjects):
             # does nothing to the others
             # an hazard will never reconnect a powerline
             if dict_["hazards"] is not None:
+                self._modif_set_status = True
                 tmp = dict_["hazards"]
                 try:
                     tmp = np.array(tmp)
@@ -963,6 +997,7 @@ class BaseAction(GridObjects):
             # does nothing to the others
             # a _maintenance operation will never reconnect a powerline
             if dict_["maintenance"] is not None:
+                self._modif_set_status = True
                 tmp = dict_["maintenance"]
                 try:
                     tmp = np.array(tmp)
@@ -984,6 +1019,7 @@ class BaseAction(GridObjects):
 
     def _digest_change_status(self, dict_):
         if "change_line_status" in dict_:
+            self._modif_change_status = True
             # the action will switch the status of the powerline
             # for each element equal to 1 in this dict_["change_line_status"]
             # if the status is "disconnected" it will be transformed into "connected"
@@ -1003,6 +1039,7 @@ class BaseAction(GridObjects):
                             "This \"change_line_status\" action acts on {} lines while there are {} in the _grid"
                             "".format(len(tmp), self.n_line))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
+                    self._modif_change_status = False
                     raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
                 self._switch_line_status[dict_["change_line_status"]] = True
 
@@ -1020,6 +1057,7 @@ class BaseAction(GridObjects):
         if "redispatch" in dict_:
             if dict_["redispatch"] is None:
                 return
+            self._modif_redispatch = True
             tmp = dict_["redispatch"]
             if isinstance(tmp, np.ndarray):
                 # complete redispatching is provided
@@ -1039,6 +1077,7 @@ class BaseAction(GridObjects):
                     else:
                         # i treat it as a tuple
                         if len(tmp) != 2:
+                            self._modif_redispatch = False
                             raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
                                                   "of tuple of 2 elements, the first one being the id of the"
                                                   "generator to redispatch, the second one the value of the "
@@ -1050,6 +1089,7 @@ class BaseAction(GridObjects):
                 if not treated:
                     for el in tmp:
                         if len(el) != 2:
+                            self._modif_redispatch = False
                             raise AmbiguousAction("When asking for redispatching with a list, you should make a list"
                                                   "of tuple of 2 elements, the first one being the id of the"
                                                   "generator to redispatch, the second one the value of the "
@@ -1059,6 +1099,7 @@ class BaseAction(GridObjects):
 
             elif isinstance(tmp, tuple):
                 if len(tmp) != 2:
+                    self._modif_redispatch = False
                     raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
                                           "of tuple of 2 elements, the first one being the id of the"
                                           "generator to redispatch, the second one the value of the "
@@ -1066,6 +1107,7 @@ class BaseAction(GridObjects):
                 kk, val = tmp
                 self.__convert_and_redispatch(kk, val)
             else:
+                self._modif_redispatch = False
                 raise AmbiguousAction("Impossible to understand the redispatching action implemented.")
 
     def _reset_vect(self):
