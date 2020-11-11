@@ -338,6 +338,9 @@ class _ObsEnv(BaseEnv):
 
         Update this "emulated" environment with the real powergrid.
 
+        # TODO it should be updated from the observation only, especially if the observation is partially
+        # TODO observable. This would lead to data leakage here somehow.
+
         Parameters
         ----------
         env: :class:`grid2op.Environment.BaseEnv`
@@ -351,14 +354,17 @@ class _ObsEnv(BaseEnv):
         self._topo_vect = real_backend.get_topo_vect()
 
         # convert line status to -1 / 1 instead of false / true
-        self._line_status = real_backend.get_line_status().astype(dt_int)  # false -> 0 true -> 1
+        self._line_status = env.get_current_line_status().astype(dt_int)   # real_backend.get_line_status().astype(dt_int)  # false -> 0 true -> 1
         self._line_status *= 2  # false -> 0 true -> 2
         self._line_status -= 1  # false -> -1; true -> 1
         self.is_init = False
 
         # Make a copy of env state for simulation
         # TODO this depends on the datetime simulated, so find a way to have it independant of that !!!
-        self._thermal_limit_a = env._thermal_limit_a.astype(dt_float)
+        if self._thermal_limit_a is None:
+            self._thermal_limit_a = 1.0 * env._thermal_limit_a.astype(dt_float)
+        else:
+            self._thermal_limit_a[:] = env._thermal_limit_a.astype(dt_float)
         self.gen_activeprod_t_init[:] = env._gen_activeprod_t
         self.gen_activeprod_t_redisp_init[:] = env._gen_activeprod_t_redisp
         self.times_before_line_status_actionable_init[:] = env._times_before_line_status_actionable

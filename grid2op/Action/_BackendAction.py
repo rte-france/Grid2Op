@@ -9,7 +9,6 @@
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
 
@@ -59,6 +58,10 @@ class ValueStore:
         self.last_index = 0
 
     def change_status(self, switch, lineor_id, lineex_id, old_vect):
+        if not np.any(switch):
+            # nothing is modified so i stop here
+            return
+
         # changed
         changed_ = switch
 
@@ -159,8 +162,6 @@ class ValueStore:
         outside of this usecase"""
         self.changed[:] = self.changed[new_order]
         self.values[:] = self.values[new_order]
-        # self.changed[new_order] = self.changed[:]
-        # self.values[new_order] = self.values[:]
 
 
 class _BackendAction(GridObjects):
@@ -286,20 +287,22 @@ class _BackendAction(GridObjects):
 
         # I deal with injections
         # Ia set the injection
-        if "load_p" in dict_injection:
-            tmp = dict_injection["load_p"]
-            self.load_p.set_val(tmp)
-        if "load_q" in dict_injection:
-            tmp = dict_injection["load_q"]
-            self.load_q.set_val(tmp)
-        if "prod_p" in dict_injection:
-            tmp = dict_injection["prod_p"]
-            self.prod_p.set_val(tmp)
-        if "prod_v" in dict_injection:
-            tmp = dict_injection["prod_v"]
-            self.prod_v.set_val(tmp)
+        if other._modif_inj:
+            if "load_p" in dict_injection:
+                tmp = dict_injection["load_p"]
+                self.load_p.set_val(tmp)
+            if "load_q" in dict_injection:
+                tmp = dict_injection["load_q"]
+                self.load_q.set_val(tmp)
+            if "prod_p" in dict_injection:
+                tmp = dict_injection["prod_p"]
+                self.prod_p.set_val(tmp)
+            if "prod_v" in dict_injection:
+                tmp = dict_injection["prod_v"]
+                self.prod_v.set_val(tmp)
         # Ib change the injection aka redispatching
-        self.prod_p.change_val(redispatching)
+        if other._modif_redispatch:
+            self.prod_p.change_val(redispatching)
 
         # II shunts
         if self.shunts_data_available:
@@ -319,51 +322,51 @@ class _BackendAction(GridObjects):
         # III line status
         # this need to be done BEFORE the topology, as a connected powerline will be connected to their old bus.
         # regardless if the status is changed in the action or not.
-        self.current_topo.change_status(switch_status,
-                                        self.line_or_pos_topo_vect,
-                                        self.line_ex_pos_topo_vect,
-                                        self.last_topo_registered)
-        self.current_topo.set_status(set_status,
-                                     self.line_or_pos_topo_vect,
-                                     self.line_ex_pos_topo_vect,
-                                     self.last_topo_registered)
+        if other._modif_change_status:
+            self.current_topo.change_status(switch_status,
+                                            self.line_or_pos_topo_vect,
+                                            self.line_ex_pos_topo_vect,
+                                            self.last_topo_registered)
+        if other._modif_set_status:
+            self.current_topo.set_status(set_status,
+                                         self.line_or_pos_topo_vect,
+                                         self.line_ex_pos_topo_vect,
+                                         self.last_topo_registered)
 
-        topo_before = self.current_topo.values
-        self._status_or_before[:], \
-        self._status_ex_before[:] = self.current_topo.get_line_status(
-            self.line_or_pos_topo_vect,
-            self.line_ex_pos_topo_vect)
+        # if other._modif_change_status or other._modif_set_status:
+        self._status_or_before[:], self._status_ex_before[:] = self.current_topo.get_line_status(
+            self.line_or_pos_topo_vect, self.line_ex_pos_topo_vect)
 
         # IV topo
-        self.current_topo.change_val(switcth_topo_vect)
-        self.current_topo.set_val(set_topo_vect)
+        if other._modif_change_bus:
+            self.current_topo.change_val(switcth_topo_vect)
+        if other._modif_set_bus:
+            self.current_topo.set_val(set_topo_vect)
 
         # V Force disconnected status
         # of disconnected powerlines extremities
-        self._status_or[:], \
-        self._status_ex[:] = self.current_topo.get_line_status(self.line_or_pos_topo_vect,
-                                                               self.line_ex_pos_topo_vect)
+        self._status_or[:], self._status_ex[:] = self.current_topo.get_line_status(
+            self.line_or_pos_topo_vect, self.line_ex_pos_topo_vect)
 
         # At least one disconnected extremity
-        disco_or = (self._status_or_before == -1) | (self._status_or == -1)
-        disco_ex = (self._status_ex_before == -1) | (self._status_ex == -1)
-        disco_now = disco_or | disco_ex  # a powerline is disconnected if at least one of its extremity is
-        #
-        # added
-        reco_or = (self._status_or_before == -1) & (self._status_or >= 1)
-        reco_ex = (self._status_or_before == -1) & (self._status_ex >= 1)
-        reco_now = reco_or | reco_ex
-        #
-        # Set nothing
-        set_now = np.zeros_like(self._status_or)
-        # # Force some disconnections
-        set_now[disco_now] = -1
-        set_now[reco_now] = 1
+        if other._modif_change_bus or other._modif_set_bus:
+            disco_or = (self._status_or_before == -1) | (self._status_or == -1)
+            disco_ex = (self._status_ex_before == -1) | (self._status_ex == -1)
+            disco_now = disco_or | disco_ex  # a powerline is disconnected if at least one of its extremity is
+            # added
+            reco_or = (self._status_or_before == -1) & (self._status_or >= 1)
+            reco_ex = (self._status_or_before == -1) & (self._status_ex >= 1)
+            reco_now = reco_or | reco_ex
+            # Set nothing
+            set_now = np.zeros_like(self._status_or)
+            # Force some disconnections
+            set_now[disco_now] = -1
+            set_now[reco_now] = 1
 
-        self.current_topo.set_status(set_now,
-                                     self.line_or_pos_topo_vect,
-                                     self.line_ex_pos_topo_vect,
-                                     self.last_topo_registered)
+            self.current_topo.set_status(set_now,
+                                         self.line_or_pos_topo_vect,
+                                         self.line_ex_pos_topo_vect,
+                                         self.last_topo_registered)
 
         return self
 
@@ -388,11 +391,12 @@ class _BackendAction(GridObjects):
         Update the internal state. Should be called after the cascading failures
 
         """
-        arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
-        arr_[powerline_disconnected] = -1
-        self.current_topo.set_status(arr_,
-                                     self.line_or_pos_topo_vect,
-                                     self.line_ex_pos_topo_vect,
-                                     self.last_topo_registered)
+        if np.any(powerline_disconnected):
+            arr_ = np.zeros(powerline_disconnected.shape, dtype=dt_int)
+            arr_[powerline_disconnected] = -1
+            self.current_topo.set_status(arr_,
+                                         self.line_or_pos_topo_vect,
+                                         self.line_ex_pos_topo_vect,
+                                         self.last_topo_registered)
         self.last_topo_registered.update_connected(self.current_topo)
         self.current_topo.reset()

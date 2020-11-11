@@ -479,7 +479,7 @@ class TestLoadingOpp(unittest.TestCase):
                     obs, reward, done, info = env.step(env.action_space())
 
                     attack = env._oppSpace.last_attack
-                    if attack is None: # should only happen here if all attackable lines are already disconnected
+                    if attack is None:  # should only happen here if all attackable lines are already disconnected
                         assert np.sum(obs.line_status == False) == 6
                         continue
 
@@ -488,8 +488,8 @@ class TestLoadingOpp(unittest.TestCase):
                     if pre_done or not (attack_order and attack_order[-1] == attacked_line):
                         attack_order.append(attacked_line)
 
-                assert attack_order == expected_attack_order
                 assert len(set(attack_order)) == 6
+                assert attack_order == expected_attack_order
 
     def test_simulate(self):
         with warnings.catch_warnings():
