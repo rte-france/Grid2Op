@@ -8,6 +8,7 @@
 import os
 import copy
 import warnings
+import shutil
 import numpy as np
 
 from grid2op.dtypes import dt_float, dt_bool
@@ -117,6 +118,16 @@ class Environment(BaseEnv):
         self._init_backend(init_grid_path, chronics_handler, backend,
                            names_chronics_to_backend, actionClass, observationClass,
                            rewardClass, legalActClass)
+
+    def get_path_env(self):
+        """
+        Get the path that allows to create this environment.
+
+        It can be used for example in `grid2op.utils.underlying_statistics` to save the information directly inside
+        the environment data.
+
+        """
+        return os.path.split(self._init_grid_path)[0]
 
     def _init_backend(self,
                       init_grid_path, chronics_handler, backend,
@@ -735,6 +746,61 @@ class Environment(BaseEnv):
         res["opponent_attack_cooldown"] = self._opponent_attack_cooldown
         res["kwargs_opponent"] = self._kwargs_opponent
         return res
+
+    def train_val_split(self, name_train="train", name_val="val", pct_val=10.):
+        """
+        This function allows
+
+        Parameters
+        ----------
+        name_train
+
+        name_val
+
+        pct_val: ``float``
+            Percentage of chronics that will go to the validation set.
+            For 10% of the chronics, set it to 10. and NOT to 0.1.
+
+        Returns
+        -------
+
+        """
+        # define all the locations
+        my_path = self.get_path_env()
+        path_train = os.path.split(my_path)
+        path_train = os.path.join(path_train[0], f'{path_train[1]}_{name_train}')
+        path_val = os.path.split(my_path)
+        path_val = os.path.join(path_val[0], f'{path_val[1]}_{name_val}')
+        chronics_dir = "chronics"
+
+        # create the folder
+        if os.path.exists(path_val):
+            shutil.rmtree(path_val)
+        os.mkdir(path_val)
+        if os.path.exists(path_train):
+            shutil.rmtree(path_train)
+        os.mkdir(path_train)
+
+        # copy the files
+        for el in os.listdir(my_path):
+            tmp_path = os.path.join(my_path, el)
+            if os.path.isfile(tmp_path):
+                # this is a regular env file
+                os.symlink(tmp_path, os.path.join(path_train, el))
+                os.symlink(tmp_path, os.path.join(path_val, el))
+            elif os.path.isdir(tmp_path):
+                if el == chronics_dir:
+                    # this is the chronics folder
+                    os.mkdir(os.path.join(path_train, chronics_dir))
+                    os.mkdir(os.path.join(path_val, chronics_dir))
+                    all_chron = sorted(os.listdir(tmp_path))
+                    to_val = self.space_prng.choice(all_chron, int(len(all_chron) * pct_val * 0.01))
+                    for chron_name in all_chron:
+                        tmp_path_chron = os.path.join(tmp_path, chron_name)
+                        if chron_name in to_val:
+                            os.symlink(tmp_path_chron, os.path.join(path_val, chronics_dir, chron_name))
+                        else:
+                            os.symlink(tmp_path_chron, os.path.join(path_train, chronics_dir, chron_name))
 
     def get_params_for_runner(self):
         """

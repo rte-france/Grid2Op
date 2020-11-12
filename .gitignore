@@ -253,6 +253,7 @@ test_stable_baselines.py
 grid2op/Opponent/DCOPFOpponent.py
 test_dcopponent.py
 getting_started/0_SmallExample.html
+grid2op/utils/my_agent/
 
 # profiling files
 **.prof

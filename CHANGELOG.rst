@@ -28,6 +28,9 @@ Change Log
 - [FIXED] and test the method `backend.get_action_to_set`
 - [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
 - [ADDED] a method to set the state of a backend given a complete observation.
+- [ADDED] a `utils` module to store the data of some environment and be able to compute the scores (as in the neurips
+  l2rpn competitions). This module might move at a different place in the future
+- [ADDED] a function to "split" an environment into train / validation using `os.symlink`
 - [IMPROVED] `PandaPowerBackend` now should take less time to when `reset`.
 - [IMPROVED] some speed up in the grid2op computation
 
