@@ -747,39 +747,70 @@ class Environment(BaseEnv):
         res["kwargs_opponent"] = self._kwargs_opponent
         return res
 
-    def train_val_split(self, name_train="train", name_val="val", pct_val=10.):
+    def _chronics_folder_name(self):
+        return "chronics"
+
+    def train_val_split(self,
+                        val_scen_id,
+                        add_for_train="train",
+                        add_for_val="val"):
         """
-        This function allows
+        This function is used as :func:`Environment.train_val_split_random`.
+
+        Please refer to this the help of :func:`Environment.train_val_split_random` for more information about
+        this function.
 
         Parameters
         ----------
-        name_train
+        val_scen_id: ``list``
+            List of the scenario names that will be placed in the validation set
 
-        name_val
+        add_for_train: ``str``
+            See :func:`Environment.train_val_split_random` for more information
 
-        pct_val: ``float``
-            Percentage of chronics that will go to the validation set.
-            For 10% of the chronics, set it to 10. and NOT to 0.1.
+        add_for_val``str``
+            See :func:`Environment.train_val_split_random` for more information
 
         Returns
         -------
+        nm_train: ``str``
+            See :func:`Environment.train_val_split_random` for more information
+
+        nm_val: ``str``
+            See :func:`Environment.train_val_split_random` for more information
+
 
         """
         # define all the locations
         my_path = self.get_path_env()
         path_train = os.path.split(my_path)
-        path_train = os.path.join(path_train[0], f'{path_train[1]}_{name_train}')
+        nm_train = f'{path_train[1]}_{add_for_train}'
+        path_train = os.path.join(path_train[0], nm_train)
         path_val = os.path.split(my_path)
-        path_val = os.path.join(path_val[0], f'{path_val[1]}_{name_val}')
-        chronics_dir = "chronics"
+        nm_val = f'{path_val[1]}_{add_for_val}'
+        path_val = os.path.join(path_val[0], nm_val)
+        chronics_dir = self._chronics_folder_name()
 
         # create the folder
         if os.path.exists(path_val):
-            shutil.rmtree(path_val)
-        os.mkdir(path_val)
+            raise RuntimeError(f"Impossible to create the validation environment that should have the name "
+                               f"\"{nm_val}\" because an environment is already named this way. If you want to "
+                               f"continue either delete the folder \"{path_val}\" or name your validation environment "
+                               f"differently "
+                               f"using the \"add_for_val\" keyword argument of this function.")
         if os.path.exists(path_train):
-            shutil.rmtree(path_train)
+            raise RuntimeError(f"Impossible to create the training environment that should have the name "
+                               f"\"{nm_train}\" because an environment is already named this way. If you want to "
+                               f"continue either delete the folder \"{path_train}\" or name your training environment "
+                               f" differently "
+                               f"using the \"add_for_train\" keyword argument of this function.")
+        os.mkdir(path_val)
         os.mkdir(path_train)
+
+        # assign which chronics goes where
+        chronics_path = os.path.join(my_path, chronics_dir)
+        all_chron = sorted(os.listdir(chronics_path))
+        to_val = set(val_scen_id)
 
         # copy the files
         for el in os.listdir(my_path):
@@ -793,14 +824,100 @@ class Environment(BaseEnv):
                     # this is the chronics folder
                     os.mkdir(os.path.join(path_train, chronics_dir))
                     os.mkdir(os.path.join(path_val, chronics_dir))
-                    all_chron = sorted(os.listdir(tmp_path))
-                    to_val = self.space_prng.choice(all_chron, int(len(all_chron) * pct_val * 0.01))
                     for chron_name in all_chron:
                         tmp_path_chron = os.path.join(tmp_path, chron_name)
                         if chron_name in to_val:
                             os.symlink(tmp_path_chron, os.path.join(path_val, chronics_dir, chron_name))
                         else:
                             os.symlink(tmp_path_chron, os.path.join(path_train, chronics_dir, chron_name))
+        return nm_train, nm_val
+
+    def train_val_split_random(self,
+                               pct_val=10.,
+                               add_for_train="train",
+                               add_for_val="val"):
+        """
+        By default a grid2op environment contains multiple "scenarios" containing values for all the producers
+        and consumers representing multiple days. In a "game like" environment, you can think of the scenarios as
+        being different "game levels": different mazes in pacman, different levels in mario etc.
+
+        We recommend to train your agent on some of these "chroncis" (aka levels) and test the performance of your
+        agent on some others, to avoid overfitting.
+
+        This function allows to easily split an environment into different part. This is most commonly used in machine
+        learning where part of a dataset is used for training and another part is used for assessing the performance
+        of the trained model.
+
+        This function rely on "symbolic link" and will not duplicate data.
+
+        New created environments will behave like regular grid2op environment and will be accessible with "make" just
+        like any others (see the examples section for more information).
+
+        This function will make the split at random. If you want more control on the which scenarios to use for
+        training and which for validation, use the :func:`Environment.train_val_split` that allows to specify
+        which scenarios goes in the validation environment (and the others go in the training environment).
+
+        Parameters
+        ----------
+
+        pct_val: ``float``
+            Percentage of chronics that will go to the validation set.
+            For 10% of the chronics, set it to 10. and NOT to 0.1.
+
+        add_for_train: ``str``
+            Suffix that will be added to the name of the environment for the training set. We don't recommend to
+            modify the default value ("train")
+
+        add_for_val: ``str``
+            Suffix that will be added to the name of the environment for the validation set. We don't recommend to
+            modify the default value ("val")
+
+        Returns
+        -------
+        nm_train: ``str``
+            Complete name of the "training" environment
+
+        nm_val: ``str``
+            Complete name of the "validation" environment
+
+        Examples
+        --------
+        This function can be used like:
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"  # or any other...
+            env = grid2op.make(env_name)
+
+            # extract 1% of the "chronics" to be used in the validation environment. The other 99% will
+            # be used for test
+            nm_env_train, nm_env_test = env.train_val_split(pct_val=1.)
+
+            # and now you can use the training set only to train your agent:
+            print("The name of the training set is \"{nm_env_train}\"")
+            env_train = grid2op.make(nm_env_train)
+
+        And even after you close the python session, you can still use this environment for training. If you used
+        the exact code above that will look like:
+
+        .. code-block:: python
+
+            import grid2op
+            env_name_train = "l2rpn_case14_sandbox_train"  # depending on the option you passed above
+            env_train = grid2op.make(env_name_train)
+
+        Notes
+        -----
+        This function will fail if an environment already exists with one of the name that would be given
+        to the training environment or the validation environment.
+
+        """
+        my_path = self.get_path_env()
+        chronics_path = os.path.join(my_path, self._chronics_folder_name())
+        all_chron = sorted(os.listdir(chronics_path))
+        to_val = self.space_prng.choice(all_chron, int(len(all_chron) * pct_val * 0.01))
+        return self.train_val_split(to_val, add_for_train=add_for_train, add_for_val=add_for_val)
 
     def get_params_for_runner(self):
         """
