@@ -254,6 +254,7 @@ grid2op/Opponent/DCOPFOpponent.py
 test_dcopponent.py
 getting_started/0_SmallExample.html
 grid2op/utils/my_agent/
+my_agent_for_test_reboot/
 
 # profiling files
 **.prof
