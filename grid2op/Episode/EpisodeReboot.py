@@ -185,18 +185,18 @@ class EpisodeReboot:
         self.env._duration_next_maintenance[:] = obs.duration_next_maintenance.astype(dt_int)
         self.env._time_next_maintenance[:] = obs.time_next_maintenance.astype(dt_int)
 
-        # TODO check that the "stored" "last bus for when the powerline were connected" are
-        # kept there (I might need to do a for loop)
-        # to test that i might need to use a "change status" and see if powerlines are connected
-        # to the right bus
-        self.env._backend_action += self.env._helper_action_env({"set_bus": obs.topo_vect.astype(dt_int),
-                                                                 "injection": {"load_p": obs.load_p.astype(dt_float),
-                                                                               "load_q": obs.load_q.astype(dt_float),
-                                                                               "prod_p": obs.prod_p.astype(dt_float),
-                                                                               "prod_v": obs.prod_v.astype(dt_float),
-                                                                               }
-                                                                 })
-        self.env.backend.apply_action(self.env._backend_action)
+        # # TODO check that the "stored" "last bus for when the powerline were connected" are
+        # # kept there (I might need to do a for loop)
+        # # to test that i might need to use a "change status" and see if powerlines are connected
+        # # to the right bus
+        # self.env._backend_action += self.env._helper_action_env({"set_bus": obs.topo_vect.astype(dt_int),
+        #                                                          "injection": {"load_p": obs.load_p.astype(dt_float),
+        #                                                                        "load_q": obs.load_q.astype(dt_float),
+        #                                                                        "prod_p": obs.prod_p.astype(dt_float),
+        #                                                                        "prod_v": obs.prod_v.astype(dt_float),
+        #                                                                        }
+        #                                                          })
+        self.env.backend.update_from_obs(obs)
         disc_lines, detailed_info, conv_ = self.env.backend.next_grid_state(env=self.env)
         if conv_ is None:
             self.env._backend_action.update_state(disc_lines)
@@ -223,8 +223,10 @@ class EpisodeReboot:
         self.action = self.episode_data.actions[self.current_time_step]
         self.env.chronics_handler.real_data.curr_iter = self.current_time_step
         new_obs, new_reward, new_done, new_info = self.env.step(self.action)
-
         self.current_time_step += 1
+        # print(self.action)
+        # import pdb
+        # pdb.set_trace()
         # the chronics handler handled the "self.env.chronics_handler.curr_iter += 1"
         return new_obs, new_reward, new_done, new_info
 

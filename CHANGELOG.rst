@@ -27,6 +27,7 @@ Change Log
 ----------------------
 - [FIXED] and test the method `backend.get_action_to_set`
 - [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
+- [FIXED] `PowerLineSet` and `PowerSetAndDispatch` action were not properly converted to vector.
 - [ADDED] a method to set the state of a backend given a complete observation.
 - [ADDED] a `utils` module to store the data of some environment and be able to compute the scores (as in the neurips
   l2rpn competitions). This module might move at a different place in the future

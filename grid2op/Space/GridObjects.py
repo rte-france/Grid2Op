@@ -714,6 +714,12 @@ class GridObjects:
         if check_legit:
             self.check_space_legit()
 
+        self._post_process_from_vect()
+
+    def _post_process_from_vect(self):
+        """called at the end of "from_vect" if the function requires post processing"""
+        pass
+
     def size(self):
         """
         When the action / observation is converted to a vector, this method return its size.

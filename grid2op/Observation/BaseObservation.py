@@ -250,7 +250,7 @@ class BaseObservation(GridObjects):
             self._shunt_p = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
             self._shunt_q = 1.0 * self._shunt_p
             self._shunt_v = 1.0 * self._shunt_p
-            self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=-1)
+            self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=1)
 
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """

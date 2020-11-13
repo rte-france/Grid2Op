@@ -571,6 +571,104 @@ class TestActionBase(ABC):
         assert action1 == action2
         assert action1 != action3
 
+    def test_from_vect_dn(self):
+        action1 = self.helper_action({})
+        action2 = self.helper_action({})
+
+        vect_act1 = action1.to_vect()
+        action2.from_vect(vect_act1)
+        # if i load an action with from_vect it's equal to the original one
+        assert action1 == action2
+
+        vect_act2 = action2.to_vect()
+        assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
+        assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
+
+    def test_from_vect_change_bus(self):
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        id_1 = 1
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            action1 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]}})
+        action2 = self.helper_action({})
+
+        vect_act1 = action1.to_vect()
+        action2.from_vect(vect_act1)
+        # if i load an action with from_vect it's equal to the original one
+        assert action1 == action2
+
+        vect_act2 = action2.to_vect()
+        # if i convert it back to a vector, it's equal to the original converted vector
+        assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
+        assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
+
+    def test_from_vect_set_bus(self):
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        id_2 = 12
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            action1 = self.helper_action({"set_bus": {"substations_id": [(id_2, arr2)]}})
+        action2 = self.helper_action({})
+
+        vect_act1 = action1.to_vect()
+        action2.from_vect(vect_act1)
+        # if i load an action with from_vect it's equal to the original one
+        assert action1 == action2
+
+        vect_act2 = action2.to_vect()
+        # if i convert it back to a vector, it's equal to the original converted vector
+        assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
+        assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
+
+    def test_from_vect_set_line_status(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            action1 = self.helper_action({"set_line_status": [(1, -1)]})
+        action2 = self.helper_action({})
+
+        vect_act1 = action1.to_vect()
+        action2.from_vect(vect_act1)
+        # if i load an action with from_vect it's equal to the original one
+        assert action1 == action2
+
+        vect_act2 = action2.to_vect()
+        # if i convert it back to a vector, it's equal to the original converted vector
+        assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
+        assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
+
+    def test_from_vect_change_line_status(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            action1 = self.helper_action({"change_line_status": [2]})
+        action2 = self.helper_action({})
+
+        vect_act1 = action1.to_vect()
+        action2.from_vect(vect_act1)
+        # if i load an action with from_vect it's equal to the original one
+        assert action1 == action2
+
+        vect_act2 = action2.to_vect()
+        # if i convert it back to a vector, it's equal to the original converted vector
+        assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
+        assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
+
+    def test_from_vect_redisp(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            action1 = self.helper_action({"redispatch": [(0, -7.42)]})
+        action2 = self.helper_action({})
+
+        vect_act1 = action1.to_vect()
+        action2.from_vect(vect_act1)
+        # if i load an action with from_vect it's equal to the original one
+        assert action1 == action2
+
+        vect_act2 = action2.to_vect()
+        # if i convert it back to a vector, it's equal to the original converted vector
+        assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
+        assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
+
     def test_from_vect(self):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
