@@ -10,6 +10,7 @@ import copy
 import os
 import json
 import shutil
+import re
 import numpy as np
 
 from grid2op.dtypes import dt_float
@@ -99,7 +100,9 @@ class EpisodeStatistics(object):
     """
     SCENARIO_IDS = "scenario_ids.npz"
     SCORES = "scores.npz"
+    SCORES_CLEAN = re.sub("\\.npz", "", SCORES)
     KEY_SCORE = "__scores"
+    SCORE_FOOTPRINT = ".has_score"
     STATISTICS_FOLDER = "_statistics"
     STATISTICS_FOOTPRINT = ".statistics"
     METADATA = "metadata.json"
@@ -207,9 +210,10 @@ class EpisodeStatistics(object):
             # save the id, the metadata and the scores but only once
             if first_attr:
                 self._save_numpy(os.path.join(path_total, self.SCENARIO_IDS), array=ids_)
-                self._save_numpy(os.path.join(path_total, self.SCORES), array=scores)
+                if with_scores:
+                    self._save_numpy(os.path.join(path_total, self.SCORES), array=scores)
+                    del scores
                 del ids_
-                del scores
                 with open(os.path.join(path_total, EpisodeStatistics.METADATA), "w", encoding="utf-8") as f:
                     json.dump(obj=dict_metadata, fp=f)
             first_attr = False
@@ -223,17 +227,6 @@ class EpisodeStatistics(object):
             if os.path.exists(os.path.join(path_env, el, EpisodeStatistics.STATISTICS_FOOTPRINT)):
                 res.append((path_env, el))
         return sorted(res)
-
-    @staticmethod
-    def clean_all_stats(env):
-        """
-        This function cleans all the statistics that have been computed for this environment.
-
-        This cannot be undone.
-        """
-        li_stats = EpisodeStatistics.list_stats(env)
-        for path, el in li_stats:
-            shutil.rmtree(os.path.join(path, el))
 
     def get(self, attribute_name):
         """
@@ -265,9 +258,13 @@ class EpisodeStatistics(object):
                                "And most importantly have a look at the documentation for precisions about this "
                                "feature.")
         ids = self._load(os.path.join(self.path_save_stats, EpisodeStatistics.SCENARIO_IDS)).astype(np.int)
-        if attribute_name == self.SCORES:
+        if attribute_name == self.SCORES or attribute_name == self.SCORES_CLEAN:
+            if not self._get_has_score():
+                # not score have been saved
+                raise RuntimeError("No score have been computed for this statistics. Please re run \"stats.compute\" "
+                                   "by setting the \"scores_func\" argument.")
             path_th = os.path.join(self.path_save_stats, self.SCORES)
-            ids_ = np.concatenate(((-1, ), ids[:, 0]))
+            ids_ = np.concatenate((ids[:, 0], (-1, )))
             diff_ = np.diff(ids_)
             ids = ids[diff_ == 0, :]
         else:
@@ -279,6 +276,8 @@ class EpisodeStatistics(object):
 
     def clear_episode_data(self):
         """
+        .. warning:: /!\\\\ Be careful /!\\\\
+
         To save space, it clears the data for each episode.
 
         This is permanent. If you want this data to be available again, you will need to run an expensive
@@ -299,6 +298,8 @@ class EpisodeStatistics(object):
 
     def clear_all(self):
         """
+        .. warning:: /!\\\\ Be careful /!\\\\
+
         Clear the whole statistics directory.
 
         This is permanent. If you want this data to be available again, you will need to run an expensive
@@ -307,12 +308,41 @@ class EpisodeStatistics(object):
         if os.path.exists(self.path_save_stats) and os.path.isdir(self.path_save_stats):
             shutil.rmtree(self.path_save_stats)
 
+    @staticmethod
+    def clean_all_stats(env):
+        """
+        .. warning:: /!\\\\ Be extremely careful /!\\\\
+
+        This function cleans all the statistics that have been computed for this environment.
+
+        This cannot be undone is permanent and is equivalent to calling :func:`EpisodeStatistics.clear_all` on all
+        statistics ever computed on this episode.
+
+        """
+        li_stats = EpisodeStatistics.list_stats(env)
+        for path, el in li_stats:
+            shutil.rmtree(os.path.join(path, el))
+
     def _tell_is_stats(self):
         """put the footprint to inform grid2op this is a stat directory"""
         path_tmp = os.path.join(self.path_save_stats, EpisodeStatistics.STATISTICS_FOOTPRINT)
         with open(path_tmp, "w", encoding="utf-8") as f:
             f.write("This files is internal to grid2op. Expect some inconsistent behaviour if you attempt to modify "
                     "it, remove it, alter it in any ways, copy it in another directory etc.\n")
+
+    def _tell_has_score(self):
+        """put the footprint to inform grid2op this is a stat directory"""
+        path_tmp = os.path.join(self.path_save_stats, EpisodeStatistics.SCORE_FOOTPRINT)
+        with open(path_tmp, "w", encoding="utf-8") as f:
+            f.write("This files is internal to grid2op. Expect some inconsistent behaviour if you attempt to modify "
+                    "it, remove it, alter it in any ways, copy it in another directory etc.\n")
+
+    def _get_has_score(self):
+        """say if a score has been computed or not"""
+        res = os.path.exists(os.path.join(self.path_save_stats, EpisodeStatistics.SCORE_FOOTPRINT))
+        if res:
+            res = os.path.isfile(os.path.join(self.path_save_stats, EpisodeStatistics.SCORE_FOOTPRINT))
+        return res
 
     def _fill_metadata(self, agent, parameters, max_step, agent_seeds, env_seeds):
         dict_metadata = {}
@@ -345,7 +375,6 @@ class EpisodeStatistics(object):
             if not issubclass(scores_func, BaseReward):
                 raise RuntimeError("\"scores_func\" should inherit from \"grid2op.Reward.BaseReward\"")
             dict_kwg["other_rewards"] = {EpisodeStatistics.KEY_SCORE: scores_func}
-
         runner = Runner(**dict_kwg, agentClass=None, agentInstance=agent)
         runner.run(path_save=path_save,
                    nb_episode=nb_scenario,
@@ -433,6 +462,7 @@ class EpisodeStatistics(object):
                                "environment or inherits grid2op.Parameters.Parameters")
 
         dict_metadata = self._fill_metadata(agent, parameters, max_step, agent_seeds, env_seeds)
+
         if scores_func is not None:
             dict_metadata["score_class"] = f"{scores_func}"
 
@@ -450,6 +480,8 @@ class EpisodeStatistics(object):
 
         # inform grid2op this is a statistics directory
         self._tell_is_stats()
+        if scores_func is not None:
+            self._tell_has_score()
 
         # now clean a bit the output directory
         os.remove(os.path.join(self.path_save_stats, EpisodeData.ACTION_SPACE))

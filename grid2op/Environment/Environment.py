@@ -892,10 +892,11 @@ class Environment(BaseEnv):
 
             # extract 1% of the "chronics" to be used in the validation environment. The other 99% will
             # be used for test
-            nm_env_train, nm_env_test = env.train_val_split(pct_val=1.)
+            nm_env_train, nm_env_val = env.train_val_split_random(pct_val=1.)
 
             # and now you can use the training set only to train your agent:
-            print("The name of the training set is \"{nm_env_train}\"")
+            print(f"The name of the training environment is \\"{nm_env_train}\\"")
+            print(f"The name of the validation environment is \\"{nm_env_val}\\"")
             env_train = grid2op.make(nm_env_train)
 
         And even after you close the python session, you can still use this environment for training. If you used
@@ -958,6 +959,8 @@ class Environment(BaseEnv):
         if 'path' in dict_:
             # path is handled elsewhere
             del dict_["path"]
+        if self.chronics_handler.max_iter is not None:
+            res["max_iter"] = self.chronics_handler.max_iter
         res["gridStateclass_kwargs"] = dict_
         res["thermal_limit_a"] = self._thermal_limit_a
         res["voltageControlerClass"] = self._voltagecontrolerClass
