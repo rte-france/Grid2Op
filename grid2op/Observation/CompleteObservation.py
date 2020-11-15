@@ -82,9 +82,8 @@ class CompleteObservation(BaseObservation):
 
     Attributes
     ----------
-    dictionnarized: ``dict``
-        The representation of the action in a form of a dictionnary. See the definition of
-        :func:`CompleteObservation.to_dict` for a description of this dictionnary.
+    attr_list_vect: ``list``
+        List of elements that represent the observation when converted as a vector.
 
     """
     def __init__(self,

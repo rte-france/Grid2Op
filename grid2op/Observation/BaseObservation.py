@@ -35,19 +35,19 @@ class BaseObservation(GridObjects):
         The current year
 
     month: ``int``
-        The current month (0 = january, 11 = december)
+        The current month (1 = january, 12 = december)
 
     day: ``int``
-        The current day of the month
+        The current day of the month (1 = first day of the month)
 
     hour_of_day: ``int``
-        The current hour of the day
+        The current hour of the day (from O to 23)
 
     minute_of_hour: ``int``
-        The current minute of the current hour
+        The current minute of the current hour (from 0 to 59)
 
     day_of_week: ``int``
-        The current day of the week. Monday = 0, Sunday = 6
+        The current day of the week (monday = 0 and sunday = 6)
 
     prod_p: :class:`numpy.ndarray`, dtype:float
         The active production value of each generator (expressed in MW).
@@ -94,18 +94,6 @@ class BaseObservation(GridObjects):
     rho: :class:`numpy.ndarray`, dtype:float
         The capacity of each powerline. It is defined at the observed current flow divided by the thermal limit of each
         powerline (no unit)
-
-    connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
-        The connectivityt matrix (if computed, or None) see definition of :func:`connectivity_matrix` for
-        more information
-
-    bus_connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
-        The `bus_connectivity_matrix_` matrix (if computed, or None) see definition of
-          :func:`BaseObservation.bus_connectivity_matrix` for more information
-
-    vectorized: :class:`numpy.ndarray`, dtype:float
-        The vector representation of this BaseObservation (if computed, or None) see definition of
-        :func:`to_vect` for more information.
 
     topo_vect:  :class:`numpy.ndarray`, dtype:int
         For each object (load, generator, ends of a powerline) it gives on which bus this object is connected
