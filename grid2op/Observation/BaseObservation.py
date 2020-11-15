@@ -621,14 +621,52 @@ class BaseObservation(GridObjects):
                         "time_before_cooldown_sub",
                         "time_next_maintenance",
                         "duration_next_maintenance",
-                        "target_dispatch", "actual_dispatch"
+                        "target_dispatch", "actual_dispatch",
+                        "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"
                         ]:
             if not self.__compare_stats(other, stat_nm):
-                print("error for {}".format(stat_nm))
                 # one of the above stat is not equal in this and in other
                 return False
 
         return True
+
+    def __sub__(self, other):
+        res = copy.deepcopy(self)
+        for stat_nm in ["line_status", "topo_vect",
+                        "timestep_overflow",
+                        "prod_p", "prod_q", "prod_v",
+                        "load_p", "load_q", "load_v",
+                        "p_or", "q_or", "v_or", "a_or",
+                        "p_ex", "q_ex", "v_ex", "a_ex",
+                        "time_before_cooldown_line",
+                        "time_before_cooldown_sub",
+                        "time_next_maintenance",
+                        "duration_next_maintenance",
+                        "target_dispatch", "actual_dispatch",
+                        "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"
+                        ]:
+            # TODO handle the "same grid" and "same type" here!
+            diff_ = None
+            me_ = self.__getattribute__(stat_nm)
+            oth_ = other.__getattribute__(stat_nm)
+            if me_ is None and oth_ is None:
+                diff_ = "both None"
+            elif me_ is not None and oth_ is None:
+                diff_ = me_
+            elif me_ is None and oth_ is not None:
+                if oth_.dtype == dt_bool:
+                    diff_ = ~oth_
+                else:
+                    diff_ = -oth_
+            else:
+                # both are not None
+                if oth_.dtype == dt_bool:
+                    diff_ = me_ & oth_
+                else:
+                    diff_ = me_ - oth_
+
+            res.__setattr__(stat_nm,  diff_)
+        return res
 
     @abstractmethod
     def update(self, env, with_forecast=True):

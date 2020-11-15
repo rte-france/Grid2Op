@@ -526,6 +526,54 @@ class GridObjects:
                 self._vectorized = np.array([], dtype=dt_float)
         return self._vectorized
 
+    def to_json(self):
+        """
+        Convert this instance of GridObjects to a dictionary that can be json serialized.
+
+        TODO
+        """
+        res = {}
+        for attr_nm in self.attr_list_vect:
+            res[attr_nm] = self._get_array_from_attr_name(attr_nm)
+        self._convert_to_json(res)
+        return res
+
+    def from_json(self, dict_):
+        """
+        TODO
+
+        Parameters
+        ----------
+        dict_
+
+        Returns
+        -------
+
+        """
+        for key, array_ in dict_.items():
+            if key not in self.attr_list_vect:
+                raise AmbiguousAction(f"Impossible to recognize the key \"{key}\"")
+            my_attr = self.__getattribute__(key)
+            if isinstance(my_attr, np.ndarray):
+                # the regular instance is an array, so i just need to assign the right values to it
+                my_attr[:] = array_
+            else:
+                # normal values is a scalar. So i need to convert the array received as a scalar, and
+                # convert it to the proper type
+                type_ = type(my_attr)
+                self.__setattr__(key, type_(array_[0]))
+
+    def _convert_to_json(self, dict_):
+        for attr_nm in self.attr_list_vect:
+            tmp = dict_[attr_nm]
+            dtype = tmp.dtype
+            if dtype == dt_float:
+                dict_[attr_nm] = [float(el) for el in tmp]
+            elif dtype == dt_int:
+                dict_[attr_nm] = [int(el) for el in tmp]
+            elif dtype == dt_bool:
+                dict_[attr_nm] = [bool(el) for el in tmp]
+
     def shape(self):
         """
         The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
