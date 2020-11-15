@@ -173,6 +173,11 @@ class EpisodeReboot:
         """
         works only if observation store the complete state of the grid...
         """
+        if self.env.done:
+            # if there has been a game over previously i reset it
+            self.env.chronics_handler.real_data.curr_iter = self.current_time_step
+            self.env.reset()
+
         self.env._gen_activeprod_t[:] = obs.prod_p.astype(dt_float)
         self.env._actual_dispatch[:] = obs.actual_dispatch.astype(dt_float)
         self.env._target_dispatch[:] = obs.target_dispatch.astype(dt_float)
@@ -187,15 +192,6 @@ class EpisodeReboot:
 
         # # TODO check that the "stored" "last bus for when the powerline were connected" are
         # # kept there (I might need to do a for loop)
-        # # to test that i might need to use a "change status" and see if powerlines are connected
-        # # to the right bus
-        # self.env._backend_action += self.env._helper_action_env({"set_bus": obs.topo_vect.astype(dt_int),
-        #                                                          "injection": {"load_p": obs.load_p.astype(dt_float),
-        #                                                                        "load_q": obs.load_q.astype(dt_float),
-        #                                                                        "prod_p": obs.prod_p.astype(dt_float),
-        #                                                                        "prod_v": obs.prod_v.astype(dt_float),
-        #                                                                        }
-        #                                                          })
         self.env.backend.update_from_obs(obs)
         disc_lines, detailed_info, conv_ = self.env.backend.next_grid_state(env=self.env)
         if conv_ is None:
@@ -224,9 +220,6 @@ class EpisodeReboot:
         self.env.chronics_handler.real_data.curr_iter = self.current_time_step
         new_obs, new_reward, new_done, new_info = self.env.step(self.action)
         self.current_time_step += 1
-        # print(self.action)
-        # import pdb
-        # pdb.set_trace()
         # the chronics handler handled the "self.env.chronics_handler.curr_iter += 1"
         return new_obs, new_reward, new_done, new_info
 
