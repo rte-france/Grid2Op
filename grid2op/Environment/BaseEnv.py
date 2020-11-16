@@ -1612,6 +1612,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         check the state of the environment after the call to this method if you use it (see the "Examples" paragaph)
 
         """
+        nb_timestep = int(nb_timestep)
+
         # Go to the timestep requested minus one
         nb_timestep = max(1, nb_timestep - 1)
         self.chronics_handler.fast_forward(nb_timestep)

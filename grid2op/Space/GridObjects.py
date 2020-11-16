@@ -360,6 +360,7 @@ class GridObjects:
 
     attr_list_vect = None
     attr_list_set = {}
+    attr_list_json = []
 
     # class been init
     # __is_init = False
@@ -533,7 +534,7 @@ class GridObjects:
         TODO
         """
         res = {}
-        for attr_nm in self.attr_list_vect:
+        for attr_nm in self.attr_list_vect + self.attr_list_json:
             res[attr_nm] = self._get_array_from_attr_name(attr_nm)
         self._convert_to_json(res)
         return res
@@ -551,7 +552,7 @@ class GridObjects:
 
         """
         for key, array_ in dict_.items():
-            if key not in self.attr_list_vect:
+            if key not in self.attr_list_vect + self.attr_list_json:
                 raise AmbiguousAction(f"Impossible to recognize the key \"{key}\"")
             my_attr = self.__getattribute__(key)
             if isinstance(my_attr, np.ndarray):
@@ -564,7 +565,7 @@ class GridObjects:
                 self.__setattr__(key, type_(array_[0]))
 
     def _convert_to_json(self, dict_):
-        for attr_nm in self.attr_list_vect:
+        for attr_nm in self.attr_list_vect + self.attr_list_json:
             tmp = dict_[attr_nm]
             dtype = tmp.dtype
             if dtype == dt_float:

@@ -255,6 +255,11 @@ test_dcopponent.py
 getting_started/0_SmallExample.html
 grid2op/utils/my_agent/
 my_agent_for_test_reboot/
+scale_weights.py
+test_weights.jpg
+test_weights_focus.jpg
+test_weights_full.jpg
+times_api.txt
 
 # profiling files
 **.prof

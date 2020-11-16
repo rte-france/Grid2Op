@@ -86,6 +86,22 @@ class CompleteObservation(BaseObservation):
         List of elements that represent the observation when converted as a vector.
 
     """
+    attr_list_vect = [
+        "year", "month", "day", "hour_of_day",
+        "minute_of_hour", "day_of_week",
+        "prod_p", "prod_q", "prod_v",
+        "load_p", "load_q", "load_v",
+        "p_or", "q_or", "v_or", "a_or",
+        "p_ex", "q_ex", "v_ex", "a_ex",
+        "rho",
+        "line_status", "timestep_overflow",
+        "topo_vect",
+        "time_before_cooldown_line", "time_before_cooldown_sub",
+        "time_next_maintenance", "duration_next_maintenance",
+        "target_dispatch", "actual_dispatch"
+    ]
+    attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
+
     def __init__(self,
                  obs_env=None,
                  action_helper=None,
@@ -96,20 +112,6 @@ class CompleteObservation(BaseObservation):
                                  action_helper=action_helper,
                                  seed=seed)
         self._dictionnarized = None
-        self.attr_list_vect = [
-            "year", "month", "day", "hour_of_day",
-            "minute_of_hour", "day_of_week",
-            "prod_p", "prod_q", "prod_v",
-            "load_p", "load_q", "load_v",
-            "p_or", "q_or", "v_or", "a_or",
-            "p_ex", "q_ex", "v_ex", "a_ex",
-            "rho",
-            "line_status", "timestep_overflow",
-            "topo_vect",
-            "time_before_cooldown_line", "time_before_cooldown_sub",
-            "time_next_maintenance", "duration_next_maintenance",
-            "target_dispatch", "actual_dispatch"
-        ]
 
     def _reset_matrices(self):
         self.vectorized = None
