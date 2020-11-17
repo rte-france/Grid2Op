@@ -89,7 +89,12 @@ class TestWithoutConverter(unittest.TestCase, BaseTestGymConverter):
                 self._aux_test_json(obs_space, gym_obs)
                 assert obs_space.contains(gym_obs)
                 obs2 = obs_space.from_gym(gym_obs)
-                assert obs == obs2
+                # TODO there is not reason that these 2 are equal: reset, will erase everything
+                # TODO whereas creating the observation
+                # assert obs == obs2
+                obs_diff, attr_diff = obs.where_different(obs2)
+                for el in attr_diff:
+                    assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2"
 
                 for i in range(10):
                     obs, *_ = env.step(env.action_space())
@@ -97,7 +102,12 @@ class TestWithoutConverter(unittest.TestCase, BaseTestGymConverter):
                     self._aux_test_json(obs_space, gym_obs)
                     assert obs_space.contains(gym_obs), "gym space does not contain the observation for ts {}".format(i)
                     obs2 = obs_space.from_gym(gym_obs)
-                    assert obs == obs2, "obs and converted obs are not equal for ts {}".format(i)
+                    # TODO there is not reason that these 2 are equal: reset, will erase everything
+                    # TODO whereas creating the observation
+                    # assert obs == obs2, "obs and converted obs are not equal for ts {}".format(i)
+                    obs_diff, attr_diff = obs.where_different(obs2)
+                    for el in attr_diff:
+                        assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2 for ts {i}"
 
     def test_to_from_gym_act(self):
         with warnings.catch_warnings():

@@ -78,13 +78,6 @@ class CompleteObservation(BaseObservation):
         30. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
 
-    This behavior is specified in the :attr:`BaseObservation.attr_list_vect` vector.
-
-    Attributes
-    ----------
-    attr_list_vect: ``list``
-        List of elements that represent the observation when converted as a vector.
-
     """
     attr_list_vect = [
         "year", "month", "day", "hour_of_day",

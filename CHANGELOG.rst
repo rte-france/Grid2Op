@@ -3,23 +3,25 @@ Change Log
 
 [TODO]
 --------------------
+- [???] add multi agent
+- [???] model curtailment
+- [???] better logging
+- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
+  stuff to break)
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
 - [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
   flows, and nodes the active production / consumption) and "reactive flow graph"
-- [???] better logging
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parallel and transfer the resulting data.
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
-- [???] model curtailment
-- [???] model multi agent
 - [???] model agent acting at different time frame
 - [???] model delay in observations
 - [???] model delay in action
-- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
 
