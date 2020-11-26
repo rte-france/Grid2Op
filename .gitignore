@@ -260,6 +260,7 @@ test_weights.jpg
 test_weights_focus.jpg
 test_weights_full.jpg
 times_api.txt
+new 1.txt
 
 # profiling files
 **.prof

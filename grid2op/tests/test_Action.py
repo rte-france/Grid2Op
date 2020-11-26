@@ -1119,12 +1119,12 @@ class TestIADD:
         # self.size_act = 229
         self.action_space_1 = self.get_action_space_1()
         self.action_space_2 = self.get_action_space_2()
+        np.random.seed(42)
 
     def aux_get_act(self, helper_action):
         template_act = helper_action()
         dict_act = {}
         tmp_inj = {}
-        np.random.seed(42)
         if "load_p" in template_act.attr_list_set:
             tmp_inj["load_p"] = np.random.randn(helper_action.n_load).astype(dt_float)
         if "load_q" in template_act.attr_list_set:
@@ -1298,6 +1298,149 @@ class TestIADD:
         assert act1._change_bus_vect[0] == False
         assert act1._change_bus_vect[1] == False
         assert np.any(act1._set_topo_vect != 0) == False
+
+    def test_add_modify(self):
+
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            if act2.attr_list_set - act1.attr_list_set:
+                # it should raise a warning if i attempt to set an attribute it's not supposed to
+                with self.assertWarns(UserWarning):
+                    res = act1 + act2
+
+            else:
+                # i can add it i check it's properly added, without warnings
+                res = act1 + act2
+                # i now test all attributes have been modified for attributes in both
+                for attr_nm in res.attr_list_set & act2.attr_list_set:
+                    assert np.any(getattr(res, attr_nm) != getattr(act1_init, attr_nm)), \
+                           "error, attr {} has not been updated".format(attr_nm)
+
+                # for all in act1 not in act2, nothing should have changed
+                for attr_nm in res.attr_list_set - act2.attr_list_set:
+                    if attr_nm == "_set_line_status" or attr_nm == "_set_topo_vect":
+                        # these vector can be changed if act2 allows for "change_line_status" or "change_bus"
+                        # TODO improve these tests
+                        continue
+                    if attr_nm == "_switch_line_status" or attr_nm == "_change_bus_vect":
+                        # these vector can be changed if act2 allows for "set_line_status" or "set_bus"
+                        # TODO improve these tests
+                        continue
+                    assert np.all(getattr(res, attr_nm) == getattr(act1_init, attr_nm)), \
+                           "error, attr {} has been updated".format(attr_nm)
+
+    def test_add_change_set_status(self):
+        self._skipMissingKey("change_line_status", self.action_space_1)
+        self._skipMissingKey("set_line_status", self.action_space_2)
+
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            res = act1 + act2
+        assert np.sum(res._switch_line_status[act2._set_line_status != 0]) == 0
+
+    def test_add_set_change_status(self):
+        self._skipMissingKey("set_line_status", self.action_space_1)
+        self._skipMissingKey("change_line_status", self.action_space_2)
+
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            res = act1 + act2
+        # if act1 set a line but act2 change it, then it's equivalent to act1 set to the other value
+        indx_change = (res._set_line_status != 0) & (act2._switch_line_status)
+        assert np.all(res._set_line_status[indx_change] != act1_init._set_line_status[indx_change])
+        # if act1 does not set, but act2 change, then act1 is not affected (for set)
+        indx_same = (res._set_line_status == 0 ) &  (act2._switch_line_status)
+        assert np.all(res._set_line_status[indx_same] == act1_init._set_line_status[indx_same])
+
+    def test_add_change_set_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+        self._skipMissingKey("set_bus", self.action_space_2)
+
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            res = act1 + act2
+        assert np.sum(res._change_bus_vect[act2._set_topo_vect != 0]) == 0
+
+    def test_add_set_change_bus(self):
+        self._skipMissingKey("set_bus", self.action_space_1)
+        self._skipMissingKey("change_bus", self.action_space_2)
+
+        act1_init = self.aux_get_act(self.action_space_1)
+        act1 = copy.deepcopy(act1_init)
+        act2 = self.aux_get_act(self.action_space_2)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            # proper warnings are handled above
+            res = act1 + act2
+
+        # if act1 set a line but act2 change it, then it's equivalent to act1 set to the other value
+        indx_change = (res._set_topo_vect != 0) & (act2._change_bus_vect)
+        assert np.all(res._set_topo_vect[indx_change] != act1_init._set_topo_vect[indx_change])
+        # if act1 does not set, but act2 change, then act1 is not affected (for set)
+        indx_same = (res._set_topo_vect == 0) & (act2._change_bus_vect)
+        assert np.all(res._set_topo_vect[indx_same] == act1_init._set_topo_vect[indx_same])
+
+    def test_add_empty_change_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+
+        act1 = self.action_space_1({})
+        act2 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        # add change
+        res = act1 + act2
+
+        assert act2._change_bus_vect[0] == True
+        assert act2._change_bus_vect[1] == True
+        assert res._change_bus_vect[0] == True
+        assert res._change_bus_vect[1] == True
+        assert np.any(res._set_topo_vect != 0) == False
+
+    def test_add_change_change_bus(self):
+        self._skipMissingKey("change_bus", self.action_space_1)
+
+        act1 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        act2 = self.action_space_1({
+            "change_bus": {
+                "substations_id": [(0, [0, 1])]
+            }
+        })
+
+        # add change
+        res = act1 + act2
+
+        assert act2._change_bus_vect[0] == True
+        assert act2._change_bus_vect[1] == True
+        assert res._change_bus_vect[0] == False
+        assert res._change_bus_vect[1] == False
+        assert np.any(res._set_topo_vect != 0) == False
 
 
 # TODO a generic method to build them all maybe ?

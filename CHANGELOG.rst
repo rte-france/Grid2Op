@@ -22,7 +22,7 @@ Change Log
 - [???] model agent acting at different time frame
 - [???] model delay in observations
 - [???] model delay in action
-- [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
+- [???] model dams in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
 
 [1.3.2] - 2020-11-xx
@@ -34,6 +34,7 @@ Change Log
 - [ADDED] a `utils` module to store the data of some environment and be able to compute the scores (as in the neurips
   l2rpn competitions). This module might move at a different place in the future
 - [ADDED] a function to "split" an environment into train / validation using `os.symlink`
+- [ADDED] the implementation of `+` operator for action (based on previously available `+=`)
 - [IMPROVED] `PandaPowerBackend` now should take less time to when `reset`.
 - [IMPROVED] some speed up in the grid2op computation
 

@@ -614,7 +614,8 @@ class BaseAction(GridObjects):
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Add an action to this one.
-        Adding an action to myself is equivalent to perform myself, and then perform other.
+        Adding an action to myself is equivalent to perform myself, and then perform other (but at the
+        same step)
 
         Parameters
         ----------
@@ -736,6 +737,29 @@ class BaseAction(GridObjects):
         self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
 
         return self
+
+    def __add__(self, other):
+        """
+        Implements the `+` operator for the action using the `+=` definition.
+
+        This function is not commutative !
+
+        Notes
+        -------
+        Be careful if two actions do not share the same type (for example you want to add act1
+        of type :class:`TopologyAction` to act2 of type :class:`DispatchAction`) the results of
+        `act1 + act2` might differ from what you expect.
+
+        The result will always of the same type as act1. In the above case, it means that the `dispatch`
+        part of `act2`will be ignored (because it is ignored in :class:`TopologyAction`).
+
+        This is why we recommend to using this class directly with the :class:`PlayableAction` or
+        from action directly generated with `env.action_space()`
+        """
+        res = type(self)()
+        res += self
+        res += other
+        return res
 
     def __call__(self):
         """
