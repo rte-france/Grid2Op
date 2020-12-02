@@ -17,6 +17,7 @@ complex :class:`grid2op.Action.Action` or :class:`grid2op.Observation.Observaion
 to manipulate.
 
 """
+import warnings
 import numpy as np
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -32,7 +33,8 @@ class GridObjects:
         Almost every class inherit from this class, so they have its methods and attributes.
         Do not attempt to use it outside of grid2op environment.
 
-    This class stores in a Backend agnostic way some information about the powergrid.
+    This class stores in a "Backend agnostic" way some information about the powergrid. All these attributes
+    are constant throughout an episode and are defined when the backend is loaded by the environment.
 
     It stores information about numbers of objects, and which objects are where, their names, etc.
 
@@ -863,77 +865,29 @@ class GridObjects:
             self.grid_objects_types[prev:(prev + nb_el), :] = self.get_obj_substations(substation_id=sub_id)
             prev += nb_el
 
-    def assert_grid_correct(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is used at the initialization of the environment.
-
-        Performs some checking on the loaded _grid to make sure it is consistent.
-        It also makes sure that the vector such as *sub_info*, *load_to_subid* or *gen_to_sub_pos* are of the
-        right type eg. numpy.ndarray with dtype: dt_int
-
-        It is called after the _grid has been loaded.
-
-        These function is by default called by the :class:`grid2op.Environment` class after the initialization of the
-        environment.
-        If these tests are not successfull, no guarantee are given that the backend will return consistent computations.
-
-        In order for the backend to fully understand the structure of actions, it is strongly advised NOT to override
-        this method.
-
-        :return: ``None``
-        :raise: :class:`grid2op.EnvError` and possibly all of its derived class.
-        """
-
-        if self.name_line is None:
-            raise EnvError("name_line is None. Powergrid is invalid. Line names are used to make the correspondance "
-                           "between the chronics and the backend")
-        if self.name_load is None:
-            raise EnvError("name_load is None. Powergrid is invalid. Line names are used to make the correspondance "
-                           "between the chronics and the backend")
-        if self.name_gen is None:
-            raise EnvError("name_gen is None. Powergrid is invalid. Line names are used to make the correspondance "
-                           "between the chronics and the backend")
-        if self.name_sub is None:
-            raise EnvError("name_sub is None. Powergrid is invalid. Substation names are used to make the "
-                           "correspondance between the chronics and the backend")
-
-        if self.n_gen <= 0:
-            raise EnvError("n_gen is negative. Powergrid is invalid: there are no generator")
-        if self.n_load <= 0:
-            raise EnvError("n_load is negative. Powergrid is invalid: there are no load")
-        if self.n_line <= 0:
-            raise EnvError("n_line is negative. Powergrid is invalid: there are no line")
-        if self.n_sub <= 0:
-            raise EnvError("n_sub is negative. Powergrid is invalid: there are no substation")
-
-        # test if vector can be properly converted
-        if not isinstance(self.sub_info, np.ndarray):
-            try:
-                self.sub_info = np.array(self.sub_info)
-                self.sub_info = self.sub_info.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.sub_info should be convertible to a numpy array")
-
+    def _check_sub_id(self):
+        # check it can be converted to proper types
         if not isinstance(self.load_to_subid, np.ndarray):
             try:
                 self.load_to_subid = np.array(self.load_to_subid)
                 self.load_to_subid = self.load_to_subid.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.load_to_subid should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError(f"self.load_to_subid should be convertible to a numpy array. "
+                               f"It fails with error \"{exc_}\"")
         if not isinstance(self.gen_to_subid, np.ndarray):
             try:
                 self.gen_to_subid = np.array(self.gen_to_subid)
                 self.gen_to_subid = self.gen_to_subid.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.gen_to_subid should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError(f"self.gen_to_subid should be convertible to a numpy array. "
+                               f"It fails with error \"{exc_}\"")
         if not isinstance(self.line_or_to_subid, np.ndarray):
             try:
                 self.line_or_to_subid = np.array(self.line_or_to_subid)
-                self.line_or_to_subid = self.line_or_to_subid .astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_or_to_subid should be convertible to a numpy array")
+                self.line_or_to_subid = self.line_or_to_subid.astype(dt_int)
+            except Exception as exc_:
+                raise EnvError(f"self.line_or_to_subid should be convertible to a numpy array. "
+                               f"It fails with error \"{exc_}\"")
         if not isinstance(self.line_ex_to_subid, np.ndarray):
             try:
                 self.line_ex_to_subid = np.array(self.line_ex_to_subid)
@@ -941,91 +895,7 @@ class GridObjects:
             except Exception as e:
                 raise EnvError("self.line_ex_to_subid should be convertible to a numpy array")
 
-        if not isinstance(self.load_to_sub_pos, np.ndarray):
-            try:
-                self.load_to_sub_pos = np.array(self.load_to_sub_pos)
-                self.load_to_sub_pos = self.load_to_sub_pos.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.load_to_sub_pos should be convertible to a numpy array")
-        if not isinstance(self.gen_to_sub_pos, np.ndarray):
-            try:
-                self.gen_to_sub_pos = np.array(self.gen_to_sub_pos)
-                self.gen_to_sub_pos = self.gen_to_sub_pos.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array")
-        if not isinstance(self.line_or_to_sub_pos, np.ndarray):
-            try:
-                self.line_or_to_sub_pos = np.array(self.line_or_to_sub_pos)
-                self.line_or_to_sub_pos = self.line_or_to_sub_pos.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array")
-        if not isinstance(self.line_ex_to_sub_pos, np.ndarray):
-            try:
-                self.line_ex_to_sub_pos = np.array(self.line_ex_to_sub_pos)
-                self.line_ex_to_sub_pos = self.line_ex_to_sub_pos .astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array")
-
-        if not isinstance(self.load_pos_topo_vect, np.ndarray):
-            try:
-                self.load_pos_topo_vect = np.array(self.load_pos_topo_vect)
-                self.load_pos_topo_vect = self.load_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array")
-        if not isinstance(self.gen_pos_topo_vect, np.ndarray):
-            try:
-                self.gen_pos_topo_vect = np.array(self.gen_pos_topo_vect)
-                self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array")
-        if not isinstance(self.line_or_pos_topo_vect, np.ndarray):
-            try:
-                self.line_or_pos_topo_vect = np.array(self.line_or_pos_topo_vect)
-                self.line_or_pos_topo_vect = self.line_or_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array")
-        if not isinstance(self.line_ex_pos_topo_vect, np.ndarray):
-            try:
-                self.line_ex_pos_topo_vect = np.array(self.line_ex_pos_topo_vect)
-                self.line_ex_pos_topo_vect = self.line_ex_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array")
-
-        # test that all numbers are finite:
-        tmp = np.concatenate((
-            self.sub_info.flatten(),
-                             self.load_to_subid.flatten(),
-                             self.gen_to_subid.flatten(),
-                             self.line_or_to_subid.flatten(),
-                             self.line_ex_to_subid.flatten(),
-                             self.load_to_sub_pos.flatten(),
-                             self.gen_to_sub_pos.flatten(),
-                             self.line_or_to_sub_pos.flatten(),
-                             self.line_ex_to_sub_pos.flatten(),
-                             self.load_pos_topo_vect.flatten(),
-                             self.gen_pos_topo_vect.flatten(),
-                             self.line_or_pos_topo_vect.flatten(),
-                             self.line_ex_pos_topo_vect.flatten()
-                              ))
-        try:
-            if np.any(~np.isfinite(tmp)):
-                raise EnvError("One of the vector is made of non finite elements")
-        except Exception as e:
-            raise EnvError("Impossible to check wheter or not vectors contains online finite elements (pobably one "
-                           "or more topology related vector is not valid (None)")
-
-        # check sizes
-        if len(self.sub_info) != self.n_sub:
-            raise IncorrectNumberOfSubstation("The number of substation is not consistent in "
-                                              "self.sub_info (size \"{}\")"
-                                              " and  self.n_sub ({})".format(len(self.sub_info), self.n_sub))
-        if np.sum(self.sub_info) != self.n_load + self.n_gen + 2*self.n_line:
-            err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
-            err_msg +=  "{} elements connected to all substations and the number of load, generators and lines in " \
-                        "the _grid."
-            err_msg = err_msg.format(np.sum(self.sub_info))
-            raise IncorrectNumberOfElements(err_msg)
-
+        # now check the sizes
         if len(self.load_to_subid) != self.n_load:
             raise IncorrectNumberOfLoads()
         if np.min(self.load_to_subid) < 0:
@@ -1059,6 +929,204 @@ class GridObjects:
             raise EnvError("Some powerline (ex) is supposed to be connected to substations with id {} which"
                            "is greater than the number of substations of the grid, which is {}."
                            "".format(np.max(self.line_or_to_subid), self.n_sub))
+
+    def _check_names(self):
+        if self.name_line is None:
+            self.name_line = ['{}_{}_{}'.format(or_id, ex_id, l_id) for l_id, (or_id, ex_id) in
+                              enumerate(zip(self.line_or_to_subid, self.line_ex_to_subid))]
+            self.name_line = np.ndarray(self.name_line)
+            warnings.warn("name_line is None so default line names have been assigned to your grid. "
+                          "(FYI: Line names are used to make the correspondence between the chronics and the backend)"
+                          "This might result in impossibility to load data."
+                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+        if self.name_load is None:
+            self.name_load = ["load_{}_{}".format(bus_id, load_id) for load_id, bus_id in enumerate(self.load_to_subid)]
+            self.name_load = np.ndarray(self.name_load)
+            warnings.warn("name_load is None so default load names have been assigned to your grid. "
+                          "(FYI: load names are used to make the correspondence between the chronics and the backend)"
+                          "This might result in impossibility to load data."
+                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+        if self.name_gen is None:
+            self.name_gen = ["gen_{}_{}".format(bus_id, gen_id) for gen_id, bus_id in enumerate(self.gen_to_subid)]
+            self.name_gen = np.ndarray(self.name_gen)
+            warnings.warn("name_gen is None so default generator names have been assigned to your grid. "
+                          "(FYI: generator names are used to make the correspondence between the chronics and "
+                          "the backend)"
+                          "This might result in impossibility to load data."
+                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+        if self.name_sub is None:
+            self.name_sub = ["sub_{}".format(sub_id) for sub_id in range(self.n_sub)]
+            self.name_sub = np.ndarray(self.name_sub)
+            warnings.warn("name_sub is None so default substation names have been assigned to your grid. "
+                          "(FYI: substation names are used to make the correspondence between the chronics and "
+                          "the backend)"
+                          "This might result in impossibility to load data."
+                          "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+
+        if not isinstance(self.name_line, np.ndarray):
+            try:
+                self.name_line = np.array(self.name_line)
+                self.name_line = self.name_line.astype(str)
+            except Exception as e:
+                raise EnvError("self.name_line should be convertible to a numpy array of type str")
+        if not isinstance(self.name_load, np.ndarray):
+            try:
+                self.name_load = np.array(self.name_load)
+                self.name_load = self.name_load.astype(str)
+            except Exception as e:
+                raise EnvError("self.name_load should be convertible to a numpy array of type str")
+        if not isinstance(self.name_gen, np.ndarray):
+            try:
+                self.name_gen = np.array(self.name_gen)
+                self.name_gen = self.name_gen.astype(str)
+            except Exception as e:
+                raise EnvError("self.name_gen should be convertible to a numpy array of type str")
+        if not isinstance(self.name_sub, np.ndarray):
+            try:
+                self.name_sub = np.array(self.name_sub)
+                self.name_sub = self.name_sub.astype(str)
+            except Exception as e:
+                raise EnvError("self.name_sub should be convertible to a numpy array of type str")
+
+    def _check_sub_pos(self):
+        if not isinstance(self.load_to_sub_pos, np.ndarray):
+            try:
+                self.load_to_sub_pos = np.array(self.load_to_sub_pos)
+                self.load_to_sub_pos = self.load_to_sub_pos.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.load_to_sub_pos should be convertible to a numpy array")
+        if not isinstance(self.gen_to_sub_pos, np.ndarray):
+            try:
+                self.gen_to_sub_pos = np.array(self.gen_to_sub_pos)
+                self.gen_to_sub_pos = self.gen_to_sub_pos.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array")
+        if not isinstance(self.line_or_to_sub_pos, np.ndarray):
+            try:
+                self.line_or_to_sub_pos = np.array(self.line_or_to_sub_pos)
+                self.line_or_to_sub_pos = self.line_or_to_sub_pos.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array")
+        if not isinstance(self.line_ex_to_sub_pos, np.ndarray):
+            try:
+                self.line_ex_to_sub_pos = np.array(self.line_ex_to_sub_pos)
+                self.line_ex_to_sub_pos = self.line_ex_to_sub_pos .astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array")
+
+    def _check_topo_vect(self):
+        if not isinstance(self.load_pos_topo_vect, np.ndarray):
+            try:
+                self.load_pos_topo_vect = np.array(self.load_pos_topo_vect)
+                self.load_pos_topo_vect = self.load_pos_topo_vect.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array")
+        if not isinstance(self.gen_pos_topo_vect, np.ndarray):
+            try:
+                self.gen_pos_topo_vect = np.array(self.gen_pos_topo_vect)
+                self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array")
+        if not isinstance(self.line_or_pos_topo_vect, np.ndarray):
+            try:
+                self.line_or_pos_topo_vect = np.array(self.line_or_pos_topo_vect)
+                self.line_or_pos_topo_vect = self.line_or_pos_topo_vect.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array")
+        if not isinstance(self.line_ex_pos_topo_vect, np.ndarray):
+            try:
+                self.line_ex_pos_topo_vect = np.array(self.line_ex_pos_topo_vect)
+                self.line_ex_pos_topo_vect = self.line_ex_pos_topo_vect.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array")
+
+    def assert_grid_correct(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is used at the initialization of the environment.
+
+        Performs some checking on the loaded _grid to make sure it is consistent.
+        It also makes sure that the vector such as *sub_info*, *load_to_subid* or *gen_to_sub_pos* are of the
+        right type eg. numpy.ndarray with dtype: dt_int
+
+        It is called after the _grid has been loaded.
+
+        These function is by default called by the :class:`grid2op.Environment` class after the initialization of the
+        environment.
+        If these tests are not successfull, no guarantee are given that the backend will return consistent computations.
+
+        In order for the backend to fully understand the structure of actions, it is strongly advised NOT to override
+        this method.
+
+        :return: ``None``
+        :raise: :class:`grid2op.EnvError` and possibly all of its derived class.
+        """
+        # TODO refactor this method with the `_check***` methods.
+        # TODO refactor the `_check***` to use the same "base functions" that would be coded only once.
+
+        if self.n_gen <= 0:
+            raise EnvError("n_gen is negative. Powergrid is invalid: there are no generator")
+        if self.n_load <= 0:
+            raise EnvError("n_load is negative. Powergrid is invalid: there are no load")
+        if self.n_line <= 0:
+            raise EnvError("n_line is negative. Powergrid is invalid: there are no line")
+        if self.n_sub <= 0:
+            raise EnvError("n_sub is negative. Powergrid is invalid: there are no substation")
+
+        if not isinstance(self.sub_info, np.ndarray):
+            try:
+                self.sub_info = np.array(self.sub_info)
+                self.sub_info = self.sub_info.astype(dt_int)
+            except Exception as exc_:
+                raise EnvError(f"self.sub_info should be convertible to a numpy array. It fails with error \"{exc_}\"")
+
+        # to which subtation they are connected
+        self._check_sub_id()
+
+        # for names
+        self._check_names()
+
+        # test position in substation
+        self._check_sub_pos()
+
+        # test position in topology vector
+        self._check_topo_vect()
+
+        # test that all numbers are finite:
+        tmp = np.concatenate((
+            self.sub_info.flatten(),
+                             self.load_to_subid.flatten(),
+                             self.gen_to_subid.flatten(),
+                             self.line_or_to_subid.flatten(),
+                             self.line_ex_to_subid.flatten(),
+                             self.load_to_sub_pos.flatten(),
+                             self.gen_to_sub_pos.flatten(),
+                             self.line_or_to_sub_pos.flatten(),
+                             self.line_ex_to_sub_pos.flatten(),
+                             self.load_pos_topo_vect.flatten(),
+                             self.gen_pos_topo_vect.flatten(),
+                             self.line_or_pos_topo_vect.flatten(),
+                             self.line_ex_pos_topo_vect.flatten()
+                              ))
+        try:
+            if np.any(~np.isfinite(tmp)):
+                raise EnvError("One of the vector is made of non finite elements")
+        except Exception as e:
+            raise EnvError("Impossible to check whether or not vectors contains only finite elements (probably one "
+                           "or more topology related vector is not valid (contains ``None``)")
+
+        # check sizes
+        if len(self.sub_info) != self.n_sub:
+            raise IncorrectNumberOfSubstation("The number of substation is not consistent in "
+                                              "self.sub_info (size \"{}\")"
+                                              "and  self.n_sub ({})".format(len(self.sub_info), self.n_sub))
+        if np.sum(self.sub_info) != self.n_load + self.n_gen + 2*self.n_line:
+            err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
+            err_msg +=  "{} elements connected to all substations and the number of load, generators and lines in " \
+                        "the _grid."
+            err_msg = err_msg.format(np.sum(self.sub_info))
+            raise IncorrectNumberOfElements(err_msg)
 
         if len(self.load_to_sub_pos) != self.n_load:
             raise IncorrectNumberOfLoads()
