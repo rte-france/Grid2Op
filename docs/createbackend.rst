@@ -322,7 +322,7 @@ This is showed in the figure below:
 
 |5subs_grid_sub0_final|
 
-Then you do the same process with substation 1, resulting in the following figure:
+Then you do the same process with substation 1 which will result in the vector showed in the following plot:
 
 |5subs_grid_sub1_final|
 
