@@ -129,7 +129,7 @@ class PandaPowerBackend(Backend):
 
         self._pf_init = "flat"
         self._pf_init = "results"
-        self._nb_bus_before = 0
+        self._nb_bus_before = None  # number of active bus at the preceeding step
 
         self.thermal_limit_a = None
 
@@ -147,6 +147,18 @@ class PandaPowerBackend(Backend):
         self._topo_vect = None
         self.slack_id = None
         self.comp_time = 0.
+
+        # function to rstore some information
+        self.__nb_bus_before = None  # number of substation in the powergrid
+        self.__nb_powerline = None  # number of powerline (real powerline, not transformer)
+        self._init_bus_load = None
+        self._init_bus_gen = None
+        self._init_bus_lor = None
+        self._init_bus_lex = None
+        self._get_vector_inj = None
+        self._big_topo_to_obj = None
+        self._big_topo_to_backend = None
+        self.__pp_backend_initial_state = None  # initial state to facilitate the "reset"
 
         # Mapping some fun to apply bus updates
         self._type_to_bus_set = [
@@ -214,7 +226,7 @@ class PandaPowerBackend(Backend):
         """
 
         if path is None and filename is None:
-            raise RuntimeError("You must provide at least one of path or file to laod a powergrid.")
+            raise RuntimeError("You must provide at least one of path or file to load a powergrid.")
         if path is None:
             full_path = filename
         elif filename is None:
@@ -669,10 +681,11 @@ class PandaPowerBackend(Backend):
                     self._nb_bus_before = None  # if dc i start normally next time i call an ac powerflow
                 else:
                     pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
+
+                # stores the computation time
                 if "_ppc" in self._grid:
                     if "et" in self._grid["_ppc"]:
                         self.comp_time += self._grid["_ppc"]["et"]
-
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.

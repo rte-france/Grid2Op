@@ -180,7 +180,8 @@ class AgentWithConverter(BaseAgent):
             A valid actions, represented as a class, that corresponds to the encoded action given as input.
 
         """
-        return self.action_space.convert_act(encoded_act)
+        res = self.action_space.convert_act(encoded_act)
+        return res
 
     def act(self, observation, reward, done=False):
         """

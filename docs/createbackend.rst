@@ -112,6 +112,36 @@ In this section we explicit what attributes need to be implemented to have a val
 the attribute of the `Backend` you have to set. But don't forget you also need to load a powergrid and store
 it in the `_grid` attribute.
 
+Basically the `load_grid` function would look something like:
+
+.. code-block:: python
+
+    def load_grid(self, path=None, filename=None):
+        # simply handles different way of inputing the data
+        if path is None and filename is None:
+            raise RuntimeError("You must provide at least one of path or file to load a powergrid.")
+        if path is None:
+            full_path = filename
+        elif filename is None:
+            full_path = path
+        else:
+            full_path = os.path.join(path, filename)
+        if not os.path.exists(full_path):
+            raise RuntimeError("There is no powergrid at \"{}\"".format(full_path))
+
+        # load the grid in your favorite format:
+        self._grid = ... # the way you do that depends on the "solver" you use
+
+        # and now initialize the attributes (see list bellow)
+        self.n_line = ...  # number of lines in the grid should be read from self._grid
+        self.n_gen = ...  # number of generators in the grid should be read from self._grid
+        etc.
+        # other attributes should be read from self._grid (see table below for a full list of the attributes)
+        self.line_ex_to_sub_pos = ...
+
+        # and finish the initialization with a call to this function
+        self._compute_pos_big_topo()
+
 The grid2op attributes that need to be implemented in the :func:`grid2op.Backend.Backend.load_grid` function are
 given in the table bellow:
 
@@ -322,7 +352,7 @@ This is showed in the figure below:
 
 |5subs_grid_sub0_final|
 
-Then you do the same process with substation 1 which will result in the vector showed in the following plot:
+Then you do the same process with substation 1 which will result in the vectors showed in the following plot:
 
 |5subs_grid_sub1_final|
 
@@ -373,7 +403,7 @@ At the end, the `apply_action` function of the backend should look something lik
     def apply_action(self, backendAction=None):
         if backendAction is None:
             return
-        active_bus, (prod_p, prod_v, load_p, load_q), topo__, shunts__ = backendAction()
+        active_bus, (prod_p, prod_v, load_p, load_q), _, shunts__ = backendAction()
 
         # modify the injections [see paragraph "Modifying the injections (productions and loads)"]
         for gen_id, new_p in prod_p:
@@ -390,16 +420,44 @@ At the end, the `apply_action` function of the backend should look something lik
             ...  # the way you do that depends on the `internal representation of the grid`
 
         # modify the topology [see paragraph "Modifying the topology (status and busbar)"]
-        for el_id, new_bus in topo__:
-            # modify the "busbar" of the object
-            # the object is identified with an id corresponding to the the `\*\*_pos_topo_vect` vector
-            # Please have a look at the paragraph [see paragraph "Modifying the topology (status and busbar)"]
-            # for more information
+        loads_bus = backendAction.get_loads_bus()
+        for load_id, new_bus in loads_bus:
+            # modify the "busbar" of the loads
             if new_bus == -1:
-                # the object is disconnected in the action, disconnect it on your internal representation of the grid
+                # the load is disconnected in the action, disconnect it on your internal representation of the grid
                 ... # the way you do that depends on the `internal representation of the grid`
             else:
-                # the object is moved to either busbar 1 (in this case `new_bus` will be `1`)
+                # the load is moved to either busbar 1 (in this case `new_bus` will be `1`)
+                # or to busbar 2 (in this case `new_bus` will be `2`)
+                ... # the way you do that depends on the `internal representation of the grid`
+        gens_bus = backendAction.get_gens_bus()
+        for gen_id, new_bus in gens_bus:
+            # modify the "busbar" of the generators
+            if new_bus == -1:
+                # the gen is disconnected in the action, disconnect it on your internal representation of the grid
+                ... # the way you do that depends on the `internal representation of the grid`
+            else:
+                # the gen is moved to either busbar 1 (in this case `new_bus` will be `1`)
+                # or to busbar 2 (in this case `new_bus` will be `2`)
+                ... # the way you do that depends on the `internal representation of the grid`
+        lines_or_bus = backendAction.get_lines_or_bus()
+        for line_id, new_bus in lines_or_bus:
+            # modify the "busbar" of the origin end of powerline line_id
+            if new_bus == -1:
+                # the origin end of powerline is disconnected in the action, disconnect it on your internal representation of the grid
+                ... # the way you do that depends on the `internal representation of the grid`
+            else:
+                # the origin end of powerline is moved to either busbar 1 (in this case `new_bus` will be `1`)
+                # or to busbar 2 (in this case `new_bus` will be `2`)
+                ... # the way you do that depends on the `internal representation of the grid`
+        lines_ex_bus = backendAction.get_lines_ex_bus()
+        for line_id, new_bus in lines_ex_bus:
+            # modify the "busbar" of the extremity end of powerline line_id
+            if new_bus == -1:
+                # the extremity end of powerline is disconnected in the action, disconnect it on your internal representation of the grid
+                ... # the way you do that depends on the `internal representation of the grid`
+            else:
+                # the extremity end of powerline is moved to either busbar 1 (in this case `new_bus` will be `1`)
                 # or to busbar 2 (in this case `new_bus` will be `2`)
                 ... # the way you do that depends on the `internal representation of the grid`
 
@@ -413,7 +471,7 @@ in the backend. This is achieved with:
 
 .. code-block:: python
 
-    active_bus, (prod_p, prod_v, load_p, load_q), topo__, shunts__ = backendAction()
+    active_bus, (prod_p, prod_v, load_p, load_q), _, shunts__ = backendAction()
 
 And all information needed to set the state of your backend is now available. We will explain them step by step in the
 following paragraphs.
@@ -462,13 +520,46 @@ Of course it works the same way with the other "iterables":
 Modifying the topology (status and busbar)
 ++++++++++++++++++++++++++++++++++++++++++
 
-TODO !
+This is probably the most "difficult" part of implementing a new backend based on your solver. This is because
+modification of topology is probably not as common as modifying the the production or consumption.
 
+For this purpose we recommend to use the `get_loads_bus`, `get_gens_bus`, `get_lines_or_bus` and `get_lines_ex_bus`
+functions of the `backendAction`.
+
+These functions can be used in the following manner:
+
+.. code-block:: python
+
+        # modify the topology
+        loads_bus = backendAction.get_loads_bus()
+        for load_id, new_bus in loads_bus:
+            # modify the "busbar" of the loads
+            if new_bus == -1:
+                # the load is disconnected in the action, disconnect it on your internal representation of the grid
+                ... # the way you do that depends on the `internal representation of the grid`
+            else:
+                # the load is moved to either busbar 1 (in this case `new_bus` will be `1`)
+                # or to busbar 2 (in this case `new_bus` will be `2`)
+                ... # the way you do that depends on the `internal representation of the grid`
+
+And of course you do the same for generators and both ends of each powerline.
+
+.. note:: About powerline, grid2op adopts the following convention: a powerline **cannot** be connected on one side
+    and disconnected on the other.
+
+    That being said, it's still possible to connect the extremity of a powerline "alone" on a busbar, which will have
+    the same effect of having it "disconnected at one ends only".
 
 .. _vector-orders-create-backend:
 
-Vector representation of the grid information
+Read back the results (flows, voltages etc.)
 -----------------------------------------------
 TODO
+
+
+Advanced usage and speed optimization
+--------------------------------------
+TODO this will be explained "soon".
+
 
 .. include:: final.rst

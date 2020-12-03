@@ -163,6 +163,11 @@ class ValueStore:
         self.changed[:] = self.changed[new_order]
         self.values[:] = self.values[new_order]
 
+    def copy_from_index(self, ref, index):
+        self.reset()
+        self.changed[:] = ref.changed[index]
+        self.values[:] = ref.values[index]
+
 
 class _BackendAction(GridObjects):
     """
@@ -200,6 +205,11 @@ class _BackendAction(GridObjects):
         self._status_ex_before = np.ones(self.n_line, dtype=dt_int)
         self._status_or = np.ones(self.n_line, dtype=dt_int)
         self._status_ex = np.ones(self.n_line, dtype=dt_int)
+
+        self._loads_bus = None
+        self._gens_bus = None
+        self._lines_or_bus = None
+        self._lines_ex_bus = None
 
     def reorder(self, no_load, no_gen, no_topo, no_shunt):
         """
@@ -378,6 +388,30 @@ class _BackendAction(GridObjects):
             shunts = self.shunt_p, self.shunt_q, self.shunt_bus
         self._get_active_bus()
         return self.activated_bus, injections, topo, shunts
+
+    def get_loads_bus(self):
+        if self._loads_bus is None:
+            self._loads_bus = ValueStore(self.n_load, dtype=dt_int)
+        self._loads_bus.copy_from_index(self.current_topo, self.load_pos_topo_vect)
+        return self._loads_bus
+
+    def get_gens_bus(self):
+        if self._gens_bus is None:
+            self._gens_bus = ValueStore(self.n_gen, dtype=dt_int)
+        self._gens_bus.copy_from_index(self.current_topo, self.gen_pos_topo_vect)
+        return self._gens_bus
+
+    def get_lines_or_bus(self):
+        if self._lines_or_bus is None:
+            self._lines_or_bus = ValueStore(self.n_line, dtype=dt_int)
+        self._lines_or_bus.copy_from_index(self.current_topo, self.line_or_pos_topo_vect)
+        return self._lines_or_bus
+
+    def get_lines_ex_bus(self):
+        if self._lines_ex_bus is None:
+            self._lines_ex_bus = ValueStore(self.n_line, dtype=dt_int)
+        self._lines_ex_bus.copy_from_index(self.current_topo, self.line_ex_pos_topo_vect)
+        return self._lines_ex_bus
 
     def _get_active_bus(self):
         self.activated_bus[:] = False

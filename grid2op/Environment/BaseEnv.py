@@ -1400,7 +1400,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_illegal or is_illegal_redisp or is_illegal_reco,
                                                              is_ambiguous)
         infos["rewards"] = other_reward
-        if has_error:
+        if has_error and self.current_obs is not None:
             # update the observation so when it's plotted everything is "down"
             # generators information
             self.current_obs.set_game_over()

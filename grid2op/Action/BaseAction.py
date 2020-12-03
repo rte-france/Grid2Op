@@ -926,7 +926,7 @@ class BaseAction(GridObjects):
                         end_ = int(beg_ + self.sub_info[s_id])
                         self._set_topo_vect[beg_:end_] = arr
                 if not handled:
-                    msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionnary it should have"
+                    msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionary it should have"
                     msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
                     msg += "\"lines_ex_id\" or \"substations_id\""
                     msg += " as keys. None where found. Current used keys are: "

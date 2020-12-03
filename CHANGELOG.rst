@@ -36,6 +36,7 @@ Change Log
 - [ADDED] a function to "split" an environment into train / validation using `os.symlink`
 - [ADDED] the implementation of `+` operator for action (based on previously available `+=`)
 - [ADDED] A more detailed documentation on the representation of the topology and how to create a backend
+- [ADDED] A easier way to set up the topology in backend (eg. `get_loads_bus`)
 - [IMPROVED] `PandaPowerBackend` now should take less time to when `reset`.
 - [IMPROVED] some speed up in the grid2op computation
 
