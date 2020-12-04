@@ -35,6 +35,7 @@
 .. |5subs_grid_sub0| image:: ./img/5subs_grid_sub0.jpg
 .. |5subs_grid_sub0_final| image:: ./img/5subs_grid_sub0_final.jpg
 .. |5subs_grid_sub1_final| image:: ./img/5subs_grid_sub1_final.jpg
+.. |5subs_grid_loads_info| image:: ./img/5subs_grid_loads_info.jpg
 
 .. _create-backend-module:
 
@@ -58,10 +59,11 @@ Objectives
     Both can serve as example if you want to code a new backend.
 
 To implement completely a backend, you should implement all the abstract function defined here :ref:`backend-module`.
-This file is an overview of what is needed and aims at contextualizing these requirements to make them clearer.
+This file is an overview of what is needed and aims at contextualizing these requirements to make them clearer and
+easier to implement.
 
-This section you have already a "code" that is able to compute some powerflow given a file stored on
-a hard typically representing a powergrid. If you have that, you can probably use it to implement
+This section assume you have already a "code" that is able to compute some powerflow given a file stored somewhere,
+typically on a hard drive representing a powergrid. If you have that, you can probably use it to implement
 a grid2op backend and benefit from the whole grid2op ecosystem (code once a backend, reuse your "powerflow"
 everywhere). This includes, but is not limited to:
 
@@ -72,6 +74,26 @@ everywhere). This includes, but is not limited to:
 - Reuse agents that other people have trained in the context of L2RPN competitions
 - Train new grid controlers using the grid2op gym_compat module
 - etc.
+
+.. note:: Grid2Op do not care about the modeling of the grid (static / steady state or dyanmic / transient) and both
+    types of solver could be implemented as backend. At time of writing (december 2020), only steady state powerflow are
+    available.
+
+.. note:: The previous note entails that grid2op is also independent on the format used to store a powergrid. The
+    It's expected that the "backend" fails to initialize if it cannot found any file to initialize the grid.
+
+    At time of writing (december 2020), all environments are shipped with grid represented as "json" format, which is
+    the default format for the default backend based on PandaPower. If you want your "Backend" to have support
+    for all previous environment, you might need to initialize it from this format though.
+
+.. note:: If your backend is somehow available in a c++ librarie (static or dynamic) and you can link it,
+    you can use the interface "lightsim2grid" that takes care of
+    of exposing a model of the grid and compute the value associated with grid2op. It has the advantage of being
+    able to read the data from the default grid2op backend (based on PandaPower) and to allow to focus
+    on the solver rather to focus on grid2op "representation" of the grid.
+
+    On the other hands, this "backend" also comes with a special model (so you cannot change it) for loads, generators,
+    lines, transformers and shunts and has some limitation to what it supports.
 
 Main methods to implement
 --------------------------
@@ -554,6 +576,64 @@ And of course you do the same for generators and both ends of each powerline.
 
 Read back the results (flows, voltages etc.)
 -----------------------------------------------
+This last "technical" part concerns what can be refer to as "getters" from the backend. These functions allow to
+read back the state of the grid and expose its results to grid2op in a standardize manner.
+
+The main functions are:
+
+- :func:`grid2op.Backend.Backend.generators_info` : that allows to export the information related to generators
+  (more detail in subsection :ref:`get-flow`)
+- :func:`grid2op.Backend.Backend.loads_info` : enabling to read the state of the loads
+  (more detail in subsection :ref:`get-flow`)
+- :func:`grid2op.Backend.Backend.lines_or_info` : export information about the "origin" side of the powerlines
+  (more detail in subsection :ref:`get-flow`)
+- :func:`grid2op.Backend.Backend.lines_ex_info` : export information about the "extremity" side of the powerlines
+  (more detail in subsection :ref:`get-flow`)
+- :func:`grid2op.Backend.Backend.get_topo_vect` : represent information about the topology of the grid after the
+  solver has run (for each element, it says on which busbar it's connected) (more detail in subsection :ref:`get-topo`)
+
+.. _get-flow:
+
+Retrieving injections and flows
+++++++++++++++++++++++++++++++++++++++++++
+In this subsection we detail how we retrieve the information about the flows (at each side of all the powerlines
+and transformers) and how to retrieve the value associated with each "element" of the grid.
+
+The functions you need to implement are described in the table below:
+
+==================================================  ==================  ================================================
+Name                                                 Number of vectors    Description
+==================================================  ==================  ================================================
+:func:`grid2op.Backend.Backend.generators_info`      3                   active setpoint, reactive absorption / production and voltage magnitude at the bus to which it's connected
+:func:`grid2op.Backend.Backend.loads_info`           3                   active consumption, reactive consumption and voltage magnitude of the bus to which it's connected
+:func:`grid2op.Backend.Backend.lines_or_info`        4                   active flow, reactive flow, voltage magnitude of the bus to which it's connected and current flow
+:func:`grid2op.Backend.Backend.lines_ex_info`        4                   active flow, reactive flow, voltage magnitude of the bus to which it's connected and current flow
+==================================================  ==================  ================================================
+
+It follows the same "*representation*" as anything else in grid2op : each of these values are represented as vectors.
+Vector should have fixed size, and each element (*eg* origin side of powerline L0) should be always at the same place
+in the vectors. For example, if you implement :func:`grid2op.Backend.Backend.lines_or_info`, it should return
+4 vectors:
+
+- `p_or`: represents the active flows on each powerline (origin side)
+- `q_or`: represents the ractive flows on each powerline (origin side)
+- `v_or`: represents the voltage magnitude of each powerline (origin side)
+- `a_or`: represents the current flows on each powerline (origin side)
+
+The first element of `p_or` vector expose the active flow on origin side of powerline l0, first component
+of `a_or` represents the current flow on origin side of l0.
+
+This is further illustrated in the figure below (that concerns the the loads, but it's the same ideas for all the
+other elements):
+
+|5subs_grid_loads_info|
+
+
+.. _get-topo:
+
+Retrieving the topology
+++++++++++++++++++++++++++
+
 TODO
 
 
