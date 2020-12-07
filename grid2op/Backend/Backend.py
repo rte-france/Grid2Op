@@ -901,6 +901,8 @@ class Backend(GridObjects, ABC):
             Name of the dataframe containing the redispatching data
 
         """
+        self._fill_names()
+
         # for redispatching
         fullpath = os.path.join(path, name)
         if not os.path.exists(fullpath):

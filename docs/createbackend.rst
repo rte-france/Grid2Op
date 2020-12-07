@@ -36,6 +36,11 @@
 .. |5subs_grid_sub0_final| image:: ./img/5subs_grid_sub0_final.jpg
 .. |5subs_grid_sub1_final| image:: ./img/5subs_grid_sub1_final.jpg
 .. |5subs_grid_loads_info| image:: ./img/5subs_grid_loads_info.jpg
+.. |5subs_grid_sub1_topo| image:: ./img/5subs_grid_sub1_topo.jpg
+.. |5subs_grid_sub1_2_topo| image:: ./img/5subs_grid_sub1_2_topo.jpg
+.. |5subs_grid_suball_topo| image:: ./img/5subs_grid_suball_topo.jpg
+.. |5subs_grid_ex_disco| image:: ./img/5subs_grid_ex_disco.jpg
+.. |5subs_grid_ex_2buses| image:: ./img/5subs_grid_ex_2buses.jpg
 
 .. _create-backend-module:
 
@@ -53,10 +58,13 @@ Objectives
     You will also find in this file the complete description on how the "powergrid" is represented in grid2op.
 
     Backend is an abstraction that represents the physical system (the powergrid). In theory every powerflow can be
-    used as a backend. For now we only provide a Backend that uses `Pandapower <http://www.pandapower.org/>`_ and
+    used as a backend. And example of a backend using `Pandapower <http://www.pandapower.org/>`_ is available with
+    the :class:`grid2op.Backend.EducPandaPowerBackend.EducPandaPowerBackend` (only for demonstration purpose)
+
+    If you want working backend, please use the :class:`grid2op.Backend.PandaPowerBackend` that
+    uses `Pandapower <http://www.pandapower.org/>`_ and
     a port in c++ to a subset of pandapower called `LightSim2Grid <https://github.com/BDonnot/lightsim2grid>`_ .
 
-    Both can serve as example if you want to code a new backend.
 
 To implement completely a backend, you should implement all the abstract function defined here :ref:`backend-module`.
 This file is an overview of what is needed and aims at contextualizing these requirements to make them clearer and
@@ -157,12 +165,20 @@ Basically the `load_grid` function would look something like:
         # and now initialize the attributes (see list bellow)
         self.n_line = ...  # number of lines in the grid should be read from self._grid
         self.n_gen = ...  # number of generators in the grid should be read from self._grid
-        etc.
+        self.n_load = ...  # number of generators in the grid should be read from self._grid
+        self.n_sub = ...  # number of generators in the grid should be read from self._grid
+
         # other attributes should be read from self._grid (see table below for a full list of the attributes)
-        self.line_ex_to_sub_pos = ...
+        self.load_to_subid = ...
+        self.gen_to_subid = ...
+        self.line_or_to_subid = ...
+        self.line_ex_to_subid = ...
 
         # and finish the initialization with a call to this function
         self._compute_pos_big_topo()
+
+        # the initial thermal limit
+        self.thermal_limit_a = ...
 
 The grid2op attributes that need to be implemented in the :func:`grid2op.Backend.Backend.load_grid` function are
 given in the table bellow:
@@ -170,24 +186,24 @@ given in the table bellow:
 =========================  ==============  ===========  =========  =========================================================
 Name                       See paragraph   Type         Size       Description
 =========================  ==============  ===========  =========  =========================================================
-`name_load`_                               vect, str    `n_load`_  (optional) name of each load on the grid [if not set, by default it will be "load_$LoadSubID_$LoadID" for example "load_1_10" if the load with id 10 is connected to substation with id 1]
-`name_gen`_                                vect, str    `n_gen`_   (optional) name of each generator on the grid [if not set, by default it will be "gen_$GenSubID_$GenID" for example "gen_2_42" if the generator with id 42 is connected to substation with id 2]
-`name_line`_                               vect, str    `n_line`_  (optional) name of each powerline (and transformers !) on the grid [if not set, by default it will be "$SubOrID_SubExID_LineID" for example "1_4_57" if the powerline with id 57 has its origin end connected to substation with id 1 and its extremity end connected to substation with id 4]
-`name_sub`_                                vect, str    `n_sub`_   (optional) name of each substation on the grid [if not set, by default it will be "sub_$SubID" for example "sub_41" for the substation with id 41]
 `n_line`_                   :ref:`n-el`    int          NA          Number of powerline on the grid (remember, in grid2op framework a `powerline` includes both "powerlines" and "transformer")
 `n_gen`_                    :ref:`n-el`    int          NA          Number of generators on the grid
 `n_load`_                   :ref:`n-el`    int          NA          Number of loads on the grid
 `n_sub`_                    :ref:`n-el`    int          NA          Number of substations on the grid
-`sub_info`_                 :ref:`sub-i`   vect, int    `n_sub`_    For each substation, it gives the number of elements connected to it ("elements" here denotes: powerline - and transformer- ends, load or generator)
-`dim_topo`_                 :ref:`sub-i`   int          NA          Total number of elements on the grid ("elements" here denotes: powerline - and transformer- ends, load or generator)
 `load_to_subid`_            :ref:`subid`   vect, int    `n_load`_   For each load, it gives the substation id to which it is connected
 `gen_to_subid`_             :ref:`subid`   vect, int    `n_gen`_    For each generator, it gives the substation id to which it is connected
 `line_or_to_subid`_         :ref:`subid`   vect, int    `n_line`_   For each powerline, it gives the substation id to which its **origin** end is connected
 `line_ex_to_subid`_         :ref:`subid`   vect, int    `n_line`_   For each powerline, it gives the substation id to which its **extremity** end is connected
-`load_to_sub_pos`_          :ref:`subpo`   vect, int    `n_load`_   See the description for more information ("a picture often speaks a thousand words")
-`gen_to_sub_pos`_           :ref:`subpo`   vect, int    `n_gen`_    See the description for more information ("a picture often speaks a thousand words")
-`line_or_to_sub_pos`_       :ref:`subpo`   vect, int    `n_line`_   See the description for more information ("a picture often speaks a thousand words")
-`line_ex_to_sub_pos`_       :ref:`subpo`   vect, int    `n_line`_   See the description for more information ("a picture often speaks a thousand words")
+`name_load`_                               vect, str    `n_load`_  (optional) name of each load on the grid [if not set, by default it will be "load_$LoadSubID_$LoadID" for example "load_1_10" if the load with id 10 is connected to substation with id 1]
+`name_gen`_                                vect, str    `n_gen`_   (optional) name of each generator on the grid [if not set, by default it will be "gen_$GenSubID_$GenID" for example "gen_2_42" if the generator with id 42 is connected to substation with id 2]
+`name_line`_                               vect, str    `n_line`_  (optional) name of each powerline (and transformers !) on the grid [if not set, by default it will be "$SubOrID_SubExID_LineID" for example "1_4_57" if the powerline with id 57 has its origin end connected to substation with id 1 and its extremity end connected to substation with id 4]
+`name_sub`_                                vect, str    `n_sub`_   (optional) name of each substation on the grid [if not set, by default it will be "sub_$SubID" for example "sub_41" for the substation with id 41]
+`sub_info`_                 :ref:`sub-i`   vect, int    `n_sub`_    (can be automatically set if you don't initialize it) For each substation, it gives the number of elements connected to it ("elements" here denotes: powerline - and transformer- ends, load or generator)
+`dim_topo`_                 :ref:`sub-i`   int          NA          (can be automatically set if you don't initialize it) Total number of elements on the grid ("elements" here denotes: powerline - and transformer- ends, load or generator)
+`load_to_sub_pos`_          :ref:`subpo`   vect, int    `n_load`_   (can be automatically set if you don't initialize it) See the description for more information ("a picture often speaks a thousand words")
+`gen_to_sub_pos`_           :ref:`subpo`   vect, int    `n_gen`_    (can be automatically set if you don't initialize it) See the description for more information ("a picture often speaks a thousand words")
+`line_or_to_sub_pos`_       :ref:`subpo`   vect, int    `n_line`_   (can be automatically set if you don't initialize it) See the description for more information ("a picture often speaks a thousand words")
+`line_ex_to_sub_pos`_       :ref:`subpo`   vect, int    `n_line`_   (can be automatically set if you don't initialize it) See the description for more information ("a picture often speaks a thousand words")
 `load_pos_topo_vect`_       :ref:`subtv`   vect, int    `n_load`_   Automatically set with a call to `self._compute_pos_big_topo`
 `gen_pos_topo_vect`_        :ref:`subtv`   vect, int    `n_gen`_    Automatically set with a call to `self._compute_pos_big_topo`
 `line_or_pos_topo_vect`_    :ref:`subtv`   vect, int    `n_line`_   Automatically set with a call to `self._compute_pos_big_topo`
@@ -229,12 +245,14 @@ Then the generators:
 
 |5subs_grid_3_gens|
 
-And then you deal with the powerlines. Which is a bit more "complex" as you need also to "orient" each powerline
-which is to define an "origin" end and and "extremity" end. This result in a possible ordering this way:
+And then you deal with the powerlines. Which is a bit more "complex" as you need also to "assign side" (
+"extremity" or "origin") to
+each powerline end which is to define an "origin" end and and "extremity" end. This result in a possible
+ordering this way:
 
 |5subs_grid_4_lines|
 
-Finally you also need to come up with a way of assing to each "element" an order in the substation. This is an
+**Optionally** you also need to come up with a way of assign to each "element" an order in the substation. This is an
 extremely complex way to say you have to do this:
 
 |5subs_grid_5_obj_in_sub|
@@ -264,6 +282,19 @@ a way to assign all these "order".
     This is a reason why grid2op is relatively fast in most cases: very little time is taken to map objects to
     there properties.
 
+.. note:: This can be done automatically if you don't want to take care of this
+    labelling.
+
+If you chose to adopt the "automatic" way it will result in the following ordering:
+
+- load (if any is connected to this substation) will be labeled first
+- gen will be labeled just after
+- then origin side of powerline
+- then extremity side of powerline
+
+This will result in a **different** labelling that the one we adopted here! So the vector `*_to_sub_pos` will be
+different, and so will the `*_to_pos_topo_vect`
+
 Final result
 ******************
 For the most impatient readers, the final representation is :
@@ -284,11 +315,16 @@ For example, `n_line` is 8 because there are 8 lines on the grid, labeled from 0
 
 .. _sub-i:
 
-Substation information (sub_info, dim_topo)
-********************************************
-For these attributes too, there is nothing really surprising.
+(optional) Substation information (sub_info, dim_topo)
+*******************************************************
+.. versionadded:: 1.3.2
+    This is now done automatically if the user do not set it.
 
-For each component of `sub_info` you inform grid2op of the number of elements connected to it. And then you sum
+For these attributes too, there is nothing really surprising (we remember that these can be set automatically if
+you don't do it). We show how to set them mainly to explain grid2op "encoding" for these attributes that
+you might want to reuse somewhere else.
+
+For each component of `sub_info` you tell grid2op of the number of elements connected to it. And then you sum
 up each of these elements in the `dim_topo` attributes.
 
 |5subs_grid_5_sub_i|
@@ -316,10 +352,25 @@ For the other attributes, you follow the same pattern:
 
 .. _subpo:
 
-Position in substation (\*_to_sub_pos)
-**************************************
+(optional) Position in substation (\*_to_sub_pos)
+***************************************************
+.. versionadded:: 1.3.2
+    This is now done automatically if the user do not set it.
 
 These are the least common (and "most complicated") attributes to set.
+This is why we implemented a function that takes care of computing it if you need. This function will make
+this choice, for each substation:
+
+- load (if any is connected to this substation) will be labeled first
+- gen will be labeled just after
+- then origin side of powerline
+- then extremity side of powerline
+
+You are free to chose any other ordering, and this is why we explain in detail how this feature works here.
+
+.. note:: It's a "take all or nothing" feature. It means that you either take the full ordering detailed above
+   or you need to implement a complete ordering yourself.
+
 
 This values allow to uniquely identified, inside each substation. These were represented by the "small" number
 near each element in the last image of the introductory paragraph :ref:`pre-req-backend`. If you have that
@@ -433,6 +484,7 @@ At the end, the `apply_action` function of the backend should look something lik
             ...  # the way you do that depends on the `internal representation of the grid`
         for gen_id, new_v in prod_v:
             # modify the generator with id 'gen_id' to have the new value "new_v" as voltage setpoint
+            # be careful here ! new_v are given in kV and NOT in pu. So you need to convert them accordingly
             ...  # the way you do that depends on the `internal representation of the grid`
         for load_id, new_p in load_p:
             # modify the load with id 'load_id' to have the new value "new_p" as consumption
@@ -482,6 +534,11 @@ At the end, the `apply_action` function of the backend should look something lik
                 # the extremity end of powerline is moved to either busbar 1 (in this case `new_bus` will be `1`)
                 # or to busbar 2 (in this case `new_bus` will be `2`)
                 ... # the way you do that depends on the `internal representation of the grid`
+
+
+.. versionadded:: 1.3.2
+    Before version 1.3.2, you could not use the `get_loads_bus`, `get_gens_bus`, `get_lines_or_bus`
+    or `get_lines_ex_bus` method. Please upgrade to grid2op 1.3.2 or later to use these.
 
 .. _modif-backend:
 
@@ -628,18 +685,89 @@ other elements):
 
 |5subs_grid_loads_info|
 
+.. note:: The values that should be retrieved here are what is considered as "if i had placed a (perfect) sensor
+    on this element
+    what would this sensor display.
+
+    This is what is considered as "real world data" by grid2op. If you want to model delay in the measurements or
+    some lack of precision in the sensors (for example) we don't advise to do it on the Backend side, but rather to
+    code a different types of "Observation" that would add some noise to the values returned by grid2op.
+
+.. note:: Depending on the capacity of the Backend and its precision in modeling "real systems" the values returned
+    in these vector may, or may not be different from their setpoint.
+
+    For example, if the backend do not model that "real" generators have limit for the reactive power they can
+    absorb / produce then it's likely that the "prod_v" you get from the backend is the same as the "prod_v" that has
+    been used when the "apply_action" has been called.
+
+    Grid2Op is independent from the "model of grid" you are using. So grid2op itself will not be affected (and
+    nothing will check) whether "prod_v" after a powerflow is the same as "prod_v" before.
 
 .. _get-topo:
 
 Retrieving the topology
 ++++++++++++++++++++++++++
 
-TODO
+The last information you need to provide for your backend is tha ability to retrieve the internal topology of
+the powergrid.
 
+This function is especially important if your solver is able to simulate the behaviour of some complex automatons on
+the grid. In this case, the topology after the powerflow (and the possible trigger of these automatons) can
+be different from the initial topology of the grid as provided by the backend action (see section
+:ref:`grid-description` for more information).
+
+Remember that to interface with grid2op, you needed to define orders of object in all the substation. To know
+the position of each element in the topology vector, grid2op simply concatenate all vectors of all substation.
+
+Let's start by substation 0:
+
+|5subs_grid_sub1_topo|
+
+Then you concatenate to it the vector representing substation 1:
+
+|5subs_grid_sub1_2_topo|
+
+And you do chat for all substations, giving:
+
+|5subs_grid_suball_topo|
+
+So in this simple example, the first element of the topology vector will represent the origin of powerline 0,
+the second element will represent the load 0, the 7th element (id 6, remember python index are 0 based) represent
+first element of substation 1, so in this case extremity end of powerline 3, the 8th element the generator 1, etc.
+up to element with id 20 whith is the last element of the last substation, in this case extremity of powerline 7.
+
+Once you know the order, the encoding is pretty straightforward:
+
+- -1 means "the element is disconnected"
+- 1 means "the element is connected on busbar 1"
+- 2 means "the element is connected on busbar 2"
+- etc.
+
+So, for example, we have, in our grid, if generator 1 is disconnected and powerline l7 is disconnected:
+
+|5subs_grid_ex_disco|
+
+And to represent a substation with multiple "nodes" (buses) you can encode it this way:
+
+|5subs_grid_ex_2buses|
+
+In this case, at substation 2 there are 2 connected busbars:
+
+- *busbar 1* connects extremity of powerline 4 and origin of powerline 5
+- *busbar 2* connects extremity of powerline 1 and origin of powerline 6
+
+But there is no direct connection between busbar 1 and busbar 2.
 
 Advanced usage and speed optimization
 --------------------------------------
 TODO this will be explained "soon".
 
+Detailed Documentation by class
+-------------------------------
+.. autoclass:: grid2op.Backend.EducPandaPowerBackend.EducPandaPowerBackend
+    :members:
+    :private-members:
+    :special-members:
+    :autosummary:
 
 .. include:: final.rst

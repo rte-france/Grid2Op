@@ -854,6 +854,10 @@ class GridObjects:
         :return: ``None``
         """
 
+        # check if we need to implement the position in substation
+        self._compute_sub_elements()
+        self._compute_sub_pos()
+
         self.load_pos_topo_vect = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos).astype(dt_int)
         self.gen_pos_topo_vect = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos).astype(dt_int)
         self.line_or_pos_topo_vect = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos).astype(dt_int)
@@ -930,25 +934,25 @@ class GridObjects:
                            "is greater than the number of substations of the grid, which is {}."
                            "".format(np.max(self.line_or_to_subid), self.n_sub))
 
-    def _check_names(self):
+    def _fill_names(self):
         if self.name_line is None:
             self.name_line = ['{}_{}_{}'.format(or_id, ex_id, l_id) for l_id, (or_id, ex_id) in
                               enumerate(zip(self.line_or_to_subid, self.line_ex_to_subid))]
-            self.name_line = np.ndarray(self.name_line)
+            self.name_line = np.array(self.name_line)
             warnings.warn("name_line is None so default line names have been assigned to your grid. "
                           "(FYI: Line names are used to make the correspondence between the chronics and the backend)"
                           "This might result in impossibility to load data."
                           "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
         if self.name_load is None:
             self.name_load = ["load_{}_{}".format(bus_id, load_id) for load_id, bus_id in enumerate(self.load_to_subid)]
-            self.name_load = np.ndarray(self.name_load)
+            self.name_load = np.array(self.name_load)
             warnings.warn("name_load is None so default load names have been assigned to your grid. "
                           "(FYI: load names are used to make the correspondence between the chronics and the backend)"
                           "This might result in impossibility to load data."
                           "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
         if self.name_gen is None:
             self.name_gen = ["gen_{}_{}".format(bus_id, gen_id) for gen_id, bus_id in enumerate(self.gen_to_subid)]
-            self.name_gen = np.ndarray(self.name_gen)
+            self.name_gen = np.array(self.name_gen)
             warnings.warn("name_gen is None so default generator names have been assigned to your grid. "
                           "(FYI: generator names are used to make the correspondence between the chronics and "
                           "the backend)"
@@ -956,12 +960,15 @@ class GridObjects:
                           "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
         if self.name_sub is None:
             self.name_sub = ["sub_{}".format(sub_id) for sub_id in range(self.n_sub)]
-            self.name_sub = np.ndarray(self.name_sub)
+            self.name_sub = np.array(self.name_sub)
             warnings.warn("name_sub is None so default substation names have been assigned to your grid. "
                           "(FYI: substation names are used to make the correspondence between the chronics and "
                           "the backend)"
                           "This might result in impossibility to load data."
                           "\n\tIf \"env.make\" properly worked, you can safely ignore this warning.")
+
+    def _check_names(self):
+        self._fill_names()
 
         if not isinstance(self.name_line, np.ndarray):
             try:
@@ -1040,6 +1047,101 @@ class GridObjects:
             except Exception as e:
                 raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array")
 
+    def _compute_sub_pos(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is used at the initialization of the environment.
+
+        Export to grid2op the position of each object in their substation
+        If not done by the user, we will order the objects the following way, for each substation:
+
+        - load (if any is connected to this substation) will be labeled first
+        - gen will be labeled just after
+        - then origin side of powerline
+        - then extremity side of powerline
+
+        you are free to chose any other ordering. It's a possible ordering we propose for the example, but it is
+        definitely not mandatory.
+
+        It supposes that the *_to_sub_id are properly set up
+        """
+
+        need_implement = False
+        if self.load_to_sub_pos is None:
+            need_implement = True
+        if self.gen_to_sub_pos is None:
+            if need_implement is False:
+                raise BackendError("You chose to implement \"load_to_sub_pos\" but not \"gen_to_sub_pos\". We cannot "
+                                   "work with that. Please either use the automatic setting, or implement all of "
+                                   "*_to_sub_pos vectors"
+                                   "")
+            need_implement = True
+        if self.line_or_to_sub_pos is None:
+            if need_implement is False:
+                raise BackendError("You chose to implement \"line_or_to_sub_pos\" but not \"load_to_sub_pos\""
+                                   "or \"gen_to_sub_pos\". We cannot "
+                                   "work with that. Please either use the automatic setting, or implement all of "
+                                   "*_to_sub_pos vectors"
+                                   "")
+            need_implement = True
+        if self.line_ex_to_sub_pos is None:
+            if need_implement is False:
+                raise BackendError("You chose to implement \"line_ex_to_sub_pos\" but not \"load_to_sub_pos\""
+                                   "or \"gen_to_sub_pos\" or \"line_or_to_sub_pos\". We cannot "
+                                   "work with that. Please either use the automatic setting, or implement all of "
+                                   "*_to_sub_pos vectors"
+                                   "")
+            need_implement = True
+
+        if not need_implement:
+            return
+
+        last_order_number = np.zeros(self.n_sub, dtype=dt_int)
+        self.load_to_sub_pos = np.zeros(self.n_load, dtype=dt_int)
+        for load_id, sub_id_connected in enumerate(self.load_to_subid):
+            self.load_to_sub_pos[load_id] = last_order_number[sub_id_connected]
+            last_order_number[sub_id_connected] += 1
+
+        self.gen_to_sub_pos = np.zeros(self.n_gen, dtype=dt_int)
+        for gen_id, sub_id_connected in enumerate(self.gen_to_subid):
+            self.gen_to_sub_pos[gen_id] = last_order_number[sub_id_connected]
+            last_order_number[sub_id_connected] += 1
+
+        self.line_or_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
+        for lor_id, sub_id_connected in enumerate(self.line_or_to_subid):
+            self.line_or_to_sub_pos[lor_id] = last_order_number[sub_id_connected]
+            last_order_number[sub_id_connected] += 1
+
+        self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
+        for lex_id, sub_id_connected in enumerate(self.line_ex_to_subid):
+            self.line_ex_to_sub_pos[lex_id] = last_order_number[sub_id_connected]
+            last_order_number[sub_id_connected] += 1
+
+    def _compute_sub_elements(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+
+        Computes "dim_topo" and "sub_info" class attributes
+
+        It supposes that *to_subid are initialized and that n_line, n_sub, n_load and n_gen are all positive
+        """
+        if self.dim_topo is None or self.dim_topo <= 0:
+            self.dim_topo = 2 * self.n_line + self.n_load + self.n_gen
+
+        if self.sub_info is None:
+            self.sub_info = np.zeros(self.n_sub, dtype=dt_int)
+            # NB the vectorized implementation do not work
+            for s_id in self.load_to_subid:
+                self.sub_info[s_id] += 1
+            for s_id in self.gen_to_subid:
+                self.sub_info[s_id] += 1
+            for s_id in self.line_or_to_subid:
+                self.sub_info[s_id] += 1
+            for s_id in self.line_ex_to_subid:
+                self.sub_info[s_id] += 1
+
     def assert_grid_correct(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -1074,6 +1176,7 @@ class GridObjects:
         if self.n_sub <= 0:
             raise EnvError("n_sub is negative. Powergrid is invalid: there are no substation")
 
+        self._compute_sub_elements()
         if not isinstance(self.sub_info, np.ndarray):
             try:
                 self.sub_info = np.array(self.sub_info)
@@ -1086,6 +1189,9 @@ class GridObjects:
 
         # for names
         self._check_names()
+
+        # compute the position in substation if not done already
+        self._compute_sub_pos()
 
         # test position in substation
         self._check_sub_pos()
