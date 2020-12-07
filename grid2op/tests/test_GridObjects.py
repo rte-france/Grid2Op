@@ -14,7 +14,6 @@ import numpy as np
 import warnings
 
 import grid2op
-from grid2op.Space import GridObjects
 from grid2op.Backend.EducPandaPowerBackend import EducPandaPowerBackend
 
 
@@ -24,7 +23,7 @@ class TestAuxFunctions(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.envref = grid2op.make("rte_case14_realistic",
                                        test=True,
-                                       _add_to_name="test_get_xxx_bus_ref")
+                                       _add_to_name="test_gridobjects_testauxfunctions")
         seed = 0
         self.nb_test = 10
         self.max_iter = 30
@@ -41,7 +40,9 @@ class TestAuxFunctions(unittest.TestCase):
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            backend = EducPandaPowerBackend()
+            MyClass = EducPandaPowerBackend.init_grid(self.envref.backend)
+            backend = MyClass()
+
         backend.n_sub = self.envref.backend.n_sub
         backend.n_load = self.envref.backend.n_load
         backend.n_gen = self.envref.backend.n_gen
@@ -50,6 +51,18 @@ class TestAuxFunctions(unittest.TestCase):
         backend.load_to_subid = self.envref.backend.load_to_subid
         backend.line_or_to_subid = self.envref.backend.line_or_to_subid
         backend.line_ex_to_subid = self.envref.backend.line_ex_to_subid
+
+        # delete the attributes we want to test
+        backend.sub_info = None
+        backend.load_to_sub_pos = None
+        backend.gen_to_sub_pos = None
+        backend.line_or_to_sub_pos = None
+        backend.line_ex_to_sub_pos = None
+        backend.line_ex_to_sub_pos = None
+        backend.load_pos_topo_vect = None
+        backend.gen_pos_topo_vect = None
+        backend.line_or_pos_topo_vect = None
+        backend.line_ex_pos_topo_vect = None
 
         # fill the _compute_sub_elements
         backend._compute_sub_elements()
