@@ -212,7 +212,9 @@ class EnvCache(object):
             return (None, None), (error_id, error_msg)
 
         try:
-            res = env.train_val_split(id_chron_val)
+            res = env.train_val_split(val_scen_id=id_chron_val,
+                                      add_for_train="train", add_for_val="val"
+                                      )
         except Exception as exc_:
             msg_ = f"Impossible to split the environment with error:\n {exc_}"
             return (None, None), (self.ERROR_ENV_PATH, msg_)

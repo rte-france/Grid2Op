@@ -8,8 +8,8 @@
 import os
 import copy
 import warnings
-import shutil
 import numpy as np
+import re
 
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
@@ -768,7 +768,7 @@ class Environment(BaseEnv):
         add_for_train: ``str``
             See :func:`Environment.train_val_split_random` for more information
 
-        add_for_val``str``
+        add_for_val: ``str``
             See :func:`Environment.train_val_split_random` for more information
 
         Returns
@@ -782,6 +782,13 @@ class Environment(BaseEnv):
 
         """
         # define all the locations
+        if re.match("^[a-zA-Z0-9]*$", add_for_train) is not None:
+            raise EnvError("The suffixes you can use for training data (add_for_train) "
+                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+        if re.match("^[a-zA-Z0-9]*$", add_for_val) is not None:
+            raise EnvError("The suffixes you can use for validation data (add_for_val)"
+                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+
         my_path = self.get_path_env()
         path_train = os.path.split(my_path)
         nm_train = f'{path_train[1]}_{add_for_train}'
@@ -914,6 +921,14 @@ class Environment(BaseEnv):
         to the training environment or the validation environment.
 
         """
+
+        if re.match("^[a-zA-Z0-9]*$", add_for_train) is not None:
+            raise EnvError("The suffixes you can use for training data (add_for_train) "
+                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+        if re.match("^[a-zA-Z0-9]*$", add_for_val) is not None:
+            raise EnvError("The suffixes you can use for validation data (add_for_val)"
+                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+
         my_path = self.get_path_env()
         chronics_path = os.path.join(my_path, self._chronics_folder_name())
         all_chron = sorted(os.listdir(chronics_path))

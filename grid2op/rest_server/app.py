@@ -9,6 +9,7 @@
 from flask import Flask
 from flask import make_response, jsonify
 from flask import request
+from collections.abc import Iterable
 
 from grid2op.rest_server.env_cache import EnvCache
 
@@ -366,8 +367,14 @@ def train_val_split(env_name, env_id):
         make_response(jsonify({'error': f"You need to provide with the id of the chronics that will go to "
                                         f"the validation set "}),
                       400)
+    chron_id_val = request.json["chron_id_val"]
+    if not isinstance(chron_id_val, Iterable):
+        make_response(jsonify({'error': f"\"chron_id_val\"  should be an iterable representing the name of the "
+                                        f"scenarios "
+                                        f"you want to place in the validation set."}),
+                      400)
     (nm_train, nm_val), (error_code, error_msg) = \
-        ENV_CACHE.train_val_split(env_name, env_id, request.json["chron_id_val"])
+        ENV_CACHE.train_val_split(env_name, env_id, chron_id_val)
     if error_code is not None:
         return make_response(jsonify({'error': error_msg, "error_code": error_code}), 400)
 
