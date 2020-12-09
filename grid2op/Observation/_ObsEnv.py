@@ -51,7 +51,10 @@ class _ObsEnv(BaseEnv):
                  helper_action_class,
                  helper_action_env,
                  other_rewards={}):
-        BaseEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
+        BaseEnv.__init__(self,
+                         copy.deepcopy(parameters),
+                         thermal_limit_a,
+                         other_rewards=other_rewards)
         self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
         self._obsClass = None
@@ -99,7 +102,7 @@ class _ObsEnv(BaseEnv):
                       actionClass,
                       observationClass,
                       rewardClass, legalActClass):
-        self._env_dc = self.parameters.FORECAST_DC
+        self._env_dc = self.parameters.ENV_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
         self._has_been_initialized()
@@ -123,6 +126,8 @@ class _ObsEnv(BaseEnv):
 
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
+        self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
+        self._has_been_initialized()
 
     def _do_nothing(self, x):
         return self._do_nothing_act

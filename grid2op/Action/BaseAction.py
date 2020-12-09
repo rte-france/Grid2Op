@@ -255,18 +255,16 @@ class BaseAction(GridObjects):
         self._modif_inj = False
         self._modif_set_bus = False
         self._modif_change_bus = False
-        self._modif_set_bus = False
-        self._modif_change_status = False
         self._modif_set_status = False
+        self._modif_change_status = False
         self._modif_redispatch = False
 
     def _reset_modified_flags(self):
         self._modif_inj = False
         self._modif_set_bus = False
         self._modif_change_bus = False
-        self._modif_set_bus = False
-        self._modif_change_status = False
         self._modif_set_status = False
+        self._modif_change_status = False
         self._modif_redispatch = False
 
     def _get_array_from_attr_name(self, attr_name):
@@ -284,6 +282,14 @@ class BaseAction(GridObjects):
                     raise Grid2OpException("Impossible to find the attribute \"{}\" "
                                            "into the BaseAction of type \"{}\"".format(attr_name, type(self)))
         return res
+
+    def _post_process_from_vect(self):
+        self._modif_inj = self._dict_inj != {}
+        self._modif_set_bus = np.any(self._set_topo_vect != 0)
+        self._modif_change_bus = np.any(self._change_bus_vect)
+        self._modif_set_status = np.any(self._set_line_status != 0)
+        self._modif_change_status = np.any(self._switch_line_status)
+        self._modif_redispatch = np.any(np.isfinite(self._redispatch) & (self._redispatch != 0.))
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -415,7 +421,8 @@ class BaseAction(GridObjects):
             return False
 
         # _grid is the same, now I test the the injections modifications are the same
-        same_action = self._dict_inj.keys() == other._dict_inj.keys()
+        same_action = self._modif_inj == other._modif_inj
+        same_action = same_action and self._dict_inj.keys() == other._dict_inj.keys()
         if not same_action:
             return False
 
@@ -425,19 +432,25 @@ class BaseAction(GridObjects):
                 return False
 
         # same line status
-        if not np.all(self._set_line_status == other._set_line_status):
+        if (self._modif_set_status != other._modif_set_status) or \
+                not np.all(self._set_line_status == other._set_line_status):
             return False
-        if not np.all(self._switch_line_status == other._switch_line_status):
+
+        if (self._modif_change_status != other._modif_change_status) or \
+            not np.all(self._switch_line_status == other._switch_line_status):
             return False
 
         # redispatching is same
-        if not np.all(self._redispatch == other._redispatch):
+        if (self._modif_redispatch != other._modif_redispatch) or \
+                not np.all(self._redispatch == other._redispatch):
             return False
 
         # same topology changes
-        if not np.all(self._set_topo_vect == other._set_topo_vect):
+        if (self._modif_set_bus != other._modif_set_bus) or \
+                not np.all(self._set_topo_vect == other._set_topo_vect):
             return False
-        if not np.all(self._change_bus_vect == other._change_bus_vect):
+        if (self._modif_change_bus != other._modif_change_bus) or \
+                not np.all(self._change_bus_vect == other._change_bus_vect):
             return False
 
         # shunts are the same
@@ -601,7 +614,8 @@ class BaseAction(GridObjects):
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Add an action to this one.
-        Adding an action to myself is equivalent to perform myself, and then perform other.
+        Adding an action to myself is equivalent to perform myself, and then perform other (but at the
+        same step)
 
         Parameters
         ----------
@@ -715,14 +729,37 @@ class BaseAction(GridObjects):
             shunt_bus[ok_ind] = val[ok_ind]
             self._assign_iadd_or_warn("shunt_bus", shunt_bus)
 
-        self._modif_change_bus |= other._modif_change_bus
-        self._modif_set_bus |= other._modif_set_bus
-        self._modif_change_status |= other._modif_change_status
-        self._modif_set_status |= other._modif_set_status
-        self._modif_inj |= other._modif_inj
-        self._modif_redispatch |= other._modif_redispatch
+        self._modif_change_bus = self._modif_change_bus or other._modif_change_bus
+        self._modif_set_bus = self._modif_set_bus or other._modif_set_bus
+        self._modif_change_status = self._modif_change_status or other._modif_change_status
+        self._modif_set_status = self._modif_set_status or other._modif_set_status
+        self._modif_inj = self._modif_inj or other._modif_inj
+        self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
 
         return self
+
+    def __add__(self, other):
+        """
+        Implements the `+` operator for the action using the `+=` definition.
+
+        This function is not commutative !
+
+        Notes
+        -------
+        Be careful if two actions do not share the same type (for example you want to add act1
+        of type :class:`TopologyAction` to act2 of type :class:`DispatchAction`) the results of
+        `act1 + act2` might differ from what you expect.
+
+        The result will always of the same type as act1. In the above case, it means that the `dispatch`
+        part of `act2`will be ignored (because it is ignored in :class:`TopologyAction`).
+
+        This is why we recommend to using this class directly with the :class:`PlayableAction` or
+        from action directly generated with `env.action_space()`
+        """
+        res = type(self)()
+        res += self
+        res += other
+        return res
 
     def __call__(self):
         """
@@ -889,7 +926,7 @@ class BaseAction(GridObjects):
                         end_ = int(beg_ + self.sub_info[s_id])
                         self._set_topo_vect[beg_:end_] = arr
                 if not handled:
-                    msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionnary it should have"
+                    msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionary it should have"
                     msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
                     msg += "\"lines_ex_id\" or \"substations_id\""
                     msg += " as keys. None where found. Current used keys are: "
@@ -1019,7 +1056,6 @@ class BaseAction(GridObjects):
 
     def _digest_change_status(self, dict_):
         if "change_line_status" in dict_:
-            self._modif_change_status = True
             # the action will switch the status of the powerline
             # for each element equal to 1 in this dict_["change_line_status"]
             # if the status is "disconnected" it will be transformed into "connected"
@@ -1029,18 +1065,22 @@ class BaseAction(GridObjects):
                 tmp = dict_["change_line_status"]
                 try:
                     tmp = np.array(tmp)
-                except:
+                except Exception as exc_:
+                    self._modif_change_status = False
                     raise AmbiguousAction(
                         "You ask to change the bus status, this can only be done if \"change_status\" can be casted "
                         "into a numpy ndarray")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
+                        self._modif_change_status = False
                         raise InvalidNumberOfLines(
                             "This \"change_line_status\" action acts on {} lines while there are {} in the _grid"
                             "".format(len(tmp), self.n_line))
                 elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
                     self._modif_change_status = False
                     raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
+
+                self._modif_change_status = True
                 self._switch_line_status[dict_["change_line_status"]] = True
 
     def __convert_and_redispatch(self, kk, val):

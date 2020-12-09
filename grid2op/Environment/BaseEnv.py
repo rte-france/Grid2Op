@@ -262,6 +262,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
         self._times_before_topology_actionable = None
         self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._nb_ts_reco = self.parameters.NB_TIMESTEP_RECONNECTION
 
         # for maintenance operation
         self._time_next_maintenance = None
@@ -351,6 +352,48 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.__is_init = False
         self.debug_dispatch = False
 
+        # to change the parameters
+        self.__new_param = None
+        self.__new_forecast_param = None
+
+    def change_parameters(self, new_parameters):
+        """
+        Allows to change the parameters of an environment.
+
+        This only affects the environment AFTER `env.reset()` has been called.
+
+        This only affects the environment and NOT the forecast.
+
+        Parameters
+        ----------
+        new_parameters: :class:`grid2op.Parameters.Parameters`
+            The new parameters you want the environment to get.
+
+        """
+        if not isinstance(new_parameters, Parameters):
+            raise EnvError("The new parameters \"new_parameters\" should be an instance of "
+                           "grid2op.Parameters.Parameters.")
+        self.__new_param = new_parameters
+
+    def change_forecast_parameters(self, new_parameters):
+        """
+        Allows to change the parameters of a "forecast environment".
+
+        This only affects the environment AFTER `env.reset()` has been called.
+
+        This only affects the "forecast env" and NOT the env itself.
+
+        Parameters
+        ----------
+        new_parameters: :class:`grid2op.Parameters.Parameters`
+            The new parameters you want the environment to get.
+
+        """
+        if not isinstance(new_parameters, Parameters):
+            raise EnvError("The new parameters \"new_parameters\" should be an instance of "
+                           "grid2op.Parameters.Parameters.")
+        self.__new_forecast_param = new_parameters
+
     def _create_opponent(self):
         if not self.__is_init:
             raise EnvError("Impossible to create an opponent with a non initialized environment!")
@@ -393,25 +436,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._backend_action_class = _BackendAction.init_grid(self.backend)
         self._backend_action = self._backend_action_class()
 
-        self._no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self._nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
-                                                    dtype=dt_int)
-        # store actions "cooldown"
-        self._times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
-
-        self._times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
-        self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
-
-        # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
-        self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
-
-        # hard overflow part
-        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self._env_dc = self.parameters.ENV_DC
-
         # initialize maintenance / hazards
         self._time_next_maintenance = np.full(self.n_line, -1, dtype=dt_int)
         self._duration_next_maintenance = np.zeros(shape=(self.n_line,), dtype=dt_int)
@@ -424,9 +448,45 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_downtime = np.zeros(self.n_gen, dtype=dt_int)
         self._gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
         self._gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
+        self._nb_timestep_overflow_allowed = np.ones(shape=self.n_line, dtype=dt_int)
+        self._max_timestep_line_status_deactivated = np.zeros(shape=self.n_line, dtype=dt_int)
+
+        self._times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self._times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
+        self._nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
+                                                     fill_value=self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
+                                                     dtype=dt_int)
+        self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
+
+        # update the parameters
+        self.__new_param = self.parameters  # small hack to have it working as expected
+        self._update_parameters()
 
         self._reset_redispatching()
         self.__is_init = True
+
+    def _update_parameters(self):
+        """update value for the new parameters"""
+        self.parameters = self.__new_param
+        self._ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
+        self._forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+
+        # type of power flow to play
+        # if True, then it will not disconnect lines above their thermal limits
+        self._no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
+        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
+
+        # store actions "cooldown"
+        self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
+        self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._nb_ts_reco = self.parameters.NB_TIMESTEP_RECONNECTION
+
+        self._nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
+
+        # hard overflow part
+        self._env_dc = self.parameters.ENV_DC
+
+        self.__new_param = None
 
     def reset(self):
         """
@@ -438,6 +498,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # so don't change the setting of current_obs = None unless you are willing to change that
         self.current_obs = None
         self._line_status[:] = True
+        if self.__new_param is not None:
+            self._update_parameters()  # reset __new_param to None too
+        if self.__new_forecast_param is not None:
+            self._helper_observation.obs_env.change_parameters(self.__new_forecast_param)
+            self.__new_forecast_param = False
 
     def seed(self, seed=None):
         """
@@ -1332,7 +1397,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # one timestep passed, i can maybe reconnect some lines
                     self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
                     # update the vector for lines that have been disconnected
-                    self._times_before_line_status_actionable[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                    self._times_before_line_status_actionable[disc_lines] = int(self._nb_ts_reco)
                     self._update_time_reconnection_hazards_maintenance()
 
                     # for the powerline that are on overflow, increase this time step
@@ -1400,7 +1465,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_illegal or is_illegal_redisp or is_illegal_reco,
                                                              is_ambiguous)
         infos["rewards"] = other_reward
-        if has_error:
+        if has_error and self.current_obs is not None:
             # update the observation so when it's plotted everything is "down"
             # generators information
             self.current_obs.set_game_over()
@@ -1612,6 +1677,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         check the state of the environment after the call to this method if you use it (see the "Examples" paragaph)
 
         """
+        nb_timestep = int(nb_timestep)
+
         # Go to the timestep requested minus one
         nb_timestep = max(1, nb_timestep - 1)
         self.chronics_handler.fast_forward(nb_timestep)

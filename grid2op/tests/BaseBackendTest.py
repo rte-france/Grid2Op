@@ -41,7 +41,6 @@ except ImportError:
             real_ = math.comb(i,j)
             assert me_ == real_, "{}, {}".format(i,j)
     """
-import pdb
 import warnings
 
 import grid2op
@@ -1878,7 +1877,6 @@ class BaseIssuesTest(MakeBackend):
 
     def test_issue_copyenv(self):
         # https://github.com/BDonnot/lightsim2grid/issues/10
-        from grid2op import make
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

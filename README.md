@@ -178,6 +178,8 @@ This will create a "documentation" subdirectory and the main entry point of the 
 It is recommended to build this documentation locally, for convenience.
 For example, the  "getting started" notebooks referenced some pages of the help.
 
+<!-- sphinx-build -b html docs documentation-->
+
 # Run the tests
 Provided that Grid2Op is installed *from source*:
 

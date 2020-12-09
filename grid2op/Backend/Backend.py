@@ -276,7 +276,7 @@ class Backend(GridObjects, ABC):
         :param is_dc: is the powerflow run in DC or in AC
         :type is_dc: :class:`bool`
 
-        :return: True if it has converged, or false otherwise. In case of non convergence, no flows can be inspected on
+        :return: ``True`` if it has converged, or false otherwise. In case of non convergence, no flows can be inspected on
           the _grid.
         :rtype: :class:`bool`
         """
@@ -515,12 +515,15 @@ class Backend(GridObjects, ABC):
 
         For each elements, it gives on which bus it is connected in its substation.
 
-        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the load of id 1 is connected to the second bus of its substation.
+        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
+        load of id 1 is connected to the second bus of its substation.
 
-        You can check which object of the powerlines is represented by each component of this vector by looking at the `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
+        You can check which object of the powerlines is represented by each component of this vector by looking at the
+        `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
         For each elements it gives its position in this vector.
 
-        As any function of the backend, it is not advised to use it directly. You can get this information in the :attr:`grid2op.Observation.Observation.topo_vect` instead.
+        As any function of the backend, it is not advised to use it directly. You can get this information in the
+        :attr:`grid2op.Observation.Observation.topo_vect` instead.
 
         Returns
         --------
@@ -683,10 +686,12 @@ class Backend(GridObjects, ABC):
         Disconnect the line of id "id\\_ " in the backend.
         In this scenario, the *id\\_* of a powerline is its position (counted starting from O) in the vector returned by
         :func:`Backend.get_line_status` or :func:`Backend.get_line_flow` for example.
-        For example, if the current flow on powerline "l1" is the 42nd element of the vector returned by :func:`Backend.get_line_flow`
+        For example, if the current flow on powerline "l1" is the 42nd element of the vector returned by
+        :func:`Backend.get_line_flow`
         then :func:`Backend._disconnect_line(42)` will disconnect this same powerline "l1".
 
-        For assumption about the order of the powerline flows return in this vector, see the help of the :func:`Backend.get_line_status` method.
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
 
         :param id_: id of the powerline to be disconnected
         :type id_: int
@@ -702,7 +707,8 @@ class Backend(GridObjects, ABC):
         Computes a power flow on the _grid and raises an exception in case of diverging power flow, or any other
         exception that can be thrown by the backend.
 
-        :param is_dc: mode of the power flow. If *is_dc* is True, then the powerlow is run using the DC approximation otherwise it uses the AC powerflow.
+        :param is_dc: mode of the power flow. If *is_dc* is True, then the powerlow is run using the DC
+                      approximation otherwise it uses the AC powerflow.
         :type is_dc: bool
 
         Raises
@@ -895,6 +901,8 @@ class Backend(GridObjects, ABC):
             Name of the dataframe containing the redispatching data
 
         """
+        self._fill_names()
+
         # for redispatching
         fullpath = os.path.join(path, name)
         if not os.path.exists(fullpath):

@@ -3,31 +3,46 @@ Change Log
 
 [TODO]
 --------------------
+- [???] add multi agent
+- [???] model curtailment
+- [???] better logging
+- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
+  stuff to break)
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
 - [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
   flows, and nodes the active production / consumption) and "reactive flow graph"
-- [???] better logging
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
   it in parallel and transfer the resulting data.
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
-- [???] model curtailment
-- [???] model multi agent
 - [???] model agent acting at different time frame
 - [???] model delay in observations
 - [???] model delay in action
-- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than
+- [???] model dams in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
 
 [1.3.2] - 2020-11-xx
 ----------------------
+- [CHANGED] The parameters `FORECAST_DC` is now deprecated. Please use
+  `change_forecast_parameters(new_param)` with `new_param.ENV_DC=...` instead.
 - [FIXED] and test the method `backend.get_action_to_set`
 - [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
+- [FIXED] `PowerLineSet` and `PowerSetAndDispatch` action were not properly converted to vector.
 - [ADDED] a method to set the state of a backend given a complete observation.
+- [ADDED] a `utils` module to store the data of some environment and be able to compute the scores (as in the neurips
+  l2rpn competitions). This module might move at a different place in the future
+- [ADDED] a function to "split" an environment into train / validation using `os.symlink`
+- [ADDED] the implementation of `+` operator for action (based on previously available `+=`)
+- [ADDED] A more detailed documentation on the representation of the topology and how to create a backend
+- [ADDED] A easier way to set up the topology in backend (eg. `get_loads_bus`)
+- [ADDED] A easier way to set up the backend, with automatic computation of some attributes (eg. `*_to_sub_pos`,
+  `sub_info`, `dim_topo`) if needed.
+- [ADDED] A function to change the `parameters` used by the environment (or `obs_env`) "on the fly" (has only impact
+  AFTER `env.reset` is called) (see `change_parameters` and `change_forecast_parameters`)
 - [IMPROVED] `PandaPowerBackend` now should take less time to when `reset`.
 - [IMPROVED] some speed up in the grid2op computation
 

@@ -26,6 +26,7 @@ class PowerlineSetAndDispatchAction(PlayableAction):
 
     attr_list_vect = [
         "_set_line_status",
+        "_set_topo_vect",
         "_redispatch"
     ]
 
