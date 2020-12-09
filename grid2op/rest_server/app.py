@@ -6,9 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import os
 from flask import Flask
 from flask import make_response, jsonify
 from flask import request
+from flask_wtf.csrf import CSRFProtect
 from collections.abc import Iterable
 
 from grid2op.rest_server.env_cache import EnvCache
@@ -16,6 +18,13 @@ from grid2op.rest_server.env_cache import EnvCache
 ENV_CACHE = EnvCache()
 
 app = Flask(__name__)
+# TODO for improved security, not sure it's needed
+if False:
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+    # set the env variable this way before starting : `set WTF_CSRF_SECRET_KEY=...`
+    SECRET_KEY = os.urandom(32)
+    app.config['SECRET_KEY'] = SECRET_KEY
 
 
 @app.route('/')

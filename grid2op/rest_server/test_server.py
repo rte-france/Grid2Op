@@ -46,15 +46,15 @@ if __name__ == "__main__":
     # create the real environment
     real_env = make(env_name, backend=bkclass())
     real_obs = real_env.reset()
+    client = requests.session()
 
     print("Test \"make\"")
     # test the "make" endpoint of the API
-    resp_make = requests.get(f"{URL}/make/{env_name}")
+    resp_make = client.get(f"{URL}/make/{env_name}")
 
     # check that the creation is working
     if resp_make.status_code != 200:
         raise RuntimeError("Environment not created response not 200")
-
     resp_make_json = resp_make.json()
     if "id" not in resp_make_json:
         raise RuntimeError("Environment not created (due to id not in json)")
@@ -77,7 +77,9 @@ if __name__ == "__main__":
 
     print("Test \"seed\"")
     seed_used = 0
-    resp_seed = requests.post(f"{URL}/seed/{env_name}/{id_env}", json={"seed": seed_used})
+    resp_seed = client.post(f"{URL}/seed/{env_name}/{id_env}", json={"seed": seed_used},
+                            # headers={"X-CSRFToken": csrf_token}
+                            )
     if resp_seed.status_code != 200:
         raise RuntimeError("Environment not seeded response not 200")
     resp_seed_json = resp_seed.json()
@@ -88,7 +90,7 @@ if __name__ == "__main__":
     assert_rec_equal(res_seed, resp_seed_json["seeds"])
 
     print("Test \"reset\"")
-    resp_reset = requests.get(f"{URL}/reset/{env_name}/{id_env}")
+    resp_reset = client.get(f"{URL}/reset/{env_name}/{id_env}")
     if resp_reset.status_code != 200:
         raise RuntimeError("Environment not reset response not 200")
     resp_reset_json = resp_reset.json()
@@ -105,14 +107,14 @@ if __name__ == "__main__":
     assert are_same, "obs received and obs computed are not the same"
 
     print("Test \"set_id\"")
-    resp_set_id = requests.post(f"{URL}/set_id/{env_name}/{id_env}", json={"id": 0})
+    resp_set_id = client.post(f"{URL}/set_id/{env_name}/{id_env}", json={"id": 0})
     if resp_set_id.status_code != 200:
         raise RuntimeError("set_id not working: response is not 200")
     resp_set_id_json = resp_set_id.json()
     if "info" not in resp_set_id_json:
         raise RuntimeError("set_id not working: info is not in response")
 
-    resp_reset = requests.get(f"{URL}/reset/{env_name}/{id_env}")
+    resp_reset = client.get(f"{URL}/reset/{env_name}/{id_env}")
     if resp_seed.status_code != 200:
         raise RuntimeError("Environment not reset response not 200")
     resp_reset_json = resp_reset.json()
@@ -130,7 +132,7 @@ if __name__ == "__main__":
 
     print("Test \"set_thermal_limit\"")
     th_lim = real_env.get_thermal_limit().tolist()
-    resp_set_thermal_limit = requests.post(f"{URL}/set_thermal_limit/{env_name}/{id_env}",
+    resp_set_thermal_limit = client.post(f"{URL}/set_thermal_limit/{env_name}/{id_env}",
                                            json={"thermal_limits": th_lim})
     if resp_set_thermal_limit.status_code != 200:
         raise RuntimeError("set_thermal_limit not working: response is not 200")
@@ -139,7 +141,7 @@ if __name__ == "__main__":
         raise RuntimeError("set_thermal_limit not working: info is not in response")
 
     print("Test \"get_thermal_limit\"")
-    resp_get_thermal_limit = requests.get(f"{URL}/get_thermal_limit/{env_name}/{id_env}")
+    resp_get_thermal_limit = client.get(f"{URL}/get_thermal_limit/{env_name}/{id_env}")
     if resp_get_thermal_limit.status_code != 200:
         raise RuntimeError("get_thermal_limit not working: response is not 200")
     resp_get_thermal_limit_json = resp_get_thermal_limit.json()
@@ -148,7 +150,7 @@ if __name__ == "__main__":
     assert resp_get_thermal_limit_json["thermal_limit"] == th_lim, "get_thermal_limit not working: wrong thermal limit"
 
     print("Test \"get_path_env\"")
-    resp_get_path_env = requests.get(f"{URL}/get_path_env/{env_name}/{id_env}")
+    resp_get_path_env = client.get(f"{URL}/get_path_env/{env_name}/{id_env}")
     if resp_get_path_env.status_code != 200:
         raise RuntimeError("get_path_env not working: response is not 200")
     resp_get_path_env_json = resp_get_path_env.json()
@@ -158,7 +160,7 @@ if __name__ == "__main__":
 
     print("Test \"fast_forward_chronics\"")
     nb_step_forward = 10
-    resp_fast_forward_chronics = requests.post(f"{URL}/fast_forward_chronics/{env_name}/{id_env}",
+    resp_fast_forward_chronics = client.post(f"{URL}/fast_forward_chronics/{env_name}/{id_env}",
                                                json={"nb_step": nb_step_forward})
     if resp_fast_forward_chronics.status_code != 200:
         raise RuntimeError("set_id not working: response is not 200")
@@ -168,7 +170,7 @@ if __name__ == "__main__":
     act = real_env.action_space()
     real_env.fast_forward_chronics(nb_step_forward)
     obs, reward, done, info = real_env.step(act)
-    resp_step = requests.post(f"{URL}/step/{env_name}/{id_env}", json={"action": act.to_json()})
+    resp_step = client.post(f"{URL}/step/{env_name}/{id_env}", json={"action": act.to_json()})
     # check obs are equals
     reic_obs_json = resp_step.json()["obs"]
     reic_obs = copy.deepcopy(obs)
@@ -180,7 +182,7 @@ if __name__ == "__main__":
 
     print("Test \"step\"")
     real_obs = real_env.reset()
-    resp_reset = requests.get(f"{URL}/reset/{env_name}/{id_env}")
+    resp_reset = client.get(f"{URL}/reset/{env_name}/{id_env}")
     if resp_seed.status_code != 200:
         raise RuntimeError("Environment not reset response not 200, fail just before assessing step")
 
@@ -189,7 +191,7 @@ if __name__ == "__main__":
     while True:
         act = real_env.action_space()
         obs, reward, done, info = real_env.step(act)
-        resp_step = requests.post(f"{URL}/step/{env_name}/{id_env}", json={"action": act.to_json()})
+        resp_step = client.post(f"{URL}/step/{env_name}/{id_env}", json={"action": act.to_json()})
         if resp_step.status_code != 200:
             raise RuntimeError("Step not successful not 200")
         resp_step_json = resp_step.json()
@@ -215,7 +217,7 @@ if __name__ == "__main__":
         nb_step += 1
 
     print("Test \"close\"")
-    resp_close = requests.get(f"{URL}/close/{env_name}/{id_env}")
+    resp_close = client.get(f"{URL}/close/{env_name}/{id_env}")
     if resp_close.status_code != 200:
         raise RuntimeError("close not working: response is not 200")
     resp_close_json = resp_close.json()
@@ -243,10 +245,10 @@ if __name__ == "__main__":
             pbar.update(1)
 
     print("Time on the remote env:")
-    resp_make_perf = requests.get(f"{URL}/make/{env_name}")
+    resp_make_perf = client.get(f"{URL}/make/{env_name}")
     id_env_perf = resp_make_perf.json()["id"]
-    _ = requests.post(f"{URL}/seed/{env_name}/{id_env_perf}", json={"seed": seed_used})
-    _ = requests.get(f"{URL}/reset/{env_name}/{id_env_perf}")
+    _ = client.post(f"{URL}/seed/{env_name}/{id_env_perf}", json={"seed": seed_used})
+    _ = client.get(f"{URL}/reset/{env_name}/{id_env_perf}")
     time_for_step_api = 0
     time_for_all_api = 0
     nb_step_api = 0
@@ -254,7 +256,7 @@ if __name__ == "__main__":
         while True:
             act = real_env.action_space()
             beg_step = time.time()
-            resp_step = requests.post(f"{URL}/step/{env_name}/{id_env_perf}", json={"action": act.to_json()})
+            resp_step = client.post(f"{URL}/step/{env_name}/{id_env_perf}", json={"action": act.to_json()})
             time_for_step_api += time.time() - beg_step
             resp_step_json = resp_step.json()
             reic_obs_json = resp_step_json["obs"]
