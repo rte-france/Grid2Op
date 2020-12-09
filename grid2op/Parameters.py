@@ -62,6 +62,7 @@ class Parameters:
         "alternative current" powerflow. It is also less precise. The default is ``False``
 
     FORECAST_DC: ``bool``
+        DEPRECATED. Please use the "change_forecast_param" function of the environment
         Whether to use the direct current approximation in the :func:`grid2op.Observation.BaseObservation.simulate`
         method. Default is ``False``. Setting :attr:`FORECAST_DC` to `True` can speed up the computation of the
         `simulate` function, but will make the results less accurate.
@@ -111,7 +112,7 @@ class Parameters:
         self.ENV_DC = False
 
         # same as above, but for the forecast states
-        self.FORECAST_DC = False
+        self.FORECAST_DC = False  # DEPRECATED use "change_forecast_parameters(new_param)" with "new_param.ENV_DC=..."
 
         # maximum number of substations that can be change in one action
         self.MAX_SUB_CHANGED = dt_int(1)
@@ -188,7 +189,12 @@ class Parameters:
             self.ENV_DC = Parameters._isok_txt(dict_["ENV_DC"])
 
         if "FORECAST_DC" in dict_:
-            self.FORECAST_DC = Parameters._isok_txt(dict_["FORECAST_DC"])
+            new_val = Parameters._isok_txt(dict_["FORECAST_DC"])
+            if new_val != self.FORECAST_DC:
+                warnings.warn("The FORECAST_DC attributes is deprecated. Please change the parameters of the "
+                              "\"forecast\" backend with \"env.change_forecast_parameters(new_param)\" function "
+                              "with \"new_param.ENV_DC=...\" ")
+            self.FORECAST_DC = new_val
 
         if "MAX_SUB_CHANGED" in dict_:
             self.MAX_SUB_CHANGED = dt_int(dict_["MAX_SUB_CHANGED"])

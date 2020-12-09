@@ -11,7 +11,7 @@ import warnings
 import shutil
 import numpy as np
 
-from grid2op.dtypes import dt_float, dt_bool
+from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
 from grid2op.Observation import CompleteObservation, ObservationSpace, BaseObservation

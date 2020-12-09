@@ -27,6 +27,8 @@ Change Log
 
 [1.3.2] - 2020-11-xx
 ----------------------
+- [CHANGED] The parameters `FORECAST_DC` is now deprecated. Please use
+  `change_forecast_parameters(new_param)` with `new_param.ENV_DC=...` instead.
 - [FIXED] and test the method `backend.get_action_to_set`
 - [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
 - [FIXED] `PowerLineSet` and `PowerSetAndDispatch` action were not properly converted to vector.
@@ -39,6 +41,8 @@ Change Log
 - [ADDED] A easier way to set up the topology in backend (eg. `get_loads_bus`)
 - [ADDED] A easier way to set up the backend, with automatic computation of some attributes (eg. `*_to_sub_pos`,
   `sub_info`, `dim_topo`) if needed.
+- [ADDED] A function to change the `parameters` used by the environment (or `obs_env`) "on the fly" (has only impact
+  AFTER `env.reset` is called) (see `change_parameters` and `change_forecast_parameters`)
 - [IMPROVED] `PandaPowerBackend` now should take less time to when `reset`.
 - [IMPROVED] some speed up in the grid2op computation
 
