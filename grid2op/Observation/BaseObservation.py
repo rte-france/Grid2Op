@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
 import datetime
+from scipy.sparse import csr_matrix
 import numpy as np
 from abc import abstractmethod
 
@@ -832,7 +833,7 @@ class BaseObservation(GridObjects):
 
         return self._connectivity_matrix_
 
-    def bus_connectivity_matrix(self):
+    def bus_connectivity_matrix(self, as_csr_matrix=False):
         """
         If we denote by `nb_bus` the total number bus of the powergrid (you can think of a "bus" being
         a "node" if you represent a powergrid as a graph [mathematical object, not a plot] with the lines
@@ -854,7 +855,9 @@ class BaseObservation(GridObjects):
 
         For now this matrix is stored as a dense matrix. Support for sparse matrix will be added in the future.
         """
-        if self._bus_connectivity_matrix_ is None:
+        if self._bus_connectivity_matrix_ is None or \
+                (isinstance(self._bus_connectivity_matrix_, csr_matrix) and not as_csr_matrix) or \
+                ((not isinstance(self._bus_connectivity_matrix_, csr_matrix)) and as_csr_matrix ):
             bus_or = self.topo_vect[self.line_or_pos_topo_vect]
             bus_ex = self.topo_vect[self.line_ex_pos_topo_vect]
             connected = (bus_or > 0) & (bus_ex > 0)
@@ -868,12 +871,19 @@ class BaseObservation(GridObjects):
             all_indx = np.arange(nb_bus)
             tmplate = np.arange(np.max(unique_bus)+1)
             tmplate[unique_bus] = all_indx
-            self._bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
-            self._bus_connectivity_matrix_[tmplate[bus_or], tmplate[bus_ex]] = 1.0
-            self._bus_connectivity_matrix_[tmplate[bus_ex], tmplate[bus_or]] = 1.0
-            self._bus_connectivity_matrix_[all_indx, all_indx] = 1.0
+            if not as_csr_matrix:
+                self._bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
+                self._bus_connectivity_matrix_[tmplate[bus_or], tmplate[bus_ex]] = 1.0
+                self._bus_connectivity_matrix_[tmplate[bus_ex], tmplate[bus_or]] = 1.0
+                self._bus_connectivity_matrix_[all_indx, all_indx] = 1.0
+            else:
+                data = np.ones(2*bus_ex.shape[0] + nb_bus, dtype=dt_float)
+                row_ind = np.concatenate((all_indx, tmplate[bus_or], tmplate[bus_ex]))
+                col_ind = np.concatenate((all_indx, tmplate[bus_ex], tmplate[bus_or]))
+                self._bus_connectivity_matrix_ = csr_matrix((data, (row_ind, col_ind)),
+                                                            shape=(nb_bus, nb_bus),
+                                                            dtype=dt_float)
         return self._bus_connectivity_matrix_
-
 
     def get_forecasted_inj(self, time_step=1):
         """
