@@ -242,7 +242,8 @@ class TestRunner(HelperTests):
                 pdb.set_trace()
 
     def test_backward_compatibility(self):
-        backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0"]
+        backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0", "1.3.1",
+                                 "1.4.0"]
         curr_version = "current_version"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
