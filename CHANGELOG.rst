@@ -19,8 +19,6 @@ Change Log
   and have grid2op convert it to MW / step
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
-  flows, and nodes the active production / consumption) and "reactive flow graph"
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
@@ -31,6 +29,8 @@ Change Log
 [1.4.1] - 202x-yy-zz
 -------------------------
 - [ADDED] Support for sparse matrices in `obs.bus_connectivity_matrix`
+- [ADDED] In the observation, it is now possibile to retrieve the "active flow graph" (ie graph with edges having active
+  flows, and nodes the active production / consumption) and "reactive flow graph" (see `flow_bus_matrix`)
 
 [1.4.0] - 2020-12-10
 ----------------------
