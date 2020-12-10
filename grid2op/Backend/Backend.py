@@ -661,7 +661,7 @@ class Backend(GridObjects, ABC):
         action.update({"set_line_status": [(id_, -1)]})
         bk_act = self.my_bk_act_class()
         bk_act += action
-        self.apply_action(action)
+        self.apply_action(bk_act)
 
     def _runpf_with_diverging_exception(self, is_dc):
         """
@@ -684,7 +684,7 @@ class Backend(GridObjects, ABC):
         conv = False
         try:
             conv = self.runpf(is_dc=is_dc)  # run powerflow
-        except:
+        except Exception as exc_:
             pass
 
         res = None
@@ -860,6 +860,8 @@ class Backend(GridObjects, ABC):
 
         This method will load everything needed for the redispatching and unit commitment problem.
 
+        We don't recommend at all to modify this function.
+
         Parameters
         ----------
         path: ``str``
@@ -948,6 +950,21 @@ class Backend(GridObjects, ABC):
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
 
     def load_grid_layout(self, path, name='grid_layout.json'):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        We don't recommend at all to modify this function.
+
+        This function loads the layout (eg the coordinates of each substation) for the powergrid.
+
+        Parameters
+        ----------
+        path: ``str``
+            TODO
+        name: ``str``
+            TODO
+
+        """
         full_fn = os.path.join(path, name)
         if not os.path.exists(full_fn):
             return Exception("File {} does not exist".format(full_fn))
