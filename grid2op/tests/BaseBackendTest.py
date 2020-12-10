@@ -41,7 +41,6 @@ except ImportError:
             real_ = math.comb(i,j)
             assert me_ == real_, "{}, {}".format(i,j)
     """
-import pdb
 import warnings
 
 import grid2op
@@ -827,6 +826,221 @@ class BaseTestTopoAction(MakeBackend):
                                        70.02629553, 185.67687123, 706.77680037, 1155.45754617])
         assert self.compare_vect(after_amps_flow, after_amps_flow_th)
         self._check_kirchoff()
+
+    def _aux_test_back_orig(self, act_set, prod_p, load_p, p_or, sh_q):
+        """function used for test_get_action_to_set"""
+        bk_act = self.backend.my_bk_act_class()
+        bk_act += act_set
+        self.backend.apply_action(bk_act)
+        self._aux_aux_check_if_matches(prod_p, load_p, p_or, sh_q)
+
+    def _aux_aux_check_if_matches(self, prod_p, load_p, p_or, sh_q):
+        self.backend.runpf()
+        prod_p3, prod_q3, prod_v3 = self.backend.generators_info()
+        load_p3, load_q3, load_v3 = self.backend.loads_info()
+        p_or3, *_ = self.backend.lines_or_info()
+        if self.backend.shunts_data_available:
+            _, sh_q3, *_ = self.backend.shunt_info()
+        assert np.all(np.abs(prod_p3 - prod_p) <= self.tol_one), "wrong generators value"
+        assert np.all(np.abs(load_p3 - load_p) <= self.tol_one), "wrong load value"
+        assert np.all(np.abs(p_or3 - p_or) <= self.tol_one), "wrong value for active flow origin"
+        assert np.all(np.abs(p_or3 - p_or) <= self.tol_one), "wrong value for active flow origin"
+        if self.backend.shunts_data_available:
+            assert np.all(np.abs(sh_q3 - sh_q) <= self.tol_one), "wrong value for shunt readtive"
+
+    def test_get_action_to_set(self):
+        """this tests the "get_action_to_set" method"""
+        self.skip_if_needed()
+        self.backend.runpf()
+        self.backend.assert_grid_correct_after_powerflow()
+
+        self.backend.runpf()
+        act = self.backend.get_action_to_set()
+
+        prod_p, prod_q, prod_v = self.backend.generators_info()
+        load_p, load_q, load_v = self.backend.loads_info()
+        p_or, *_ = self.backend.lines_or_info()
+
+        if self.backend.shunts_data_available:
+            _, sh_q, *_ = self.backend.shunt_info()
+        else:
+            sh_q = None
+
+        # modify its state for injection
+        act2 = copy.deepcopy(act)
+        act2._dict_inj["prod_p"] *= 1.5
+        act2._dict_inj["load_p"] *= 1.5
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
+        load_p2, load_q2, load_v2 = self.backend.loads_info()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
+        assert np.any(np.abs(load_p2 - load_p) >= self.tol_one)
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for injection: {}".format(exc_))
+
+        # disconnect a powerline
+        act2 = copy.deepcopy(act)
+        l_id = 0
+        act2._set_line_status[l_id] = -1
+        act2._set_topo_vect[act2.line_or_pos_topo_vect[l_id]] = -1
+        act2._set_topo_vect[act2.line_ex_pos_topo_vect[l_id]] = -1
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.abs(p_or2[l_id]) <= self.tol_one, "line has not been disconnected"
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for line_status: {}".format(exc_))
+
+        # change topology
+        act2 = copy.deepcopy(act)
+        act2._set_topo_vect[6:9] = 2
+        act2._set_topo_vect[6:9] = 2
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for topo: {}".format(exc_))
+
+        # change shunt
+        if self.backend.shunts_data_available:
+            act2 = copy.deepcopy(act)
+            act2.shunt_q[:] = -25.
+            bk_act2 = self.backend.my_bk_act_class()
+            bk_act2 += act2
+            self.backend.apply_action(bk_act2)
+            self.backend.runpf()
+            prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
+            _, sh_q2, *_ = self.backend.shunt_info()
+            p_or2, *_ = self.backend.lines_or_info()
+            assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
+            assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+            assert np.any(np.abs(sh_q2 - sh_q) >= self.tol_one)
+            # check i can put it back to orig state
+            try:
+                self._aux_test_back_orig(act, prod_p, load_p, p_or, sh_q)
+            except AssertionError as exc_:
+                raise AssertionError("Error for shunt: {}".format(exc_))
+
+    def _aux_test_back_orig_2(self, obs, prod_p, load_p, p_or, sh_q):
+        self.backend.update_from_obs(obs)
+        self._aux_aux_check_if_matches(prod_p, load_p, p_or, sh_q)
+
+    def test_update_from_obs(self):
+        """this tests the "update_from_obs" method"""
+        self.skip_if_needed()
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make(test=True, backend=self.make_backend(), _add_to_name="test_update_from_obs")
+
+        self.backend.close()
+        self.backend = env.backend
+        act = self.backend.get_action_to_set()
+        obs = env.reset()
+
+        # store the initial value that should be there when i reapply the "update_from_obs"
+        prod_p, prod_q, prod_v = self.backend.generators_info()
+        load_p, load_q, load_v = self.backend.loads_info()
+        p_or, *_ = self.backend.lines_or_info()
+        if self.backend.shunts_data_available:
+            _, sh_q, *_ = self.backend.shunt_info()
+        else:
+            sh_q = None
+
+        # modify its state for injection
+        act2 = copy.deepcopy(act)
+        act2._dict_inj["prod_p"] *= 1.5
+        act2._dict_inj["load_p"] *= 1.5
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
+        load_p2, load_q2, load_v2 = self.backend.loads_info()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
+        assert np.any(np.abs(load_p2 - load_p) >= self.tol_one)
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig_2(obs, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for injection: {}".format(exc_))
+
+        # disconnect a powerline
+        act2 = copy.deepcopy(act)
+        l_id = 0
+        act2._set_line_status[l_id] = -1
+        act2._set_topo_vect[act2.line_or_pos_topo_vect[l_id]] = -1
+        act2._set_topo_vect[act2.line_ex_pos_topo_vect[l_id]] = -1
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.abs(p_or2[l_id]) <= self.tol_one, "line has not been disconnected"
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig_2(obs, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for line_status: {}".format(exc_))
+
+        # change topology
+        act2 = copy.deepcopy(act)
+        act2._set_topo_vect[6:9] = 2
+        act2._set_topo_vect[6:9] = 2
+        bk_act2 = self.backend.my_bk_act_class()
+        bk_act2 += act2
+        self.backend.apply_action(bk_act2)
+        self.backend.runpf()
+        p_or2, *_ = self.backend.lines_or_info()
+        assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+        # check i can put it back to orig state
+        try:
+            self._aux_test_back_orig_2(obs, prod_p, load_p, p_or, sh_q)
+        except AssertionError as exc_:
+            raise AssertionError("Error for topo: {}".format(exc_))
+
+        # change shunt
+        if self.backend.shunts_data_available:
+            act2 = copy.deepcopy(act)
+            act2.shunt_q[:] = -25.
+            bk_act2 = self.backend.my_bk_act_class()
+            bk_act2 += act2
+            self.backend.apply_action(bk_act2)
+            self.backend.runpf()
+            prod_p2, prod_q2, prod_v2 = self.backend.generators_info()
+            _, sh_q2, *_ = self.backend.shunt_info()
+            p_or2, *_ = self.backend.lines_or_info()
+            assert np.any(np.abs(prod_p2 - prod_p) >= self.tol_one)
+            assert np.any(np.abs(p_or2 - p_or) >= self.tol_one)
+            assert np.any(np.abs(sh_q2 - sh_q) >= self.tol_one)
+            # check i can put it back to orig state
+            try:
+                self._aux_test_back_orig_2(obs, prod_p, load_p, p_or, sh_q)
+            except AssertionError as exc_:
+                raise AssertionError("Error for shunt: {}".format(exc_))
 
 
 class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
@@ -1663,7 +1877,6 @@ class BaseIssuesTest(MakeBackend):
 
     def test_issue_copyenv(self):
         # https://github.com/BDonnot/lightsim2grid/issues/10
-        from grid2op import make
         backend = self.make_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")

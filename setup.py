@@ -59,6 +59,10 @@ pkgs = {
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
             "autodocsumm>=0.1.13"
+        ],
+        "api": [
+            "flask",
+            "flask_wtf"
         ]
     }
 }

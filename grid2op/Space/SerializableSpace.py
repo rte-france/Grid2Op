@@ -353,7 +353,7 @@ class SerializableSpace(GridObjects, RandomObject):
                 all_obs = np.load(os.path.join(full_episode_path, observation_space_name))["data"]
 
                 # and you use the function like this:
-                all_flows = all_obs[beg_:end_, :].astype(dtype)
+                all_flows = all_obs[:, beg_:end_].astype(dtype)
 
                 # you can now do something with the computed flows
                 # each row will be a time step, each column a powerline

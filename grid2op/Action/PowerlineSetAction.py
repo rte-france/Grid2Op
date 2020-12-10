@@ -23,7 +23,8 @@ class PowerlineSetAction(PlayableAction):
         "set_bus"
     }
     attr_list_vect = [
-        "_set_line_status"
+        "_set_line_status",
+        "_set_topo_vect"
     ]
     attr_list_set = set(attr_list_vect)
 

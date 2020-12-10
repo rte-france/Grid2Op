@@ -23,6 +23,19 @@ class GymEnv(gym.Env):
     ------
     The environment passed as input is copied. It is not modified by this "gym environment"
 
+    Examples
+    --------
+    This can be used like:
+
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.gym_compat import GymEnv
+
+        env_name = ...
+        env = grid2op.make(env_name)
+        gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
+
     """
     def __init__(self, env_init):
         self._init_env = env_init.copy()

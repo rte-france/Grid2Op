@@ -78,15 +78,23 @@ class CompleteObservation(BaseObservation):
         30. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
 
-    This behavior is specified in the :attr:`BaseObservation.attr_list_vect` vector.
-
-    Attributes
-    ----------
-    dictionnarized: ``dict``
-        The representation of the action in a form of a dictionnary. See the definition of
-        :func:`CompleteObservation.to_dict` for a description of this dictionnary.
-
     """
+    attr_list_vect = [
+        "year", "month", "day", "hour_of_day",
+        "minute_of_hour", "day_of_week",
+        "prod_p", "prod_q", "prod_v",
+        "load_p", "load_q", "load_v",
+        "p_or", "q_or", "v_or", "a_or",
+        "p_ex", "q_ex", "v_ex", "a_ex",
+        "rho",
+        "line_status", "timestep_overflow",
+        "topo_vect",
+        "time_before_cooldown_line", "time_before_cooldown_sub",
+        "time_next_maintenance", "duration_next_maintenance",
+        "target_dispatch", "actual_dispatch"
+    ]
+    attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
+
     def __init__(self,
                  obs_env=None,
                  action_helper=None,
@@ -97,20 +105,6 @@ class CompleteObservation(BaseObservation):
                                  action_helper=action_helper,
                                  seed=seed)
         self._dictionnarized = None
-        self.attr_list_vect = [
-            "year", "month", "day", "hour_of_day",
-            "minute_of_hour", "day_of_week",
-            "prod_p", "prod_q", "prod_v",
-            "load_p", "load_q", "load_v",
-            "p_or", "q_or", "v_or", "a_or",
-            "p_ex", "q_ex", "v_ex", "a_ex",
-            "rho",
-            "line_status", "timestep_overflow",
-            "topo_vect",
-            "time_before_cooldown_line", "time_before_cooldown_sub",
-            "time_next_maintenance", "duration_next_maintenance",
-            "target_dispatch", "actual_dispatch"
-        ]
 
     def _reset_matrices(self):
         self.vectorized = None
@@ -165,6 +159,14 @@ class CompleteObservation(BaseObservation):
         # redispatching
         self.target_dispatch[:] = env._target_dispatch
         self.actual_dispatch[:] = env._actual_dispatch
+
+        # handle shunts (if avaialble)
+        if self.shunts_data_available:
+            sh_p, sh_q, sh_v, sh_bus = env.backend.shunt_info()
+            self._shunt_p[:] = sh_p
+            self._shunt_q[:] = sh_q
+            self._shunt_v[:] = sh_v
+            self._shunt_bus[:] = sh_bus
 
     def from_vect(self, vect, check_legit=True):
         """

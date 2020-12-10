@@ -377,6 +377,7 @@ class TestResetOk(unittest.TestCase):
         simobs, simr, simdone, siminfo = obs.simulate(self.env.action_space())
         assert np.all(simobs.topo_vect == 1)
 
+
 class TestAttachLayout(unittest.TestCase):
     def test_attach(self):
         my_layout = [(0, 0), (0, 400), (200, 400), (400, 400), (400, 0)]
@@ -610,6 +611,105 @@ class TestDeactivateForecast(unittest.TestCase):
         obs, reward, done, info = self.env1.step(self.env1.action_space())
         # i check i can use it again
         sim_obs, *_ = obs.simulate(self.env1.action_space())
+
+    def _check_env_param(self, env, param):
+        assert env._ignore_min_up_down_times == param.IGNORE_MIN_UP_DOWN_TIME
+        assert env._forbid_dispatch_off == (not param.ALLOW_DISPATCH_GEN_SWITCH_OFF)
+
+        # type of power flow to play
+        # if True, then it will not disconnect lines above their thermal limits
+        assert env._no_overflow_disconnection == param.NO_OVERFLOW_DISCONNECTION
+        assert env._hard_overflow_threshold == param.HARD_OVERFLOW_THRESHOLD
+
+        # store actions "cooldown"
+        assert env._max_timestep_line_status_deactivated == param.NB_TIMESTEP_COOLDOWN_LINE
+        assert env._max_timestep_topology_deactivated == param.NB_TIMESTEP_COOLDOWN_SUB
+        assert env._nb_ts_reco == param.NB_TIMESTEP_RECONNECTION
+
+        assert np.all(env._nb_timestep_overflow_allowed == param.NB_TIMESTEP_OVERFLOW_ALLOWED)
+
+        # hard overflow part
+        assert env._env_dc == param.ENV_DC
+        assert np.all(env._nb_timestep_overflow_allowed == param.NB_TIMESTEP_OVERFLOW_ALLOWED)
+        assert env._max_timestep_line_status_deactivated == param.NB_TIMESTEP_COOLDOWN_LINE
+
+    def test_change_parameters_basic(self):
+        """
+        this is basic test of the env.change_parameters() function
+
+        It only checks the right parameters are used for the environment but it do not currently
+        check the observation (with the cooldown for example)
+        """
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        param.MAX_SUB_CHANGED = 5
+        param.MAX_LINE_STATUS_CHANGED = 5
+        param.NB_TIMESTEP_COOLDOWN_LINE = 5
+        param.NB_TIMESTEP_COOLDOWN_SUB = 5
+        real_orig_param = copy.deepcopy(self.env1.parameters)
+        self.env1.change_parameters(param)
+        # parameters have not changed yet
+        _ = self.env1.step(self.env1.action_space())
+        self._check_env_param(self.env1, real_orig_param)
+
+        # reset triggers the change of parameters
+        self.env1.reset()
+        self._check_env_param(self.env1, param)
+
+    def test_change_parameters_forecast(self):
+        """
+        this is basic test of the env.change_forecast_parameters() function
+
+        It only checks the right parameters are used for the environment (or obs_env) but it do not currently
+        check the observation (with the cooldown for example)
+        """
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        param.MAX_SUB_CHANGED = 5
+        param.MAX_LINE_STATUS_CHANGED = 5
+        param.NB_TIMESTEP_COOLDOWN_LINE = 5
+        param.NB_TIMESTEP_COOLDOWN_SUB = 5
+        param.ENV_DC = True
+        real_orig_param = copy.deepcopy(self.env1.parameters)
+        self.env1.change_forecast_parameters(param)
+        # in these first checks, parameters are not modified
+        self._check_env_param(self.env1, real_orig_param)
+        self._check_env_param(self.env1._helper_observation.obs_env, real_orig_param)
+
+        obs, *_ = self.env1.step(self.env1.action_space())
+        _ = obs.simulate(self.env1.action_space())
+        self._check_env_param(self.env1, real_orig_param)
+        self._check_env_param(self.env1._helper_observation.obs_env, real_orig_param)
+
+        # reset triggers the modification
+        obs = self.env1.reset()
+        _ = obs.simulate(self.env1.action_space())
+        self._check_env_param(self.env1, real_orig_param)
+        self._check_env_param(self.env1._helper_observation.obs_env, param)
+
+    def test_change_parameters_forecast_fromissue_128(self):
+        """
+        this is basic test of the env.change_forecast_parameters() function
+
+        It only checks the right parameters are used for the environment (or obs_env) but it do not currently
+        check the observation (with the cooldown for example)
+
+        This is the example taken from https://github.com/rte-france/Grid2Op/issues/128 (first remak)
+        """
+
+        # modify the parmeters for simulate
+        param = Parameters()
+        param.MAX_SUB_CHANGED = 9999
+        param.MAX_LINE_STATUS_CHANGED = 9999
+        self.env1.change_forecast_parameters(param)
+        self.env1.reset()
+
+        obs, *_ = self.env1.step(self.env1.action_space())
+        # and you can simulate the impact of action modifying as many substation as you want, for example
+        act = self.env1.action_space({"set_bus": {"lines_or_id": [(0, 2), (10, 2)]}})
+        # this action modfies both substation 0 and substation 8
+        sim_o, sim_r, sim_d, sim_info = obs.simulate(act)
+        assert sim_info["is_illegal"] is False
 
 
 if __name__ == "__main__":

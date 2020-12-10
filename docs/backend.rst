@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.Backend
+.. _backend-module:
 
 Backend
 ===================================
@@ -43,6 +44,11 @@ To be a valid backend, some properties are mandatory:
 The order of the values returned are always the same and determined when the backend is loaded by its attribute
 '\*_names'. For example, when the ith element of the results of a call to :func:`Backend.get_line_flow` is the
 flow on the powerline with name `lines_names[i]`.
+
+Creating a new backend
+-----------------------
+We developed a dedicated page for the development of new "Backend" compatible with grid2op here
+:ref:`create-backend-module`.
 
 Detailed Documentation by class
 -------------------------------

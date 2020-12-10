@@ -648,8 +648,7 @@ class EpisodeData:
                 json.dump(obj=self.other_rewards, fp=f,
                           indent=4, sort_keys=True)
 
-            np.savez_compressed(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES),
-                    data=self.times)
+            np.savez_compressed(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES), data=self.times)
             self.actions.save(
                 os.path.join(self.episode_path, EpisodeData.ACTIONS))
             self.env_actions.save(
