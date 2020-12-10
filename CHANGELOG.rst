@@ -25,7 +25,7 @@ Change Log
 - [???] model dams in grid2op (stuff that have a given energy max, and cannot produce more than
   the available energy)
 
-[1.3.2] - 2020-11-xx
+[1.4.0] - 2020-12-10
 ----------------------
 - [CHANGED] The parameters `FORECAST_DC` is now deprecated. Please use
   `change_forecast_parameters(new_param)` with `new_param.ENV_DC=...` instead.
