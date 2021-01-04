@@ -208,9 +208,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_size_action_space(self):
         assert self.env.observation_space.size() == self.size_obs
 
-    def test_bus_conn_mat(self):
+    def aux_test_bus_conn_mat(self, as_csr=False):
         obs = self.env.observation_space(self.env)
-        mat1 = obs.bus_connectivity_matrix()
+        mat1 = obs.bus_connectivity_matrix(as_csr_matrix=as_csr)
         ref_mat = np.array([[1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
                            [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
                            [0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -226,6 +226,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
                            [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1.],
                            [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1.]])
         assert np.all(mat1 == ref_mat)
+
+    def test_bus_conn_mat(self):
+        self.aux_test_bus_conn_mat()
+
+    def test_bus_conn_mat_csr(self):
+        self.aux_test_bus_conn_mat(as_csr=True)
 
     def test_conn_mat(self):
         obs = self.env.observation_space(self.env)
@@ -273,17 +279,23 @@ class TestLoadingBackendFunc(unittest.TestCase):
                             ])
         assert np.all(mat[:10,:] == ref_mat)
 
-    def test_conn_mat2(self):
+    def aux_test_conn_mat2(self, as_csr=False):
         # when a powerline is disconnected
         obs, *_ = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
-        assert obs.bus_connectivity_matrix().shape == (14, 14)
+        assert obs.bus_connectivity_matrix(as_csr).shape == (14, 14)
         # when there is a substation counts 2 buses
         obs, *_ = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
-        assert obs.bus_connectivity_matrix().shape == (15, 15)
-        assert obs.bus_connectivity_matrix()[14, 11] == 1.  # first powerline modified
-        assert obs.bus_connectivity_matrix()[14, 12] == 1.  # second powerline modified
-        assert obs.bus_connectivity_matrix()[5, 11] == 0.  # first powerline modified
-        assert obs.bus_connectivity_matrix()[5, 12] == 0.  # second powerline modified
+        assert obs.bus_connectivity_matrix(as_csr).shape == (15, 15)
+        assert obs.bus_connectivity_matrix(as_csr)[14, 11] == 1.  # first powerline modified
+        assert obs.bus_connectivity_matrix(as_csr)[14, 12] == 1.  # second powerline modified
+        assert obs.bus_connectivity_matrix(as_csr)[5, 11] == 0.  # first powerline modified
+        assert obs.bus_connectivity_matrix(as_csr)[5, 12] == 0.  # second powerline modified
+
+    def test_conn_mat2(self):
+        self.aux_test_conn_mat2(as_csr=False)
+
+    def test_conn_mat2_csr(self):
+        self.aux_test_conn_mat2(as_csr=True)
 
     def test_observation_space(self):
         obs = self.env.observation_space(self.env)

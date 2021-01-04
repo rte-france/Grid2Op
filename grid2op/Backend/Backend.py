@@ -45,24 +45,41 @@ class Backend(GridObjects, ABC):
 
     An example of a valid backend is provided in the :class:`PandapowerBackend`.
 
-    All the abstract methods (that need to be implemented for a backend to work properly) are:
+    All the abstract methods (that need to be implemented for a backend to work properly) are (more information given
+    in the :ref:`create-backend-module` page):
 
     - :func:`Backend.load_grid`
-    - :func:`Backend.close`
     - :func:`Backend.apply_action`
     - :func:`Backend.runpf`
-    - :func:`Backend.copy`
-    - :func:`Backend.get_line_status`
-    - :func:`Backend.get_line_flow`
     - :func:`Backend.get_topo_vect`
-    - :func:`Backend._disconnect_line`
     - :func:`Backend.generators_info`
     - :func:`Backend.loads_info`
     - :func:`Backend.lines_or_info`
     - :func:`Backend.lines_ex_info`
 
+    And optionally:
+
+    - :func:`Backend.close` (this is mandatory if your backend implementation (`self._grid`) is relying on some
+      c / c++ code that do not free memory automatically.
+    - :func:`Backend.copy` (not that this is mandatory if your backend implementation (in `self._grid`) cannot be
+      deep copied using the python copy.deepcopy function)
+    - :func:`Backend.get_line_status`: the default implementation uses the "get_topo_vect()" and then check
+      if buses at both ends of powerline are positive. This is rather slow and can most likely be optimized.
+    - :func:`Backend.get_line_flow`: the default implementation will retrieve all powerline information
+      at the "origin" side and just return the "a_or" vector. You want to do something smarter here.
+    - :func:`Backend._disconnect_line`: has a default slow implementation using "apply_action" that might
+      can most likely be optimized in your backend.
+    - :func:`Backend.reset`  will reload the powergrid from the hard drive by default. This is rather slow and we
+      recommend to overload it.
+
     And, if the flag :attr:Backend.shunts_data_available` is set to ``True`` the method :func:`Backend.shunt_info`
     should also be implemented.
+
+    .. note:: Backend also support "shunts" information if the `self.shunts_data_available` flag is set to
+        ``True`` in that case, you also need to implement all the relevant shunt information (attributes `n_shunt`,
+        `shunt_to_subid`, `name_shunt` and function `shunt_info` and handle the modification of shunts
+        bus, active value and reactive value in the "apply_action" function).
+
 
     In order to be valid and carry out some computations, you should call :func:`Backend.load_grid` and later
     :func:`grid2op.Spaces.GridObjects.assert_grid_correct`. It is also more than recommended to call
@@ -114,88 +131,6 @@ class Backend(GridObjects, ABC):
         self._sh_vnkv = None  # for each shunt gives the nominal value at the bus at which it is connected
         # if this information is not present, then "get_action_to_set" might not behave correctly
 
-    def assert_grid_correct_after_powerflow(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done as it should be by the Environment
-
-        This method is called by the environment. It ensure that the backend remains consistent even after a powerflow
-        has be run with :func:`Backend.runpf` method.
-
-        :return: ``None``
-        :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.
-        """
-        # test the results gives the proper size
-        self.__class__ = self.init_grid(self)
-        self.my_bk_act_class = self.my_bk_act_class.init_grid(self)
-        self._complete_action_class = self._complete_action_class.init_grid(self)
-
-        tmp = self.get_line_status()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-        tmp = self.get_line_flow()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-        tmp = self.get_thermal_limit()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-        tmp = self.get_line_overflow()
-        if tmp.shape[0] != self.n_line:
-            raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
-        if np.any(~np.isfinite(tmp)):
-            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
-
-        tmp = self.generators_info()
-        if len(tmp) != 3:
-            raise EnvError("\"generators_info()\" should return a tuple with 3 elements: p, q and v")
-        for el in tmp:
-            if el.shape[0] != self.n_gen:
-                raise IncorrectNumberOfGenerators("returned by \"backend.generators_info()\"")
-        tmp = self.loads_info()
-        if len(tmp) != 3:
-            raise EnvError("\"loads_info()\" should return a tuple with 3 elements: p, q and v")
-        for el in tmp:
-            if el.shape[0] != self.n_load:
-                raise IncorrectNumberOfLoads("returned by \"backend.loads_info()\"")
-        tmp = self.lines_or_info()
-        if len(tmp) != 4:
-            raise EnvError("\"lines_or_info()\" should return a tuple with 4 elements: p, q, v and a")
-        for el in tmp:
-            if el.shape[0] != self.n_line:
-                raise IncorrectNumberOfLines("returned by \"backend.lines_or_info()\"")
-        tmp = self.lines_ex_info()
-        if len(tmp) != 4:
-            raise EnvError("\"lines_ex_info()\" should return a tuple with 4 elements: p, q, v and a")
-        for el in tmp:
-            if el.shape[0] != self.n_line:
-                raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
-
-        tmp = self.get_topo_vect()
-        if tmp.shape[0] != np.sum(self.sub_info):
-            raise IncorrectNumberOfElements("returned by \"backend.get_topo_vect()\"")
-
-        if np.any(~np.isfinite(tmp)):
-            raise EnvError("Some components of \"backend.get_topo_vect()\" are not finite. This should be integer.")
-
-    def reset(self, grid_path, grid_filename=None):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done in the `env.reset()` method and should be performed otherwise.
-
-        Reload the power grid.
-        For backwards compatibility this method calls `Backend.load_grid`.
-        But it is encouraged to overload it in the subclasses.
-        """
-        self.load_grid(grid_path, filename=grid_filename)
-
     @abstractmethod
     def load_grid(self, path, filename=None):
         """
@@ -219,18 +154,6 @@ class Backend(GridObjects, ABC):
         :type filename: :class:`string`, optional
 
         :return: ``None``
-        """
-        pass
-
-    def close(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is called by `env.close()` do not attempt to use it otherwise.
-
-        This function is called when the environment is over.
-        After calling this function, the backend might not behave properly, and in any case should not be used before
-        another call to :func:`Backend.load_grid` is performed
         """
         pass
 
@@ -283,16 +206,190 @@ class Backend(GridObjects, ABC):
         pass
 
     @abstractmethod
+    def get_topo_vect(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
+
+        Get the topology vector from the :attr:`Backend._grid`.
+        The topology vector defines, for each object, on which bus it is connected.
+        It returns -1 if the object is not connected.
+
+        It is a vector with as much elements (productions, loads and lines extremity) as there are in the powergrid.
+
+        For each elements, it gives on which bus it is connected in its substation.
+
+        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
+        load of id 1 is connected to the second bus of its substation.
+
+        You can check which object of the powerlines is represented by each component of this vector by looking at the
+        `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
+        For each elements it gives its position in this vector.
+
+        As any function of the backend, it is not advised to use it directly. You can get this information in the
+        :attr:`grid2op.Observation.Observation.topo_vect` instead.
+
+        Returns
+        --------
+
+        res: ``numpy.ndarray`` dtype: ``int``
+            An array saying to which bus the object is connected.
+
+        """
+        pass
+
+    @abstractmethod
+    def generators_info(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
+            :attr:`grid2op.Observation.BaseObservation.prod_q` and
+            :attr:`grid2op.Observation.BaseObservation.prod_v` instead.
+
+        This method is used to retrieve information about the generators (active, reactive production
+        and voltage magnitude of the bus to which it is connected).
+
+        Returns
+        -------
+        prod_p ``numpy.ndarray``
+            The active power production for each generator (in MW)
+        prod_q ``numpy.ndarray``
+            The reactive power production for each generator (in MVAr)
+        prod_v ``numpy.ndarray``
+            The voltage magnitude of the bus to which each generators is connected (in kV)
+        """
+        pass
+
+    @abstractmethod
+    def loads_info(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.load_p`,
+            :attr:`grid2op.Observation.BaseObservation.load_q` and
+            :attr:`grid2op.Observation.BaseObservation.load_v` instead.
+
+        This method is used to retrieve information about the loads (active, reactive consumption
+        and voltage magnitude of the bus to which it is connected).
+
+        Returns
+        -------
+        load_p ``numpy.ndarray``
+            The active power consumption for each load (in MW)
+        load_q ``numpy.ndarray``
+            The reactive power consumption for each load (in MVAr)
+        load_v ``numpy.ndarray``
+            The voltage magnitude of the bus to which each load is connected (in kV)
+        """
+        pass
+
+    @abstractmethod
+    def lines_or_info(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.p_or`,
+            :attr:`grid2op.Observation.BaseObservation.q_or`,
+            :attr:`grid2op.Observation.BaseObservation.a_or` and,
+            :attr:`grid2op.Observation.BaseObservation.v_or` instead
+
+        It returns the information extracted from the _grid at the origin end of each powerline.
+
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
+
+        Returns
+        -------
+        p_or ``numpy.ndarray``
+            the origin active power flowing on the lines (in MW)
+        q_or ``numpy.ndarray``
+            the origin reactive power flowing on the lines (in MVAr)
+        v_or ``numpy.ndarray``
+            the voltage magnitude at the origin of each powerlines (in kV)
+        a_or ``numpy.ndarray``
+            the current flow at the origin of each powerlines (in A)
+        """
+        pass
+
+    @abstractmethod
+    def lines_ex_info(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.p_ex`,
+            :attr:`grid2op.Observation.BaseObservation.q_ex`,
+            :attr:`grid2op.Observation.BaseObservation.a_ex` and,
+            :attr:`grid2op.Observation.BaseObservation.v_ex` instead
+
+        It returns the information extracted from the _grid at the extremity end of each powerline.
+
+        For assumption about the order of the powerline flows return in this vector, see the help of the
+        :func:`Backend.get_line_status` method.
+
+        Returns
+        -------
+        p_ex ``numpy.ndarray``
+            the extremity active power flowing on the lines (in MW)
+        q_ex ``numpy.ndarray``
+            the extremity reactive power flowing on the lines (in MVAr)
+        v_ex ``numpy.ndarray``
+            the voltage magnitude at the extremity of each powerlines (in kV)
+        a_ex ``numpy.ndarray``
+            the current flow at the extremity of each powerlines (in A)
+        """
+        pass
+
+    def close(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is called by `env.close()` do not attempt to use it otherwise.
+
+        This function is called when the environment is over.
+        After calling this function, the backend might not behave properly, and in any case should not be used before
+        another call to :func:`Backend.load_grid` is performed
+
+        """
+        pass
+
+    def reset(self, grid_path, grid_filename=None):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done in the `env.reset()` method and should be performed otherwise.
+
+        Reload the power grid.
+        For backwards compatibility this method calls `Backend.load_grid`.
+        But it is encouraged to overload it in the subclasses.
+        """
+        self.load_grid(grid_path, filename=grid_filename)
+
     def copy(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Performs a deep copy of the backend.
 
+        In the default implementation we explicitly called the deepcopy operator on `self._grid` to make the
+        error message more explicit in case there is a problem with this part.
+
+        The implementation is equivalent to:
+
+        .. code-block:: python
+
+            return copy.deepcopy(self)
+
         :return: An instance of Backend equal to :attr:`.self`, but deep copied.
         :rtype: :class:`Backend`
         """
-        pass
+        start_grid = self._grid
+        self._grid = None
+        res = copy.deepcopy(self)
+        res._grid = copy.deepcopy(start_grid)
+        self._grid = start_grid
+        return res
 
     def save_file(self, full_path):
         """
@@ -310,7 +407,6 @@ class Backend(GridObjects, ABC):
         """
         raise RuntimeError("Class {} does not allow for saving file.".format(self))
 
-    @abstractmethod
     def get_line_status(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -330,9 +426,9 @@ class Backend(GridObjects, ABC):
         :return: an array with the line status of each powerline
         :rtype: np.array, dtype:bool
         """
-        pass
+        topo_vect = self.get_topo_vect()
+        return (topo_vect[self.line_or_pos_topo_vect] >= 0) & (topo_vect[self.line_ex_pos_topo_vect] >= 0)
 
-    @abstractmethod
     def get_line_flow(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -357,7 +453,8 @@ class Backend(GridObjects, ABC):
         :return: an array with the line flows of each powerline
         :rtype: np.array, dtype:float
         """
-        pass
+        p_or, q_or, v_or, a_or = self.lines_or_info()
+        return a_or
 
     def set_thermal_limit(self, limits):
         """
@@ -500,142 +597,6 @@ class Backend(GridObjects, ABC):
         flow = self.get_line_flow()
         return flow > th_lim
 
-    @abstractmethod
-    def get_topo_vect(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
-
-        Get the topology vector from the :attr:`Backend._grid`.
-        The topology vector defines, for each object, on which bus it is connected.
-        It returns -1 if the object is not connected.
-
-        It is a vector with as much elements (productions, loads and lines extremity) as there are in the powergrid.
-
-        For each elements, it gives on which bus it is connected in its substation.
-
-        For example, if the first element of this vector is the load of id 1, then if `res[0] = 2` it means that the
-        load of id 1 is connected to the second bus of its substation.
-
-        You can check which object of the powerlines is represented by each component of this vector by looking at the
-        `*_pos_topo_vect` (*eg.* :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`) vectors.
-        For each elements it gives its position in this vector.
-
-        As any function of the backend, it is not advised to use it directly. You can get this information in the
-        :attr:`grid2op.Observation.Observation.topo_vect` instead.
-
-        Returns
-        --------
-
-        res: ``numpy.ndarray`` dtype: ``int``
-            An array saying to which bus the object is connected.
-
-        """
-        pass
-
-    @abstractmethod
-    def generators_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
-            :attr:`grid2op.Observation.BaseObservation.prod_q` and
-            :attr:`grid2op.Observation.BaseObservation.prod_v` instead.
-
-        This method is used to retrieve information about the generators (active, reactive production
-        and voltage magnitude of the bus to which it is connected).
-
-        Returns
-        -------
-        prod_p ``numpy.ndarray``
-            The active power production for each generator (in MW)
-        prod_q ``numpy.ndarray``
-            The reactive power production for each generator (in MVAr)
-        prod_v ``numpy.ndarray``
-            The voltage magnitude of the bus to which each generators is connected (in kV)
-        """
-        pass
-
-    @abstractmethod
-    def loads_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.load_p`,
-            :attr:`grid2op.Observation.BaseObservation.load_q` and
-            :attr:`grid2op.Observation.BaseObservation.load_v` instead.
-
-        This method is used to retrieve information about the loads (active, reactive consumption
-        and voltage magnitude of the bus to which it is connected).
-
-        Returns
-        -------
-        load_p ``numpy.ndarray``
-            The active power consumption for each load (in MW)
-        load_q ``numpy.ndarray``
-            The reactive power consumption for each load (in MVAr)
-        load_v ``numpy.ndarray``
-            The voltage magnitude of the bus to which each load is connected (in kV)
-        """
-        pass
-
-    @abstractmethod
-    def lines_or_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.p_or`,
-            :attr:`grid2op.Observation.BaseObservation.q_or`,
-            :attr:`grid2op.Observation.BaseObservation.a_or` and,
-            :attr:`grid2op.Observation.BaseObservation.v_or` instead
-
-        It returns the information extracted from the _grid at the origin end of each powerline.
-
-        For assumption about the order of the powerline flows return in this vector, see the help of the
-        :func:`Backend.get_line_status` method.
-
-        Returns
-        -------
-        p_or ``numpy.ndarray``
-            the origin active power flowing on the lines (in MW)
-        q_or ``numpy.ndarray``
-            the origin reactive power flowing on the lines (in MVAr)
-        v_or ``numpy.ndarray``
-            the voltage magnitude at the origin of each powerlines (in kV)
-        a_or ``numpy.ndarray``
-            the current flow at the origin of each powerlines (in A)
-        """
-        pass
-
-    @abstractmethod
-    def lines_ex_info(self):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            Prefer using :attr:`grid2op.Observation.BaseObservation.p_ex`,
-            :attr:`grid2op.Observation.BaseObservation.q_ex`,
-            :attr:`grid2op.Observation.BaseObservation.a_ex` and,
-            :attr:`grid2op.Observation.BaseObservation.v_ex` instead
-
-        It returns the information extracted from the _grid at the extremity end of each powerline.
-
-        For assumption about the order of the powerline flows return in this vector, see the help of the
-        :func:`Backend.get_line_status` method.
-
-        Returns
-        -------
-        p_ex ``numpy.ndarray``
-            the extremity active power flowing on the lines (in MW)
-        q_ex ``numpy.ndarray``
-            the extremity reactive power flowing on the lines (in MVAr)
-        v_ex ``numpy.ndarray``
-            the voltage magnitude at the extremity of each powerlines (in kV)
-        a_ex ``numpy.ndarray``
-            the current flow at the extremity of each powerlines (in A)
-        """
-        pass
-
     def shunt_info(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -668,14 +629,13 @@ class Backend(GridObjects, ABC):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Optionnal method that allows to get the substation if the bus id is provided.
+        Optional method that allows to get the substation if the bus id is provided.
 
         :param bus_id:
         :return: the substation to which an object connected to bus with id `bus_id` is connected to.
         """
         raise BackendError("This backend doesn't allow to get the substation from the bus id.")
 
-    @abstractmethod
     def _disconnect_line(self, id_):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -697,7 +657,11 @@ class Backend(GridObjects, ABC):
         :type id_: int
 
         """
-        pass
+        action = self._complete_action_class()
+        action.update({"set_line_status": [(id_, -1)]})
+        bk_act = self.my_bk_act_class()
+        bk_act += action
+        self.apply_action(bk_act)
 
     def _runpf_with_diverging_exception(self, is_dc):
         """
@@ -720,7 +684,7 @@ class Backend(GridObjects, ABC):
         conv = False
         try:
             conv = self.runpf(is_dc=is_dc)  # run powerflow
-        except:
+        except Exception as exc_:
             pass
 
         res = None
@@ -802,7 +766,8 @@ class Backend(GridObjects, ABC):
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Check that the powergrid respects kirchhoff's law.
-        This function can be called at any moment to make sure a powergrid is in a consistent state, or to perform
+        This function can be called at any moment (after a powerflow has been run)
+        to make sure a powergrid is in a consistent state, or to perform
         some tests for example.
 
         In order to function properly, this method requires that :func:`Backend.shunt_info` and
@@ -837,6 +802,9 @@ class Backend(GridObjects, ABC):
         q_bus = np.zeros((self.n_sub, 2))
         topo_vect = self.get_topo_vect()
 
+        # bellow i'm "forced" to do a loop otherwise, numpy do not compute the "+=" the way I want it to.
+        # for example, if two powerlines are such that line_or_to_subid is equal (eg both connected to substation 0)
+        # then numpy do not guarantee that `p_subs[self.line_or_to_subid] += p_or` will add the two "corresponding p_or"
         for i in range(self.n_line):
             # for substations
             p_subs[self.line_or_to_subid[i]] += p_or[i]
@@ -892,10 +860,28 @@ class Backend(GridObjects, ABC):
 
         This method will load everything needed for the redispatching and unit commitment problem.
 
+        We don't recommend at all to modify this function.
+
         Parameters
         ----------
         path: ``str``
-            Location of the datafram containing the redispatching data.
+            Location of the dataframe containing the redispatching data. This dataframe should have at least the
+            columns:
+
+            - "name": identifying the name of the generator (should match the names in self.name_gen)
+            - "type": one of "thermal", "nuclear", "wind", "solar" or "hydro" representing the type of the generator
+            - "pmax": the maximum value the generator can produce (in MW)
+            - "pmin": the minimum value the generator can produce (in MW)
+            - "max_ramp_up": maximum value the generator can increase its production between two consecutive
+              steps TODO make it independant from the duration of the step
+            - "max_ramp_down": maximum value the generator can decrease its production between two consecutive
+              steps (is positive) TODO make it independant from the duration of the step
+            - "start_cost": starting cost of the generator
+            - "shut_down_cost": cost associated to the shut down of the generator
+            - "marginal_cost": "average" marginal cost of the generator. For now we don't allow it to vary across
+              different steps or episode (TODO change that)
+            - "min_up_time": minimum time a generator need to stay "connected" before we can disconnect it
+            - "min_down_time": minimum time a generator need to stay "disconnected" before we can connect it again.
 
         name: ``str``
             Name of the dataframe containing the redispatching data
@@ -964,6 +950,21 @@ class Backend(GridObjects, ABC):
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
 
     def load_grid_layout(self, path, name='grid_layout.json'):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        We don't recommend at all to modify this function.
+
+        This function loads the layout (eg the coordinates of each substation) for the powergrid.
+
+        Parameters
+        ----------
+        path: ``str``
+            TODO
+        name: ``str``
+            TODO
+
+        """
         full_fn = os.path.join(path, name)
         if not os.path.exists(full_fn):
             return Exception("File {} does not exist".format(full_fn))
@@ -1080,3 +1081,73 @@ class Backend(GridObjects, ABC):
         act.update(dict_)
         backend_action += act
         self.apply_action(backend_action)
+
+    def assert_grid_correct_after_powerflow(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done as it should be by the Environment
+
+        This method is called by the environment. It ensure that the backend remains consistent even after a powerflow
+        has be run with :func:`Backend.runpf` method.
+
+        :return: ``None``
+        :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.
+        """
+        # test the results gives the proper size
+        self.__class__ = self.init_grid(self)
+        self.my_bk_act_class = self.my_bk_act_class.init_grid(self)
+        self._complete_action_class = self._complete_action_class.init_grid(self)
+
+        tmp = self.get_line_status()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+        tmp = self.get_line_flow()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_line_flow()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+        tmp = self.get_thermal_limit()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_thermal_limit()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+        tmp = self.get_line_overflow()
+        if tmp.shape[0] != self.n_line:
+            raise IncorrectNumberOfLines("returned by \"backend.get_line_overflow()\"")
+        if np.any(~np.isfinite(tmp)):
+            raise EnvironmentError("Power cannot be computed on the first time step, please check your data.")
+
+        tmp = self.generators_info()
+        if len(tmp) != 3:
+            raise EnvError("\"generators_info()\" should return a tuple with 3 elements: p, q and v")
+        for el in tmp:
+            if el.shape[0] != self.n_gen:
+                raise IncorrectNumberOfGenerators("returned by \"backend.generators_info()\"")
+        tmp = self.loads_info()
+        if len(tmp) != 3:
+            raise EnvError("\"loads_info()\" should return a tuple with 3 elements: p, q and v")
+        for el in tmp:
+            if el.shape[0] != self.n_load:
+                raise IncorrectNumberOfLoads("returned by \"backend.loads_info()\"")
+        tmp = self.lines_or_info()
+        if len(tmp) != 4:
+            raise EnvError("\"lines_or_info()\" should return a tuple with 4 elements: p, q, v and a")
+        for el in tmp:
+            if el.shape[0] != self.n_line:
+                raise IncorrectNumberOfLines("returned by \"backend.lines_or_info()\"")
+        tmp = self.lines_ex_info()
+        if len(tmp) != 4:
+            raise EnvError("\"lines_ex_info()\" should return a tuple with 4 elements: p, q, v and a")
+        for el in tmp:
+            if el.shape[0] != self.n_line:
+                raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
+
+        tmp = self.get_topo_vect()
+        if tmp.shape[0] != np.sum(self.sub_info):
+            raise IncorrectNumberOfElements("returned by \"backend.get_topo_vect()\"")
+
+        if np.any(~np.isfinite(tmp)):
+            raise EnvError("Some components of \"backend.get_topo_vect()\" are not finite. This should be integer.")

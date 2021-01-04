@@ -35,7 +35,8 @@ class TestRunner(HelperTests):
         self.path_chron = PATH_ADN_CHRONICS_FOLDER
         self.parameters_path = None
         self.max_iter = 10
-        self.real_reward = dt_float(199.99800)
+        # self.real_reward = dt_float(199.99800)
+        self.real_reward = dt_float(179.99818)
         self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
                                                     "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
                                                     "5_C201.84": 'load_4_4',
@@ -79,7 +80,7 @@ class TestRunner(HelperTests):
         assert len(res) == 1
         _, el1, el2, el3, el4 = res[0]
         assert el1 == "1"
-        assert np.abs(el2 - 199.9980010986328) <= self.tol_one
+        assert np.abs(el2 - self.real_reward) <= self.tol_one
         assert el3 == 10
         assert el4 == 10
 
@@ -242,7 +243,8 @@ class TestRunner(HelperTests):
                 pdb.set_trace()
 
     def test_backward_compatibility(self):
-        backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0"]
+        backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0", "1.3.1",
+                                 "1.4.0"]
         curr_version = "current_version"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
