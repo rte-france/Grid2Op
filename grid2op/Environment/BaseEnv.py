@@ -1461,7 +1461,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.done = self._is_done(has_error, is_done)
         self.current_reward, other_reward = self._get_reward(action,
                                                              has_error,
-                                                             is_done,
+                                                             self.done,  # is_done
                                                              is_illegal or is_illegal_redisp or is_illegal_reco,
                                                              is_ambiguous)
         infos["rewards"] = other_reward

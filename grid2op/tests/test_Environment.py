@@ -196,7 +196,7 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
             cp.disable()
             cp.print_stats(sort="tottime")
         assert i == 287, "Wrong number of timesteps"
-        expected_reward = dt_float(5739.9336)
+        expected_reward = dt_float(5719.9336)
         assert dt_float(np.abs(cum_reward - expected_reward)) <= self.tol_one, "Wrong reward"
 
 
