@@ -123,20 +123,26 @@ class GridObjects:
     - :attr:`GridObjects.name_gen`
     - :attr:`GridObjects.name_line`
     - :attr:`GridObjects.name_sub`
+    - :attr:`GridObjects.name_storage`
     - :attr:`GridObjects.n_line`
     - :attr:`GridObjects.n_gen`
     - :attr:`GridObjects.n_load`
     - :attr:`GridObjects.n_sub`
+    - :attr:`GridObjects.n_storage`
     - :attr:`GridObjects.sub_info`
     - :attr:`GridObjects.dim_topo`
     - :attr:`GridObjects.load_to_subid`
     - :attr:`GridObjects.gen_to_subid`
     - :attr:`GridObjects.line_or_to_subid`
     - :attr:`GridObjects.line_ex_to_subid`
+    - :attr:`GridObjects.storage_to_subid`
+
+    Optionnaly, to have more control on the internal grid2op representation, you can also set:
     - :attr:`GridObjects.load_to_sub_pos`
     - :attr:`GridObjects.gen_to_sub_pos`
     - :attr:`GridObjects.line_or_to_sub_pos`
     - :attr:`GridObjects.line_ex_to_sub_pos`
+    - :attr:`GridObjects.storage_to_sub_pos`
 
     A call to the function :func:`GridObjects._compute_pos_big_topo` allow to compute the \*_pos_topo_vect attributes
     (for example :attr:`GridObjects.line_ex_pos_topo_vect`) can be computed from the above data:
@@ -145,6 +151,7 @@ class GridObjects:
     - :attr:`GridObjects.gen_pos_topo_vect`
     - :attr:`GridObjects.line_or_pos_topo_vect`
     - :attr:`GridObjects.line_ex_pos_topo_vect`
+    - :attr:`GridObjects.storage_pos_topo_vect`
 
 
     Note that if you want to model an environment with unit commitment or redispatching capabilities, you also need
@@ -358,7 +365,8 @@ class GridObjects:
     LOA_COL = 1
     GEN_COL = 2
     LOR_COL = 3
-    LEX_COL = 4
+    LEX_COL = 4  # TODO
+    STORAGE_COL = 5
 
     attr_list_vect = None
     attr_list_set = {}
@@ -373,11 +381,13 @@ class GridObjects:
     name_gen = None
     name_line = None
     name_sub = None
+    name_storage = None
 
     n_gen = -1
     n_load = -1
     n_line = -1
     n_sub = -1
+    n_storage = -1  # TODO
 
     sub_info = None
     dim_topo = -1
@@ -387,18 +397,21 @@ class GridObjects:
     gen_to_subid = None
     line_or_to_subid = None
     line_ex_to_subid = None
+    storage_to_subid = None  # TODO
 
     # which index has this element in the substation vector
     load_to_sub_pos = None
     gen_to_sub_pos = None
     line_or_to_sub_pos = None
     line_ex_to_sub_pos = None
+    storage_to_sub_pos = None  # TODO
 
     # which index has this element in the topology vector
     load_pos_topo_vect = None
     gen_pos_topo_vect = None
     line_or_pos_topo_vect = None
     line_ex_pos_topo_vect = None
+    storage_pos_topo_vect = None  # TODO
 
     # "convenient" way to retrieve information of the grid
     grid_objects_types = None
@@ -862,8 +875,9 @@ class GridObjects:
         self.gen_pos_topo_vect = self._aux_pos_big_topo(self.gen_to_subid, self.gen_to_sub_pos).astype(dt_int)
         self.line_or_pos_topo_vect = self._aux_pos_big_topo(self.line_or_to_subid, self.line_or_to_sub_pos).astype(dt_int)
         self.line_ex_pos_topo_vect = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos).astype(dt_int)
+        self.storage_pos_topo_vect = self._aux_pos_big_topo(self.storage_to_subid, self.storage_to_sub_pos).astype(dt_int)
 
-        self.grid_objects_types = np.full(shape=(self.dim_topo, 5), fill_value=-1, dtype=dt_int)
+        self.grid_objects_types = np.full(shape=(self.dim_topo, 6), fill_value=-1, dtype=dt_int)
         prev = 0
         for sub_id, nb_el in enumerate(self.sub_info):
             self.grid_objects_types[prev:(prev + nb_el), :] = self.get_obj_substations(substation_id=sub_id)
@@ -1722,13 +1736,14 @@ class GridObjects:
             raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
 
         dict_ = self.get_obj_connect_to(substation_id=substation_id)
-        res = np.full((dict_["nb_elements"], 5), fill_value=-1, dtype=dt_int)
+        res = np.full((dict_["nb_elements"], 6), fill_value=-1, dtype=dt_int)
         # 0 -> load, 1-> gen, 2 -> lines_or, 3 -> lines_ex
         res[:, self.SUB_COL] = substation_id
         res[self.load_to_sub_pos[dict_["loads_id"]], self.LOA_COL] = dict_["loads_id"]
         res[self.gen_to_sub_pos[dict_["generators_id"]], self.GEN_COL] = dict_["generators_id"]
         res[self.line_or_to_sub_pos[dict_["lines_or_id"]], self.LOR_COL] = dict_["lines_or_id"]
         res[self.line_ex_to_sub_pos[dict_["lines_ex_id"]], self.LEX_COL] = dict_["lines_ex_id"]
+        res[self.storage_to_sub_pos[dict_["storage_id"]], self.STORAGE_COL] = dict_["storage_id"]
         return res
 
     def get_lines_id(self, _sentinel=None, from_=None, to_=None):
@@ -1800,7 +1815,7 @@ class GridObjects:
         Returns
         -------
         res: ``list``
-            Id of the generator id looked for.
+            Id of the generators looked for.
 
         Raises
         ------
@@ -1840,7 +1855,7 @@ class GridObjects:
 
     def get_loads_id(self, sub_id):
         """
-        Returns the list of all generators id in the backend connected to the substation sub_id
+        Returns the list of all loads id in the backend connected to the substation sub_id
 
         Parameters
         ----------
@@ -1850,7 +1865,7 @@ class GridObjects:
         Returns
         -------
         res: ``list``
-            Id of the generator id looked for.
+            Id of the loads looked for.
 
         Raises
         ------
@@ -1886,6 +1901,54 @@ class GridObjects:
 
         return res
 
+    def get_storages_id(self, sub_id):
+        """
+        Returns the list of all storages element (battery or damp) id in the grid connected to the substation sub_id
+
+        Parameters
+        ----------
+        sub_id: ``int``
+            The substation to which we look for the generator
+
+        Returns
+        -------
+        res: ``list``
+            Id of the storage elements looked for.
+
+        Raises
+        ------
+        :class:`grid2op.Exceptions.BackendError` if no match found.
+
+        Examples
+        --------
+        It can be used like:
+
+        .. code-block:: python
+
+            import numpy as np
+            import grid2op
+            env = grid2op.make()
+
+            c_ids = env.get_storages_id(sub_id=1)
+            print("The loads connected to substation 1 have for ids: {}".format(c_ids))
+
+        """
+        res = []
+        if sub_id is None:
+            raise BackendError(
+                "GridObjects.get_storages_id: impossible to look for a load not connected to any substation. "
+                "Please modify \"sub_id\" parameter")
+
+        for i, s_id_gen in enumerate(self.storage_to_subid):
+            if s_id_gen == sub_id:
+                res.append(i)
+
+        if not res:  # res is empty here
+            raise BackendError(
+                "GridObjects.bd: impossible to find a load connected at substation {}".format(sub_id))
+
+        return res
+
     @classmethod
     def to_dict(cls):
         """
@@ -1906,6 +1969,7 @@ class GridObjects:
         save_to_dict(res, cls, "name_load", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_line", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_sub", lambda li: [str(el) for el in li])
+        save_to_dict(res, cls, "name_storage", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "env_name", str)
 
         save_to_dict(res, cls, "sub_info", lambda li: [int(el) for el in li])
@@ -1914,16 +1978,19 @@ class GridObjects:
         save_to_dict(res, cls, "gen_to_subid", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "line_or_to_subid", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "line_ex_to_subid", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "storage_to_subid", lambda li: [int(el) for el in li])
 
         save_to_dict(res, cls, "load_to_sub_pos", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "gen_to_sub_pos", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "line_or_to_sub_pos", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "line_ex_to_sub_pos", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "storage_to_sub_pos", lambda li: [int(el) for el in li])
 
         save_to_dict(res, cls, "load_pos_topo_vect", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "gen_pos_topo_vect", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "line_or_pos_topo_vect", lambda li: [int(el) for el in li])
         save_to_dict(res, cls, "line_ex_pos_topo_vect", lambda li: [int(el) for el in li])
+        save_to_dict(res, cls, "storage_pos_topo_vect", lambda li: [int(el) for el in li])
 
         # redispatching
         if cls.redispatching_unit_commitment_availble:
@@ -1977,6 +2044,7 @@ class GridObjects:
         cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
         cls.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
+        cls.name_sub = extract_from_dict(dict_, "name_storage", lambda x: np.array(x).astype(str))
         if "env_name" in dict_:
              # new saved in version >= 1.2.4
             cls.env_name = str(dict_["env_name"])
@@ -1989,21 +2057,25 @@ class GridObjects:
         cls.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(dt_int))
         cls.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(dt_int))
         cls.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int))
+        cls.storage_to_subid = extract_from_dict(dict_, "storage_to_subid", lambda x: np.array(x).astype(dt_int))
 
         cls.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int))
         cls.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(dt_int))
         cls.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(dt_int))
         cls.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+        cls.storage_to_sub_pos = extract_from_dict(dict_, "storage_to_sub_pos", lambda x: np.array(x).astype(dt_int))
 
         cls.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
         cls.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
         cls.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
         cls.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        cls.storage_pos_topo_vect = extract_from_dict(dict_, "storage_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
 
         cls.n_gen = len(cls.name_gen)
         cls.n_load = len(cls.name_load)
         cls.n_line = len(cls.name_line)
         cls.n_sub = len(cls.name_sub)
+        cls.n_storage = len(cls.name_storage)
         cls.dim_topo = np.sum(cls.sub_info)
 
         if dict_["gen_type"] is None:

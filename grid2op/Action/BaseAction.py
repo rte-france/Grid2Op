@@ -183,14 +183,20 @@ class BaseAction(GridObjects):
         on a generator, and on another you ask +10 MW then the total setpoint for this generator that the environment
         will try to implement is +20MW.
 
+    _set_charge: :class:`numpy.ndarray`, dtype:float
+        The new setpoint of production / consumption of each battery / damp storage etc.
+        Note that, as opposed to redispatching, it is
+        expected to give directly the setpoint and not the variation of the power for each battery.
+
     """
     authorized_keys = {"injection",
                        "hazards", "maintenance", "set_line_status", "change_line_status",
-                       "set_bus", "change_bus", "redispatch"}
+                       "set_bus", "change_bus", "redispatch", "set_storage"}
 
     attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                       "_set_line_status", "_switch_line_status",
                       "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
+                      "_set_storage_target"
                       ]
     attr_list_set = set(attr_list_vect)
     shunt_added = False
@@ -229,6 +235,9 @@ class BaseAction(GridObjects):
         # redispatching vector
         self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
+        # storage unit vector
+        self._set_storage_target = np.full(shape=self.n_storage, fill_value=np.NaN, dtype=dt_float)
+
         self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
@@ -258,6 +267,7 @@ class BaseAction(GridObjects):
         self._modif_set_status = False
         self._modif_change_status = False
         self._modif_redispatch = False
+        self._modif_storage = False
 
     def _reset_modified_flags(self):
         self._modif_inj = False
@@ -266,6 +276,7 @@ class BaseAction(GridObjects):
         self._modif_set_status = False
         self._modif_change_status = False
         self._modif_redispatch = False
+        self._modif_storage = False
 
     def _get_array_from_attr_name(self, attr_name):
         if hasattr(self, attr_name):
@@ -290,6 +301,7 @@ class BaseAction(GridObjects):
         self._modif_set_status = np.any(self._set_line_status != 0)
         self._modif_change_status = np.any(self._switch_line_status)
         self._modif_redispatch = np.any(np.isfinite(self._redispatch) & (self._redispatch != 0.))
+        self._modif_storage = np.any(np.isfinite(self._set_storage_target))
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -443,6 +455,11 @@ class BaseAction(GridObjects):
         # redispatching is same
         if (self._modif_redispatch != other._modif_redispatch) or \
                 not np.all(self._redispatch == other._redispatch):
+            return False
+
+        # storage is same
+        if (self._modif_storage != other._modif_storage) or \
+                not np.all(self._set_storage_target == other._set_storage_target):
             return False
 
         # same topology changes
@@ -614,13 +631,13 @@ class BaseAction(GridObjects):
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Add an action to this one.
+
         Adding an action to myself is equivalent to perform myself, and then perform other (but at the
         same step)
 
         Parameters
         ----------
         other: :class:`BaseAction`
-
         """
 
         # deal with injections
@@ -646,6 +663,16 @@ class BaseAction(GridObjects):
             else:
                 ok_ind = np.isfinite(redispatching)
                 self._redispatch[ok_ind] += redispatching[ok_ind]
+
+        # storage
+        set_storage = other._set_storage_target
+        ok_ind = np.isfinite(set_storage)
+        if np.any(ok_ind):
+            if "_set_storage_target" not in self.attr_list_set:
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format("_set_storage_target"))
+            else:
+                self._set_storage_target[ok_ind] += set_storage[ok_ind]
 
         # set and change status
         other_set = other._set_line_status
@@ -735,6 +762,7 @@ class BaseAction(GridObjects):
         self._modif_set_status = self._modif_set_status or other._modif_set_status
         self._modif_inj = self._modif_inj or other._modif_inj
         self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
+        self._modif_storage = self._modif_storage or other._modif_storage
 
         return self
 
@@ -818,12 +846,14 @@ class BaseAction(GridObjects):
         set_topo_vect = self._set_topo_vect
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
+        storage_target = self._set_storage_target  # TODO
         shunts = {}
         if self.shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
-        return dict_inj, set_line_status, switch_line_status, set_topo_vect, change_bus_vect, redispatch, shunts
+        return dict_inj, set_line_status, switch_line_status, set_topo_vect, change_bus_vect, redispatch, \
+               shunts
 
     def _digest_shunt(self, dict_):
         if not self.shunts_data_available:
@@ -1089,7 +1119,7 @@ class BaseAction(GridObjects):
             val = dt_float(val)
         except Exception as e:
             raise AmbiguousAction("In redispatching, it's not possible to understand the key/value pair "
-                                  "{}/{} provided in the dictionnary. Key must be an integer, value "
+                                  "{}/{} provided in the dictionary. Key must be an integer, value "
                                   "a float".format(kk, val))
         self._redispatch[kk] = val
 
@@ -1149,6 +1179,77 @@ class BaseAction(GridObjects):
             else:
                 self._modif_redispatch = False
                 raise AmbiguousAction("Impossible to understand the redispatching action implemented.")
+
+    def __convert_and_set_storage(self, kk, val):
+        try:
+            kk = dt_int(kk)
+            val = dt_float(val)
+        except Exception as exc_:
+            raise AmbiguousAction("In set_storage, it's not possible to understand the key/value pair "
+                                  "{}/{} provided in the dictionary. Key must be an integer, value "
+                                  "a float".format(kk, val))
+        self._set_storage_target[kk] = val
+
+    def _digest_storage(self, dict_):
+        # TODO refactor that with _digest_redispatching this is the same code (modif : __convert_and_set_storage instead
+        # TODO of _convert_and_dispatch; warning message; keys of the dictionary.
+        if "set_storage" in dict_:
+            if dict_["set_storage"] is None:
+                return
+            self._modif_storage = True
+            tmp = dict_["set_storage"]
+            if isinstance(tmp, np.ndarray):
+                # complete storage state is provided
+                self._set_storage_target = tmp
+            elif isinstance(tmp, dict):
+                # dict must have key: generator to modify, value: the delta value applied to this generator
+                ddict_ = tmp
+                for kk, val in ddict_.items():
+                    self.__convert_and_set_storage(kk, val)
+            elif isinstance(tmp, list):
+                # list of tuples: each tuple (k,v) being the same as the key/value describe above
+                treated = False
+                if len(tmp) == 2:
+                    if isinstance(tmp[0], tuple):
+                        # there are 2 tuples in the list, i don't treat it as a tuple
+                        treated = False
+                    else:
+                        # i treat it as a tuple
+                        if len(tmp) != 2:
+                            self._modif_storage = False
+                            raise AmbiguousAction("When asking for  changing storage capacity with a tuple, "
+                                                  "you should make a "
+                                                  "of tuple of 2 elements, the first one being the id of the"
+                                                  "storage unit to change, the second one the value of the "
+                                                  "new target capacity.")
+                        kk, val = tmp
+                        self.__convert_and_set_storage(kk, val)
+                        treated = True
+
+                if not treated:
+                    for el in tmp:
+                        if len(el) != 2:
+                            self._modif_storage = False
+                            raise AmbiguousAction("When asking for changing storage capacity with a list, you should "
+                                                  "make a list"
+                                                  "of tuple of 2 elements, the first one being the id of the"
+                                                  "storage unit to change, the second one the value of the "
+                                                  "new target capacity.")
+                        kk, val = el
+                        self.__convert_and_set_storage(kk, val)
+
+            elif isinstance(tmp, tuple):
+                if len(tmp) != 2:
+                    self._modif_storage = False
+                    raise AmbiguousAction("When asking for changing storage capacity with a tuple, you should make a "
+                                          "of tuple of 2 elements, the first one being the id of the"
+                                          "storage unit to redispatch, the second one the value of the "
+                                          "new target capacity.")
+                kk, val = tmp
+                self.__convert_and_set_storage(kk, val)
+            else:
+                self._modif_storage = False
+                raise AmbiguousAction("Impossible to understand the action implemented to change a storage capacity.")
 
     def _reset_vect(self):
         """
@@ -1340,6 +1441,7 @@ class BaseAction(GridObjects):
             self._digest_shunt(dict_)
             self._digest_injection(dict_)
             self._digest_redispatching(dict_)
+            self._digest_storage(dict_)  # ADDED for battery
             self._digest_setbus(dict_)
             self._digest_change_bus(dict_)
             self._digest_set_status(dict_)
@@ -1366,8 +1468,8 @@ class BaseAction(GridObjects):
             self._check_for_ambiguity()
             res = False
             info = None
-        except AmbiguousAction as e:
-            info = e
+        except AmbiguousAction as exc_:
+            info = exc_
             res = True
         return res, info
 
@@ -1489,6 +1591,11 @@ class BaseAction(GridObjects):
                     if np.any(tmp_p[indx_ok] < self.gen_pmin[indx_ok]):
                         raise InvalidRedispatching("Some redispatching amount, cumulated with the production setpoint, "
                                                    "are below pmin for some generator.")
+
+        # storage specific checks:
+        if self._modif_storage:
+            pass
+            # TODO
 
         # topological action
         if self._modif_set_bus and self._modif_change_bus and np.any(self._set_topo_vect[self._change_bus_vect] != 0):
@@ -1629,6 +1736,7 @@ class BaseAction(GridObjects):
             res.append("\t - NOT change anything to the injections")
 
         # redispatch
+        # TODO use impact instead
         if np.any(self._redispatch != 0.):
             for gen_idx in range(self.n_gen):
                 if self._redispatch[gen_idx] != 0.0:
@@ -1637,6 +1745,18 @@ class BaseAction(GridObjects):
                     res.append("\t - Redispatch {} of {}".format(gen_name, r_amount))
         else:
             res.append("\t - NOT perform any redispatching action")
+
+        # storage
+        # TODO use impact instead
+        if self._modif_storage:
+            for stor_idx in range(self.n_storage):
+                tmp = self._set_storage_target[stor_idx]
+                if np.isfinite(tmp):
+                    name_ = self.name_storage[stor_idx]
+                    amount_ = self._redispatch[stor_idx]
+                    res.append("\t - set the new capacity for storage {} to be {} MWh".format(name_, amount_))
+        else:
+            res.append("\t - NOT modify any storage capacity")
 
         # force line status
         force_line_impact = impact['force_line']
@@ -1809,13 +1929,29 @@ class BaseAction(GridObjects):
             redispatch["changed"] = True
             has_impact = True
 
+        storage = {"changed": False, "capacities": []}
+        if self._modif_storage:
+            for str_idx in range(self.n_storage):
+                tmp = self._set_storage_target[str_idx]
+                if np.isfinite(tmp):
+                    name_ = self.name_storage[str_idx]
+                    new_capacity = tmp
+                    redispatch["capacities"].append({
+                        "storage_id": str_idx,
+                        "storage_name": name_,
+                        "new_capacity": new_capacity
+                    })
+            redispatch["changed"] = True
+            has_impact = True
+
         return {
             'has_impact': has_impact,
             'injection': inject_detail,
             'force_line': force_line_status,
             'switch_line': switch_line_status,
             'topology': topology,
-            'redispatch': redispatch
+            'redispatch': redispatch,
+            "storage": storage
         }
 
     def as_dict(self):
@@ -1871,6 +2007,7 @@ class BaseAction(GridObjects):
             disconnected because of maintenance operations.
           * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
             dispatchable one) the amount of power redispatched in this action.
+          *`storage` the nex setpoint
 
         Returns
         -------
@@ -1943,6 +2080,9 @@ class BaseAction(GridObjects):
 
         if np.any(self._redispatch != 0.):
             res["redispatch"] = self._redispatch
+
+        if self._modif_storage:
+            res["storage"] = self._modif_storage
 
         return res
 
