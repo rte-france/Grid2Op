@@ -59,6 +59,7 @@ class IncorrectNumberOfElements(EnvError):
     """
     pass
 
+
 class IncorrectPositionOfLoads(EnvError):
     """
     This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of
@@ -73,6 +74,8 @@ class IncorrectPositionOfGenerators(EnvError):
     generators at a substation.
     """
     pass
+
+
 class IncorrectPositionOfLines(EnvError):
     """
     This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of
@@ -80,7 +83,16 @@ class IncorrectPositionOfLines(EnvError):
     """
     pass
 
-# Unknown environment at creating
+
+class IncorrectPositionOfStorages(EnvError):
+    """
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the number of
+    storage unit at a substation.
+    """
+    pass
+
+
+# Unknown environment at creation
 class UnknownEnv(Grid2OpException):
     """
     This exception indicate that a bad argument has been sent to the :func:`grid2op.make` function.
@@ -88,6 +100,7 @@ class UnknownEnv(Grid2OpException):
     It does not recognize the name of the :class:`grid2op.Environment.Environment`.
     """
     pass
+
 
 # multi environment
 class MultiEnvException(Grid2OpException):

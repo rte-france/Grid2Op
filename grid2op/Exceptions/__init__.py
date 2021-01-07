@@ -9,6 +9,7 @@ __all__ = [
     "IncorrectPositionOfLoads",
     "IncorrectPositionOfGenerators",
     "IncorrectPositionOfLines",
+    "IncorrectPositionOfStorages",
     "UnknownEnv",
     "MultiEnvException",
     "IllegalAction",
@@ -53,6 +54,7 @@ from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfElements
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfLoads
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfGenerators
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfLines
+from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfStorages
 from grid2op.Exceptions.EnvExceptions import UnknownEnv
 from grid2op.Exceptions.EnvExceptions import MultiEnvException
 

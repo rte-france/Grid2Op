@@ -92,6 +92,9 @@ class TestActionBase(ABC):
         GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
         GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
 
+        # TODO
+        GridObjects.set_no_storage()
+
         self.gridobj = GridObjects()
 
         self.res = {
@@ -108,6 +111,7 @@ class TestActionBase(ABC):
             'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
                          'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
                          'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
+            'name_storage': [],
             'env_name': 'test_action_env',
             'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
             'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
@@ -116,12 +120,14 @@ class TestActionBase(ABC):
                                  3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
             'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6,
                                  8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+            "storage_to_subid": [],
             'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
             'gen_to_sub_pos': [2, 5, 3, 5, 1],
             'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2,
                                    3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
             'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2,
                                    0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+            "storage_to_sub_pos": [],
             'load_pos_topo_vect': [7, 11, 18, 23, 28,
                                    39, 41, 44, 47, 51, 54],
             'gen_pos_topo_vect': [2, 8, 12, 29, 34],
@@ -131,6 +137,7 @@ class TestActionBase(ABC):
             'line_ex_pos_topo_vect': [3, 19, 9, 13, 20,
                                       14, 21, 30, 35, 24, 45,
                                       48, 52, 33, 36, 42, 55, 43, 49, 53],
+            "storage_pos_topo_vect": [],
             'gen_type': ["thermal"] * 5,
             'gen_pmin': [0.0] * 5,
             'gen_pmax': [100.0] * 5,
@@ -506,9 +513,12 @@ class TestActionBase(ABC):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
         act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching ' \
-                  'action\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the ' \
-                  'following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of ' \
-                  'load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of ' \
+                  'action\n\t - NOT modify any storage capacity\n\t - NOT force any line status\n\t - NOT switch any ' \
+                  'line status\n\t - Change the bus of the ' \
+                  'following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - ' \
+                  'switch bus of ' \
+                  'load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - ' \
+                  'Set the bus of ' \
                   'the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - ' \
                   'assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 ' \
                   '[on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'

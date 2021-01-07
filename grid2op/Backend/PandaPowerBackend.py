@@ -321,12 +321,27 @@ class PandaPowerBackend(Backend):
         if "name" in self._grid.load.columns and not self._grid.load["name"].isnull().values.any():
             self.name_load = [nl for nl in self._grid.load["name"]]
         else:
-            self.name_load = ["load_{bus}_{index_gen}".format(**row, index_gen=i)
+            self.name_load = ["load_{bus}_{index_load}".format(**row, index_load=i)
                               for i, (_, row) in enumerate(self._grid.load.iterrows())]
         self.name_load = np.array(self.name_load)
+
+        self.n_storage = copy.deepcopy(self._grid.storage.shape[0])
+        if self.n_storage == 0:
+            self.set_no_storage()
+            need_init_storage = False
+        else:
+            if "name" in self._grid.storage.columns and not self._grid.storage["name"].isnull().values.any():
+                self.name_storage = [nl for nl in self._grid.storage["name"]]
+            else:
+                self.name_storage = ["storage_{bus}_{index_sto}".format(**row, index_sto=i)
+                                     for i, (_, row) in enumerate(self._grid.storage.iterrows())]
+            self.name_storage = np.array(self.name_storage)
+            need_init_storage = True
+
         self.n_sub = copy.deepcopy(self._grid.bus.shape[0])
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)
+
         #  number of elements per substation
         self.sub_info = np.zeros(self.n_sub, dtype=dt_int)
 
@@ -339,6 +354,11 @@ class PandaPowerBackend(Backend):
         self.gen_to_sub_pos = np.zeros(self.n_gen, dtype=dt_int)
         self.line_or_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
         self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
+
+        if need_init_storage:
+            self.storage_to_subid = np.zeros(self.n_storage, dtype=dt_int)
+            self.storage_to_sub_pos = np.zeros(self.n_storage, dtype=dt_int)
+
 
         pos_already_used = np.zeros(self.n_sub, dtype=dt_int)
         self._what_object_where = [[] for _ in range(self.n_sub)]
@@ -399,6 +419,16 @@ class PandaPowerBackend(Backend):
             pos_already_used[sub_id] += 1
 
             self._what_object_where[sub_id].append(("load", "bus", i))
+
+        if need_init_storage:
+            for i, (_, row) in enumerate(self._grid.storage.iterrows()):
+                sub_id = int(row["bus"])
+                self.sub_info[sub_id] += 1
+                self.storage_to_subid[i] = sub_id
+                self.storage_to_sub_pos[i] = pos_already_used[sub_id]
+                pos_already_used[sub_id] += 1
+
+                self._what_object_where[sub_id].append(("storage", "bus", i))
 
         self.dim_topo = np.sum(self.sub_info)
         self._compute_pos_big_topo()

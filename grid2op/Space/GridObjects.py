@@ -365,8 +365,8 @@ class GridObjects:
     LOA_COL = 1
     GEN_COL = 2
     LOR_COL = 3
-    LEX_COL = 4  # TODO
-    STORAGE_COL = 5
+    LEX_COL = 4
+    STORAGE_COL = 5  # TODO
 
     attr_list_vect = None
     attr_list_set = {}
@@ -436,9 +436,16 @@ class GridObjects:
     gen_max_ramp_down = None
     gen_min_uptime = None
     gen_min_downtime = None
-    gen_cost_per_MW = None  # marginal cost
-    gen_startup_cost = None  # start cost
-    gen_shutdown_cost = None  # shutdown cost
+    gen_cost_per_MW = None  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
+    gen_startup_cost = None  # start cost (in currency)
+    gen_shutdown_cost = None  # shutdown cost (in currency)
+
+    # storage unit static data
+    storage_Emax = None
+    storage_Emin = None
+    storage_min_p_up = None
+    storage_min_p_down = None
+    storage_cost = None  # usage cost in $/(MW.step) eg. $ / (MW.5mins)
 
     # grid layout
     grid_layout = None
@@ -868,6 +875,12 @@ class GridObjects:
         """
 
         # check if we need to implement the position in substation
+        if self.n_storage == -1 and \
+           self.storage_to_subid is None and \
+           self.storage_pos_topo_vect is None and \
+           self.storage_to_sub_pos is None:
+            # no storage on the grid, so i deactivate them
+            type(self).set_no_storage()
         self._compute_sub_elements()
         self._compute_sub_pos()
 
@@ -1108,6 +1121,16 @@ class GridObjects:
                                    "")
             need_implement = True
 
+        if self.storage_to_sub_pos is None:
+            if need_implement is False:
+                raise BackendError("You chose to implement \"storage_to_sub_pos\" but not \"load_to_sub_pos\""
+                                   "or \"gen_to_sub_pos\" or \"line_or_to_sub_pos\" or \"line_ex_to_sub_pos\". "
+                                   "We cannot "
+                                   "work with that. Please either use the automatic setting, or implement all of "
+                                   "*_to_sub_pos vectors"
+                                   "")
+            need_implement = True
+
         if not need_implement:
             return
 
@@ -1130,6 +1153,11 @@ class GridObjects:
         self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
         for lex_id, sub_id_connected in enumerate(self.line_ex_to_subid):
             self.line_ex_to_sub_pos[lex_id] = last_order_number[sub_id_connected]
+            last_order_number[sub_id_connected] += 1
+
+        self.storage_to_sub_pos = np.zeros(self.n_storage, dtype=dt_int)
+        for sto_id, sub_id_connected in enumerate(self.storage_to_subid):
+            self.storage_to_sub_pos[sto_id] = last_order_number[sub_id_connected]
             last_order_number[sub_id_connected] += 1
 
     def _compute_sub_elements(self):
@@ -1190,6 +1218,13 @@ class GridObjects:
         if self.n_sub <= 0:
             raise EnvError("n_sub is negative. Powergrid is invalid: there are no substation")
 
+        if self.n_storage == -1 and \
+           self.storage_to_subid is None and \
+           self.storage_pos_topo_vect is None and \
+           self.storage_to_sub_pos is None:
+            # no storage on the grid, so i deactivate them
+            type(self).set_no_storage()
+
         self._compute_sub_elements()
         if not isinstance(self.sub_info, np.ndarray):
             try:
@@ -1241,10 +1276,10 @@ class GridObjects:
             raise IncorrectNumberOfSubstation("The number of substation is not consistent in "
                                               "self.sub_info (size \"{}\")"
                                               "and  self.n_sub ({})".format(len(self.sub_info), self.n_sub))
-        if np.sum(self.sub_info) != self.n_load + self.n_gen + 2*self.n_line:
+        if np.sum(self.sub_info) != self.n_load + self.n_gen + 2*self.n_line + self.n_storage:
             err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
-            err_msg +=  "{} elements connected to all substations and the number of load, generators and lines in " \
-                        "the _grid."
+            err_msg += "{} elements connected to all substations and the number of load, generators and lines in " \
+                       "the _grid."
             err_msg = err_msg.format(np.sum(self.sub_info))
             raise IncorrectNumberOfElements(err_msg)
 
@@ -1276,6 +1311,8 @@ class GridObjects:
             obj_per_sub[sub_id] += 1
         for sub_id in self.line_ex_to_subid:
             obj_per_sub[sub_id] += 1
+        for sub_id in self.storage_to_subid:
+            obj_per_sub[sub_id] += 1
 
         if not np.all(obj_per_sub == self.sub_info):
             raise IncorrectNumberOfElements()
@@ -1294,13 +1331,18 @@ class GridObjects:
         for i, (sub_id, sub_pos) in enumerate(zip(self.line_ex_to_subid, self.line_ex_to_sub_pos)):
             if sub_pos >= self.sub_info[sub_id]:
                 raise IncorrectPositionOfLines("for line {} at extremity end".format(i))
+        for i, (sub_id, sub_pos) in enumerate(zip(self.storage_to_subid, self.storage_to_sub_pos)):
+            if sub_pos >= self.sub_info[sub_id]:
+                raise IncorrectPositionOfStorages("for storage {}".format(i))
 
         # check that i don't have 2 objects with the same id in the "big topo" vector
         if len(np.unique(np.concatenate((self.load_pos_topo_vect.flatten(),
                                         self.gen_pos_topo_vect.flatten(),
                                         self.line_or_pos_topo_vect.flatten(),
-                                        self.line_ex_pos_topo_vect.flatten())))) != np.sum(self.sub_info):
-                raise EnvError("2 different objects would have the same id in the topology vector.")
+                                        self.line_ex_pos_topo_vect.flatten(),
+                                        self.storage_pos_topo_vect.flatten())))) != np.sum(self.sub_info):
+                raise EnvError("2 different objects would have the same id in the topology vector, or there would be"
+                               "an empty component in this vector.")
 
         # check that self.load_pos_topo_vect and co are consistent
         load_pos_big_topo = self._aux_pos_big_topo(self.load_to_subid, self.load_to_sub_pos)
@@ -1530,11 +1572,13 @@ class GridObjects:
         res.name_load = gridobj.name_load
         res.name_line = gridobj.name_line
         res.name_sub = gridobj.name_sub
+        res.name_storage = gridobj.name_storage
 
         res.n_gen = len(gridobj.name_gen)
         res.n_load = len(gridobj.name_load)
         res.n_line = len(gridobj.name_line)
         res.n_sub = len(gridobj.name_sub)
+        res.n_storage = len(gridobj.name_storage)
 
         res.sub_info = gridobj.sub_info
         res.dim_topo = np.sum(gridobj.sub_info)
@@ -1544,18 +1588,21 @@ class GridObjects:
         res.gen_to_subid = gridobj.gen_to_subid
         res.line_or_to_subid = gridobj.line_or_to_subid
         res.line_ex_to_subid = gridobj.line_ex_to_subid
+        res.storage_to_subid = gridobj.storage_to_subid
 
         # which index has this element in the substation vector
         res.load_to_sub_pos = gridobj.load_to_sub_pos
         res.gen_to_sub_pos = gridobj.gen_to_sub_pos
         res.line_or_to_sub_pos = gridobj.line_or_to_sub_pos
         res.line_ex_to_sub_pos = gridobj.line_ex_to_sub_pos
+        res.storage_to_sub_pos = gridobj.storage_to_sub_pos
 
         # which index has this element in the topology vector
         res.load_pos_topo_vect = gridobj.load_pos_topo_vect
         res.gen_pos_topo_vect = gridobj.gen_pos_topo_vect
         res.line_or_pos_topo_vect = gridobj.line_or_pos_topo_vect
         res.line_ex_pos_topo_vect = gridobj.line_ex_pos_topo_vect
+        res.storage_pos_topo_vect = gridobj.storage_pos_topo_vect
 
         res.grid_objects_types = gridobj.grid_objects_types
 
@@ -1582,6 +1629,9 @@ class GridObjects:
         res.name_shunt = gridobj.name_shunt
         res.shunt_to_subid = gridobj.shunt_to_subid
         res.env_name = gridobj.env_name
+
+        # other storage data
+        # TODO
 
         res.__name__ = name_res
         res.__qualname__ = "{}_{}".format(cls.__qualname__, gridobj.env_name)
@@ -1649,6 +1699,7 @@ class GridObjects:
         res["generators_id"] = np.where(self.gen_to_subid == substation_id)[0]
         res["lines_or_id"] = np.where(self.line_or_to_subid == substation_id)[0]
         res["lines_ex_id"] = np.where(self.line_ex_to_subid == substation_id)[0]
+        res["storages_id"] = np.where(self.storage_to_subid == substation_id)[0]
         res["nb_elements"] = self.sub_info[substation_id]
         return res
 
@@ -1743,7 +1794,7 @@ class GridObjects:
         res[self.gen_to_sub_pos[dict_["generators_id"]], self.GEN_COL] = dict_["generators_id"]
         res[self.line_or_to_sub_pos[dict_["lines_or_id"]], self.LOR_COL] = dict_["lines_or_id"]
         res[self.line_ex_to_sub_pos[dict_["lines_ex_id"]], self.LEX_COL] = dict_["lines_ex_id"]
-        res[self.storage_to_sub_pos[dict_["storage_id"]], self.STORAGE_COL] = dict_["storage_id"]
+        res[self.storage_to_sub_pos[dict_["storages_id"]], self.STORAGE_COL] = dict_["storages_id"]
         return res
 
     def get_lines_id(self, _sentinel=None, from_=None, to_=None):
@@ -2044,7 +2095,6 @@ class GridObjects:
         cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
         cls.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
-        cls.name_sub = extract_from_dict(dict_, "name_storage", lambda x: np.array(x).astype(str))
         if "env_name" in dict_:
              # new saved in version >= 1.2.4
             cls.env_name = str(dict_["env_name"])
@@ -2057,25 +2107,21 @@ class GridObjects:
         cls.gen_to_subid = extract_from_dict(dict_, "gen_to_subid", lambda x: np.array(x).astype(dt_int))
         cls.line_or_to_subid = extract_from_dict(dict_, "line_or_to_subid", lambda x: np.array(x).astype(dt_int))
         cls.line_ex_to_subid = extract_from_dict(dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int))
-        cls.storage_to_subid = extract_from_dict(dict_, "storage_to_subid", lambda x: np.array(x).astype(dt_int))
 
         cls.load_to_sub_pos = extract_from_dict(dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int))
         cls.gen_to_sub_pos = extract_from_dict(dict_, "gen_to_sub_pos", lambda x: np.array(x).astype(dt_int))
         cls.line_or_to_sub_pos = extract_from_dict(dict_, "line_or_to_sub_pos", lambda x: np.array(x).astype(dt_int))
         cls.line_ex_to_sub_pos = extract_from_dict(dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-        cls.storage_to_sub_pos = extract_from_dict(dict_, "storage_to_sub_pos", lambda x: np.array(x).astype(dt_int))
 
         cls.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
         cls.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
         cls.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
         cls.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        cls.storage_pos_topo_vect = extract_from_dict(dict_, "storage_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
 
         cls.n_gen = len(cls.name_gen)
         cls.n_load = len(cls.name_load)
         cls.n_line = len(cls.name_line)
         cls.n_sub = len(cls.name_sub)
-        cls.n_storage = len(cls.name_storage)
         cls.dim_topo = np.sum(cls.sub_info)
 
         if dict_["gen_type"] is None:
@@ -2097,8 +2143,34 @@ class GridObjects:
             cls.name_shunt = np.array(cls.name_shunt).astype(str)
             cls.shunt_to_subid = extract_from_dict(dict_, "shunt_to_subid", lambda x: np.array(x).astype(dt_int))
 
+        if "name_storage" in dict_:
+            # this is for backward compatibility with logs coming from grid2op <= 1.5
+            # where storage unit did not exist.
+            cls.name_storage = extract_from_dict(dict_, "name_storage", lambda x: np.array(x).astype(str))
+            cls.storage_to_subid = extract_from_dict(dict_, "storage_to_subid", lambda x: np.array(x).astype(dt_int))
+            cls.storage_to_sub_pos = extract_from_dict(dict_, "storage_to_sub_pos", lambda x: np.array(x).astype(dt_int))
+            cls.storage_pos_topo_vect = extract_from_dict(dict_, "storage_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+            cls.n_storage = len(cls.name_storage)
+        else:
+            cls.set_no_storage()
+
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo()
         cls.init_grid(obj_, force=True)
         return cls()
+
+    @classmethod
+    def set_no_storage(cls):
+        """
+        this function is used to set all necessary parameters when the grid do not contain any storage element.
+
+        Returns
+        -------
+
+        """
+        cls.n_storage = 0
+        cls.name_storage = np.array([], dtype=str)
+        cls.storage_to_subid = np.array([], dtype=dt_int)
+        cls.storage_pos_topo_vect = np.array([], dtype=dt_int)
+        cls.storage_to_sub_pos = np.array([], dtype=dt_int)

@@ -39,6 +39,7 @@ TEST_DEV_ENVS = {
     "case5_example": DEV_DATASET.format("rte_case5_example"),
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
     "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
+    "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
 }
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
