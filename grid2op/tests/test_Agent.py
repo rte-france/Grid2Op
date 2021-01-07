@@ -27,6 +27,9 @@ DEBUG = False
 if DEBUG:
     print("pandapower version : {}".format(pp.__version__))
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestAgent(HelperTests):
     def setUp(self):

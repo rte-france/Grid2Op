@@ -14,6 +14,9 @@ import json
 
 from grid2op.Parameters import Parameters
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestParameters(unittest.TestCase):
     def test_default_builds(self):

@@ -226,6 +226,41 @@ test_make_plot_injj.ipynb
 plot_inj_prez_gdrive.ipynb
 where_i_want_to_save_it/
 test_issue147.py
+test_rllib.py
+bug_neg_prod.py
+test_ray/
+test.py
+getting_started/chronics_educ/
+getting_started/prepare_env_aub.ipynb
+test_log_122/grid2op/data/educ_case14_redisp
+test_issue156.py
+test_redisp.py
+getting_started/test_env_converter.ipynb
+test_spektral.py
+test_spektral_example.py
+test_training_gnn*.pdf
+getting_started/donothing_case14_realistic.ipynb
+getting_started/first_plot_attempt.ipynb
+getting_started/investigate_redisp_bug.ipynb
+**/split_and_save_meta_params.json
+getting_started/saved_agent_DDDQN_BDA_1000/
+getting_started/saved_agent_DDDQN_BDA_1000_results/
+getting_started/saved_agent2_DDDQN_300/
+getting_started/saved_agent2_DDDQN_300_results/
+getting_started/saved_agent_DDDQN_200/
+getting_started/saved_agent_DDDQN_200_results/
+test_stable_baselines.py
+grid2op/Opponent/DCOPFOpponent.py
+test_dcopponent.py
+getting_started/0_SmallExample.html
+grid2op/utils/my_agent/
+my_agent_for_test_reboot/
+scale_weights.py
+test_weights.jpg
+test_weights_focus.jpg
+test_weights_full.jpg
+times_api.txt
+new 1.txt
 
 # profiling files
 **.prof

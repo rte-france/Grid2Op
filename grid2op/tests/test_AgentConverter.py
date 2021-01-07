@@ -20,6 +20,9 @@ from grid2op.Rules import AlwaysLegal
 from grid2op import make
 from grid2op.Parameters import Parameters
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestAgent(AgentWithConverter):
     def __init__(self, action_space, env_name, action_space_converter=IdToAct, **kwargs_converter):

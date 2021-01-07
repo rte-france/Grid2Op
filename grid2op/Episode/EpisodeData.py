@@ -66,6 +66,21 @@ class EpisodeData:
     All of the above should allow to read back, and better understand the behaviour of some
     :class:`grid2op.Agent.BaseAgent`, even though such utility functions have not been coded yet.
 
+    Attributes
+    ----------
+    actions: ``type``
+        Stores the Agent actions as a collection of :class:`grid2op.BaseAction`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+    observations: ``type``
+        Stores the Observations as a collection of :class:`grid2op.BaseObservation`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+    env_actions: ``type``
+        Stores the Environment actions as a collection of :class:`grid2op.BaseAction`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+    attacks: ``type``
+        Stores the Opponent actions as a collection of :class:`grid2op.BaseAction`.
+        The collection is stored the utility class :class:`grid2op.Episode.CollectionWrapper`.
+
     Examples
     --------
     Here is an example on how to save the action your agent was doing by the :class:`grid2op.Runner.Runner` of grid2op.
@@ -160,12 +175,27 @@ class EpisodeData:
                                              helper_action_env,
                                              "env_actions",
                                              check_legit=False)
+
+        self.attacks = CollectionWrapper(attack,
+                                         attack_space,
+                                         "attacks")
+
+        self.meta = meta
         # gives a unique game over for everyone
         # TODO this needs testing!
         action_go = self.actions._game_over
         obs_go = self.observations._game_over
         env_go = self.env_actions._game_over
         real_go = action_go
+        if self.meta is not None:
+            # when initialized by the runner, meta is None
+            if "nb_timestep_played" in self.meta:
+                real_go = int(self.meta["nb_timestep_played"])
+        if real_go is None:
+            real_go = action_go
+        else:
+            if action_go is not None:
+                real_go = min(action_go, real_go)
         if real_go is None:
             real_go = obs_go
         else:
@@ -182,20 +212,17 @@ class EpisodeData:
             self.observations._game_over = real_go + 1
             self.env_actions._game_over = real_go
 
-        self.attack = attack
         self.other_rewards = other_rewards
         self.observation_space = observation_space
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
         self.params = params
-        self.meta = meta
         self.episode_times = episode_times
         self.name = name
         self.disc_lines_templ = disc_lines_templ
 
         self.attack_templ = attack_templ
-        self.attack_space = attack_space
 
         self.logger = logger
         self.serialize = False
@@ -320,7 +347,7 @@ class EpisodeData:
                     ok_ = False
                     break
             if ok_:
-                res.append((os.path.abspath(this_dir), el))
+                res.append((os.path.abspath(path_agent), el))
         return res
 
     def reboot(self):
@@ -405,7 +432,6 @@ class EpisodeData:
             os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
         attack_space = ActionSpace.from_dict(
             os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
-
         return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
@@ -514,6 +540,16 @@ class EpisodeData:
                 time_step, env_act.to_vect(), efficient_storing)
             self.observations.update(
                 time_step + 1, obs.to_vect(), efficient_storing)
+            if opp_attack is not None:
+                self.attacks.update(
+                    time_step, opp_attack.to_vect(), efficient_storing)
+            else:
+                if efficient_storing:
+                    self.attacks.collection[time_step - 1, :] = 0.
+                else:
+                    self.attack = np.concatenate(
+                        (self.attack, self.attack_templ))
+
             if efficient_storing:
                 # efficient way of writing
                 self.times[time_step - 1] = time_step_duration
@@ -524,11 +560,6 @@ class EpisodeData:
                         self.disc_lines[time_step - 1, :] = arr
                     else:
                         self.disc_lines[time_step - 1, :] = self.disc_lines_templ
-
-                if opp_attack is not None:
-                    self.attack[time_step - 1, :] = opp_attack.to_vect()
-                else:
-                    self.attack[time_step - 1, :] = 0.
             else:
                 # completely inefficient way of writing
                 self.times = np.concatenate(
@@ -542,13 +573,6 @@ class EpisodeData:
                     else:
                         self.disc_lines = np.concatenate(
                             (self.disc_lines, self.disc_lines_templ))
-
-                if opp_attack is not None:
-                    self.attack = np.concatenate(
-                        (self.attack, opp_attack.to_vect().reshape(1, -1)))
-                else:
-                    self.attack = np.concatenate(
-                        (self.attack, self.attack_templ))
 
             if "rewards" in info:
                 self.other_rewards.append({k: self._convert_to_float(v) for k, v in info["rewards"].items()})
@@ -626,20 +650,20 @@ class EpisodeData:
                 json.dump(obj=self.other_rewards, fp=f,
                           indent=4, sort_keys=True)
 
-            np.savez_compressed(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES),
-                    data=self.times)
+            np.savez_compressed(os.path.join(self.episode_path, EpisodeData.AG_EXEC_TIMES), data=self.times)
             self.actions.save(
                 os.path.join(self.episode_path, EpisodeData.ACTIONS))
             self.env_actions.save(
                 os.path.join(self.episode_path, EpisodeData.ENV_ACTIONS))
             self.observations.save(
                 os.path.join(self.episode_path, EpisodeData.OBSERVATIONS))
+            self.attacks.save(
+                os.path.join(os.path.join(self.episode_path,
+                                          EpisodeData.ATTACK)))
             np.savez_compressed(os.path.join(
                 self.episode_path, EpisodeData.LINES_FAILURES), data=self.disc_lines)
             np.savez_compressed(os.path.join(self.episode_path,
                                  EpisodeData.REWARDS), data=self.rewards)
-            np.savez_compressed(os.path.join(self.episode_path,
-                                 EpisodeData.ATTACK), data=self.attack)
 
 
 class CollectionWrapper:
@@ -704,8 +728,7 @@ class CollectionWrapper:
         self.objects = []
         for i, elem in enumerate(self.collection):
             try:
-                collection_obj = self.helper.from_vect(self.collection[i, :],
-                                                       check_legit=check_legit)
+                collection_obj = self.helper.from_vect(self.collection[i, :], check_legit=check_legit)
                 self.objects.append(collection_obj)
             except EnvError as exc_:
                 self._game_over = i

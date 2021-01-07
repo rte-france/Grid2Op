@@ -112,7 +112,8 @@ class ConsoleLog(DoNothingLog):
 
 class Runner(object):
     """
-    A runner is a utilitary tool that allows to run simulations more easily. It is a more convenient way to execute the following loops:
+    A runner is a utilitary tool that allows to run simulations more easily. It is a more convenient way to execute the
+     following loops:
 
     .. code-block:: python
 
@@ -162,7 +163,8 @@ class Runner(object):
 
     observationClass: ``type``
         This type represents the class that will be used to build the :class:`grid2op.BaseObservation` visible by the
-        :class:`grid2op.BaseAgent`. As :attr:`Runner.actionClass`, this should be a type, and **not** and instance (object)
+        :class:`grid2op.BaseAgent`. As :attr:`Runner.actionClass`, this should be a type, and **not** and instance
+        (object)
         of this type. This type should derived from :class:`grid2op.BaseObservation`. The default is
         :class:`grid2op.CompleteObservation`.
 
@@ -173,24 +175,25 @@ class Runner(object):
         **should not** be used to train or evaluate an agent, but rather as debugging purpose.
 
     gridStateclass: ``type``
-        This types control the mechanisms to read chronics and assign data to the powergrid. Like every "\.*Class"
+        This types control the mechanisms to read chronics and assign data to the powergrid. Like every "\\.*Class"
         attributes the type should be pass and not an intance (object) of this type. Its default is
         :class:`grid2op.GridStateFromFile` and it must be a subclass of :class:`grid2op.GridValue`.
 
     legalActClass: ``type``
         This types control the mechanisms to assess if an :class:`grid2op.BaseAction` is legal.
-        Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
+        Like every "\\.*Class" attributes the type should be pass and not an intance (object) of this type.
         Its default is :class:`grid2op.AlwaysLegal` and it must be a subclass of :class:`grid2op.BaseRules`.
 
     backendClass: ``type``
         This types control the backend, *eg.* the software that computes the powerflows.
-        Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
+        Like every "\\.*Class" attributes the type should be pass and not an intance (object) of this type.
         Its default is :class:`grid2op.PandaPowerBackend` and it must be a subclass of :class:`grid2op.Backend`.
 
     agentClass: ``type``
-        This types control the type of BaseAgent, *eg.* the bot / controler that will take :class:`grid2op.BaseAction` and
+        This types control the type of BaseAgent, *eg.* the bot / controler that will take :class:`grid2op.BaseAction`
+        and
         avoid cascading failures.
-        Like every "\.*Class" attributes the type should be pass and not an intance (object) of this type.
+        Like every "\\.*Class" attributes the type should be pass and not an intance (object) of this type.
         Its default is :class:`grid2op.DoNothingAgent` and it must be a subclass of :class:`grid2op.BaseAgent`.
 
     logger:
@@ -266,7 +269,6 @@ class Runner(object):
 
     """
     _has_issued_deprecation_warning = False
-
     def __init__(self,
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored

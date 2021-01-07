@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import json
+import tempfile
 import warnings
 import pdb
 
@@ -30,6 +31,9 @@ from grid2op.MakeEnv import make
 # temporary deactivation of all the failing test until simulate is fixed
 DEACTIVATE_FAILING_TEST = True
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestLoadingBackendFunc(unittest.TestCase):
     def setUp(self):
@@ -51,6 +55,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                     '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3',
                                    'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
+                      'env_name': 'rte_case14_test',
                       'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                       'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
                       'gen_to_subid': [1, 2, 5, 7, 0],
@@ -85,6 +90,84 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       'name_shunt': ['shunt_8_0'], 'shunt_to_subid': [8],
                       '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
+        self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],
+                         'day_of_week': [6], 'prod_p': [93.5999984741211, 75.0, 0.0, 7.599999904632568, 77.9990234375],
+                         'prod_q': [65.4969711303711, 98.51886749267578, -12.746061325073242, 6.789371013641357,
+                                    3.801255941390991],
+                         'prod_v': [142.10000610351562, 142.10000610351562, 0.20000000298023224, 12.0,
+                                    142.10000610351562],
+                         'load_p': [21.200000762939453, 86.9000015258789, 15.199999809265137, 45.5, 7.300000190734863,
+                                    11.699999809265137, 29.399999618530273, 8.600000381469727, 3.5, 5.599999904632568,
+                                    13.399999618530273],
+                         'load_q': [14.899999618530273, 60.099998474121094, 10.800000190734863, 31.5,
+                                    5.099999904632568, 8.300000190734863, 20.600000381469727,
+                                    6.0, 2.4000000953674316, 3.9000000953674316, 9.399999618530273],
+                         'load_v': [142.10000610351562, 142.10000610351562, 0.19267192482948303, 133.21652221679688,
+                                    133.5172882080078, 0.20000000298023224, 0.20202238857746124, 0.1999506950378418,
+                                    0.1990993618965149, 0.19563813507556915, 0.19479265809059143],
+                         'p_or': [39.331451416015625, 38.667572021484375, 8.023938179016113, 11.87976360321045,
+                                  -0.621783435344696, 1.323334813117981, 3.6911065578460693, 29.264848709106445,
+                                  44.41638946533203, 37.75281524658203, 16.985824584960938, -28.051433563232422,
+                                  4.144556999206543, 7.01623010635376, 16.03428840637207, 25.47538185119629,
+                                  16.228321075439453, 38.895076751708984, -7.599999904632568, 33.075382232666016],
+                         'q_or': [-15.30455207824707, 19.10580825805664, 8.4382963180542, 10.634726524353027,
+                                  2.3168439865112305, 0.45094606280326843, 0.9515853524208069, -8.529295921325684,
+                                  23.858327865600586, 24.905370712280273, 33.14556884765625, 3.8572652339935303,
+                                  0.13210760056972504, 4.54428768157959, 10.420299530029297, 10.74376106262207,
+                                  9.365352630615234, 43.827266693115234, -6.606429576873779, 15.779977798461914],
+                         'v_or': [142.10000610351562, 142.10000610351562, 0.20202238857746124, 0.20202238857746124,
+                                  0.1999506950378418, 0.19563813507556915, 0.19479265809059143,
+                                  142.10000610351562, 142.10000610351562, 142.10000610351562, 142.10000610351562,
+                                  133.21652221679688, 0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+                                  133.21652221679688, 133.21652221679688, 133.5172882080078, 13.833837509155273,
+                                  13.833837509155273],
+                         'a_or': [171.47496032714844, 175.23731994628906, 33277.5390625, 45566.9609375,
+                                  6926.5302734375, 4125.82861328125, 11297.8642578125, 123.84978485107422,
+                                  204.8500518798828, 183.7598419189453, 151.32354736328125, 122.71674346923828,
+                                  11970.3818359375, 24131.24609375, 55202.73828125, 119.82522583007812,
+                                  81.20392608642578, 253.38462829589844, 420.26788330078125, 1529.4415283203125],
+                         'p_ex': [-39.034053802490234, -37.70601272583008, -7.978217124938965, -11.537211418151855,
+                                  0.6268926858901978, -1.3184539079666138, -3.6627886295318604, -28.885826110839844,
+                                  -43.03413772583008, -36.650413513183594, -16.11812973022461, 28.161354064941406,
+                                  -4.126892566680908, -6.92333459854126, -15.772652626037598, -25.47538185119629,
+                                  -16.228321075439453, -38.895076751708984, 7.599999904632568, -33.075382232666016],
+                         'q_ex': [10.362568855285645, -20.268247604370117, -8.31684398651123, -9.906070709228516,
+                                  -2.3048837184906006, -0.44652995467185974, -0.8939293026924133, 5.273301124572754,
+                                  -23.203140258789062, -25.148475646972656, -32.26323699951172, -3.510542869567871,
+                                  -0.09511636942625046, -4.350945949554443, -9.905055046081543, -9.173547744750977,
+                                  -7.482545852661133, -36.142757415771484, 6.789371013641357, -14.266851425170898],
+                         'v_ex': [142.10000610351562, 133.5172882080078, 0.1999506950378418, 0.19267192482948303,
+                                  0.1990993618965149, 0.19479265809059143, 0.19267192482948303, 142.10000610351562,
+                                  133.21652221679688, 133.5172882080078, 133.21652221679688, 133.5172882080078,
+                                  0.1990993618965149, 0.19563813507556915, 0.19479265809059143, 13.833837509155273,
+                                  0.20202238857746124, 0.20000000298023224, 12.0, 0.20202238857746124],
+                         'a_ex': [164.0883026123047, 185.10972595214844, 33277.5390625, 45566.9609375, 6926.5302734375,
+                                  4125.82861328125, 11297.8642578125, 119.30233764648438, 211.88955688476562,
+                                  192.20391845703125, 156.30455017089844, 122.71674346923828, 11970.3818359375,
+                                  24131.24609375, 55202.73828125, 1130.0374755859375, 51070.6328125, 153273.34375,
+                                  490.3125305175781, 102943.1796875],
+                         'rho': [0.4860054850578308, 0.4966689944267273, 0.18164825439453125, 0.2487310916185379,
+                                 0.03780904784798622, 0.3378177583217621, 0.061670344322919846, 0.3510231077671051,
+                                 0.580599308013916, 0.5208240747451782, 0.42889103293418884, 0.347811758518219,
+                                 0.06534133851528168, 0.13172243535518646, 0.3013288080692291, 0.33961644768714905,
+                                 0.23015344142913818, 0.7181591987609863, 0.15440839529037476, 0.5619240403175354],
+                         'line_status': [True, True, True, True, True, True, True, True, True, True, True, True, True,
+                                         True, True, True, True, True, True, True],
+                         'timestep_overflow': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         'topo_vect': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                       1, 1, 1, 1, 1, 1],
+                         'time_before_cooldown_line': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         'time_before_cooldown_sub': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         'time_next_maintenance': [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+                                                   -1, -1, -1],
+                         'duration_next_maintenance': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                         'target_dispatch': [0.0, 0.0, 0.0, 0.0, 0.0],
+                         'actual_dispatch': [0.0, 0.0, 0.0, 0.0, 0.0],
+                         '_shunt_p': [0.0],
+                         '_shunt_q': [-17.923625946044922],
+                         '_shunt_v': [0.20202238857746124],
+                         '_shunt_bus': [1]}
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
@@ -190,6 +273,18 @@ class TestLoadingBackendFunc(unittest.TestCase):
                             ])
         assert np.all(mat[:10,:] == ref_mat)
 
+    def test_conn_mat2(self):
+        # when a powerline is disconnected
+        obs, *_ = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
+        assert obs.bus_connectivity_matrix().shape == (14, 14)
+        # when there is a substation counts 2 buses
+        obs, *_ = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
+        assert obs.bus_connectivity_matrix().shape == (15, 15)
+        assert obs.bus_connectivity_matrix()[14, 11] == 1.  # first powerline modified
+        assert obs.bus_connectivity_matrix()[14, 12] == 1.  # second powerline modified
+        assert obs.bus_connectivity_matrix()[5, 11] == 0.  # first powerline modified
+        assert obs.bus_connectivity_matrix()[5, 12] == 0.  # second powerline modified
+
     def test_observation_space(self):
         obs = self.env.observation_space(self.env)
         assert self.env.observation_space.n == obs.size()
@@ -238,7 +333,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(shapes == self.shapes)
 
     def test_4_to_from_vect(self):
-        # test that helper_obs is abl to generate a valid observation
+        # test that helper_obs is able to generate a valid observation
         obs = self.env.observation_space(self.env)
         obs2 = self.env.observation_space(self.env)
         vect = obs.to_vect()
@@ -249,7 +344,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(obs.dtype() == self.dtypes)
         assert np.all(obs.shape() == self.shapes)
 
-        assert obs == obs2
+        # TODO there is not reason that these 2 are equal: reset, will erase everything
+        # TODO whereas creating the observation
+        # assert obs == obs2
+        obs_diff, attr_diff = obs.where_different(obs2)
+        for el in attr_diff:
+            assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2"
         vect2 = obs2.to_vect()
         assert np.all(vect == vect2)
 
@@ -411,6 +511,26 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert np.all(res.line_or_pos_topo_vect == self.env.observation_space.line_or_pos_topo_vect)
         assert np.all(res.line_ex_pos_topo_vect == self.env.observation_space.line_ex_pos_topo_vect)
         assert issubclass(res.observationClass, self.env.observation_space._init_subtype)
+
+    def test_to_from_json(self):
+        """test the to_json, and from_json and make sure these are all  json serializable"""
+        obs = self.env.observation_space(self.env)
+        obs2 = self.env.observation_space(self.env)
+        dict_ = obs.to_json()
+        # test that the right dictionary is returned
+        assert dict_ == self.json_ref
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # test i can save it (json serializable)
+            with open(os.path.join(tmpdirname, "test.json"), "w") as fp:
+                json.dump(obj=dict_, fp=fp)
+            # test i can properly load it back
+            with open(os.path.join(tmpdirname, "test.json"), "r") as fp:
+                dict_realoaded = json.load(fp=fp)
+        assert dict_realoaded == dict_
+        # test i can initialize an observation from it
+        obs2.reset()
+        obs2.from_json(dict_realoaded)
+        assert obs == obs2
 
 
 class TestObservationHazard(unittest.TestCase):

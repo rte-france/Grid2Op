@@ -129,7 +129,7 @@ class PandaPowerBackend(Backend):
 
         self._pf_init = "flat"
         self._pf_init = "results"
-        self._nb_bus_before = 0
+        self._nb_bus_before = None  # number of active bus at the preceeding step
 
         self.thermal_limit_a = None
 
@@ -146,6 +146,19 @@ class PandaPowerBackend(Backend):
         self.cst_1 = dt_float(1.0)
         self._topo_vect = None
         self.slack_id = None
+        self.comp_time = 0.
+
+        # function to rstore some information
+        self.__nb_bus_before = None  # number of substation in the powergrid
+        self.__nb_powerline = None  # number of powerline (real powerline, not transformer)
+        self._init_bus_load = None
+        self._init_bus_gen = None
+        self._init_bus_lor = None
+        self._init_bus_lex = None
+        self._get_vector_inj = None
+        self._big_topo_to_obj = None
+        self._big_topo_to_backend = None
+        self.__pp_backend_initial_state = None  # initial state to facilitate the "reset"
 
         # Mapping some fun to apply bus updates
         self._type_to_bus_set = [
@@ -196,8 +209,11 @@ class PandaPowerBackend(Backend):
         """
         # Assign the content of itself as saved at the end of load_grid
         # This overide all the attributes with the attributes from the copy in __pp_backend_initial_state
-        self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
+        # self.__dict__.update(copy.deepcopy(self.__pp_backend_initial_state).__dict__)
+        self._grid = copy.deepcopy(self.__pp_backend_initial_state._grid)
+        self._reset_all_nan()
         self._topo_vect[:] = self._get_topo_vect()
+        self.comp_time = 0.
 
     def load_grid(self, path=None, filename=None):
         """
@@ -210,7 +226,7 @@ class PandaPowerBackend(Backend):
         """
 
         if path is None and filename is None:
-            raise RuntimeError("You must provide at least one of path or file to laod a powergrid.")
+            raise RuntimeError("You must provide at least one of path or file to load a powergrid.")
         if path is None:
             full_path = filename
         elif filename is None:
@@ -438,6 +454,7 @@ class PandaPowerBackend(Backend):
             name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
             self.shunt_to_subid[i] = bus
         self.name_shunt = np.array(name_shunt)
+        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(dt_float)
         self.shunts_data_available = True
 
         # store the topoid -> objid
@@ -665,17 +682,35 @@ class PandaPowerBackend(Backend):
                 else:
                     pp.runpp(self._grid, check_connectivity=False, init=self._pf_init, numba=numba_)
 
+                # stores the computation time
+                if "_ppc" in self._grid:
+                    if "et" in self._grid["_ppc"]:
+                        self.comp_time += self._grid["_ppc"]["et"]
                 if self._grid.res_gen.isnull().values.any():
                     # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                     # sometimes pandapower does not detect divergence and put Nan.
                     raise pp.powerflow.LoadflowNotConverged("Isolated gen")
 
+                self.prod_p[:], self.prod_q[:], self.prod_v[:] = self._gens_info()
                 self.load_p[:], self.load_q[:], self.load_v[:] = self._loads_info()
                 if not is_dc:
                     if not np.all(np.isfinite(self.load_v)):
                         # TODO see if there is a better way here
                         # some loads are disconnected: it's a game over case!
                         raise pp.powerflow.LoadflowNotConverged("Isolated load")
+                else:
+                    # fix voltages magnitude that are always "nan" for dc case
+                    # self._grid.res_bus["vm_pu"] is always nan when computed in DC
+                    self.load_v[:] = self.load_pu_to_kv  # TODO
+                    # need to assign the correct value when a generator is present at the same bus
+                    # TODO optimize this ugly loop
+                    for l_id in range(self.n_load):
+                        if self.load_to_subid[l_id] in self.gen_to_subid:
+                            ind_gens = np.where(self.gen_to_subid == self.load_to_subid[l_id])[0]
+                            for g_id in ind_gens:
+                                if self._topo_vect[self.load_pos_topo_vect[l_id]] == self._topo_vect[self.load_pos_topo_vect[g_id]]:
+                                    self.load_v[l_id] = self.prod_v[g_id]
+                                    break
 
                 self.line_status[:] = self._get_line_status()
                 # I retrieve the data once for the flows, so has to not re read multiple dataFrame
@@ -686,10 +721,6 @@ class PandaPowerBackend(Backend):
                 self.a_or[~np.isfinite(self.a_or)] = 0.
                 self.v_or[~np.isfinite(self.v_or)] = 0.
 
-                # it seems that pandapower does not take into account disconencted powerline for their voltage
-                self.v_or[~self.line_status] = 0.
-                self.v_ex[~self.line_status] = 0.
-
                 self.p_ex[:] = self._aux_get_line_info("p_to_mw", "p_lv_mw")
                 self.q_ex[:] = self._aux_get_line_info("q_to_mvar", "q_lv_mvar")
                 self.v_ex[:] = self._aux_get_line_info("vm_to_pu", "vm_lv_pu")
@@ -697,10 +728,12 @@ class PandaPowerBackend(Backend):
                 self.a_ex[~np.isfinite(self.a_ex)] = 0.
                 self.v_ex[~np.isfinite(self.v_ex)] = 0.
 
+                # it seems that pandapower does not take into account disconencted powerline for their voltage
+                self.v_or[~self.line_status] = 0.
+                self.v_ex[~self.line_status] = 0.
+
                 self.v_or[:] *= self.lines_or_pu_to_kv
                 self.v_ex[:] *= self.lines_ex_pu_to_kv
-
-                self.prod_p[:], self.prod_q[:], self.prod_v[:] = self._gens_info()
 
                 self._nb_bus_before = None
                 self._grid._ppc["gen"][self._iref_slack, 1] = 0.
@@ -709,23 +742,25 @@ class PandaPowerBackend(Backend):
 
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
-            self.p_or[:] = np.NaN
-            self.q_or[:] = np.NaN
-            self.v_or[:] = np.NaN
-            self.a_or[:] = np.NaN
-            self.p_ex[:] = np.NaN
-            self.q_ex[:] = np.NaN
-            self.v_ex[:] = np.NaN
-            self.a_ex[:] = np.NaN
-            self.prod_p[:] = np.NaN
-            self.prod_q[:] = np.NaN
-            self.prod_v[:] = np.NaN
-            self.load_p[:] = np.NaN
-            self.load_q[:] = np.NaN
-            self.load_v[:] = np.NaN
-
-            self._nb_bus_before = None
+            self._reset_all_nan()
             return False
+
+    def _reset_all_nan(self):
+        self.p_or[:] = np.NaN
+        self.q_or[:] = np.NaN
+        self.v_or[:] = np.NaN
+        self.a_or[:] = np.NaN
+        self.p_ex[:] = np.NaN
+        self.q_ex[:] = np.NaN
+        self.v_ex[:] = np.NaN
+        self.a_ex[:] = np.NaN
+        self.prod_p[:] = np.NaN
+        self.prod_q[:] = np.NaN
+        self.prod_v[:] = np.NaN
+        self.load_p[:] = np.NaN
+        self.load_q[:] = np.NaN
+        self.load_v[:] = np.NaN
+        self._nb_bus_before = None
 
     def copy(self):
         """
@@ -866,13 +901,13 @@ class PandaPowerBackend(Backend):
         return self.cst_1 * self.p_or, self.cst_1 * self.q_or, self.cst_1 * self.v_or, self.cst_1 * self.a_or
 
     def lines_ex_info(self):
-        return self.cst_1 * self.p_ex, self.cst_1 * self.q_ex,self.cst_1 * self.v_ex, self.cst_1 * self.a_ex
+        return self.cst_1 * self.p_ex, self.cst_1 * self.q_ex, self.cst_1 * self.v_ex, self.cst_1 * self.a_ex
 
     def shunt_info(self):
         shunt_p = self.cst_1 * self._grid.res_shunt["p_mw"].values.astype(dt_float)
         shunt_q = self.cst_1 * self._grid.res_shunt["q_mvar"].values.astype(dt_float)
-        shunt_v = self._grid.res_bus["vm_pu"].values[self._grid.shunt["bus"].values]
-        shunt_v *= self._grid.bus["vn_kv"].values[self._grid.shunt["bus"]]
+        shunt_v = self._grid.res_bus["vm_pu"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
+        shunt_v *= self._grid.bus["vn_kv"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
         shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
         shunt_bus = 1 * shunt_bus
         shunt_bus = shunt_bus.astype(dt_int)

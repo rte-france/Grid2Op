@@ -152,6 +152,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     """
     def __init__(self,
                  envs_dir,
+                 _add_to_name="",  # internal, for test only, do not use !
                  **kwargs):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
@@ -178,6 +179,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 if backendClass is not None:
                     env = make(env_path,
                                backend=backendClass(),
+                               _add_to_name=_add_to_name,
                                **kwargs)
                 else:
                     env = make(env_path, **kwargs)
@@ -195,7 +197,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env = self.mix_envs[self.env_index]
         # Make sure GridObject class attributes are set from first env
         # Should be fine since the grid is the same for all envs
-        multi_env_name = os.path.basename(os.path.abspath(envs_dir))
+        multi_env_name = os.path.basename(os.path.abspath(envs_dir)) + _add_to_name
         save_env_name = self.current_env.env_name
         self.current_env.env_name = multi_env_name
         self.__class__ = self.init_grid(self.current_env)

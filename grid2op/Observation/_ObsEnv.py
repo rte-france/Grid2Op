@@ -8,7 +8,7 @@
 
 import copy
 import numpy as np
-from grid2op.dtypes import dt_int, dt_float
+from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.BaseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
 from grid2op.Rules import RulesChecker, BaseRules
@@ -51,7 +51,10 @@ class _ObsEnv(BaseEnv):
                  helper_action_class,
                  helper_action_env,
                  other_rewards={}):
-        BaseEnv.__init__(self, parameters, thermal_limit_a, other_rewards=other_rewards)
+        BaseEnv.__init__(self,
+                         copy.deepcopy(parameters),
+                         thermal_limit_a,
+                         other_rewards=other_rewards)
         self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
         self._obsClass = None
@@ -99,7 +102,7 @@ class _ObsEnv(BaseEnv):
                       actionClass,
                       observationClass,
                       rewardClass, legalActClass):
-        self._env_dc = self.parameters.FORECAST_DC
+        self._env_dc = self.parameters.ENV_DC
         self.chronics_handler = chronics_handler
         self.backend = backend
         self._has_been_initialized()
@@ -120,6 +123,11 @@ class _ObsEnv(BaseEnv):
                                                obs_env=None,
                                                action_helper=None)
         self.current_obs = self.current_obs_init
+
+        # backend has loaded everything
+        self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
+        self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
+        self._has_been_initialized()
 
     def _do_nothing(self, x):
         return self._do_nothing_act
@@ -335,6 +343,9 @@ class _ObsEnv(BaseEnv):
 
         Update this "emulated" environment with the real powergrid.
 
+        # TODO it should be updated from the observation only, especially if the observation is partially
+        # TODO observable. This would lead to data leakage here somehow.
+
         Parameters
         ----------
         env: :class:`grid2op.Environment.BaseEnv`
@@ -348,14 +359,17 @@ class _ObsEnv(BaseEnv):
         self._topo_vect = real_backend.get_topo_vect()
 
         # convert line status to -1 / 1 instead of false / true
-        self._line_status = real_backend.get_line_status().astype(dt_int)  # false -> 0 true -> 1
+        self._line_status = env.get_current_line_status().astype(dt_int)   # real_backend.get_line_status().astype(dt_int)  # false -> 0 true -> 1
         self._line_status *= 2  # false -> 0 true -> 2
         self._line_status -= 1  # false -> -1; true -> 1
         self.is_init = False
 
         # Make a copy of env state for simulation
         # TODO this depends on the datetime simulated, so find a way to have it independant of that !!!
-        self._thermal_limit_a = env._thermal_limit_a.astype(dt_float)
+        if self._thermal_limit_a is None:
+            self._thermal_limit_a = 1.0 * env._thermal_limit_a.astype(dt_float)
+        else:
+            self._thermal_limit_a[:] = env._thermal_limit_a.astype(dt_float)
         self.gen_activeprod_t_init[:] = env._gen_activeprod_t
         self.gen_activeprod_t_redisp_init[:] = env._gen_activeprod_t_redisp
         self.times_before_line_status_actionable_init[:] = env._times_before_line_status_actionable

@@ -25,6 +25,24 @@ from grid2op.Rules import AlwaysLegal
 from grid2op.Opponent import BaseOpponent
 from grid2op.Action._BackendAction import _BackendAction
 
+# TODO put in a separate class the redispatching function
+
+DETAILED_REDISP_ERR_MSG = "\nThis is an attempt to explain why the dispatch did not succeed and caused a game over.\n" \
+                          "To compensate the {increase} of loads (and / or {decrease} of " \
+                          "renewable energy), " \
+                          "the generators should {increase} their total production of {sum_move:.2f}MW (in total).\n" \
+                          "But, if you take into account the generator constraints ({pmax} and {max_ramp_up}) you " \
+                          "can have at most {avail_up_sum:.2f}MW.\n" \
+                          "Indeed at time t, generators are in state:\n\t{gen_setpoint}\ntheir ramp max is:" \
+                          "\n\t{ramp_up}\n and pmax is:\n\t{gen_pmax}\n" \
+                          "Wrapping up, each generator can {increase} at {maximum} of:\n\t{avail_up}\n" \
+                          "NB: if you did not do any dispatch during this episode, it would have been possible to " \
+                          "meet these constraints. This situation is caused by not having enough degree of freedom " \
+                          "to \"compensate\" the variation of the load due to (most likely) an \"over usage\" of " \
+                          "redispatching feature (some generators stuck at {pmax} as a consequence of your " \
+                          "redispatching. They can't increase their productions to meet the {increase} in demand or " \
+                          "{decrease} of renewables)"
+
 
 class BaseEnv(GridObjects, RandomObject, ABC):
     """
@@ -177,8 +195,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                  parameters,
                  voltagecontrolerClass,
                  thermal_limit_a=None,
-                 epsilon_poly=1e-2,
-                 tol_poly=1e-6,
+                 epsilon_poly=1e-4,  # precision of the redispatching algorithm
+                 tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
                  other_rewards={},
                  with_forecast=True,
                  opponent_action_class=DontAct,
@@ -193,6 +211,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
 
+        self._DEBUG = False
         # specific to power system
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
@@ -205,6 +224,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_powerflow = dt_float(0)
         self._time_extract_obs = dt_float(0)
         self._time_opponent = dt_float(0)
+        self._time_redisp = dt_float(0)
 
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
@@ -225,6 +245,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # observation
         self.current_obs = None
+        self._line_status = None
 
         self._ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
         self._forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
@@ -241,6 +262,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
         self._times_before_topology_actionable = None
         self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._nb_ts_reco = self.parameters.NB_TIMESTEP_RECONNECTION
 
         # for maintenance operation
         self._time_next_maintenance = None
@@ -328,6 +350,49 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # specific to Basic Env, do not change
         self.backend = None
         self.__is_init = False
+        self.debug_dispatch = False
+
+        # to change the parameters
+        self.__new_param = None
+        self.__new_forecast_param = None
+
+    def change_parameters(self, new_parameters):
+        """
+        Allows to change the parameters of an environment.
+
+        This only affects the environment AFTER `env.reset()` has been called.
+
+        This only affects the environment and NOT the forecast.
+
+        Parameters
+        ----------
+        new_parameters: :class:`grid2op.Parameters.Parameters`
+            The new parameters you want the environment to get.
+
+        """
+        if not isinstance(new_parameters, Parameters):
+            raise EnvError("The new parameters \"new_parameters\" should be an instance of "
+                           "grid2op.Parameters.Parameters.")
+        self.__new_param = new_parameters
+
+    def change_forecast_parameters(self, new_parameters):
+        """
+        Allows to change the parameters of a "forecast environment".
+
+        This only affects the environment AFTER `env.reset()` has been called.
+
+        This only affects the "forecast env" and NOT the env itself.
+
+        Parameters
+        ----------
+        new_parameters: :class:`grid2op.Parameters.Parameters`
+            The new parameters you want the environment to get.
+
+        """
+        if not isinstance(new_parameters, Parameters):
+            raise EnvError("The new parameters \"new_parameters\" should be an instance of "
+                           "grid2op.Parameters.Parameters.")
+        self.__new_forecast_param = new_parameters
 
     def _create_opponent(self):
         if not self.__is_init:
@@ -359,7 +424,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                        budget_per_timestep=self._opponent_budget_per_ts,
                                        opponent=self._opponent
                                        )
-        self._oppSpace.init_opponent(**self._kwargs_opponent)
+        self._oppSpace.init_opponent(partial_env=self, **self._kwargs_opponent)
         self._oppSpace.reset()
 
     def _has_been_initialized(self):
@@ -370,25 +435,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise EnvironmentError("Environment has not been initialized properly")
         self._backend_action_class = _BackendAction.init_grid(self.backend)
         self._backend_action = self._backend_action_class()
-
-        self._no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self._nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                    fill_value=self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
-                                                    dtype=dt_int)
-        # store actions "cooldown"
-        self._times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
-        self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
-
-        self._times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
-        self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
-
-        # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
-        self._hazard_duration = np.zeros(shape=(self.n_line,), dtype=dt_int)
-
-        # hard overflow part
-        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self._env_dc = self.parameters.ENV_DC
 
         # initialize maintenance / hazards
         self._time_next_maintenance = np.full(self.n_line, -1, dtype=dt_int)
@@ -402,9 +448,45 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_downtime = np.zeros(self.n_gen, dtype=dt_int)
         self._gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
         self._gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
+        self._nb_timestep_overflow_allowed = np.ones(shape=self.n_line, dtype=dt_int)
+        self._max_timestep_line_status_deactivated = np.zeros(shape=self.n_line, dtype=dt_int)
+
+        self._times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self._times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
+        self._nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
+                                                     fill_value=self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
+                                                     dtype=dt_int)
+        self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
+
+        # update the parameters
+        self.__new_param = self.parameters  # small hack to have it working as expected
+        self._update_parameters()
 
         self._reset_redispatching()
         self.__is_init = True
+
+    def _update_parameters(self):
+        """update value for the new parameters"""
+        self.parameters = self.__new_param
+        self._ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
+        self._forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+
+        # type of power flow to play
+        # if True, then it will not disconnect lines above their thermal limits
+        self._no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
+        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
+
+        # store actions "cooldown"
+        self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
+        self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._nb_ts_reco = self.parameters.NB_TIMESTEP_RECONNECTION
+
+        self._nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
+
+        # hard overflow part
+        self._env_dc = self.parameters.ENV_DC
+
+        self.__new_param = None
 
     def reset(self):
         """
@@ -412,7 +494,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         It is (and must be) overloaded in other :class:`grid2op.Environment`
         """
         self.__is_init = True
+        # current = None is an indicator that this is the first step of the environment
+        # so don't change the setting of current_obs = None unless you are willing to change that
         self.current_obs = None
+        self._line_status[:] = True
+        if self.__new_param is not None:
+            self._update_parameters()  # reset __new_param to None too
+        if self.__new_forecast_param is not None:
+            self._helper_observation.obs_env.change_parameters(self.__new_forecast_param)
+            self.__new_forecast_param = False
 
     def seed(self, seed=None):
         """
@@ -460,7 +550,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         try:
             seed = np.array(seed).astype(dt_int)
-        except Exception as e:
+        except Exception as exc_:
             raise Grid2OpException("Impossible to seed with the seed provided. Make sure it can be converted to a"
                                    "numpy 64 integer.")
         # example from gym
@@ -493,7 +583,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self._opponent is not None:
             seed = self.space_prng.randint(max_int)
             seed_opponent = self._opponent.seed(seed)
-        return (seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent)
+        return seed, seed_chron, seed_obs, seed_action_space, seed_env_modif, seed_volt_cont, seed_opponent
 
     def deactivate_forecast(self):
         """
@@ -654,7 +744,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
 
-    def _make_redisp(self, action, new_p):
+    def _get_already_modified_gen(self, action):
+
+        redisp_act_orig = 1. * action._redispatch
+
+        already_modified_gen = self._target_dispatch != 0.
+        self._target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
+        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
+        self._target_dispatch[first_modified] = self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
+        already_modified_gen |= first_modified
+        return already_modified_gen
+
+    def _prepare_redisp(self, action, new_p, already_modified_gen):
         # trying with an optimization method
         except_ = None
         info_ = []
@@ -662,17 +763,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # get the redispatching action (if any)
         redisp_act_orig = 1. * action._redispatch
-        previous_redisp = 1. * self._actual_dispatch
 
         if np.all(redisp_act_orig == 0.) and np.all(self._target_dispatch == 0.) and np.all(self._actual_dispatch == 0.):
             return valid, except_, info_
-
-        # I update the target dispatch of generator i have never modified
-        already_modified_gen = self._target_dispatch != 0.
-        self._target_dispatch[already_modified_gen] += redisp_act_orig[already_modified_gen]
-        first_modified = (~already_modified_gen) & (redisp_act_orig != 0)
-        self._target_dispatch[first_modified] = self._actual_dispatch[first_modified] + redisp_act_orig[first_modified]
-        already_modified_gen |= first_modified
 
         # check that everything is consistent with pmin, pmax:
         if np.any(self._target_dispatch > self.gen_pmax - self.gen_pmin):
@@ -709,20 +802,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if np.any(redisp_act_orig_cut != redisp_act_orig):
                 info_.append({"INFO: redispatching cut because generator will be turned_off":
                               np.where(redisp_act_orig_cut != redisp_act_orig)[0]})
-        else:
-            redisp_act_orig_cut = redisp_act_orig
+        return valid, except_, info_
 
+    def _make_redisp(self, already_modified_gen, new_p):
+        except_ = None
+        info_ = []
+        valid = True
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
-                   np.sum(mismatch) >= self._tol_poly:
+           np.max(mismatch) >= self._tol_poly:
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
 
     def _compute_dispatch_vect(self, already_modified_gen, new_p):
         except_ = None
-        # first i define the participating generator
+        # first i define the participating generators
+        # these are the generators that will be adjusted for redispatching
         gen_participating = (new_p > 0.) | (self._actual_dispatch != 0.) | (self._target_dispatch != self._actual_dispatch)
         gen_participating[~self.gen_redispatchable] = False
 
@@ -731,7 +828,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         already_modified_gen_me = already_modified_gen[gen_participating]
         target_vals_me = target_vals[already_modified_gen_me]
         nb_dispatchable = np.sum(gen_participating)
-        tmp_zeros = np.zeros((1, nb_dispatchable))
+        tmp_zeros = np.zeros((1, nb_dispatchable), dtype=dt_float)
         coeffs = 1.0 / (self.gen_max_ramp_up + self.gen_max_ramp_down + self._epsilon_poly)
         weights = np.ones(nb_dispatchable) * coeffs[gen_participating]
         weights /= weights.sum()
@@ -741,66 +838,167 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             already_modified_gen_me[:] = True
             target_vals_me = target_vals[already_modified_gen_me]
 
+        # for numeric stability
+        # to scale the input also:
+        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
+        scale_x = max(np.max(np.abs(self._actual_dispatch)), 1.0)
+        scale_x = dt_float(scale_x)
+        target_vals_me_optim = 1.0 * (target_vals_me / scale_x)
+        target_vals_me_optim = target_vals_me_optim.astype(dt_float)
+
+        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
+        # where they advised to scale the function
+        scale_objective = max(0.5 * np.sum(np.abs(target_vals_me_optim))**2, 1.0)
+        scale_objective = np.round(scale_objective, decimals=4)
+        scale_objective = dt_float(scale_objective)
+
+        # add the "sum to 0"
+        mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=dt_float)
+        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float)
+
+        # gen increase in the chronics
+        new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
+        incr_in_chronics = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
+
+        # minimum value available for disp
+        ## first limit delta because of pmin
+        p_min_const = self.gen_pmin[gen_participating] - new_p_th
+        ## second limit delta because of ramps
+        ramp_down_const = -self.gen_max_ramp_down[gen_participating] - incr_in_chronics[gen_participating]
+        ## take max of the 2
+        min_disp = np.maximum(p_min_const, ramp_down_const)
+        min_disp = min_disp.astype(dt_float)
+
+        # maximum value available for disp
+        ## first limit delta because of pmin
+        p_max_const = self.gen_pmax[gen_participating] - new_p_th
+        ## second limit delta because of ramps
+        ramp_up_const = self.gen_max_ramp_up[gen_participating] - incr_in_chronics[gen_participating]
+        ## take min of the 2
+        max_disp = np.minimum(p_max_const, ramp_up_const)
+        max_disp = max_disp.astype(dt_float)
+
+        # add everything into a linear constraint object
+        # equality
+        added = 0.5 * self._epsilon_poly
+        equality_const = LinearConstraint(mat_sum_0_no_turn_on,  # do the sum
+                                          (const_sum_0_no_turn_on ) / scale_x,  # lower bound
+                                          (const_sum_0_no_turn_on ) / scale_x  # upper bound
+                                          )
+        mat_pmin_max_ramps = np.eye(nb_dispatchable)
+        ineq_const = LinearConstraint(mat_pmin_max_ramps,
+                                      (min_disp - added) / scale_x,
+                                      (max_disp + added) / scale_x)
+
+        # check if the constraints are violated
+        ## total available "juice" to go down (incl ramp and pmin / pmax)
+        p_min_down = self.gen_pmin[gen_participating] - self._gen_activeprod_t_redisp[gen_participating]
+        avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_participating])
+        ## total available "juice" to go up (incl. ramp and pmin / pmax)
+        p_max_up = self.gen_pmax[gen_participating] - self._gen_activeprod_t_redisp[gen_participating]
+        avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_participating])
+        except_ = self._detect_infeasible_dispatch(incr_in_chronics[gen_participating], avail_down, avail_up)
+        if except_ is not None:
+            return except_
+
+        # choose a good initial point (close to the solution)
+        # the idea here is to chose a initial point that would be close to the
+        # desired solution (split the (sum of the) dispatch to the available generators)
+        x0 = (self._target_dispatch[gen_participating] - self._actual_dispatch[gen_participating]) / scale_x
+        can_adjust = x0 == 0.
+        if np.any(can_adjust):
+            init_sum = np.sum(x0)
+            denom_adjust = np.sum(1. / weights[can_adjust])
+            if denom_adjust <= 1e-2:
+                # i don't want to divide by something to cloose to 0.
+                denom_adjust = 1.0
+            x0[can_adjust] = - init_sum / (weights[can_adjust] * denom_adjust)
+
         def target(actual_dispatchable):
             # define my real objective
-            quad_ = (actual_dispatchable[already_modified_gen_me] - target_vals_me) ** 2
+            quad_ = (actual_dispatchable[already_modified_gen_me] - target_vals_me_optim) ** 2
             coeffs_quads = weights[already_modified_gen_me] * quad_
             coeffs_quads_const = coeffs_quads.sum()
+            coeffs_quads_const /= scale_objective  # scaling the function
             return coeffs_quads_const
 
         def jac(actual_dispatchable):
-            res = 1.0 * tmp_zeros
-            res[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
-                                              (actual_dispatchable[already_modified_gen_me] - target_vals_me)
-            return res
+            res_jac = 1.0 * tmp_zeros
+            res_jac[0, already_modified_gen_me] = 2.0 * weights[already_modified_gen_me] * \
+                                              (actual_dispatchable[already_modified_gen_me] - target_vals_me_optim)
+            res_jac /= scale_objective  # scaling the function
+            return res_jac
 
-        mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable))
-        const_sum_O_no_turn_on = np.zeros(1)
-        equality_const = LinearConstraint(mat_sum_0_no_turn_on,
-                                          const_sum_O_no_turn_on,
-                                          const_sum_O_no_turn_on)
-        # gen increase in the chronics
-        incr_in_chronics = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
-
-        # minmum value available for disp
-        ## first limit delta because of pmin
-        p_min_const = self.gen_pmin[gen_participating] - new_p[gen_participating] - self._actual_dispatch[
-            gen_participating]
-        ## second limit delta because of ramps
-        ramp_down_const = -self.gen_max_ramp_down[gen_participating] - incr_in_chronics[gen_participating]
-        min_disp = np.maximum(p_min_const, ramp_down_const)
-        # maximum value available for disp
-        ## first limit delta because of pmin
-        p_max_const = self.gen_pmax[gen_participating] - new_p[gen_participating] - self._actual_dispatch[
-            gen_participating]
-        ## second limit delta because of ramps
-        ramp_up_const = self.gen_max_ramp_up[gen_participating] - incr_in_chronics[gen_participating]
-        max_disp = np.minimum(p_max_const, ramp_up_const)
-
-        # add everything into a linear constraint object
-        mat_pmin_max_ramps = np.eye(nb_dispatchable)
-        lower_pmin_max_ramps = min_disp + self._epsilon_poly
-        upper_pmin_max_ramps = max_disp - self._epsilon_poly
-        linear_constraint = LinearConstraint(mat_pmin_max_ramps,
-                                             lower_pmin_max_ramps,
-                                             upper_pmin_max_ramps)
-
-        x0 = np.zeros(nb_dispatchable)
+        # objective function
         def f(init):
-            res = minimize(target,
-                           init,
-                           method="SLSQP",
-                           constraints=[equality_const, linear_constraint],
-                           options={'eps': self._tol_poly, "ftol": self._tol_poly, 'disp': False},
-                           jac=jac
-                           # hess=hess  # not used for SLSQP
-                           )
-            return res
+            this_res = minimize(target,
+                                init,
+                                method="SLSQP",
+                                constraints=[equality_const, ineq_const],
+                                options={'eps': max(self._epsilon_poly / scale_x, 1e-6),
+                                         "ftol": max(self._epsilon_poly / scale_x, 1e-6),
+                                         'disp': False},
+                                jac=jac
+                                # hess=hess  # not used for SLSQP
+                                )
+            return this_res
         res = f(x0)
         if res.success:
-            self._actual_dispatch[gen_participating] += res.x
+            self._actual_dispatch[gen_participating] += res.x * scale_x
         else:
-            except_ = InvalidRedispatching("Redispatching automaton terminated with error:\n{}".format(res.message))
+            # check if constraints are "approximately" met
+            mat_const = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
+            downs = np.concatenate((const_sum_0_no_turn_on / scale_x, (min_disp - added) / scale_x))
+            ups = np.concatenate((const_sum_0_no_turn_on / scale_x, (max_disp + added) / scale_x))
+            vals = np.matmul(mat_const, res.x)
+            ok_down = np.all(vals - downs >= -self._tol_poly)  # i don't violate "down" constraints
+            ok_up = np.all(vals - ups <= self._tol_poly)
+            if ok_up and ok_down:
+                # it's ok i can tolerate "small" perturbations
+                self._actual_dispatch[gen_participating] += res.x * scale_x
+            else:
+                # TODO try with another method here, maybe
+                error_dispatch = "Redispatching automaton terminated with error (no more information available " \
+                                 "at this point):\n\"{}\"".format(res.message)
+                except_ = InvalidRedispatching(error_dispatch)
+        return except_
+
+    def _detect_infeasible_dispatch(self, incr_in_chronics, avail_down, avail_up):
+        """This function is an attempt to give more detailed log by detecting infeasible dispatch"""
+        except_ = None
+        sum_move = np.sum(incr_in_chronics)
+        avail_down_sum = np.sum(avail_down)
+        avail_up_sum = np.sum(avail_up)
+        gen_setpoint = self._gen_activeprod_t_redisp[self.gen_redispatchable]
+        if sum_move > avail_up_sum:
+            # infeasible because too much is asked
+            msg = DETAILED_REDISP_ERR_MSG.format(sum_move=sum_move,
+                                                 avail_up_sum=avail_up_sum,
+                                                 gen_setpoint=np.round(gen_setpoint, decimals=2),
+                                                 ramp_up=self.gen_max_ramp_up[self.gen_redispatchable],
+                                                 gen_pmax=self.gen_pmax[self.gen_redispatchable],
+                                                 avail_up=np.round(avail_up, decimals=2),
+                                                 increase="increase",
+                                                 decrease="decrease",
+                                                 maximum="maximum",
+                                                 pmax="pmax",
+                                                 max_ramp_up="max_ramp_up")
+            except_ = InvalidRedispatching(msg)
+        elif sum_move < avail_down_sum:
+            # infeasible because not enough is asked
+            msg = DETAILED_REDISP_ERR_MSG.format(sum_move=sum_move,
+                                                 avail_up_sum=avail_down_sum,
+                                                 gen_setpoint=np.round(gen_setpoint, decimals=2),
+                                                 ramp_up=self.gen_max_ramp_down[self.gen_redispatchable],
+                                                 gen_pmax=self.gen_pmin[self.gen_redispatchable],
+                                                 avail_up=np.round(avail_up, decimals=2),
+                                                 increase="decrease",
+                                                 decrease="increase",
+                                                 maximum="minimum",
+                                                 pmax="pmin",
+                                                 max_ramp_up="max_ramp_down"
+                                                 )
+            except_ = InvalidRedispatching(msg)
         return except_
 
     def _update_actions(self):
@@ -818,7 +1016,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         res: :class:`grid2op.Action.Action`
             The action representing the modification of the powergrid induced by the Backend.
         """
-        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration, prod_v = self.chronics_handler.next_time_step()
+        timestamp, tmp, maintenance_time, maintenance_duration, hazard_duration, prod_v = \
+            self.chronics_handler.next_time_step()
         if "injection" in tmp:
             self._injection = tmp["injection"]
         else:
@@ -835,8 +1034,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._duration_next_maintenance = maintenance_duration
         self._time_next_maintenance = maintenance_time
         self._hazard_duration = hazard_duration
-        return self._helper_action_env({"injection": self._injection, "maintenance": self._maintenance,
-                                       "hazards": self._hazards}), prod_v
+        act = self._helper_action_env({"injection": self._injection,
+                                       "maintenance": self._maintenance,
+                                       "hazards": self._hazards})
+        return act, prod_v
 
     def _update_time_reconnection_hazards_maintenance(self):
         """
@@ -1081,7 +1282,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_ambiguous = False
         is_illegal_redisp = False
         is_illegal_reco = False
-        attack = None
         except_ = []
         detailed_info = []
         init_disp = 1.0 * action._redispatch
@@ -1115,19 +1315,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 gen_up_before = self._gen_activeprod_t > 0.
 
                 # compute the redispatching and the new productions active setpoint
-                valid_disp, except_tmp, info_ = self._make_redisp(action, new_p)
-                if not valid_disp:
-                    # game over case
-                    action = self._helper_action_player({})
-                    is_illegal_redisp = True
-                    except_.append(except_tmp)
-                    is_done = True
-                    except_.append("Game over due to infeasible redispatching state. A generator would "
-                                               "\"behave abnormally\" in a real system.")
+                beg__redisp = time.time()
+                already_modified_gen = self._get_already_modified_gen(action)
+                valid_disp, except_tmp, info_ = self._prepare_redisp(action, new_p, already_modified_gen)
+
                 if except_tmp is not None:
                     action = self._helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
+
+                valid_disp, except_tmp, info_ = self._make_redisp(already_modified_gen, new_p)
+                if not valid_disp or except_tmp is not None:
+                    # game over case (divergence of the scipy routine to compute redispatching)
+                    action = self._helper_action_player({})
+                    is_illegal_redisp = True
+                    except_.append(except_tmp)
+                    is_done = True
+                    except_.append("Game over due to infeasible redispatching state. "
+                                   "The routine used to compute the \"next state\" has diverged. "
+                                   "This means that there is no way to compute a physically valid generator state "
+                                   "(one that meets all pmin / pmax - ramp min / ramp max with the information "
+                                   "provided. As one of the physical constraints would be violated, this means that "
+                                   "a generator would be damaged in real life. This is a game over.")
 
                 # check the validity of min downtime and max uptime
                 except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
@@ -1135,6 +1344,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     is_illegal_reco = True
                     action = self._helper_action_player({})
                     except_.append(except_tmp)
+                self._time_redisp += time.time() - beg__redisp
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
@@ -1151,7 +1361,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # have the opponent here
             # TODO code the opponent part here and split more the timings! here "opponent time" is
-            # included in time_apply_act
+            # TODO included in time_apply_act
             tick = time.time()
             attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
                                                             agent_action=action,
@@ -1180,12 +1390,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     beg_ = time.time()
                     self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                     overflow_lines = self.backend.get_line_overflow()
+                    # save the current topology as "last" topology (for connected powerlines)
+                    # and update the state of the disconnected powerline due to cascading failure
                     self._backend_action.update_state(disc_lines)
 
                     # one timestep passed, i can maybe reconnect some lines
                     self._times_before_line_status_actionable[self._times_before_line_status_actionable > 0] -= 1
                     # update the vector for lines that have been disconnected
-                    self._times_before_line_status_actionable[disc_lines] = int(self.parameters.NB_TIMESTEP_RECONNECTION)
+                    self._times_before_line_status_actionable[disc_lines] = int(self._nb_ts_reco)
                     self._update_time_reconnection_hazards_maintenance()
 
                     # for the powerline that are on overflow, increase this time step
@@ -1198,7 +1410,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     aff_lines, aff_subs = action.get_topological_impact(init_line_status)
                     if self._max_timestep_line_status_deactivated > 0:
                         # i update the cooldown only when this does not impact the line disconnected for the
-                        # opponent or by maitnenance for example
+                        # opponent or by maintenance for example
                         cond = aff_lines  # powerlines i modified
                         # powerlines that are not affected by any other "forced disconnection"
                         cond &= self._times_before_line_status_actionable < self._max_timestep_line_status_deactivated
@@ -1207,7 +1419,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         self._times_before_topology_actionable[self._times_before_topology_actionable > 0] -= 1
                         self._times_before_topology_actionable[aff_subs] = self._max_timestep_topology_deactivated
 
-                    # build the observation
+                    # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
                     self._time_extract_obs += time.time() - beg_
 
@@ -1217,6 +1429,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # of the system. So basically, when it's too high (higher than the ramp) it can
                     # mess up the rest of the environment
                     self._gen_activeprod_t_redisp[:] = new_p + self._actual_dispatch
+
+                    # set the line status
+                    self._line_status[:] = self.current_obs.line_status
+
                     has_error = False
             except Grid2OpException as e:
                 except_.append(e)
@@ -1249,6 +1465,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_illegal or is_illegal_redisp or is_illegal_reco,
                                                              is_ambiguous)
         infos["rewards"] = other_reward
+        if has_error and self.current_obs is not None:
+            # update the observation so when it's plotted everything is "down"
+            # generators information
+            self.current_obs.set_game_over()
+
         # TODO documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False
@@ -1294,10 +1515,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # reset timings
-        self._time_apply_act = 0
-        self._time_powerflow = 0
-        self._time_extract_obs = 0
-        self._time_opponent = 0
+        self._time_apply_act = dt_float(0.)
+        self._time_powerflow = dt_float(0.)
+        self._time_extract_obs = dt_float(0.)
+        self._time_opponent = dt_float(0.)
+        self._time_redisp = dt_float(0.)
 
         # reward and others
         self.current_reward = self.reward_range[0]
@@ -1455,6 +1677,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         check the state of the environment after the call to this method if you use it (see the "Examples" paragaph)
 
         """
+        nb_timestep = int(nb_timestep)
+
         # Go to the timestep requested minus one
         nb_timestep = max(1, nb_timestep - 1)
         self.chronics_handler.fast_forward(nb_timestep)
@@ -1480,8 +1704,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         This method allows to retrieve the line status.
         """
         if self.current_obs is not None:
-            powerline_status = self.current_obs.line_status
+            powerline_status = self._line_status
         else:
             # at first time step, every powerline is connected
             powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
+        # powerline_status = self._line_status
         return powerline_status

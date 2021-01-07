@@ -15,7 +15,6 @@
 import os
 import argparse
 import re
-import pdb
 import subprocess
 import time
 
@@ -144,6 +143,25 @@ if __name__ == "__main__":
 
     # Stage in git
     start_subprocess_print(["git", "add", dockerfile])
+
+    # generate some logs, for backward compatibility
+    # NB this generation is part of the test run, so it's safe to re generate the log when each version is released
+    # in the sense that the tests pass ;-)
+    import grid2op
+    from grid2op.Agent import RandomAgent
+    from grid2op.Runner import Runner
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        PATH_PREVIOUS_RUNNER = os.path.join(path, "grid2op", "data_test", "runner_data")
+        env = grid2op.make("rte_case5_example", test=True)
+        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+        runner.run(nb_episode=2,
+                   path_save=os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}"),
+                   pbar=True,
+                   max_iter=100)
+    # Stage in git
+    start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
 
     # Commit
     start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])

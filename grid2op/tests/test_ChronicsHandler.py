@@ -20,6 +20,10 @@ from grid2op.Chronics import MultifolderWithCache
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Rules import AlwaysLegal
+from grid2op.Chronics import GridStateFromFileWithForecastsWithoutMaintenance
+
+import warnings
+warnings.simplefilter("error")
 
 
 class TestProperHandlingHazardsMaintenance(HelperTests):
@@ -1154,6 +1158,29 @@ class TestMultiFolderWithCache(TestMultiFolder):
         # I make sure to keep everything
         chronics_handler.set_filter(lambda x: True)
         chronics_handler.reset()
+
+
+class TestDeactivateMaintenance(HelperTests):
+    def test_maintenance_deactivated(self):
+        param = Parameters()
+        param.NO_OVERFLOW_DISCONNECTION = True
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True,
+                      param=param) as env:
+                obs = env.reset()
+                # there is a maintenance by default for some powerlines
+                assert np.any(obs.time_next_maintenance != -1)
+
+            with make(os.path.join(PATH_CHRONICS, "env_14_test_maintenance"),
+                      test=True,
+                      param=param,
+                      data_feeding_kwargs={"gridvalueClass": GridStateFromFileWithForecastsWithoutMaintenance}
+                      ) as env:
+                obs = env.reset()
+                # all maintenance are deactivated
+                assert np.all(obs.time_next_maintenance == -1)
 
 
 if __name__ == "__main__":

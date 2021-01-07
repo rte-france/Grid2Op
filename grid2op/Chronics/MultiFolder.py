@@ -387,7 +387,7 @@ class Multifolder(GridValue):
         """
         if shuffler is None:
             def shuffler(x):
-                return x[np.random.choice(len(x), size=len(x), replace=False)]
+                return x[self.space_prng.choice(len(x), size=len(x), replace=False)]
 
         self._order = shuffler(self._order)
         return self.subpaths[self._order]

@@ -35,7 +35,7 @@ pkgs = {
             "imageio>=2.8.0",
             "pygifsicle>=1.0.1",
             "psutil>=5.7.0",
-            "gym>=0.17.1",
+            "gym>=0.17.2",
         ],
         "challenge": [
             "numpy==1.18.5",
@@ -59,13 +59,17 @@ pkgs = {
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
             "autodocsumm>=0.1.13"
+        ],
+        "api": [
+            "flask",
+            "flask_wtf"
         ]
     }
 }
 
 
 setup(name='Grid2Op',
-      version='1.2.3',
+      version='1.4.0',
       description='An environment that allows to perform powergrid optimization.',
       long_description='Built with modularity in mind, this package allows to perform the same operations '
                        'independently of the software used to compute powerflow or method to generate grid '

@@ -4,7 +4,7 @@
 [![PyPi_Compat](https://img.shields.io/pypi/pyversions/grid2op.svg)](https://pypi.org/project/Grid2Op/)
 [![LICENSE](https://img.shields.io/pypi/l/grid2op.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
 [![Documentation Status](https://readthedocs.org/projects/grid2op/badge/?version=latest)](https://grid2op.readthedocs.io/en/latest/?badge=latest)
-[![circleci](https://circleci.com/gh/BDonnot/Grid2Op.svg?style=shield)](https://circleci.com/gh/BDonnot/Grid2Op)
+[![circleci](https://circleci.com/gh/rte-france/Grid2Op.svg?style=shield)](https://circleci.com/gh/rte-france/Grid2Op)
 [![discord](https://discord.com/api/guilds/698080905209577513/embed.png)]( https://discord.gg/cYsYrPT)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
 
@@ -177,6 +177,8 @@ This will create a "documentation" subdirectory and the main entry point of the 
 
 It is recommended to build this documentation locally, for convenience.
 For example, the  "getting started" notebooks referenced some pages of the help.
+
+<!-- sphinx-build -b html docs documentation-->
 
 # Run the tests
 Provided that Grid2Op is installed *from source*:

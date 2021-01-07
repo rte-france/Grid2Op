@@ -3,17 +3,84 @@ Change Log
 
 [TODO]
 --------------------
+- [???] add multi agent
+- [???] model curtailment
+- [???] better logging
+- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
+- [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
+  stuff to break)
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] better logging
+- [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
+  flows, and nodes the active production / consumption) and "reactive flow graph"
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
-  it in parrallel and transfer the resulting data.
+  it in parallel and transfer the resulting data.
+- [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
-- [???] model curtailment
-- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
-- [???] model dumps (as in dump storage) in grid2op (stuff that have a given energy max, and cannot produce more than the available energy)
+- [???] model agent acting at different time frame
+- [???] model delay in observations
+- [???] model delay in action
+- [???] model dams in grid2op (stuff that have a given energy max, and cannot produce more than
+  the available energy)
+
+[1.4.0] - 2020-12-10
+----------------------
+- [CHANGED] The parameters `FORECAST_DC` is now deprecated. Please use
+  `change_forecast_parameters(new_param)` with `new_param.ENV_DC=...` instead.
+- [FIXED] and test the method `backend.get_action_to_set`
+- [FIXED] an error for the voltage of the shunt in the `PandapowerBackend`
+- [FIXED] `PowerLineSet` and `PowerSetAndDispatch` action were not properly converted to vector.
+- [ADDED] a method to set the state of a backend given a complete observation.
+- [ADDED] a `utils` module to store the data of some environment and be able to compute the scores (as in the neurips
+  l2rpn competitions). This module might move at a different place in the future
+- [ADDED] a function to "split" an environment into train / validation using `os.symlink`
+- [ADDED] the implementation of `+` operator for action (based on previously available `+=`)
+- [ADDED] A more detailed documentation on the representation of the topology and how to create a backend
+- [ADDED] A easier way to set up the topology in backend (eg. `get_loads_bus`)
+- [ADDED] A easier way to set up the backend, with automatic computation of some attributes (eg. `*_to_sub_pos`,
+  `sub_info`, `dim_topo`) if needed.
+- [ADDED] A function to change the `parameters` used by the environment (or `obs_env`) "on the fly" (has only impact
+  AFTER `env.reset` is called) (see `change_parameters` and `change_forecast_parameters`)
+- [IMPROVED] `PandaPowerBackend` now should take less time to when `reset`.
+- [IMPROVED] some speed up in the grid2op computation
+
+[1.3.1] - 2020-11-04
+----------------------
+- [FIXED] the environment "educ_case14_redisp"
+- [FIXED] notebooks are now working perfectly
+
+[1.3.0] - 2020-11-02
+---------------------
+- [BREAKING] GymConverter has been moved to `grid2op.gym_compat` module instead of  `grid2op.Converter`
+- [FIXED] wrong computation of voltage magnitude at extremity of powerlines when the powerlines were disconnected.
+- [FIXED] `Issue #151 <https://github.com/rte-france/Grid2Op/issues/151>`_: modification of observation attributes 3
+  could lead to crash
+- [FIXED] `Issue #153 <https://github.com/rte-france/Grid2Op/issues/153>`_: negative generator could happen in some
+  cases
+- [FIXED] an error that lead to wrong normalization of some generator (due to slack bus) when using the
+  gymconverter.
+- [FIXED] a bug that prevented runner to read back previously stored data (and now a test to check
+  backward compatibility down to version 1.0.0)
+- [FIXED] small issue that could lead to non reproducibility when shuffling chronics
+- [FIXED] a bug in `obs.bus_connectivity_matrix()` when powerlines were disconnected
+- [ADDED] a class to deactivate the maintenance and hazards in the chronics from file
+  `GridStateFromFileWithForecastsWithoutMaintenance`
+- [ADDED] a keyword argument in the matplotlib plot information on the grid
+  (`plot_helper.plot_info(..., coloring=...)`)
+- [ADDED] a function to change the color palette of powerlines (`plot_helper.assign_line_palette`)
+- [ADDED] a function to change the color palette of generators (`plot_helper.assign_gen_palette`)
+- [ADDED] Support the attack of the opponent in the `EpisodeData` class
+- [ADDED] Now the observations are set to a "game over" state when a game over occurred
+  see `BaseObservation.set_game_over`
+- [ADDED] a method to plot the redispatching state of the grid `PlotMatplot.plot_current_dispatch`
+- [ADDED] the documentation of `Episode` module that was not displayed.
+- [IMPROVED] silence the warning issue when calling `MultiEnv.get_seeds`
+- [IMPROVED] the tolerance of the redispatching algorithm is now more consistent between the precision of the solver
+  used and the time when it's
+- [IMPROVED] make faster and more robust the optimization routine used during redispatching
+- [IMPROVED] error message when the state fails because of infeasible redispatching
 
 [1.2.3] - 2020-09-25
 ----------------------
@@ -25,7 +92,7 @@ Change Log
   same time
 - [FIXED] `Issue #144 <https://github.com/rte-france/Grid2Op/issues/144>`_: typo that could lead to not
   display some error messages in some cases.
-- [FIXED] `Issue #146 <https://github.com/rte-france/Grid2Op/issues/146>`_: akward behaviour that lead to not calling
+- [FIXED] `Issue #146 <https://github.com/rte-france/Grid2Op/issues/146>`_: awkward behaviour that lead to not calling
   the reward function when the episode was over.
 - [FIXED] `Issue #147 <https://github.com/rte-france/Grid2Op/issues/147>`_: un consistency between step and simulate
   when cooldowns where applied (rule checking was not using the right method).

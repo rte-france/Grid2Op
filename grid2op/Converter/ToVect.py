@@ -85,8 +85,8 @@ class ToVect(Converter):
     def _init_gym_converter(self):
         if self.__gym_action_space is None:
             # lazy import
-            from grid2op.Converter.GymConverter import GymActionSpace
             from gym import spaces
+            from grid2op.gym_compat import GymActionSpace
             # i do that not to duplicate the code of the low / high bounds
             gym_action_space = GymActionSpace(self.init_action_space)
             low = tuple()

@@ -74,7 +74,5 @@ class Issue148Tester(unittest.TestCase):
         assert oo_.time_before_cooldown_sub[ID_MAINT] == 0
 
 
-
-
 if __name__ == "__main__":
     unittest.main()

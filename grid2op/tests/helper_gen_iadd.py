@@ -12,7 +12,7 @@ import grid2op
 from grid2op.Action import *
 from grid2op.dtypes import dt_float
 """
-print (header_content)
+print(header_content)
 
 base_content = """
 class Test_iadd_Base(ABC):

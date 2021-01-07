@@ -60,13 +60,17 @@ class SerializableSpace(GridObjects, RandomObject):
     """
     def __init__(self,
                  gridobj,
-                 subtype=object):
+                 subtype=object,
+                 _init_grid=True):
         """
 
         subtype: ``type``
             Type of action used to build :attr:`SerializableActionSpace._template_act`. This type should derive
             from :class:`grid2op.BaseAction.BaseAction` or :class:`grid2op.BaseObservation.BaseObservation` .
 
+        _init_grid: ``bool``
+            Whether or not to call 'init_grid' in the subtype (to initialize the class). Do not modify unless you
+            are certain of what you want to do
         """
 
         if not isinstance(subtype, type):
@@ -80,7 +84,12 @@ class SerializableSpace(GridObjects, RandomObject):
         self.init_grid(gridobj)
 
         self._init_subtype = subtype  # do not use, use to save restore only !!!
-        self.subtype = subtype.init_grid(gridobj)
+        # print(f"gridobj : {gridobj}")
+        if _init_grid:
+            self.subtype = subtype.init_grid(gridobj)
+        else:
+            self.subtype = subtype
+        # print(f"subtype : {self.subtype}")
         self._template_obj = self.subtype()
         self.n = self._template_obj.size()
 
@@ -129,6 +138,8 @@ class SerializableSpace(GridObjects, RandomObject):
             with open(path, "r", encoding="utf-8") as f:
                 dict_ = json.load(fp=f)
 
+        # print("beginning from dict")
+
         gridobj = GridObjects.from_dict(dict_)
 
         actionClass_str = extract_from_dict(dict_, "_init_subtype", str)
@@ -173,7 +184,8 @@ class SerializableSpace(GridObjects, RandomObject):
                     raise Grid2OpException(msg_err_)
 
         res = SerializableSpace(gridobj=gridobj,
-                                subtype=subtype)
+                                subtype=subtype,
+                                _init_grid=False)
         return res
 
     def to_dict(self):
@@ -341,7 +353,7 @@ class SerializableSpace(GridObjects, RandomObject):
                 all_obs = np.load(os.path.join(full_episode_path, observation_space_name))["data"]
 
                 # and you use the function like this:
-                all_flows = all_obs[beg_:end_, :].astype(dtype)
+                all_flows = all_obs[:, beg_:end_].astype(dtype)
 
                 # you can now do something with the computed flows
                 # each row will be a time step, each column a powerline

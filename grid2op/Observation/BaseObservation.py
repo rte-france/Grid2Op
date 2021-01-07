@@ -35,19 +35,19 @@ class BaseObservation(GridObjects):
         The current year
 
     month: ``int``
-        The current month (0 = january, 11 = december)
+        The current month (1 = january, 12 = december)
 
     day: ``int``
-        The current day of the month
+        The current day of the month (1 = first day of the month)
 
     hour_of_day: ``int``
-        The current hour of the day
+        The current hour of the day (from O to 23)
 
     minute_of_hour: ``int``
-        The current minute of the current hour
+        The current minute of the current hour (from 0 to 59)
 
     day_of_week: ``int``
-        The current day of the week. Monday = 0, Sunday = 6
+        The current day of the week (monday = 0 and sunday = 6)
 
     prod_p: :class:`numpy.ndarray`, dtype:float
         The active production value of each generator (expressed in MW).
@@ -94,18 +94,6 @@ class BaseObservation(GridObjects):
     rho: :class:`numpy.ndarray`, dtype:float
         The capacity of each powerline. It is defined at the observed current flow divided by the thermal limit of each
         powerline (no unit)
-
-    connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
-        The connectivityt matrix (if computed, or None) see definition of :func:`connectivity_matrix` for
-        more information
-
-    bus_connectivity_matrix_: :class:`numpy.ndarray`, dtype:float
-        The `bus_connectivity_matrix_` matrix (if computed, or None) see definition of
-          :func:`BaseObservation.bus_connectivity_matrix` for more information
-
-    vectorized: :class:`numpy.ndarray`, dtype:float
-        The vector representation of this BaseObservation (if computed, or None) see definition of
-        :func:`to_vect` for more information.
 
     topo_vect:  :class:`numpy.ndarray`, dtype:int
         For each object (load, generator, ends of a powerline) it gives on which bus this object is connected
@@ -165,6 +153,25 @@ class BaseObservation(GridObjects):
         dispatchable.
 
     """
+    _attr_eq = ["line_status",
+                "topo_vect",
+                "timestep_overflow",
+                "prod_p", "prod_q", "prod_v",
+                "load_p", "load_q", "load_v",
+                "p_or", "q_or", "v_or", "a_or",
+                "p_ex", "q_ex", "v_ex", "a_ex",
+                "time_before_cooldown_line",
+                "time_before_cooldown_sub",
+                "time_next_maintenance",
+                "duration_next_maintenance",
+                "target_dispatch", "actual_dispatch",
+                "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"
+                ]
+
+    attr_list_vect = None
+    # value to assess if two observations are equal
+    _tol_equal = 1e-3
+
     def __init__(self,
                  obs_env=None,
                  action_helper=None,
@@ -195,34 +202,34 @@ class BaseObservation(GridObjects):
         self.line_status = np.ones(shape=self.n_line, dtype=dt_bool)
 
         # topological vector
-        self.topo_vect = np.full(shape=self.dim_topo, dtype=dt_int, fill_value=0)
+        self.topo_vect = np.zeros(shape=self.dim_topo, dtype=dt_int)
 
         # generators information
         self.prod_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.prod_q = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.prod_v = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.prod_q = 1.0 * self.prod_p
+        self.prod_v = 1.0 * self.prod_p
         # loads information
         self.load_p = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
-        self.load_q = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
-        self.load_v = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
+        self.load_q = 1.0 * self.load_p
+        self.load_v = 1.0 * self.load_p
         # lines origin information
         self.p_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.q_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.v_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.a_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.q_or = 1.0 * self.p_or
+        self.v_or = 1.0 * self.p_or
+        self.a_or = 1.0 * self.p_or
         # lines extremity information
-        self.p_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.q_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.v_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.a_ex = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.p_ex = 1.0 * self.p_or
+        self.q_ex = 1.0 * self.p_or
+        self.v_ex = 1.0 * self.p_or
+        self.a_ex = 1.0 * self.p_or
         # lines relative flows
-        self.rho = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
+        self.rho = 1.0 * self.p_or
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
         self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=dt_int, fill_value=-1)
-        self.time_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
-        self.duration_next_maintenance = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
+        self.time_next_maintenance = 1 * self.time_before_cooldown_line
+        self.duration_next_maintenance = 1 * self.time_before_cooldown_line
 
         # calendar data
         self.year = dt_int(1970)
@@ -233,13 +240,20 @@ class BaseObservation(GridObjects):
         self.day_of_week = dt_int(0)
 
         # redispatching
-        self.target_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.actual_dispatch = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.target_dispatch = 1.0 * self.prod_p
+        self.actual_dispatch = 1.0 * self.prod_p
 
-        # value to assess if two observations are equal
-        self._tol_equal = 5e-1
+        # to save some computation time
+        self._connectivity_matrix_ = None
+        self._bus_connectivity_matrix_ = None
+        self._dictionnarized = None
 
-        self.attr_list_vect = None
+        # for shunt (these are not stored!)
+        if self.shunts_data_available:
+            self._shunt_p = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
+            self._shunt_q = 1.0 * self._shunt_p
+            self._shunt_v = 1.0 * self._shunt_p
+            self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=1)
 
     def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
         """
@@ -466,6 +480,70 @@ class BaseObservation(GridObjects):
         self.target_dispatch[:] = np.NaN
         self.actual_dispatch[:] = np.NaN
 
+        # to save up computation time
+        self._dictionnarized = None
+        self._connectivity_matrix_ = None
+        self._bus_connectivity_matrix_ = None
+
+        if self.shunts_data_available:
+            self._shunt_p[:] = np.NaN
+            self._shunt_q[:] = np.NaN
+            self._shunt_v[:] = np.NaN
+            self._shunt_bus[:] = -1
+
+    def set_game_over(self):
+        """
+        Set the observation to the "game over" state:
+
+        - all powerlines are disconnected
+        - all loads are 0.
+        - all prods are 0.
+        - etc.
+        """
+        self.prod_p[:] = 0.
+        self.prod_q[:] = 0.
+        self.prod_v[:] = 0.
+        # loads information
+        self.load_p[:] = 0.
+        self.load_q[:] = 0.
+        self.load_v[:] = 0.
+        # lines origin information
+        self.p_or[:] = 0.
+        self.q_or[:] = 0.
+        self.v_or[:] = 0.
+        self.a_or[:] = 0.
+        # lines extremity information
+        self.p_ex[:] = 0.
+        self.q_ex[:] = 0.
+        self.v_ex[:] = 0.
+        self.a_ex[:] = 0.
+        # lines relative flows
+        self.rho[:] = 0.
+        # line status
+        self.line_status[:] = False
+        # topological vector
+        self.topo_vect[:] = -1
+
+        # forecasts
+        self._forecasted_inj = []
+        self._forecasted_grid_act = {}
+
+        # redispatching
+        self.target_dispatch[:] = 0.
+        self.actual_dispatch[:] = 0.
+
+        # cooldown
+        self.time_before_cooldown_line[:] = 99999
+        self.time_before_cooldown_sub[:] = 99999
+        self.time_next_maintenance[:] = 99999
+        self.duration_next_maintenance[:] = 99999
+
+        if self.shunts_data_available:
+            self._shunt_p[:] = 0.
+            self._shunt_q[:] = 0.
+            self._shunt_v[:] = 0.
+            self._shunt_bus[:] = -1
+
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
         attr_other = getattr(other, name)
@@ -480,8 +558,13 @@ class BaseObservation(GridObjects):
             if attr_me.dtype != attr_other.dtype:
                 return False
             if np.issubdtype(attr_me.dtype, np.dtype(dt_float).type):
+                # first special case: there can be Nan there
+                me_finite = np.isfinite(attr_me)
+                oth_finite = np.isfinite(attr_other)
+                if np.any(me_finite != oth_finite):
+                    return False
                 # special case of floating points, otherwise vector are never equal
-                if not np.all(np.abs(attr_me - attr_other) <= self._tol_equal):
+                if not np.all(np.abs(attr_me[me_finite] - attr_other[oth_finite]) <= self._tol_equal):
                     return False
             else:
                 if not np.all(attr_me == attr_other):
@@ -560,24 +643,51 @@ class BaseObservation(GridObjects):
         if not same_grid:
             return False
 
-        for stat_nm in ["line_status", "topo_vect",
-                        "timestep_overflow",
-                        "prod_p", "prod_q", "prod_v",
-                        "load_p", "load_q", "load_v",
-                        "p_or", "q_or", "v_or", "a_or",
-                        "p_ex", "q_ex", "v_ex", "a_ex",
-                        "time_before_cooldown_line",
-                        "time_before_cooldown_sub",
-                        "time_next_maintenance",
-                        "duration_next_maintenance",
-                        "target_dispatch", "actual_dispatch"
-                        ]:
+        for stat_nm in self._attr_eq:
             if not self.__compare_stats(other, stat_nm):
-                print("error for {}".format(stat_nm))
                 # one of the above stat is not equal in this and in other
                 return False
 
         return True
+
+    def __sub__(self, other):
+        res = copy.deepcopy(self)
+        for stat_nm in self._attr_eq:
+            # TODO handle the "same grid" and "same type" here!
+            diff_ = None
+            me_ = self.__getattribute__(stat_nm)
+            oth_ = other.__getattribute__(stat_nm)
+            if me_ is None and oth_ is None:
+                diff_ = None
+            elif me_ is not None and oth_ is None:
+                diff_ = me_
+            elif me_ is None and oth_ is not None:
+                if oth_.dtype == dt_bool:
+                    diff_ = np.full(oth_.shape, fill_value=False, dtype=dt_bool)
+                else:
+                    diff_ = -oth_
+            else:
+                # both are not None
+                if oth_.dtype == dt_bool:
+                    diff_ = ~np.logical_xor(me_, oth_)
+                else:
+                    diff_ = me_ - oth_
+
+            res.__setattr__(stat_nm,  diff_)
+        return res
+
+    def where_different(self, other):
+        diff_ = self - other
+        res = []
+        for attr_nm in self._attr_eq:
+            array_ = diff_.__getattribute__(attr_nm)
+            if array_.dtype == dt_bool:
+                if np.any(~array_):
+                    res.append(attr_nm)
+            else:
+                if np.max(np.abs(array_)):
+                    res.append(attr_nm)
+        return diff_, res
 
     @abstractmethod
     def update(self, env, with_forecast=True):
@@ -607,6 +717,11 @@ class BaseObservation(GridObjects):
 
         This class is really what a dispatcher observes from it environment.
         It can also include some temperatures, nebulosity, wind etc. can also be included in this class.
+
+        Notes
+        -----
+        We strongly recommend to call :attr:`BaseObservation.reset` when implementing this function.
+
         """
         pass
 
@@ -631,6 +746,10 @@ class BaseObservation(GridObjects):
         -------
         res: ``numpy.ndarray``, shape:dim_topo,dim_topo, dtype:float
             The connectivity matrix, as defined above
+
+        Notes
+        -------
+        For now this matrix is stored as a dense matrix. Support for sparse matrix will be added in the future.
 
         Examples
         ---------
@@ -686,7 +805,32 @@ class BaseObservation(GridObjects):
             #     - assign bus 2 to load 0 [on substation 1]
             # -> one of them is on bus 1 [line (extremity) 0] and the other on bus 2 [load 0]
         """
-        raise NotImplementedError("This method is not implemented")
+        if self._connectivity_matrix_ is None:
+            self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
+            # fill it by block for the objects
+            beg_ = 0
+            end_ = 0
+            for sub_id, nb_obj in enumerate(self.sub_info):
+                # it must be a vanilla python integer, otherwise it's not handled by some backend
+                # especially if written in c++
+                nb_obj = int(nb_obj)
+                end_ += nb_obj
+                tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=dt_float)
+                for obj1 in range(nb_obj):
+                    for obj2 in range(obj1+1, nb_obj):
+                        if self.topo_vect[beg_+obj1] == self.topo_vect[beg_+obj2]:
+                            # objects are on the same bus
+                            tmp[obj1, obj2] = 1
+                            tmp[obj2, obj1] = 1
+
+                self._connectivity_matrix_[beg_:end_, beg_:end_] = tmp
+                beg_ += nb_obj
+            # connect the objects together with the lines (both ends of a lines are connected together)
+            for q_id in range(self.n_line):
+                self._connectivity_matrix_[self.line_or_pos_topo_vect[q_id], self.line_ex_pos_topo_vect[q_id]] = 1
+                self._connectivity_matrix_[self.line_ex_pos_topo_vect[q_id], self.line_or_pos_topo_vect[q_id]] = 1
+
+        return self._connectivity_matrix_
 
     def bus_connectivity_matrix(self):
         """
@@ -703,8 +847,33 @@ class BaseObservation(GridObjects):
         -------
         res: ``numpy.ndarray``, shape:nb_bus,nb_bus dtype:float
             The bus connectivity matrix
+
+        Notes
+        ------
+        By convention we say that a bus is connected to itself. So the diagonal of this matrix is 1.
+
+        For now this matrix is stored as a dense matrix. Support for sparse matrix will be added in the future.
         """
-        raise NotImplementedError("This method is not implemented. ")
+        if self._bus_connectivity_matrix_ is None:
+            bus_or = self.topo_vect[self.line_or_pos_topo_vect]
+            bus_ex = self.topo_vect[self.line_ex_pos_topo_vect]
+            connected = (bus_or > 0) & (bus_ex > 0)
+            bus_or = bus_or[connected]
+            bus_ex = bus_ex[connected]
+            bus_or += self.line_or_to_subid[connected] + (bus_or == 2) * self.n_sub
+            bus_ex += self.line_ex_to_subid[connected] + (bus_ex == 2) * self.n_sub
+            unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
+            unique_bus = np.sort(unique_bus)
+            nb_bus = unique_bus.shape[0]
+            all_indx = np.arange(nb_bus)
+            tmplate = np.arange(np.max(unique_bus)+1)
+            tmplate[unique_bus] = all_indx
+            self._bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
+            self._bus_connectivity_matrix_[tmplate[bus_or], tmplate[bus_ex]] = 1.0
+            self._bus_connectivity_matrix_[tmplate[bus_ex], tmplate[bus_or]] = 1.0
+            self._bus_connectivity_matrix_[all_indx, all_indx] = 1.0
+        return self._bus_connectivity_matrix_
+
 
     def get_forecasted_inj(self, time_step=1):
         """

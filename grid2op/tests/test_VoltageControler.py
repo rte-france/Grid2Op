@@ -12,6 +12,9 @@ from grid2op.tests.helper_path_test import *
 from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.MakeEnv import make
 
+import warnings
+warnings.simplefilter("error")
+
 
 class TestLoadingVoltageControl(unittest.TestCase):
     def test_creation_ControlVoltage(self):
