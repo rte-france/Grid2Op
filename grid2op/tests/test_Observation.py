@@ -286,8 +286,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         # when there is a substation counts 2 buses
         obs, *_ = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
         assert obs.bus_connectivity_matrix(as_csr).shape == (15, 15)
-        assert obs.bus_connectivity_matrix(as_csr)[14, 11] == 1.  # first powerline modified
-        assert obs.bus_connectivity_matrix(as_csr)[14, 12] == 1.  # second powerline modified
+        assert obs.bus_connectivity_matrix(as_csr)[14, 11] == 1.  # first powerline I modified
+        assert obs.bus_connectivity_matrix(as_csr)[14, 12] == 1.  # second powerline I modified
         assert obs.bus_connectivity_matrix(as_csr)[5, 11] == 0.  # first powerline modified
         assert obs.bus_connectivity_matrix(as_csr)[5, 12] == 0.  # second powerline modified
 
@@ -296,6 +296,60 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
     def test_conn_mat2_csr(self):
         self.aux_test_conn_mat2(as_csr=True)
+
+    def aux_test_conn_mat3(self, as_csr=False):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_realistic", test=True)
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
+        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_line_index=True)
+        assert mat.shape == (15, 15)
+        assert ind_lor[7] == 14
+        assert ind_lor[8] == 14
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
+                                                                         "lines_ex_id": [(0, 2)]}}))
+        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_line_index=True)
+        assert mat.shape == (16, 16)
+        assert ind_lor[7] == 15
+        assert ind_lor[8] == 15
+        assert ind_lor[2] == 14
+        assert ind_lex[0] == 14
+
+    def test_conn_mat3(self):
+        self.aux_test_conn_mat3(False)
+
+    def test_conn_mat3_csr(self):
+        self.aux_test_conn_mat3(True)
+
+    def test_flow_bus_matrix(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_realistic", test=True)
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
+        mat, (load, prod, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (15, 15)
+        assert ind_lor[7] == 14
+        assert ind_lor[8] == 14
+        # check that kirchoff law is met
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+
+        obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
+                                                                         "lines_ex_id": [(0, 2)]}}))
+        mat, (load, prod, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (16, 16)
+        assert ind_lor[7] == 15
+        assert ind_lor[8] == 15
+        assert ind_lor[2] == 14
+        assert ind_lex[0] == 14
+        # check that kirchoff law is met
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+        assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
 
     def test_observation_space(self):
         obs = self.env.observation_space(self.env)

@@ -6,6 +6,7 @@ Change Log
 - [???] add multi agent
 - [???] model curtailment
 - [???] better logging
+- [???] implement a different reward, reward info for simulate and step.
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
@@ -19,8 +20,6 @@ Change Log
   and have grid2op convert it to MW / step
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
-  flows, and nodes the active production / consumption) and "reactive flow graph"
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
@@ -30,7 +29,10 @@ Change Log
 
 [1.4.1] - 202x-yy-zz
 -------------------------
+- [FIXED] A bug when the opponent should chose an attack with all lines having flow 0. but one being still connected.
 - [ADDED] Support for sparse matrices in `obs.bus_connectivity_matrix`
+- [ADDED] In the observation, it is now possible to retrieve the "active flow graph" (ie graph with edges having active
+  flows, and nodes the active production / consumption) and "reactive flow graph" (see `flow_bus_matrix`)
 
 [1.4.0] - 2020-12-10
 ----------------------

@@ -261,6 +261,10 @@ test_weights_focus.jpg
 test_weights_full.jpg
 times_api.txt
 new 1.txt
+test_*_weigths.h5
+test_saving_spektral.h5
+tf_logs_gnn/
+test_weigths.h5
 
 # profiling files
 **.prof

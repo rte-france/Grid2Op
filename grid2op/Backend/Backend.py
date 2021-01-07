@@ -95,6 +95,9 @@ class Backend(GridObjects, ABC):
         Thermal limit of the powerline in amps for each powerline. Thie thermal limit is relevant on only one
         side of the powerline: the same side returned by :func:`Backend.get_line_overflow`
 
+    comp_time: ``float``
+        Time to compute the powerflow (might be unset, ie stay at 0.0)
+
     """
     env_name = "unknown"
 
@@ -130,6 +133,8 @@ class Backend(GridObjects, ABC):
         # for the shunt (only if supported)
         self._sh_vnkv = None  # for each shunt gives the nominal value at the bus at which it is connected
         # if this information is not present, then "get_action_to_set" might not behave correctly
+
+        self.comp_time = 0.
 
     @abstractmethod
     def load_grid(self, path, filename=None):
@@ -364,6 +369,7 @@ class Backend(GridObjects, ABC):
         For backwards compatibility this method calls `Backend.load_grid`.
         But it is encouraged to overload it in the subclasses.
         """
+        self.comp_time = 0.
         self.load_grid(grid_path, filename=grid_filename)
 
     def copy(self):

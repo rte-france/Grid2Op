@@ -833,7 +833,23 @@ class BaseObservation(GridObjects):
 
         return self._connectivity_matrix_
 
-    def bus_connectivity_matrix(self, as_csr_matrix=False):
+    def _aux_fun_get_bus(self):
+        """see in bus_connectivity matrix"""
+        bus_or = self.topo_vect[self.line_or_pos_topo_vect]
+        bus_ex = self.topo_vect[self.line_ex_pos_topo_vect]
+        connected = (bus_or > 0) & (bus_ex > 0)
+        bus_or = bus_or[connected]
+        bus_ex = bus_ex[connected]
+        bus_or += self.line_or_to_subid[connected] + (bus_or - 1) * self.n_sub
+        bus_ex += self.line_ex_to_subid[connected] + (bus_ex - 1) * self.n_sub
+        bus_or -= 1
+        bus_ex -= 1
+        unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
+        unique_bus = np.sort(unique_bus)
+        nb_bus = unique_bus.shape[0]
+        return nb_bus, unique_bus, bus_or, bus_ex
+
+    def bus_connectivity_matrix(self, as_csr_matrix=False, return_lines_index=False):
         """
         If we denote by `nb_bus` the total number bus of the powergrid (you can think of a "bus" being
         a "node" if you represent a powergrid as a graph [mathematical object, not a plot] with the lines
@@ -844,46 +860,153 @@ class BaseObservation(GridObjects):
         If `bus_connectivity_matrix[i,j] = 1` then at least a power line connects bus i and bus j.
         Otherwise, nothing connects it.
 
+        Parameters
+        ----------
+        as_csr_matrix: ``bool``
+            Whether to return the bus connectivity matrix as a sparse matrix (csr format) or as a
+            dense matrix. By default it's ``False`` meaning a dense matrix is returned.
+
+        return_lines_index: ``bool``
+            Whether to also return the bus index associated to both side of each powerline.
+
         Returns
         -------
-        res: ``numpy.ndarray``, shape:nb_bus,nb_bus dtype:float
-            The bus connectivity matrix
+        res: ``numpy.ndarray``, shape: (nb_bus,nb_bus) dtype:float
+            The bus connectivity matrix defined above.
 
         Notes
         ------
         By convention we say that a bus is connected to itself. So the diagonal of this matrix is 1.
 
-        For now this matrix is stored as a dense matrix. Support for sparse matrix will be added in the future.
         """
         if self._bus_connectivity_matrix_ is None or \
                 (isinstance(self._bus_connectivity_matrix_, csr_matrix) and not as_csr_matrix) or \
-                ((not isinstance(self._bus_connectivity_matrix_, csr_matrix)) and as_csr_matrix ):
-            bus_or = self.topo_vect[self.line_or_pos_topo_vect]
-            bus_ex = self.topo_vect[self.line_ex_pos_topo_vect]
-            connected = (bus_or > 0) & (bus_ex > 0)
-            bus_or = bus_or[connected]
-            bus_ex = bus_ex[connected]
-            bus_or += self.line_or_to_subid[connected] + (bus_or == 2) * self.n_sub
-            bus_ex += self.line_ex_to_subid[connected] + (bus_ex == 2) * self.n_sub
-            unique_bus = np.unique(np.concatenate((bus_or, bus_ex)))
-            unique_bus = np.sort(unique_bus)
-            nb_bus = unique_bus.shape[0]
+                ((not isinstance(self._bus_connectivity_matrix_, csr_matrix)) and as_csr_matrix ) or \
+                return_lines_index:
+            nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
+
+            # convert the bus id (from 0 to 2 * n_sub) to the row / column in the matrix (number between 0 and nb_bus)
             all_indx = np.arange(nb_bus)
             tmplate = np.arange(np.max(unique_bus)+1)
             tmplate[unique_bus] = all_indx
+            bus_or_in_mat = tmplate[bus_or]
+            bus_ex_in_mat = tmplate[bus_ex]
+
             if not as_csr_matrix:
                 self._bus_connectivity_matrix_ = np.zeros(shape=(nb_bus, nb_bus), dtype=dt_float)
-                self._bus_connectivity_matrix_[tmplate[bus_or], tmplate[bus_ex]] = 1.0
-                self._bus_connectivity_matrix_[tmplate[bus_ex], tmplate[bus_or]] = 1.0
+                self._bus_connectivity_matrix_[bus_or_in_mat, bus_ex_in_mat] = 1.0
+                self._bus_connectivity_matrix_[bus_ex_in_mat, bus_or_in_mat] = 1.0
                 self._bus_connectivity_matrix_[all_indx, all_indx] = 1.0
             else:
-                data = np.ones(2*bus_ex.shape[0] + nb_bus, dtype=dt_float)
-                row_ind = np.concatenate((all_indx, tmplate[bus_or], tmplate[bus_ex]))
-                col_ind = np.concatenate((all_indx, tmplate[bus_ex], tmplate[bus_or]))
+                data = np.ones(nb_bus + bus_or_in_mat.shape[0] + bus_ex_in_mat.shape[0], dtype=dt_float)
+                row_ind = np.concatenate((all_indx, bus_or_in_mat, bus_ex_in_mat))
+                col_ind = np.concatenate((all_indx, bus_ex_in_mat, bus_or_in_mat))
                 self._bus_connectivity_matrix_ = csr_matrix((data, (row_ind, col_ind)),
                                                             shape=(nb_bus, nb_bus),
                                                             dtype=dt_float)
-        return self._bus_connectivity_matrix_
+        if not return_lines_index:
+            res = self._bus_connectivity_matrix_
+        else:
+            # bus or and bus ex are defined above is return_line_index is True
+            lor_bus, _ = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
+            lex_bus, _ = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
+            res = (self._bus_connectivity_matrix_, (tmplate[lor_bus], tmplate[lex_bus]))
+        return res
+
+    def _get_bus_id(self, id_topo_vect, sub_id):
+        """
+        get the bus id with the internal convention that:
+
+        - if object on bus 1, its bus is `sub_id`
+        - if object on bus 2, its bus is `sub_id` + n_sub
+        - if object on bus 3, its bus is `sub_id` + n_sub
+        - etc.
+
+        """
+        bus_id = self.topo_vect[id_topo_vect]
+        connected = bus_id > 0
+        bus_id[connected] += sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
+        bus_id -= 1  # because its label 1-2 and not 0-1
+        bus_id[~connected] = -1
+        return bus_id, connected
+
+    def flow_bus_matrix(self, active_flow=True, as_csr_matrix=False):
+        """
+        A matrix of size "nb bus" "nb bus". Each row and columns represent a "bus" of the grid ("bus" is a power
+        system word that for computer scientist means "nodes" if the powergrid is represented as a graph)
+
+        The diagonal will sum the power produced and consumed at each bus.
+
+        The other  element of each **row** of this matrix will be the flow of power from the bus represented
+        by the line i to the bus represented by column j.
+
+        Parameters
+        ----------
+        active_flow: ``bool``
+            Whether to get the active flow (in MW) or the reactive flow (in MVAr). Defaults to active flow.
+
+        as_csr_matrix: ``bool``
+            Whether to retrieve the results as a scipy csr sparse matrix or as a dense matrix (default)
+
+        Returns
+        -------
+        res: ``matrix``
+            Which can either be a sparse matrix or a dense matrix depending on the value of the argument
+            "as_csr_matrix".
+
+        mappings: ``tuple``
+            The mapping that makes the correspondance between each object and the bus to which it is connected.
+            It is made of 4 elements: (load_bus, prod_bus, lor_bus, lex_bus).
+
+            For example if `load_bus[i] = 14` it means that the load with id `i` is connected to the
+            bus 14. If `load_bus[i] = -1` then the object is disconnected.
+
+        """
+        # TODO refacto these five calls in one function that would do all and reuse it for the
+        # other methods of Observation (bus_connectivity_matrix)
+        nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
+        prod_bus, prod_conn = self._get_bus_id(self.gen_pos_topo_vect, self.gen_to_subid)
+        load_bus, load_conn = self._get_bus_id(self.load_pos_topo_vect, self.load_to_subid)
+        lor_bus, lor_conn = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
+        lex_bus, lex_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
+
+        # convert the bus to be "id of row or column in the matrix" instead of the bus id with
+        # the "grid2op convention"
+        all_indx = np.arange(nb_bus)
+        tmplate = np.arange(np.max(unique_bus)+1)
+        tmplate[unique_bus] = all_indx
+        prod_bus = tmplate[prod_bus]
+        load_bus = tmplate[load_bus]
+        lor_bus = tmplate[lor_bus]
+        lex_bus = tmplate[lex_bus]
+        if active_flow:
+            prod_vect = self.prod_p
+            load_vect = self.load_p
+            or_vect = self.p_or
+            ex_vect = self.p_ex
+        else:
+            prod_vect = self.prod_q
+            load_vect = self.load_q
+            or_vect = self.q_or
+            ex_vect = self.q_ex
+
+        data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
+        nb_lor = np.sum(lor_conn)
+        nb_lex = np.sum(lex_conn)
+        data[prod_bus[prod_conn]] += prod_vect[prod_conn]
+        data[load_bus[load_conn]] -= load_vect[load_conn]
+        data[np.arange(nb_lor) + nb_bus] -= or_vect[lor_conn]
+        data[np.arange(nb_lex) + nb_bus + nb_lor] -= ex_vect[lex_conn]
+        row_ind = np.concatenate((all_indx, lor_bus[lor_conn], lex_bus[lex_conn]))
+        col_ind = np.concatenate((all_indx, lex_bus[lex_conn], lor_bus[lor_conn]))
+        res = csr_matrix((data, (row_ind, col_ind)),
+                         shape=(nb_bus, nb_bus),
+                         dtype=dt_float)
+
+        if not as_csr_matrix:
+            res = res.toarray()
+
+        return res, (load_bus, prod_bus, lor_bus, lex_bus)
 
     def get_forecasted_inj(self, time_step=1):
         """

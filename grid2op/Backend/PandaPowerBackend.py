@@ -146,7 +146,6 @@ class PandaPowerBackend(Backend):
         self.cst_1 = dt_float(1.0)
         self._topo_vect = None
         self.slack_id = None
-        self.comp_time = 0.
 
         # function to rstore some information
         self.__nb_bus_before = None  # number of substation in the powergrid
