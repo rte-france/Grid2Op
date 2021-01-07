@@ -118,7 +118,7 @@ class SerializableActionSpace(SerializableSpace):
         rnd_sub = self.space_prng.randint(self.n_sub)
         sub_size = self.sub_info[rnd_sub]
         rnd_topo = self.space_prng.choice([-1, 0, 1, 2], sub_size)
-        rnd_update["set_bus"] = {"substations_id": [(rnd_sub, rnd_topo)] }
+        rnd_update["set_bus"] = {"substations_id": [(rnd_sub, rnd_topo)]}
         return rnd_update
 
     def _sample_change_bus(self, rnd_update=None):

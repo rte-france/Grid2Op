@@ -849,7 +849,7 @@ class BaseObservation(GridObjects):
         nb_bus = unique_bus.shape[0]
         return nb_bus, unique_bus, bus_or, bus_ex
 
-    def bus_connectivity_matrix(self, as_csr_matrix=False, return_line_index=False):
+    def bus_connectivity_matrix(self, as_csr_matrix=False, return_lines_index=False):
         """
         If we denote by `nb_bus` the total number bus of the powergrid (you can think of a "bus" being
         a "node" if you represent a powergrid as a graph [mathematical object, not a plot] with the lines
@@ -866,7 +866,7 @@ class BaseObservation(GridObjects):
             Whether to return the bus connectivity matrix as a sparse matrix (csr format) or as a
             dense matrix. By default it's ``False`` meaning a dense matrix is returned.
 
-        return_line_index: ``bool``
+        return_lines_index: ``bool``
             Whether to also return the bus index associated to both side of each powerline.
 
         Returns
@@ -882,7 +882,7 @@ class BaseObservation(GridObjects):
         if self._bus_connectivity_matrix_ is None or \
                 (isinstance(self._bus_connectivity_matrix_, csr_matrix) and not as_csr_matrix) or \
                 ((not isinstance(self._bus_connectivity_matrix_, csr_matrix)) and as_csr_matrix ) or \
-                return_line_index:
+                return_lines_index:
             nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
 
             # convert the bus id (from 0 to 2 * n_sub) to the row / column in the matrix (number between 0 and nb_bus)
@@ -904,11 +904,13 @@ class BaseObservation(GridObjects):
                 self._bus_connectivity_matrix_ = csr_matrix((data, (row_ind, col_ind)),
                                                             shape=(nb_bus, nb_bus),
                                                             dtype=dt_float)
-        if not return_line_index:
+        if not return_lines_index:
             res = self._bus_connectivity_matrix_
         else:
             # bus or and bus ex are defined above is return_line_index is True
-            res = (self._bus_connectivity_matrix_, (bus_or_in_mat, bus_ex_in_mat))
+            lor_bus, _ = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
+            lex_bus, _ = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
+            res = (self._bus_connectivity_matrix_, (tmplate[lor_bus], tmplate[lex_bus]))
         return res
 
     def _get_bus_id(self, id_topo_vect, sub_id):
@@ -960,6 +962,8 @@ class BaseObservation(GridObjects):
             bus 14. If `load_bus[i] = -1` then the object is disconnected.
 
         """
+        # TODO refacto these five calls in one function that would do all and reuse it for the
+        # other methods of Observation (bus_connectivity_matrix)
         nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
         prod_bus, prod_conn = self._get_bus_id(self.gen_pos_topo_vect, self.gen_to_subid)
         load_bus, load_conn = self._get_bus_id(self.load_pos_topo_vect, self.load_to_subid)

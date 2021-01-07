@@ -6,6 +6,7 @@ Change Log
 - [???] add multi agent
 - [???] model curtailment
 - [???] better logging
+- [???] implement a different reward, reward info for simulate and step.
 - [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
@@ -28,8 +29,9 @@ Change Log
 
 [1.4.1] - 202x-yy-zz
 -------------------------
+- [FIXED] A bug when the opponent should chose an attack with all lines having flow 0. but one being still connected.
 - [ADDED] Support for sparse matrices in `obs.bus_connectivity_matrix`
-- [ADDED] In the observation, it is now possibile to retrieve the "active flow graph" (ie graph with edges having active
+- [ADDED] In the observation, it is now possible to retrieve the "active flow graph" (ie graph with edges having active
   flows, and nodes the active production / consumption) and "reactive flow graph" (see `flow_bus_matrix`)
 
 [1.4.0] - 2020-12-10

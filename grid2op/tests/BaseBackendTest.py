@@ -78,12 +78,15 @@ class BaseTestNames(MakeBackend):
     def test_properNames(self):
         backend = self.make_backend()
         path = self.get_path()
-        with make(os.path.join(path, "5bus_example_diff_name"),
-                  backend=backend,
-                  ) as env:
-            obs = env.reset()
-            assert np.all(obs.name_load == ["tutu", "toto", "tata"])
-            assert np.all(env.name_load == ["tutu", "toto", "tata"])
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make(os.path.join(path, "5bus_example_diff_name"),
+                      backend=backend,
+                      ) as env:
+                obs = env.reset()
+                assert np.all(obs.name_load == ["tutu", "toto", "tata"])
+                assert np.all(env.name_load == ["tutu", "toto", "tata"])
 
 
 class BaseTestLoadingCase(MakeBackend):
@@ -91,7 +94,9 @@ class BaseTestLoadingCase(MakeBackend):
         backend = self.make_backend()
         path_matpower = self.get_path()
         case_file = self.get_casefile()
-        backend.load_grid(path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            backend.load_grid(path_matpower, case_file)
         backend.set_env_name("TestLoadingCase_env")
         backend.assert_grid_correct()
 
@@ -139,7 +144,9 @@ class BaseTestLoadingCase(MakeBackend):
         backend = self.make_backend()
         path_matpower = self.get_path()
         case_file = self.get_casefile()
-        backend.load_grid(path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            backend.load_grid(path_matpower, case_file)
         backend.set_env_name("TestLoadingCase_env2")
         backend.assert_grid_correct()
         conv = backend.runpf()
@@ -152,7 +159,9 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
-        self.backend.load_grid(self.path_matpower, self.case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestLoadingBackendFunc_env")
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
@@ -558,7 +567,9 @@ class BaseTestTopoAction(MakeBackend):
         self.backend = self.make_backend()
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
-        self.backend.load_grid(self.path_matpower, self.case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestTopoAction_env")
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
@@ -1051,7 +1062,9 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         self.backend = self.make_backend(detailed_infos_for_cascading_failures=True)
         self.path_matpower = self.get_path()
         self.case_file = self.get_casefile()
-        self.backend.load_grid(self.path_matpower, self.case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
@@ -1075,11 +1088,14 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
 
     def next_grid_state_no_overflow(self):
         # first i test that, when there is no overflow, i dont do a cascading failure
-        env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=self.env_params,
-                          name="test_pp_env1")
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = Environment(init_grid_path=os.path.join(self.path_matpower, self.case_file),
+                              backend=self.backend,
+                              chronics_handler=self.chronics_handler,
+                              parameters=self.env_params,
+                              name="test_pp_env1")
 
         disco, infos, conv_ = self.backend.next_grid_state(env, is_dc=False)
         assert conv_ is None
@@ -1091,12 +1107,16 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=env_params,
-                          name="test_pp_env2")
-        self.backend.load_grid(self.path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                              backend=self.backend,
+                              chronics_handler=self.chronics_handler,
+                              parameters=env_params,
+                              name="test_pp_env2")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
 
         thermal_limit = 10 * self.lines_flows_init
@@ -1116,12 +1136,16 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=self.env_params,
-                          name="test_pp_env3")
-        self.backend.load_grid(self.path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                              backend=self.backend,
+                              chronics_handler=self.chronics_handler,
+                              parameters=self.env_params,
+                              name="test_pp_env3")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
         conv = self.backend.runpf()
         assert conv, "powerflow should converge at loading"
@@ -1150,12 +1174,16 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
         env_params.NB_TIMESTEP_OVERFLOW_ALLOWED = 0
-        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=env_params,
-                          name="test_pp_env4")
-        self.backend.load_grid(self.path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                              backend=self.backend,
+                              chronics_handler=self.chronics_handler,
+                              parameters=env_params,
+                              name="test_pp_env4")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
         conv = self.backend.runpf()
         assert conv, "powerflow should converge at loading"
@@ -1185,12 +1213,16 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=env_params,
-                          name="test_pp_env5")
-        self.backend.load_grid(self.path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                              backend=self.backend,
+                              chronics_handler=self.chronics_handler,
+                              parameters=env_params,
+                              name="test_pp_env5")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
 
         env._timestep_overflow[self.id_2nd_line_disco] = 0
@@ -1217,12 +1249,16 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         case_file = self.case_file
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
-        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=env_params,
-                          name="test_pp_env6")
-        self.backend.load_grid(self.path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                              backend=self.backend,
+                              chronics_handler=self.chronics_handler,
+                              parameters=env_params,
+                              name="test_pp_env6")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
 
         env._timestep_overflow[self.id_2nd_line_disco] = 1
@@ -1250,12 +1286,16 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         env_params = copy.deepcopy(self.env_params)
         env_params.HARD_OVERFLOW_THRESHOLD = 1.5
         env_params.NB_TIMESTEP_OVERFLOW_ALLOWED = 2
-        env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
-                          backend=self.backend,
-                          chronics_handler=self.chronics_handler,
-                          parameters=env_params,
-                          name="test_pp_env7")
-        self.backend.load_grid(self.path_matpower, case_file)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = Environment(init_grid_path=os.path.join(self.path_matpower, case_file),
+                              backend=self.backend,
+                              chronics_handler=self.chronics_handler,
+                              parameters=env_params,
+                              name="test_pp_env7")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.backend.load_grid(self.path_matpower, case_file)
         self.backend.assert_grid_correct()
 
         env._timestep_overflow[self.id_2nd_line_disco] = 2
@@ -1512,10 +1552,14 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
         self.skip_if_needed()
         # Reset backend1 with load_grid
         self.backend1.reset = self.backend1.load_grid
-        self.env1.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1.reset()
         # Reset backend2 with load_grid
         self.backend2.reset = self.backend2.load_grid
-        self.env2.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env2.reset()
 
         # Compare
         self._compare_backends()
@@ -1530,7 +1574,9 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
 
         # Reset to first chronic
         self.env1.chronics_handler.tell_id(-1)
-        self.env1.reset()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env1.reset()
 
         # Store second observation
         obs2 = self.env1.current_obs
