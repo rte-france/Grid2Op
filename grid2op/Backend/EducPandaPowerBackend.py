@@ -82,16 +82,32 @@ class EducPandaPowerBackend(Backend):
         Demonstration on how you can load a powergrid and then initialize the proper grid2op attributes.
 
         The only thing we have to do here is to "order" the objects in each substation. Note that we don't even do it
-        implicitly here.
+        implicitly here (relying on default grid2op ordering).
 
-        .. info:: We use one "trick" here. Pandapower grid (as it will be the case for most format) will have one "bus"
+        The only decision we had to make was concerning "grid2op powerlines" which represents both
+        "pandapower transformers"
+        and "pandapower powerlines".
+
+        We decided that:
+
+        - powerline are "before" trafo (so in the grid2op line id I will put first all powerlines, then all trafo)
+        - grid2op "origin" side will be "from" side for pandapower powerline and "hv" side for pandapower trafo
+        - grid2op "extremity" side will be "to" side for pandapower powerline and "lv" side for pandapower trafo
+
+
+        .. note:: We use one "trick" here. Pandapower grid (as it will be the case for most format) will have one "bus"
             per substation. For grid2op, we want at least 2 busbar per substation. So we simply copy and paste the grid.
 
-            And we will deactivate the busbar that are not connected (no element connected to it)
+            And we will deactivate the busbar that are not connected (no element connected to it).
+
+            This "coding" allows for easily mapping the bus id (each bus is represented with an id in pandapower)
+            and whether its busbar 1 or busbar 2 (grid2op side). More precisely: busbar 1 of substation with
+            id `sub_id` will have id `sub_id` and busbar 2 of the same substation will have id `sub_id + n_sub`
+            (recall that n_sub is the number of substation on the grid).
 
             This "coding" is not optimal in the ram it takes. But we recommend you to adopt a similar one. It's
-            pretty easy to change the topology ussing this trick, much easier than if you rely on "switches" for
-            example. (But of course  you can still use switches if you want...)
+            pretty easy to change the topology using this trick, much easier than if you rely on "switches" for
+            example. (But of course  you can still use switches if you really want to)
 
         """
 
@@ -122,7 +138,7 @@ class EducPandaPowerBackend(Backend):
         ######################################################################
         # this part is due to the "modeling" of the topology FOR THIS EXAMPLE
         # remember (see docstring of this function) that we "duplicate the buses" to code more easily the
-        # topology modification
+        # topology modification (instead of relying on the `switches`)
 
         # first we remember the number of substation
         self.n_sub = self._grid.bus.shape[0]
@@ -170,7 +186,8 @@ class EducPandaPowerBackend(Backend):
         """
         Here the implementation of the "modify the grid" function.
 
-        From the documentation, it's pretty straightforward.
+        From the documentation, it's pretty straightforward, even though the implementation takes ~70 lines of code.
+        Most of them being direct copy paste from the examples in the documentation.
         """
         if backendAction is None:
             return
@@ -195,6 +212,9 @@ class EducPandaPowerBackend(Backend):
                 self._grid.load["in_service"][load_id] = False
             else:
                 self._grid.load["in_service"][load_id] = True
+                # this formula is really convenient because we decided to duplicated buses in each substation.
+                # and decided that: bus 1 of a substation with id `sub_id` will have id `sub_id` and
+                # bus 2 of the same substation will have id `sub_id + n_substation`
                 self._grid.load["bus"][load_id] = self.load_to_subid[load_id] + (new_bus - 1) * self.n_sub
 
         gens_bus = backendAction.get_gens_bus()
@@ -249,7 +269,10 @@ class EducPandaPowerBackend(Backend):
     def runpf(self, is_dc=False):
         """
         Now we just perform a powerflow with pandapower which can be done with either `rundcpp` for dc powerflow
-        or with `runpp`for AC powerflow
+        or with `runpp`for AC powerflow.
+
+        This is really a 2 lines code. It is a bit more versbose here because we took care of silencing some
+        warnings and try / catch some possible exceptions.
         """
         try:
             with warnings.catch_warnings():
@@ -272,7 +295,7 @@ class EducPandaPowerBackend(Backend):
 
         This is fairly simple, again, because we choose to explicitly represents 2 buses per substation.
 
-        Function is verbos, but pretty straightforward.
+        Function is verbose (~40 lines of code), but pretty straightforward.
         """
         res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
 
@@ -319,7 +342,7 @@ class EducPandaPowerBackend(Backend):
 
     def generators_info(self):
         """
-        We chose to keep the same order in grid2op that in pandapower. So we just return the correct values.
+        We chose to keep the same order in grid2op and in pandapower. So we just return the correct values.
         """
         # carefull with copy / deep copy
         prod_p = self._grid.res_gen["p_mw"].values.astype(dt_float)
@@ -330,7 +353,7 @@ class EducPandaPowerBackend(Backend):
 
     def loads_info(self):
         """
-        We chose to keep the same order in grid2op that in pandapower. So we just return the correct values.
+        We chose to keep the same order in grid2op and in pandapower. So we just return the correct values.
         """
         # carefull with copy / deep copy
         load_p = self._grid.res_load["p_mw"].values.astype(dt_float)
@@ -339,8 +362,12 @@ class EducPandaPowerBackend(Backend):
         load_v *= self._grid.res_bus.loc[self._grid.load["bus"].values]["vn_kv"].values.astype(dt_float)  # in kV
         return load_p, load_q, load_v
 
-    def _aux_get_line_info(self, colname1, colname2):
-        res = np.concatenate((self._grid.res_line[colname1].values, self._grid.res_trafo[colname2].values))
+    def _aux_get_line_info(self, colname_powerline, colname_trafo):
+        """
+        concatenate the information of powerlines and trafo using the convention that "powerlines go first"
+        """
+        res = np.concatenate((self._grid.res_line[colname_powerline].values,
+                              self._grid.res_trafo[colname_trafo].values))
         return res
 
     def lines_or_info(self):
@@ -352,6 +379,8 @@ class EducPandaPowerBackend(Backend):
         - origin side (grid2op) will be "from" side for pandapower powerline
         - origin side (grid2op) will be "hv" side for pandapower trafo
         - we chose to first have powerlines, then transformers
+
+        (convention chosen in :func:`EducPandaPowerBackend.load_grid`)
 
         """
         p_or = self._aux_get_line_info("p_from_mw", "p_hv_mw")
@@ -370,6 +399,8 @@ class EducPandaPowerBackend(Backend):
         - extremity side (grid2op) will be "lv" side for pandapower trafo
         - we chose to first have powerlines, then transformers
 
+        (convention chosen in function :func:`EducPandaPowerBackend.load_grid`)
+
         """
         p_ex = self._aux_get_line_info("p_to_mw", "p_lv_mw")
         q_ex = self._aux_get_line_info("q_to_mvar", "q_lv_mvar")
@@ -378,35 +409,17 @@ class EducPandaPowerBackend(Backend):
         return p_ex, q_ex, v_ex, a_ex
 
     # other less important method that you will need to implement
-    def get_line_flow(self):
-        """
-        .. warning:: /!\\\\ This is a not a "main method" you have to implement but you might need to implement
-            it for a new backend. /!\\\\
-        """
-        p_or, q_or, v_or, a_or = self.lines_or_info()
-        return a_or
-
     def get_line_status(self):
         """
-        .. warning:: /!\\\\ This is a not a "main method" you have to implement but you might need to implement
-            it for a new backend. /!\\\\
+        .. warning::  /!\\\\ This is a not a "main method" but you might want to implement
+            it for a new backend (default implementation most likely not efficient at all). /!\\\\
         """
         return np.concatenate((self._grid.line["in_service"].values, self._grid.trafo["in_service"].values)).astype(dt_bool)
 
-    def _reconnect_line(self, id_):
-        """
-        .. warning:: /!\\\\ This is a not a "main method" you have to implement but you might need to implement
-            it for a new backend. /!\\\\
-        """
-        if id_ < self._nb_real_line_pandapower:
-            self._grid.line["in_service"].iloc[id_] = True
-        else:
-            self._grid.trafo["in_service"].iloc[id_ - self._nb_real_line_pandapower] = True
-
     def _disconnect_line(self, id_):
         """
-        .. warning:: /!\\\\ This is a not a "main method" you have to implement but you might need to implement
-            it for a new backend. /!\\\\
+        .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
+            it for a new backend (default implementation most likely not efficient at all). /!\\\\
         """
         if id_ < self._nb_real_line_pandapower:
             self._grid.line["in_service"].iloc[id_] = False
@@ -415,8 +428,8 @@ class EducPandaPowerBackend(Backend):
 
     def copy(self):
         """
-        .. warning:: /!\\\\ This is a not a "main method" you have to implement but you might need to implement
-            it for a new backend. /!\\\\
+        .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
+            it for a new backend (default implementation most likely not efficient at all). /!\\\\
 
         Nothing really crazy here
 
@@ -428,8 +441,8 @@ class EducPandaPowerBackend(Backend):
 
     def reset(self, path=None, grid_filename=None):
         """
-        .. warning:: /!\\\\ This is a not a "main method" you have to implement but you might need to implement
-            it for a new backend. /!\\\\
+        .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
+            it for a new backend (default implementation most likely not efficient at all). /!\\\\
 
         Reset the grid to the original state
         """
@@ -455,8 +468,8 @@ class EducPandaPowerBackend(Backend):
 
     def close(self):
         """
-        .. warning:: /!\\\\ This is a not a "main method" you have to implement but you might need to implement
-            it for a new backend. /!\\\\
+        .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
+            it for a new backend (default implementation most likely not efficient at all). /!\\\\
 
         Called when the :class:`grid2op;Environment` has terminated, this function only reset the grid to a state
         where it has not been loaded.
