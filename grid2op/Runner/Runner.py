@@ -841,6 +841,7 @@ class Runner(object):
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.BaseAgent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
               - "max_ts" : the maximum number of time steps of the chronics
+              - "episode_data" : The :class:`EpisodeData` corresponding to this episode run
 
         """
         res = [(None, None, None, None, None) for _ in range(nb_episode)]
@@ -942,6 +943,7 @@ class Runner(object):
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.BaseAgent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
               - "max_ts" : the maximum number of time steps of the chronics
+              - "episode_data" : The :class:`EpisodeData` corresponding to this episode run
 
         """
         if nb_process <= 0:
