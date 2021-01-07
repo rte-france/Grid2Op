@@ -69,7 +69,7 @@ class TestRunner(HelperTests):
                              name_env="test_runner_env")
 
     def test_one_episode(self):
-        _, cum_reward, timestep = self.runner.run_one_episode(max_iter=self.max_iter)
+        _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter)
         assert int(timestep) == self.max_iter
         assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
