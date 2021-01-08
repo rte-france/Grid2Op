@@ -114,7 +114,7 @@ class TestEpisodeData(unittest.TestCase):
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()
-        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_name, cum_reward, timestep, episode_data_cached = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.other_rewards) == self.max_iter
@@ -125,7 +125,7 @@ class TestEpisodeData(unittest.TestCase):
     def test_len(self):
         """test i can use the function "len" of the episode data"""
         f = tempfile.mkdtemp()
-        episode_name, cum_reward, timestep = self.runner.run_one_episode(path_save=f)
+        episode_name, cum_reward, timestep, episode_data_cached = self.runner.run_one_episode(path_save=f)
         episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         len(episode_data)
 
