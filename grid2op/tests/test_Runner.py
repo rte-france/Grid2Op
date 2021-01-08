@@ -24,7 +24,6 @@ from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
 from grid2op.Episode import EpisodeData
 import json
-
 import warnings
 warnings.simplefilter("error")
 
@@ -37,6 +36,7 @@ class TestRunner(HelperTests):
         self.max_iter = 10
         # self.real_reward = dt_float(199.99800)
         self.real_reward = dt_float(179.99818)
+        self.all_real_rewards = [19.999783, 19.999786, 19.999784, 19.999794, 19.9998,   19.999804, 19.999804, 19.999817, 19.999823,  0.      ]
         self.names_chronics_to_backend = {"loads": {"2_C-10.61": 'load_1_0', "3_C151.15": 'load_2_1',
                                                     "14_C63.6": 'load_13_2', "4_C-9.47": 'load_3_3',
                                                     "5_C201.84": 'load_4_4',
@@ -73,6 +73,12 @@ class TestRunner(HelperTests):
         assert int(timestep) == self.max_iter
         assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
+    def test_one_episode_detailed(self):
+        _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter, detailed_output=True)
+        assert int(timestep) == self.max_iter
+        assert np.abs(cum_reward - self.real_reward) <= self.tol_one
+        np.testing.assert_almost_equal(episode_data.rewards, self.all_real_rewards, 5)
+
     def test_one_process_par(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -99,6 +105,16 @@ class TestRunner(HelperTests):
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
+
+    def test_2episode_2process_detailed(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            res = self.runner._run_parrallel(nb_episode=2, nb_process=2, max_iter=self.max_iter, add_detailed_output=True)
+        assert len(res) == 2
+        for i, _, cum_reward, timestep, total_ts, episode_data in res:
+            assert int(timestep) == self.max_iter
+            assert np.abs(cum_reward - self.real_reward) <= self.tol_one
+            np.testing.assert_almost_equal(episode_data.rewards, self.all_real_rewards, 5)
 
     def test_complex_agent(self):
         nb_episode = 4
