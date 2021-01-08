@@ -52,6 +52,14 @@ class IncorrectNumberOfSubstation(EnvError):
     pass
 
 
+class IncorrectNumberOfStorages(EnvError):
+    """
+    This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total
+    number of storage of the powergrid.
+    """
+    pass
+
+
 class IncorrectNumberOfElements(EnvError):
     """
     This is a more precise exception than :class:`EnvError` indicating that there is a mismatch in the total number

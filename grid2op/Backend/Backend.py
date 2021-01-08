@@ -871,8 +871,8 @@ class Backend(GridObjects, ABC):
         Parameters
         ----------
         path: ``str``
-            Location of the dataframe containing the redispatching data. This dataframe should have at least the
-            columns:
+            Location of the dataframe containing the redispatching data. This dataframe (csv, coma separated)
+            should have at least the columns (other columns are ignored, order of the colums do not matter):
 
             - "name": identifying the name of the generator (should match the names in self.name_gen)
             - "type": one of "thermal", "nuclear", "wind", "solar" or "hydro" representing the type of the generator
@@ -882,15 +882,18 @@ class Backend(GridObjects, ABC):
               steps TODO make it independant from the duration of the step
             - "max_ramp_down": maximum value the generator can decrease its production between two consecutive
               steps (is positive) TODO make it independant from the duration of the step
-            - "start_cost": starting cost of the generator
-            - "shut_down_cost": cost associated to the shut down of the generator
+            - "start_cost": starting cost of the generator in $ (or any currency you want)
+            - "shut_down_cost": cost associated to the shut down of the generator in $ (or any currency you want)
             - "marginal_cost": "average" marginal cost of the generator. For now we don't allow it to vary across
-              different steps or episode (TODO change that)
-            - "min_up_time": minimum time a generator need to stay "connected" before we can disconnect it
-            - "min_down_time": minimum time a generator need to stay "disconnected" before we can connect it again.
+              different steps or episode in $/(MW.time step duration) and NOT $/MWh  (TODO change that)
+            - "min_up_time": minimum time a generator need to stay "connected" before we can disconnect it (
+              measured in time step)  (TODO change that)
+            - "min_down_time": minimum time a generator need to stay "disconnected" before we can connect it again.(
+              measured in time step)  (TODO change that)
 
         name: ``str``
-            Name of the dataframe containing the redispatching data
+            Name of the dataframe containing the redispatching data. Defaults to 'prods_charac.csv', we don't advise
+            to change it.
 
         """
         self._fill_names()
@@ -901,13 +904,20 @@ class Backend(GridObjects, ABC):
             self.redispatching_unit_commitment_availble = False
             return
         try:
-            df = pd.read_csv(fullpath)
-        except Exception as e:
+            df = pd.read_csv(fullpath, sep=",")
+        except Exception as exc_:
+            warnings.warn(f"Impossible to load the redispatching data for this environment with error:\n\"{exc_}\"\n"
+                          f"Redispatching will be unavailable.\n"
+                          f"Please make sure \"{name}\" file is a csv (coma ',') separated file.")
             return
 
-        for el in ["type", "Pmax", "Pmin", "max_ramp_up", "max_ramp_down", "start_cost",
-                   "shut_down_cost", "marginal_cost", "min_up_time", "min_down_time"]:
+        mandatory_columns = ["type", "Pmax", "Pmin", "max_ramp_up", "max_ramp_down", "start_cost",
+                             "shut_down_cost", "marginal_cost", "min_up_time", "min_down_time"]
+        for el in mandatory_columns:
             if el not in df.columns:
+                warnings.warn(f"Impossible to load the redispatching data for this environment because"
+                              f"one of the mandatory column is not present ({el}). Please check the file "
+                              f"\"{name}\" contains all the mandatory columns: {mandatory_columns}")
                 return
 
         gen_info = {}
@@ -938,10 +948,16 @@ class Backend(GridObjects, ABC):
         self.gen_shutdown_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # shutdown cost
 
         for i, gen_nm in enumerate(self.name_gen):
-            tmp_gen = gen_info[gen_nm]
+            try:
+                tmp_gen = gen_info[gen_nm]
+            except KeyError as exc_:
+                raise BackendError(f"Impossible to load the redispatching data. The generator {i} with name {gen_nm} "
+                                   f"could not be located on the description file \"{name}\".")
             self.gen_type[i] = str(tmp_gen["type"])
-            self.gen_pmin[i] = dt_float(tmp_gen["pmin"])
-            self.gen_pmax[i] = dt_float(tmp_gen["pmax"])
+            self.gen_pmin[i] = self._aux_check_finite_float(tmp_gen["pmin"],
+                                                            f" for gen. \"{gen_nm}\" and column \"pmin\"")
+            self.gen_pmax[i] = self._aux_check_finite_float(tmp_gen["pmax"],
+                                                            f" for gen. \"{gen_nm}\" and column \"pmax\"")
             self.gen_redispatchable[i] = dt_bool(tmp_gen["type"] not in ["wind", "solar"])
             tmp = dt_float(tmp_gen["max_ramp_up"])
             if np.isfinite(tmp):
@@ -954,6 +970,111 @@ class Backend(GridObjects, ABC):
             self.gen_cost_per_MW[i] = dt_float(tmp_gen["marginal_cost"])
             self.gen_startup_cost[i] = dt_float(tmp_gen["start_cost"])
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
+
+    def load_storage_data(self, path, name='storage_units_charac.csv'):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This method will load everything needed in presence of storage unit on the grid.
+
+        We don't recommend at all to modify this function.
+
+        Parameters
+        ----------
+        path: ``str``
+            Location of the dataframe containing the storage unit data. This dataframe (csv, coma separated)
+            should have at least the columns. It is mandatory to have it if there are storage units on the grid,
+            but it is ignored if not:
+
+            - "name": identifying the name of the unit storage (should match the names in self.name_storage)
+            - "type": one of "battery", "pumped_storage" representing the type of the unit storage
+            - "Emax": the maximum energy capacity the unit can store (in MWh)
+            - "Emin": the minimum energy capacity the unit can store (in MWh) [it can be >0 if a battery cannot be
+              completely empty for example]
+            - "max_p_prod": maximum flow the battery can absorb in MW
+            - "max_p_absorb": maximum flow the battery can produce in MW
+            - "marginal_cost": cost in $ (or any currency, really) of usage of the battery.
+            - "power_loss": power loss in the battery in MW (the capacity will decrease constantly of this amount).
+              Set it to 0.0 to deactivate it
+
+        name: ``str``
+            Name of the dataframe containing the redispatching data. Defaults to 'prods_charac.csv', we don't advise
+            to change it.
+
+        """
+        if self.n_storage == 0:
+            # nothing to do if there is no battery on the grid.
+            return
+
+        # for storage unit information
+        fullpath = os.path.join(path, name)
+        if not os.path.exists(fullpath):
+            raise BackendError(f"There are storage unit on the grid, yet we could not locate their description."
+                               f"Please make sure to have a file \"{name}\" where the environment data are located."
+                               f"For this environment the location is \"{path}\"")
+
+        try:
+            df = pd.read_csv(fullpath)
+        except Exception as exc:
+            raise BackendError(f"There are storage unit on the grid, yet we could not locate their description."
+                               f"Please make sure to have a file \"{name}\" where the environment data are located."
+                               f"For this environment the location is \"{path}\"")
+        mandatory_colnames = ["name", "type", "Emax", "Emin", "max_p_prod", "max_p_absorb",
+                              "marginal_cost", "power_loss"]
+        for el in mandatory_colnames:
+            if el not in df.columns:
+                raise BackendError(f"There are storage unit on the grid, yet we could not properly load their "
+                                   f"description. Please make sure the csv {name} contains all the columns "
+                                   f"{mandatory_colnames}")
+
+        stor_info = {}
+        for _, row in df.iterrows():
+            stor_info[row["name"]] = {"name": row["name"],
+                                      "type": row["type"],
+                                      "Emax": row["Emax"],
+                                      "Emin": row["Emin"],
+                                      "max_p_prod": row["max_p_prod"],
+                                      "max_p_absorb": row["max_p_absorb"],
+                                      "marginal_cost": row["marginal_cost"],
+                                      "power_loss": row["power_loss"]
+                                      }
+
+        self.storage_type = np.full(self.n_storage, fill_value="aaaaaaaaaa")
+        self.storage_Emax = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_Emin = np.full(self.n_storage, fill_value=0., dtype=dt_float)
+        self.storage_max_p_prod = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_max_p_absorb = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_marginal_cost = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_loss = np.full(self.n_storage, fill_value=0., dtype=dt_float)
+
+        for i, sto_nm in enumerate(self.name_storage):
+            try:
+                tmp_sto = stor_info[sto_nm]
+            except KeyError as exc_:
+                raise BackendError(f"Impossible to load the storage data. The storage unit {i} with name {sto_nm} "
+                                   f"could not be located on the description file \"{name}\".")
+
+            self.storage_type[i] = str(tmp_sto["type"])
+            self.storage_Emax[i] = self._aux_check_finite_float(tmp_sto["Emax"], f" for {sto_nm} and column \"Emax\"")
+            self.storage_Emin[i] = self._aux_check_finite_float(tmp_sto["Emin"], f" for {sto_nm} and column \"Emin\"")
+            self.storage_max_p_prod[i] = self._aux_check_finite_float(tmp_sto["max_p_prod"],
+                                                                      f" for {sto_nm} and column \"max_p_prod\"")
+            self.storage_max_p_absorb[i] = self._aux_check_finite_float(tmp_sto["max_p_absorb"],
+                                                                        f" for {sto_nm} and column \"max_p_absorb\"")
+            self.storage_marginal_cost[i] = self._aux_check_finite_float(tmp_sto["marginal_cost"],
+                                                                         f" for {sto_nm} and column \"marginal_cost\"")
+            self.storage_loss[i] = self._aux_check_finite_float(tmp_sto["power_loss"],
+                                                                f" for {sto_nm} and column \"power_loss\"")
+
+    def _aux_check_finite_float(self, nb_, str_=""):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        check and returns if correct that a number is convertible to `dt_float` and that it's finite
+        """
+        tmp = dt_float(nb_)
+        if not np.isfinite(tmp):
+            raise BackendError(f"Inifinite number met for a number that should be finite. Please check your data {str_}")
+        return tmp
 
     def load_grid_layout(self, path, name='grid_layout.json'):
         """

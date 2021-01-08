@@ -149,6 +149,13 @@ class TestActionBase(ABC):
             'gen_cost_per_MW': [70.0] * 5,
             'gen_startup_cost': [0.0] * 5,
             'gen_shutdown_cost': [0.0] * 5,
+            "storage_type": [],
+            "storage_Emax": [],
+            "storage_Emin": [],
+            "storage_max_p_prod": [],
+            "storage_max_p_absorb": [],
+            "storage_marginal_cost": [],
+            "storage_loss": [],
             "grid_layout": None,
             "shunt_to_subid": None,
             "name_shunt": None

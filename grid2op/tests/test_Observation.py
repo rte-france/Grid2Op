@@ -92,6 +92,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                        "sub_5": [222.0,108.0], "sub_6": [79.0,162.0],"sub_7": [-170.0,270.0],
                                        "sub_8": [-64.0,270.0], "sub_9": [222.0,216.0]},
                       'name_shunt': ['shunt_8_0'], 'shunt_to_subid': [8],
+                      "storage_type": [],
+                      "storage_Emax": [],
+                      "storage_Emin": [],
+                      "storage_max_p_prod": [],
+                      "storage_max_p_absorb": [],
+                      "storage_marginal_cost": [],
+                      "storage_loss": [],
                       '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
         self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],

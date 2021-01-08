@@ -13,8 +13,6 @@ Change Log
 - [???] model agent acting at different time frame
 - [???] model delay in observations
 - [???] model delay in action
-- [???] model dams in grid2op (stuff that have a given energy max, and cannot produce more than
-  the available energy)
 - [???] Code and test the "load from disk" method
 - [???] Make the redispatching data independant from the time step (eg instead of "in MW / step" have it in "MW / h"
   and have grid2op convert it to MW / step
@@ -27,8 +25,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.4.1] - 202x-yy-zz
+[1.5.0] - 2021-xx-yy
 -------------------------
+- [BREAKING] for backend class implementation: need to upgrade your code to take into account the dams
+- [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
+  negative: power given to the grid having some energy limit and power limit). A new object if added in the substation.
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0. but one being still connected.
 - [ADDED] Support for sparse matrices in `obs.bus_connectivity_matrix`
 - [ADDED] In the observation, it is now possible to retrieve the "active flow graph" (ie graph with edges having active

@@ -161,8 +161,9 @@ class Environment(BaseEnv):
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
         self.backend.load_grid(self._init_grid_path)  # the real powergrid of the environment
-        self.backend.load_redispacthing_data(os.path.split(self._init_grid_path)[0])
-        self.backend.load_grid_layout(os.path.split(self._init_grid_path)[0])
+        self.backend.load_redispacthing_data(self.get_path_env())
+        self.backend.load_storage_data(self.get_path_env())
+        self.backend.load_grid_layout(self.get_path_env())
         self.backend.assert_grid_correct()
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything

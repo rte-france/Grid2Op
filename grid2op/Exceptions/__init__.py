@@ -5,6 +5,7 @@ __all__ = [
     "IncorrectNumberOfGenerators",
     "IncorrectNumberOfLines",
     "IncorrectNumberOfSubstation",
+    "IncorrectNumberOfStorages",
     "IncorrectNumberOfElements",
     "IncorrectPositionOfLoads",
     "IncorrectPositionOfGenerators",
@@ -50,6 +51,7 @@ from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfLoads
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfGenerators
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfLines
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfSubstation
+from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfStorages
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfElements
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfLoads
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfGenerators
