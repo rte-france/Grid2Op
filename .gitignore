@@ -265,6 +265,8 @@ test_*_weigths.h5
 test_saving_spektral.h5
 tf_logs_gnn/
 test_weigths.h5
+test_threading_lightsim.py
+test_multiprocessing.py
 
 # profiling files
 **.prof

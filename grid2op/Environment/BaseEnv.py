@@ -190,6 +190,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Helper that is called to compute the reward at each time step.
 
+    # TODO add the units (eg MW, MWh, MW/time step,etc.) in the redispatching related attributes
     """
     def __init__(self,
                  parameters,
@@ -225,6 +226,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_extract_obs = dt_float(0)
         self._time_opponent = dt_float(0)
         self._time_redisp = dt_float(0)
+        self._time_step = dt_float(0)
 
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
@@ -355,6 +357,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # to change the parameters
         self.__new_param = None
         self.__new_forecast_param = None
+
+        # storage units
+        self._storage_current_charge = None
+        self._storage_previous_charge = None
 
     def change_parameters(self, new_parameters):
         """
@@ -1289,6 +1295,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
+        beg_step = time.time()
         try:
             beg_ = time.time()
             is_legal, reason = self._game_rules(action=action, env=self)
@@ -1383,11 +1390,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.nb_time_step += 1
             try:
                 # compute the next _grid state
-                beg_ = time.time()
+                beg_pf = time.time()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
-                self._time_powerflow += time.time() - beg_
+                self._time_powerflow += time.time() - beg_pf
                 if conv_ is None:
-                    beg_ = time.time()
+                    beg_res = time.time()
                     self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                     overflow_lines = self.backend.get_line_overflow()
                     # save the current topology as "last" topology (for connected powerlines)
@@ -1421,7 +1428,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
                     # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
-                    self._time_extract_obs += time.time() - beg_
+                    self._time_extract_obs += time.time() - beg_res
 
                     # extract production active value at this time step (should be independant of action class)
                     self._gen_activeprod_t[:], *_ = self.backend.generators_info()
@@ -1442,6 +1449,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except StopIteration:
             # episode is over
             is_done = True
+        end_step = time.time()
+        self._time_step += end_step - beg_step
 
         self._backend_action.reset()
         if conv_ is not None:
@@ -1520,6 +1529,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_extract_obs = dt_float(0.)
         self._time_opponent = dt_float(0.)
         self._time_redisp = dt_float(0.)
+        self._time_step = dt_float(0.)
 
         # reward and others
         self.current_reward = self.reward_range[0]

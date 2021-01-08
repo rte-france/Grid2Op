@@ -5,8 +5,10 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, Array
 import numpy as np
+import warnings
+import time
 
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, MultiEnvException
@@ -26,7 +28,8 @@ class RemoteEnv(Process):
     :class:`grid2op.Observation.BaseObservation` are forwarded to the agent.
 
     """
-    def __init__(self, env_params, remote, parent_remote, seed, name=None):
+    def __init__(self, env_params, remote, parent_remote, seed, name=None,
+                 return_info=True, _obs_to_vect=True):
         Process.__init__(self, group=None, target=None, name=name)
         self.backend = None
         self.env = None
@@ -37,6 +40,11 @@ class RemoteEnv(Process):
         self.space_prng = None
         self.fast_forward = 0
         self.all_seeds = []
+
+        # internal do not modify  # Do not work (in the sens that is it less efficient)
+        self.return_info = return_info
+        self._obs_to_vect = _obs_to_vect
+        self._comp_time = 0.
 
     def init_env(self):
         """
@@ -54,10 +62,14 @@ class RemoteEnv(Process):
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)
         self.backend = self.env_params["_raw_backend_class"]()
-        self.env = Environment(**self.env_params, backend=self.backend)
+        with warnings.catch_warnings():
+            # warnings have bee already sent in the main thread, no need to resend them
+            warnings.filterwarnings("ignore")
+            self.env = Environment(**self.env_params, backend=self.backend)
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
         self.all_seeds = self.env.seed(env_seed)
-        self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x), replace=False)])
+        self.env.chronics_handler.shuffle(shuffler=lambda x: x[self.space_prng.choice(len(x), size=len(x),
+                                                                                      replace=False)])
 
     def _clean_observation(self, obs):
         obs._forecasted_grid = []
@@ -66,13 +78,15 @@ class RemoteEnv(Process):
         obs.action_helper = None
 
     def get_obs_ifnotconv(self):
+        warnings.warn(f"get_obs_ifnotconv is used")
         # TODO dirty hack because of wrong chronics
         # need to check!!!
         conv = False
         obs_v = None
+        obs = None
         while not conv:
             try:
-                obs = self.env.reset()
+                self.env.reset()
                 if self.fast_forward > 0:
                     self.env.fast_forward_chronics(self.space_prng.randint(0, self.fast_forward))
                 obs = self.env.get_obs()
@@ -81,9 +95,13 @@ class RemoteEnv(Process):
                     # i make sure that everything is not Nan
                     # other i consider it's "divergence" so "game over"
                     conv = True
-            except:
+            except Exception as exc_:
                 pass
-        return obs_v
+        if self._obs_to_vect:
+            res = obs_v
+        else:
+            res = obs
+        return res
 
     def run(self):
         if self.env is None:
@@ -95,17 +113,29 @@ class RemoteEnv(Process):
                 self.remote.send((self.env.observation_space, self.env.action_space))
             elif cmd == 's':
                 # perform a step
-                data = self.env.action_space.from_vect(data)
+                beg_ = time.time()
+                if data is None:
+                    data = self.env.action_space()
+                else:
+                    data = self.env.action_space.from_vect(data)
                 obs, reward, done, info = self.env.step(data)
                 obs_v = obs.to_vect()
                 if done or np.any(~np.isfinite(obs_v)):
                     # if done do a reset
-                    obs_v = self.get_obs_ifnotconv()
-                self.remote.send((obs_v, reward, done, info))
+                    res_obs = self.get_obs_ifnotconv()
+                elif self._obs_to_vect:
+                    res_obs = obs.to_vect()
+                else:
+                    res_obs = self._clean_observation(obs)
+
+                if not self.return_info:
+                    info = None
+                end_ = time.time()
+                self._comp_time += end_ - beg_
+                self.remote.send((res_obs, reward, done, info))
             elif cmd == 'r':
                 # perfom a reset
                 obs_v = self.get_obs_ifnotconv()
-                # self._clean_observation(obs)
                 self.remote.send(obs_v)
             elif cmd == 'c':
                 # close everything
@@ -118,8 +148,11 @@ class RemoteEnv(Process):
             elif cmd == 'o':
                 # get_obs
                 tmp = self.env.get_obs()
-                tmp = tmp.to_vect()
-                self.remote.send(tmp)
+                if self._obs_to_vect:
+                    res_obs = tmp.to_vect()
+                else:
+                    res_obs = self._clean_observation(tmp)
+                self.remote.send(res_obs)
             elif cmd == "f":
                 # fast forward the chronics when restart
                 self.fast_forward = int(data)
@@ -127,6 +160,12 @@ class RemoteEnv(Process):
                 self.remote.send((self.seed_used, self.all_seeds))
             elif cmd == "params":
                 self.remote.send(self.env.parameters)
+            elif cmd == "comp_time":
+                self.remote.send(self._comp_time)
+            elif cmd == "powerflow_time":
+                self.remote.send(self.env.backend.comp_time)
+            elif cmd == "step_time":
+                self.remote.send(self.env._time_step)
             elif hasattr(self.env, cmd):
                 tmp = getattr(self.env, cmd)
                 self.remote.send(tmp)
@@ -175,8 +214,15 @@ class BaseMultiProcessEnvironment(GridObjects):
         that need to be provided in :func:`MultiEnvironment.step` and the return sizes of the list of this
         same function.
 
+    obs_as_class: ``bool``
+        Whether to convert the observations back to :class:`grid2op.Observation` object to to leave them as
+        numpy array. Default (`obs_as_class=True`) to send them as observation object, but it's slower.
+
+    return_info: ``bool``
+        Whether to return the information dictionary or not (might speed up computation)
+
     """
-    def __init__(self, envs):
+    def __init__(self, envs, obs_as_class=True, return_info=True):
         GridObjects.__init__(self)
         self.envs = envs
         for env in envs:
@@ -190,10 +236,12 @@ class BaseMultiProcessEnvironment(GridObjects):
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
         env_params = [envs[e].get_kwargs(with_backend=False) for e in range(self.nb_env)]
+
         self._ps = [RemoteEnv(env_params=env_,
                               remote=work_remote,
                               parent_remote=remote,
                               name="{}_subprocess_{}".format(envs[i].name, i),
+                              return_info=return_info,
                               seed=envs[i].space_prng.randint(max_int))
                     for i, (work_remote, remote, env_) in enumerate(zip(self._work_remotes, self._remotes, env_params))]
 
@@ -202,19 +250,23 @@ class BaseMultiProcessEnvironment(GridObjects):
             p.start()
         for remote in self._work_remotes:
             remote.close()
-
+        self.obs_as_class = obs_as_class
+        # self.__return_info = return_info
         self._waiting = True
 
     def _send_act(self, actions):
         for remote, action in zip(self._remotes, actions):
-            remote.send(('s', action.to_vect()))
+            vect = action.to_vect()
+            # vect = None  # TODO
+            remote.send(('s', vect))
         self._waiting = True
 
     def _wait_for_obs(self):
         results = [remote.recv() for remote in self._remotes]
         self._waiting = False
         obs, rews, dones, infos = zip(*results)
-        obs = [self.envs[e].observation_space.from_vect(ob) for e, ob in enumerate(obs)]
+        if self.obs_as_class:
+            obs = [self.envs[e].observation_space.from_vect(ob) for e, ob in enumerate(obs)]
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
     def copy(self):
@@ -350,7 +402,9 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         for remote in self._remotes:
             remote.send(('r', None))
-        res = [self.envs[e].observation_space.from_vect(remote.recv()) for e, remote in enumerate(self._remotes)]
+        res = [remote.recv() for e, remote in enumerate(self._remotes)]
+        if self.obs_as_class:
+            res = [self.envs[e].observation_space.from_vect(el) for e, el in enumerate(res)]
         return np.stack(res)
 
     def close(self):
@@ -456,6 +510,33 @@ class BaseMultiProcessEnvironment(GridObjects):
                                "executed.".format(name))
         for remote in self._remotes:
             remote.send((name, None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def get_comp_time(self):
+        """
+        Get the computation time (only of the step part, corresponds to sub_env.comp_time) of each sub environments
+        """
+        for remote in self._remotes:
+            remote.send(('comp_time', None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def get_powerflow_time(self):
+        """
+        Get the computation time (corresponding to sub_env.backend.comp_time) of each sub environments
+        """
+        for remote in self._remotes:
+            remote.send(('powerflow_time', None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def get_step_time(self):
+        """
+        Get the computation time (corresponding to sub_env._time_step) of each sub environments
+        """
+        for remote in self._remotes:
+            remote.send(('step_time', None))
         res = [remote.recv() for remote in self._remotes]
         return res
 
