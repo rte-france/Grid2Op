@@ -844,13 +844,16 @@ class BaseAction(GridObjects):
         set_topo_vect = self._set_topo_vect
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
-        storage_target = self._storage_power  # TODO
+        storage_power = self._storage_power  # TODO
         shunts = {}
         if self.shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
             shunts["shunt_q"] = self.shunt_q
             shunts["shunt_bus"] = self.shunt_bus
-        return dict_inj, set_line_status, switch_line_status, set_topo_vect, change_bus_vect, redispatch, \
+        return dict_inj, \
+               set_line_status, switch_line_status, \
+               set_topo_vect, change_bus_vect, \
+               redispatch, storage_power, \
                shunts
 
     def _digest_shunt(self, dict_):

@@ -191,6 +191,7 @@ class _BackendAction(GridObjects):
         self.prod_v = ValueStore(self.n_gen, dtype=dt_float)
         self.load_p = ValueStore(self.n_load, dtype=dt_float)
         self.load_q = ValueStore(self.n_load, dtype=dt_float)
+        self.storage_power = ValueStore(self.n_storage, dtype=dt_float)
 
         self.activated_bus = np.full((self.n_sub, 2), dtype=dt_bool, fill_value=False)
         self.big_topo_to_subid = np.repeat(list(range(self.n_sub)), repeats=self.sub_info)
@@ -210,8 +211,9 @@ class _BackendAction(GridObjects):
         self._gens_bus = None
         self._lines_or_bus = None
         self._lines_ex_bus = None
+        self._storage_bus = None
 
-    def reorder(self, no_load, no_gen, no_topo, no_shunt):
+    def reorder(self, no_load, no_gen, no_topo, no_storage, no_shunt):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -226,6 +228,9 @@ class _BackendAction(GridObjects):
         self.prod_v.reorder(no_gen)
         self.load_p.reorder(no_load)
         self.load_q.reorder(no_load)
+
+        self.storage_power.reorder(no_storage)  # TODO
+
         if self.shunts_data_available:
             self.shunt_p.reorder(no_shunt)
             self.shunt_q.reorder(no_shunt)
@@ -243,6 +248,7 @@ class _BackendAction(GridObjects):
         self.prod_v.reset()
         self.load_p.reset()
         self.load_q.reset()
+        self.storage_power.reset()
 
         # shunts
         if self.shunts_data_available:
@@ -262,6 +268,7 @@ class _BackendAction(GridObjects):
         self.prod_v.all_changed()
         self.load_p.all_changed()
         self.load_q.all_changed()
+        self.storage_power.all_changed()
 
         # TODO handle shunts
         # shunts
@@ -281,7 +288,7 @@ class _BackendAction(GridObjects):
 
         Parameters
         ----------
-        other: grid2op.Action.BaseAction.BaseAction
+        other: :class:`grid2op.Action.BaseAction.BaseAction`
 
         Returns
         -------
@@ -294,6 +301,7 @@ class _BackendAction(GridObjects):
         set_topo_vect = other._set_topo_vect
         switcth_topo_vect = other._change_bus_vect
         redispatching = other._redispatch
+        storage_power = other._storage_power  # TODO
 
         # I deal with injections
         # Ia set the injection
@@ -310,9 +318,14 @@ class _BackendAction(GridObjects):
             if "prod_v" in dict_injection:
                 tmp = dict_injection["prod_v"]
                 self.prod_v.set_val(tmp)
+
         # Ib change the injection aka redispatching
         if other._modif_redispatch:
             self.prod_p.change_val(redispatching)
+
+        # Ic storage unit
+        if other._modif_storage:
+            self.storage_power.change_val(storage_power)
 
         # II shunts
         if self.shunts_data_available:
@@ -381,7 +394,7 @@ class _BackendAction(GridObjects):
         return self
 
     def __call__(self):
-        injections = self.prod_p, self.prod_v, self.load_p, self.load_q
+        injections = self.prod_p, self.prod_v, self.load_p, self.load_q, self.storage_power
         topo = self.current_topo
         shunts = None
         if self.shunts_data_available:
@@ -412,6 +425,12 @@ class _BackendAction(GridObjects):
             self._lines_ex_bus = ValueStore(self.n_line, dtype=dt_int)
         self._lines_ex_bus.copy_from_index(self.current_topo, self.line_ex_pos_topo_vect)
         return self._lines_ex_bus
+
+    def get_storage_bus(self):
+        if self._storage_bus is None:
+            self._storage_bus = ValueStore(self.n_storage, dtype=dt_int)
+        self._storage_bus.copy_from_index(self.current_topo, self.storage_pos_topo_vect)
+        return self._storage_bus
 
     def _get_active_bus(self):
         self.activated_bus[:] = False

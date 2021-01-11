@@ -181,7 +181,11 @@ class TestActionBase(ABC):
 
     def test_call(self):
         action = self.helper_action()
-        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
+        dict_injection, \
+        set_status, switch_status,\
+        set_topo_vect, switcth_topo_vect, \
+        redispatching, storage, \
+        shunts = action()
 
     def test_compare(self):
         action = self.helper_action()
@@ -745,10 +749,15 @@ class TestActionBase(ABC):
 
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
-                                      "injection": {"load_p": new_vect, "load_q": new_vect2},
+                                     "injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_line_status": change_status_orig,
                                      "set_line_status": set_status_orig})
-        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
+        dict_injection, \
+            set_status, change_status, \
+            set_topo_vect, switcth_topo_vect, \
+            redispatching, storage, \
+            shunts = action()
+
         assert "load_p" in dict_injection
         assert np.all(dict_injection["load_p"] == new_vect)
         assert "load_q" in dict_injection
