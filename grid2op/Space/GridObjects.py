@@ -533,8 +533,15 @@ class GridObjects:
         """
         Convert this instance of GridObjects to a dictionary that can be json serialized.
 
-        TODO
+        TODO doc and example
         """
+
+        # TODO optimization for action or observation, to reduce json size, for example using the
+        # action._modif_inj or action._modif_set_bus etc.
+        # for observation this could be using the default values for obs.line_status (always true) etc.
+        # or even storing the things in [id, value] for these types of attributes (time_before_cooldown_line,
+        # time_before_cooldown_sub, time_next_maintenance, duration_next_maintenance etc.)
+
         res = {}
         for attr_nm in self.attr_list_vect + self.attr_list_json:
             res[attr_nm] = self._get_array_from_attr_name(attr_nm)
@@ -543,7 +550,7 @@ class GridObjects:
 
     def from_json(self, dict_):
         """
-        TODO
+        TODO doc and example
 
         Parameters
         ----------

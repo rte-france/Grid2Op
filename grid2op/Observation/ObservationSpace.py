@@ -108,6 +108,49 @@ class ObservationSpace(SerializableObservationSpace):
                                                 action_helper=self.action_helper_env)
         self._update_env_time = 0.
 
+    def change_other_rewards(self, dict_reward):
+        """
+        this function is used to change the "other rewards" used when you perform simulate.
+
+        This can be used, for example, when you want to do faster call to "simulate". In this case you can remove all
+        the "other_rewards" that will be used by the simulate function.
+
+        Parameters
+        ----------
+        dict_reward: ``dict``
+            see description of :attr:`grid2op.Environment.BaseEnv.other_rewards`
+
+        Examples
+        ---------
+        If you want to deactive the reward in the simulate function, you can do as following:
+
+        .. code-block:: python
+
+           import grid2op
+           from grid2op.Reward import CloseToOverflowReward, L2RPNReward, RedispReward
+           env_name = "l2rpn_case14_sandbox"
+           other_rewards = {"close_overflow": CloseToOverflowReward,
+                            "l2rpn": L2RPNReward,
+                            "redisp": RedispReward}
+           env = grid2op.make(env_name, other_rewards=other_rewards)
+
+           env.observation_space.change_other_rewards({})
+
+        """
+        from grid2op.Reward import BaseReward
+        from grid2op.Exceptions import Grid2OpException
+        self.obs_env.other_rewards = {}
+        for k, v in dict_reward.items():
+            if not issubclass(v, BaseReward):
+                raise Grid2OpException("All values of \"rewards\" key word argument should be classes that inherit "
+                                       "from \"grid2op.BaseReward\"")
+            if not isinstance(k, str):
+                raise Grid2OpException("All keys of \"rewards\" should be of string type.")
+            self.obs_env.other_rewards[k] = RewardHelper(v)
+
+        for k, v in self.obs_env.other_rewards.items():
+            v.initialize(self.obs_env)
+
     def reset_space(self):
         if self.with_forecast:
             self.obs_env.reset_space()

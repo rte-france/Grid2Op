@@ -14,6 +14,8 @@ from flask_wtf.csrf import CSRFProtect
 from collections.abc import Iterable
 
 from grid2op.rest_server.env_cache import EnvCache
+import argparse
+
 
 ENV_CACHE = EnvCache()
 
@@ -403,5 +405,23 @@ def train_val_split(env_name, env_id):
 # asynch here!
 
 
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    parser = argparse.ArgumentParser(description='Start a mono thread / mono process grid2op environment server')
+    parser.add_argument("--port", type=int, default=3000,
+                        help="On which port to start the server (default 3000)")
+    parser.add_argument("--debug", type=str2bool, nargs='?',
+                        const=True, default=False,
+                        help="Start the flask server in debug mode (default: False).")
+    args = parser.parse_args()
+    app.run(debug=args.debug, port=args.port)
