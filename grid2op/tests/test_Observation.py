@@ -302,13 +302,13 @@ class TestLoadingBackendFunc(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make("rte_case14_realistic", test=True)
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
-        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_line_index=True)
+        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_lines_index=True)
         assert mat.shape == (15, 15)
         assert ind_lor[7] == 14
         assert ind_lor[8] == 14
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
                                                                          "lines_ex_id": [(0, 2)]}}))
-        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_line_index=True)
+        mat, (ind_lor, ind_lex) = obs.bus_connectivity_matrix(as_csr, return_lines_index=True)
         assert mat.shape == (16, 16)
         assert ind_lor[7] == 15
         assert ind_lor[8] == 15
