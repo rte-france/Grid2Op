@@ -32,7 +32,8 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
         if backendAction is None:
             return
 
-        active_bus, (prod_p, prod_v, load_p, load_q), _, shunts__ = backendAction()
+        # TODO
+        active_bus, (prod_p, prod_v, load_p, load_q, storage), _, shunts__ = backendAction()
 
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):

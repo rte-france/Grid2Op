@@ -76,6 +76,8 @@ class EducPandaPowerBackend(Backend):
                       "circumstances. Please use grid2op.Backend.PandaPowerBackend instead")
         self._nb_real_line_pandapower = None
 
+        # TODO storage check all this class ! + the doc of the backend
+
     ####### load the grid
     def load_grid(self, path=None, filename=None):
         """
@@ -192,7 +194,7 @@ class EducPandaPowerBackend(Backend):
         if backendAction is None:
             return
 
-        active_bus, (prod_p, prod_v, load_p, load_q), _, shunts__ = backendAction()
+        active_bus, (prod_p, prod_v, load_p, load_q, storage), _, shunts__ = backendAction()
 
         for gen_id, new_p in prod_p:
             self._grid.gen["p_mw"].iloc[gen_id] = new_p
@@ -204,6 +206,8 @@ class EducPandaPowerBackend(Backend):
             self._grid.load["p_mw"].iloc[load_id] = new_p
         for load_id, new_q in load_q:
             self._grid.load["q_mvar"].iloc[load_id] = new_q
+
+        # TODO storage !
 
         # now i deal with the topology
         loads_bus = backendAction.get_loads_bus()

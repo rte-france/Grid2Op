@@ -907,6 +907,7 @@ class BaseAction(GridObjects):
                         warnings.warn(warn)
 
     def _digest_setbus(self, dict_):
+        # TODO storage
         if "set_bus" in dict_:
             self._modif_set_bus = True
             if isinstance(dict_["set_bus"], np.ndarray):
@@ -971,6 +972,7 @@ class BaseAction(GridObjects):
                     "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
 
     def _digest_change_bus(self, dict_):
+        # TODO storage
         if "change_bus" in dict_:
             self._modif_change_bus = True
             if isinstance(dict_["change_bus"], np.ndarray):
@@ -1608,6 +1610,12 @@ class BaseAction(GridObjects):
                 where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
                 raise InvalidStorage(f"you asked a storage unit to produce more than what it can: "
                                      f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
+
+        if not "storage_power" in self.attr_list_set: # TODO prevent modification of storage bus if can't modify storage !!!!
+            if np.any(self._set_topo_vect[self.storage_pos_topo_vect] != -1):
+                raise InvalidStorage("Attempt to modify bus (set) of a storage unit")
+            if np.any(self._change_bus_vect[self.storage_pos_topo_vect] != -1):
+                raise InvalidStorage("Attempt to modify bus (change) of a storage unit")
 
         # topological action
         if self._modif_set_bus and self._modif_change_bus and np.any(self._set_topo_vect[self._change_bus_vect] != 0):

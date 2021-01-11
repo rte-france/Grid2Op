@@ -169,6 +169,8 @@ class PandaPowerBackend(Backend):
             self._apply_trafo_lv
         ]
 
+        # TODO storage check all this class ! + the doc of the backend
+
     def get_nb_active_bus(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -545,7 +547,7 @@ class PandaPowerBackend(Backend):
         if backendAction is None:
             return
 
-        active_bus, (prod_p, prod_v, load_p, load_q), topo__, shunts__ = backendAction()
+        active_bus, (prod_p, prod_v, load_p, load_q, storage), topo__, shunts__ = backendAction()
 
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):
@@ -566,6 +568,8 @@ class PandaPowerBackend(Backend):
         tmp_load_q = self._get_vector_inj["load_q"](self._grid)
         if np.any(load_q.changed):
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
+
+        # TODO storage
 
         if self.shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
