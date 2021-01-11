@@ -938,10 +938,10 @@ class TestActionBase(ABC):
 
     def test_sample(self):
         try:
-            for i in range(10):
+            for i in range(30):
                 act = self.helper_action.sample()
-        except:
-            assert False, "sample() raised"
+        except Exception as exc_:
+            assert False, f"sample() raised error {exc_}"
 
 
 class TestAction(TestActionBase, unittest.TestCase):

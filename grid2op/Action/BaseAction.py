@@ -183,20 +183,18 @@ class BaseAction(GridObjects):
         on a generator, and on another you ask +10 MW then the total setpoint for this generator that the environment
         will try to implement is +20MW.
 
-    _set_charge: :class:`numpy.ndarray`, dtype:float
-        The new setpoint of production / consumption of each battery / damp storage etc.
-        Note that, as opposed to redispatching, it is
-        expected to give directly the setpoint and not the variation of the power for each battery.
+    _storage_power: :class:`numpy.ndarray`, dtype:float
+        TODO
 
     """
     authorized_keys = {"injection",
                        "hazards", "maintenance", "set_line_status", "change_line_status",
-                       "set_bus", "change_bus", "redispatch", "set_storage"}
+                       "set_bus", "change_bus", "redispatch", "storage_power"}
 
     attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                       "_set_line_status", "_switch_line_status",
                       "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
-                      "_set_storage_target"
+                      "_storage_power"
                       ]
     attr_list_set = set(attr_list_vect)
     shunt_added = False
@@ -236,7 +234,7 @@ class BaseAction(GridObjects):
         self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
         # storage unit vector
-        self._set_storage_target = np.full(shape=self.n_storage, fill_value=np.NaN, dtype=dt_float)
+        self._storage_power = np.full(shape=self.n_storage, fill_value=np.NaN, dtype=dt_float)
 
         self._vectorized = None
         self._lines_impacted = None
@@ -301,7 +299,7 @@ class BaseAction(GridObjects):
         self._modif_set_status = np.any(self._set_line_status != 0)
         self._modif_change_status = np.any(self._switch_line_status)
         self._modif_redispatch = np.any(np.isfinite(self._redispatch) & (self._redispatch != 0.))
-        self._modif_storage = np.any(np.isfinite(self._set_storage_target))
+        self._modif_storage = np.any(np.isfinite(self._storage_power))
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -459,7 +457,7 @@ class BaseAction(GridObjects):
 
         # storage is same
         if (self._modif_storage != other._modif_storage) or \
-                not np.all(self._set_storage_target == other._set_storage_target):
+                not np.all(self._storage_power == other._storage_power):
             return False
 
         # same topology changes
@@ -665,14 +663,14 @@ class BaseAction(GridObjects):
                 self._redispatch[ok_ind] += redispatching[ok_ind]
 
         # storage
-        set_storage = other._set_storage_target
+        set_storage = other._storage_power
         ok_ind = np.isfinite(set_storage)
         if np.any(ok_ind):
             if "_set_storage_target" not in self.attr_list_set:
                 warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
                               "".format("_set_storage_target"))
             else:
-                self._set_storage_target[ok_ind] += set_storage[ok_ind]
+                self._storage_power[ok_ind] += set_storage[ok_ind]
 
         # set and change status
         other_set = other._set_line_status
@@ -846,7 +844,7 @@ class BaseAction(GridObjects):
         set_topo_vect = self._set_topo_vect
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
-        storage_target = self._set_storage_target  # TODO
+        storage_target = self._storage_power  # TODO
         shunts = {}
         if self.shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
@@ -1188,7 +1186,7 @@ class BaseAction(GridObjects):
             raise AmbiguousAction("In set_storage, it's not possible to understand the key/value pair "
                                   "{}/{} provided in the dictionary. Key must be an integer, value "
                                   "a float".format(kk, val))
-        self._set_storage_target[kk] = val
+        self._storage_power[kk] = val
 
     def _digest_storage(self, dict_):
         # TODO refactor that with _digest_redispatching this is the same code (modif : __convert_and_set_storage instead
@@ -1200,7 +1198,7 @@ class BaseAction(GridObjects):
             tmp = dict_["set_storage"]
             if isinstance(tmp, np.ndarray):
                 # complete storage state is provided
-                self._set_storage_target = tmp
+                self._storage_power = tmp
             elif isinstance(tmp, dict):
                 # dict must have key: generator to modify, value: the delta value applied to this generator
                 ddict_ = tmp
@@ -1594,8 +1592,19 @@ class BaseAction(GridObjects):
 
         # storage specific checks:
         if self._modif_storage:
-            pass
-            # TODO
+            if self.n_storage != 0:
+                raise InvalidStorage("Attempt to modify a storage unit while there is none on the grid")
+            if self._storage_power.shape[0] != self.n_storage:
+                raise InvalidStorage("self._storage_power.shape[0] != self.n_storage: wrong number of storage "
+                                     "units affected")
+            if np.any(self._storage_power < -self.storage_max_p_prod):
+                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
+                raise InvalidStorage(f"you asked a storage unit to absorb more than what it can: "
+                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
+            if np.any(self._storage_power > self.storage_max_p_absorb):
+                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
+                raise InvalidStorage(f"you asked a storage unit to produce more than what it can: "
+                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
 
         # topological action
         if self._modif_set_bus and self._modif_change_bus and np.any(self._set_topo_vect[self._change_bus_vect] != 0):
@@ -1642,8 +1651,8 @@ class BaseAction(GridObjects):
         if self._modif_set_bus:
             if np.any(self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                     np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
-                        raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
-                                                "to a certain bus.")
+                raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
+                                        "to a certain bus.")
         if self._modif_change_bus:
             if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                     np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):

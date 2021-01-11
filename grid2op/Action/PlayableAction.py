@@ -22,7 +22,8 @@ class PlayableAction(BaseAction):
         "change_line_status",
         "set_bus",
         "change_bus",
-        "redispatch"
+        "redispatch",
+        "storage_power"
     }
 
     attr_list_vect = [
@@ -30,7 +31,8 @@ class PlayableAction(BaseAction):
         "_switch_line_status",
         "_set_topo_vect",
         "_change_bus_vect",
-        "_redispatch"
+        "_redispatch",
+        "_storage_power"
     ]
     attr_list_set = set(attr_list_vect)
 
@@ -42,7 +44,8 @@ class PlayableAction(BaseAction):
             "change_line_status": self._digest_change_status,
             "set_bus": self._digest_setbus,
             "change_bus": self._digest_change_bus,
-            "redispatch": self._digest_redispatching
+            "redispatch": self._digest_redispatching,
+            "storage_power": self._digest_storage
         }
 
     def __call__(self):
@@ -77,7 +80,7 @@ class PlayableAction(BaseAction):
         """
         if self._dict_inj:
             raise AmbiguousAction("Injections actions are not playable.")
-
+        
         self._check_for_ambiguity()
         return {}, \
             self._set_line_status, self._switch_line_status, \
