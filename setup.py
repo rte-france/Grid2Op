@@ -11,6 +11,9 @@ import sys
 import setuptools
 from setuptools import setup
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 pkgs = {
     "required": [
         "numpy>=1.18.3",
@@ -71,9 +74,8 @@ pkgs = {
 setup(name='Grid2Op',
       version='1.4.0',
       description='An environment that allows to perform powergrid optimization.',
-      long_description='Built with modularity in mind, this package allows to perform the same operations '
-                       'independently of the software used to compute powerflow or method to generate grid '
-                       'states or forecasts.',
+      long_description=long_description,
+      long_description_content_type="text/markdown",
       classifiers=[
           'Development Status :: 4 - Beta',
           'Programming Language :: Python :: 3.6',
@@ -95,11 +97,11 @@ setup(name='Grid2Op',
       install_requires=pkgs["required"],
       extras_require=pkgs["extras"],
       zip_safe=False,
-      entry_points= {
+      entry_points={
           'console_scripts': [
               'grid2op.main=grid2op.command_line:main',
               'grid2op.download=grid2op.command_line:download',
               'grid2op.replay=grid2op.command_line:replay'
           ]
-     }
-)
+      }
+      )
