@@ -18,7 +18,7 @@ from grid2op.Exceptions import *
 from grid2op.Observation import ObservationSpace, CompleteObservation
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile
 from grid2op.Rules import RulesChecker
-from grid2op.Reward import L2RPNReward
+from grid2op.Reward import L2RPNReward, CloseToOverflowReward, RedispReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
@@ -999,6 +999,50 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.step_obs, _, _, _ = self.env.step(redisp_act)
         # Test observations are the same
         assert self.sim_obs == self.step_obs
+
+    def test_change_simulate_reward(self):
+        """test the env.observation_space.change_other_reward function"""
+        # Create env
+        other_rewards = {"close_overflow": CloseToOverflowReward,
+                         "l2rpn": L2RPNReward,
+                         "redisp": RedispReward}
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("rte_case14_realistic", test=True, other_rewards=other_rewards)
+
+        # Set forecasts to actual values so that simulate runs on the same numbers as step
+        env.chronics_handler.real_data.data.prod_p_forecast = np.roll(env.chronics_handler.real_data.data.prod_p, -1, axis=0)
+        env.chronics_handler.real_data.data.prod_v_forecast = np.roll(env.chronics_handler.real_data.data.prod_v, -1, axis=0)
+        env.chronics_handler.real_data.data.load_p_forecast = np.roll(env.chronics_handler.real_data.data.load_p, -1, axis=0)
+        env.chronics_handler.real_data.data.load_q_forecast = np.roll(env.chronics_handler.real_data.data.load_q, -1, axis=0)
+
+        # first_obs = env.reset()  # don't do that otherwise the hack above to have simulate = step will not work!!!
+        first_obs = env.get_obs()
+        sim_o, sim_r, sim_d, sim_i = first_obs.simulate(env.action_space())
+        for k in other_rewards.keys():
+            assert k in sim_i["rewards"]
+        obs, reward, done, info = env.step(env.action_space())
+        # check rewards are same, this is the case because simulate is in "perfect information"
+        assert info["rewards"] == sim_i["rewards"]
+
+        env.observation_space.change_other_rewards({})
+        sim_o, sim_r, sim_d, sim_i = obs.simulate(env.action_space())
+        # check the rewards have disappeared
+        for k in other_rewards.keys():
+            assert k not in sim_i["rewards"]
+
+        # check they are still present on real environment
+        obs, reward, done, info = env.step(env.action_space())
+        for k in other_rewards.keys():
+            assert k in info["rewards"]
+
+        env.observation_space.change_other_rewards(other_rewards)
+        sim_o, sim_r, sim_d, sim_i = obs.simulate(env.action_space())
+        for k in other_rewards.keys():
+            assert k in sim_i["rewards"]
+        obs, reward, done, info = env.step(env.action_space())
+        # check rewards are same, this is the case because simulate is in "perfect information"
+        assert info["rewards"] == sim_i["rewards"]
 
     def _multi_actions_sample(self):
         actions = []
