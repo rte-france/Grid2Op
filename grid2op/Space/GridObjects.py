@@ -938,6 +938,13 @@ class GridObjects:
             except Exception as e:
                 raise EnvError("self.line_ex_to_subid should be convertible to a numpy array")
 
+        if not isinstance(self.storage_to_subid, np.ndarray):
+            try:
+                self.storage_to_subid = np.array(self.storage_to_subid)
+                self.storage_to_subid = self.storage_to_subid.astype(dt_int)
+            except Exception as e:
+                raise EnvError("self.storage_to_subid should be convertible to a numpy array")
+
         # now check the sizes
         if len(self.load_to_subid) != self.n_load:
             raise IncorrectNumberOfLoads()
@@ -964,6 +971,7 @@ class GridObjects:
             raise EnvError("Some powerline (or) is supposed to be connected to substations with id {} which"
                            "is greater than the number of substations of the grid, which is {}."
                            "".format(np.max(self.line_or_to_subid), self.n_sub))
+
         if len(self.line_ex_to_subid) != self.n_line:
             raise IncorrectNumberOfLines()
         if np.min(self.line_ex_to_subid) < 0:
@@ -972,6 +980,16 @@ class GridObjects:
             raise EnvError("Some powerline (ex) is supposed to be connected to substations with id {} which"
                            "is greater than the number of substations of the grid, which is {}."
                            "".format(np.max(self.line_or_to_subid), self.n_sub))
+        if len(self.storage_to_subid) != self.n_storage:
+            raise IncorrectNumberOfStorages()
+
+        if self.n_storage > 0:
+            if np.min(self.storage_to_subid) < 0:
+                raise EnvError("Some storage is connected to a negative substation id.")
+            if np.max(self.storage_to_subid) > self.n_sub:
+                raise EnvError("Some powerline (ex) is supposed to be connected to substations with id {} which"
+                               "is greater than the number of substations of the grid, which is {}."
+                               "".format(np.max(self.line_or_to_subid), self.n_sub))
 
     def _fill_names(self):
         if self.name_line is None:
@@ -1400,11 +1418,14 @@ class GridObjects:
                 raise IncorrectPositionOfStorages("for storage {}".format(i))
 
         # check that i don't have 2 objects with the same id in the "big topo" vector
-        if len(np.unique(np.concatenate((self.load_pos_topo_vect.flatten(),
-                                        self.gen_pos_topo_vect.flatten(),
-                                        self.line_or_pos_topo_vect.flatten(),
-                                        self.line_ex_pos_topo_vect.flatten(),
-                                        self.storage_pos_topo_vect.flatten())))) != np.sum(self.sub_info):
+        concat_topo = np.concatenate((self.load_pos_topo_vect.flatten(),
+                                     self.gen_pos_topo_vect.flatten(),
+                                     self.line_or_pos_topo_vect.flatten(),
+                                     self.line_ex_pos_topo_vect.flatten(),
+                                     self.storage_pos_topo_vect.flatten()))
+        if len(np.unique(concat_topo)) != np.sum(self.sub_info):
+            import pdb
+            pdb.set_trace()
             raise EnvError("2 different objects would have the same id in the topology vector, or there would be"
                            "an empty component in this vector.")
 

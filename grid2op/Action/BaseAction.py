@@ -438,7 +438,12 @@ class BaseAction(GridObjects):
 
         # all injections are the same
         for el in self._dict_inj.keys():
-            if not np.all(self._dict_inj[el] == other._dict_inj[el]):
+            me_inj = self._dict_inj[el]
+            other_inj = other._dict_inj[el]
+            tmp_me = np.isfinite(me_inj)
+            tmp_other = np.isfinite(other_inj)
+            if not np.all(tmp_me == tmp_other) or \
+                    not np.all(me_inj[tmp_me] == other_inj[tmp_other]):
                 return False
 
         # same line status
@@ -456,8 +461,12 @@ class BaseAction(GridObjects):
             return False
 
         # storage is same
-        if (self._modif_storage != other._modif_storage) or \
-                not np.all(self._storage_power == other._storage_power):
+        me_inj = self._storage_power
+        other_inj = other._storage_power
+        tmp_me = np.isfinite(me_inj)
+        tmp_other = np.isfinite(other_inj)
+        if not np.all(tmp_me == tmp_other) or \
+                not np.all(me_inj[tmp_me] == other_inj[tmp_other]):
             return False
 
         # same topology changes
@@ -946,6 +955,15 @@ class BaseAction(GridObjects):
                         if l_id >= self.n_line:
                             raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
                         self._set_topo_vect[self.line_ex_pos_topo_vect[l_id]] = bus
+                if "storages_id" in ddict_:
+                    # NOTE: if storage_power is not accessible, any attempt to modify the
+                    # storage unit bus will lead to an ambiguous action.
+                    tmp = ddict_["storages_id"]
+                    handled = True
+                    for (l_id, bus) in tmp:
+                        if l_id >= self.n_storage:
+                            raise AmbiguousAction("Storage {} doesn't exist".format(l_id))
+                        self._set_topo_vect[self.storage_pos_topo_vect[l_id]] = bus
                 if "substations_id" in ddict_:
                     handled = True
                     tmp = ddict_["substations_id"]
@@ -1000,6 +1018,13 @@ class BaseAction(GridObjects):
                     for l_id in tmp:
                         self._change_bus_vect[self.line_ex_pos_topo_vect[l_id]] = not self._change_bus_vect[
                             self.line_ex_pos_topo_vect[l_id]]
+                if "storages_id" in ddict_:
+                    # NOTE: if storage_power is not accessible, any attempt to modify the
+                    # storage unit bus will lead to an ambiguous action.
+                    tmp = ddict_["storages_id"]
+                    for l_id in tmp:
+                        self._change_bus_vect[self.storage_pos_topo_vect[l_id]] = not self._change_bus_vect[
+                            self.storage_pos_topo_vect[l_id]]
                 if "substations_id" in ddict_:
                     tmp = ddict_["substations_id"]
                     for (s_id, arr) in tmp:
@@ -1611,10 +1636,10 @@ class BaseAction(GridObjects):
                 raise InvalidStorage(f"you asked a storage unit to produce more than what it can: "
                                      f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
 
-        if not "storage_power" in self.attr_list_set: # TODO prevent modification of storage bus if can't modify storage !!!!
-            if np.any(self._set_topo_vect[self.storage_pos_topo_vect] != -1):
+        if "_storage_power" not in self.attr_list_set:
+            if np.any(self._set_topo_vect[self.storage_pos_topo_vect] > 0):
                 raise InvalidStorage("Attempt to modify bus (set) of a storage unit")
-            if np.any(self._change_bus_vect[self.storage_pos_topo_vect] != -1):
+            if np.any(self._change_bus_vect[self.storage_pos_topo_vect]):
                 raise InvalidStorage("Attempt to modify bus (change) of a storage unit")
 
         # topological action
@@ -1630,7 +1655,8 @@ class BaseAction(GridObjects):
             raise InvalidBusStatus("Invalid set_bus. Buses should be either -1 (disconnect), 0 (change nothing),"
                                    "1 (assign this object to bus one) or 2 (assign this object to bus"
                                    "2). A number higher than 2 has been found: substations with more than 2 busbars"
-                                   "are not supported by grid2op yet.")
+                                   "are not supported by grid2op at the moment. Do not hesitate to fill a feature "
+                                   "request on github if you need this feature.")
 
         if False:
             # TODO find an elegant way to disable that
@@ -1731,6 +1757,12 @@ class BaseAction(GridObjects):
                     obj_id = l_id
                     objt_type = "line (extremity)"
                     array_subid = self.line_ex_to_subid
+        if obj_id is None:
+            for l_id, id_in_topo in enumerate(self.storage_pos_topo_vect):
+                if id_in_topo == id_:
+                    obj_id = l_id
+                    objt_type = "storage"
+                    array_subid = self.storage_to_subid
         substation_id = array_subid[obj_id]
         return obj_id, objt_type, substation_id
 
@@ -2149,7 +2181,8 @@ class BaseAction(GridObjects):
         redispatching = np.any(self._redispatch != 0.)
         return injection, voltage, topology, line, redispatching
 
-    def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
+    def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None,
+                  storage_id=None):
         """
         Return the effect of this action on a unique given load, generator unit, powerline or substation.
         Only one of load, gen, line or substation should be filled.
@@ -2173,6 +2206,9 @@ class BaseAction(GridObjects):
 
         substation_id: ``int``
             The ID of the substation we want to inspect
+
+        storage_id: ``int``
+            The ID of the storage unit we want to inspect
 
         Returns
         -------
@@ -2211,6 +2247,13 @@ class BaseAction(GridObjects):
                 - "change_bus"
                 - "set_bus"
 
+            - if a storage unit is inspected, it returns a dictionary with:
+
+                - "change_bus"
+                - "set_bus"
+                - "power" : the power you want to produce  / absorb with the storage unit ( if < 0 the power is
+                  produced, if > 0 then power is absorbed)
+
         NB the difference between "set_bus" and "change_bus" is the following:
 
             - If "set_bus" is 1, then the object (load, generator or powerline) will be moved to bus 1 of the substation
@@ -2231,12 +2274,12 @@ class BaseAction(GridObjects):
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
 
-        if load_id is None and gen_id is None and line_id is None and substation_id is None:
-            raise Grid2OpException("You ask the effect of an action on something, wihtout provided anything")
+        if load_id is None and gen_id is None and line_id is None and storage_id is None and substation_id is None:
+            raise Grid2OpException("You ask the effect of an action on something, without provided anything")
 
         if load_id is not None:
-            if gen_id is not None or line_id is not None or substation_id is not None:
-                raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
+            if gen_id is not None or line_id is not None or storage_id is not None or substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             res = {"new_p": np.NaN, "new_q": np.NaN, "change_bus": False, "set_bus": 0}
             if "load_p" in self._dict_inj:
                 res["new_p"] = self._dict_inj["load_p"][load_id]
@@ -2247,9 +2290,9 @@ class BaseAction(GridObjects):
             res["set_bus"] = self._set_topo_vect[my_id]
 
         elif gen_id is not None:
-            if line_id is not None or substation_id is not None:
-                raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
-            res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0., "change_bus": False}
+            if line_id is not None or storage_id is not None or substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0, "change_bus": False}
             if "prod_p" in self._dict_inj:
                 res["new_p"] = self._dict_inj["prod_p"][gen_id]
             if "prod_v" in self._dict_inj:
@@ -2260,8 +2303,8 @@ class BaseAction(GridObjects):
             res["redispatch"] = self._redispatch[gen_id]
 
         elif line_id is not None:
-            if substation_id is not None:
-                raise Grid2OpException("You can only the inpsect the effect of an action on one single element")
+            if storage_id is not None or substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             res = {}
             # origin topology
             my_id = self.line_or_pos_topo_vect[line_id]
@@ -2274,6 +2317,16 @@ class BaseAction(GridObjects):
             # status
             res["set_line_status"] = self._set_line_status[line_id]
             res["change_line_status"] = self._switch_line_status[line_id]
+
+        elif storage_id is not None:
+            if substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            res = {"power": np.NaN, "set_bus": 0, "change_bus": False}
+            my_id = self.storage_pos_topo_vect[storage_id]
+            res["change_bus"] = self._change_bus_vect[my_id]
+            res["set_bus"] = self._set_topo_vect[my_id]
+            res["power"] = self._storage_power[storage_id]
+
         else:
             res = {}
             beg_ = int(np.sum(self.sub_info[:substation_id]))
