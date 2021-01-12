@@ -189,7 +189,7 @@ class BaseAction(GridObjects):
     """
     authorized_keys = {"injection",
                        "hazards", "maintenance", "set_line_status", "change_line_status",
-                       "set_bus", "change_bus", "redispatch", "storage_power"}
+                       "set_bus", "change_bus", "redispatch", "set_storage"}
 
     attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                       "_set_line_status", "_switch_line_status",
@@ -406,6 +406,7 @@ class BaseAction(GridObjects):
             return False
 
         # check that the _grid is the same in both instances
+        # TODO make that in gridObject
         same_grid = True
         same_grid = same_grid and self.n_gen == other.n_gen
         same_grid = same_grid and self.n_load == other.n_load
@@ -678,9 +679,9 @@ class BaseAction(GridObjects):
         set_storage = other._storage_power
         ok_ind = np.isfinite(set_storage)
         if np.any(ok_ind):
-            if "_set_storage_target" not in self.attr_list_set:
+            if "_storage_power" not in self.attr_list_set:
                 warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
-                              "".format("_set_storage_target"))
+                              "".format("_storage_power"))
             else:
                 self._storage_power[ok_ind] += set_storage[ok_ind]
 
@@ -1625,7 +1626,7 @@ class BaseAction(GridObjects):
 
         # storage specific checks:
         if self._modif_storage:
-            if self.n_storage != 0:
+            if self.n_storage == 0:
                 raise InvalidStorage("Attempt to modify a storage unit while there is none on the grid")
             if self._storage_power.shape[0] != self.n_storage:
                 raise InvalidStorage("self._storage_power.shape[0] != self.n_storage: wrong number of storage "
@@ -1805,11 +1806,11 @@ class BaseAction(GridObjects):
         # TODO use impact instead
         if self._modif_storage:
             for stor_idx in range(self.n_storage):
-                tmp = self._set_storage_target[stor_idx]
+                tmp = self._storage_power[stor_idx]
                 if np.isfinite(tmp):
                     name_ = self.name_storage[stor_idx]
-                    amount_ = self._redispatch[stor_idx]
-                    res.append("\t - set the new capacity for storage {} to be {} MWh".format(name_, amount_))
+                    amount_ = self._storage_power[stor_idx]
+                    res.append("\t - set the new power produced / absorbed for storage {} to be {} MW".format(name_, amount_))
         else:
             res.append("\t - NOT modify any storage capacity")
 
@@ -1987,16 +1988,16 @@ class BaseAction(GridObjects):
         storage = {"changed": False, "capacities": []}
         if self._modif_storage:
             for str_idx in range(self.n_storage):
-                tmp = self._set_storage_target[str_idx]
+                tmp = self._storage_power[str_idx]
                 if np.isfinite(tmp):
                     name_ = self.name_storage[str_idx]
                     new_capacity = tmp
-                    redispatch["capacities"].append({
+                    storage["capacities"].append({
                         "storage_id": str_idx,
                         "storage_name": name_,
                         "new_capacity": new_capacity
                     })
-            redispatch["changed"] = True
+            storage["changed"] = True
             has_impact = True
 
         return {

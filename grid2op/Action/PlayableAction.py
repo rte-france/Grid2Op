@@ -45,7 +45,7 @@ class PlayableAction(BaseAction):
             "set_bus": self._digest_setbus,
             "change_bus": self._digest_change_bus,
             "redispatch": self._digest_redispatching,
-            "storage_power": self._digest_storage
+            "set_storage": self._digest_storage
         }
 
     def __call__(self):

@@ -217,6 +217,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
+        parameters.check_valid()  # check the provided parameters are valid
         self.parameters = parameters
         self.with_forecast = with_forecast
 
@@ -244,6 +245,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # and calendar data
         self.time_stamp = None
         self.nb_time_step = dt_int(0)
+        self.delta_time_seconds = None  # number of seconds between two consecutive step
 
         # observation
         self.current_obs = None
@@ -359,10 +361,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.__new_forecast_param = None
 
         # storage units
+        # TODO storage: what to do when self.storage_Emin >0. and self.storage_loss > 0.
+        # TODO and we have self._storage_current_charge - self.storage_loss < self.storage_Emin
         self._storage_current_charge = None  # the current storage charge
         self._storage_previous_charge = None  # the previous storage charge
         self._action_storage = None  # the storage action performed
         self._amount_storage = None  # total amount of storage to be dispatched
+        self._amount_storage_prev = None
+        self._storage_need_reset = False
 
     def change_parameters(self, new_parameters):
         """
@@ -381,6 +387,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(new_parameters, Parameters):
             raise EnvError("The new parameters \"new_parameters\" should be an instance of "
                            "grid2op.Parameters.Parameters.")
+        new_parameters.check_valid()  # check the provided parameters are valid
         self.__new_param = new_parameters
 
     def change_forecast_parameters(self, new_parameters):
@@ -400,6 +407,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(new_parameters, Parameters):
             raise EnvError("The new parameters \"new_parameters\" should be an instance of "
                            "grid2op.Parameters.Parameters.")
+        new_parameters.check_valid()    # check the provided parameters are valid
         self.__new_forecast_param = new_parameters
 
     def _create_opponent(self):
@@ -477,6 +485,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._storage_previous_charge = np.zeros(self.n_storage, dtype=dt_float)
         self._action_storage = np.zeros(self.n_storage, dtype=dt_float)
         self._amount_storage = 0.
+        self._amount_storage_prev = 0.
+        self._storage_need_reset = False
 
         # register this is properly initialized
         self.__is_init = True
@@ -520,10 +530,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._helper_observation.obs_env.change_parameters(self.__new_forecast_param)
             self.__new_forecast_param = False
 
-        # reset storage capacity
-        self._storage_previous_charge[:] = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax  # TODO not sure it's mandatory
-        self._storage_current_charge[:] = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
+        self._reset_storage()
+
+    def _reset_storage(self):
+        """reset storage capacity at the beginning of new environment"""
+        tmp = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
+        if self.parameters.ACTIVATE_STORAGE_LOSS:
+            tmp += self.storage_loss * self.delta_time_seconds / 3600.
+        # TODO not sure it's mandatory to set _storage_previous_charge
+        self._storage_previous_charge[:] = tmp
+        self._storage_current_charge[:] = tmp
         self._amount_storage = 0.
+        self._amount_storage_prev = 0.
+        self._storage_need_reset = False
         # TODO storage: check in simulate too!
 
     def seed(self, seed=None):
@@ -1224,7 +1243,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # NB this should be done AFTER the computation of self._amount_storage, because this energy is dissipated
         # in the storage units, thus NOT seen as power from the grid.
         if self.parameters.ACTIVATE_STORAGE_LOSS:
-            self._storage_current_charge -= self.storage_loss
+            self._storage_current_charge -= self.storage_loss * self.delta_time_seconds / 3600.
             self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
 
     def step(self, action):
@@ -1356,15 +1375,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 modif = False
                 if np.any(storage_act):
                     modif = True
-                    self._storage_current_charge[storage_act] += action_storage_power[storage_act]
+                    coeff_ = self.delta_time_seconds / 3600.  # TODO optim this is const
+                    self._storage_current_charge[storage_act] += action_storage_power[storage_act] * coeff_
                     self._action_storage[storage_act] += action_storage_power[storage_act]
 
                 if modif:
                     self._storage_current_charge[:] = np.minimum(self._storage_current_charge, self.storage_Emax)
                     self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
-                    self._amount_storage = np.sum(self._storage_current_charge) - np.sum(self._storage_previous_charge)
+                    # storage is "load convention", dispatch is "generator convention"
+                    # i need the generator to have the same sign as the action on the batteries
+                    self._amount_storage = np.sum(self._action_storage)
                 else:
+                    # battery effect should be removed, so i multiply it by -1.
                     self._amount_storage = 0.
+                tmp = self._amount_storage
+                self._amount_storage -= self._amount_storage_prev
+                self._amount_storage_prev = tmp
 
                 # dissipated energy, it's not seen on the grid, just lost in the storage unit.
                 # this is why it should not be taken into account in self._amount_storage
@@ -1389,7 +1415,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # TODO storage
                     if self.n_storage > 0:
                         self._storage_current_charge[:] = self._storage_previous_charge
-                        self._amount_storage = 0.
+                        self._amount_storage -= self._amount_storage_prev  # TODO AM I certain ?
 
                         # dissipated energy, it's not seen on the grid, just lost in the storage unit.
                         # this is why it should not be taken into account in self._amount_storage

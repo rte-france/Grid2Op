@@ -28,6 +28,7 @@ Change Log
 [1.5.0] - 2021-xx-yy
 -------------------------
 - [BREAKING] for backend class implementation: need to upgrade your code to take into account the dams
+- [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
   negative: power given to the grid having some energy limit and power limit). A new object if added in the substation.
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0. but one being still connected.

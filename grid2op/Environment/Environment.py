@@ -239,6 +239,8 @@ class Environment(BaseEnv):
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
+        self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
+        self._reset_storage()  # this should be called after the  self.delta_time_seconds is set
 
         # reward function
         self._reward_helper = RewardHelper(self._rewardClass)
@@ -246,7 +248,7 @@ class Environment(BaseEnv):
         for k, v in self.other_rewards.items():
             v.initialize(self)
 
-        # controler for voltage
+        # controller for voltage
         if not issubclass(self._voltagecontrolerClass, BaseVoltageController):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
