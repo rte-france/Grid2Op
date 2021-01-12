@@ -153,7 +153,10 @@ class BaseObservation(GridObjects):
         information about all generators there, even the one that are not
         dispatchable.
 
+    # TODO storage description of the new attributes
     """
+
+    # TODO storage
     _attr_eq = ["line_status",
                 "topo_vect",
                 "timestep_overflow",
@@ -243,6 +246,11 @@ class BaseObservation(GridObjects):
         # redispatching
         self.target_dispatch = 1.0 * self.prod_p
         self.actual_dispatch = 1.0 * self.prod_p
+
+        # storage unit
+        self.storage_charge = np.full(shape=self.n_storage, dtype=dt_float, fill_value=np.NaN)  # in MWh
+        self.storage_power_target = 1.0 * self.storage_charge  # in MW
+        self.storage_power = 1.0 * self.storage_charge  # in MW
 
         # to save some computation time
         self._connectivity_matrix_ = None
@@ -335,6 +343,7 @@ class BaseObservation(GridObjects):
             parameters are being set.
 
         """
+        # TODO storage
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
 
@@ -481,6 +490,11 @@ class BaseObservation(GridObjects):
         self.target_dispatch[:] = np.NaN
         self.actual_dispatch[:] = np.NaN
 
+        # storage units
+        self.storage_charge[:] = np.NaN
+        self.storage_power_target[:] = np.NaN
+        self.storage_power[:] = np.NaN
+
         # to save up computation time
         self._dictionnarized = None
         self._connectivity_matrix_ = None
@@ -532,6 +546,11 @@ class BaseObservation(GridObjects):
         # redispatching
         self.target_dispatch[:] = 0.
         self.actual_dispatch[:] = 0.
+
+        # storage
+        self.storage_charge[:] = 0.
+        self.storage_power_target[:] = 0.
+        self.storage_power[:] = 0.
 
         # cooldown
         self.time_before_cooldown_line[:] = 99999
@@ -619,6 +638,7 @@ class BaseObservation(GridObjects):
             return False
 
         # check that the _grid is the same in both instances
+        # TODO make that in GridObject
         same_grid = True
         same_grid = same_grid and self.n_gen == other.n_gen
         same_grid = same_grid and self.n_load == other.n_load
@@ -806,6 +826,7 @@ class BaseObservation(GridObjects):
             #     - assign bus 2 to load 0 [on substation 1]
             # -> one of them is on bus 1 [line (extremity) 0] and the other on bus 2 [load 0]
         """
+        # TODO storage maybe i need to update it
         if self._connectivity_matrix_ is None:
             self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
             # fill it by block for the objects
@@ -990,6 +1011,7 @@ class BaseObservation(GridObjects):
             or_vect = self.q_or
             ex_vect = self.q_ex
 
+        # TODO storage
         data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
         nb_lex = np.sum(lex_conn)
@@ -1147,6 +1169,7 @@ class BaseObservation(GridObjects):
             # `simulated_info` gives extra information on this forecast state
 
         """
+        # TODO check storage action here too !
         if self.action_helper is None or self._obs_env is None:
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation "
                                       "(no action_space "
@@ -1191,8 +1214,8 @@ class BaseObservation(GridObjects):
 
         """
         obs_env = self._obs_env
-        self._obs_env = None
+        self._obs_env = None  # _obs_env is a pointer, it is not held by this !
         res = copy.deepcopy(self)
         self._obs_env = obs_env
-        res._obs_env = obs_env.copy()
+        res._obs_env = obs_env
         return res

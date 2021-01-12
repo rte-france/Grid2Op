@@ -359,8 +359,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.__new_forecast_param = None
 
         # storage units
-        self._storage_current_charge = None
-        self._storage_previous_charge = None
+        self._storage_current_charge = None  # the current storage charge
+        self._storage_previous_charge = None  # the previous storage charge
+        self._action_storage = None  # the storage action performed
+        self._amount_storage = None  # total amount of storage to be dispatched
 
     def change_parameters(self, new_parameters):
         """
@@ -469,6 +471,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._update_parameters()
 
         self._reset_redispatching()
+
+        # storage
+        self._storage_current_charge = np.zeros(self.n_storage, dtype=dt_float)
+        self._storage_previous_charge = np.zeros(self.n_storage, dtype=dt_float)
+        self._action_storage = np.zeros(self.n_storage, dtype=dt_float)
+        self._amount_storage = 0.
+
+        # register this is properly initialized
         self.__is_init = True
 
     def _update_parameters(self):
@@ -509,6 +519,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.__new_forecast_param is not None:
             self._helper_observation.obs_env.change_parameters(self.__new_forecast_param)
             self.__new_forecast_param = False
+
+        # reset storage capacity
+        self._storage_previous_charge[:] = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax  # TODO not sure it's mandatory
+        self._storage_current_charge[:] = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
+        self._amount_storage = 0.
+        # TODO storage: check in simulate too!
 
     def seed(self, seed=None):
         """
@@ -817,7 +833,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
-           np.max(mismatch) >= self._tol_poly:
+           np.max(mismatch) >= self._tol_poly or \
+           np.abs(self._amount_storage) >= self._tol_poly:
+            # TODO storage !
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
@@ -860,7 +878,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # add the "sum to 0"
         mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=dt_float)
-        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float)
+        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage  # TODO storage
 
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
@@ -1202,6 +1220,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         return 1.0 * self._thermal_limit_a
 
+    def _withdraw_storage_losses(self):
+        # NB this should be done AFTER the computation of self._amount_storage, because this energy is dissipated
+        # in the storage units, thus NOT seen as power from the grid.
+        if self.parameters.ACTIVATE_STORAGE_LOSS:
+            self._storage_current_charge -= self.storage_loss
+            self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
+
     def step(self, action):
         """
         Run one timestep of the environment's dynamics. When end of
@@ -1290,7 +1315,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_illegal_reco = False
         except_ = []
         detailed_info = []
-        init_disp = 1.0 * action._redispatch
+        init_disp = 1.0 * action._redispatch  # dispatching action
+        action_storage_power = 1.0 * action._storage_power  # battery information
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
         conv_ = None
@@ -1317,6 +1343,35 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._env_modification._single_act = False  # because it absorbs all redispatching actions
             new_p = self._get_new_prod_setpoint(action)
 
+            if self.n_storage > 0:
+                # TODO storage
+
+                # TODO storage consistency MWh, MW and time step !!!!
+                # we need to modify the self.storage_max_p_prod and self.storage_max_p_absorb !!!
+
+                # self._storage_current_charge[:]
+                self._storage_previous_charge[:] = self._storage_current_charge
+                storage_act = np.isfinite(action_storage_power)
+                self._action_storage[:] = 0.
+                modif = False
+                if np.any(storage_act):
+                    modif = True
+                    self._storage_current_charge[storage_act] += action_storage_power[storage_act]
+                    self._action_storage[storage_act] += action_storage_power[storage_act]
+
+                if modif:
+                    self._storage_current_charge[:] = np.minimum(self._storage_current_charge, self.storage_Emax)
+                    self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
+                    self._amount_storage = np.sum(self._storage_current_charge) - np.sum(self._storage_previous_charge)
+                else:
+                    self._amount_storage = 0.
+
+                # dissipated energy, it's not seen on the grid, just lost in the storage unit.
+                # this is why it should not be taken into account in self._amount_storage
+                # and NOT absorbed by the generators either
+                self._withdraw_storage_losses()
+                # end storage
+
             if self.redispatching_unit_commitment_availble:
                 # remember generator that were "up" before the action
                 gen_up_before = self._gen_activeprod_t > 0.
@@ -1330,6 +1385,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     action = self._helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
+
+                    # TODO storage
+                    if self.n_storage > 0:
+                        self._storage_current_charge[:] = self._storage_previous_charge
+                        self._amount_storage = 0.
+
+                        # dissipated energy, it's not seen on the grid, just lost in the storage unit.
+                        # this is why it should not be taken into account in self._amount_storage
+                        # and NOT absorbed by the generators either
+                        self._withdraw_storage_losses()
+                        # end storage
 
                 valid_disp, except_tmp, info_ = self._make_redisp(already_modified_gen, new_p)
                 if not valid_disp or except_tmp is not None:

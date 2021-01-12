@@ -78,6 +78,7 @@ class CompleteObservation(BaseObservation):
         30. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
 
+    # TODO storage doc!!
     """
     attr_list_vect = [
         "year", "month", "day", "hour_of_day",
@@ -91,9 +92,9 @@ class CompleteObservation(BaseObservation):
         "topo_vect",
         "time_before_cooldown_line", "time_before_cooldown_sub",
         "time_next_maintenance", "duration_next_maintenance",
-        "target_dispatch", "actual_dispatch"
+        "target_dispatch", "actual_dispatch",
+        "storage_charge", "storage_power_target", "storage_power"
     ]
-    attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
 
     def __init__(self,
                  obs_env=None,
@@ -132,6 +133,11 @@ class CompleteObservation(BaseObservation):
         self.load_p[:], self.load_q[:], self.load_v[:] = env.backend.loads_info()
         self.p_or[:], self.q_or[:], self.v_or[:], self.a_or[:] = env.backend.lines_or_info()
         self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = env.backend.lines_ex_info()
+
+        # storage units
+        self.storage_charge[:] = env._storage_current_charge
+        self.storage_power_target = env._action_storage
+        self.storage_power = env._storage_current_charge - env._storage_previous_charge
 
         # handles forecasts here
         if with_forecast:

@@ -794,6 +794,7 @@ class Backend(GridObjects, ABC):
             row, and number of columns equal to the maximum number of buses for a substation (MVAr)
         """
 
+        # TODO storage
         p_or, q_or, v_or, *_ = self.lines_or_info()
         p_ex, q_ex, v_ex, *_ = self.lines_ex_info()
         p_gen, q_gen, v_gen = self.generators_info()

@@ -78,6 +78,18 @@ class Parameters:
     IGNORE_MIN_UP_DOWN_TIME: ``bool``
         Whether or not to ignore the attributes `gen_min_uptime` and `gen_min_downtime`. Basically setting this
         parameter to ``True``
+
+    INIT_STORAGE_CAPACITY: ``float``
+        Between 0. and 1. Specify, at the beginning of each episode, what is the storage capacity of each storage unit.
+        The storage capacity will be expressed as fraction of storage_Emax. For example, if `INIT_STORAGE_CAPACITY` is
+        0.5 then at the beginning of every episode, all storage unit will have a storage capacity of
+        0.5 * `storage_Emax`. By default: `0.5`
+
+    ACTIVATE_STORAGE_LOSS: ``bool``
+        You can set it to ``False`` to not take into account the loss in the storage units.
+        Loss amount per time step are given in the description of the storage unit.
+        Default: ``True``
+
     """
     def __init__(self, parameters_path=None):
         """
@@ -126,6 +138,12 @@ class Parameters:
 
         # allow dispatch on turned off generator (if ``True`` you can actually dispatch a turned on geenrator)
         self.ALLOW_DISPATCH_GEN_SWITCH_OFF = True
+
+        # storage capacity (NOT in pct)
+        self.INIT_STORAGE_CAPACITY = 0.5
+
+        # do i take into account the storage loss in the step function
+        self.ACTIVATE_STORAGE_LOSS = True
 
         if parameters_path is not None:
             if os.path.isfile(parameters_path):
@@ -214,6 +232,12 @@ class Parameters:
         if "NB_TIMESTEP_COOLDOWN_LINE" in dict_:
             self.NB_TIMESTEP_COOLDOWN_LINE = dt_int(dict_["NB_TIMESTEP_COOLDOWN_LINE"])
 
+        # storage parameters
+        if "INIT_STORAGE_CAPACITY" in dict_:
+            self.INIT_STORAGE_CAPACITY = dt_float(dict_["INIT_STORAGE_CAPACITY"])
+        if "ACTIVATE_STORAGE_LOSS" in dict_:
+            self.ACTIVATE_STORAGE_LOSS = Parameters._isok_txt(dict_["ACTIVATE_STORAGE_LOSS"])
+
         authorized_keys = set(self.__dict__.keys())
         authorized_keys = authorized_keys | {'NB_TIMESTEP_POWERFLOW_ALLOWED',
                                              'NB_TIMESTEP_TOPOLOGY_REMODIF',
@@ -246,6 +270,8 @@ class Parameters:
         res["MAX_LINE_STATUS_CHANGED"] = int(self.MAX_LINE_STATUS_CHANGED)
         res["NB_TIMESTEP_COOLDOWN_LINE"] = int(self.NB_TIMESTEP_COOLDOWN_LINE)
         res["NB_TIMESTEP_COOLDOWN_SUB"] = int(self.NB_TIMESTEP_COOLDOWN_SUB)
+        res["INIT_STORAGE_CAPACITY"] = float(self.INIT_STORAGE_CAPACITY)
+        res["ACTIVATE_STORAGE_LOSS"] = bool(self.ACTIVATE_STORAGE_LOSS)
         return res
 
     def init_from_json(self, json_path):
@@ -261,10 +287,10 @@ class Parameters:
             with open(json_path) as f:
                 dict_ = json.load(f)
             self.init_from_dict(dict_)
-        except:
+        except Exception as exc_:
             warn_msg = "Could not load from {}\n" \
-                       "Continuing with default parameters"
-            warnings.warn(warn_msg.format(json_path))
+                       "Continuing with default parameters. \n\nThe error was \"{}\""
+            warnings.warn(warn_msg.format(json_path, exc_))
         
     @staticmethod
     def from_json(json_path):

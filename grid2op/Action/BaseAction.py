@@ -607,6 +607,9 @@ class BaseAction(GridObjects):
         # redispatching vector
         self._redispatch[:] = 0.
 
+        # storage
+        self._storage_power[:] = 0.
+
         self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
