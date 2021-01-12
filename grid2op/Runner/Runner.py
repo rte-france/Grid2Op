@@ -536,7 +536,8 @@ class Runner(object):
         self.grid_layout = grid_layout
 
         # otherwise on windows it sometimes fail in the runner in multi process
-        # self.init_env()
+        self.init_env()
+        self.env = None
 
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
@@ -742,7 +743,7 @@ class Runner(object):
                 episode.incr_store(efficient_storing, time_step, end__ - beg__,
                                    float(reward), env._env_modification,
                                    act, obs, opp_attack,
-                                   info, detailed_output)
+                                   info)
             end_ = time.time()
 
         episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)

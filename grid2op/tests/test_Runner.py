@@ -77,7 +77,8 @@ class TestRunner(HelperTests):
         _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter, detailed_output=True)
         assert int(timestep) == self.max_iter
         assert np.abs(cum_reward - self.real_reward) <= self.tol_one
-        np.testing.assert_almost_equal(episode_data.rewards, self.all_real_rewards, 5)
+        for j in range(len(self.all_real_rewards)):
+            assert np.abs(episode_data.rewards[j] - self.all_real_rewards[j]) <= self.tol_one
 
     def test_one_process_par(self):
         with warnings.catch_warnings():
@@ -114,7 +115,8 @@ class TestRunner(HelperTests):
         for i, _, cum_reward, timestep, total_ts, episode_data in res:
             assert int(timestep) == self.max_iter
             assert np.abs(cum_reward - self.real_reward) <= self.tol_one
-            np.testing.assert_almost_equal(episode_data.rewards, self.all_real_rewards, 5)
+            for j in range(len(self.all_real_rewards)):
+                assert np.abs(episode_data.rewards[j] - self.all_real_rewards[j]) <= self.tol_one
 
     def test_complex_agent(self):
         nb_episode = 4

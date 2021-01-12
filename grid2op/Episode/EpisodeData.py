@@ -510,7 +510,7 @@ class EpisodeData:
                 self.meta["agent_seed"] = int(agent_seed)
 
     def incr_store(self, efficient_storing, time_step, time_step_duration,
-                   reward, env_act, act, obs, opp_attack, info, force_detail):
+                   reward, env_act, act, obs, opp_attack, info):
         """
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
