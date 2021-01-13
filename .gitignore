@@ -161,10 +161,12 @@ getting_started/saved_experiment_donothing/
 Doxyfile
 documentation
 **(copie).zip
+**(copy).json
 grid2op/data/*/*.csv
 !grid2op/data/test_PandaPower/prods_charac.csv
 !grid2op/data/case14_redisp/prods_charac.csv
 !grid2op/data/*/prods_charac.csv
+!grid2op/data/*/storage_units_charac.csv
 **token.json
 getting_started/study_agent_getting_started/
 **Untitled.ipynb
