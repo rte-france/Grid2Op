@@ -388,19 +388,19 @@ class TestAttachLayout(unittest.TestCase):
                     as env:
                 env.attach_layout(my_layout)
                 act = env.action_space()
-                dict_act = act.to_dict()
+                dict_act = act.cls_to_dict()
                 assert "grid_layout" in dict_act
                 assert dict_act["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.action_space.to_dict()
+                dict_ = env.action_space.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env._helper_action_env.to_dict()
+                dict_ = env._helper_action_env.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env.observation_space.to_dict()
+                dict_ = env.observation_space.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
-                dict_ = env._opponent_action_space.to_dict()
+                dict_ = env._opponent_action_space.cls_to_dict()
                 assert "grid_layout" in dict_
                 assert dict_["grid_layout"] == {k: [x,y] for k,(x,y) in zip(env.name_sub, my_layout)}
 

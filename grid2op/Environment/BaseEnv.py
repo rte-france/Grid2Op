@@ -533,17 +533,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._reset_storage()
 
     def _reset_storage(self):
-        """reset storage capacity at the beginning of new environment"""
-        tmp = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
-        if self.parameters.ACTIVATE_STORAGE_LOSS:
-            tmp += self.storage_loss * self.delta_time_seconds / 3600.
-        # TODO not sure it's mandatory to set _storage_previous_charge
-        self._storage_previous_charge[:] = tmp
-        self._storage_current_charge[:] = tmp
-        self._amount_storage = 0.
-        self._amount_storage_prev = 0.
-        self._storage_need_reset = False
-        # TODO storage: check in simulate too!
+        """reset storage capacity at the beginning of new environment if needed"""
+        if self.n_storage > 0:
+            tmp = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
+            if self.parameters.ACTIVATE_STORAGE_LOSS:
+                tmp += self.storage_loss * self.delta_time_seconds / 3600.
+            # TODO not sure it's mandatory to set _storage_previous_charge
+            self._storage_previous_charge[:] = tmp
+            self._storage_current_charge[:] = tmp
+            self._amount_storage = 0.
+            self._amount_storage_prev = 0.
+            self._storage_need_reset = False
+            # TODO storage: check in simulate too!
 
     def seed(self, seed=None):
         """
@@ -1376,6 +1377,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 if np.any(storage_act):
                     modif = True
                     coeff_ = self.delta_time_seconds / 3600.  # TODO optim this is const
+                    # TODO storage: add the storage_efficiency here
                     self._storage_current_charge[storage_act] += action_storage_power[storage_act] * coeff_
                     self._action_storage[storage_act] += action_storage_power[storage_act]
 

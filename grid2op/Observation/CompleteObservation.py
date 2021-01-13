@@ -95,6 +95,8 @@ class CompleteObservation(BaseObservation):
         "target_dispatch", "actual_dispatch",
         "storage_charge", "storage_power_target", "storage_power"
     ]
+    attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
+    attr_list_set = set(attr_list_vect)
 
     def __init__(self,
                  obs_env=None,

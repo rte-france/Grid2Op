@@ -156,7 +156,6 @@ class BaseObservation(GridObjects):
     # TODO storage description of the new attributes
     """
 
-    # TODO storage
     _attr_eq = ["line_status",
                 "topo_vect",
                 "timestep_overflow",
@@ -169,7 +168,8 @@ class BaseObservation(GridObjects):
                 "time_next_maintenance",
                 "duration_next_maintenance",
                 "target_dispatch", "actual_dispatch",
-                "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"
+                "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",
+                "storage_charge", "storage_power_target", "storage_power"
                 ]
 
     attr_list_vect = None
@@ -637,30 +637,8 @@ class BaseObservation(GridObjects):
         if self.minute_of_hour != other.minute_of_hour:
             return False
 
-        # check that the _grid is the same in both instances
-        # TODO make that in GridObject
-        same_grid = True
-        same_grid = same_grid and self.n_gen == other.n_gen
-        same_grid = same_grid and self.n_load == other.n_load
-        same_grid = same_grid and self.n_line == other.n_line
-        same_grid = same_grid and np.all(self.sub_info == other.sub_info)
-        same_grid = same_grid and self.dim_topo == other.dim_topo
-        # to which substation is connected each element
-        same_grid = same_grid and np.all(self.load_to_subid == other.load_to_subid)
-        same_grid = same_grid and np.all(self.gen_to_subid == other.gen_to_subid)
-        same_grid = same_grid and np.all(self.line_or_to_subid == other.line_or_to_subid)
-        same_grid = same_grid and np.all(self.line_ex_to_subid == other.line_ex_to_subid)
-        # which index has this element in the substation vector
-        same_grid = same_grid and np.all(self.load_to_sub_pos == other.load_to_sub_pos)
-        same_grid = same_grid and np.all(self.gen_to_sub_pos == other.gen_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_or_to_sub_pos == other.line_or_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_ex_to_sub_pos == other.line_ex_to_sub_pos)
-        # which index has this element in the topology vector
-        same_grid = same_grid and np.all(self.load_pos_topo_vect == other.load_pos_topo_vect)
-        same_grid = same_grid and np.all(self.gen_pos_topo_vect == other.gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_or_pos_topo_vect == other.line_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_ex_pos_topo_vect == other.line_ex_pos_topo_vect)
-
+        # check that the underlying grid is the same in both instances
+        same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
             return False
 
@@ -672,6 +650,13 @@ class BaseObservation(GridObjects):
         return True
 
     def __sub__(self, other):
+        """
+        computes the difference between two observation, and return an observation corresponding to
+        this difference.
+
+        This can be used to easily plot the difference between two observations at different step for
+        example.
+        """
         res = copy.deepcopy(self)
         for stat_nm in self._attr_eq:
             # TODO handle the "same grid" and "same type" here!
@@ -698,6 +683,23 @@ class BaseObservation(GridObjects):
         return res
 
     def where_different(self, other):
+        """
+        Returns the difference between two observation.
+
+        Parameters
+        ----------
+        other:
+            Other action to compare
+
+        Returns
+        -------
+        diff_: :class:`grid2op.Observation.BaseObservation`
+            The observation showing the difference between `self` and `other`
+        attr_nm: ``list``
+            List of string representing the names of the different attributes. It's [] if the two observations
+            are identical.
+
+        """
         diff_ = self - other
         res = []
         for attr_nm in self._attr_eq:
@@ -706,7 +708,7 @@ class BaseObservation(GridObjects):
                 if np.any(~array_):
                     res.append(attr_nm)
             else:
-                if np.max(np.abs(array_)):
+                if (array_.shape[0] > 0) and np.max(np.abs(array_)):
                     res.append(attr_nm)
         return diff_, res
 

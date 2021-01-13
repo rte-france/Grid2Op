@@ -99,6 +99,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       "storage_max_p_absorb": [],
                       "storage_marginal_cost": [],
                       "storage_loss": [],
+                      'storage_efficiency': [],
                       '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
         self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],
@@ -178,7 +179,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
                          '_shunt_p': [0.0],
                          '_shunt_q': [-17.923625946044922],
                          '_shunt_v': [0.20202238857746124],
-                         '_shunt_bus': [1]}
+                         '_shunt_bus': [1],
+                         'storage_charge': [],
+                         'storage_power_target': [],
+                         'storage_power': []
+                         }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
@@ -187,14 +192,16 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                 dt_float, dt_float, dt_float,
                                 dt_float, dt_bool, dt_int, dt_int,
                                 dt_int, dt_int,
-                                dt_int, dt_int, dt_float, dt_float],
+                                dt_int, dt_int, dt_float, dt_float,
+                                dt_float, dt_float, dt_float
+                                ],
                                dtype=object)
 
         self.dtypes = np.array([np.dtype(el) for el in self.dtypes])
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5])
+                                 20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
+                                 5, 5, 0, 0, 0])
         self.size_obs = 414
 
     def tearDown(self):
@@ -537,8 +544,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert 'nb_elements' in dict_
         assert dict_['nb_elements'] == 6
 
-    def test_to_dict(self):
-        dict_ = self.env.observation_space.to_dict()
+    def test_space_to_dict(self):
+        dict_ = self.env.observation_space.cls_to_dict()
         self.maxDiff = None
         self.assertDictEqual(dict_, self.dict_)
 
@@ -563,11 +570,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert issubclass(res.observationClass, self.env.observation_space._init_subtype)
 
     def test_json_serializable(self):
-        dict_ = self.env.observation_space.to_dict()
+        dict_ = self.env.observation_space.cls_to_dict()
         res = json.dumps(obj=dict_, indent=4, sort_keys=True)
 
     def test_json_loadable(self):
-        dict_ = self.env.observation_space.to_dict()
+        dict_ = self.env.observation_space.cls_to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
         res = ObservationSpace.from_dict(json.loads(tmp))
 
@@ -594,8 +601,14 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs = self.env.observation_space(self.env)
         obs2 = self.env.observation_space(self.env)
         dict_ = obs.to_json()
+
         # test that the right dictionary is returned
-        assert dict_ == self.json_ref
+        for k in dict_:
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in dict_)"
+        for k in self.json_ref:
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in self.json_ref)"
+        self.assertDictEqual(dict_, self.json_ref)
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             # test i can save it (json serializable)
             with open(os.path.join(tmpdirname, "test.json"), "w") as fp:

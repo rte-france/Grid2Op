@@ -18,6 +18,8 @@ from grid2op.Runner import Runner
 from grid2op.Agent import RandomAgent, DoNothingAgent
 from grid2op.Backend import PandaPowerBackend
 
+import pdb
+
 
 class TestSuitePandaPowerBackend(PandaPowerBackend):
     """Only work for the case 14 !!! """

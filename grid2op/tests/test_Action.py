@@ -38,7 +38,7 @@ class TestActionBase(ABC):
 
     def _skipMissingKey(self, key):
         if key not in self.authorized_keys:
-            unittest.TestCase.skipTest(self, "Skipped: Missing authorized_key {key}")
+            unittest.TestCase.skipTest(self, f"Skipped: Missing authorized_key {key}")
 
     def setUp(self):
         """
@@ -108,6 +108,7 @@ class TestActionBase(ABC):
         GridObjects.storage_max_p_absorb = np.array([15., 15.])
         GridObjects.storage_marginal_cost = np.array([0., 0.])
         GridObjects.storage_loss = np.array([0., 0.])
+        GridObjects.storage_efficiency = np.array([1., 1.])
 
         self.gridobj = GridObjects()
 
@@ -170,6 +171,7 @@ class TestActionBase(ABC):
             "storage_max_p_absorb": [15., 15.],
             "storage_marginal_cost": [0., 0.],
             "storage_loss": [0., 0.],
+            "storage_efficiency": [1., 1.],
             "grid_layout": None,
             "shunt_to_subid": None,
             "name_shunt": None
@@ -868,8 +870,7 @@ class TestActionBase(ABC):
         assert aff_subs[id_2]
 
     def test_to_dict(self):
-        dict_ = self.helper_action.to_dict()
-        self.maxDiff = None
+        dict_ = self.helper_action.cls_to_dict()
         self.assertDictEqual(dict_, self.res)
 
     def test_from_dict(self):
@@ -894,11 +895,11 @@ class TestActionBase(ABC):
         assert issubclass(res.actionClass, self.helper_action._init_subtype)
 
     def test_json_serializable(self):
-        dict_ = self.helper_action.to_dict()
+        dict_ = self.helper_action.cls_to_dict()
         res = json.dumps(obj=dict_, indent=4, sort_keys=True)
 
     def test_json_loadable(self):
-        dict_ = self.helper_action.to_dict()
+        dict_ = self.helper_action.cls_to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
         res = ActionSpace.from_dict(json.loads(tmp))
 

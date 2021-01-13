@@ -27,6 +27,10 @@ Change Log
 
 [1.5.0] - 2021-xx-yy
 -------------------------
+- [BREAKING] the class method "to_dict" used to serialize the action_space and observation_space has been
+  renamed `cls_to_dict` to avoid confusion with the `to_dict` method of action and observation (that stores,
+  as dictionary the instance of the action / observation). It is now then possible to serialize the action class
+  used and the observation class used as dictionary to (using `action.cls_to_dict`)
 - [BREAKING] for backend class implementation: need to upgrade your code to take into account the dams
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,

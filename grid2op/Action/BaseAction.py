@@ -405,29 +405,8 @@ class BaseAction(GridObjects):
         if other is None:
             return False
 
-        # check that the _grid is the same in both instances
-        # TODO make that in gridObject
-        same_grid = True
-        same_grid = same_grid and self.n_gen == other.n_gen
-        same_grid = same_grid and self.n_load == other.n_load
-        same_grid = same_grid and self.n_line == other.n_line
-        same_grid = same_grid and np.all(self.sub_info == other.sub_info)
-        same_grid = same_grid and self.dim_topo == other.dim_topo
-        # to which substation is connected each element
-        same_grid = same_grid and np.all(self.load_to_subid == other.load_to_subid)
-        same_grid = same_grid and np.all(self.gen_to_subid == other.gen_to_subid)
-        same_grid = same_grid and np.all(self.line_or_to_subid == other.line_or_to_subid)
-        same_grid = same_grid and np.all(self.line_ex_to_subid == other.line_ex_to_subid)
-        # which index has this element in the substation vector
-        same_grid = same_grid and np.all(self.load_to_sub_pos == other.load_to_sub_pos)
-        same_grid = same_grid and np.all(self.gen_to_sub_pos == other.gen_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_or_to_sub_pos == other.line_or_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_ex_to_sub_pos == other.line_ex_to_sub_pos)
-        # which index has this element in the topology vector
-        same_grid = same_grid and np.all(self.load_pos_topo_vect == other.load_pos_topo_vect)
-        same_grid = same_grid and np.all(self.gen_pos_topo_vect == other.gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_or_pos_topo_vect == other.line_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_ex_pos_topo_vect == other.line_ex_pos_topo_vect)
+        # check that the underlying grid is the same in both instances
+        same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
             return False
 

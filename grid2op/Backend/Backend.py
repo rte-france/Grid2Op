@@ -995,8 +995,13 @@ class Backend(GridObjects, ABC):
             - "max_p_prod": maximum flow the battery can absorb in MW
             - "max_p_absorb": maximum flow the battery can produce in MW
             - "marginal_cost": cost in $ (or any currency, really) of usage of the battery.
-            - "power_loss": power loss in the battery in MW (the capacity will decrease constantly of this amount).
-              Set it to 0.0 to deactivate it
+            - "power_discharge_loss" (optional): power loss in the battery in MW (the capacity will decrease constantly
+              of this amount). Set it to 0.0 to deactivate it. If not present, it is set to 0.
+            - "efficiency" (optional): battery efficiency defined as the "AC-AC" round trip efficiency.
+               Float between 0. and 1.. 1. Meaning that the storage unit can give back 100% of the power it has
+               storage, 0.5 means that if you want to retrieve in the future say 100MWh you have to charge it
+               with 200MWh. [this is take into account once when the battery is charged, we don't model
+               independantly charging efficiency and discharging efficiency.]
 
         name: ``str``
             Name of the dataframe containing the redispatching data. Defaults to 'prods_charac.csv', we don't advise
@@ -1016,12 +1021,12 @@ class Backend(GridObjects, ABC):
 
         try:
             df = pd.read_csv(fullpath)
-        except Exception as exc:
+        except Exception as exc_:
             raise BackendError(f"There are storage unit on the grid, yet we could not locate their description."
                                f"Please make sure to have a file \"{name}\" where the environment data are located."
                                f"For this environment the location is \"{path}\"")
         mandatory_colnames = ["name", "type", "Emax", "Emin", "max_p_prod", "max_p_absorb",
-                              "marginal_cost", "power_loss"]
+                              "marginal_cost"]
         for el in mandatory_colnames:
             if el not in df.columns:
                 raise BackendError(f"There are storage unit on the grid, yet we could not properly load their "
@@ -1039,6 +1044,14 @@ class Backend(GridObjects, ABC):
                                       "marginal_cost": row["marginal_cost"],
                                       "power_loss": row["power_loss"]
                                       }
+            if "power_loss" in row:
+                stor_info[row["name"]]["power_loss"] = row["power_loss"]
+            else:
+                stor_info[row["name"]]["power_loss"] = 0.
+            if "efficiency" in row:
+                stor_info[row["name"]]["efficiency"] = row["efficiency"]
+            else:
+                stor_info[row["name"]]["efficiency"] = 0.
 
         self.storage_type = np.full(self.n_storage, fill_value="aaaaaaaaaa")
         self.storage_Emax = np.full(self.n_storage, fill_value=1., dtype=dt_float)
@@ -1047,6 +1060,7 @@ class Backend(GridObjects, ABC):
         self.storage_max_p_absorb = np.full(self.n_storage, fill_value=1., dtype=dt_float)
         self.storage_marginal_cost = np.full(self.n_storage, fill_value=1., dtype=dt_float)
         self.storage_loss = np.full(self.n_storage, fill_value=0., dtype=dt_float)
+        self.storage_efficiency = np.full(self.n_storage, fill_value=0., dtype=dt_float)
 
         for i, sto_nm in enumerate(self.name_storage):
             try:
@@ -1066,6 +1080,8 @@ class Backend(GridObjects, ABC):
                                                                          f" for {sto_nm} and column \"marginal_cost\"")
             self.storage_loss[i] = self._aux_check_finite_float(tmp_sto["power_loss"],
                                                                 f" for {sto_nm} and column \"power_loss\"")
+            self.storage_efficiency[i] = self._aux_check_finite_float(tmp_sto["efficiency"],
+                                                                f" for {sto_nm} and column \"efficiency\"")
 
     def _aux_check_finite_float(self, nb_, str_=""):
         """
