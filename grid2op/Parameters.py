@@ -87,7 +87,13 @@ class Parameters:
 
     ACTIVATE_STORAGE_LOSS: ``bool``
         You can set it to ``False`` to not take into account the loss in the storage units.
-        Loss amount per time step are given in the description of the storage unit.
+        This deactivates the "loss amount per time step" (`storage_loss`) and has also the effect to set
+        to do **as if** the
+        storage units were perfect (as if `storage_charging_efficiency=1.` and `storage_discharging_efficiency=1.`.
+
+        **NB** it does **as if** it were the case. But the parameters `storage_loss`, `storage_charging_efficiency`
+        and storage_discharging_efficiency` are not affected by this.
+
         Default: ``True``
 
     """

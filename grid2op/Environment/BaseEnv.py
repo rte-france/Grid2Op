@@ -368,7 +368,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._action_storage = None  # the storage action performed
         self._amount_storage = None  # total amount of storage to be dispatched
         self._amount_storage_prev = None
-        self._storage_need_reset = False
+        self._storage_power = None
 
     def change_parameters(self, new_parameters):
         """
@@ -484,9 +484,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._storage_current_charge = np.zeros(self.n_storage, dtype=dt_float)
         self._storage_previous_charge = np.zeros(self.n_storage, dtype=dt_float)
         self._action_storage = np.zeros(self.n_storage, dtype=dt_float)
+        self._storage_power = np.zeros(self.n_storage, dtype=dt_float)
         self._amount_storage = 0.
         self._amount_storage_prev = 0.
-        self._storage_need_reset = False
 
         # register this is properly initialized
         self.__is_init = True
@@ -541,9 +541,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # TODO not sure it's mandatory to set _storage_previous_charge
             self._storage_previous_charge[:] = tmp
             self._storage_current_charge[:] = tmp
+            self._storage_power[:] = 0.
             self._amount_storage = 0.
             self._amount_storage_prev = 0.
-            self._storage_need_reset = False
             # TODO storage: check in simulate too!
 
     def seed(self, seed=None):
@@ -1241,11 +1241,83 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         return 1.0 * self._thermal_limit_a
 
     def _withdraw_storage_losses(self):
+        """
+        empty the energy in the storage units depending on the `storage_loss`
+
+        NB this is a loss, this is not seen grid side, so `storage_discharging_efficiency` has no impact on this
+        """
         # NB this should be done AFTER the computation of self._amount_storage, because this energy is dissipated
         # in the storage units, thus NOT seen as power from the grid.
         if self.parameters.ACTIVATE_STORAGE_LOSS:
-            self._storage_current_charge -= self.storage_loss * self.delta_time_seconds / 3600.
+            tmp_ = self.storage_loss * self.delta_time_seconds / 3600.
+            self._storage_current_charge -= tmp_
+            # charge cannot be negative, but it can be below Emin if there are some uncompensated losses
+            self._storage_current_charge[:] = np.maximum(self._storage_current_charge, 0.)
+
+    def _compute_storage(self, action_storage_power):
+        self._storage_previous_charge[:] = self._storage_current_charge
+        storage_act = np.isfinite(action_storage_power)
+        self._action_storage[:] = 0.
+        self._storage_power[:] = 0.
+        modif = False
+        coeff_p_to_E = self.delta_time_seconds / 3600.  # TODO optim this is const for all time steps
+        if np.any(storage_act):
+            modif = True
+            this_act_stor = action_storage_power[storage_act]
+            eff_ = np.ones(np.sum(storage_act))
+            if self.parameters.ACTIVATE_STORAGE_LOSS:
+                fill_storage = this_act_stor > 0.  # index of storages that sees their charge increasing
+                unfill_storage = this_act_stor < 0.  # index of storages that sees their charge decreasing
+                eff_[fill_storage] *= self.storage_charging_efficiency[storage_act][fill_storage]
+                eff_[unfill_storage] /= self.storage_discharging_efficiency[storage_act][unfill_storage]
+            self._storage_current_charge[storage_act] += this_act_stor * coeff_p_to_E * eff_
+            self._action_storage[storage_act] += action_storage_power[storage_act]
+            self._storage_power[storage_act] = this_act_stor
+
+        if modif:
+            # indx when there is too much energy on the battery
+            indx_too_high = self._storage_current_charge > self.storage_Emax
+            if np.any(indx_too_high):
+                delta_ = (self._storage_current_charge[indx_too_high] - self.storage_Emax[indx_too_high])
+                tmp_ = 1. / coeff_p_to_E * delta_
+                if self.parameters.ACTIVATE_STORAGE_LOSS:
+                    # from the storage i need to reduce of tmp_ MW (to compensate the delta_ MWh)
+                    # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
+                    # it's a "/" because i need more energy from the grid than what the actual charge will be
+                    tmp_ /= self.storage_charging_efficiency[indx_too_high]
+                self._storage_power[indx_too_high] -= tmp_
+                self._storage_current_charge[indx_too_high] = self.storage_Emax[indx_too_high]
+
+            # indx when there is not enough energy on the battery
+            indx_too_low = self._storage_current_charge < self.storage_Emin
+            if np.any(indx_too_low):
+                delta_ = (self._storage_current_charge[indx_too_low] - self.storage_Emin[indx_too_low])
+                tmp_ = 1. / coeff_p_to_E * delta_
+                if self.parameters.ACTIVATE_STORAGE_LOSS:
+                    # from the storage i need to increase of tmp_ MW (to compensate the delta_ MWh)
+                    # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
+                    # it's a "*" because i have less power on the grid than what is removed from the battery
+                    tmp_ *= self.storage_discharging_efficiency[indx_too_low]
+                self._storage_power[indx_too_low] -= tmp_
+                self._storage_current_charge[indx_too_low] = self.storage_Emin[indx_too_low]
+
             self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
+            # storage is "load convention", dispatch is "generator convention"
+            # i need the generator to have the same sign as the action on the batteries
+            self._amount_storage = np.sum(self._storage_power)
+        else:
+            # battery effect should be removed, so i multiply it by -1.
+            self._amount_storage = 0.
+        tmp = self._amount_storage
+        self._amount_storage -= self._amount_storage_prev
+        self._amount_storage_prev = tmp
+
+        # dissipated energy, it's not seen on the grid, just lost in the storage unit.
+        # this is why it should not be taken into account in self._amount_storage
+        # and NOT absorbed by the generators either
+        # NB loss in the storage unit can make it got below Emin in energy, but never below 0.
+        self._withdraw_storage_losses()
+        # end storage
 
     def step(self, action):
         """
@@ -1348,6 +1420,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if not is_legal:
                 # action is replace by do nothing
                 action = self._helper_action_player({})
+                init_disp = 1.0 * action._redispatch  # dispatching action
+                action_storage_power = 1.0 * action._storage_power  # battery information
                 except_.append(reason)
                 is_illegal = True
 
@@ -1355,6 +1429,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if ambiguous:
                 # action is replace by do nothing
                 action = self._helper_action_player({})
+                init_disp = 1.0 * action._redispatch  # dispatching action
+                action_storage_power = 1.0 * action._storage_power  # battery information
                 is_ambiguous = True
                 except_.append(except_tmp)
 
@@ -1364,50 +1440,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_p = self._get_new_prod_setpoint(action)
 
             if self.n_storage > 0:
-                # TODO storage
+                self._compute_storage(action_storage_power)
 
-                # TODO storage consistency MWh, MW and time step !!!!
-                # we need to modify the self.storage_max_p_prod and self.storage_max_p_absorb !!!
-
-                # self._storage_current_charge[:]
-                self._storage_previous_charge[:] = self._storage_current_charge
-                storage_act = np.isfinite(action_storage_power)
-                self._action_storage[:] = 0.
-                modif = False
-                if np.any(storage_act):
-                    modif = True
-                    this_act_stor = action_storage_power[storage_act]
-                    coeff_ = self.delta_time_seconds / 3600.  # TODO optim this is const
-                    # TODO storage: add the storage_efficiency here
-                    eff_ = np.ones(np.sum(storage_act))
-                    if self.parameters.ACTIVATE_STORAGE_LOSS:
-                        fill_storage = this_act_stor > 0.   # index of storages that sees their charge increasing
-                        unfill_storage = this_act_stor < 0.  # index of storages that sees their charge decreasing
-                        eff_[fill_storage] *= self.storage_charging_efficiency[storage_act][fill_storage]
-                        eff_[unfill_storage] /= self.storage_discharging_efficiency[storage_act][unfill_storage]
-                    self._storage_current_charge[storage_act] += this_act_stor * coeff_ * eff_
-                    self._action_storage[storage_act] += action_storage_power[storage_act]
-
-                if modif:
-                    self._storage_current_charge[:] = np.minimum(self._storage_current_charge, self.storage_Emax)
-                    self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
-                    # storage is "load convention", dispatch is "generator convention"
-                    # i need the generator to have the same sign as the action on the batteries
-                    self._amount_storage = np.sum(self._action_storage)
-                else:
-                    # battery effect should be removed, so i multiply it by -1.
-                    self._amount_storage = 0.
-                tmp = self._amount_storage
-                self._amount_storage -= self._amount_storage_prev
-                self._amount_storage_prev = tmp
-
-                # dissipated energy, it's not seen on the grid, just lost in the storage unit.
-                # this is why it should not be taken into account in self._amount_storage
-                # and NOT absorbed by the generators either
-                self._withdraw_storage_losses()
-                # end storage
-
-            if self.redispatching_unit_commitment_availble:
+            if self.redispatching_unit_commitment_availble or self.n_storage > 0.:
                 # remember generator that were "up" before the action
                 gen_up_before = self._gen_activeprod_t > 0.
 
@@ -1456,8 +1491,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
+            # same kind of limit for the storage
             action._redispatch[:] = 0.
+            action._storage_power[:] = self._storage_power
             self._backend_action += action
+            action._storage_power[:] = action_storage_power
             action._redispatch[:] = init_disp
 
             self._backend_action += self._env_modification
@@ -1576,8 +1614,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_ambiguous)
         infos["rewards"] = other_reward
         if has_error and self.current_obs is not None:
-            # update the observation so when it's plotted everything is "down"
-            # generators information
+            # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over()
 
         # TODO documentation on all the possible way to be illegal now

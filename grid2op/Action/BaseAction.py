@@ -899,12 +899,11 @@ class BaseAction(GridObjects):
                         warnings.warn(warn)
 
     def _digest_setbus(self, dict_):
-        # TODO storage
         if "set_bus" in dict_:
             self._modif_set_bus = True
             if isinstance(dict_["set_bus"], np.ndarray):
                 # complete nodal topology vector is already provided
-                self._set_topo_vect = dict_["set_bus"]
+                self._set_topo_vect[:] = dict_["set_bus"]
             elif isinstance(dict_["set_bus"], dict):
                 ddict_ = dict_["set_bus"]
                 handled = False
@@ -978,7 +977,7 @@ class BaseAction(GridObjects):
             self._modif_change_bus = True
             if isinstance(dict_["change_bus"], np.ndarray):
                 # topology vector is already provided
-                self._change_bus_vect = dict_["change_bus"]
+                self._change_bus_vect[:] = dict_["change_bus"]
             elif isinstance(dict_["change_bus"], dict):
                 ddict_ = dict_["change_bus"]
                 if "loads_id" in ddict_:
@@ -1052,10 +1051,10 @@ class BaseAction(GridObjects):
                 tmp = dict_["hazards"]
                 try:
                     tmp = np.array(tmp)
-                except:
+                except Exception as exc_:
                     raise AmbiguousAction(
-                        "You ask to perform hazard on powerlines, this can only be done if \"hazards\" can be casted "
-                        "into a numpy ndarray")
+                        f"You ask to perform hazard on powerlines, this can only be done if \"hazards\" can be casted "
+                        f"into a numpy ndarray with error {exc_}")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
@@ -1079,10 +1078,10 @@ class BaseAction(GridObjects):
                 tmp = dict_["maintenance"]
                 try:
                     tmp = np.array(tmp)
-                except:
+                except Exception as exc_:
                     raise AmbiguousAction(
-                        "You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" can "
-                        "be casted into a numpy ndarray")
+                        f"You ask to perform maintenance on powerlines, this can only be done if \"maintenance\" can "
+                        f"be casted into a numpy ndarray with error {exc_}")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         raise InvalidNumberOfLines(
@@ -1109,8 +1108,8 @@ class BaseAction(GridObjects):
                 except Exception as exc_:
                     self._modif_change_status = False
                     raise AmbiguousAction(
-                        "You ask to change the bus status, this can only be done if \"change_status\" can be casted "
-                        "into a numpy ndarray")
+                        f"You ask to change the bus status, this can only be done if \"change_status\" can be casted "
+                        f"into a numpy ndarray with error {exc_}")
                 if np.issubdtype(tmp.dtype, np.dtype(bool).type):
                     if len(tmp) != self.n_line:
                         self._modif_change_status = False
@@ -1141,8 +1140,12 @@ class BaseAction(GridObjects):
             self._modif_redispatch = True
             tmp = dict_["redispatch"]
             if isinstance(tmp, np.ndarray):
+                if len(tmp) != self.n_gen:
+                    raise InvalidNumberOfGenerators(
+                        "This \"redispatch\" action acts on {} generators while there are {} in the grid".format(
+                            len(tmp), self.n_gen))
                 # complete redispatching is provided
-                self._redispatch = tmp
+                self._redispatch[:] = tmp
             elif isinstance(tmp, dict):
                 # dict must have key: generator to modify, value: the delta value applied to this generator
                 ddict_ = tmp
@@ -1204,6 +1207,8 @@ class BaseAction(GridObjects):
     def _digest_storage(self, dict_):
         # TODO refactor that with _digest_redispatching this is the same code (modif : __convert_and_set_storage instead
         # TODO of _convert_and_dispatch; warning message; keys of the dictionary.
+        # TODO and this would be the opportunity to also include modifications of elements with their names,
+        # TODO or other types of information
         if "set_storage" in dict_:
             if dict_["set_storage"] is None:
                 return
@@ -1211,7 +1216,11 @@ class BaseAction(GridObjects):
             tmp = dict_["set_storage"]
             if isinstance(tmp, np.ndarray):
                 # complete storage state is provided
-                self._storage_power = tmp
+                if len(tmp) != self.n_storage:
+                    raise InvalidStorage(
+                        "This \"redispatch\" action acts on {} storage units while there are {} in the grid".format(
+                            len(tmp), self.n_storage))
+                self._storage_power[:] = tmp
             elif isinstance(tmp, dict):
                 # dict must have key: generator to modify, value: the delta value applied to this generator
                 ddict_ = tmp
@@ -1604,26 +1613,7 @@ class BaseAction(GridObjects):
                                                    "are below pmin for some generator.")
 
         # storage specific checks:
-        if self._modif_storage:
-            if self.n_storage == 0:
-                raise InvalidStorage("Attempt to modify a storage unit while there is none on the grid")
-            if self._storage_power.shape[0] != self.n_storage:
-                raise InvalidStorage("self._storage_power.shape[0] != self.n_storage: wrong number of storage "
-                                     "units affected")
-            if np.any(self._storage_power < -self.storage_max_p_prod):
-                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
-                raise InvalidStorage(f"you asked a storage unit to absorb more than what it can: "
-                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
-            if np.any(self._storage_power > self.storage_max_p_absorb):
-                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
-                raise InvalidStorage(f"you asked a storage unit to produce more than what it can: "
-                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
-
-        if "_storage_power" not in self.attr_list_set:
-            if np.any(self._set_topo_vect[self.storage_pos_topo_vect] > 0):
-                raise InvalidStorage("Attempt to modify bus (set) of a storage unit")
-            if np.any(self._change_bus_vect[self.storage_pos_topo_vect]):
-                raise InvalidStorage("Attempt to modify bus (change) of a storage unit")
+        self._is_storage_ambiguous()
 
         # topological action
         if self._modif_set_bus and self._modif_change_bus and np.any(self._set_topo_vect[self._change_bus_vect] != 0):
@@ -1705,6 +1695,29 @@ class BaseAction(GridObjects):
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_q) while shunt data is not handled by backend")
             if self.shunt_bus is not None:
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled by backend")
+
+    def _is_storage_ambiguous(self):
+        """check if storage actions are ambiguous"""
+        if self._modif_storage:
+            if self.n_storage == 0:
+                raise InvalidStorage("Attempt to modify a storage unit while there is none on the grid")
+            if self._storage_power.shape[0] != self.n_storage:
+                raise InvalidStorage("self._storage_power.shape[0] != self.n_storage: wrong number of storage "
+                                     "units affected")
+            if np.any(self._storage_power < -self.storage_max_p_prod):
+                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
+                raise InvalidStorage(f"you asked a storage unit to absorb more than what it can: "
+                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
+            if np.any(self._storage_power > self.storage_max_p_absorb):
+                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
+                raise InvalidStorage(f"you asked a storage unit to produce more than what it can: "
+                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
+
+        if "_storage_power" not in self.attr_list_set:
+            if np.any(self._set_topo_vect[self.storage_pos_topo_vect] > 0):
+                raise InvalidStorage("Attempt to modify bus (set) of a storage unit")
+            if np.any(self._change_bus_vect[self.storage_pos_topo_vect]):
+                raise InvalidStorage("Attempt to modify bus (change) of a storage unit")
 
     def _ignore_topo_action_if_disconnection(self, sel_):
         # force ignore of any topological actions

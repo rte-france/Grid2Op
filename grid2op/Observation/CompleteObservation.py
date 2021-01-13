@@ -139,7 +139,7 @@ class CompleteObservation(BaseObservation):
         # storage units
         self.storage_charge[:] = env._storage_current_charge
         self.storage_power_target = env._action_storage
-        self.storage_power = env._storage_current_charge - env._storage_previous_charge
+        self.storage_power = env._storage_power
 
         # handles forecasts here
         if with_forecast:

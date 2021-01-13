@@ -14,20 +14,11 @@ import warnings
 from grid2op.tests.helper_path_test import *
 
 import grid2op
-from grid2op.Exceptions import *
-from grid2op.Environment import Environment
-from grid2op.Backend import PandaPowerBackend
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, GridStateFromFile, ChangeNothing
-from grid2op.Reward import L2RPNReward
-from grid2op.MakeEnv import make
-from grid2op.Rules import RulesChecker, DefaultRules
-from grid2op.Action import *
 from grid2op.dtypes import dt_float
 
 import warnings
 
-# TODO check when ambiguous
 # TODO check when there is also redispatching
 
 
@@ -115,6 +106,8 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I asked to absorb 3MW, so dispatch should produce 3MW more
         assert np.abs(np.sum(obs.actual_dispatch) - (+3.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [3., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [3., 0.]) <= self.tol_one)
 
         # second action (battery produces something, with efficiency != 1.)
         act = self.env.action_space({"set_storage": [(1, -5)]})  # ask the second storage to produce 3MW (during 5 mins)
@@ -128,6 +121,8 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I asked to produce 5MW, so dispatch should produce 5MW more
         assert np.abs(np.sum(obs.actual_dispatch) - (-5.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., -5.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., -5.]) <= self.tol_one)
 
         # third modify the storage capacity (charge a battery, with efficiency == 1.)
         act = self.env.action_space({"set_storage": [(0, -1)]})
@@ -140,6 +135,8 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I asked to produce 5MW, so dispatch should produce 5MW more
         assert np.abs(np.sum(obs.actual_dispatch) - (-1.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [-1., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [-1, 0.]) <= self.tol_one)
 
         # fourth modify the storage capacity (discharge a battery, with efficiency == 1.)
         act = self.env.action_space({"set_storage": [(1, 2)]})
@@ -152,6 +149,8 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I asked to produce 5MW, so dispatch should produce 5MW more
         assert np.abs(np.sum(obs.actual_dispatch) - (2.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., 2.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., 2.]) <= self.tol_one)
 
         # fifth i do nothing and make sure everything is reset
         act = self.env.action_space()  # ask the second storage to produce 3MW (during 5 mins)
@@ -162,6 +161,8 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I did not modify the battery, so i should not modify the dispatch
         assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., 0.]) <= self.tol_one)
 
         # sixth i do nothing and make sure everything is reset
         act = self.env.action_space()  # ask the second storage to produce 3MW (during 5 mins)
@@ -172,6 +173,8 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I did not modify the battery, so i should not modify the dispatch
         assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., 0.]) <= self.tol_one)
 
     def test_activate_storage_loss(self):
         """
@@ -220,7 +223,7 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.storage_charge - init_charge) <= self.tol_one), "wrong initial capacity"
         for nb_ts in range(8):
             obs, reward, done, info = env.step(act)
-            assert np.all(np.abs(obs.storage_charge - (init_charge - (nb_ts +1) * loss)) <= self.tol_one), \
+            assert np.all(np.abs(obs.storage_charge - (init_charge - (nb_ts + 1) * loss)) <= self.tol_one), \
                 f"wrong value computed for time step {nb_ts} (with loss in storage)"
 
         # now a loss should 'cap' the second battery
@@ -244,5 +247,282 @@ class TestStorageEnv(HelperTests):
         assert np.all(np.abs(obs.storage_charge) <= self.tol_one), "error, battery should be empty - 2"
 
     def test_env_storage_ambiguous(self):
-        """test i cannot perform normal storage actions (no trick here) just normal actions"""
-        pass
+        """test i can detect ambiguous storage actions"""
+
+        # above the maximum flow you can absorb (max is 5)
+        act = self.env.action_space({"set_storage": [(0, 5.1)]})
+        obs, reward, done, info = self.env.step(act)
+        assert info["exception"]
+        assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., 0.]) <= self.tol_one)
+
+        # lower the maximum flow you can produce (max is 10)
+        act = self.env.action_space({"set_storage": [(1, -10.1)]})
+        obs, reward, done, info = self.env.step(act)
+        assert info["exception"]
+        assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., 0.]) <= self.tol_one)
+
+        # wrong number of storage
+        with self.assertRaises(Exception):
+            act = self.env.action_space({"set_storage": np.zeros(3)})
+            obs, reward, done, info = self.env.step(act)
+            if info["exception"]:
+                raise info["exception"][0]  # test should pass: if action can be done, it should be ambiguous
+            # if info["exception"] is [] then i don't raise anything, and the test fails
+        assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., 0.]) <= self.tol_one)
+
+        with self.assertRaises(Exception):
+            act = self.env.action_space({"set_storage": np.zeros(1)})
+            obs, reward, done, info = self.env.step(act)
+            if info["exception"]:
+                raise info["exception"][0]  # test should pass: if action can be done, it should be ambiguous
+            # if info["exception"] is [] then i don't raise anything, and the test fails
+        assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one
+        assert np.all(np.abs(obs.storage_power_target - [0., 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_power - [0., 0.]) <= self.tol_one)
+
+    def test_env_storage_cut_because_too_high_noloss(self):
+        """
+        test the correct behaviour is met when storage energy would be too high (need to cut DOWN the action)
+        and we don't take into account the loss and inefficiencies
+        """
+        init_coeff = 0.99
+        param = Parameters()
+        param.ACTIVATE_STORAGE_LOSS = False  # to simplify the computation, in this first test
+        param.INIT_STORAGE_CAPACITY = init_coeff
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage", test=True, param=param)
+        self.env.close()
+        self.env = env
+
+        obs = self.env.reset()
+        init_storage = np.array([14.85,  6.9300003], dtype=dt_float)
+        assert np.all(np.abs(obs.storage_charge - init_storage) <= self.tol_one)
+
+        # too high in second battery, ok for first step
+        array_modif = np.array([1.5, 10.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge <= self.env.storage_Emax)
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + init_storage)) <= self.tol_one)
+        state_of_charge = 1. * obs.storage_charge
+
+        # now both batteries are capped
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge <= self.env.storage_Emax)
+        assert np.abs(obs.storage_power[1]) <= self.tol_one  # second battery cannot charge anymore
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge)) <= self.tol_one)
+        state_of_charge = 1. * obs.storage_charge
+
+        # now both batteries are capped
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge <= self.env.storage_Emax)
+        assert np.all(np.abs(obs.storage_power) <= self.tol_one)  # all batteries cannot charge anymore
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge)) <= self.tol_one)
+
+    def test_env_storage_cut_because_too_high_withloss(self):
+        """test the correct behaviour is met when storage energy would be too high (need to cut DOWN the action)"""
+        init_coeff = 0.99
+        param = Parameters()
+        param.ACTIVATE_STORAGE_LOSS = True
+        param.INIT_STORAGE_CAPACITY = init_coeff
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage", test=True, param=param)
+        self.env.close()
+        self.env = env
+
+        obs = self.env.reset()
+        init_storage = np.array([14.85,  6.9300003], dtype=dt_float)
+        assert np.all(np.abs(obs.storage_charge - init_storage) <= self.tol_one)
+
+        loss = 1.0 * env.storage_loss
+        loss /= 12.  # i have 12 steps per hour (ts =  5mins, losses are given in MW and capacity in MWh)
+
+        # too high in second battery, ok for first step
+        array_modif = np.array([1.5, 10.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge <= self.env.storage_Emax)
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        bat_energy_added *= obs.storage_charging_efficiency  # there are inefficiencies
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + init_storage - loss)) <= self.tol_one)
+        # only the loss makes the second storage unit not full
+        assert np.abs(obs.storage_charge[1] - (self.env.storage_Emax[1] - loss[1])) <= self.tol_one
+        state_of_charge = 1. * obs.storage_charge
+
+        # after this action both batteries are capped
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge <= self.env.storage_Emax)
+        # second battery cannot charge more than the loss
+        val = env.storage_loss[1] / self.env.storage_charging_efficiency[1]
+        assert np.abs(obs.storage_power[1] - val) <= self.tol_one
+        # all batteries are charged at maximum now
+        assert np.all(np.abs(obs.storage_charge - (self.env.storage_Emax - loss)) <= self.tol_one)
+        bat_energy_added = 1.0 * obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        bat_energy_added *= obs.storage_charging_efficiency  # there are inefficiencies
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge - loss)) <= self.tol_one)
+        state_of_charge = 1. * obs.storage_charge
+
+        # both batteries are at maximum, i can only charge them of the losses
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge <= self.env.storage_Emax)
+        # second battery cannot charge more than the loss
+        val = env.storage_loss / self.env.storage_charging_efficiency
+        assert np.all(np.abs(obs.storage_power - val) <= self.tol_one)
+        # all batteries are charged at maximum now
+        assert np.all(np.abs(obs.storage_charge - (self.env.storage_Emax - loss)) <= self.tol_one)
+        bat_energy_added = 1.0 * obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        bat_energy_added *= obs.storage_charging_efficiency  # there are inefficiencies
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge - loss)) <= self.tol_one)
+
+    def test_env_storage_cut_because_too_low_noloss(self):
+        """
+        test the correct behaviour is met when storage energy would be too low (need to cut the action)
+        and we don't take into account the loss and inefficiencies
+        """
+        init_coeff = 0.01
+        param = Parameters()
+        param.ACTIVATE_STORAGE_LOSS = False  # to simplify the computation, in this first test
+        param.INIT_STORAGE_CAPACITY = init_coeff
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage", test=True, param=param)
+        self.env.close()
+        self.env = env
+
+        obs = self.env.reset()
+        init_storage = np.array([0.14999999, 0.07], dtype=dt_float)
+        assert np.all(np.abs(obs.storage_charge - init_storage) <= self.tol_one)
+
+        # too high in second battery, ok for first step
+        array_modif = np.array([-1.5, -10.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge >= self.env.storage_Emin)
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + init_storage)) <= self.tol_one)
+        state_of_charge = 1. * obs.storage_charge
+
+        # now both batteries are capped
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge >= self.env.storage_Emin)
+        assert np.abs(obs.storage_power[1]) <= self.tol_one  # second battery cannot charge anymore
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge)) <= self.tol_one)
+        state_of_charge = 1. * obs.storage_charge
+
+        # now both batteries are capped
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge >= self.env.storage_Emin)
+        assert np.all(np.abs(obs.storage_power) <= self.tol_one)  # all batteries cannot charge anymore
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge)) <= self.tol_one)
+
+    def test_env_storage_cut_because_too_low_withloss(self):
+        """test the correct behaviour is met when storage energy would be too low (need to cut the action)"""
+        init_coeff = 0.01
+        param = Parameters()
+        param.ACTIVATE_STORAGE_LOSS = True
+        param.INIT_STORAGE_CAPACITY = init_coeff
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("educ_case14_storage", test=True, param=param)
+        self.env.close()
+        self.env = env
+
+        obs = self.env.reset()
+        init_storage = np.array([0.14999999, 0.07], dtype=dt_float)
+        assert np.all(np.abs(obs.storage_charge - init_storage) <= self.tol_one)
+
+        loss = 1.0 * env.storage_loss
+        loss /= 12.  # i have 12 steps per hour (ts =  5mins, losses are given in MW and capacity in MWh)
+
+        # too high in second battery, ok for first step
+        array_modif = np.array([-1.5, -10.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge >= self.env.storage_Emin)
+        assert np.all(obs.storage_power <= 0.)  # I emptied the battery
+        bat_energy_added = obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        # there are inefficiencies (I remove MORE energy from the battery than what i get in the grid)
+        bat_energy_added /= obs.storage_discharging_efficiency
+        # below i said [loss[0], 0.] because i don't have loss on an empty battery
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + init_storage - [loss[0], 0.])) <= self.tol_one)
+        # only the loss makes the second storage unit not full
+        assert np.abs(obs.storage_charge[1] - (self.env.storage_Emin[1] )) <= self.tol_one
+        state_of_charge = 1. * obs.storage_charge
+
+        # after this action both batteries are capped
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge >= self.env.storage_Emin)
+        assert np.all(obs.storage_power <= 0.)  # I emptied the battery
+        # second battery cannot be discharged more
+        assert np.abs(obs.storage_power[1] - 0.) <= self.tol_one
+        # all batteries are charged at minimum now (only because Emin is 0.)
+        assert np.all(np.abs(obs.storage_charge - self.env.storage_Emin) <= self.tol_one)
+        bat_energy_added = 1.0 * obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        # there are inefficiencies (I remove MORE energy from the battery than what i get in the grid)
+        bat_energy_added /= obs.storage_discharging_efficiency  # there are inefficiencies
+        # below i said [0., 0.] because i don't have loss on an empty battery
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge - [0., 0.])) <= self.tol_one)
+        state_of_charge = 1. * obs.storage_charge
+
+        # both batteries are at maximum, i can only charge them of the losses
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert np.all(np.abs(obs.storage_power_target - array_modif) <= self.tol_one)
+        assert np.abs(np.sum(obs.actual_dispatch) - np.sum(obs.storage_power)) <= self.tol_one
+        assert np.all(obs.storage_charge >= self.env.storage_Emin)
+        assert np.all(obs.storage_power <= 0.)  # I emptied the battery
+        # second battery cannot be discharged more than it is
+        assert np.all(np.abs(obs.storage_power - 0.) <= self.tol_one)
+        # all batteries are charged at maximum now
+        assert np.all(np.abs(obs.storage_charge - self.env.storage_Emin) <= self.tol_one)
+        bat_energy_added = 1.0 * obs.storage_power / 12.  # amount of energy if the power is maintained for 5mins
+        # there are inefficiencies (I remove MORE energy from the battery than what i get in the grid)
+        bat_energy_added /= obs.storage_discharging_efficiency  # there are inefficiencies
+        # below i said [0., 0.] because i don't have loss on an empty battery
+        assert np.all(np.abs(obs.storage_charge - (bat_energy_added + state_of_charge - [0., 0.])) <= self.tol_one)
