@@ -99,7 +99,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                       "storage_max_p_absorb": [],
                       "storage_marginal_cost": [],
                       "storage_loss": [],
-                      'storage_efficiency': [],
+                      'storage_charging_efficiency': [],
+                      'storage_discharging_efficiency': [],
                       '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
         self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],

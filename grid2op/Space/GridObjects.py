@@ -171,8 +171,6 @@ class GridObjects:
 
     These information are loaded using the :func:`grid2op.Backend.Backend.load_redispacthing_data` method.
 
-
-
     **NB** it does not store any information about the current state of the powergrid. It stores information that
     cannot be modified by the BaseAgent, the Environment or any other entity.
 
@@ -451,7 +449,8 @@ class GridObjects:
     storage_max_p_absorb = None
     storage_marginal_cost = None
     storage_loss = None
-    storage_efficiency = None
+    storage_charging_efficiency = None
+    storage_discharging_efficiency = None
 
     # grid layout
     grid_layout = None
@@ -1481,8 +1480,10 @@ class GridObjects:
             raise IncorrectNumberOfStorages("self.storage_marginal_cost is None")
         if self.storage_loss is None:
             raise IncorrectNumberOfStorages("self.storage_loss is None")
-        if self.storage_efficiency is None:
-            raise IncorrectNumberOfStorages("self.storage_efficiency is None")
+        if self.storage_discharging_efficiency is None:
+            raise IncorrectNumberOfStorages("self.storage_discharging_efficiency is None")
+        if self.storage_charging_efficiency is None:
+            raise IncorrectNumberOfStorages("self.storage_charging_efficiency is None")
 
         if self.storage_type.shape[0] != self.n_storage:
             raise IncorrectNumberOfStorages("self.storage_type.shape[0] != self.n_storage")
@@ -1498,8 +1499,10 @@ class GridObjects:
             raise IncorrectNumberOfStorages("self.storage_marginal_cost.shape[0] != self.n_storage")
         if self.storage_loss.shape[0] != self.n_storage:
             raise IncorrectNumberOfStorages("self.storage_loss.shape[0] != self.n_storage")
-        if self.storage_efficiency.shape[0] != self.n_storage:
-            raise IncorrectNumberOfStorages("self.storage_efficiency.shape[0] != self.n_storage")
+        if self.storage_discharging_efficiency.shape[0] != self.n_storage:
+            raise IncorrectNumberOfStorages("self.storage_discharging_efficiency.shape[0] != self.n_storage")
+        if self.storage_charging_efficiency.shape[0] != self.n_storage:
+            raise IncorrectNumberOfStorages("self.storage_charging_efficiency.shape[0] != self.n_storage")
 
         if np.any(~np.isfinite(self.storage_Emax)):
             raise BackendError("np.any(~np.isfinite(self.storage_Emax))")
@@ -1513,8 +1516,10 @@ class GridObjects:
             raise BackendError("np.any(~np.isfinite(self.storage_marginal_cost))")
         if np.any(~np.isfinite(self.storage_loss)):
             raise BackendError("np.any(~np.isfinite(self.storage_loss))")
-        if np.any(~np.isfinite(self.storage_efficiency)):
-            raise BackendError("np.any(~np.isfinite(self.storage_efficiency))")
+        if np.any(~np.isfinite(self.storage_charging_efficiency)):
+            raise BackendError("np.any(~np.isfinite(self.storage_charging_efficiency))")
+        if np.any(~np.isfinite(self.storage_discharging_efficiency)):
+            raise BackendError("np.any(~np.isfinite(self.storage_discharging_efficiency))")
 
         if np.any(self.storage_Emax < self.storage_Emin):
             tmp = np.where(self.storage_Emax < self.storage_Emin)[0]
@@ -1534,12 +1539,18 @@ class GridObjects:
         if np.any(self.storage_loss < 0.):
             tmp = np.where(self.storage_loss < 0.)[0]
             raise BackendError(f"self.storage_loss < 0. for storage units with ids: {tmp}")
-        if np.any(self.storage_efficiency < 0.):
-            tmp = np.where(self.storage_efficiency < 0.)[0]
-            raise BackendError(f"self.storage_efficiency < 0. for storage units with ids: {tmp}")
-        if np.any(self.storage_efficiency > 1.):
-            tmp = np.where(self.storage_efficiency > 1.)[0]
-            raise BackendError(f"self.storage_efficiency > 1. for storage units with ids: {tmp}")
+        if np.any(self.storage_discharging_efficiency <= 0.):
+            tmp = np.where(self.storage_discharging_efficiency <= 0.)[0]
+            raise BackendError(f"self.storage_discharging_efficiency <= 0. for storage units with ids: {tmp}")
+        if np.any(self.storage_discharging_efficiency > 1.):
+            tmp = np.where(self.storage_discharging_efficiency > 1.)[0]
+            raise BackendError(f"self.storage_discharging_efficiency > 1. for storage units with ids: {tmp}")
+        if np.any(self.storage_charging_efficiency < 0.):
+            tmp = np.where(self.storage_charging_efficiency < 0.)[0]
+            raise BackendError(f"self.storage_charging_efficiency < 0. for storage units with ids: {tmp}")
+        if np.any(self.storage_charging_efficiency > 1.):
+            tmp = np.where(self.storage_charging_efficiency > 1.)[0]
+            raise BackendError(f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}")
 
     def _check_validity_shunt_data(self):
         if self.n_shunt is None:
@@ -1821,7 +1832,8 @@ class GridObjects:
         res.storage_max_p_absorb = gridobj.storage_max_p_absorb
         res.storage_marginal_cost = gridobj.storage_marginal_cost
         res.storage_loss = gridobj.storage_loss
-        res.storage_efficiency = gridobj.storage_efficiency
+        res.storage_charging_efficiency = gridobj.storage_charging_efficiency
+        res.storage_discharging_efficiency = gridobj.storage_discharging_efficiency
 
         res.__name__ = name_res
         res.__qualname__ = "{}_{}".format(cls.__qualname__, gridobj.env_name)
@@ -2268,7 +2280,8 @@ class GridObjects:
         save_to_dict(res, cls, "storage_max_p_absorb", lambda li: [float(el) for el in li])
         save_to_dict(res, cls, "storage_marginal_cost", lambda li: [float(el) for el in li])
         save_to_dict(res, cls, "storage_loss", lambda li: [float(el) for el in li])
-        save_to_dict(res, cls, "storage_efficiency", lambda li: [float(el) for el in li])
+        save_to_dict(res, cls, "storage_charging_efficiency", lambda li: [float(el) for el in li])
+        save_to_dict(res, cls, "storage_discharging_efficiency", lambda li: [float(el) for el in li])
 
         return res
 
@@ -2364,7 +2377,8 @@ class GridObjects:
             extract_from_dict(dict_, "storage_max_p_absorb", lambda x: np.array(x).astype(dt_float))
             extract_from_dict(dict_, "storage_marginal_cost", lambda x: np.array(x).astype(dt_float))
             extract_from_dict(dict_, "storage_loss", lambda x: np.array(x).astype(dt_float))
-            extract_from_dict(dict_, "storage_efficiency", lambda x: np.array(x).astype(dt_float))
+            extract_from_dict(dict_, "storage_charging_efficiency", lambda x: np.array(x).astype(dt_float))
+            extract_from_dict(dict_, "storage_discharging_efficiency", lambda x: np.array(x).astype(dt_float))
         else:
             # backward compatibility: no storage were supported
             cls.set_no_storage()
@@ -2397,7 +2411,8 @@ class GridObjects:
         cls.storage_max_p_absorb = np.array([], dtype=dt_float)
         cls.storage_marginal_cost = np.array([], dtype=dt_float)
         cls.storage_loss = np.array([], dtype=dt_float)
-        cls.storage_efficiency = np.array([], dtype=dt_float)
+        cls.storage_charging_efficiency = np.array([], dtype=dt_float)
+        cls.storage_discharging_efficiency = np.array([], dtype=dt_float)
 
     @classmethod
     def same_grid_class(cls, other_cls) -> bool:

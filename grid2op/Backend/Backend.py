@@ -997,16 +997,25 @@ class Backend(GridObjects, ABC):
             - "marginal_cost": cost in $ (or any currency, really) of usage of the battery.
             - "power_discharge_loss" (optional): power loss in the battery in MW (the capacity will decrease constantly
               of this amount). Set it to 0.0 to deactivate it. If not present, it is set to 0.
-            - "efficiency" (optional): battery efficiency defined as the "AC-AC" round trip efficiency.
-               Float between 0. and 1.. 1. Meaning that the storage unit can give back 100% of the power it has
-               storage, 0.5 means that if you want to retrieve in the future say 100MWh you have to charge it
-               with 200MWh. [this is take into account once when the battery is charged, we don't model
-               independantly charging efficiency and discharging efficiency.]
+            - "charging_efficiency" (optional):
+               Float between 0. and 1. 1. means that if the grid provides 1MWh to the storage capacity, then the
+               state of charge of the battery will increase of 1MWh. If this efficiency is 0.5 then if 1MWh
+               if provided by the grid, then only 0.5MWh will be stored.
+            - "discharging_efficiency" (optional): battery efficiency when it is discharged. 1.0 means if you want to
+              get 1MWh on the grid, the battery state of charge will decrease by 1MWh. If this is 33% then it
+              means if you want to get (grid point of view) 1MWh on the grid, you need to decrease the
+              state of charge of 3MWh.
 
         name: ``str``
             Name of the dataframe containing the redispatching data. Defaults to 'prods_charac.csv', we don't advise
             to change it.
 
+        Notes
+        -----
+        The battery efficiency defined as the "AC-AC" round trip efficiency is, with the convention above, defined
+        as `charging_efficiency * discharging_efficency` (see
+        https://www.greeningthegrid.org/news/new-resource-grid-scale-battery-storage-frequently-asked-questions-1
+        for further references)
         """
         if self.n_storage == 0:
             # nothing to do if there is no battery on the grid.
@@ -1048,10 +1057,14 @@ class Backend(GridObjects, ABC):
                 stor_info[row["name"]]["power_loss"] = row["power_loss"]
             else:
                 stor_info[row["name"]]["power_loss"] = 0.
-            if "efficiency" in row:
-                stor_info[row["name"]]["efficiency"] = row["efficiency"]
+            if "charging_efficiency" in row:
+                stor_info[row["name"]]["charging_efficiency"] = row["charging_efficiency"]
             else:
-                stor_info[row["name"]]["efficiency"] = 0.
+                stor_info[row["name"]]["charging_efficiency"] = 0.
+            if "discharging_efficiency" in row:
+                stor_info[row["name"]]["discharging_efficiency"] = row["discharging_efficiency"]
+            else:
+                stor_info[row["name"]]["discharging_efficiency"] = 0.
 
         self.storage_type = np.full(self.n_storage, fill_value="aaaaaaaaaa")
         self.storage_Emax = np.full(self.n_storage, fill_value=1., dtype=dt_float)
@@ -1060,7 +1073,8 @@ class Backend(GridObjects, ABC):
         self.storage_max_p_absorb = np.full(self.n_storage, fill_value=1., dtype=dt_float)
         self.storage_marginal_cost = np.full(self.n_storage, fill_value=1., dtype=dt_float)
         self.storage_loss = np.full(self.n_storage, fill_value=0., dtype=dt_float)
-        self.storage_efficiency = np.full(self.n_storage, fill_value=0., dtype=dt_float)
+        self.storage_charging_efficiency = np.full(self.n_storage, fill_value=1., dtype=dt_float)
+        self.storage_discharging_efficiency = np.full(self.n_storage, fill_value=1., dtype=dt_float)
 
         for i, sto_nm in enumerate(self.name_storage):
             try:
@@ -1080,8 +1094,12 @@ class Backend(GridObjects, ABC):
                                                                          f" for {sto_nm} and column \"marginal_cost\"")
             self.storage_loss[i] = self._aux_check_finite_float(tmp_sto["power_loss"],
                                                                 f" for {sto_nm} and column \"power_loss\"")
-            self.storage_efficiency[i] = self._aux_check_finite_float(tmp_sto["efficiency"],
-                                                                f" for {sto_nm} and column \"efficiency\"")
+            self.storage_charging_efficiency[i] = self._aux_check_finite_float(
+                tmp_sto["charging_efficiency"],
+                f" for {sto_nm} and column \"charging_efficiency\"")
+            self.storage_discharging_efficiency[i] = self._aux_check_finite_float(
+                tmp_sto["discharging_efficiency"],
+                f" for {sto_nm} and column \"discharging_efficiency\"")
 
     def _aux_check_finite_float(self, nb_, str_=""):
         """

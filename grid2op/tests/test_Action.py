@@ -108,7 +108,8 @@ class TestActionBase(ABC):
         GridObjects.storage_max_p_absorb = np.array([15., 15.])
         GridObjects.storage_marginal_cost = np.array([0., 0.])
         GridObjects.storage_loss = np.array([0., 0.])
-        GridObjects.storage_efficiency = np.array([1., 1.])
+        GridObjects.storage_discharging_efficiency = np.array([1., 1.])
+        GridObjects.storage_charging_efficiency = np.array([1., 1.])
 
         self.gridobj = GridObjects()
 
@@ -171,7 +172,8 @@ class TestActionBase(ABC):
             "storage_max_p_absorb": [15., 15.],
             "storage_marginal_cost": [0., 0.],
             "storage_loss": [0., 0.],
-            "storage_efficiency": [1., 1.],
+            "storage_charging_efficiency": [1., 1.],
+            "storage_discharging_efficiency": [1., 1.],
             "grid_layout": None,
             "shunt_to_subid": None,
             "name_shunt": None

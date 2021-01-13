@@ -86,7 +86,12 @@ class TestStorageEnv(HelperTests):
         assert str_ == real_str
 
     def test_env_storage_ok(self):
-        """test i can perform normal storage actions (no trick here) just normal actions"""
+        """
+        test i can perform normal storage actions (no trick here) just normal actions
+
+        this test the proper computing of the charge of the storage units, the proper computing of the
+        redispatching etc.
+        """
 
         # first test the storage loss
         act = self.env.action_space()
@@ -97,47 +102,73 @@ class TestStorageEnv(HelperTests):
             assert np.all(np.abs(obs.storage_charge - (0.5 * obs.storage_Emax - (nb_ts + 1) * loss)) <= self.tol_one), \
                    f"wrong value computed for time step {nb_ts}"
 
-        # now modify the storage capacity
+        # now modify the storage capacity (charge a battery, with efficiency != 1.)
         # storage value is [7.4583335, 3.4583333]
         act = self.env.action_space({"set_storage": [(0, 3)]})  # ask the first storage to absorb 3MW (during 5 mins)
         obs, reward, done, info = self.env.step(act)
         assert not info["exception"]  # there should be no exception here
         # without modif it's [7.4583335, 3.4583333] - loss
         # modif adds [3 / 12, 0.]  # 3/12 is because i ask to absorb 3 MW during 5 mins
-        # final result is [7.70000017, 3.44999997]
-        assert np.all(np.abs(obs.storage_charge - [7.70000017, 3.44999997]) <= self.tol_one)
+        # but storage efficiency of battery 0 is 0.95, so i don't store 3/12. but 0.95 * 3/12
+        # result is [7.70000017, 3.44999997]
+        assert np.all(np.abs(obs.storage_charge - [7.68750017, 3.44999997]) <= self.tol_one)
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I asked to absorb 3MW, so dispatch should produce 3MW more
         assert np.abs(np.sum(obs.actual_dispatch) - (+3.)) <= self.tol_one
 
-        # second action (battery produces something)
+        # second action (battery produces something, with efficiency != 1.)
         act = self.env.action_space({"set_storage": [(1, -5)]})  # ask the second storage to produce 3MW (during 5 mins)
         obs, reward, done, info = self.env.step(act)
         assert not info["exception"]  # there should be no exception here
-        # without modif it's [7.70000017, 3.44999997] - loss
+        # without modif it's [7.68750017, 3.44999997] - loss
         # modif adds [0., -5/12.]  # -5/12 is because i ask to produce 5 MW during 5 mins
-        # final result is [7.69166684, 3.02499997]
-        assert np.all(np.abs(obs.storage_charge - [7.69166684, 3.02499997]) <= self.tol_one)
+        # but second battery discharging efficiency is 0.9 so the actual charge will decrease of -5/12 * (1/0.9)
+        # final result is [7.67916684, 2.97870367]
+        assert np.all(np.abs(obs.storage_charge - [7.67916684, 2.97870367]) <= self.tol_one)
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I asked to produce 5MW, so dispatch should produce 5MW more
         assert np.abs(np.sum(obs.actual_dispatch) - (-5.)) <= self.tol_one
 
-        # third i do nothing and make sure everything is reset
+        # third modify the storage capacity (charge a battery, with efficiency == 1.)
+        act = self.env.action_space({"set_storage": [(0, -1)]})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]  # there should be no exception here
+        # without modif it's [7.67916684, 2.97870367] - loss
+        # modif adds [-1/12., 0.]  # -1/12 is because i ask to produce 1 MW during 5 mins
+        # final result is [7.58750017, 2.97037034]
+        assert np.all(np.abs(obs.storage_charge - [7.58750017, 2.97037034]) <= self.tol_one)
+        assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
+        # I asked to produce 5MW, so dispatch should produce 5MW more
+        assert np.abs(np.sum(obs.actual_dispatch) - (-1.)) <= self.tol_one
+
+        # fourth modify the storage capacity (discharge a battery, with efficiency == 1.)
+        act = self.env.action_space({"set_storage": [(1, 2)]})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]  # there should be no exception here
+        # without modif it's [7.58750017, 2.97037034] - loss
+        # modif adds [0., 2/12.]  # 2/12 is because i ask to produce 2 MW during 5 mins
+        # final result is [7.57916684, 3.12870367] => rounded to [7.579168 , 3.1287026]
+        assert np.all(np.abs(obs.storage_charge - [7.57916684, 3.12870367]) <= self.tol_one)
+        assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
+        # I asked to produce 5MW, so dispatch should produce 5MW more
+        assert np.abs(np.sum(obs.actual_dispatch) - (2.)) <= self.tol_one
+
+        # fifth i do nothing and make sure everything is reset
         act = self.env.action_space()  # ask the second storage to produce 3MW (during 5 mins)
         obs, reward, done, info = self.env.step(act)
         assert not info["exception"]  # there should be no exception here
-        # without modif it's [7.69166684, 3.02499997]- loss
-        assert np.all(np.abs(obs.storage_charge - ([7.68333351, 3.01666664])) <= self.tol_one)
+        # without modif it's [7.579168 , 3.1287026]- loss
+        assert np.all(np.abs(obs.storage_charge - ([7.57083467, 3.12036927])) <= self.tol_one)
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I did not modify the battery, so i should not modify the dispatch
         assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one
 
-        # third i do nothing and make sure everything is reset
+        # sixth i do nothing and make sure everything is reset
         act = self.env.action_space()  # ask the second storage to produce 3MW (during 5 mins)
         obs, reward, done, info = self.env.step(act)
         assert not info["exception"]  # there should be no exception here
-        # without modif it's [7.68333351, 3.01666664] - loss
-        assert np.all(np.abs(obs.storage_charge - ([7.67500018, 3.00833331])) <= self.tol_one)
+        # without modif it's [7.57083467, 3.12036927] - loss
+        assert np.all(np.abs(obs.storage_charge - ([7.56250134, 3.11203594])) <= self.tol_one)
         assert np.all(np.abs(obs.target_dispatch) <= self.tol_one)  # i did not do any dispatch
         # I did not modify the battery, so i should not modify the dispatch
         assert np.abs(np.sum(obs.actual_dispatch) - (0.)) <= self.tol_one

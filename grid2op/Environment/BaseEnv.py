@@ -1376,9 +1376,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 modif = False
                 if np.any(storage_act):
                     modif = True
+                    this_act_stor = action_storage_power[storage_act]
                     coeff_ = self.delta_time_seconds / 3600.  # TODO optim this is const
                     # TODO storage: add the storage_efficiency here
-                    self._storage_current_charge[storage_act] += action_storage_power[storage_act] * coeff_
+                    eff_ = np.ones(np.sum(storage_act))
+                    if self.parameters.ACTIVATE_STORAGE_LOSS:
+                        fill_storage = this_act_stor > 0.   # index of storages that sees their charge increasing
+                        unfill_storage = this_act_stor < 0.  # index of storages that sees their charge decreasing
+                        eff_[fill_storage] *= self.storage_charging_efficiency[storage_act][fill_storage]
+                        eff_[unfill_storage] /= self.storage_discharging_efficiency[storage_act][unfill_storage]
+                    self._storage_current_charge[storage_act] += this_act_stor * coeff_ * eff_
                     self._action_storage[storage_act] += action_storage_power[storage_act]
 
                 if modif:
