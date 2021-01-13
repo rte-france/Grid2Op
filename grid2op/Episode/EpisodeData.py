@@ -160,6 +160,7 @@ class EpisodeData:
                  logger=None,
                  name="EpisodeData",
                  get_dataframes=None,
+                 force_detail=False,
                  other_rewards=[]):
         self.parameters = None
 
@@ -232,6 +233,7 @@ class EpisodeData:
         self.line_names = action_space.name_line
         self.n_lines = len(self.line_names)
         self.name_sub = action_space.name_sub
+        self.force_detail = force_detail
 
         if path_save is not None:
             self.agent_path = os.path.abspath(path_save)
@@ -464,7 +466,7 @@ class EpisodeData:
         -------
 
         """
-        if self.serialize:
+        if self.force_detail or self.serialize:
             self.parameters = env.parameters.to_dict()
 
     def set_meta(self, env, time_step, cum_reward, env_seed, agent_seed):
@@ -486,7 +488,7 @@ class EpisodeData:
         -------
 
         """
-        if self.serialize:
+        if self.force_detail or self.serialize:
             self.meta = {}
             self.meta["chronics_path"] = "{}".format(
                 env.chronics_handler.get_id())
@@ -532,7 +534,7 @@ class EpisodeData:
 
         """
 
-        if self.serialize:
+        if self.force_detail or self.serialize:
             self.actions.update(time_step, act.to_vect(), efficient_storing)
             self.env_actions.update(
                 time_step, env_act.to_vect(), efficient_storing)
@@ -601,7 +603,7 @@ class EpisodeData:
         -------
 
         """
-        if self.serialize:
+        if self.force_detail or self.serialize:
             self.episode_times = {}
             self.episode_times["Env"] = {}
             self.episode_times["Env"]["total"] = float(
