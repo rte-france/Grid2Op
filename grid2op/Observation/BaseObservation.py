@@ -1255,7 +1255,7 @@ class BaseObservation(GridObjects):
 
         sim_obs, *rest = self._obs_env.simulate(action)
         sim_obs = copy.deepcopy(sim_obs)
-        return sim_obs, *rest
+        return (sim_obs, *rest)  # parentheses are needed for python 3.6 at least.
 
     def copy(self):
         """
