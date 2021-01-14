@@ -177,7 +177,7 @@ class PandaPowerBackend(Backend):
         self.tol = None  # this is NOT the pandapower tolerance !!!! this is used to check if a storage unit
         # produce / absorbs anything
 
-        # TODO storage check all this class ! + the doc of the backend
+        # TODO storage doc (in grid2op rst) of the backend
 
     def get_nb_active_bus(self):
         """
@@ -584,7 +584,6 @@ class PandaPowerBackend(Backend):
         if np.any(load_q.changed):
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
-        # TODO storage: this and the "getter" also !
         if self.n_storage > 0:
             # active setpoint
             tmp_stor_p = self._grid.storage["p_mw"]

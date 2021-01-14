@@ -14,6 +14,7 @@ from abc import abstractmethod
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
+from scipy.sparse import csr_matrix
 
 # TODO make an action with the difference between the observation that would be an action.
 # TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
@@ -354,7 +355,6 @@ class BaseObservation(GridObjects):
             parameters are being set.
 
         """
-        # TODO storage
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
 
@@ -1011,9 +1011,9 @@ class BaseObservation(GridObjects):
         nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
         prod_bus, prod_conn = self._get_bus_id(self.gen_pos_topo_vect, self.gen_to_subid)
         load_bus, load_conn = self._get_bus_id(self.load_pos_topo_vect, self.load_to_subid)
+        stor_bus, stor_conn = self._get_bus_id(self.storage_pos_topo_vect, self.storage_to_subid)
         lor_bus, lor_conn = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
         lex_bus, lex_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
-        stor_bus, stor_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
 
         # convert the bus to be "id of row or column in the matrix" instead of the bus id with
         # the "grid2op convention"
@@ -1041,9 +1041,39 @@ class BaseObservation(GridObjects):
         data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
         nb_lex = np.sum(lex_conn)
-        data[prod_bus[prod_conn]] += prod_vect[prod_conn]
-        data[load_bus[load_conn]] -= load_vect[load_conn]
-        data[stor_bus[stor_conn]] -= stor_vect[stor_conn]
+
+        # if two generators / loads / storage unit are connected at the same bus
+        # this is why i go with matrix product and sparse matrices
+        nb_prod = np.sum(prod_conn)
+        if nb_prod:
+            bus_prod = np.arange(prod_bus[prod_conn].max() + 1)
+            map_mat = csr_matrix((np.ones(nb_prod), (prod_bus[prod_conn], np.arange(nb_prod))),
+                                 shape=(bus_prod.shape[0], nb_prod),
+                                 dtype=dt_float
+                                 )
+            data[bus_prod] += map_mat.dot(prod_vect[prod_conn])
+
+        # handle load
+        nb_load = np.sum(load_conn)
+        if nb_load:
+            bus_load = np.arange(load_bus[load_conn].max() + 1)
+            map_mat = csr_matrix((np.ones(nb_load), (load_bus[load_conn], np.arange(nb_load))),
+                                 shape=(bus_load.shape[0], nb_load),
+                                 dtype=dt_float
+                                 )
+            data[bus_load] -= map_mat.dot(load_vect[load_conn])
+
+        # handle storage
+        nb_stor = np.sum(stor_conn)
+        if nb_stor:
+            bus_stor = np.arange(stor_bus[stor_conn].max() + 1)
+            map_mat = csr_matrix((np.ones(nb_stor), (stor_bus[stor_conn], np.arange(nb_stor))),
+                                 shape=(bus_stor.shape[0], nb_stor),
+                                 dtype=dt_float
+                                 )
+            data[bus_stor] -= map_mat.dot(stor_vect[stor_conn])
+
+        # powerlines
         data[np.arange(nb_lor) + nb_bus] -= or_vect[lor_conn]
         data[np.arange(nb_lex) + nb_bus + nb_lor] -= ex_vect[lex_conn]
         row_ind = np.concatenate((all_indx, lor_bus[lor_conn], lex_bus[lex_conn]))
@@ -1051,11 +1081,10 @@ class BaseObservation(GridObjects):
         res = csr_matrix((data, (row_ind, col_ind)),
                          shape=(nb_bus, nb_bus),
                          dtype=dt_float)
-
         if not as_csr_matrix:
             res = res.toarray()
 
-        return res, (load_bus, prod_bus, lor_bus, lex_bus)
+        return res, (load_bus, prod_bus, stor_bus, lor_bus, lex_bus)
 
     def get_forecasted_inj(self, time_step=1):
         """

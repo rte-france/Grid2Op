@@ -95,7 +95,6 @@ class TestActionBase(ABC):
         GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
         GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
 
-        # TODO storage
         GridObjects.n_storage = 2
         GridObjects.name_storage = ["storage_0", "storage_1"]
         GridObjects.storage_to_subid = [1, 2]
@@ -718,7 +717,7 @@ class TestActionBase(ABC):
         assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
 
     def test_from_vect_storage(self):
-        # TODO storage
+        """test from vect also work with storage action"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             action1 = self.helper_action({"storage_power": [(0, -7.42)]})
@@ -1174,7 +1173,6 @@ class TestIADD:
         GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
         GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
 
-        # TODO storage
         GridObjects.n_storage = 2
         GridObjects.name_storage = ["storage_0", "storage_1"]
         GridObjects.storage_to_subid = [1, 2]

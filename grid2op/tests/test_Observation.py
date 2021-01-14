@@ -23,6 +23,7 @@ from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
 from grid2op.MakeEnv import make
+from grid2op.Action import CompleteAction
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -345,7 +346,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make("rte_case14_realistic", test=True)
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
-        mat, (load, prod, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
         assert mat.shape == (15, 15)
         assert ind_lor[7] == 14
         assert ind_lor[8] == 14
@@ -357,7 +358,51 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
                                                                          "lines_ex_id": [(0, 2)]}}))
-        mat, (load, prod, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (16, 16)
+        assert ind_lor[7] == 15
+        assert ind_lor[8] == 15
+        assert ind_lor[2] == 14
+        assert ind_lex[0] == 14
+        # check that kirchoff law is met
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+        assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        env.close()
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("educ_case14_storage", test=True, action_class=CompleteAction)
+        obs = env.reset()
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (14, 14)
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+
+        array_modif = np.array([1.5, 5.], dtype=dt_float) * 0.
+        obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
+                                                             "set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
+        assert not info["exception"]
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (15, 15)
+        assert ind_lor[7] == 14
+        assert ind_lor[8] == 14
+        # check that kirchoff law is met
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+
+        obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
+                                                             "set_bus": {"lines_or_id": [(2, 2)],
+                                                                         "lines_ex_id": [(0, 2)]}}))
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
         assert mat.shape == (16, 16)
         assert ind_lor[7] == 15
         assert ind_lor[8] == 15

@@ -538,8 +538,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             tmp = self.parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
             if self.parameters.ACTIVATE_STORAGE_LOSS:
                 tmp += self.storage_loss * self.delta_time_seconds / 3600.
-            # TODO not sure it's mandatory to set _storage_previous_charge
-            self._storage_previous_charge[:] = tmp
+            self._storage_previous_charge[:] = tmp  # might not be needed, but it's not for the time it takes...
             self._storage_current_charge[:] = tmp
             self._storage_power[:] = 0.
             self._amount_storage = 0.
@@ -847,6 +846,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         return valid, except_, info_
 
     def _make_redisp(self, already_modified_gen, new_p):
+        """this computes the redispaching vector, taking into account the storage units"""
         except_ = None
         info_ = []
         valid = True
@@ -855,7 +855,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
            np.max(mismatch) >= self._tol_poly or \
            np.abs(self._amount_storage) >= self._tol_poly:
-            # TODO storage !
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
@@ -898,7 +897,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # add the "sum to 0"
         mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=dt_float)
-        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage  # TODO storage
+        # this is where the storage is taken into account
+        # storages are "load convention" this means that i need to sum the amount of production to sum of storage
+        # hence the "+" below
+        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage
 
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
@@ -1456,10 +1458,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     is_illegal_redisp = True
                     except_.append(except_tmp)
 
-                    # TODO storage
                     if self.n_storage > 0:
                         self._storage_current_charge[:] = self._storage_previous_charge
-                        self._amount_storage -= self._amount_storage_prev  # TODO AM I certain ?
+                        self._amount_storage -= self._amount_storage_prev
 
                         # dissipated energy, it's not seen on the grid, just lost in the storage unit.
                         # this is why it should not be taken into account in self._amount_storage
@@ -1568,7 +1569,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
                     # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
-                    # TODO storage: get back the result of the storage !
+                    # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
+                    # TODO is non zero and disconnected, this should be ok.
+
                     self._time_extract_obs += time.time() - beg_res
 
                     # extract production active value at this time step (should be independent of action class)

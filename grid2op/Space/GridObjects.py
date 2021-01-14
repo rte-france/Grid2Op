@@ -357,7 +357,7 @@ class GridObjects:
     shunt_to_subid: :class:`numpy.ndarray`, dtype:int
         for each shunt (if supported), gives the id the substation to which it is connected [*class attribute*]
 
-    # TODO storage data here
+    # TODO storage doc of attributes here
 
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """
@@ -585,6 +585,8 @@ class GridObjects:
         -------
 
         """
+        # TODO optimization for action or observation, to reduce json size, for example using the see `to_json`
+
         for key, array_ in dict_.items():
             if key not in self.attr_list_vect + self.attr_list_json:
                 raise AmbiguousAction(f"Impossible to recognize the key \"{key}\"")
@@ -708,6 +710,8 @@ class GridObjects:
         ----------
         attr_nm
         vect:
+
+        TODO doc : documentation and example
         """
         tmp = getattr(self, attr_nm)
         if isinstance(tmp, (dt_bool, dt_int, dt_float)):

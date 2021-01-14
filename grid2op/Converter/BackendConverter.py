@@ -233,6 +233,10 @@ class BackendConverter(Backend):
                                        tg2sr, sr2tg,
                                        nm):
         nb_load_per_sub = np.zeros(self.n_sub, dtype=np.int)
+        if source_2_id_sub.shape[0] != n_element:
+            raise RuntimeError("Impossible to convert backend that do not have the same number of objects")
+        if target_2_id_sub.shape[0] != n_element:
+            raise RuntimeError("Impossible to convert backend that do not have the same number of objects")
         for id_source in range(n_element):
             id_sub_target, id_target = self._get_possible_target_ids(id_source, source_2_id_sub, target_2_id_sub, nm)
             id_target = id_target[nb_load_per_sub[id_sub_target]]
@@ -287,7 +291,7 @@ class BackendConverter(Backend):
                                       self.source_backend.line_ex_pos_topo_vect,
                                       self.target_backend.line_ex_pos_topo_vect,
                                       self._line_sr2tg)
-        self._auto_fill_vect_topo_aux(self.n_line,
+        self._auto_fill_vect_topo_aux(self.n_storage,
                                       self.source_backend.storage_pos_topo_vect,
                                       self.target_backend.storage_pos_topo_vect,
                                       self._storage_sr2tg)
@@ -328,6 +332,9 @@ class BackendConverter(Backend):
         self._check_both_consistent(self._topo_tg2sr, self._topo_sr2tg)
         if self.shunts_data_available:
             self._check_both_consistent(self._shunt_tg2sr, self._shunt_sr2tg)
+
+        # finally check that powergrids are identical (up to the env name)
+        type(self.target_backend).same_grid_class(type(self.source_backend))
 
     def _check_vect_valid(self, vect):
         assert np.all(vect >= 0), "invalid vector: some element are not found in either source or target"

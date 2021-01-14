@@ -843,6 +843,7 @@ class Backend(GridObjects, ABC):
         # bellow i'm "forced" to do a loop otherwise, numpy do not compute the "+=" the way I want it to.
         # for example, if two powerlines are such that line_or_to_subid is equal (eg both connected to substation 0)
         # then numpy do not guarantee that `p_subs[self.line_or_to_subid] += p_or` will add the two "corresponding p_or"
+        # TODO this can be vectorized with matrix product, see example in obs.flow_bus_matrix (BaseObervation.py)
         for i in range(self.n_line):
             # for substations
             p_subs[self.line_or_to_subid[i]] += p_or[i]

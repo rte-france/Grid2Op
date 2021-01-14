@@ -73,6 +73,9 @@ class BasePlot(ABC):
         self.observation_space.rho = np.full(self.observation_space.n_line, 0.0)
         self.observation_space.p_or = np.ones(self.observation_space.n_line)
 
+        # TODO storage: display the storage units too
+        # TODO storage doc (yes also the documentation)
+
     @abstractmethod
     def create_figure(self):
         """
@@ -134,7 +137,7 @@ class BasePlot(ABC):
         """
         # We need an intial layout to work with
         use_grid_layout = None
-        if grid_layout != None:
+        if grid_layout is not None:
             use_grid_layout = grid_layout
         elif observation_space.grid_layout is not None:
             use_grid_layout = observation_space.grid_layout

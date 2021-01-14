@@ -76,7 +76,8 @@ class EducPandaPowerBackend(Backend):
                       "circumstances. Please use grid2op.Backend.PandaPowerBackend instead")
         self._nb_real_line_pandapower = None
 
-        # TODO storage check all this class ! + the doc of the backend
+        # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
+        # neither shunt nor storage unit.
 
     ####### load the grid
     def load_grid(self, path=None, filename=None):
@@ -183,6 +184,11 @@ class EducPandaPowerBackend(Backend):
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
         self.thermal_limit_a = self.thermal_limit_a.astype(dt_float)
 
+        # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
+        # neither shunt nor storage unit.
+        self.shunts_data_available = False
+        self.set_no_storage()
+
     ###### modify the grid
     def apply_action(self, backendAction=None):
         """
@@ -206,8 +212,6 @@ class EducPandaPowerBackend(Backend):
             self._grid.load["p_mw"].iloc[load_id] = new_p
         for load_id, new_q in load_q:
             self._grid.load["q_mvar"].iloc[load_id] = new_q
-
-        # TODO storage !
 
         # now i deal with the topology
         loads_bus = backendAction.get_loads_bus()

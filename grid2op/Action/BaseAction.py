@@ -20,6 +20,7 @@ from grid2op.Space import GridObjects
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
+# TODO ie:  action + (rev_action) = do_nothing_action
 
 class BaseAction(GridObjects):
     """
@@ -2334,10 +2335,72 @@ class BaseAction(GridObjects):
 
     def get_storage_modif(self):
         """
-        Retrieve the modification that will be performed on the storage unit
+        Retrieve the modification that will be performed on all the storage unit
+
+        Returns
+        -------
+        storage_power: ``np.ndarray``
+            New storage power target (Nan = not modified, otherwise the setpoint given) [in MW]
+        storage_set_bus: ``np.ndarray``
+            New bus of the storage units, affected with "set_bus" command (0 = not affected, -1 = disconnected)
+        storage_change_bus: ``np.ndarray``
+            New bus of the storage units, affected with "change_bus" command
+
         """
-        # TODO same for gen load and line and line_or and line_ex
         storage_power = 1.0 * self._storage_power
         storage_set_bus = 1 * self._set_topo_vect[self.storage_pos_topo_vect]
         storage_change_bus = 1 * self._change_bus_vect[self.storage_pos_topo_vect]
         return storage_power, storage_set_bus, storage_change_bus
+
+    def get_load_modif(self):
+        """
+        Retrieve the modification that will be performed on all the loads
+
+        Returns
+        -------
+        load_p: ``np.ndarray``
+            New load p (Nan = not modified) [in MW]
+        load_q: ``np.ndarray``
+            New load q (Nan = not modified) [in MVaR]
+        load_set_bus: ``np.ndarray``
+            New bus of the loads, affected with "set_bus" command
+        load_change_bus: ``np.ndarray``
+            New bus of the loads, affected with "change_bus" command
+        """
+        load_p = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+        if "load_p" in self._dict_inj:
+            load_p[:] = self._dict_inj["load_p"]
+        load_q = 1.0 * load_p
+        if "load_q" in self._dict_inj:
+            load_q[:] = self._dict_inj["load_q"]
+        load_set_bus = 1 * self._set_topo_vect[self.load_pos_topo_vect]
+        load_change_bus = 1 * self._change_bus_vect[self.load_pos_topo_vect]
+        return load_p, load_q, load_set_bus, load_change_bus
+
+    def get_gen_modif(self):
+        """
+        Retrieve the modification that will be performed on all the generators
+
+        Returns
+        -------
+        gen_p: ``np.ndarray``
+            New gen p (Nan = not modified) [in MW]
+        gen_v: ``np.ndarray``
+            New gen v setpoint (Nan = not modified) [in kV]
+        gen_set_bus: ``np.ndarray``
+            New bus of the generators, affected with "set_bus" command
+        gen_change_bus: ``np.ndarray``
+            New bus of the generators, affected with "change_bus" command
+
+        """
+        gen_p = np.full(self.n_load, fill_value=np.NaN, dtype=dt_float)
+        if "prod_p" in self._dict_inj:
+            gen_p[:] = self._dict_inj["prod_p"]
+        gen_v = 1.0 * gen_p
+        if "prod_v" in self._dict_inj:
+            gen_v[:] = self._dict_inj["prod_v"]
+        gen_set_bus = 1 * self._set_topo_vect[self.gen_pos_topo_vect]
+        gen_change_bus = 1 * self._change_bus_vect[self.gen_pos_topo_vect]
+        return gen_p, gen_v, gen_set_bus, gen_change_bus
+
+    # TODO do the get_line_modif, get_line_or_modif and get_line_ex_modif

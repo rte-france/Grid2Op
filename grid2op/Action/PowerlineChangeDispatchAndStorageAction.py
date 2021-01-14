@@ -11,7 +11,7 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class PowerlineChangeDispatchAndStorageAction(PlayableAction):
     """
-    TODO storage
+    TODO storage doc
     """
     authorized_keys = {
         "change_line_status",
