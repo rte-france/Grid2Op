@@ -264,7 +264,13 @@ class BaseObservation(GridObjects):
             self._shunt_v = 1.0 * self._shunt_p
             self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=1)
 
-    def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
+    def state_of(self,
+                 _sentinel=None,
+                 load_id=None,
+                 gen_id=None,
+                 line_id=None,
+                 storage_id=None,
+                 substation_id=None):
         """
         Return the state of this action on a give unique load, generator unit, powerline of substation.
         Only one of load, gen, line or substation should be filled.
@@ -286,8 +292,11 @@ class BaseObservation(GridObjects):
         line_id: ``int``
             ID of the powerline we want to inspect
 
-        substation_id: ``int``
-            ID of the substation we want to inspect
+        line_id: ``int``
+            ID of the powerline we want to inspect
+
+        storage_id: ``int``
+            ID of the storage unit we want to inspect
 
         Returns
         -------
@@ -329,6 +338,8 @@ class BaseObservation(GridObjects):
                 - "cooldown_time": for how many timestep i am not supposed to act on the powerline due to cooldown
                   (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_LINE` for more information)
 
+            - if a storage unit is inspected TODO storage doc
+
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
                 - "topo_vect": the representation of which object is connected where
@@ -347,12 +358,13 @@ class BaseObservation(GridObjects):
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
 
-        if load_id is None and gen_id is None and line_id is None and substation_id is None:
+        if load_id is None and gen_id is None and line_id is None and substation_id is None and storage_id is None:
             raise Grid2OpException("You ask the state of an object in a observation without specifying the object id. "
-                                   "Please provide \"load_id\", \"gen_id\", \"line_id\" or \"substation_id\"")
+                                   "Please provide \"load_id\", \"gen_id\", \"line_id\", \"storage_id\" or "
+                                   "\"substation_id\"")
 
         if load_id is not None:
-            if gen_id is not None or line_id is not None or substation_id is not None:
+            if gen_id is not None or line_id is not None or substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if load_id >= len(self.load_p):
                 raise Grid2OpException("There are no load of id \"load_id={}\" in this grid.".format(load_id))
@@ -364,7 +376,7 @@ class BaseObservation(GridObjects):
                    "sub_id": self.load_to_subid[load_id]
                    }
         elif gen_id is not None:
-            if line_id is not None or substation_id is not None:
+            if line_id is not None or substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if gen_id >= len(self.prod_p):
                 raise Grid2OpException("There are no generator of id \"gen_id={}\" in this grid.".format(gen_id))
@@ -378,7 +390,7 @@ class BaseObservation(GridObjects):
                    "actual_dispatch": self.target_dispatch[gen_id]
                    }
         elif line_id is not None:
-            if substation_id is not None:
+            if substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if line_id >= len(self.p_or):
                 raise Grid2OpException("There are no powerline of id \"line_id={}\" in this grid.".format(line_id))
@@ -410,6 +422,16 @@ class BaseObservation(GridObjects):
             # cooldown
             res["cooldown_time"] = self.time_before_cooldown_line[line_id]
 
+        elif storage_id is not None:
+            if substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            res = {}
+            res["storage_power"] = self.storage_power[storage_id]
+            res["storage_charge"] = self.storage_charge[storage_id]
+            res["storage_power_target"] = self.storage_power_target[storage_id]
+            res["bus"] = self.topo_vect[self.storage_pos_topo_vect[storage_id]]
+            res["sub_id"] = self.storage_to_subid[storage_id]
+            res["storage_power"] = self.storage_power[storage_id]
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
@@ -828,7 +850,6 @@ class BaseObservation(GridObjects):
             #     - assign bus 2 to load 0 [on substation 1]
             # -> one of them is on bus 1 [line (extremity) 0] and the other on bus 2 [load 0]
         """
-        # TODO storage maybe i need to update it
         if self._connectivity_matrix_ is None:
             self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
             # fill it by block for the objects
@@ -992,6 +1013,7 @@ class BaseObservation(GridObjects):
         load_bus, load_conn = self._get_bus_id(self.load_pos_topo_vect, self.load_to_subid)
         lor_bus, lor_conn = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
         lex_bus, lex_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
+        stor_bus, stor_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
 
         # convert the bus to be "id of row or column in the matrix" instead of the bus id with
         # the "grid2op convention"
@@ -1002,23 +1024,26 @@ class BaseObservation(GridObjects):
         load_bus = tmplate[load_bus]
         lor_bus = tmplate[lor_bus]
         lex_bus = tmplate[lex_bus]
+        stor_bus = tmplate[stor_bus]
         if active_flow:
             prod_vect = self.prod_p
             load_vect = self.load_p
             or_vect = self.p_or
             ex_vect = self.p_ex
+            stor_vect = self.storage_power
         else:
             prod_vect = self.prod_q
             load_vect = self.load_q
             or_vect = self.q_or
             ex_vect = self.q_ex
+            stor_vect = np.zeros(self.n_storage, dtype=dt_float)
 
-        # TODO storage
         data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
         nb_lex = np.sum(lex_conn)
         data[prod_bus[prod_conn]] += prod_vect[prod_conn]
         data[load_bus[load_conn]] -= load_vect[load_conn]
+        data[stor_bus[stor_conn]] -= stor_vect[stor_conn]
         data[np.arange(nb_lor) + nb_bus] -= or_vect[lor_conn]
         data[np.arange(nb_lex) + nb_bus + nb_lor] -= ex_vect[lex_conn]
         row_ind = np.concatenate((all_indx, lor_bus[lor_conn], lex_bus[lex_conn]))
@@ -1171,7 +1196,7 @@ class BaseObservation(GridObjects):
             # `simulated_info` gives extra information on this forecast state
 
         """
-        # TODO check storage action here too !
+        # TODO storage: check the action in the simulate case too !
         if self.action_helper is None or self._obs_env is None:
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation "
                                       "(no action_space "
@@ -1201,7 +1226,7 @@ class BaseObservation(GridObjects):
 
         sim_obs, *rest = self._obs_env.simulate(action)
         sim_obs = copy.deepcopy(sim_obs)
-        return (sim_obs, *rest)
+        return sim_obs, *rest
 
     def copy(self):
         """
@@ -1221,3 +1246,103 @@ class BaseObservation(GridObjects):
         self._obs_env = obs_env
         res._obs_env = obs_env
         return res
+
+    @property
+    def line_or_bus(self):
+        """
+        Retrieve the busbar at which each origin end of powerline is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the powerline is disconnected
+        - 1 means it is connected to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.line_or_pos_topo_vect]
+
+    @property
+    def line_ex_bus(self):
+        """
+        Retrieve the busbar at which each extremity end of powerline is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the powerline is disconnected
+        - 1 means it is connected to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.line_ex_pos_topo_vect]
+
+    @property
+    def gen_bus(self):
+        """
+        Retrieve the busbar at which each generator is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the generator is disconnected
+        - 1 means it is generator to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.gen_pos_topo_vect]
+
+    @property
+    def load_bus(self):
+        """
+        Retrieve the busbar at which each load is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the load is disconnected
+        - 1 means it is load to busbar 1
+        - 2 means it is load to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.load_pos_topo_vect]
+
+    @property
+    def storage_bus(self):
+        """
+        Retrieve the busbar at which each storage unit is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the storage unit is disconnected
+        - 1 means it is storage unit to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.storage_pos_topo_vect]

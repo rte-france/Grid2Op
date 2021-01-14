@@ -27,6 +27,8 @@ Change Log
 
 [1.5.0] - 2021-xx-yy
 -------------------------
+- [BREAKING] `backend.check_kirchoff()` method now returns also the discrepency in the voltage magnitude
+  and not only the error in the P and Q injected at each bus.
 - [BREAKING] the class method "to_dict" used to serialize the action_space and observation_space has been
   renamed `cls_to_dict` to avoid confusion with the `to_dict` method of action and observation (that stores,
   as dictionary the instance of the action / observation). It is now then possible to serialize the action class

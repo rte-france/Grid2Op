@@ -2331,3 +2331,13 @@ class BaseAction(GridObjects):
             res["set_bus"] = self._set_topo_vect[beg_:end_]
 
         return res
+
+    def get_storage_modif(self):
+        """
+        Retrieve the modification that will be performed on the storage unit
+        """
+        # TODO same for gen load and line and line_or and line_ex
+        storage_power = 1.0 * self._storage_power
+        storage_set_bus = 1 * self._set_topo_vect[self.storage_pos_topo_vect]
+        storage_change_bus = 1 * self._change_bus_vect[self.storage_pos_topo_vect]
+        return storage_power, storage_set_bus, storage_change_bus

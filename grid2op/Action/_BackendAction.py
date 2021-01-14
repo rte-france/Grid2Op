@@ -249,6 +249,9 @@ class _BackendAction(GridObjects):
         self.load_p.reset()
         self.load_q.reset()
         self.storage_power.reset()
+        # storage unit have their power reset to 0. each step
+        self.storage_power.changed[:] = True
+        self.storage_power.values[:] = 0.
 
         # shunts
         if self.shunts_data_available:
@@ -325,7 +328,7 @@ class _BackendAction(GridObjects):
 
         # Ic storage unit
         if other._modif_storage:
-            self.storage_power.change_val(storage_power)
+            self.storage_power.set_val(storage_power)
 
         # II shunts
         if self.shunts_data_available:
@@ -426,7 +429,7 @@ class _BackendAction(GridObjects):
         self._lines_ex_bus.copy_from_index(self.current_topo, self.line_ex_pos_topo_vect)
         return self._lines_ex_bus
 
-    def get_storage_bus(self):
+    def get_storages_bus(self):
         if self._storage_bus is None:
             self._storage_bus = ValueStore(self.n_storage, dtype=dt_int)
         self._storage_bus.copy_from_index(self.current_topo, self.storage_pos_topo_vect)

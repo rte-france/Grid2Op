@@ -108,6 +108,7 @@ class PandaPowerBackend(Backend):
         self.load_pu_to_kv = None
         self.lines_or_pu_to_kv = None
         self.lines_ex_pu_to_kv = None
+        self.storage_pu_to_kv = None
 
         self.p_or = None
         self.q_or = None
@@ -121,6 +122,10 @@ class PandaPowerBackend(Backend):
         self.load_p = None
         self.load_q = None
         self.load_v = None
+
+        self.storage_p = None
+        self.storage_q = None
+        self.storage_v = None
 
         self.prod_p = None
         self.prod_q = None
@@ -168,6 +173,9 @@ class PandaPowerBackend(Backend):
             self._apply_lex_bus,
             self._apply_trafo_lv
         ]
+
+        self.tol = None  # this is NOT the pandapower tolerance !!!! this is used to check if a storage unit
+        # produce / absorbs anything
 
         # TODO storage check all this class ! + the doc of the backend
 
@@ -361,7 +369,6 @@ class PandaPowerBackend(Backend):
             self.storage_to_subid = np.zeros(self.n_storage, dtype=dt_int)
             self.storage_to_sub_pos = np.zeros(self.n_storage, dtype=dt_int)
 
-
         pos_already_used = np.zeros(self.n_sub, dtype=dt_int)
         self._what_object_where = [[] for _ in range(self.n_sub)]
 
@@ -454,6 +461,7 @@ class PandaPowerBackend(Backend):
         self.prod_pu_to_kv = self._grid.bus["vn_kv"][self.gen_to_subid].values.astype(dt_float)
         self.lines_or_pu_to_kv = self._grid.bus["vn_kv"][self.line_or_to_subid].values.astype(dt_float)
         self.lines_ex_pu_to_kv = self._grid.bus["vn_kv"][self.line_ex_to_subid].values.astype(dt_float)
+        self.storage_pu_to_kv = self._grid.bus["vn_kv"][self.storage_to_subid].values.astype(dt_float)
 
         self.thermal_limit_a = 1000 * np.concatenate((self._grid.line["max_i_ka"].values,
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
@@ -474,6 +482,9 @@ class PandaPowerBackend(Backend):
         self.prod_p = np.full(self.n_gen, dtype=dt_float, fill_value=np.NaN)
         self.prod_v = np.full(self.n_gen, dtype=dt_float, fill_value=np.NaN)
         self.prod_q = np.full(self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.storage_p = np.full(self.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_q = np.full(self.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_v = np.full(self.n_storage, dtype=dt_float, fill_value=np.NaN)
         self._nb_bus_before = None
 
         # shunts data
@@ -523,6 +534,10 @@ class PandaPowerBackend(Backend):
         self._topo_vect = self._get_topo_vect()
         # Create a deep copy of itself in the initial state
         pp_backend_initial_state = copy.deepcopy(self)
+
+        self.tol = 1e-5  # this is NOT the pandapower tolerance !!!! this is used to check if a storage unit
+        # produce / absorbs anything
+
         # Store it under super private attribute
         self.__pp_backend_initial_state = pp_backend_initial_state
 
@@ -569,7 +584,23 @@ class PandaPowerBackend(Backend):
         if np.any(load_q.changed):
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
-        # TODO storage
+        # TODO storage: this and the "getter" also !
+        if self.n_storage > 0:
+            # active setpoint
+            tmp_stor_p = self._grid.storage["p_mw"]
+            if np.any(storage.changed):
+                tmp_stor_p.iloc[storage.changed] = storage.values[storage.changed]
+
+            # topology of the storage
+            stor_bus = backendAction.get_storages_bus()
+            new_bus_id = stor_bus.values[stor_bus.changed]  # id of the busbar 1 or 2 if
+            activated = new_bus_id > 0  # mask of storage that have been activated
+            new_bus_num = self.storage_to_subid[stor_bus.changed] + (new_bus_id - 1) * self.n_sub  # bus number
+            new_bus_num[~activated] = self.storage_to_subid[stor_bus.changed][~activated]
+            self._grid.storage["in_service"].values[stor_bus.changed] = activated
+            self._grid.storage["bus"].values[stor_bus.changed] = new_bus_num
+            self._topo_vect[self.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num
+            self._topo_vect[self.storage_pos_topo_vect[stor_bus.changed][~activated]] = -1
 
         if self.shunts_data_available:
             shunt_p, shunt_q, shunt_bus = shunts__
@@ -591,7 +622,10 @@ class PandaPowerBackend(Backend):
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:
             id_el_backend, id_topo, type_obj = self._big_topo_to_backend[id_el]
-            self._type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
+
+            if type_obj is not None:
+                # storage unit are handled elsewhere
+                self._type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
 
         bus_is = self._grid.bus["in_service"]
         for i, (bus1_status, bus2_status) in enumerate(active_bus):
@@ -770,6 +804,18 @@ class PandaPowerBackend(Backend):
 
                 self._nb_bus_before = None
                 self._grid._ppc["gen"][self._iref_slack, 1] = 0.
+
+                # handle storage units
+                # note that we have to look ourselves for disconnected storage
+                self.storage_p[:], self.storage_q[:], self.storage_v[:] = self._storages_info()
+                deact_storage = ~np.isfinite(self.storage_v)
+                if np.any(np.abs(self.storage_p[deact_storage]) > self.tol):
+                    raise pp.powerflow.LoadflowNotConverged("Isolated storage set to absorb / produce something")
+                self.storage_p[deact_storage] = 0.
+                self.storage_q[deact_storage] = 0.
+                self.storage_v[deact_storage] = 0.
+                self._grid.storage["in_service"].values[deact_storage] = False
+
                 self._topo_vect[:] = self._get_topo_vect()
                 return self._grid.converged
 
@@ -793,6 +839,9 @@ class PandaPowerBackend(Backend):
         self.load_p[:] = np.NaN
         self.load_q[:] = np.NaN
         self.load_v[:] = np.NaN
+        self.storage_p[:] = np.NaN
+        self.storage_q[:] = np.NaN
+        self.storage_v[:] = np.NaN
         self._nb_bus_before = None
 
     def copy(self):
@@ -903,6 +952,15 @@ class PandaPowerBackend(Backend):
             res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
             i += 1
 
+        i = 0
+        for bus_id in self._grid.storage["bus"].values:
+            status = self._grid.storage["in_service"].values[i]
+            if status:
+                res[self.storage_pos_topo_vect[i]] = 1 if bus_id == self.storage_to_subid[i] else 2
+            else:
+                res[self.storage_pos_topo_vect[i]] = -1
+            i += 1
+
         return res
 
     def _gens_info(self):
@@ -945,6 +1003,15 @@ class PandaPowerBackend(Backend):
         shunt_bus = 1 * shunt_bus
         shunt_bus = shunt_bus.astype(dt_int)
         return shunt_p, shunt_q, shunt_v, shunt_bus
+
+    def storages_info(self):
+        return self.cst_1 * self.storage_p, self.cst_1 * self.storage_q, self.cst_1 * self.storage_v
+
+    def _storages_info(self):
+        p_storage = self._grid.res_storage["p_mw"].values.astype(dt_float)
+        q_storage = self._grid.res_storage["q_mvar"].values.astype(dt_float)
+        v_storage = self._grid.res_bus.loc[self._grid.storage["bus"].values]["vm_pu"].values.astype(dt_float) * self.storage_pu_to_kv
+        return p_storage, q_storage, v_storage
 
     def sub_from_bus_id(self, bus_id):
         if bus_id >= self._number_true_line:

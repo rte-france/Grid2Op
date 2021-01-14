@@ -20,7 +20,8 @@ from grid2op.Exceptions import EnvError, DivergingPowerFlow, IncorrectNumberOfEl
 from grid2op.Exceptions import IncorrectNumberOfGenerators, BackendError, IncorrectNumberOfLines
 from grid2op.Space import GridObjects
 
-# TODO compute a method to update a backend state from an observation.
+
+# TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
 
 
 class Backend(GridObjects, ABC):
@@ -767,6 +768,27 @@ class Backend(GridObjects, ABC):
                 break
         return disconnected_during_cf, infos, conv_
 
+    def storages_info(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Prefer using :attr:`grid2op.Observation.BaseObservation.storage_power` instead.
+
+        This method is used to retrieve information about the storage units (active, reactive consumption
+        and voltage magnitude of the bus to which it is connected).
+
+        Returns
+        -------
+        storage_p ``numpy.ndarray``
+            The active power consumption for each load (in MW)
+        storage_q ``numpy.ndarray``
+            The reactive power consumption for each load (in MVAr)
+        storage_v ``numpy.ndarray``
+            The voltage magnitude of the bus to which each load is connected (in kV)
+        """
+        if self.n_storage > 0:
+            raise BackendError("storages_info method is not implemented yet there is batteries on the grid.")
+
     def check_kirchoff(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -792,21 +814,30 @@ class Backend(GridObjects, ABC):
         q_bus ``numpy.ndarray``
             sum of injected reactive power at each buses. It is given in form of a matrix, with number of substations as
             row, and number of columns equal to the maximum number of buses for a substation (MVAr)
+        diff_v_bus: ``numpy.ndarray`` (2d array)
+            difference between maximum voltage and minimum voltage (computed for each elements)
+            at each bus. It is an array of two dimension:
+
+            - first dimension represents the the substation (between 1 and self.n_sub)
+            - second element represents the busbar in the substation (0 or 1 usually)
+
         """
 
-        # TODO storage
         p_or, q_or, v_or, *_ = self.lines_or_info()
         p_ex, q_ex, v_ex, *_ = self.lines_ex_info()
         p_gen, q_gen, v_gen = self.generators_info()
         p_load, q_load, v_load = self.loads_info()
+        if self.n_storage > 0:
+            p_storage, q_storage, v_storage = self.storages_info()
 
         # fist check the "substation law" : nothing is created at any substation
-        p_subs = np.zeros(self.n_sub)
-        q_subs = np.zeros(self.n_sub)
+        p_subs = np.zeros(self.n_sub, dtype=dt_float)
+        q_subs = np.zeros(self.n_sub, dtype=dt_float)
 
         # check for each bus
-        p_bus = np.zeros((self.n_sub, 2))
-        q_bus = np.zeros((self.n_sub, 2))
+        p_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        q_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        v_bus = np.zeros((self.n_sub, 2, 2), dtype=dt_float) - 1.  # sub, busbar, [min,max]
         topo_vect = self.get_topo_vect()
 
         # bellow i'm "forced" to do a loop otherwise, numpy do not compute the "+=" the way I want it to.
@@ -827,6 +858,38 @@ class Backend(GridObjects, ABC):
             p_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += p_ex[i]
             q_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1] += q_ex[i]
 
+            # fill the min / max voltage per bus (initialization)
+            if v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] == -1:
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] = v_or[i]
+            if v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] == -1:
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] = v_ex[i]
+            if v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] == -1:
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] = v_or[i]
+            if v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] == -1:
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] = v_ex[i]
+
+            # now compute the correct stuff
+            if v_or[i] > 0.:
+                # line is connected
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][0],
+                    v_or[i]
+                )
+                v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.line_or_to_subid[i], topo_vect[self.line_or_pos_topo_vect[i]] - 1][1],
+                    v_or[i]
+                )
+            if v_ex[i] > 0:
+                # line is connected
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][0],
+                    v_ex[i]
+                )
+                v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.line_ex_to_subid[i], topo_vect[self.line_ex_pos_topo_vect[i]] - 1][1],
+                    v_ex[i]
+                )
+
         for i in range(self.n_gen):
             # for substations
             p_subs[self.gen_to_subid[i]] -= p_gen[i]
@@ -836,6 +899,18 @@ class Backend(GridObjects, ABC):
             p_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= p_gen[i]
             q_bus[self.gen_to_subid[i],  topo_vect[self.gen_pos_topo_vect[i]]-1] -= q_gen[i]
 
+            # compute max and min values
+            if v_gen[i]:
+                # but only if gen is connected
+                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][0],
+                    v_gen[i]
+                )
+                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][1],
+                    v_gen[i]
+                )
+
         for i in range(self.n_load):
             # for substations
             p_subs[self.load_to_subid[i]] += p_load[i]
@@ -844,6 +919,36 @@ class Backend(GridObjects, ABC):
             # for buses
             p_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += p_load[i]
             q_bus[self.load_to_subid[i],  topo_vect[self.load_pos_topo_vect[i]]-1] += q_load[i]
+
+            # compute max and min values
+            if v_load[i]:
+                # but only if load is connected
+                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][0],
+                    v_load[i]
+                )
+                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][1],
+                    v_load[i]
+                )
+
+        for i in range(self.n_storage):
+            p_subs[self.storage_to_subid[i]] += p_storage[i]
+            q_subs[self.storage_to_subid[i]] += q_storage[i]
+            p_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]]-1] += p_storage[i]
+            q_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]]-1] += q_storage[i]
+
+            # compute max and min values
+            if v_storage[i] > 0:
+                # the storage unit is connected
+                v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][0] = min(
+                    v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][0],
+                    v_storage[i]
+                )
+                v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][1] = max(
+                    v_bus[self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1][1],
+                    v_storage[i]
+                )
 
         if self.shunts_data_available:
             p_s, q_s, v_s, bus_s = self.shunt_info()
@@ -855,11 +960,22 @@ class Backend(GridObjects, ABC):
                 # for buses
                 p_bus[self.shunt_to_subid[i], bus_s[i] - 1] += p_s[i]
                 q_bus[self.shunt_to_subid[i], bus_s[i] - 1] += q_s[i]
+
+                # compute max and min values
+                v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0] = min(
+                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0],
+                    v_s[i]
+                )
+                v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1] = max(
+                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1],
+                    v_s[i]
+                )
         else:
             warnings.warn("Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                           "incorrect.")
-
-        return p_subs, q_subs, p_bus, q_bus
+        diff_v_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
+        return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):
         """
@@ -1138,7 +1254,7 @@ class Backend(GridObjects, ABC):
 
         new_grid_layout = {}
         for el in self.name_sub:
-            if not el in dict_:
+            if el not in dict_:
                 return Exception("substation named {} not in layout".format(el))
             tmp = dict_[el]
             try:
@@ -1218,7 +1334,7 @@ class Backend(GridObjects, ABC):
 
         if not isinstance(obs, CompleteObservation):
             raise BackendError("Impossible to set a backend to a state not represented by a "
-                               "\"grid2op.CompleteObservation\".")
+                               "\"grid2op.Observation.CompleteObservation\".")
 
         backend_action = self.my_bk_act_class()
         act = self._complete_action_class()

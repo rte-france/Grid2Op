@@ -1497,6 +1497,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._backend_action += action
             action._storage_power[:] = action_storage_power
             action._redispatch[:] = init_disp
+            # TODO storage: check the original action, even when replaced by do nothing is not modified
 
             self._backend_action += self._env_modification
             self._backend_action.set_redispatch(self._actual_dispatch)
@@ -1567,9 +1568,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
                     # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
+                    # TODO storage: get back the result of the storage !
                     self._time_extract_obs += time.time() - beg_res
 
-                    # extract production active value at this time step (should be independant of action class)
+                    # extract production active value at this time step (should be independent of action class)
                     self._gen_activeprod_t[:], *_ = self.backend.generators_info()
                     # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
                     # of the system. So basically, when it's too high (higher than the ramp) it can
