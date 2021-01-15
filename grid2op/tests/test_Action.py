@@ -965,8 +965,8 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        action = self.helper_action({"set_bus": {"loads_id": [(1, 3)]}})
-        assert action.effect_on(load_id=1)["set_bus"] == 3
+        action = self.helper_action({"set_bus": {"loads_id": [(1, 2)]}})
+        assert action.effect_on(load_id=1)["set_bus"] == 2
         assert action.effect_on(load_id=1)["change_bus"] == False
         assert action.effect_on(load_id=0)["set_bus"] == 0
         assert action.effect_on(load_id=0)["change_bus"] == False

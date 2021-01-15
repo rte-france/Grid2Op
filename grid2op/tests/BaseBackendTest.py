@@ -1700,7 +1700,8 @@ class BaseTestChangeBusSlack(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
-        action = env.action_space({"set_bus": {"generators_id": [(-1, 2)], "lines_or_id": [(0, 2)]}})
+        action = env.action_space({"set_bus": {"generators_id": [(env.n_gen-1, 2)],
+                                               "lines_or_id": [(0, 2)]}})
         obs, reward, am_i_done, info = env.step(action)
         assert am_i_done is False
         assert np.all(obs.prod_p >= 0.)

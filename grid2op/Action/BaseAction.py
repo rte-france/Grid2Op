@@ -909,44 +909,60 @@ class BaseAction(GridObjects):
                 ddict_ = dict_["set_bus"]
                 handled = False
                 # authorized_keys = {"loads_id", "generators_id", "lines_or_id", "lines_ex_id", "substations_id"}
+                # TODO refacto that with the property ***_set_bus
+                # if "loads_id" in ddict_:
+                #     tmp = ddict_["loads_id"]
+                #     handled = True
+                #     for (c_id, bus) in tmp:
+                #         if c_id >= self.n_load:
+                #             raise AmbiguousAction("Load {} doesn't exist".format(c_id))
+                #         self._set_topo_vect[self.load_pos_topo_vect[c_id]] = bus
+                #         # print("self.load_pos_topo_vect[l_id] {}".format(self.load_pos_topo_vect[l_id]))
+                # if "generators_id" in ddict_:
+                #     tmp = ddict_["generators_id"]
+                #     handled = True
+                #     for (g_id, bus) in tmp:
+                #         if g_id >= self.n_gen:
+                #             raise AmbiguousAction("Generator {} doesn't exist".format(g_id))
+                #         self._set_topo_vect[self.gen_pos_topo_vect[g_id]] = bus
+                # if "lines_or_id" in ddict_:
+                #     tmp = ddict_["lines_or_id"]
+                #     handled = True
+                #     for (l_id, bus) in tmp:
+                #         if l_id >= self.n_line:
+                #             raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
+                #         self._set_topo_vect[self.line_or_pos_topo_vect[l_id]] = bus
+                # if "lines_ex_id" in ddict_:
+                #     tmp = ddict_["lines_ex_id"]
+                #     handled = True
+                #     for (l_id, bus) in tmp:
+                #         if l_id >= self.n_line:
+                #             raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
+                #         self._set_topo_vect[self.line_ex_pos_topo_vect[l_id]] = bus
+                # if "storages_id" in ddict_:
+                #     # NOTE: if storage_power is not accessible, any attempt to modify the
+                #     # storage unit bus will lead to an ambiguous action.
+                #     tmp = ddict_["storages_id"]
+                #     handled = True
+                #     for (l_id, bus) in tmp:
+                #         if l_id >= self.n_storage:
+                #             raise AmbiguousAction("Storage {} doesn't exist".format(l_id))
+                #         self._set_topo_vect[self.storage_pos_topo_vect[l_id]] = bus
                 if "loads_id" in ddict_:
-                    tmp = ddict_["loads_id"]
+                    self.load_set_bus = ddict_["loads_id"]
                     handled = True
-                    for (c_id, bus) in tmp:
-                        if c_id >= self.n_load:
-                            raise AmbiguousAction("Load {} doesn't exist".format(c_id))
-                        self._set_topo_vect[self.load_pos_topo_vect[c_id]] = bus
-                        # print("self.load_pos_topo_vect[l_id] {}".format(self.load_pos_topo_vect[l_id]))
                 if "generators_id" in ddict_:
-                    tmp = ddict_["generators_id"]
+                    self.gen_set_bus = ddict_["generators_id"]
                     handled = True
-                    for (g_id, bus) in tmp:
-                        if g_id >= self.n_gen:
-                            raise AmbiguousAction("Generator {} doesn't exist".format(g_id))
-                        self._set_topo_vect[self.gen_pos_topo_vect[g_id]] = bus
                 if "lines_or_id" in ddict_:
-                    tmp = ddict_["lines_or_id"]
+                    self.line_or_set_bus = ddict_["lines_or_id"]
                     handled = True
-                    for (l_id, bus) in tmp:
-                        if l_id >= self.n_line:
-                            raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
-                        self._set_topo_vect[self.line_or_pos_topo_vect[l_id]] = bus
                 if "lines_ex_id" in ddict_:
-                    tmp = ddict_["lines_ex_id"]
+                    self.line_ex_set_bus = ddict_["lines_ex_id"]
                     handled = True
-                    for (l_id, bus) in tmp:
-                        if l_id >= self.n_line:
-                            raise AmbiguousAction("Powerline {} doesn't exist".format(l_id))
-                        self._set_topo_vect[self.line_ex_pos_topo_vect[l_id]] = bus
                 if "storages_id" in ddict_:
-                    # NOTE: if storage_power is not accessible, any attempt to modify the
-                    # storage unit bus will lead to an ambiguous action.
-                    tmp = ddict_["storages_id"]
+                    self.storage_set_bus = ddict_["storages_id"]
                     handled = True
-                    for (l_id, bus) in tmp:
-                        if l_id >= self.n_storage:
-                            raise AmbiguousAction("Storage {} doesn't exist".format(l_id))
-                        self._set_topo_vect[self.storage_pos_topo_vect[l_id]] = bus
                 if "substations_id" in ddict_:
                     handled = True
                     tmp = ddict_["substations_id"]
