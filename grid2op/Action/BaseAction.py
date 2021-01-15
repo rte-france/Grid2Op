@@ -2408,8 +2408,10 @@ class BaseAction(GridObjects):
     def __aux_affect_object_set_bus(self, values, name_el, nb_els,
                                     els_pos_topo_vect, name_els):
         """
-        values: the new values to set
+        NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
+        This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
 
+        values: the new values to set
         name_el: "load"
         nb_els: self.n_load
         els_pos_topo_vect: self.load_pos_topo_vect
@@ -2430,6 +2432,17 @@ class BaseAction(GridObjects):
                 raise IllegalAction("new_bus should be -1, 0, 1 or 2")
             if new_bus > 2:
                 raise IllegalAction("new_bus should be -1, 0, 1 or 2")
+
+            if isinstance(el_id, (float, dt_float, np.float)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided float!")
+            if isinstance(el_id, (bool, dt_bool)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided bool!")
+            if isinstance(el_id, str):
+                raise IllegalAction(f"{name_el}_id should be integers you provided string "
+                                    f"(hint: you can use a dictionary to set the bus by name eg. "
+                                    f"act.{name_el}_set_bus = {{act.name_{name_el}[0] : 1, act.name_{name_el}[1] : 2}}"
+                                    f")!")
+
             try:
                 el_id = int(el_id)
             except Exception as exc_:
@@ -2442,10 +2455,18 @@ class BaseAction(GridObjects):
             self._set_topo_vect[els_pos_topo_vect[el_id]] = new_bus
             return
         elif isinstance(values, np.ndarray):
-            values = values.astype(dt_int)
-            if np.any(values) < -1:
+            if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float:
+                raise IllegalAction(f"{name_el}_id should be integers you provided float!")
+            if isinstance(values.dtype, bool) or values.dtype == dt_bool:
+                raise IllegalAction(f"{name_el}_id should be integers you provided boolean!")
+
+            try:
+                values = values.astype(dt_int)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if np.any(values < -1):
                 raise IllegalAction("new_bus should be -1, 0, 1 or 2, found a value < -1")
-            if np.any(values) > 2:
+            if np.any(values > 2):
                 raise IllegalAction("new_bus should be -1, 0, 1 or 2, found a value  > 2")
             self._set_topo_vect[els_pos_topo_vect] = values
             return
@@ -2459,7 +2480,7 @@ class BaseAction(GridObjects):
                     pass
                 else:
                     # get back to case where it's a full vector
-                    values = np.array(values).astype(dt_int)
+                    values = np.array(values)
                     self.__aux_affect_object_set_bus(values, name_el, nb_els, els_pos_topo_vect, name_els)
                     return
 
@@ -2493,12 +2514,15 @@ class BaseAction(GridObjects):
     def load_set_bus(self, values):
         if "set_bus" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
+        orig_ = self.load_set_bus
         try:
             self.__aux_affect_object_set_bus(values, "load", self.n_load, self.load_pos_topo_vect, self.name_load)
             self._modif_set_bus = True
         except Exception as exc_:
+            self.__aux_affect_object_set_bus(orig_, "load", self.n_load, self.load_pos_topo_vect, self.name_load)
             raise IllegalAction(f"Impossible to modify the load bus with your input. Please consult the documentation. "
                                 f"The error was \"{exc_}\"")
+
     @property
     def gen_set_bus(self):
         if "set_bus" not in self.authorized_keys:
@@ -2509,12 +2533,15 @@ class BaseAction(GridObjects):
     def gen_set_bus(self, values):
         if "set_bus" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the gen bus (with \"set\") with this action type.")
+        orig_ = self.gen_set_bus
         try:
             self.__aux_affect_object_set_bus(values, "gen", self.n_gen, self.gen_pos_topo_vect, self.name_gen)
             self._modif_set_bus = True
         except Exception as exc_:
+            self.__aux_affect_object_set_bus(orig_, "gen", self.n_gen, self.gen_pos_topo_vect, self.name_gen)
             raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
+
     @property
     def storage_set_bus(self):
         if "set_bus" not in self.authorized_keys:
@@ -2529,10 +2556,60 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
         if "set_storage" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        orig_ = self.storage_set_bus
         try:
             self.__aux_affect_object_set_bus(values, "storage", self.n_storage,
                                              self.storage_pos_topo_vect, self.name_storage)
             self._modif_set_bus = True
         except Exception as exc_:
-            raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
+            self.__aux_affect_object_set_bus(orig_, "storage", self.n_storage,
+                                             self.storage_pos_topo_vect, self.name_storage)
+            raise IllegalAction(f"Impossible to modify the storage bus with your input. "
+                                f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_or_set_bus(self):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        return 1 * self._set_topo_vect[self.line_or_pos_topo_vect]
+
+    @line_or_set_bus.setter
+    def line_or_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        orig_ = self.line_or_set_bus
+        try:
+            self.__aux_affect_object_set_bus(values, "line (origin)", self.n_line,
+                                             self.line_or_pos_topo_vect, self.name_line)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self.__aux_affect_object_set_bus(orig_, "line (origin)", self.n_line,
+                                             self.line_or_pos_topo_vect, self.name_line)
+            raise IllegalAction(f"Impossible to modify the line origin bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_ex_set_bus(self):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        return 1 * self._set_topo_vect[self.line_ex_pos_topo_vect]
+
+    @line_ex_set_bus.setter
+    def line_ex_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        orig_ = self.line_or_set_bus
+        try:
+            self.__aux_affect_object_set_bus(values, "line (extremity)", self.n_line,
+                                             self.line_ex_pos_topo_vect, self.name_line)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self.__aux_affect_object_set_bus(orig_, "line (extremity)", self.n_line,
+                                             self.line_ex_pos_topo_vect, self.name_line)
+            raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    # TODO same sub_set_bus

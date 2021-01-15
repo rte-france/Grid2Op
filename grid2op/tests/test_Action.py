@@ -30,6 +30,754 @@ import warnings
 warnings.simplefilter("error")
 
 
+def _get_action_grid_class():
+    GridObjects.env_name = "test_action_env"
+    GridObjects.n_gen = 5
+    GridObjects.name_gen = np.array(["gen_{}".format(i) for i in range(5)])
+    GridObjects.n_load = 11
+    GridObjects.name_load = np.array(["load_{}".format(i) for i in range(11)])
+    GridObjects.n_line = 20
+    GridObjects.name_line = np.array(["line_{}".format(i) for i in range(20)])
+    GridObjects.n_sub = 14
+    GridObjects.name_sub = np.array(["sub_{}".format(i) for i in range(14)])
+    GridObjects.sub_info = np.array([3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
+    GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
+    GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
+    GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
+                                             5, 6, 6, 8, 8, 9, 11, 12])
+    GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
+                                             12, 7, 8, 9, 13, 10, 12, 13])
+    GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
+    GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
+    GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1,
+                                               2, 2, 3, 0, 0, 1])
+    GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0,
+                                               1, 2, 2, 0, 0, 0])
+    GridObjects.load_pos_topo_vect = np.array([7, 12, 20, 25, 30,
+                                               41, 43, 46, 49, 53, 56])
+    GridObjects.gen_pos_topo_vect = np.array([2, 8, 13, 31, 36])
+    GridObjects.line_or_pos_topo_vect = np.array([0, 1, 4, 5, 6, 11, 17, 18, 19,
+                                                  24, 27, 28, 29, 33, 34, 39, 40,
+                                                  42, 48, 52])
+    GridObjects.line_ex_pos_topo_vect = np.array([3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
+                                                  47, 50, 54, 35, 38, 44, 57,
+                                                  45, 51, 55])
+
+    GridObjects.redispatching_unit_commitment_availble = True
+    GridObjects.gen_type = np.array(["thermal"] * 5)
+    GridObjects.gen_pmin = np.array([0.0] * 5)
+    GridObjects.gen_pmax = np.array([100.0] * 5)
+    GridObjects.gen_min_uptime = np.array([0] * 5)
+    GridObjects.gen_min_downtime = np.array([0] * 5)
+    GridObjects.gen_cost_per_MW = np.array([70.0] * 5)
+    GridObjects.gen_startup_cost = np.array([0.0] * 5)
+    GridObjects.gen_shutdown_cost = np.array([0.0] * 5)
+    GridObjects.gen_redispatchable = np.array([True, False, False, True, False])
+    GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
+    GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
+
+    GridObjects.n_storage = 2
+    GridObjects.name_storage = np.array(["storage_0", "storage_1"])
+    GridObjects.storage_to_subid = [1, 2]
+    GridObjects.storage_to_sub_pos = [6, 4]
+    GridObjects.storage_pos_topo_vect = [9, 14]
+    GridObjects.storage_type = np.array(["battery"] * 2)
+    GridObjects.storage_Emax = np.array([100., 100.])
+    GridObjects.storage_Emin = np.array([0., 0.])
+    GridObjects.storage_max_p_prod = np.array([10., 10.])
+    GridObjects.storage_max_p_absorb = np.array([15., 15.])
+    GridObjects.storage_marginal_cost = np.array([0., 0.])
+    GridObjects.storage_loss = np.array([0., 0.])
+    GridObjects.storage_discharging_efficiency = np.array([1., 1.])
+    GridObjects.storage_charging_efficiency = np.array([1., 1.])
+
+    json_ = {
+        'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
+        'name_load': ['load_0', 'load_1', 'load_2',
+                      'load_3', 'load_4', 'load_5', 'load_6',
+                      'load_7', 'load_8', 'load_9', 'load_10'],
+        'name_line': ['line_0', 'line_1', 'line_2',
+                      'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
+                      'line_8', 'line_9', 'line_10', 'line_11',
+                      'line_12', 'line_13', 'line_14',
+                      'line_15', 'line_16', 'line_17',
+                      'line_18', 'line_19'],
+        'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
+                     'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
+                     'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
+        'name_storage': ["storage_0", "storage_1"],
+        'env_name': 'test_action_env',
+        'sub_info': [3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+        'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
+        'gen_to_subid': [0, 1, 2, 5, 7],
+        'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3,
+                             3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+        'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6,
+                             8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+        "storage_to_subid": [1, 2],
+        'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
+        'gen_to_sub_pos': [2, 5, 3, 5, 1],
+        'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2,
+                               3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+        'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2,
+                               0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+        "storage_to_sub_pos": [6, 4],
+        'load_pos_topo_vect': [7, 12, 20, 25, 30,
+                               41, 43, 46, 49, 53, 56],
+        'gen_pos_topo_vect': [2, 8, 13, 31, 36],
+        'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 11, 17, 18, 19,
+                                  24, 27, 28, 29, 33, 34, 39, 40,
+                                  42, 48, 52],
+        'line_ex_pos_topo_vect': [3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
+                                  47, 50, 54, 35, 38, 44, 57,
+                                  45, 51, 55],
+        "storage_pos_topo_vect": [9, 14],
+        'gen_type': ["thermal"] * 5,
+        'gen_pmin': [0.0] * 5,
+        'gen_pmax': [100.0] * 5,
+        'gen_redispatchable': [True, False, False, True, False],
+        'gen_max_ramp_up': [10., 5., 15., 7., 8.],
+        'gen_max_ramp_down': [11., 6., 16., 8., 9.],
+        'gen_min_uptime': [0] * 5,
+        'gen_min_downtime': [0] * 5,
+        'gen_cost_per_MW': [70.0] * 5,
+        'gen_startup_cost': [0.0] * 5,
+        'gen_shutdown_cost': [0.0] * 5,
+        "storage_type": ["battery"] * 2,
+        "storage_Emax": [100., 100.],
+        "storage_Emin": [0., 0.],
+        "storage_max_p_prod": [10., 10.],
+        "storage_max_p_absorb": [15., 15.],
+        "storage_marginal_cost": [0., 0.],
+        "storage_loss": [0., 0.],
+        "storage_charging_efficiency": [1., 1.],
+        "storage_discharging_efficiency": [1., 1.],
+        "grid_layout": None,
+        "shunt_to_subid": None,
+        "name_shunt": None
+    }
+    return GridObjects, json_
+
+
+class TestSetBus(unittest.TestCase):
+    """test the property to set the bus of the action"""
+
+    def setUp(self):
+        """
+        The case file is a representation of the case14 as found in the ieee14 powergrid.
+        :return:
+        """
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+        self.game_rules = RulesChecker()
+
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
+
+
+        # self.size_act = 229
+        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
+        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.helper_action = self.ActionSpaceClass(self.gridobj,
+                                                   legal_action=self.game_rules.legal_action,
+                                                   actionClass=CompleteAction)
+        self.helper_action.seed(42)
+        # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+        save_to_dict(self.res, self.helper_action,
+                     "_init_subtype",
+                     lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
+
+        self.authorized_keys = self.helper_action().authorized_keys
+        self.size_act = self.helper_action.size()
+
+    def test_load_set_bus_array(self):
+        li_orig = [1, 2, -1, 2, 1, 0, 2, 1, 0, 1, 2]  # because i have 11 loads
+        tmp = np.array(li_orig)
+
+        # first set of tests, with numpy array
+        act = self.helper_action()
+        act.load_set_bus = tmp  # ok
+        assert np.all(act.load_set_bus == tmp)
+
+        # array too short
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            act.load_set_bus = tmp[:-1]
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # array too big
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp2 = np.concatenate((tmp, (1,)))
+            act.load_set_bus = tmp2
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # float vect
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp3 = np.array(li_orig).astype(dt_float)
+            act.load_set_bus = tmp3
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # one of the value too small
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp4 = np.array(li_orig)
+            tmp4[2] = -2
+            act.load_set_bus = tmp4
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # one of the value too large
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp5 = np.array(li_orig)
+            tmp5[2] = 3
+            act.load_set_bus = tmp5
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # wrong type
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp6 = np.array(li_orig).astype(str)
+            tmp6[2] = "toto"
+            act.load_set_bus = tmp6
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+    def test_load_set_bus_tuple(self):
+        # second set of tests, with tuple
+        act = self.helper_action()
+        act.load_set_bus = (1, 1)
+        assert np.all(act.load_set_bus == [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = (3.0, 1)
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = (False, 1)
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = ("toto", 1)
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = (1, "toto")
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = (11, 1)
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = (-1, 1)
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # not enough element in the tuple
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = (1, )
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # too much element in the tuple
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.load_set_bus = (1, 2, 3)
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+    def test_load_set_bus_list_asarray(self):
+        """test the set attribute when list are given (list convertible to array)"""
+        li_orig = [1, 2, -1, 2, 1, 0, 2, 1, 0, 1, 2]  # because i have 11 loads
+        tmp = np.array(li_orig)
+
+        # ok
+        act = self.helper_action()
+        act.load_set_bus = li_orig
+        assert np.all(act.load_set_bus == tmp)
+
+        # list too short
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp0 = copy.deepcopy(li_orig)
+            tmp0.pop(0)
+            act.load_set_bus = tmp0
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # list too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp1 = copy.deepcopy(li_orig)
+            tmp1.append(2)
+            act.load_set_bus = tmp1
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [float(el) for el in li_orig]
+            act.load_set_bus = tmp3
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # one of the value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(li_orig)
+            tmp4[2] = -2
+            act.load_set_bus = tmp4
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # one of the value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5[2] = 3
+            act.load_set_bus = tmp5
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = [str(el) for el in li_orig]
+            tmp6[2] = "toto"
+            act.load_set_bus = tmp6
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+    def test_load_set_bus_list_oftuple(self):
+        """test the set attribute when list are given (list of tuple)"""
+        li_orig = [(0, 1), (2, -1), (5, 2)]
+        # ok
+        act = self.helper_action()
+        act.load_set_bus = li_orig
+        assert np.all(act.load_set_bus == [1, 0, -1, 0, 0, 2, 0, 0, 0, 0, 0])
+
+        # list of float (for the el_id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [(float(id_), new_bus) for id_, new_bus in li_orig]
+            act.load_set_bus = tmp3
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # one of the bus value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(li_orig)
+            tmp4[2] = (3, -2)
+            act.load_set_bus = tmp4
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # one of the bus value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5[2] = (3, 3)
+            act.load_set_bus = tmp5
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(li_orig)
+            tmp6[2] = ("toto", 1)
+            act.load_set_bus = tmp6
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(li_orig)
+            tmp7[2]= (3, "toto")
+            act.load_set_bus = tmp7
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(li_orig)
+            tmp8.append((11, 1))
+            act.load_set_bus = tmp8
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(li_orig)
+            tmp9.append((-1, 1))
+            act.load_set_bus = tmp9
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+        # last test, when we give a list of tuple of exactly the right size
+        act = self.helper_action()
+        act.load_set_bus = [(el, 2) for el in range(act.n_load)]
+        assert np.all(act.load_set_bus == 2)
+
+    def test_load_set_bus_dict_with_id(self):
+        """test the set attribute when list are given (list of tuple)"""
+        dict_orig = {0: 1, 2: -1, 5: 2}
+        # ok
+        act = self.helper_action()
+        act.load_set_bus = dict_orig
+        assert np.all(act.load_set_bus == [1, 0, -1, 0, 0, 2, 0, 0, 0, 0, 0])
+
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = {float(id_): new_bus for id_, new_bus in dict_orig.items()}
+            act.load_set_bus = tmp3
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # one of the bus value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(dict_orig)
+            tmp4[2] = -2
+            act.load_set_bus = tmp4
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # one of the bus value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(dict_orig)
+            tmp5[2] = 3
+            act.load_set_bus = tmp5
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1
+            act.load_set_bus = tmp6
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(dict_orig)
+            tmp7[3] = "tata"
+            act.load_set_bus = tmp7
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(dict_orig)
+            tmp8[11] = 1
+            act.load_set_bus = tmp8
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(dict_orig)
+            tmp9[-1] = 1
+            act.load_set_bus = tmp9
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+    def test_load_set_bus_dict_with_name(self):
+        """test the set attribute when list are given (list of tuple)"""
+        dict_orig = {"load_0": 1, "load_2": -1, "load_5": 2}
+        # ok
+        act = self.helper_action()
+        act.load_set_bus = dict_orig
+        assert np.all(act.load_set_bus == [1, 0, -1, 0, 0, 2, 0, 0, 0, 0, 0])
+
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1  # unknown load
+            act.load_set_bus = tmp6
+        assert np.all(act.load_set_bus == 0), "a load has been modified by an illegal action"
+
+    def test_gen_set_bus_array(self):
+        li_orig = [1, 2, -1, 2, 1]  # because i have 5 gens
+        tmp = np.array(li_orig)
+
+        # first set of tests, with numpy array
+        act = self.helper_action()
+        act.gen_set_bus = tmp  # ok
+        assert np.all(act.gen_set_bus == tmp)
+
+        # array too short
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            act.gen_set_bus = tmp[:-1]
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # array too big
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp2 = np.concatenate((tmp, (1,)))
+            act.gen_set_bus = tmp2
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # float vect
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp3 = np.array(li_orig).astype(dt_float)
+            act.gen_set_bus = tmp3
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # one of the value too small
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp4 = np.array(li_orig)
+            tmp4[2] = -2
+            act.gen_set_bus = tmp4
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # one of the value too large
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp5 = np.array(li_orig)
+            tmp5[2] = 3
+            act.gen_set_bus = tmp5
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # wrong type
+        with self.assertRaises(IllegalAction):
+            act = self.helper_action()
+            tmp6 = np.array(li_orig).astype(str)
+            tmp6[2] = "toto"
+            act.gen_set_bus = tmp6
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+    def test_gen_set_bus_tuple(self):
+        # second set of tests, with tuple
+        act = self.helper_action()
+        act.gen_set_bus = (1, 1)
+        assert np.all(act.gen_set_bus == [0, 1, 0, 0, 0])
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = (3.0, 1)
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = (False, 1)
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = ("toto", 1)
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = (1, "toto")
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = (6, 1)
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = (-1, 1)
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # not enough element in the tuple
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = (1, )
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # too much element in the tuple
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.gen_set_bus = (1, 2, 3)
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+    def test_gen_set_bus_list_asarray(self):
+        """test the set attribute when list are given (list convertible to array)"""
+        li_orig = [1, 2, -1, 2, 1]  # because i have 5 gens
+        tmp = np.array(li_orig)
+
+        # ok
+        act = self.helper_action()
+        act.gen_set_bus = li_orig
+        assert np.all(act.gen_set_bus == tmp)
+
+        # list too short
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp0 = copy.deepcopy(li_orig)
+            tmp0.pop(0)
+            act.gen_set_bus = tmp0
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # list too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp1 = copy.deepcopy(li_orig)
+            tmp1.append(2)
+            act.gen_set_bus = tmp1
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [float(el) for el in li_orig]
+            act.gen_set_bus = tmp3
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # one of the value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(li_orig)
+            tmp4[2] = -2
+            act.gen_set_bus = tmp4
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # one of the value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5[2] = 3
+            act.gen_set_bus = tmp5
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = [str(el) for el in li_orig]
+            tmp6[2] = "toto"
+            act.gen_set_bus = tmp6
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+    def test_gen_set_bus_list_oftuple(self):
+        """test the set attribute when list are given (list of tuple)"""
+        li_orig = [(0, 1), (2, -1), (4, 2)]
+        # ok
+        act = self.helper_action()
+        act.gen_set_bus = li_orig
+        assert np.all(act.gen_set_bus == [1, 0, -1, 0, 2])
+
+        # list of float (for the el_id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [(float(id_), new_bus) for id_, new_bus in li_orig]
+            act.gen_set_bus = tmp3
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # one of the bus value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(li_orig)
+            tmp4[2] = (3, -2)
+            act.gen_set_bus = tmp4
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # one of the bus value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5[2] = (3, 3)
+            act.gen_set_bus = tmp5
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(li_orig)
+            tmp6[2] = ("toto", 1)
+            act.gen_set_bus = tmp6
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(li_orig)
+            tmp7[2] = (3, "toto")
+            act.gen_set_bus = tmp7
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(li_orig)
+            tmp8.append((5, 1))
+            act.gen_set_bus = tmp8
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(li_orig)
+            tmp9.append((-1, 1))
+            act.gen_set_bus = tmp9
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+        # when the list has exactly the same size
+        act = self.helper_action()
+        act.gen_set_bus = [(el, 2) for el in range(act.n_gen)]
+        assert np.all(act.gen_set_bus == 2)
+
+    def test_gen_set_bus_dict_with_id(self):
+        """test the set attribute when list are given (list of tuple)"""
+        dict_orig = {0: 1, 2: -1, 4: 2}
+        # ok
+        act = self.helper_action()
+        act.gen_set_bus = dict_orig
+        assert np.all(act.gen_set_bus == [1, 0, -1, 0, 2])
+
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = {float(id_): new_bus for id_, new_bus in dict_orig.items()}
+            act.gen_set_bus = tmp3
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # one of the bus value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(dict_orig)
+            tmp4[2] = -2
+            act.gen_set_bus = tmp4
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # one of the bus value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(dict_orig)
+            tmp5[2] = 3
+            act.gen_set_bus = tmp5
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1
+            act.gen_set_bus = tmp6
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(dict_orig)
+            tmp7[3] = "tata"
+            act.gen_set_bus = tmp7
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(dict_orig)
+            tmp8[11] = 1
+            act.gen_set_bus = tmp8
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(dict_orig)
+            tmp9[-1] = 1
+            act.gen_set_bus = tmp9
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+    def test_gen_set_bus_dict_with_name(self):
+        """test the set attribute when dict are given with key = names"""
+        dict_orig = {"gen_0": 1, "gen_2": -1, "gen_4": 2}
+        # ok
+        act = self.helper_action()
+        act.gen_set_bus = dict_orig
+        assert np.all(act.gen_set_bus == [1, 0, -1, 0, 2])
+
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1  # unknown gen
+            act.gen_set_bus = tmp6
+        assert np.all(act.gen_set_bus == 0), "a gen has been modified by an illegal action"
+
+
 class TestActionBase(ABC):
 
     @abstractmethod
@@ -49,134 +797,10 @@ class TestActionBase(ABC):
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
 
-        self.n_line = 20
-        GridObjects.env_name = "test_action_env"
-        GridObjects.n_gen = 5
-        GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
-        GridObjects.n_load = 11
-        GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
-        GridObjects.n_line = self.n_line
-        GridObjects.name_line = ["line_{}".format(i) for i in range(self.n_line)]
-        GridObjects.n_sub = 14
-        GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
-        GridObjects.sub_info = np.array([3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
-        GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
-        GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
-        GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
-                                                 5, 6, 6, 8, 8, 9, 11, 12])
-        GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
-                                                 12, 7, 8, 9, 13, 10, 12, 13])
-        GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
-        GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
-        GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1,
-                                                   2, 2, 3, 0, 0, 1])
-        GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0,
-                                                   1, 2, 2, 0, 0, 0])
-        GridObjects.load_pos_topo_vect = np.array([7, 12, 20, 25, 30,
-                                                   41, 43, 46, 49, 53, 56])
-        GridObjects.gen_pos_topo_vect = np.array([2, 8, 13, 31, 36])
-        GridObjects.line_or_pos_topo_vect = np.array([ 0,  1,  4,  5,  6, 11, 17, 18, 19,
-                                                       24, 27, 28, 29, 33, 34, 39, 40,
-                                                       42, 48, 52])
-        GridObjects.line_ex_pos_topo_vect = np.array([ 3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
-                                                       47, 50, 54, 35, 38, 44, 57,
-                                                       45, 51, 55])
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
 
-        GridObjects.redispatching_unit_commitment_availble = True
-        GridObjects.gen_type = np.array(["thermal"] * 5)
-        GridObjects.gen_pmin = np.array([0.0] * 5)
-        GridObjects.gen_pmax = np.array([100.0] * 5)
-        GridObjects.gen_min_uptime = np.array([0] * 5)
-        GridObjects.gen_min_downtime = np.array([0] * 5)
-        GridObjects.gen_cost_per_MW = np.array([70.0] * 5)
-        GridObjects.gen_startup_cost = np.array([0.0] * 5)
-        GridObjects.gen_shutdown_cost = np.array([0.0] * 5)
-        GridObjects.gen_redispatchable = np.array([True, False, False, True, False])
-        GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
-        GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
-
-        GridObjects.n_storage = 2
-        GridObjects.name_storage = ["storage_0", "storage_1"]
-        GridObjects.storage_to_subid = [1, 2]
-        GridObjects.storage_to_sub_pos = [6, 4]
-        GridObjects.storage_pos_topo_vect = [9, 14]
-        GridObjects.storage_type = np.array(["battery"] * 2)
-        GridObjects.storage_Emax = np.array([100., 100.])
-        GridObjects.storage_Emin = np.array([0., 0.])
-        GridObjects.storage_max_p_prod = np.array([10., 10.])
-        GridObjects.storage_max_p_absorb = np.array([15., 15.])
-        GridObjects.storage_marginal_cost = np.array([0., 0.])
-        GridObjects.storage_loss = np.array([0., 0.])
-        GridObjects.storage_discharging_efficiency = np.array([1., 1.])
-        GridObjects.storage_charging_efficiency = np.array([1., 1.])
-
-        self.gridobj = GridObjects()
-
-        self.res = {
-            'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
-            'name_load': ['load_0', 'load_1', 'load_2',
-                          'load_3', 'load_4', 'load_5', 'load_6',
-                          'load_7', 'load_8', 'load_9', 'load_10'],
-            'name_line': ['line_0', 'line_1', 'line_2',
-                          'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
-                          'line_8', 'line_9', 'line_10', 'line_11',
-                          'line_12', 'line_13', 'line_14',
-                          'line_15', 'line_16', 'line_17',
-                          'line_18', 'line_19'],
-            'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
-                         'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
-                         'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
-            'name_storage': ["storage_0", "storage_1"],
-            'env_name': 'test_action_env',
-            'sub_info': [3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-            'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
-            'gen_to_subid': [0, 1, 2, 5, 7],
-            'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3,
-                                 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-            'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6,
-                                 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
-            "storage_to_subid": [1, 2],
-            'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
-            'gen_to_sub_pos': [2, 5, 3, 5, 1],
-            'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2,
-                                   3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-            'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2,
-                                   0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
-            "storage_to_sub_pos": [6, 4],
-            'load_pos_topo_vect': [7, 12, 20, 25, 30,
-                                   41, 43, 46, 49, 53, 56],
-            'gen_pos_topo_vect': [2, 8, 13, 31, 36],
-            'line_or_pos_topo_vect': [ 0,  1,  4,  5,  6, 11, 17, 18, 19,
-                                       24, 27, 28, 29, 33, 34, 39, 40,
-                                       42, 48, 52],
-            'line_ex_pos_topo_vect': [ 3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
-                                       47, 50, 54, 35, 38, 44, 57,
-                                       45, 51, 55],
-            "storage_pos_topo_vect": [9, 14],
-            'gen_type': ["thermal"] * 5,
-            'gen_pmin': [0.0] * 5,
-            'gen_pmax': [100.0] * 5,
-            'gen_redispatchable': [True, False, False, True, False],
-            'gen_max_ramp_up': [10., 5., 15., 7., 8.],
-            'gen_max_ramp_down': [11., 6., 16., 8., 9.],
-            'gen_min_uptime': [0] * 5,
-            'gen_min_downtime': [0] * 5,
-            'gen_cost_per_MW': [70.0] * 5,
-            'gen_startup_cost': [0.0] * 5,
-            'gen_shutdown_cost': [0.0] * 5,
-            "storage_type": ["battery"] * 2,
-            "storage_Emax": [100., 100.],
-            "storage_Emin": [0., 0.],
-            "storage_max_p_prod": [10., 10.],
-            "storage_max_p_absorb": [15., 15.],
-            "storage_marginal_cost": [0., 0.],
-            "storage_loss": [0., 0.],
-            "storage_charging_efficiency": [1., 1.],
-            "storage_discharging_efficiency": [1., 1.],
-            "grid_layout": None,
-            "shunt_to_subid": None,
-            "name_shunt": None
-        }
 
         # self.size_act = 229
         self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
@@ -1128,129 +1752,9 @@ class TestIADD:
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
         self.n_line = 20
-        GridObjects.env_name = "test_action_env"
-        GridObjects.n_gen = 5
-        GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
-        GridObjects.n_load = 11
-        GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
-        GridObjects.n_line = self.n_line
-        GridObjects.name_line = ["line_{}".format(i) for i in range(self.n_line)]
-        GridObjects.n_sub = 14
-        GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
-        GridObjects.sub_info = np.array([3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
-        GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
-        GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
-        GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
-                                                 5, 6, 6, 8, 8, 9, 11, 12])
-        GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
-                                                 12, 7, 8, 9, 13, 10, 12, 13])
-        GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
-        GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
-        GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1,
-                                                   2, 2, 3, 0, 0, 1])
-        GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0,
-                                                   1, 2, 2, 0, 0, 0])
-        GridObjects.load_pos_topo_vect = np.array([7, 12, 20, 25, 30,
-                                                   41, 43, 46, 49, 53, 56])
-        GridObjects.gen_pos_topo_vect = np.array([2, 8, 13, 31, 36])
-        GridObjects.line_or_pos_topo_vect = np.array([ 0,  1,  4,  5,  6, 11, 17, 18, 19,
-                                                       24, 27, 28, 29, 33, 34, 39, 40,
-                                                       42, 48, 52])
-        GridObjects.line_ex_pos_topo_vect = np.array([ 3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
-                                                       47, 50, 54, 35, 38, 44, 57,
-                                                       45, 51, 55])
-
-        GridObjects.redispatching_unit_commitment_availble = True
-        GridObjects.gen_type = np.array(["thermal"] * 5)
-        GridObjects.gen_pmin = np.array([0.0] * 5)
-        GridObjects.gen_pmax = np.array([100.0] * 5)
-        GridObjects.gen_min_uptime = np.array([0] * 5)
-        GridObjects.gen_min_downtime = np.array([0] * 5)
-        GridObjects.gen_cost_per_MW = np.array([70.0] * 5)
-        GridObjects.gen_startup_cost = np.array([0.0] * 5)
-        GridObjects.gen_shutdown_cost = np.array([0.0] * 5)
-        GridObjects.gen_redispatchable = np.array([True, False, False, True, False])
-        GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
-        GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
-
-        GridObjects.n_storage = 2
-        GridObjects.name_storage = ["storage_0", "storage_1"]
-        GridObjects.storage_to_subid = [1, 2]
-        GridObjects.storage_to_sub_pos = [6, 4]
-        GridObjects.storage_pos_topo_vect = [9, 14]
-        GridObjects.storage_type = np.array(["battery"] * 2)
-        GridObjects.storage_Emax = np.array([100., 100.])
-        GridObjects.storage_Emin = np.array([0., 0.])
-        GridObjects.storage_max_p_prod = np.array([10., 10.])
-        GridObjects.storage_max_p_absorb = np.array([15., 15.])
-        GridObjects.storage_marginal_cost = np.array([0., 0.])
-        GridObjects.storage_loss = np.array([0., 0.])
-
-        self.gridobj = GridObjects()
-
-        self.res = {
-            'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
-            'name_load': ['load_0', 'load_1', 'load_2',
-                          'load_3', 'load_4', 'load_5', 'load_6',
-                          'load_7', 'load_8', 'load_9', 'load_10'],
-            'name_line': ['line_0', 'line_1', 'line_2',
-                          'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
-                          'line_8', 'line_9', 'line_10', 'line_11',
-                          'line_12', 'line_13', 'line_14',
-                          'line_15', 'line_16', 'line_17',
-                          'line_18', 'line_19'],
-            'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
-                         'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
-                         'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
-            'name_storage': ["storage_0", "storage_1"],
-            'env_name': 'test_action_env',
-            'sub_info': [3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-            'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
-            'gen_to_subid': [0, 1, 2, 5, 7],
-            'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3,
-                                 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-            'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6,
-                                 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
-            "storage_to_subid": [1, 2],
-            'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
-            'gen_to_sub_pos': [2, 5, 3, 5, 1],
-            'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2,
-                                   3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-            'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2,
-                                   0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
-            "storage_to_sub_pos": [6, 4],
-            'load_pos_topo_vect': [7, 12, 20, 25, 30,
-                                   41, 43, 46, 49, 53, 56],
-            'gen_pos_topo_vect': [2, 8, 13, 31, 36],
-            'line_or_pos_topo_vect': [ 0,  1,  4,  5,  6, 11, 17, 18, 19,
-                                       24, 27, 28, 29, 33, 34, 39, 40,
-                                       42, 48, 52],
-            'line_ex_pos_topo_vect': [ 3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
-                                       47, 50, 54, 35, 38, 44, 57,
-                                       45, 51, 55],
-            "storage_pos_topo_vect": [9, 14],
-            'gen_type': ["thermal"] * 5,
-            'gen_pmin': [0.0] * 5,
-            'gen_pmax': [100.0] * 5,
-            'gen_redispatchable': [True, False, False, True, False],
-            'gen_max_ramp_up': [10., 5., 15., 7., 8.],
-            'gen_max_ramp_down': [11., 6., 16., 8., 9.],
-            'gen_min_uptime': [0] * 5,
-            'gen_min_downtime': [0] * 5,
-            'gen_cost_per_MW': [70.0] * 5,
-            'gen_startup_cost': [0.0] * 5,
-            'gen_shutdown_cost': [0.0] * 5,
-            "storage_type": ["battery"] * 2,
-            "storage_Emax": [100., 100.],
-            "storage_Emin": [0., 0.],
-            "storage_max_p_prod": [10., 10.],
-            "storage_max_p_absorb": [15., 15.],
-            "storage_marginal_cost": [0., 0.],
-            "storage_loss": [0., 0.],
-            "grid_layout": None,
-            "shunt_to_subid": None,
-            "name_shunt": None
-        }
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
 
         self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
         # self.size_act = 229
