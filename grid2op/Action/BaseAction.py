@@ -2404,3 +2404,135 @@ class BaseAction(GridObjects):
         return gen_p, gen_v, gen_set_bus, gen_change_bus
 
     # TODO do the get_line_modif, get_line_or_modif and get_line_ex_modif
+
+    def __aux_affect_object_set_bus(self, values, name_el, nb_els,
+                                    els_pos_topo_vect, name_els):
+        """
+        values: the new values to set
+
+        name_el: "load"
+        nb_els: self.n_load
+        els_pos_topo_vect: self.load_pos_topo_vect
+        name_els: self.name_load
+        """
+        if isinstance(values, tuple):
+            # i provide a tuple: load_id, new_bus
+            if len(values) != 2:
+                raise IllegalAction(f"when set with tuple, this tuple should have size 2 and be: {name_el}_id, new_bus "
+                                    f"eg. (2, 2)")
+            el_id, new_bus = values
+            try:
+                new_bus = int(new_bus)
+            except Exception as exc_:
+                raise IllegalAction(f"new_bus should be convertible to integer. Error was : \"{exc_}\"")
+
+            if new_bus < -1:
+                raise IllegalAction("new_bus should be -1, 0, 1 or 2")
+            if new_bus > 2:
+                raise IllegalAction("new_bus should be -1, 0, 1 or 2")
+            try:
+                el_id = int(el_id)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if el_id < 0:
+                raise IllegalAction("Impossible to set a negative load with negative id")
+            if el_id >= nb_els:
+                raise IllegalAction(f"Impossible to set a {name_el} id {el_id} because there are only "
+                                    f"{nb_els} on the grid (and in python id starts at 0)")
+            self._set_topo_vect[els_pos_topo_vect[el_id]] = new_bus
+            return
+        elif isinstance(values, np.ndarray):
+            values = values.astype(dt_int)
+            if np.any(values) < -1:
+                raise IllegalAction("new_bus should be -1, 0, 1 or 2, found a value < -1")
+            if np.any(values) > 2:
+                raise IllegalAction("new_bus should be -1, 0, 1 or 2, found a value  > 2")
+            self._set_topo_vect[els_pos_topo_vect] = values
+            return
+        elif isinstance(values, list):
+            # 2 cases: list of tuple, or list (convertible to numpy array)
+            if len(values) == nb_els:
+                # 2 cases: either i set all loads in the form [(0,..), (1,..), (2,...)]
+                # or i should have converted the list to np array
+                if isinstance(values[0], tuple):
+                    # list of tuple, handled below
+                    pass
+                else:
+                    # get back to case where it's a full vector
+                    values = np.array(values).astype(dt_int)
+                    self.__aux_affect_object_set_bus(values, name_el, nb_els, els_pos_topo_vect, name_els)
+                    return
+
+            # expected list of tuple, each tuple is a pair with load_id, new_load_bus: example: [(0, 1), (2,2)]
+            for el in values:
+                if len(el) != 2:
+                    raise IllegalAction("If input is a list, it should be a  list of pair (el_id, new_bus) "
+                                        "eg. [(0, 1), (2, 2)]")
+                el_id, new_bus = el
+                self.__aux_affect_object_set_bus((el_id, new_bus), name_el, nb_els, els_pos_topo_vect, name_els)
+        elif isinstance(values, dict):
+            # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
+            for key, new_bus in values.items():
+                if isinstance(key, str):
+                    tmp = np.where(name_els == key)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {key}")
+                    key = tmp[0]
+                self.__aux_affect_object_set_bus((key, new_bus), name_el, nb_els, els_pos_topo_vect, name_els)
+        else:
+            raise IllegalAction(f"Impossible to modify the {name_el} bus with inputs {values}. "
+                                f"Please see the documentation.")
+
+    @property
+    def load_set_bus(self):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
+        return 1 * self._set_topo_vect[self.load_pos_topo_vect]
+
+    @load_set_bus.setter
+    def load_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
+        try:
+            self.__aux_affect_object_set_bus(values, "load", self.n_load, self.load_pos_topo_vect, self.name_load)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            raise IllegalAction(f"Impossible to modify the load bus with your input. Please consult the documentation. "
+                                f"The error was \"{exc_}\"")
+    @property
+    def gen_set_bus(self):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
+        return 1 * self._set_topo_vect[self.gen_pos_topo_vect]
+
+    @gen_set_bus.setter
+    def gen_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the gen bus (with \"set\") with this action type.")
+        try:
+            self.__aux_affect_object_set_bus(values, "gen", self.n_gen, self.gen_pos_topo_vect, self.name_gen)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+    @property
+    def storage_set_bus(self):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        return 1 * self._set_topo_vect[self.gen_pos_topo_vect]
+
+    @storage_set_bus.setter
+    def storage_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
+        try:
+            self.__aux_affect_object_set_bus(values, "storage", self.n_storage,
+                                             self.storage_pos_topo_vect, self.name_storage)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")

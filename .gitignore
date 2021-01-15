@@ -269,6 +269,7 @@ tf_logs_gnn/
 test_weigths.h5
 test_threading_lightsim.py
 test_multiprocessing.py
+test_plot_storage.ipynb
 
 # profiling files
 **.prof
