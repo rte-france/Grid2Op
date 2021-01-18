@@ -636,6 +636,7 @@ class Backend(GridObjects, ABC):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
+
         Optional method that allows to get the substation if the bus id is provided.
 
         :param bus_id:

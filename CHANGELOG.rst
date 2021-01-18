@@ -33,6 +33,8 @@ Change Log
   used and the observation class used as dictionary to (using `action.cls_to_dict`)
 - [BREAKING] for backend class implementation: need to upgrade your code to take into account the storage units
   if some are present in the grid even if you don't want to use storage units.
+- [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
+  at the end of an episode.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
   negative: power given to the grid having some energy limit and power limit). A new object if added in the substation.
