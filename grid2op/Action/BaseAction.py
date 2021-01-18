@@ -949,7 +949,6 @@ class BaseAction(GridObjects):
                     "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
 
     def _digest_change_bus(self, dict_):
-        # TODO make the property like "set" and refacto !
         if "change_bus" in dict_:
             self._modif_change_bus = True
             if isinstance(dict_["change_bus"], np.ndarray):
@@ -957,33 +956,22 @@ class BaseAction(GridObjects):
                 self._change_bus_vect[:] = dict_["change_bus"]
             elif isinstance(dict_["change_bus"], dict):
                 ddict_ = dict_["change_bus"]
+                handled = False
                 if "loads_id" in ddict_:
-                    tmp = ddict_["loads_id"]
-                    for l_id in tmp:
-                        self._change_bus_vect[self.load_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self.load_pos_topo_vect[l_id]]
+                    self.load_change_bus = ddict_["loads_id"]
+                    handled = True
                 if "generators_id" in ddict_:
-                    tmp = ddict_["generators_id"]
-                    for g_id in tmp:
-                        self._change_bus_vect[self.gen_pos_topo_vect[g_id]] = not self._change_bus_vect[
-                            self.gen_pos_topo_vect[g_id]]
+                    self.gen_change_bus = ddict_["generators_id"]
+                    handled = True
                 if "lines_or_id" in ddict_:
-                    tmp = ddict_["lines_or_id"]
-                    for l_id in tmp:
-                        self._change_bus_vect[self.line_or_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self.line_or_pos_topo_vect[l_id]]
+                    self.line_or_change_bus = ddict_["lines_or_id"]
+                    handled = True
                 if "lines_ex_id" in ddict_:
-                    tmp = ddict_["lines_ex_id"]
-                    for l_id in tmp:
-                        self._change_bus_vect[self.line_ex_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self.line_ex_pos_topo_vect[l_id]]
+                    self.line_ex_change_bus = ddict_["lines_ex_id"]
+                    handled = True
                 if "storages_id" in ddict_:
-                    # NOTE: if storage_power is not accessible, any attempt to modify the
-                    # storage unit bus will lead to an ambiguous action.
-                    tmp = ddict_["storages_id"]
-                    for l_id in tmp:
-                        self._change_bus_vect[self.storage_pos_topo_vect[l_id]] = not self._change_bus_vect[
-                            self.storage_pos_topo_vect[l_id]]
+                    self.storage_change_bus = ddict_["storages_id"]
+                    handled = True
                 if "substations_id" in ddict_:
                     tmp = ddict_["substations_id"]
                     for (s_id, arr) in tmp:
@@ -991,10 +979,18 @@ class BaseAction(GridObjects):
                         beg_ = int(np.sum(self.sub_info[:s_id]))
                         end_ = int(beg_ + self.sub_info[s_id])
                         self._change_bus_vect[beg_:end_][arr] = True
+                        handled = True
+                if not handled:
+                    msg = "Invalid way to change the topology. When dict_[\"set_bus\"] is a dictionary it should have"
+                    msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
+                    msg += "\"lines_ex_id\" or \"substations_id\""
+                    msg += " as keys. None where found. Current used keys are: "
+                    msg += "{}".format(sorted(ddict_.keys()))
+                    raise AmbiguousAction(msg)
             elif dict_["change_bus"] is None:
-                self._modif_change_bus = False
+                pass
             else:
-                self._modif_change_bus = False
+                pass
                 raise AmbiguousAction(
                     "Invalid way to set the topology. dict_[\"change_bus\"] should be a numpy array or a dictionnary.")
 
@@ -1002,19 +998,6 @@ class BaseAction(GridObjects):
         if "set_line_status" in dict_:
             # this action can both disconnect or reconnect a powerlines
             self.line_set_status = dict_["set_line_status"]
-            # if isinstance(dict_["set_line_status"], np.ndarray):
-            #     if dict_["set_line_status"] is not None:
-            #         if len(dict_["set_line_status"]) != self.n_line:
-            #             raise InvalidNumberOfLines(
-            #                 "This \"set_line_status\" action acts on {} lines while there are {} in the grid".format(
-            #                     len(dict_["set_line_status"]), self.n_line))
-            #         sel_ = dict_["set_line_status"] != 0
-            #
-            #         # update the line status vector
-            #         self._set_line_status[sel_] = dict_["set_line_status"][sel_].astype(dt_int)
-            # else:
-            #     for l_id, status_ in dict_["set_line_status"]:
-            #         self._set_line_status[l_id] = status_
 
     def _digest_hazards(self, dict_):
         if "hazards" in dict_:
@@ -1077,26 +1060,7 @@ class BaseAction(GridObjects):
             # and if the status is "connected" it will be switched to "disconnected"
             # Lines with "0" in this vector are not impacted.
             if dict_["change_line_status"] is not None:
-                tmp = dict_["change_line_status"]
-                try:
-                    tmp = np.array(tmp)
-                except Exception as exc_:
-                    self._modif_change_status = False
-                    raise AmbiguousAction(
-                        f"You ask to change the bus status, this can only be done if \"change_status\" can be casted "
-                        f"into a numpy ndarray with error {exc_}")
-                if np.issubdtype(tmp.dtype, np.dtype(bool).type):
-                    if len(tmp) != self.n_line:
-                        self._modif_change_status = False
-                        raise InvalidNumberOfLines(
-                            "This \"change_line_status\" action acts on {} lines while there are {} in the _grid"
-                            "".format(len(tmp), self.n_line))
-                elif not np.issubdtype(tmp.dtype, np.dtype(int).type):
-                    self._modif_change_status = False
-                    raise AmbiguousAction("You can only change line status with int or boolean numpy array vector.")
-
-                self._modif_change_status = True
-                self._switch_line_status[dict_["change_line_status"]] = True
+                self.line_change_status = dict_["change_line_status"]
 
     def __convert_and_redispatch(self, kk, val):
         try:
@@ -2849,7 +2813,7 @@ class BaseAction(GridObjects):
         try:
             self.__aux_affect_object_bool(values, "line (origin)", self.n_line, self.name_line,
                                           self.line_or_pos_topo_vect, self._change_bus_vect)
-            self._modif_set_bus = True
+            self._modif_change_bus = True
         except Exception as exc_:
             self._change_bus_vect[self.line_or_pos_topo_vect] = orig_
             raise IllegalAction(f"Impossible to modify the line origin bus with your input. "
@@ -2873,7 +2837,7 @@ class BaseAction(GridObjects):
         try:
             self.__aux_affect_object_bool(values, "line (extremity)", self.n_line, self.name_line,
                                           self.line_ex_pos_topo_vect, self._change_bus_vect)
-            self._modif_set_bus = True
+            self._modif_change_bus = True
         except Exception as exc_:
             self._change_bus_vect[self.line_ex_pos_topo_vect] = orig_
             raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
@@ -2898,7 +2862,7 @@ class BaseAction(GridObjects):
         try:
             self.__aux_affect_object_bool(values, "line status", self.n_line, self.name_line,
                                           np.arange(self.n_line), self._switch_line_status)
-            self._modif_set_status = True
+            self._modif_change_status = True
         except Exception as exc_:
             self._switch_line_status[:] = orig_
             raise IllegalAction(f"Impossible to modify the line status with your input. "
