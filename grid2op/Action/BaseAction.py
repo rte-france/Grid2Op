@@ -235,7 +235,7 @@ class BaseAction(GridObjects):
         self._redispatch = np.full(shape=self.n_gen, fill_value=0., dtype=dt_float)
 
         # storage unit vector
-        self._storage_power = np.full(shape=self.n_storage, fill_value=np.NaN, dtype=dt_float)
+        self._storage_power = np.full(shape=self.n_storage, fill_value=0., dtype=dt_float)
 
         self._vectorized = None
         self._lines_impacted = None
@@ -1738,7 +1738,7 @@ class BaseAction(GridObjects):
         if self._modif_storage:
             for stor_idx in range(self.n_storage):
                 tmp = self._storage_power[stor_idx]
-                if np.isfinite(tmp):
+                if np.isfinite(tmp) and tmp != 0.:
                     name_ = self.name_storage[stor_idx]
                     amount_ = self._storage_power[stor_idx]
                     res.append("\t - set the new power produced / absorbed for storage {} to be {} MW".format(name_, amount_))
@@ -2866,5 +2866,168 @@ class BaseAction(GridObjects):
         except Exception as exc_:
             self._switch_line_status[:] = orig_
             raise IllegalAction(f"Impossible to modify the line status with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    def __aux_affect_object_float(self, values, name_el, nb_els,
+                                  name_els,
+                                  inner_vect,
+                                  outer_vect,
+                                  ):
+        """
+        NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
+        This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
+
+        values: the new values to set
+        name_el: "load"
+        nb_els: self.n_load
+        inner_vect: self.load_pos_topo_vect
+        name_els: self.name_load
+        outer_vect: self._set_topo_vect
+
+        will modify outer_vect[inner_vect]
+        """
+        if isinstance(values, tuple):
+            # i provide a tuple: load_id, new_vals
+            if len(values) != 2:
+                raise IllegalAction(f"when set with tuple, this tuple should have size 2 and be: {name_el}_id, new_bus "
+                                    f"eg. (3, 0.0)")
+            el_id, new_val = values
+            if isinstance(new_val, (bool, dt_bool)):
+                raise IllegalAction(f"new_val should be a float. A boolean was provided")
+
+            try:
+                new_val = float(new_val)
+            except Exception as exc_:
+                raise IllegalAction(f"new_val should be convertible to a float. Error was : \"{exc_}\"")
+
+            if isinstance(el_id, (float, dt_float, np.float)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided float!")
+            if isinstance(el_id, (bool, dt_bool)):
+                raise IllegalAction(f"{name_el}_id should be integers you provided bool!")
+            if isinstance(el_id, str):
+                raise IllegalAction(f"{name_el}_id should be integers you provided string "
+                                    f"(hint: you can use a dictionary to set the bus by name eg. "
+                                    f"act.{name_el}_set_bus = {{act.name_{name_el}[0] : 1, act.name_{name_el}[1] : "
+                                    f"0.0}} )!")
+
+            try:
+                el_id = int(el_id)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if el_id < 0:
+                raise IllegalAction(f"Impossible to set the bus of a {name_el} with negative id")
+            if el_id >= nb_els:
+                raise IllegalAction(f"Impossible to set a {name_el} id {el_id} because there are only "
+                                    f"{nb_els} on the grid (and in python id starts at 0)")
+            if np.isfinite(new_val):
+                outer_vect[inner_vect[el_id]] = new_val
+            return
+        elif isinstance(values, np.ndarray):
+            if isinstance(values.dtype, int) or values.dtype == dt_int or values.dtype == np.int:
+                raise IllegalAction(f"{name_el}_id should be integers you provided int!")
+            if isinstance(values.dtype, bool) or values.dtype == dt_bool:
+                raise IllegalAction(f"{name_el}_id should be integers you provided boolean!")
+            try:
+                values = values.astype(dt_float)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to float. Error was : \"{exc_}\"")
+            indx_ok = np.isfinite(values)
+            outer_vect[inner_vect[indx_ok]] = values[indx_ok]
+            return
+        elif isinstance(values, list):
+            # 2 cases: list of tuple, or list (convertible to numpy array)
+            if len(values) == nb_els:
+                # 2 cases: either i set all loads in the form [(0,..), (1,..), (2,...)]
+                # or i should have converted the list to np array
+                if isinstance(values[0], tuple):
+                    # list of tuple, handled below
+                    # TODO can be somewhat "hacked" if the type of the object on the list is not always the same
+                    pass
+                else:
+                    # get back to case where it's a full vector
+                    values = np.array(values)
+                    self.__aux_affect_object_float(values, name_el, nb_els, name_els,
+                                                   inner_vect=inner_vect, outer_vect=outer_vect)
+                    return
+
+            # expected list of tuple, each tuple is a pair with load_id, new_vals: example: [(0, -1.0), (2,2.7)]
+            for el in values:
+                if len(el) != 2:
+                    raise IllegalAction(f"If input is a list, it should be a  list of pair (el_id, new_val) "
+                                        f"eg. [(0, 1.0), (2, 2.7)]")
+                el_id, new_val = el
+                if isinstance(el_id, str):
+                    tmp = np.where(name_els == el_id)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {el_id}")
+                    el_id = tmp[0]
+                self.__aux_affect_object_float((el_id, new_val), name_el, nb_els, name_els,
+                                               inner_vect=inner_vect, outer_vect=outer_vect)
+        elif isinstance(values, dict):
+            # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
+            for key, new_val in values.items():
+                if isinstance(key, str):
+                    tmp = np.where(name_els == key)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {key}")
+                    key = tmp[0]
+                self.__aux_affect_object_float((key, new_val), name_el, nb_els, name_els,
+                                               inner_vect=inner_vect, outer_vect=outer_vect)
+        else:
+            raise IllegalAction(f"Impossible to modify the {name_el} with inputs {values}. "
+                                f"Please see the documentation.")
+
+    @property
+    def redispatch(self):
+        # TODO doc: of all the properties
+        if "redispatch" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform redispatching with this action type.")
+        res = 1.0 * self._redispatch
+        res.flags.writeable = False
+        return res
+
+    @redispatch.setter
+    def redispatch(self, values):
+        if "change_line_status" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform redispatching with this action type.")
+        orig_ = self.redispatch
+        try:
+            self.__aux_affect_object_float(values, "redispatching", self.n_gen, self.name_gen,
+                                           np.arange(self.n_gen), self._redispatch)
+            self._modif_redispatch = True
+        except Exception as exc_:
+            self._redispatch[:] = orig_
+            raise IllegalAction(f"Impossible to modify the redispatching with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def storage_p(self):
+        # TODO doc: of all the properties
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform storage action with this action type.")
+        if self.n_storage == 0:
+            raise IllegalAction("Impossible to perform storage action with this grid (no storage unit"
+                                "available)")
+        res = 1.0 * self._storage_power
+        res.flags.writeable = False
+        return res
+
+    @storage_p.setter
+    def storage_p(self, values):
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform storage action with this action type.")
+        if self.n_storage == 0:
+            raise IllegalAction("Impossible to perform storage action with this grid (no storage unit"
+                                "available)")
+        orig_ = self.storage_p
+        try:
+            self.__aux_affect_object_float(values, "storage", self.n_storage, self.name_storage,
+                                           np.arange(self.n_storage), self._storage_power)
+            self._modif_storage = True
+        except Exception as exc_:
+            self._storage_power[:] = orig_
+            raise IllegalAction(f"Impossible to modify the storage active power with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")

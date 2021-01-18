@@ -1258,7 +1258,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _compute_storage(self, action_storage_power):
         self._storage_previous_charge[:] = self._storage_current_charge
-        storage_act = np.isfinite(action_storage_power)
+        storage_act = np.isfinite(action_storage_power) & (action_storage_power != 0.)
         self._action_storage[:] = 0.
         self._storage_power[:] = 0.
         modif = False
@@ -1310,6 +1310,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             # battery effect should be removed, so i multiply it by -1.
             self._amount_storage = 0.
+
         tmp = self._amount_storage
         self._amount_storage -= self._amount_storage_prev
         self._amount_storage_prev = tmp

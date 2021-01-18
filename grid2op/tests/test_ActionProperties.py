@@ -2224,5 +2224,371 @@ class TestChangeBus(unittest.TestCase):
         self._aux_change_bus_listint("line", nb_el=self.helper_action.n_line, prop="change_status")
 
 
+class TestSetValues(unittest.TestCase):
+    """test the property to set continuous values"""
+
+    def setUp(self):
+        """
+        The case file is a representation of the case14 as found in the ieee14 powergrid.
+        :return:
+        """
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+        self.game_rules = RulesChecker()
+
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
+
+
+        # self.size_act = 229
+        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
+        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.helper_action = self.ActionSpaceClass(self.gridobj,
+                                                   legal_action=self.game_rules.legal_action,
+                                                   actionClass=CompleteAction)
+        self.helper_action.seed(42)
+        # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+        save_to_dict(self.res, self.helper_action,
+                     "_init_subtype",
+                     lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
+
+        self.authorized_keys = self.helper_action().authorized_keys
+        self.size_act = self.helper_action.size()
+
+    def _aux_change_val_tuple(self, name_el, nb_el, prop_name):
+        """first set of test by giving the id of the object i want to change"""
+        this_zero = [0. for _ in range(nb_el)]
+
+        # regular modification
+        act = self.helper_action()
+        setattr(act, prop_name, (1, 1.0))
+        assert np.all(getattr(act, prop_name) == [0., 1.0] + [0. for _ in range(nb_el-2)])
+
+        # nan action: should be discarded
+        act = self.helper_action()
+        setattr(act, prop_name, (1, np.NaN))
+        assert np.all(getattr(act, prop_name) == [0. for _ in range(nb_el)])
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (3.0, 1.0))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (False, 1.0))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, ("toto", 1.0))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, "toto"))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, False))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (nb_el + 1, 1.0))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (-1, 1.0))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # tuple wrong size
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, ))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # tuple wrong size
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, 1.0, 1))
+        assert np.all(getattr(act, prop_name) == this_zero), f"a {name_el} has been modified by an illegal action"
+
+        # test correct canceling
+        act = self.helper_action()
+        setattr(act, prop_name, (1, 1.0))
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, 1.0, 1))
+        assert np.all(getattr(act, prop_name) == [0., 1.0] + [0. for _ in range(nb_el-2)])
+
+    def test_redisp_tuple(self):
+        self._aux_change_val_tuple("redisp", self.helper_action.n_gen, "redispatch")
+
+    def test_storage_power_tuple(self):
+        self._aux_change_val_tuple("storage", self.helper_action.n_storage, "storage_p")
+
+    def _aux_set_val_array(self, name_el, nb_el, prop_name):
+        li_orig = [1.0, -1.0] + [0. for _ in range(nb_el-2)]
+        tmp = np.array(li_orig)
+        tmp_dt_float = np.array(li_orig).astype(dt_float)
+        tmp_np_float = np.array(li_orig).astype(np.float)
+
+        # first set of tests, with numpy array
+        act = self.helper_action()
+        setattr(act, prop_name, tmp)  # ok
+        assert np.all(getattr(act, prop_name) == li_orig)
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp_dt_float)  # ok
+        assert np.all(getattr(act, prop_name) == li_orig)
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp_np_float)  # ok
+        assert np.all(getattr(act, prop_name) == li_orig)
+
+        # array too short
+        act = self.helper_action()
+
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, tmp[0])
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # array too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp2 = np.concatenate((tmp, (1,)))
+            setattr(act, prop_name, tmp2)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # bool vect
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = np.array(li_orig).astype(dt_bool)
+            setattr(act, prop_name, tmp3)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # int vect
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = np.array(li_orig).astype(dt_int)
+            setattr(act, prop_name, tmp4)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = np.array(li_orig).astype(str)
+            tmp6[1] = "toto"
+            setattr(act, prop_name, tmp6)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # test reset ok
+        act = self.helper_action()
+        setattr(act, prop_name, tmp)  # ok
+        with self.assertRaises(IllegalAction):
+            tmp6 = np.array(li_orig).astype(str)
+            tmp6[1] = "toto"
+            setattr(act, prop_name, tmp6)
+        assert np.all(getattr(act, prop_name) == li_orig)
+
+    def test_redisp_array(self):
+        self._aux_set_val_array("redisp", self.helper_action.n_gen, "redispatch")
+
+    def test_storage_power_array(self):
+        self._aux_set_val_array("storage", self.helper_action.n_storage, "storage_p")
+
+    def _aux_set_val_list_asarray(self, name_el, nb_el, prop_name):
+        """test the set attribute when list are given (list convertible to array)"""
+        li_orig = [1., -1.] + [0 for _ in range(nb_el-2)]
+        tmp = np.array(li_orig)
+
+        # ok
+        act = self.helper_action()
+        setattr(act, prop_name, li_orig)
+        assert np.all(getattr(act, prop_name) == tmp)
+
+        # list too short
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp0 = copy.deepcopy(li_orig)
+            tmp0.pop(0)
+            setattr(act, prop_name, tmp0)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # list too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp1 = copy.deepcopy(li_orig)
+            tmp1.append(1.0)
+            setattr(act, prop_name, tmp1)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [int(el) for el in li_orig]
+            setattr(act, prop_name, tmp3)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = [str(el) for el in li_orig]
+            tmp6[1] = "toto"
+            setattr(act, prop_name, tmp6)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # reset ok
+        act = self.helper_action()
+        setattr(act, prop_name, li_orig)
+        with self.assertRaises(IllegalAction):
+            tmp3 = [int(el) for el in li_orig]
+            setattr(act, prop_name, tmp3)
+        assert np.all(getattr(act, prop_name) == tmp)
+
+    def test_redisp_list_asarray(self):
+        self._aux_set_val_list_asarray("redisp", self.helper_action.n_gen, "redispatch")
+
+    def test_storage_power_list_asarray(self):
+        self._aux_set_val_list_asarray("storage", self.helper_action.n_storage, "storage_p")
+
+    def _aux_set_val_list_oftuple(self, name_el, nb_el, prop_name):
+        """test the set attribute when list are given (list of tuple)"""
+        li_orig = [(0, 1.0), (1, -1.0)]
+        # ok
+        act = self.helper_action()
+        setattr(act, prop_name, li_orig)
+        assert np.all(getattr(act, prop_name) == [1., -1.] + [0. for _ in range(nb_el-2)])
+
+        # list of float (for the el_id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [(float(id_), new_bus) for id_, new_bus in li_orig]
+            setattr(act, prop_name, tmp3)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(li_orig)
+            tmp6[1] = ("toto", 1)
+            setattr(act, prop_name, tmp6)
+        assert np.all(getattr(act, prop_name) == 0)
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(li_orig)
+            tmp7[1] = (3, "toto")
+            setattr(act, prop_name, tmp7)
+        assert np.all(getattr(act, prop_name) == 0)
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(li_orig)
+            tmp8.append((21, 1))
+            setattr(act, prop_name, tmp8)
+        assert np.all(getattr(act, prop_name) == 0)
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(li_orig)
+            tmp9.append((-1, 1))
+            setattr(act, prop_name, tmp9)
+        assert np.all(getattr(act, prop_name) == 0)
+
+        # last test, when we give a list of tuple of exactly the right size
+        act = self.helper_action()
+        setattr(act, prop_name, [(el, 1) for el in range(nb_el)])
+        assert np.all(getattr(act, prop_name) == 1)
+
+    def test_redisp_list_oftuple(self):
+        self._aux_set_val_list_oftuple("redisp", self.helper_action.n_gen, "redispatch")
+
+    def test_storage_power_list_oftuple(self):
+        self._aux_set_val_list_oftuple("storage", self.helper_action.n_storage, "storage_p")
+
+    def todo_line_set_status_dict_with_id(self):
+        """test the set attribute when list are given (list of tuple)"""
+        dict_orig = {0: 1}
+        # ok
+        act = self.helper_action()
+        act.line_set_status = dict_orig
+        assert np.all(act.line_set_status == [1, 0] + [0 for _ in range(18)])
+
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = {float(id_): new_bus for id_, new_bus in dict_orig.items()}
+            act.line_set_status = tmp3
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the bus value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(dict_orig)
+            tmp4[1] = -2
+            act.line_set_status = tmp4
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the bus value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(dict_orig)
+            tmp5[1] = 3
+            act.line_set_status = tmp5
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1
+            act.line_set_status = tmp6
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(dict_orig)
+            tmp7[1] = "tata"
+            act.line_set_status = tmp7
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(dict_orig)
+            tmp8[21] = 1
+            act.line_set_status = tmp8
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(dict_orig)
+            tmp9[-1] = 1
+            act.line_set_status = tmp9
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+    def todo_line_set_status_dict_with_name(self):
+        """test the set attribute when list are given (list of tuple)"""
+        dict_orig = {"line_0": 1}
+        # ok
+        act = self.helper_action()
+        act.line_set_status = dict_orig
+        assert np.all(act.line_set_status == [1, 0] + [0 for _ in range(18)])
+
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1  # unknown load
+            act.line_set_status = tmp6
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+
 if __name__ == "__main__":
     unittest.main()
