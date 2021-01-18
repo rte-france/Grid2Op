@@ -41,14 +41,14 @@ TODO
 
 .. _shunt:
 
-Shunts
------------
+Shunts (optional)
+-----------------
 TODO
 
 .. _storage:
 
-Storage units
---------------
+Storage units (optional)
+------------------------
 TODO
 
 .. _substation:

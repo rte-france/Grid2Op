@@ -2536,8 +2536,8 @@ class BaseAction(GridObjects):
                 outer_vect[inner_vect[values]] = ~outer_vect[inner_vect[values]]
                 return
 
-            if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float:
-                raise IllegalAction(f"{name_el}_id should be bool you provided float!")
+            # if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float:
+            #     raise IllegalAction(f"{name_el}_id should be bool you provided float!")
 
             # this is the case where i give the integers i want to change
             try:
@@ -2791,7 +2791,9 @@ class BaseAction(GridObjects):
             return
         elif isinstance(values, np.ndarray):
             if isinstance(values.dtype, int) or values.dtype == dt_int or values.dtype == np.int:
+                # for this the user explicitly casted it as integer, this won't work.
                 raise IllegalAction(f"{name_el}_id should be floats you provided int!")
+
             if isinstance(values.dtype, bool) or values.dtype == dt_bool:
                 raise IllegalAction(f"{name_el}_id should be floats you provided boolean!")
             try:

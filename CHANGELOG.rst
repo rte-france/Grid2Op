@@ -46,6 +46,8 @@ Change Log
   Now it should understand much more way to interact with it.
 - [ADDED] lots of action properties to manipulate action in a more pythonic way, for example using
   `act.load_set_bus = ...` instead of the previously way more verbose `act.update({"set_bus": {"loads_id": ...}}`
+  (this applies for `load`, `gen`, `storage`, `line_or` and `line_ex` and to `set_bus` and `change_bus` and
+  also to `storage_p` and `redispatch` so making 12 "properties" in total)
 
 [1.4.0] - 2020-12-10
 ----------------------
