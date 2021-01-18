@@ -42,7 +42,7 @@ class TestSetBus(unittest.TestCase):
         # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
         self.helper_action = self.ActionSpaceClass(self.gridobj,
                                                    legal_action=self.game_rules.legal_action,
-                                                   actionClass=CompleteAction)
+                                                   actionClass=CompleteAction)  # TopologySetAndStorageAction would be better
         self.helper_action.seed(42)
         # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
         save_to_dict(self.res, self.helper_action,
@@ -1519,3 +1519,333 @@ class TestSetBus(unittest.TestCase):
             tmp6["toto"] = 1  # unknown load
             act.line_or_set_bus = tmp6
         assert np.all(act.line_or_set_bus == 0), "a line (origin) unit has been modified by an illegal action"
+
+
+class TestSetStatus(unittest.TestCase):
+    """test the property to set the status of the action"""
+
+    def setUp(self):
+        """
+        The case file is a representation of the case14 as found in the ieee14 powergrid.
+        :return:
+        """
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+        self.game_rules = RulesChecker()
+
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
+
+        # self.size_act = 229
+        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
+        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.helper_action = self.ActionSpaceClass(self.gridobj,
+                                                   legal_action=self.game_rules.legal_action,
+                                                   actionClass=PowerlineSetAction)
+        self.helper_action.seed(42)
+        # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+        save_to_dict(self.res, self.helper_action,
+                     "_init_subtype",
+                     lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
+
+        self.authorized_keys = self.helper_action().authorized_keys
+        self.size_act = self.helper_action.size()
+
+    def test_line_set_status_array(self):
+        li_orig = [1, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]  # because i have 20 lines
+        tmp = np.array(li_orig)
+
+        # first set of tests, with numpy array
+        act = self.helper_action()
+        act.line_set_status = tmp  # ok
+        assert np.all(act.line_set_status == tmp)
+
+        # array too short
+        act = self.helper_action()
+
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = tmp[0]
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # array too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp2 = np.concatenate((tmp, (1,)))
+            act.line_set_status = tmp2
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # float vect
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = np.array(li_orig).astype(dt_float)
+            act.line_set_status = tmp3
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # one of the value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = np.array(li_orig)
+            tmp4[1] = -2
+            act.line_set_status = tmp4
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # one of the value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = np.array(li_orig)
+            tmp5[1] = 2
+            act.line_set_status = tmp5
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = np.array(li_orig).astype(str)
+            tmp6[1] = "toto"
+            act.line_ex_set_bus = tmp6
+        assert np.all(act.line_ex_set_bus == 0), "a line status has been modified by an illegal action"
+
+    def test_line_set_status_tuple(self):
+        # second set of tests, with tuple
+        act = self.helper_action()
+        act.line_set_status = (1, 1)
+        assert np.all(act.line_set_status == [0, 1] + [0 for _ in range(18)])
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = (1.0, 1)
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = (False, 1)
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = ("toto", 1)
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = (1, "toto")
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = (21, 1)
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = (-1, 1)
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # not enough element in the tuple
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = (1, )
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # too much element in the tuple
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            act.line_set_status = (1, 2, 3)
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+    def test_line_set_status_list_asarray(self):
+        """test the set attribute when list are given (list convertible to array)"""
+        li_orig = [1, 1, -1] + [0 for _ in range(17)]  # because i have 2 storage unit
+        tmp = np.array(li_orig)
+
+        # ok
+        act = self.helper_action()
+        act.line_set_status = li_orig
+        assert np.all(act.line_set_status == tmp)
+
+        # list too short
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp0 = copy.deepcopy(li_orig)
+            tmp0.pop(0)
+            act.line_set_status = tmp0
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # list too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp1 = copy.deepcopy(li_orig)
+            tmp1.append(1)
+            act.line_set_status = tmp1
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [float(el) for el in li_orig]
+            act.line_set_status = tmp3
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(li_orig)
+            tmp4[1] = -2
+            act.line_set_status = tmp4
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5[1] = 2
+            act.line_set_status = tmp5
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = [str(el) for el in li_orig]
+            tmp6[1] = "toto"
+            act.line_set_status = tmp6
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+    def test_line_set_status_list_oftuple(self):
+        """test the set attribute when list are given (list of tuple)"""
+        li_orig = [(0, 1), (1, 1)]
+        # ok
+        act = self.helper_action()
+        act.line_set_status = li_orig
+        assert np.all(act.line_set_status == [1, 1] + [0 for _ in range(18)])
+
+        # list of float (for the el_id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = [(float(id_), new_bus) for id_, new_bus in li_orig]
+            act.line_set_status = tmp3
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the bus value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(li_orig)
+            tmp4[1] = (1, -2)
+            act.line_set_status = tmp4
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the bus value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5[1] = (1, 2)
+            act.line_set_status = tmp5
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(li_orig)
+            tmp6[1] = ("toto", 1)
+            act.line_set_status = tmp6
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(li_orig)
+            tmp7[1] = (3, "toto")
+            act.line_set_status = tmp7
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(li_orig)
+            tmp8.append((21, 1))
+            act.line_set_status = tmp8
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(li_orig)
+            tmp9.append((-1, 1))
+            act.line_set_status = tmp9
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+        # last test, when we give a list of tuple of exactly the right size
+        act = self.helper_action()
+        act.line_set_status = [(el, 1) for el in range(act.n_line)]
+        assert np.all(act.line_set_status == 1)
+
+    def test_line_set_status_dict_with_id(self):
+        """test the set attribute when list are given (list of tuple)"""
+        dict_orig = {0: 1}
+        # ok
+        act = self.helper_action()
+        act.line_set_status = dict_orig
+        assert np.all(act.line_set_status == [1, 0] + [0 for _ in range(18)])
+
+        # list of float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = {float(id_): new_bus for id_, new_bus in dict_orig.items()}
+            act.line_set_status = tmp3
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the bus value too small
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(dict_orig)
+            tmp4[1] = -2
+            act.line_set_status = tmp4
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # one of the bus value too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(dict_orig)
+            tmp5[1] = 3
+            act.line_set_status = tmp5
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # wrong type (element id)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1
+            act.line_set_status = tmp6
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # wrong type (bus value)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp7 = copy.deepcopy(dict_orig)
+            tmp7[1] = "tata"
+            act.line_set_status = tmp7
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # el_id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp8 = copy.deepcopy(dict_orig)
+            tmp8[21] = 1
+            act.line_set_status = tmp8
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+        # el_id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp9 = copy.deepcopy(dict_orig)
+            tmp9[-1] = 1
+            act.line_set_status = tmp9
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+    def test_line_set_status_dict_with_name(self):
+        """test the set attribute when list are given (list of tuple)"""
+        dict_orig = {"line_0": 1}
+        # ok
+        act = self.helper_action()
+        act.line_set_status = dict_orig
+        assert np.all(act.line_set_status == [1, 0] + [0 for _ in range(18)])
+
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp6 = copy.deepcopy(dict_orig)
+            tmp6["toto"] = 1  # unknown load
+            act.line_set_status = tmp6
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
+
+
+if __name__ == "__main__":
+    unittest.main()

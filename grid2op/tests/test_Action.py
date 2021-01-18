@@ -476,7 +476,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_line_status')
         self._skipMissingKey('change_line_status')
 
-        arr = np.zeros(self.helper_action.n_line)
+        arr = np.zeros(self.helper_action.n_line, dtype=dt_int)
         arr[1] = -1
 
         # i switch set the status of powerline 1 to "disconnected"
@@ -514,7 +514,7 @@ class TestActionBase(ABC):
         arr = np.array([1, 1, 1, 2, 2, 2, 0], dtype=dt_int)
         id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
-        arr2 = np.zeros(self.helper_action.n_line)
+        arr2 = np.zeros(self.helper_action.n_line, dtype=dt_int)
         arr2[id_] = -1
         action.update({"set_line_status": arr2})
         try:
@@ -832,7 +832,7 @@ class TestActionBase(ABC):
         arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
-        arr_line2[id_line2] = 2
+        arr_line2[id_line2] = 1
 
         do_nothing = self.helper_action({})
         aff_lines, aff_subs = do_nothing.get_topological_impact()
@@ -864,9 +864,9 @@ class TestActionBase(ABC):
         assert aff_subs[id_2]
 
         act_sub1_sub12_line1_line2 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
-                                                   "set_bus": {"substations_id": [(id_2, arr2)]},
-                                                   "change_line_status": arr_line1,
-                                                   "set_line_status": arr_line2})
+                                                         "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                         "change_line_status": arr_line1,
+                                                         "set_line_status": arr_line2})
         aff_lines, aff_subs = act_sub1_sub12_line1_line2.get_topological_impact()
         assert np.sum(aff_lines) == 2
         assert aff_lines[id_line] == 1
