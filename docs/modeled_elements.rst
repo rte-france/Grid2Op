@@ -25,6 +25,26 @@ The elements modeled are (work in progress):
 
 Generators
 -----------
+TODO description
+
+Static properties
+~~~~~~~~~~~~~~~~~~
+
+TODO
+
+Modifiable attributes
+~~~~~~~~~~~~~~~~~~~~~~
+
+TODO
+
+Observable attributes
+~~~~~~~~~~~~~~~~~~~~~~
+
+TODO
+
+Time dependencies
+~~~~~~~~~~~~~~~~~~~~~~
+
 TODO
 
 .. _load:
