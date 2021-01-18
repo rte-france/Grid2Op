@@ -6,8 +6,6 @@ Change Log
 - [???] add multi agent
 - [???] model curtailment
 - [???] better logging
-- [???] implement a different reward, reward info for simulate and step.
-- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
 - [???] model agent acting at different time frame
@@ -33,7 +31,8 @@ Change Log
   renamed `cls_to_dict` to avoid confusion with the `to_dict` method of action and observation (that stores,
   as dictionary the instance of the action / observation). It is now then possible to serialize the action class
   used and the observation class used as dictionary to (using `action.cls_to_dict`)
-- [BREAKING] for backend class implementation: need to upgrade your code to take into account the dams
+- [BREAKING] for backend class implementation: need to upgrade your code to take into account the storage units
+  if some are present in the grid even if you don't want to use storage units.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
   negative: power given to the grid having some energy limit and power limit). A new object if added in the substation.
@@ -41,6 +40,10 @@ Change Log
 - [ADDED] Support for sparse matrices in `obs.bus_connectivity_matrix`
 - [ADDED] In the observation, it is now possible to retrieve the "active flow graph" (ie graph with edges having active
   flows, and nodes the active production / consumption) and "reactive flow graph" (see `flow_bus_matrix`)
+- [ADDED] more consistent behaviour when using the action space across the different type of actions.
+  Now it should understand much more way to interact with it.
+- [ADDED] lots of action properties to manipulate action in a more pythonic way, for example using
+  `act.load_set_bus = ...` instead of the previously way more verbose `act.update({"set_bus": {"loads_id": ...}}`
 
 [1.4.0] - 2020-12-10
 ----------------------
@@ -544,7 +547,7 @@ Change Log
 - [UPDATED] Notebook 6 to train agent more efficiently (example: prediction of actions in batch)
 - [UPDATED] PlotGraph to derive from `GridObjects` allowing to be inialized at creation and not when first
   observation is loaded (usable without observation)
-- [UPDATED] new default environment (`case14_relistic`)
+- [UPDATED] new default environment (`case14_realistic`)
 - [UPDATED] data for the new created environment.
 - [UPDATED] implement redispatching action in `obs.simulate`
 - [UPDATED] refactoring `Environment` and `ObsEnv` to inherit from the same base class.

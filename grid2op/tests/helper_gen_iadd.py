@@ -87,7 +87,7 @@ actions = [
     
     """self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })"""
 ]
@@ -167,6 +167,8 @@ iadd_content = """        # Iadd actions
 test_content = """        # Test combination:
         assert False, "TODO {} += {} test dumdumb"
 """
+import sys
+sys.exit(0)  # because of the above it do not WORK  !!!!!!!!!!!!!!!!!!
 
 for c in itertools.product(range(len(actions)), repeat=2):
     a_idx = c[0]

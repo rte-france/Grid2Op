@@ -246,7 +246,7 @@ class Test_iadd_Base(ABC):
         # Create action oth [redisp]
         act_oth = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -631,7 +631,7 @@ class Test_iadd_Base(ABC):
         # Create action oth [redisp]
         act_oth = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -931,7 +931,7 @@ class Test_iadd_Base(ABC):
         # Create action oth [redisp]
         act_oth = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1263,7 +1263,7 @@ class Test_iadd_Base(ABC):
         # Create action oth [redisp]
         act_oth = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1544,7 +1544,7 @@ class Test_iadd_Base(ABC):
         # Create action oth [redisp]
         act_oth = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1577,7 +1577,7 @@ class Test_iadd_Base(ABC):
         # Create action me [redisp]
         act_me = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1619,7 +1619,7 @@ class Test_iadd_Base(ABC):
         # Create action me [redisp]
         act_me = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1665,7 +1665,7 @@ class Test_iadd_Base(ABC):
         # Create action me [redisp]
         act_me = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1711,7 +1711,7 @@ class Test_iadd_Base(ABC):
         # Create action me [redisp]
         act_me = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1761,7 +1761,7 @@ class Test_iadd_Base(ABC):
         # Create action me [redisp]
         act_me = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1811,7 +1811,7 @@ class Test_iadd_Base(ABC):
         # Create action me [redisp]
         act_me = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 
@@ -1827,7 +1827,7 @@ class Test_iadd_Base(ABC):
         # Create action oth [redisp]
         act_oth = self.env.action_space({
             "redispatch": {
-                "2": 1.42
+                2: 1.42
             }
         })
 

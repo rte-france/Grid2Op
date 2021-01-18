@@ -574,8 +574,8 @@ class TestActionBase(ABC):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
         tmp = np.zeros(self.size_act)
-        if "_storage_power" in action.attr_list_set:
-            tmp[-2:] = np.NaN  # i did not modify the battery so i need to do that otherwise vectors are not equal
+        # if "_storage_power" in action.attr_list_set:
+        #     tmp[-2:] = np.NaN  # i did not modify the battery so i need to do that otherwise vectors are not equal
 
         # compute the "set_bus" vect
         id_set = np.where(np.array(action.attr_list_vect) == "_set_topo_vect")[0][0]
@@ -949,9 +949,9 @@ class TestActionBase(ABC):
     def test_redispatching(self):
         self._skipMissingKey('redispatch')
 
-        act = self.helper_action({"redispatch": [1, 10]})
+        act = self.helper_action({"redispatch": (1, 10)})
         act = self.helper_action({"redispatch": [(1, 10), (2, 100)]})
-        act = self.helper_action({"redispatch": np.array([10, 20, 30, 40, 50])})
+        act = self.helper_action({"redispatch": np.array([10., 20., 30., 40., 50.])})
 
     def test_possibility_reconnect_powerlines(self):
         self._skipMissingKey('set_line_status')
@@ -1177,7 +1177,6 @@ class TestIADD:
         if "_change_bus_vect" in template_act.attr_list_set:
             # i dont test the line reconnection...
             dict_act["change_bus"] = np.random.choice([True, False], helper_action.dim_topo).astype(dt_bool)
-
         return helper_action(dict_act)
 
     def test_iadd_modify(self):
@@ -1338,7 +1337,7 @@ class TestIADD:
                 # i now test all attributes have been modified for attributes in both
                 for attr_nm in res.attr_list_set & act2.attr_list_set:
                     assert np.any(getattr(res, attr_nm) != getattr(act1_init, attr_nm)), \
-                           "error, attr {} has not been updated".format(attr_nm)
+                           "error, attr {} has not been updated (case 0)".format(attr_nm)
 
                 # for all in act1 not in act2, nothing should have changed
                 for attr_nm in res.attr_list_set - act2.attr_list_set:
@@ -1351,7 +1350,7 @@ class TestIADD:
                         # TODO improve these tests
                         continue
                     assert np.all(getattr(res, attr_nm) == getattr(act1_init, attr_nm)), \
-                           "error, attr {} has been updated".format(attr_nm)
+                           "error, attr {} has been updated (case 1)".format(attr_nm)
 
     def test_add_change_set_status(self):
         self._skipMissingKey("change_line_status", self.action_space_1)

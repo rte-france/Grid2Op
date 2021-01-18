@@ -657,7 +657,7 @@ class BaseAction(GridObjects):
 
         # storage
         set_storage = other._storage_power
-        ok_ind = np.isfinite(set_storage)
+        ok_ind = np.isfinite(set_storage) & np.any(set_storage != 0.)
         if np.any(ok_ind):
             if "_storage_power" not in self.attr_list_set:
                 warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
@@ -668,8 +668,8 @@ class BaseAction(GridObjects):
         # set and change status
         other_set = other._set_line_status
         other_change = other._switch_line_status
-        me_set = self._set_line_status
-        me_change = self._switch_line_status
+        me_set = 1 * self._set_line_status
+        me_change = copy.deepcopy(self._switch_line_status)
 
         # i change, but so does the other, i do nothing
         canceled_change = other_change & me_change
@@ -698,8 +698,8 @@ class BaseAction(GridObjects):
         # set and change bus
         other_set = other._set_topo_vect
         other_change = other._change_bus_vect
-        me_set = self._set_topo_vect
-        me_change = self._change_bus_vect
+        me_set = 1 * self._set_topo_vect
+        me_change = copy.deepcopy(self._change_bus_vect)
 
         # i change, but so does the other, i do nothing
         canceled_change = other_change & me_change
@@ -1062,153 +1062,13 @@ class BaseAction(GridObjects):
             if dict_["change_line_status"] is not None:
                 self.line_change_status = dict_["change_line_status"]
 
-    def __convert_and_redispatch(self, kk, val):
-        try:
-            kk = dt_int(kk)
-            val = dt_float(val)
-        except Exception as e:
-            raise AmbiguousAction("In redispatching, it's not possible to understand the key/value pair "
-                                  "{}/{} provided in the dictionary. Key must be an integer, value "
-                                  "a float".format(kk, val))
-        self._redispatch[kk] = val
-
     def _digest_redispatching(self, dict_):
         if "redispatch" in dict_:
-            if dict_["redispatch"] is None:
-                return
-            self._modif_redispatch = True
-            tmp = dict_["redispatch"]
-            if isinstance(tmp, np.ndarray):
-                if len(tmp) != self.n_gen:
-                    raise InvalidNumberOfGenerators(
-                        "This \"redispatch\" action acts on {} generators while there are {} in the grid".format(
-                            len(tmp), self.n_gen))
-                # complete redispatching is provided
-                self._redispatch[:] = tmp
-            elif isinstance(tmp, dict):
-                # dict must have key: generator to modify, value: the delta value applied to this generator
-                ddict_ = tmp
-                for kk, val in ddict_.items():
-                    self.__convert_and_redispatch(kk, val)
-            elif isinstance(tmp, list):
-                # list of tuples: each tupe (k,v) being the same as the key/value describe above
-                treated = False
-                if len(tmp) == 2:
-                    if isinstance(tmp[0], tuple):
-                        # there are 2 tuples in the list, i dont treat it as a tuple
-                        treated = False
-                    else:
-                        # i treat it as a tuple
-                        if len(tmp) != 2:
-                            self._modif_redispatch = False
-                            raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
-                                                  "of tuple of 2 elements, the first one being the id of the"
-                                                  "generator to redispatch, the second one the value of the "
-                                                  "redispatching.")
-                        kk, val = tmp
-                        self.__convert_and_redispatch(kk, val)
-                        treated = True
-
-                if not treated:
-                    for el in tmp:
-                        if len(el) != 2:
-                            self._modif_redispatch = False
-                            raise AmbiguousAction("When asking for redispatching with a list, you should make a list"
-                                                  "of tuple of 2 elements, the first one being the id of the"
-                                                  "generator to redispatch, the second one the value of the "
-                                                  "redispatching.")
-                        kk, val = el
-                        self.__convert_and_redispatch(kk, val)
-
-            elif isinstance(tmp, tuple):
-                if len(tmp) != 2:
-                    self._modif_redispatch = False
-                    raise AmbiguousAction("When asking for redispatching with a tuple, you should make a "
-                                          "of tuple of 2 elements, the first one being the id of the"
-                                          "generator to redispatch, the second one the value of the "
-                                          "redispatching.")
-                kk, val = tmp
-                self.__convert_and_redispatch(kk, val)
-            else:
-                self._modif_redispatch = False
-                raise AmbiguousAction("Impossible to understand the redispatching action implemented.")
-
-    def __convert_and_set_storage(self, kk, val):
-        try:
-            kk = dt_int(kk)
-            val = dt_float(val)
-        except Exception as exc_:
-            raise AmbiguousAction("In set_storage, it's not possible to understand the key/value pair "
-                                  "{}/{} provided in the dictionary. Key must be an integer, value "
-                                  "a float".format(kk, val))
-        self._storage_power[kk] = val
+            self.redispatch = dict_["redispatch"]
 
     def _digest_storage(self, dict_):
-        # TODO refactor that with _digest_redispatching this is the same code (modif : __convert_and_set_storage instead
-        # TODO of _convert_and_dispatch; warning message; keys of the dictionary.
-        # TODO and this would be the opportunity to also include modifications of elements with their names,
-        # TODO or other types of information
         if "set_storage" in dict_:
-            if dict_["set_storage"] is None:
-                return
-            self._modif_storage = True
-            tmp = dict_["set_storage"]
-            if isinstance(tmp, np.ndarray):
-                # complete storage state is provided
-                if len(tmp) != self.n_storage:
-                    raise InvalidStorage(
-                        "This \"redispatch\" action acts on {} storage units while there are {} in the grid".format(
-                            len(tmp), self.n_storage))
-                self._storage_power[:] = tmp
-            elif isinstance(tmp, dict):
-                # dict must have key: generator to modify, value: the delta value applied to this generator
-                ddict_ = tmp
-                for kk, val in ddict_.items():
-                    self.__convert_and_set_storage(kk, val)
-            elif isinstance(tmp, list):
-                # list of tuples: each tuple (k,v) being the same as the key/value describe above
-                treated = False
-                if len(tmp) == 2:
-                    if isinstance(tmp[0], tuple):
-                        # there are 2 tuples in the list, i don't treat it as a tuple
-                        treated = False
-                    else:
-                        # i treat it as a tuple
-                        if len(tmp) != 2:
-                            self._modif_storage = False
-                            raise AmbiguousAction("When asking for  changing storage capacity with a tuple, "
-                                                  "you should make a "
-                                                  "of tuple of 2 elements, the first one being the id of the"
-                                                  "storage unit to change, the second one the value of the "
-                                                  "new target capacity.")
-                        kk, val = tmp
-                        self.__convert_and_set_storage(kk, val)
-                        treated = True
-
-                if not treated:
-                    for el in tmp:
-                        if len(el) != 2:
-                            self._modif_storage = False
-                            raise AmbiguousAction("When asking for changing storage capacity with a list, you should "
-                                                  "make a list"
-                                                  "of tuple of 2 elements, the first one being the id of the"
-                                                  "storage unit to change, the second one the value of the "
-                                                  "new target capacity.")
-                        kk, val = el
-                        self.__convert_and_set_storage(kk, val)
-
-            elif isinstance(tmp, tuple):
-                if len(tmp) != 2:
-                    self._modif_storage = False
-                    raise AmbiguousAction("When asking for changing storage capacity with a tuple, you should make a "
-                                          "of tuple of 2 elements, the first one being the id of the"
-                                          "storage unit to redispatch, the second one the value of the "
-                                          "new target capacity.")
-                kk, val = tmp
-                self.__convert_and_set_storage(kk, val)
-            else:
-                self._modif_storage = False
-                raise AmbiguousAction("Impossible to understand the action implemented to change a storage capacity.")
+            self.storage_p = dict_["set_storage"]
 
     def _reset_vect(self):
         """
@@ -2887,7 +2747,13 @@ class BaseAction(GridObjects):
 
         will modify outer_vect[inner_vect]
         """
-        if isinstance(values, tuple):
+        if isinstance(values, (bool, dt_bool)):
+            raise IllegalAction(f"Impossible to set {name_el} values with a single boolean.")
+        elif isinstance(values, (int, dt_int, np.int)):
+            raise IllegalAction(f"Impossible to set {name_el} values with a single integer.")
+        elif isinstance(values, (float, dt_float, np.float)):
+            raise IllegalAction(f"Impossible to set {name_el} values with a single float.")
+        elif isinstance(values, tuple):
             # i provide a tuple: load_id, new_vals
             if len(values) != 2:
                 raise IllegalAction(f"when set with tuple, this tuple should have size 2 and be: {name_el}_id, new_bus "
@@ -2925,9 +2791,9 @@ class BaseAction(GridObjects):
             return
         elif isinstance(values, np.ndarray):
             if isinstance(values.dtype, int) or values.dtype == dt_int or values.dtype == np.int:
-                raise IllegalAction(f"{name_el}_id should be integers you provided int!")
+                raise IllegalAction(f"{name_el}_id should be floats you provided int!")
             if isinstance(values.dtype, bool) or values.dtype == dt_bool:
-                raise IllegalAction(f"{name_el}_id should be integers you provided boolean!")
+                raise IllegalAction(f"{name_el}_id should be floats you provided boolean!")
             try:
                 values = values.astype(dt_float)
             except Exception as exc_:
@@ -2940,7 +2806,13 @@ class BaseAction(GridObjects):
             if len(values) == nb_els:
                 # 2 cases: either i set all loads in the form [(0,..), (1,..), (2,...)]
                 # or i should have converted the list to np array
-                if isinstance(values[0], tuple):
+                if isinstance(values, (bool, dt_bool)):
+                    raise IllegalAction(f"Impossible to set {name_el} values with a single boolean.")
+                elif isinstance(values, (int, dt_int, np.int)):
+                    raise IllegalAction(f"Impossible to set {name_el} values with a single integer.")
+                elif isinstance(values, (float, dt_float, np.float)):
+                    raise IllegalAction(f"Impossible to set {name_el} values with a single float.")
+                elif isinstance(values[0], tuple):
                     # list of tuple, handled below
                     # TODO can be somewhat "hacked" if the type of the object on the list is not always the same
                     pass
@@ -2989,7 +2861,7 @@ class BaseAction(GridObjects):
 
     @redispatch.setter
     def redispatch(self, values):
-        if "change_line_status" not in self.authorized_keys:
+        if "redispatch" not in self.authorized_keys:
             raise IllegalAction("Impossible to perform redispatching with this action type.")
         orig_ = self.redispatch
         try:
