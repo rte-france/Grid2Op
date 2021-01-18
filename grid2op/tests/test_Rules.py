@@ -119,7 +119,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
-        arr_line2[id_line2] = 2
+        arr_line2[id_line2] = 1
 
         self.helper_action.legal_action = RulesChecker(legalActClass=LookParam).legal_action
 
@@ -177,17 +177,17 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
-        arr_line2[id_line2] = 2
+        arr_line2[id_line2] = 1
 
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
         self.env.parameters.MAX_SUB_CHANGED = 1
         self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
         act = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
-                                "set_bus": {"substations_id": [(id_2, arr2)]},
-                                "change_line_status": arr_line1,
-                                "set_line_status": arr_line2},
-                               env=self.env,
-                               check_legal=True)
+                                  "set_bus": {"substations_id": [(id_2, arr2)]},
+                                  "change_line_status": arr_line1,
+                                  "set_line_status": arr_line2},
+                                 env=self.env,
+                                 check_legal=True)
         _ = self.env.step(act)
 
         try:

@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-
+import copy
 import numpy as np
 import warnings
 
@@ -2030,7 +2030,7 @@ class BaseAction(GridObjects):
             disconnected because of maintenance operations.
           * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
             dispatchable one) the amount of power redispatched in this action.
-          *`storage` the nex setpoint
+          *`storage` the new setpoint #TODO storage doc
 
         Returns
         -------
@@ -2137,8 +2137,9 @@ class BaseAction(GridObjects):
         line: ``bool``
             Does it affect the line status (line status change / switch are **NOT** counted as topology)
         redispatching: ``bool``
-            Does it performs any redispatching
+            Does it performs (explicitly) any redispatching
         """
+        # TODO storage !
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
         voltage = "prod_v" in self._dict_inj
         if self.shunts_data_available:
@@ -2430,7 +2431,7 @@ class BaseAction(GridObjects):
             except Exception as exc_:
                 raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
             if el_id < 0:
-                raise IllegalAction("Impossible to set a negative load with negative id")
+                raise IllegalAction(f"Impossible to set the bus of a {name_el} with negative id")
             if el_id >= nb_els:
                 raise IllegalAction(f"Impossible to set a {name_el} id {el_id} because there are only "
                                     f"{nb_els} on the grid (and in python id starts at 0)")
@@ -2459,6 +2460,7 @@ class BaseAction(GridObjects):
                 # or i should have converted the list to np array
                 if isinstance(values[0], tuple):
                     # list of tuple, handled below
+                    # TODO can be somewhat "hacked" if the type of the object on the list is not always the same
                     pass
                 else:
                     # get back to case where it's a full vector
@@ -2474,6 +2476,11 @@ class BaseAction(GridObjects):
                     raise IllegalAction(f"If input is a list, it should be a  list of pair (el_id, new_bus) "
                                         f"eg. [(0, {max_val}), (2, {min_val})]")
                 el_id, new_bus = el
+                if isinstance(el_id, str):
+                    tmp = np.where(name_els == el_id)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name {el_id}")
+                    el_id = tmp[0]
                 self.__aux_affect_object_int((el_id, new_bus), name_el, nb_els, name_els,
                                              inner_vect=inner_vect, outer_vect=outer_vect,
                                              min_val=min_val, max_val=max_val)
@@ -2647,3 +2654,253 @@ class BaseAction(GridObjects):
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
+    def __aux_affect_object_bool(self, values, name_el, nb_els,
+                                 name_els,
+                                 inner_vect,
+                                 outer_vect
+                                 ):
+        """
+        NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
+        This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
+
+        values: the new values to set
+        name_el: "load"
+        nb_els: self.n_load
+        inner_vect: self.load_pos_topo_vect
+        name_els: self.name_load
+        outer_vect: self._change_bus_vect
+
+        will modify outer_vect[inner_vect]
+        """
+        if isinstance(values, bool):
+            # to make it explicit, tuple modifications are deactivated
+            raise IllegalAction(f"Impossible to change a {name_el} with a tuple input. Accepted inputs are:"
+                                f"int, list of int, list of string, array of int, array of bool, set of int,"
+                                f"set of string")
+        elif isinstance(values, float):
+            # to make it explicit, tuple modifications are deactivated
+            raise IllegalAction(f"Impossible to change a {name_el} with a tuple input. Accepted inputs are:"
+                                f"int, list of int, list of string, array of int, array of bool, set of int,"
+                                f"set of string")
+        elif isinstance(values, (int, dt_int, np.int)):
+            # i provide an int: load_id
+            try:
+                el_id = int(values)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if el_id < 0:
+                raise IllegalAction(f"Impossible to change a negative {name_el} with negative id")
+            if el_id >= nb_els:
+                raise IllegalAction(f"Impossible to change a {name_el} id {el_id} because there are only "
+                                    f"{nb_els} on the grid (and in python id starts at 0)")
+            outer_vect[inner_vect[el_id]] = not outer_vect[inner_vect[el_id]]
+            return
+        elif isinstance(values, tuple):
+            # to make it explicit, tuple modifications are deactivated
+            raise IllegalAction(f"Impossible to change a {name_el} with a tuple input. Accepted inputs are:"
+                                f"int, list of int, list of string, array of int, array of bool, set of int,"
+                                f"set of string")
+        elif isinstance(values, np.ndarray):
+            # either the int id i need to change or the full value.
+            if isinstance(values.dtype, bool) or values.dtype == dt_bool or values.dtype == bool:
+                # so i change by giving the full vector
+                if values.shape[0] != nb_els:
+                    raise IllegalAction(f"If provided with bool array, the number of components of the vector"
+                                        f"should match the total number of {name_el}. You provided a vector "
+                                        f"with size {values.shape[0]} and there are {nb_els} {name_el} "
+                                        f"on the grid.")
+                outer_vect[inner_vect[values]] = ~outer_vect[inner_vect[values]]
+                return
+
+            if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float:
+                raise IllegalAction(f"{name_el}_id should be bool you provided float!")
+
+            # this is the case where i give the integers i want to change
+            try:
+                values = values.astype(dt_int)
+            except Exception as exc_:
+                raise IllegalAction(f"{name_el}_id should be convertible to integer. Error was : \"{exc_}\"")
+            if np.any(values < 0):
+                raise IllegalAction(f"Impossible to change a negative {name_el} with negative id")
+            if np.any(values > nb_els):
+                raise IllegalAction(f"Impossible to change a {name_el} id because there are only "
+                                    f"{nb_els} on the grid and you wanted to change an element with an "
+                                    f"id > {nb_els} (in python id starts at 0)")
+            outer_vect[inner_vect[values]] = ~outer_vect[inner_vect[values]]
+            return
+        elif isinstance(values, list):
+            # 1 case only: list of int
+            # (note: i cannot convert to numpy array other I could mix types...)
+            for el_id_or_name in values:
+                if isinstance(el_id_or_name, str):
+                    tmp = np.where(name_els == el_id_or_name)[0]
+                    if len(tmp) == 0:
+                        raise IllegalAction(f"No known {name_el} with name \"{el_id_or_name}\"")
+                    el_id = tmp[0]
+                elif isinstance(el_id_or_name, (bool, dt_bool)):
+                    # somehow python considers bool are int...
+                    raise IllegalAction(f"If a list is provided, it is only valid with integer found "
+                                        f"{type(el_id_or_name)}.")
+                elif isinstance(el_id_or_name, (int, dt_int, np.int)):
+                    el_id = el_id_or_name
+                else:
+                    raise IllegalAction(f"If a list is provided, it is only valid with integer found "
+                                        f"{type(el_id_or_name)}.")
+                el_id = int(el_id)
+                self.__aux_affect_object_bool(el_id, name_el, nb_els, name_els,
+                                              inner_vect=inner_vect, outer_vect=outer_vect)
+        elif isinstance(values, set):
+            # 2 cases: either set of load_id or set of load_name
+            values = list(values)
+            self.__aux_affect_object_bool(values, name_el, nb_els, name_els,
+                                          inner_vect=inner_vect, outer_vect=outer_vect)
+        else:
+            raise IllegalAction(f"Impossible to modify the {name_el} with inputs {values}. "
+                                f"Please see the documentation.")
+
+    @property
+    def load_change_bus(self):
+        # TODO doc: of all the properties
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"change\") with this action type.")
+        res = copy.deepcopy(self._change_bus_vect[self.load_pos_topo_vect])
+        res.flags.writeable = False
+        return res
+
+    @load_change_bus.setter
+    def load_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"change\") with this action type.")
+        orig_ = self.load_change_bus
+        try:
+            self.__aux_affect_object_bool(values, "load", self.n_load, self.name_load,
+                                          self.load_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.load_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the load bus with your input. Please consult the documentation. "
+                                f"The error was \"{exc_}\"")
+
+    @property
+    def gen_change_bus(self):
+        # TODO doc: of all the properties
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the load bus (with \"change\") with this action type.")
+        res = copy.deepcopy(self._change_bus_vect[self.gen_pos_topo_vect])
+        res.flags.writeable = False
+        return res
+
+    @gen_change_bus.setter
+    def gen_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the gen bus (with \"change\") with this action type.")
+        orig_ = self.gen_change_bus
+        try:
+            self.__aux_affect_object_bool(values, "gen", self.n_gen, self.name_gen,
+                                          self.gen_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.gen_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def storage_change_bus(self):
+        # TODO doc: of all the properties
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"change\") with this action type.")
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage units with this action type.")
+        res = copy.deepcopy(self._change_bus_vect[self.storage_pos_topo_vect])
+        res.flags.writeable = False
+        return res
+
+    @storage_change_bus.setter
+    def storage_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage bus (with \"change\") with this action type.")
+        if "set_storage" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the storage units with this action type.")
+        orig_ = self.storage_change_bus
+        try:
+            self.__aux_affect_object_bool(values, "storage", self.n_storage, self.name_storage,
+                                          self.storage_pos_topo_vect, self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.storage_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the storage bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_or_change_bus(self):
+        # TODO doc: of all the properties
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (origin) bus (with \"change\") with this action type.")
+        res = copy.deepcopy(self._change_bus_vect[self.line_or_pos_topo_vect])
+        res.flags.writeable = False
+        return res
+
+    @line_or_change_bus.setter
+    def line_or_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (origin) bus (with \"change\") with this action type.")
+        orig_ = self.line_or_change_bus
+        try:
+            self.__aux_affect_object_bool(values, "line (origin)", self.n_line, self.name_line,
+                                          self.line_or_pos_topo_vect, self._change_bus_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.line_or_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the line origin bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def line_ex_change_bus(self):
+        # TODO doc: of all the properties
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (ex) bus (with \"change\") with this action type.")
+        res = copy.deepcopy(self._change_bus_vect[self.line_ex_pos_topo_vect])
+        res.flags.writeable = False
+        return res
+
+    @line_ex_change_bus.setter
+    def line_ex_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the line (ex) bus (with \"change\") with this action type.")
+        orig_ = self.line_ex_change_bus
+        try:
+            self.__aux_affect_object_bool(values, "line (extremity)", self.n_line, self.name_line,
+                                          self.line_ex_pos_topo_vect, self._change_bus_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[self.line_ex_pos_topo_vect] = orig_
+            raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+    # TODO same sub_set_bus
+
+    @property
+    def line_change_status(self):
+        # TODO doc: of all the properties
+        if "change_line_status" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the status of powerlines (with \"change\") with this action type.")
+        res = copy.deepcopy(self._switch_line_status)
+        res.flags.writeable = False
+        return res
+
+    @line_change_status.setter
+    def line_change_status(self, values):
+        if "change_line_status" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the status of powerlines (with \"change\") with this action type.")
+        orig_ = 1 * self._switch_line_status
+        try:
+            self.__aux_affect_object_bool(values, "line status", self.n_line, self.name_line,
+                                          np.arange(self.n_line), self._switch_line_status)
+            self._modif_set_status = True
+        except Exception as exc_:
+            self._switch_line_status[:] = orig_
+            raise IllegalAction(f"Impossible to modify the line status with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")

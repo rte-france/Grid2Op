@@ -78,9 +78,9 @@ def _get_action_grid_class():
 
     GridObjects.n_storage = 2
     GridObjects.name_storage = np.array(["storage_0", "storage_1"])
-    GridObjects.storage_to_subid = [1, 2]
-    GridObjects.storage_to_sub_pos = [6, 4]
-    GridObjects.storage_pos_topo_vect = [9, 14]
+    GridObjects.storage_to_subid = np.array([1, 2])
+    GridObjects.storage_to_sub_pos = np.array([6, 4])
+    GridObjects.storage_pos_topo_vect = np.array([9, 14])
     GridObjects.storage_type = np.array(["battery"] * 2)
     GridObjects.storage_Emax = np.array([100., 100.])
     GridObjects.storage_Emin = np.array([0., 0.])

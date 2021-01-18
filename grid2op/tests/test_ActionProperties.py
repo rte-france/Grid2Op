@@ -1847,5 +1847,382 @@ class TestSetStatus(unittest.TestCase):
         assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
 
 
+class TestChangeBus(unittest.TestCase):
+    """test the property to set the bus of the action"""
+
+    def setUp(self):
+        """
+        The case file is a representation of the case14 as found in the ieee14 powergrid.
+        :return:
+        """
+        self.tolvect = 1e-2
+        self.tol_one = 1e-5
+        self.game_rules = RulesChecker()
+
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
+
+
+        # self.size_act = 229
+        self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
+        # self.helper_action = ActionSpace(self.gridobj, legal_action=self.game_rules.legal_action)
+        self.helper_action = self.ActionSpaceClass(self.gridobj,
+                                                   legal_action=self.game_rules.legal_action,
+                                                   actionClass=CompleteAction)  # TopologyChangeAndStorageAction would be better
+        self.helper_action.seed(42)
+        # save_to_dict(self.res, self.helper_action, "subtype", lambda x: re.sub("(<class ')|('>)", "", "{}".format(x)))
+        save_to_dict(self.res, self.helper_action,
+                     "_init_subtype",
+                     lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
+
+        self.authorized_keys = self.helper_action().authorized_keys
+        self.size_act = self.helper_action.size()
+
+    def _aux_change_bus_int(self, name_el, nb_el, prop="change_bus"):
+        """first set of test by giving the id of the object i want to change"""
+        act = self.helper_action()
+        prop_name = f"{name_el}_{prop}"
+        setattr(act, prop_name, 1)
+        assert np.all(getattr(act, prop_name) == [False, True] + [False for _ in range(nb_el-2)])
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, 3.0)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, False)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, "toto")
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # wrong type
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, "toto"))
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # id too large
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, nb_el + 1)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, -1)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+    def test_load_change_bus_int(self):
+        self._aux_change_bus_int("load", self.helper_action.n_load)
+
+    def test_gen_change_bus_int(self):
+        self._aux_change_bus_int("gen", nb_el=self.helper_action.n_gen)
+
+    def test_storage_change_bus_int(self):
+        self._aux_change_bus_int("storage", nb_el=self.helper_action.n_storage)
+
+    def test_line_or_change_bus_int(self):
+        self._aux_change_bus_int("line_or", nb_el=self.helper_action.n_line)
+
+    def test_line_ex_change_bus_int(self):
+        self._aux_change_bus_int("line_ex", nb_el=self.helper_action.n_line)
+
+    def test_line_change_status_bus_int(self):
+        self._aux_change_bus_int("line", nb_el=self.helper_action.n_line, prop="change_status")
+
+    def _aux_change_bus_tuple(self, name_el, nb_el, prop="change_bus"):
+        """first set of test by giving the a tuple: should be deactivated!"""
+        act = self.helper_action()
+        prop_name = f"{name_el}_{prop}"
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1,))
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, False))
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, (1, False, 3))
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+    def test_load_change_bus_tuple(self):
+        self._aux_change_bus_tuple("load", self.helper_action.n_load)
+
+    def test_gen_change_bus_tuple(self):
+        self._aux_change_bus_tuple("gen", nb_el=self.helper_action.n_gen)
+
+    def test_storage_change_bus_tuple(self):
+        self._aux_change_bus_tuple("storage", nb_el=self.helper_action.n_storage)
+
+    def test_line_or_change_bus_tuple(self):
+        self._aux_change_bus_tuple("line_or", nb_el=self.helper_action.n_line)
+
+    def test_line_ex_change_bus_tuple(self):
+        self._aux_change_bus_tuple("line_ex", nb_el=self.helper_action.n_line)
+
+    def test_line_change_status_bus_tuple(self):
+        self._aux_change_bus_tuple("line", nb_el=self.helper_action.n_line, prop="change_status")
+
+    def _aux_change_bus_arraybool(self, name_el, nb_el, prop="change_bus"):
+        """test by giving the a complete an array of bool (all the vector)"""
+        prop_name = f"{name_el}_{prop}"
+        li_orig = [False, True] + [False for _ in range(nb_el-2)]
+        tmp = np.array(li_orig)
+        tmp_dt_bool = np.array(li_orig).astype(dt_bool)
+        tmp_bool = np.array(li_orig).astype(bool)
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp)
+        assert np.all(getattr(act, prop_name) == [False, True] + [False for _ in range(nb_el-2)])
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp_dt_bool)
+        assert np.all(getattr(act, prop_name) == [False, True] + [False for _ in range(nb_el-2)])
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp_bool)
+        assert np.all(getattr(act, prop_name) == [False, True] + [False for _ in range(nb_el-2)])
+
+        # list too short
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, tmp[:-1])
+        assert np.all(~getattr(act, prop_name)), "a load has been modified by an illegal action"
+
+        # list too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp_1 = np.concatenate((tmp, (False,)))
+            setattr(act, prop_name, tmp_1)
+        assert np.all(~getattr(act, prop_name)), "a load has been modified by an illegal action"
+
+    def test_load_change_bus_arraybool(self):
+        self._aux_change_bus_arraybool("load", self.helper_action.n_load)
+
+    def test_gen_change_bus_arraybool(self):
+        self._aux_change_bus_arraybool("gen", nb_el=self.helper_action.n_gen)
+
+    def test_storage_change_bus_arraybool(self):
+        self._aux_change_bus_arraybool("storage", nb_el=self.helper_action.n_storage)
+
+    def test_line_or_change_bus_arraybool(self):
+        self._aux_change_bus_arraybool("line_or", nb_el=self.helper_action.n_line)
+
+    def test_line_ex_change_bus_arraybool(self):
+        self._aux_change_bus_arraybool("line_ex", nb_el=self.helper_action.n_line)
+
+    def test_line_change_status_bus_arraybool(self):
+        self._aux_change_bus_arraybool("line", nb_el=self.helper_action.n_line, prop="change_status")
+
+    def _aux_change_bus_arrayint(self, name_el, nb_el, prop="change_bus"):
+        """test by giving the a numpy array of int"""
+        prop_name = f"{name_el}_{prop}"
+        li_orig = [0, 1]
+        tmp = np.array(li_orig)
+        tmp_dt_int = np.array(li_orig).astype(dt_int)
+        tmp_int = np.array(li_orig).astype(int)
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp)
+        assert np.all(getattr(act, prop_name) == [True, True] + [False for _ in range(nb_el-2)])
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp_dt_int)
+        assert np.all(getattr(act, prop_name) == [True, True] + [False for _ in range(nb_el-2)])
+
+        act = self.helper_action()
+        setattr(act, prop_name, tmp_int)
+        assert np.all(getattr(act, prop_name) == [True, True] + [False for _ in range(nb_el-2)])
+
+        # one id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp2 = np.concatenate((tmp, (-1,)))
+            setattr(act, prop_name, tmp2)
+        assert np.all(~getattr(act, prop_name)), "a load has been modified by an illegal action"
+
+        # one id too high
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = np.concatenate((tmp, (nb_el,)))
+            setattr(act, prop_name, tmp3)
+        assert np.all(~getattr(act, prop_name)), "a load has been modified by an illegal action"
+
+    def test_load_change_bus_arrayint(self):
+        self._aux_change_bus_arrayint("load", self.helper_action.n_load)
+
+    def test_gen_change_bus_arrayint(self):
+        self._aux_change_bus_arrayint("gen", nb_el=self.helper_action.n_gen)
+
+    def test_storage_change_bus_arrayint(self):
+        self._aux_change_bus_arrayint("storage", nb_el=self.helper_action.n_storage)
+
+    def test_line_or_change_bus_arrayint(self):
+        self._aux_change_bus_arrayint("line_or", nb_el=self.helper_action.n_line)
+
+    def test_line_ex_change_bus_arrayint(self):
+        self._aux_change_bus_arrayint("line_ex", nb_el=self.helper_action.n_line)
+
+    def test_line_change_status_bus_arrayint(self):
+        self._aux_change_bus_arrayint("line", nb_el=self.helper_action.n_line, prop="change_status")
+
+    def _aux_change_bus_listbool(self, name_el, nb_el, prop="change_bus"):
+        """
+        test by giving the a complete a list of bool (all the vector)
+        has been deactivate because of impossibility to check the test with `li_5`
+        below
+        """
+        prop_name = f"{name_el}_{prop}"
+        li_orig = [False, True] + [False for _ in range(nb_el)]
+
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, li_orig)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # list too short
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            setattr(act, prop_name, li_orig[:-1])
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # list too big
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            li_2 = copy.deepcopy(li_orig)
+            li_2.append(True)
+            setattr(act, prop_name, li_2)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # list mixed types (str)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            li_3 = copy.deepcopy(li_orig)
+            li_3.append("toto")
+            setattr(act, prop_name, li_3)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # list mixed types (float)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            li_4 = copy.deepcopy(li_orig)
+            li_4.append(1.0)
+            setattr(act, prop_name, li_4)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # list mixed types (int)
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            li_5 = copy.deepcopy(li_orig)
+            li_5.append(1)
+            setattr(act, prop_name, li_5)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+    def test_load_change_bus_listbool(self):
+        self._aux_change_bus_listbool("load", nb_el=self.helper_action.n_load)
+
+    def test_gen_change_bus_listbool(self):
+        self._aux_change_bus_listbool("gen", nb_el=self.helper_action.n_gen)
+
+    def test_storage_change_bus_listbool(self):
+        self._aux_change_bus_listbool("storage", nb_el=self.helper_action.n_storage)
+
+    def test_line_or_change_bus_listbool(self):
+        self._aux_change_bus_listbool("line_or", nb_el=self.helper_action.n_line)
+
+    def test_line_ex_change_bus_listbool(self):
+        self._aux_change_bus_listbool("line_ex", nb_el=self.helper_action.n_line)
+
+    def test_line_change_status_bus_listbool(self):
+        self._aux_change_bus_listbool("line", nb_el=self.helper_action.n_line, prop="change_status")
+
+    def _aux_change_bus_listint(self, name_el, nb_el, prop="change_bus"):
+        """
+        test by giving the a a list of int
+        """
+        prop_name = f"{name_el}_{prop}"
+        li_orig = [0]
+        act = self.helper_action()
+        setattr(act, prop_name, li_orig)
+        assert np.all(getattr(act, prop_name) == [True, False] + [False for _ in range(nb_el-2)])
+
+        # one id too low
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp2 = copy.deepcopy(li_orig)
+            tmp2.append(-1)
+            setattr(act, prop_name, tmp2)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # one id too high
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp3 = copy.deepcopy(li_orig)
+            tmp3.append(nb_el)
+            setattr(act, prop_name, tmp3)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # one string
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp4 = copy.deepcopy(li_orig)
+            tmp4.append("toto")
+            setattr(act, prop_name, tmp4)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # one float
+        act = self.helper_action()
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5.append(1.0)
+            setattr(act, prop_name, tmp5)
+        assert np.all(~getattr(act, prop_name)), f"a {name_el} has been modified by an illegal action"
+
+        # test it revert back to proper thing
+        act = self.helper_action()
+        setattr(act, prop_name, li_orig)
+        with self.assertRaises(IllegalAction):
+            tmp5 = copy.deepcopy(li_orig)
+            tmp5.append(1.0)
+            setattr(act, prop_name, tmp5)
+        assert np.all(getattr(act, prop_name) == [True, False] + [False for _ in range(nb_el-2)])
+
+        # test if change twice it's equivalent to not changing at all
+        act = self.helper_action()
+        setattr(act, prop_name, li_orig)
+        assert np.all(getattr(act, prop_name) == [True, False] + [False for _ in range(nb_el-2)])
+        setattr(act, prop_name, li_orig)
+        assert np.all(getattr(act, prop_name) == [False, False] + [False for _ in range(nb_el-2)])
+
+    def test_load_change_bus_listint(self):
+        self._aux_change_bus_listint("load", nb_el=self.helper_action.n_load)
+
+    def test_gen_change_bus_listint(self):
+        self._aux_change_bus_listint("gen", nb_el=self.helper_action.n_gen)
+
+    def test_storage_change_bus_listint(self):
+        self._aux_change_bus_listint("storage", nb_el=self.helper_action.n_storage)
+
+    def test_line_or_change_bus_listint(self):
+        self._aux_change_bus_listint("line_or", nb_el=self.helper_action.n_line)
+
+    def test_line_ex_change_bus_listint(self):
+        self._aux_change_bus_listint("line_ex", nb_el=self.helper_action.n_line)
+
+    def test_line_change_status_bus_listint(self):
+        self._aux_change_bus_listint("line", nb_el=self.helper_action.n_line, prop="change_status")
+
+
 if __name__ == "__main__":
     unittest.main()
