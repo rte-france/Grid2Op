@@ -2564,7 +2564,7 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
         if "set_storage" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
-        return 1 * self._set_topo_vect[self.gen_pos_topo_vect]
+        return 1 * self._set_topo_vect[self.storage_pos_topo_vect]
 
     @storage_set_bus.setter
     def storage_set_bus(self, values):
