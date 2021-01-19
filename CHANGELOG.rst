@@ -33,6 +33,8 @@ Change Log
   used and the observation class used as dictionary to (using `action.cls_to_dict`)
 - [BREAKING] for backend class implementation: need to upgrade your code to take into account the storage units
   if some are present in the grid even if you don't want to use storage units.
+- [BREAKING] the backend `runpf` method now returns a flag indicating if the simulation was successful AND (new)
+  the exception in case there are some (it now returns a tuple). This change only affect new Backends.
 - [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
   at the end of an episode.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)

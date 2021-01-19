@@ -1725,6 +1725,15 @@ class BaseTestStorageAction(MakeBackend):
         assert np.all(np.abs(q_bus) <= self.tol_one), "error with reactive value at some bus"
         assert np.all(diff_v_bus <= self.tol_one), "error with voltage discrepency"
 
+    def test_there_are_storage(self):
+        """test the backend properly loaded the storage units"""
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
+        assert self.env.n_storage == 2
+
     def test_storage_action_mw(self):
         """test the actions are properly implemented in the backend"""
         self.skip_if_needed()
@@ -1775,14 +1784,16 @@ class BaseTestStorageAction(MakeBackend):
         obs, reward, done, info = self.env.step(act)
         assert not info["exception"]
         # i have emptied second battery
-        assert np.all(np.abs(self.env.backend._grid.storage["p_mw"].values - [-1.5, -4.4599934]) <= self.tol_one)
+        storage_p, *_ = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - [-1.5, -4.4599934]) <= self.tol_one)
         assert np.all(np.abs(obs.storage_charge[1] - 0.) <= self.tol_one)
         self._aux_test_kirchoff()
 
         obs, reward, done, info = self.env.step(act)
         assert not info["exception"]
         # i have emptied second battery
-        assert np.all(np.abs(self.env.backend._grid.storage["p_mw"].values - [-1.5, 0.]) <= self.tol_one)
+        storage_p, *_ = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - [-1.5, 0.]) <= self.tol_one)
         assert np.all(np.abs(obs.storage_charge[1] - 0.) <= self.tol_one)
         self._aux_test_kirchoff()
 
@@ -1797,7 +1808,16 @@ class BaseTestStorageAction(MakeBackend):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("educ_case14_storage", test=True, backend=backend,
                                     param=param, action_class=CompleteAction)
+
+        # test i can do a reset
         obs = self.env.reset()
+
+        # test i can do a step
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - 0.) <= self.tol_one)
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
 
         # first case, standard modification
         array_modif = np.array([-1.5, -10.], dtype=dt_float)
@@ -1843,8 +1863,10 @@ class BaseTestStorageAction(MakeBackend):
                                     )
         obs, reward, done, info = self.env.step(act)
         assert not info["exception"]
+        assert not done
         storage_p, storage_q, storage_v = self.env.backend.storages_info()
-        assert np.all(np.abs(storage_p - [0., array_modif[1]]) <= self.tol_one), "storage is not disconnected, yet alone on its busbar"
+        assert np.all(np.abs(storage_p - [0., array_modif[1]]) <= self.tol_one), \
+            "storage is not disconnected, yet alone on its busbar"
         assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
         assert obs.storage_bus[0] == -1, "storage should be disconnected"
         assert storage_v[0] == 0., "storage 0 should be disconnected"

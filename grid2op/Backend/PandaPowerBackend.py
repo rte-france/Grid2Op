@@ -816,12 +816,12 @@ class PandaPowerBackend(Backend):
                 self._grid.storage["in_service"].values[deact_storage] = False
 
                 self._topo_vect[:] = self._get_topo_vect()
-                return self._grid.converged
+                return self._grid.converged, None
 
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
             self._reset_all_nan()
-            return False
+            return False, exc_
 
     def _reset_all_nan(self):
         self.p_or[:] = np.NaN

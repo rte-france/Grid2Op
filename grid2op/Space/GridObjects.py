@@ -1466,8 +1466,7 @@ class GridObjects:
             self._check_validity_shunt_data()
 
         # storage data
-        if self.n_storage > 0:
-            self._check_validity_storage_data()
+        self._check_validity_storage_data()
 
     def _check_validity_storage_data(self):
         if self.storage_type is None:
@@ -1488,6 +1487,10 @@ class GridObjects:
             raise IncorrectNumberOfStorages("self.storage_discharging_efficiency is None")
         if self.storage_charging_efficiency is None:
             raise IncorrectNumberOfStorages("self.storage_charging_efficiency is None")
+
+        if self.n_storage == 0:
+            # no more check to perform is there is no storage
+            return
 
         if self.storage_type.shape[0] != self.n_storage:
             raise IncorrectNumberOfStorages("self.storage_type.shape[0] != self.n_storage")
@@ -2432,10 +2435,27 @@ class GridObjects:
         absence of shunts or storage units for example.
 
         """
-        dict_me = cls.cls_to_dict()
-        dict_oth = other_cls.cls_to_dict()
-        if "env_name" in dict_me:
-            del dict_me["env_name"]
-        if "env_name" in dict_oth:
-            del dict_oth["env_name"]
-        return dict_me == dict_oth
+        # this implementation is 6 times faster than the "cls_to_dict" one below, so i kept it
+        me_dict = cls.__dict__
+        other_cls_dict = other_cls.__dict__
+        if me_dict.keys() - other_cls_dict.keys():
+            # one key is in me but not in other
+            return False
+        if other_cls_dict.keys() - me_dict.keys():
+            # one key is in other but not in me
+            return False
+        for attr_nm in me_dict.keys():
+            if attr_nm == "env_name":
+                continue
+            if attr_nm.startswith("__") and attr_nm.endswith("__"):
+                continue
+            if not np.array_equal(getattr(cls, attr_nm), getattr(other_cls, attr_nm)):
+                return False
+        return True
+        # dict_me = cls.cls_to_dict()
+        # dict_oth = other_cls.cls_to_dict()
+        # if "env_name" in dict_me:
+        #     del dict_me["env_name"]
+        # if "env_name" in dict_oth:
+        #     del dict_oth["env_name"]
+        # return dict_me == dict_oth

@@ -208,6 +208,9 @@ class Backend(GridObjects, ABC):
         :return: ``True`` if it has converged, or false otherwise. In case of non convergence, no flows can be inspected on
           the _grid.
         :rtype: :class:`bool`
+
+        :return: an exception in case of divergence (or none if no particular info are available)
+        :rtype: `Exception`
         """
         pass
 
@@ -690,16 +693,16 @@ class Backend(GridObjects, ABC):
 
         """
         conv = False
+        exc_me = None
         try:
-            conv = self.runpf(is_dc=is_dc)  # run powerflow
+            conv, exc_me = self.runpf(is_dc=is_dc)  # run powerflow
         except Exception as exc_:
-            pass
+            exc_me = exc_
 
-        res = None
-        if not conv:
-            res = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
+        if not conv and exc_me is None:
+            exc_me = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
                                      "or a load has been disconnected or a generator has been disconnected.")
-        return res
+        return exc_me
 
     def next_grid_state(self, env, is_dc=False):
         """
@@ -1135,8 +1138,10 @@ class Backend(GridObjects, ABC):
         https://www.greeningthegrid.org/news/new-resource-grid-scale-battery-storage-frequently-asked-questions-1
         for further references)
         """
+
         if self.n_storage == 0:
-            # nothing to do if there is no battery on the grid.
+            # set the "no battery state" if there are none
+            type(self).set_no_storage()
             return
 
         # for storage unit information

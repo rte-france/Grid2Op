@@ -291,10 +291,10 @@ class EducPandaPowerBackend(Backend):
                     pp.rundcpp(self._grid, check_connectivity=False)
                 else:
                     pp.runpp(self._grid, check_connectivity=False)
-                return self._grid.converged
+                return self._grid.converged, None
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
-            return False
+            return False, exc_
 
     ###### getters
     def get_topo_vect(self):
