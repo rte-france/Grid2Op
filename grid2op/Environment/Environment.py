@@ -725,7 +725,7 @@ class Environment(BaseEnv):
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             res["backend"] = self.backend.copy()
-        res["parameters"] = copy.deepcopy(self.parameters)
+        res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
         res["actionClass"] = self._actionClass
         res["observationClass"] = self._observationClass
@@ -963,7 +963,7 @@ class Environment(BaseEnv):
         res = {}
         res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
-        res["parameters_path"] = self.parameters.to_dict()
+        res["parameters_path"] = self._parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
         res["actionClass"] = self._actionClass
         res["observationClass"] = self._observationClass

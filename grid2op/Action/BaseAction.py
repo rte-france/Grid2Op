@@ -1854,7 +1854,8 @@ class BaseAction(GridObjects):
             disconnected because of maintenance operations.
           * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
             dispatchable one) the amount of power redispatched in this action.
-          *`storage` the new setpoint #TODO storage doc
+          * `storage` #TODO storage doc
+
 
         Returns
         -------

@@ -35,12 +35,15 @@ Change Log
   if some are present in the grid even if you don't want to use storage units.
 - [BREAKING] the backend `runpf` method now returns a flag indicating if the simulation was successful AND (new)
   the exception in case there are some (it now returns a tuple). This change only affect new Backends.
+- [BREAKING] rename the attribute "parameters" of the "observation_space" to `_simulate_parameters` to avoid
+  confusion with the `parameters` attributes of the environment.
 - [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
   at the end of an episode.
+- [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
+- [ADDED] documentation of the main elements of the grid and their "modeling" in grid2op.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
   negative: power given to the grid having some energy limit and power limit). A new object if added in the substation.
-- [FIXED] A bug when the opponent should chose an attack with all lines having flow 0. but one being still connected.
 - [ADDED] Support for sparse matrices in `obs.bus_connectivity_matrix`
 - [ADDED] In the observation, it is now possible to retrieve the "active flow graph" (ie graph with edges having active
   flows, and nodes the active production / consumption) and "reactive flow graph" (see `flow_bus_matrix`)

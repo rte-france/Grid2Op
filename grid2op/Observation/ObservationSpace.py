@@ -32,7 +32,7 @@ class ObservationSpace(SerializableObservationSpace):
     observationClass: ``type``
         Class used to build the observations. It defaults to :class:`CompleteObservation`
 
-    parameters: :class:`grid2op.Parameters.Parameters`
+    _simulate_parameters: :class:`grid2op.Parameters.Parameters`
         Type of Parameters used to compute powerflow for the forecast.
 
     rewardClass: ``type``
@@ -69,9 +69,9 @@ class ObservationSpace(SerializableObservationSpace):
 
         self.with_forecast = with_forecast
         # print("ObservationSpace init with rewardClass: {}".format(rewardClass))
-        self.parameters = copy.deepcopy(env.parameters)
-        # for the observation, I switch between the _parameters for the environment and for the simulation
-        self.parameters.ENV_DC = self.parameters.FORECAST_DC
+        self._simulate_parameters = copy.deepcopy(env.parameters)
+        # # for the observation, I switch between the _parameters for the environment and for the simulation
+        # self.simulate_parameters.ENV_DC = self.parameters.FORECAST_DC
 
         if rewardClass is None:
             self.rewardClass = env.rewardClass
@@ -91,7 +91,7 @@ class ObservationSpace(SerializableObservationSpace):
         _ObsEnv_class = _ObsEnv.init_grid(self._backend_obs)
         self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
                                      obsClass=self.observationClass,
-                                     parameters=env.parameters,
+                                     parameters=self._simulate_parameters,
                                      reward_helper=self.reward_helper,
                                      action_helper=self.action_helper_env,
                                      thermal_limit_a=env.get_thermal_limit(),
@@ -107,6 +107,15 @@ class ObservationSpace(SerializableObservationSpace):
         self._empty_obs = self.observationClass(obs_env=self.obs_env,
                                                 action_helper=self.action_helper_env)
         self._update_env_time = 0.
+
+    def _change_parameters(self, new_param):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        change the parameter of the "simulate" environment
+        """
+        self.obs_env.change_parameters(new_param)
+        self._simulate_parameters = new_param
 
     def change_other_rewards(self, dict_reward):
         """

@@ -821,7 +821,8 @@ class PandaPowerBackend(Backend):
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
             self._reset_all_nan()
-            return False, exc_
+            msg = exc_.__str__()
+            return False, DivergingPowerFlow(f"powerflow diverged with error :\"{msg}\"")
 
     def _reset_all_nan(self):
         self.p_or[:] = np.NaN
