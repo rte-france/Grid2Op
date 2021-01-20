@@ -120,6 +120,11 @@ Satisfied equations
 Notations:
 +++++++++++
 
+.. math::
+
+    \text{test} = 2.x + 3
+    \mathbb{R} = 2x
+
 Equations
 ++++++++++
 
