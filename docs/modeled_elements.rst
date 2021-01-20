@@ -119,14 +119,41 @@ Satisfied equations
 
 Notations:
 +++++++++++
+Let's note:
 
 .. math::
+    :nowrap:
 
-    \text{test} = 2.x + 3
-    \mathbb{R} = 2x
+    \begin{align*}
+    \mathbf{g}_t &: \text{vector of all active productions at step t} \\
+    g^i_t &:  \text{active production of generator i at step t} \\
+    \mathbf{d}_t &: \text{vector of all actual redispatching at step t}  \\
+    d^i_t &: \text{actual redispatching performed on generator i at step t} \\
+    \mathbf{r}_t &: \text{vector of all redispatching asked by the agent at step t}  \\
+    r^i_t &: \text{redispatching asked by the agent on generator i at step t} \\
+    \mathbf{h}_t &: \text{vector of all "target dispatch" at step t}  \\
+    h^i_t &: \text{"target dispatch" for generator i at step t} \\
+    \overline{\mathbf{g}} &: \text{maximum active production of all generators (vector)} \\
+    \overline{g}^i &: \text{maximum active production of generator i} \\
+    \underline{\mathbf{g}} &: \text{minimum active production of all generators (vector)} \\
+    \underline{g}^i &: \text{minimum active production of generator i} \\
+    \mathbf{s}_t &: \text{vector of all active setpoint of all generators at step t}  \\
+    s^i_t &: \text{active setpoint for generator i at step t} \\
+    \end{align*}
+
+Using the above notation:
+
+- :math:`\mathbf{g}_t` = `act.prod_p`
+- :math:`\mathbf{d}_t` = `obs.actual_dispatch`
+- :math:`\mathbf{r}_t` = `act.redispatch`
+- :math:`\mathbf{h}_t` = `act.target_dispatch`
+- :math:`\overline{\mathbf{g}}` = `env.gen_pmax`
+- :math:`\undererline{\mathbf{g}}` = `env.gen_pmin`
+- :math:`\mathbf{s}_t` = `act.prod_p`
 
 Equations
 ++++++++++
+TODO
 
 .. _load:
 
