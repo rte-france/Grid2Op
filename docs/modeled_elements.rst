@@ -44,7 +44,8 @@ Description
 Generators are elements connected to the powergrid who's role mainly consist in producing prower and
 maintaining the safety of grid in some conditions (voltage collapse).
 
-
+An a positive production means the generator produce something, so power is injected from the generator
+to the grid.
 
 Static properties
 ~~~~~~~~~~~~~~~~~~
@@ -79,7 +80,7 @@ gen_pos_topo_vect             vect, int     Internal, see :ref:`create-backend-m
 Modifiable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-You can modify the generator in different manner, from the **__action__** (NB some action do not allow the modification
+You can modify the generator in different manner, from an **__action__** (NB some action do not allow the modification
 of some of these attributes).
 
 - `gen_set_bus`: set the bus to which the generator is connected. Usage: `act.gen_set_bus = [(gen_id, new_bus)]` where `gen_id` is the
@@ -97,14 +98,30 @@ of some of these attributes).
 Observable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-In this section we explain the generators attributes you can access from the **__observation__**
+In this section we explain the generators attributes you can access from an **__observation__**. These
+attributes are:
 
-TODO
+- `gen_p`: the current active production of each generators, in MW. Usage: `obs.gen_p[gen_id]` will retrieve the
+  active production of generator with id `gen_id`
+- `gen_q`: the current reactive production of each generators, in MVAr. Usage: `obs.gen_q[gen_id]` will
+  get the reactive production of generator with id `gen_id`
+- `gen_v`: the voltage of the bus at which the generator is connected, in kV. Usage `obs.gen_v[gen_id]` will
+  get the voltage magnitude of the bus at which generator with id `gen_id` is connected.
+- `gen_bus`: the bus to which each generators is connected. Usage `obs.gen_bus[gen_id]` will
+  get the bus to which generator with id `gen_id` is connected (typically -1, 1 or 2).
+- `target_dispatch`: the target values given by the agent to the environment (*eg* using
+  `act.redispatch`), in MW. Usage: `obs.target_dispatch[gen_id]`. More information in the "Equations" section.
+- `actual_dispatch`: actual dispatch: the values the environment was able to provide as redispatching, in MW.
+  Usage: `obs.actual_dispatch[gen_id]`. More information in the "Equations" section.
 
-Equations satisfied
+Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+Notations:
++++++++++++
+
+Equations
+++++++++++
 
 .. _load:
 
@@ -188,7 +205,7 @@ Observable attributes
 
 TODO
 
-Equations satisfied
+Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
 TODO
@@ -233,7 +250,7 @@ Observable attributes
 
 TODO
 
-Equations satisfied
+Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
 TODO
@@ -279,7 +296,7 @@ Observable attributes
 
 TODO
 
-Equations satisfied
+Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
 TODO
@@ -323,7 +340,7 @@ Observable attributes
 
 TODO
 
-Equations satisfied
+Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
 TODO

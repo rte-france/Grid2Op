@@ -37,9 +37,15 @@ Change Log
   the exception in case there are some (it now returns a tuple). This change only affect new Backends.
 - [BREAKING] rename the attribute "parameters" of the "observation_space" to `_simulate_parameters` to avoid
   confusion with the `parameters` attributes of the environment.
+- [BREAKING] change of behaviour of the `env.parameters` attribute behaviour. It is no more possible to
+  modified it with `env.parameters = ...` and the `env.parameters.PARAM_ATTRIBUTE = xxx` will have not effect
+  at all.
 - [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
   at the end of an episode.
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
+- [ADDED] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`
+  instead of `prod_p`, `prod_q` and `prod_v` (old names are still accessible for backward compatibility) but
+  conversion to json / dict will be affected
 - [ADDED] documentation of the main elements of the grid and their "modeling" in grid2op.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
@@ -53,6 +59,8 @@ Change Log
   `act.load_set_bus = ...` instead of the previously way more verbose `act.update({"set_bus": {"loads_id": ...}}`
   (this applies for `load`, `gen`, `storage`, `line_or` and `line_ex` and to `set_bus` and `change_bus` and
   also to `storage_p` and `redispatch` so making 12 "properties" in total)
+- [ADDED] an option to retrieve in memory the `EpisodeData` of each episode computed when using the runner.
+  see `runner.run(..., add_detailed_output=True)`
 
 [1.4.0] - 2020-12-10
 ----------------------
