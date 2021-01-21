@@ -1045,31 +1045,36 @@ class GridObjects:
                 self.name_line = np.array(self.name_line)
                 self.name_line = self.name_line.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_line should be convertible to a numpy array of type str")
+                raise EnvError(f"self.name_line should be convertible to a numpy array of type str. Error was "
+                               f"{exc_}")
         if not isinstance(self.name_load, np.ndarray):
             try:
                 self.name_load = np.array(self.name_load)
                 self.name_load = self.name_load.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_load should be convertible to a numpy array of type str")
+                raise EnvError("self.name_load should be convertible to a numpy array of type str. Error was "
+                               f"{exc_}")
         if not isinstance(self.name_gen, np.ndarray):
             try:
                 self.name_gen = np.array(self.name_gen)
                 self.name_gen = self.name_gen.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_gen should be convertible to a numpy array of type str")
+                raise EnvError("self.name_gen should be convertible to a numpy array of type str. Error was "
+                               f"{exc_}")
         if not isinstance(self.name_sub, np.ndarray):
             try:
                 self.name_sub = np.array(self.name_sub)
                 self.name_sub = self.name_sub.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_sub should be convertible to a numpy array of type str")
+                raise EnvError("self.name_sub should be convertible to a numpy array of type str. Error was "
+                               f"{exc_}")
         if not isinstance(self.name_storage, np.ndarray):
             try:
                 self.name_storage = np.array(self.name_storage)
                 self.name_storage = self.name_storage.astype(str)
             except Exception as exc_:
-                raise EnvError("self.name_storage should be convertible to a numpy array of type str")
+                raise EnvError("self.name_storage should be convertible to a numpy array of type str. Error was "
+                               f"{exc_}")
 
     def _check_sub_pos(self):
         if not isinstance(self.load_to_sub_pos, np.ndarray):
@@ -1077,63 +1082,73 @@ class GridObjects:
                 self.load_to_sub_pos = np.array(self.load_to_sub_pos)
                 self.load_to_sub_pos = self.load_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.load_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.load_to_sub_pos should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.gen_to_sub_pos, np.ndarray):
             try:
                 self.gen_to_sub_pos = np.array(self.gen_to_sub_pos)
                 self.gen_to_sub_pos = self.gen_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.gen_to_sub_pos should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.line_or_to_sub_pos, np.ndarray):
             try:
                 self.line_or_to_sub_pos = np.array(self.line_or_to_sub_pos)
                 self.line_or_to_sub_pos = self.line_or_to_sub_pos.astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.line_or_to_sub_pos should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.line_ex_to_sub_pos, np.ndarray):
             try:
                 self.line_ex_to_sub_pos = np.array(self.line_ex_to_sub_pos)
                 self.line_ex_to_sub_pos = self.line_ex_to_sub_pos .astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.storage_to_sub_pos, np.ndarray):
             try:
                 self.storage_to_sub_pos = np.array(self.storage_to_sub_pos)
                 self.storage_to_sub_pos = self.storage_to_sub_pos .astype(dt_int)
             except Exception as exc_:
-                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array")
+                raise EnvError("self.line_ex_to_sub_pos should be convertible to a numpy array. Error was "
+                               f"{exc_}")
 
     def _check_topo_vect(self):
         if not isinstance(self.load_pos_topo_vect, np.ndarray):
             try:
                 self.load_pos_topo_vect = np.array(self.load_pos_topo_vect)
                 self.load_pos_topo_vect = self.load_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError("self.load_pos_topo_vect should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.gen_pos_topo_vect, np.ndarray):
             try:
                 self.gen_pos_topo_vect = np.array(self.gen_pos_topo_vect)
                 self.gen_pos_topo_vect = self.gen_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError("self.gen_pos_topo_vect should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.line_or_pos_topo_vect, np.ndarray):
             try:
                 self.line_or_pos_topo_vect = np.array(self.line_or_pos_topo_vect)
                 self.line_or_pos_topo_vect = self.line_or_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError("self.line_or_pos_topo_vect should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.line_ex_pos_topo_vect, np.ndarray):
             try:
                 self.line_ex_pos_topo_vect = np.array(self.line_ex_pos_topo_vect)
                 self.line_ex_pos_topo_vect = self.line_ex_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError("self.line_ex_pos_topo_vect should be convertible to a numpy array. Error was "
+                               f"{exc_}")
         if not isinstance(self.storage_pos_topo_vect, np.ndarray):
             try:
                 self.storage_pos_topo_vect = np.array(self.storage_pos_topo_vect)
                 self.storage_pos_topo_vect = self.storage_pos_topo_vect.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.storage_pos_topo_vect should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError("self.storage_pos_topo_vect should be convertible to a numpy array. Error was "
+                               f"{exc_}")
 
     def _compute_sub_pos(self):
         """
@@ -1297,7 +1312,8 @@ class GridObjects:
                 self.sub_info = np.array(self.sub_info)
                 self.sub_info = self.sub_info.astype(dt_int)
             except Exception as exc_:
-                raise EnvError(f"self.sub_info should be convertible to a numpy array. It fails with error \"{exc_}\"")
+                raise EnvError(f"self.sub_info should be convertible to a numpy array. "
+                               f"It fails with error \"{exc_}\"")
 
         # to which subtation they are connected
         self._check_sub_id()
@@ -1339,8 +1355,9 @@ class GridObjects:
                                "One of the vector is made of non finite elements, check the sub_info, *_to_subid, "
                                "*_to_sub_pos and *_pos_topo_vect vectors")
         except Exception as exc_:
-            raise EnvError("Impossible to check whether or not vectors contains only finite elements (probably one "
-                           "or more topology related vector is not valid (contains ``None``)")
+            raise EnvError(f"Impossible to check whether or not vectors contains only finite elements (probably one "
+                           f"or more topology related vector is not valid (contains ``None``). Error was "
+                           f"{exc_}")
 
         # check sizes
         if len(self.sub_info) != self.n_sub:

@@ -270,6 +270,7 @@ test_weigths.h5
 test_threading_lightsim.py
 test_multiprocessing.py
 test_plot_storage.ipynb
+issue_pp_storage.py
 
 # profiling files
 **.prof

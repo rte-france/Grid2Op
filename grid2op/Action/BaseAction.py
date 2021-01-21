@@ -200,6 +200,9 @@ class BaseAction(GridObjects):
     attr_list_set = set(attr_list_vect)
     shunt_added = False
 
+    _line_or_str = "line (origin)"
+    _line_ex_str = "line (extremity)"
+
     def __init__(self):
         """
 
@@ -988,9 +991,9 @@ class BaseAction(GridObjects):
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
             elif dict_["change_bus"] is None:
+                # nothing to do in this case
                 pass
             else:
-                pass
                 raise AmbiguousAction(
                     "Invalid way to set the topology. dict_[\"change_bus\"] should be a numpy array or a dictionnary.")
 
@@ -1544,13 +1547,13 @@ class BaseAction(GridObjects):
             for l_id, id_in_topo in enumerate(self.line_or_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
-                    objt_type = "line (origin)"
+                    objt_type = self._line_or_str
                     array_subid = self.line_or_to_subid
         if obj_id is None:
             for l_id, id_in_topo in enumerate(self.line_ex_pos_topo_vect):
                 if id_in_topo == id_:
                     obj_id = l_id
-                    objt_type = "line (extremity)"
+                    objt_type = self._line_ex_str
                     array_subid = self.line_ex_to_subid
         if obj_id is None:
             for l_id, id_in_topo in enumerate(self.storage_pos_topo_vect):
@@ -2416,11 +2419,11 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (origin) bus (with \"set\") with this action type.")
         orig_ = self.line_or_set_bus
         try:
-            self.__aux_affect_object_int(values, "line (origin)", self.n_line, self.name_line,
+            self.__aux_affect_object_int(values, self._line_or_str, self.n_line, self.name_line,
                                          self.line_or_pos_topo_vect, self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, "line (origin)", self.n_line, self.name_line,
+            self.__aux_affect_object_int(orig_, self._line_or_str, self.n_line, self.name_line,
                                          self.line_or_pos_topo_vect, self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the line origin bus with your input. "
                                 f"Please consult the documentation. "
@@ -2441,11 +2444,11 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (ex) bus (with \"set\") with this action type.")
         orig_ = self.line_ex_set_bus
         try:
-            self.__aux_affect_object_int(values, "line (extremity)", self.n_line, self.name_line,
+            self.__aux_affect_object_int(values, self._line_ex_str, self.n_line, self.name_line,
                                          self.line_ex_pos_topo_vect, self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, "line (extremity)", self.n_line, self.name_line,
+            self.__aux_affect_object_int(orig_, self._line_ex_str, self.n_line, self.name_line,
                                          self.line_ex_pos_topo_vect, self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
                                 f"Please consult the documentation. "
@@ -2536,9 +2539,6 @@ class BaseAction(GridObjects):
                                         f"on the grid.")
                 outer_vect[inner_vect[values]] = ~outer_vect[inner_vect[values]]
                 return
-
-            # if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float:
-            #     raise IllegalAction(f"{name_el}_id should be bool you provided float!")
 
             # this is the case where i give the integers i want to change
             try:
@@ -2672,7 +2672,7 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (origin) bus (with \"change\") with this action type.")
         orig_ = self.line_or_change_bus
         try:
-            self.__aux_affect_object_bool(values, "line (origin)", self.n_line, self.name_line,
+            self.__aux_affect_object_bool(values, self._line_or_str, self.n_line, self.name_line,
                                           self.line_or_pos_topo_vect, self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:
@@ -2696,7 +2696,7 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (ex) bus (with \"change\") with this action type.")
         orig_ = self.line_ex_change_bus
         try:
-            self.__aux_affect_object_bool(values, "line (extremity)", self.n_line, self.name_line,
+            self.__aux_affect_object_bool(values, self._line_ex_str, self.n_line, self.name_line,
                                           self.line_ex_pos_topo_vect, self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:

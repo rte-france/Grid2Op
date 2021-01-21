@@ -437,7 +437,6 @@ class BaseObservation(GridObjects):
             res["storage_power_target"] = self.storage_power_target[storage_id]
             res["bus"] = self.topo_vect[self.storage_pos_topo_vect[storage_id]]
             res["sub_id"] = self.storage_to_subid[storage_id]
-            res["storage_power"] = self.storage_power[storage_id]
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
