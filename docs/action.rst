@@ -161,6 +161,12 @@ The action class presented here can be quite complex to apprehend, especially fo
 It is possible to use the :class:`grid2op.Converter` class for such purpose. You can have a look at the dedicated
 documentation.
 
+.. _action-module-examples:
+
+Usage Examples
+--------------
+TODO
+
 Detailed Documentation by class
 -------------------------------
 

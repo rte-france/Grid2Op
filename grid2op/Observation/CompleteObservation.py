@@ -30,11 +30,11 @@ class CompleteObservation(BaseObservation):
         4. :attr:`BaseObservation.hour_of_day` the hour of the day [1 element]
         5. :attr:`BaseObservation.minute_of_hour` minute of the hour  [1 element]
         6. :attr:`BaseObservation.day_of_week` the day of the week. Monday = 0, Sunday = 6 [1 element]
-        7. :attr:`BaseObservation.prod_p` the active value of the productions
+        7. :attr:`BaseObservation.gen_p` the active value of the productions
            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        8. :attr:`BaseObservation.prod_q` the reactive value of the productions
+        8. :attr:`BaseObservation.gen_q` the reactive value of the productions
            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        9. :attr:`BaseObservation.prod_q` the voltage setpoint of the productions
+        9. :attr:`BaseObservation.gen_v` the voltage setpoint of the productions
            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         10. :attr:`BaseObservation.load_p` the active value of the loads
             [:attr:`grid2op.Space.GridObjects.n_load` elements]
@@ -78,11 +78,12 @@ class CompleteObservation(BaseObservation):
         30. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
 
+    # TODO storage doc!!
     """
     attr_list_vect = [
         "year", "month", "day", "hour_of_day",
         "minute_of_hour", "day_of_week",
-        "prod_p", "prod_q", "prod_v",
+        "gen_p", "gen_q", "gen_v",
         "load_p", "load_q", "load_v",
         "p_or", "q_or", "v_or", "a_or",
         "p_ex", "q_ex", "v_ex", "a_ex",
@@ -91,9 +92,11 @@ class CompleteObservation(BaseObservation):
         "topo_vect",
         "time_before_cooldown_line", "time_before_cooldown_sub",
         "time_next_maintenance", "duration_next_maintenance",
-        "target_dispatch", "actual_dispatch"
+        "target_dispatch", "actual_dispatch",
+        "storage_charge", "storage_power_target", "storage_power"
     ]
     attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
+    attr_list_set = set(attr_list_vect)
 
     def __init__(self,
                  obs_env=None,
@@ -105,9 +108,6 @@ class CompleteObservation(BaseObservation):
                                  action_helper=action_helper,
                                  seed=seed)
         self._dictionnarized = None
-
-    def _reset_matrices(self):
-        self.vectorized = None
 
     def update(self, env, with_forecast=True):
         # reset the matrices
@@ -128,10 +128,15 @@ class CompleteObservation(BaseObservation):
         self.topo_vect[:] = env.backend.get_topo_vect()
 
         # get the values related to continuous values
-        self.prod_p[:], self.prod_q[:], self.prod_v[:] = env.backend.generators_info()
+        self.gen_p[:], self.gen_q[:], self.gen_v[:] = env.backend.generators_info()
         self.load_p[:], self.load_q[:], self.load_v[:] = env.backend.loads_info()
         self.p_or[:], self.q_or[:], self.v_or[:], self.a_or[:] = env.backend.lines_or_info()
         self.p_ex[:], self.q_ex[:], self.v_ex[:], self.a_ex[:] = env.backend.lines_ex_info()
+
+        # storage units
+        self.storage_charge[:] = env._storage_current_charge
+        self.storage_power_target = env._action_storage
+        self.storage_power = env._storage_power
 
         # handles forecasts here
         if with_forecast:
@@ -139,8 +144,8 @@ class CompleteObservation(BaseObservation):
             dict_ = {}
             dict_["load_p"] = dt_float(1.0 * self.load_p)
             dict_["load_q"] = dt_float(1.0 * self.load_q)
-            dict_["prod_p"] = dt_float(1.0 * self.prod_p)
-            dict_["prod_v"] = dt_float(1.0 * self.prod_v)
+            dict_["prod_p"] = dt_float(1.0 * self.gen_p)
+            dict_["prod_v"] = dt_float(1.0 * self.gen_v)
             inj_action["injection"] = dict_
             # inj_action = self.action_helper(inj_action)
             timestamp = self.get_time_stamp()
@@ -167,73 +172,3 @@ class CompleteObservation(BaseObservation):
             self._shunt_q[:] = sh_q
             self._shunt_v[:] = sh_v
             self._shunt_bus[:] = sh_bus
-
-    def from_vect(self, vect, check_legit=True):
-        """
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            To reload an observation from a vector, use the "env.observation_space.from_vect()".
-
-        Convert back an observation represented as a vector into a proper observation.
-
-        Some conversion are done silently from float to the type of the corresponding observation attribute.
-
-        Parameters
-        ----------
-        vect: ``numpy.ndarray``
-            A representation of an BaseObservation in the form of a vector that is used to convert back the current
-            observation to be equal to the vect.
-
-        """
-
-        # reset the matrices
-        self._reset_matrices()
-        # and ensure everything is reloaded properly
-        super().from_vect(vect, check_legit=check_legit)
-
-    def to_dict(self):
-        """
-        Transform this observation as a dictionary. This dictionary allows you to inspect the state of this
-        observation and is simply a shortcut of the class instance.
-
-        Returns
-        -------
-        A dictionary representing the observation.
-
-        """
-        if self._dictionnarized is None:
-            self._dictionnarized = {}
-            self._dictionnarized["timestep_overflow"] = self.timestep_overflow
-            self._dictionnarized["line_status"] = self.line_status
-            self._dictionnarized["topo_vect"] = self.topo_vect
-            self._dictionnarized["loads"] = {}
-            self._dictionnarized["loads"]["p"] = self.load_p
-            self._dictionnarized["loads"]["q"] = self.load_q
-            self._dictionnarized["loads"]["v"] = self.load_v
-            self._dictionnarized["prods"] = {}
-            self._dictionnarized["prods"]["p"] = self.prod_p
-            self._dictionnarized["prods"]["q"] = self.prod_q
-            self._dictionnarized["prods"]["v"] = self.prod_v
-            self._dictionnarized["lines_or"] = {}
-            self._dictionnarized["lines_or"]["p"] = self.p_or
-            self._dictionnarized["lines_or"]["q"] = self.q_or
-            self._dictionnarized["lines_or"]["v"] = self.v_or
-            self._dictionnarized["lines_or"]["a"] = self.a_or
-            self._dictionnarized["lines_ex"] = {}
-            self._dictionnarized["lines_ex"]["p"] = self.p_ex
-            self._dictionnarized["lines_ex"]["q"] = self.q_ex
-            self._dictionnarized["lines_ex"]["v"] = self.v_ex
-            self._dictionnarized["lines_ex"]["a"] = self.a_ex
-            self._dictionnarized["rho"] = self.rho
-
-            self._dictionnarized["maintenance"] = {}
-            self._dictionnarized["maintenance"]['time_next_maintenance'] = self.time_next_maintenance
-            self._dictionnarized["maintenance"]['duration_next_maintenance'] = self.duration_next_maintenance
-            self._dictionnarized["cooldown"] = {}
-            self._dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
-            self._dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
-            self._dictionnarized["redispatching"] = {}
-            self._dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
-            self._dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
-
-        return self._dictionnarized

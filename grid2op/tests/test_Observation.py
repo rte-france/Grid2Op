@@ -23,6 +23,7 @@ from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
 from grid2op.MakeEnv import make
+from grid2op.Action import CompleteAction
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
@@ -55,22 +56,26 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                     '3_8_16', '4_5_17', '6_7_18', '6_8_19'],
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3',
                                    'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
+                      'name_storage': [],
                       'env_name': 'rte_case14_test',
                       'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                       'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
                       'gen_to_subid': [1, 2, 5, 7, 0],
                       'line_or_to_subid': [0, 0, 8, 8, 9, 11, 12, 1, 1, 1, 2, 3, 5, 5, 5, 3, 3, 4, 6, 6],
                       'line_ex_to_subid': [1, 4, 9, 13, 10, 12, 13, 2, 3, 4, 3, 4, 10, 11, 12, 6, 8, 5, 7, 8],
+                      "storage_to_subid": [],
                       'load_to_sub_pos': [5, 3, 2, 5, 4, 5, 4, 2, 2, 2, 3],
                       'gen_to_sub_pos': [4, 2, 4, 1, 2],
                       'line_or_to_sub_pos': [0, 1, 0, 1, 1, 0, 1, 1, 2, 3, 1, 2, 0, 1, 2, 3, 4, 3, 1, 2],
                       'line_ex_to_sub_pos': [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 2, 1, 1, 2, 0, 2, 3, 0, 3],
+                      "storage_to_sub_pos": [],
                       'load_pos_topo_vect': [8, 12, 55, 18, 23, 29, 39, 42, 45, 48, 52],
                       'gen_pos_topo_vect': [7, 11, 28, 34, 2],
                       'line_or_pos_topo_vect': [0, 1, 35, 36, 41, 46, 50, 4, 5, 6, 10, 15, 24, 25, 26, 16, 17, 22,
                                                 31, 32],
                       'line_ex_pos_topo_vect': [3, 19, 40, 53, 43, 49, 54, 9, 13, 20, 14, 21, 44, 47, 51, 30, 37, 27,
                                                 33, 38],
+                      "storage_pos_topo_vect": [],
                       'gen_type': ['nuclear', 'thermal', 'solar', 'wind', 'thermal'],
                       'gen_pmin': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'gen_pmax': [200.0, 200.0, 40.0, 70.0, 400.0],
@@ -88,13 +93,23 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                        "sub_5": [222.0,108.0], "sub_6": [79.0,162.0],"sub_7": [-170.0,270.0],
                                        "sub_8": [-64.0,270.0], "sub_9": [222.0,216.0]},
                       'name_shunt': ['shunt_8_0'], 'shunt_to_subid': [8],
+                      "storage_type": [],
+                      "storage_Emax": [],
+                      "storage_Emin": [],
+                      "storage_max_p_prod": [],
+                      "storage_max_p_absorb": [],
+                      "storage_marginal_cost": [],
+                      "storage_loss": [],
+                      'storage_charging_efficiency': [],
+                      'storage_discharging_efficiency': [],
                       '_init_subtype': 'grid2op.Observation.CompleteObservation.CompleteObservation'}
 
         self.json_ref = {'year': [2019], 'month': [1], 'day': [6], 'hour_of_day': [0], 'minute_of_hour': [0],
-                         'day_of_week': [6], 'prod_p': [93.5999984741211, 75.0, 0.0, 7.599999904632568, 77.9990234375],
-                         'prod_q': [65.4969711303711, 98.51886749267578, -12.746061325073242, 6.789371013641357,
+                         'day_of_week': [6],
+                         'gen_p': [93.5999984741211, 75.0, 0.0, 7.599999904632568, 77.9990234375],
+                         'gen_q': [65.4969711303711, 98.51886749267578, -12.746061325073242, 6.789371013641357,
                                     3.801255941390991],
-                         'prod_v': [142.10000610351562, 142.10000610351562, 0.20000000298023224, 12.0,
+                         'gen_v': [142.10000610351562, 142.10000610351562, 0.20000000298023224, 12.0,
                                     142.10000610351562],
                          'load_p': [21.200000762939453, 86.9000015258789, 15.199999809265137, 45.5, 7.300000190734863,
                                     11.699999809265137, 29.399999618530273, 8.600000381469727, 3.5, 5.599999904632568,
@@ -167,7 +182,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
                          '_shunt_p': [0.0],
                          '_shunt_q': [-17.923625946044922],
                          '_shunt_v': [0.20202238857746124],
-                         '_shunt_bus': [1]}
+                         '_shunt_bus': [1],
+                         'storage_charge': [],
+                         'storage_power_target': [],
+                         'storage_power': []
+                         }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
@@ -176,14 +195,16 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                 dt_float, dt_float, dt_float,
                                 dt_float, dt_bool, dt_int, dt_int,
                                 dt_int, dt_int,
-                                dt_int, dt_int, dt_float, dt_float],
+                                dt_int, dt_int, dt_float, dt_float,
+                                dt_float, dt_float, dt_float
+                                ],
                                dtype=object)
 
         self.dtypes = np.array([np.dtype(el) for el in self.dtypes])
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
-                                            20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5])
+                                 20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
+                                 5, 5, 0, 0, 0])
         self.size_obs = 414
 
     def tearDown(self):
@@ -326,7 +347,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
             warnings.filterwarnings("ignore")
             env = make("rte_case14_realistic", test=True)
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
-        mat, (load, prod, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
         assert mat.shape == (15, 15)
         assert ind_lor[7] == 14
         assert ind_lor[8] == 14
@@ -338,7 +359,51 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
                                                                          "lines_ex_id": [(0, 2)]}}))
-        mat, (load, prod, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (16, 16)
+        assert ind_lor[7] == 15
+        assert ind_lor[8] == 15
+        assert ind_lor[2] == 14
+        assert ind_lex[0] == 14
+        # check that kirchoff law is met
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+        assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        env.close()
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = make("educ_case14_storage", test=True, action_class=CompleteAction)
+        obs = env.reset()
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (14, 14)
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+
+        array_modif = np.array([1.5, 5.], dtype=dt_float) * 0.
+        obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
+                                                             "set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
+        assert not info["exception"]
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert mat.shape == (15, 15)
+        assert ind_lor[7] == 14
+        assert ind_lor[8] == 14
+        # check that kirchoff law is met
+        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+
+        obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
+                                                             "set_bus": {"lines_or_id": [(2, 2)],
+                                                                         "lines_ex_id": [(0, 2)]}}))
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
         assert mat.shape == (16, 16)
         assert ind_lor[7] == 15
         assert ind_lor[8] == 15
@@ -526,8 +591,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert 'nb_elements' in dict_
         assert dict_['nb_elements'] == 6
 
-    def test_to_dict(self):
-        dict_ = self.env.observation_space.to_dict()
+    def test_space_to_dict(self):
+        dict_ = self.env.observation_space.cls_to_dict()
         self.maxDiff = None
         self.assertDictEqual(dict_, self.dict_)
 
@@ -552,11 +617,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert issubclass(res.observationClass, self.env.observation_space._init_subtype)
 
     def test_json_serializable(self):
-        dict_ = self.env.observation_space.to_dict()
+        dict_ = self.env.observation_space.cls_to_dict()
         res = json.dumps(obj=dict_, indent=4, sort_keys=True)
 
     def test_json_loadable(self):
-        dict_ = self.env.observation_space.to_dict()
+        dict_ = self.env.observation_space.cls_to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
         res = ObservationSpace.from_dict(json.loads(tmp))
 
@@ -583,8 +648,14 @@ class TestLoadingBackendFunc(unittest.TestCase):
         obs = self.env.observation_space(self.env)
         obs2 = self.env.observation_space(self.env)
         dict_ = obs.to_json()
+
         # test that the right dictionary is returned
-        assert dict_ == self.json_ref
+        for k in dict_:
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in dict_)"
+        for k in self.json_ref:
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in self.json_ref)"
+        self.assertDictEqual(dict_, self.json_ref)
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             # test i can save it (json serializable)
             with open(os.path.join(tmpdirname, "test.json"), "w") as fp:

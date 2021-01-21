@@ -161,8 +161,9 @@ class Environment(BaseEnv):
         # this is due to the class attribute
         self.backend.set_env_name(self.name)
         self.backend.load_grid(self._init_grid_path)  # the real powergrid of the environment
-        self.backend.load_redispacthing_data(os.path.split(self._init_grid_path)[0])
-        self.backend.load_grid_layout(os.path.split(self._init_grid_path)[0])
+        self.backend.load_redispacthing_data(self.get_path_env())
+        self.backend.load_storage_data(self.get_path_env())
+        self.backend.load_grid_layout(self.get_path_env())
         self.backend.assert_grid_correct()
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
@@ -238,6 +239,8 @@ class Environment(BaseEnv):
 
         # test to make sure the backend is consistent with the chronics generator
         self.chronics_handler.check_validity(self.backend)
+        self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
+        self._reset_storage()  # this should be called after the  self.delta_time_seconds is set
 
         # reward function
         self._reward_helper = RewardHelper(self._rewardClass)
@@ -245,7 +248,7 @@ class Environment(BaseEnv):
         for k, v in self.other_rewards.items():
             v.initialize(self)
 
-        # controler for voltage
+        # controller for voltage
         if not issubclass(self._voltagecontrolerClass, BaseVoltageController):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
@@ -722,7 +725,7 @@ class Environment(BaseEnv):
         res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
         if with_backend:
             res["backend"] = self.backend.copy()
-        res["parameters"] = copy.deepcopy(self.parameters)
+        res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(self.names_chronics_to_backend)
         res["actionClass"] = self._actionClass
         res["observationClass"] = self._observationClass
@@ -960,7 +963,7 @@ class Environment(BaseEnv):
         res = {}
         res["init_grid_path"] = self._init_grid_path
         res["path_chron"] = self.chronics_handler.path
-        res["parameters_path"] = self.parameters.to_dict()
+        res["parameters_path"] = self._parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
         res["actionClass"] = self._actionClass
         res["observationClass"] = self._observationClass

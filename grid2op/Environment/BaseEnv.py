@@ -190,6 +190,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Helper that is called to compute the reward at each time step.
 
+    # TODO add the units (eg MW, MWh, MW/time step,etc.) in the redispatching related attributes
     """
     def __init__(self,
                  parameters,
@@ -216,7 +217,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(parameters, Parameters):
             raise Grid2OpException("Parameter \"parameters\" used to build the Environment should derived form the "
                                    "grid2op.Parameters class, type provided is \"{}\"".format(type(parameters)))
-        self.parameters = parameters
+        parameters.check_valid()  # check the provided parameters are valid
+        self._parameters = parameters
         self.with_forecast = with_forecast
 
         # some timers
@@ -225,6 +227,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_extract_obs = dt_float(0)
         self._time_opponent = dt_float(0)
         self._time_redisp = dt_float(0)
+        self._time_step = dt_float(0)
 
         # data relative to interpolation
         self._epsilon_poly = dt_float(epsilon_poly)
@@ -242,27 +245,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # and calendar data
         self.time_stamp = None
         self.nb_time_step = dt_int(0)
+        self.delta_time_seconds = None  # number of seconds between two consecutive step
 
         # observation
         self.current_obs = None
         self._line_status = None
 
-        self._ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
-        self._forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+        self._ignore_min_up_down_times = self._parameters.IGNORE_MIN_UP_DOWN_TIME
+        self._forbid_dispatch_off = not self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
 
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
-        self._no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
+        self._no_overflow_disconnection = self._parameters.NO_OVERFLOW_DISCONNECTION
         self._timestep_overflow = None
         self._nb_timestep_overflow_allowed = None
-        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
+        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
 
         # store actions "cooldown"
         self._times_before_line_status_actionable = None
-        self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
+        self._max_timestep_line_status_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_LINE
         self._times_before_topology_actionable = None
-        self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
-        self._nb_ts_reco = self.parameters.NB_TIMESTEP_RECONNECTION
+        self._max_timestep_topology_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._nb_ts_reco = self._parameters.NB_TIMESTEP_RECONNECTION
 
         # for maintenance operation
         self._time_next_maintenance = None
@@ -271,7 +275,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # hazard (not used outside of this class, information is given in `times_before_line_status_actionable`
         self._hazard_duration = None
 
-        self._env_dc = self.parameters.ENV_DC
+        self._env_dc = self._parameters.ENV_DC
 
         # redispatching data
         self._target_dispatch = None
@@ -356,6 +360,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.__new_param = None
         self.__new_forecast_param = None
 
+        # storage units
+        # TODO storage: what to do when self.storage_Emin >0. and self.storage_loss > 0.
+        # TODO and we have self._storage_current_charge - self.storage_loss < self.storage_Emin
+        self._storage_current_charge = None  # the current storage charge
+        self._storage_previous_charge = None  # the previous storage charge
+        self._action_storage = None  # the storage action performed
+        self._amount_storage = None  # total amount of storage to be dispatched
+        self._amount_storage_prev = None
+        self._storage_power = None
+
     def change_parameters(self, new_parameters):
         """
         Allows to change the parameters of an environment.
@@ -373,6 +387,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(new_parameters, Parameters):
             raise EnvError("The new parameters \"new_parameters\" should be an instance of "
                            "grid2op.Parameters.Parameters.")
+        new_parameters.check_valid()  # check the provided parameters are valid
         self.__new_param = new_parameters
 
     def change_forecast_parameters(self, new_parameters):
@@ -392,6 +407,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not isinstance(new_parameters, Parameters):
             raise EnvError("The new parameters \"new_parameters\" should be an instance of "
                            "grid2op.Parameters.Parameters.")
+        new_parameters.check_valid()    # check the provided parameters are valid
         self.__new_forecast_param = new_parameters
 
     def _create_opponent(self):
@@ -454,37 +470,47 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._times_before_line_status_actionable = np.zeros(shape=(self.n_line,), dtype=dt_int)
         self._times_before_topology_actionable = np.zeros(shape=(self.n_sub,), dtype=dt_int)
         self._nb_timestep_overflow_allowed = np.full(shape=(self.n_line,),
-                                                     fill_value=self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
+                                                     fill_value=self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
                                                      dtype=dt_int)
         self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
         # update the parameters
-        self.__new_param = self.parameters  # small hack to have it working as expected
+        self.__new_param = self._parameters  # small hack to have it working as expected
         self._update_parameters()
 
         self._reset_redispatching()
+
+        # storage
+        self._storage_current_charge = np.zeros(self.n_storage, dtype=dt_float)
+        self._storage_previous_charge = np.zeros(self.n_storage, dtype=dt_float)
+        self._action_storage = np.zeros(self.n_storage, dtype=dt_float)
+        self._storage_power = np.zeros(self.n_storage, dtype=dt_float)
+        self._amount_storage = 0.
+        self._amount_storage_prev = 0.
+
+        # register this is properly initialized
         self.__is_init = True
 
     def _update_parameters(self):
         """update value for the new parameters"""
-        self.parameters = self.__new_param
-        self._ignore_min_up_down_times = self.parameters.IGNORE_MIN_UP_DOWN_TIME
-        self._forbid_dispatch_off = not self.parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+        self._parameters = self.__new_param
+        self._ignore_min_up_down_times = self._parameters.IGNORE_MIN_UP_DOWN_TIME
+        self._forbid_dispatch_off = not self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
 
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
-        self._no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
-        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
+        self._no_overflow_disconnection = self._parameters.NO_OVERFLOW_DISCONNECTION
+        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
 
         # store actions "cooldown"
-        self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
-        self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
-        self._nb_ts_reco = self.parameters.NB_TIMESTEP_RECONNECTION
+        self._max_timestep_line_status_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_LINE
+        self._max_timestep_topology_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._nb_ts_reco = self._parameters.NB_TIMESTEP_RECONNECTION
 
-        self._nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
+        self._nb_timestep_overflow_allowed[:] = self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
         # hard overflow part
-        self._env_dc = self.parameters.ENV_DC
+        self._env_dc = self._parameters.ENV_DC
 
         self.__new_param = None
 
@@ -501,8 +527,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.__new_param is not None:
             self._update_parameters()  # reset __new_param to None too
         if self.__new_forecast_param is not None:
-            self._helper_observation.obs_env.change_parameters(self.__new_forecast_param)
-            self.__new_forecast_param = False
+            self._helper_observation._change_parameters(self.__new_forecast_param)
+            self.__new_forecast_param = None
+
+        self._reset_storage()
+
+    def _reset_storage(self):
+        """reset storage capacity at the beginning of new environment if needed"""
+        if self.n_storage > 0:
+            tmp = self._parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
+            if self._parameters.ACTIVATE_STORAGE_LOSS:
+                tmp += self.storage_loss * self.delta_time_seconds / 3600.
+            self._storage_previous_charge[:] = tmp  # might not be needed, but it's not for the time it takes...
+            self._storage_current_charge[:] = tmp
+            self._storage_power[:] = 0.
+            self._amount_storage = 0.
+            self._amount_storage_prev = 0.
+            # TODO storage: check in simulate too!
 
     def seed(self, seed=None):
         """
@@ -805,13 +846,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         return valid, except_, info_
 
     def _make_redisp(self, already_modified_gen, new_p):
+        """this computes the redispaching vector, taking into account the storage units"""
         except_ = None
         info_ = []
         valid = True
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
-           np.max(mismatch) >= self._tol_poly:
+           np.max(mismatch) >= self._tol_poly or \
+           np.abs(self._amount_storage) >= self._tol_poly:
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
@@ -854,7 +897,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # add the "sum to 0"
         mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=dt_float)
-        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float)
+        # this is where the storage is taken into account
+        # storages are "load convention" this means that i need to sum the amount of production to sum of storage
+        # hence the "+" below
+        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage
 
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
@@ -1196,6 +1242,86 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         return 1.0 * self._thermal_limit_a
 
+    def _withdraw_storage_losses(self):
+        """
+        empty the energy in the storage units depending on the `storage_loss`
+
+        NB this is a loss, this is not seen grid side, so `storage_discharging_efficiency` has no impact on this
+        """
+        # NB this should be done AFTER the computation of self._amount_storage, because this energy is dissipated
+        # in the storage units, thus NOT seen as power from the grid.
+        if self._parameters.ACTIVATE_STORAGE_LOSS:
+            tmp_ = self.storage_loss * self.delta_time_seconds / 3600.
+            self._storage_current_charge -= tmp_
+            # charge cannot be negative, but it can be below Emin if there are some uncompensated losses
+            self._storage_current_charge[:] = np.maximum(self._storage_current_charge, 0.)
+
+    def _compute_storage(self, action_storage_power):
+        self._storage_previous_charge[:] = self._storage_current_charge
+        storage_act = np.isfinite(action_storage_power) & (action_storage_power != 0.)
+        self._action_storage[:] = 0.
+        self._storage_power[:] = 0.
+        modif = False
+        coeff_p_to_E = self.delta_time_seconds / 3600.  # TODO optim this is const for all time steps
+        if np.any(storage_act):
+            modif = True
+            this_act_stor = action_storage_power[storage_act]
+            eff_ = np.ones(np.sum(storage_act))
+            if self._parameters.ACTIVATE_STORAGE_LOSS:
+                fill_storage = this_act_stor > 0.  # index of storages that sees their charge increasing
+                unfill_storage = this_act_stor < 0.  # index of storages that sees their charge decreasing
+                eff_[fill_storage] *= self.storage_charging_efficiency[storage_act][fill_storage]
+                eff_[unfill_storage] /= self.storage_discharging_efficiency[storage_act][unfill_storage]
+            self._storage_current_charge[storage_act] += this_act_stor * coeff_p_to_E * eff_
+            self._action_storage[storage_act] += action_storage_power[storage_act]
+            self._storage_power[storage_act] = this_act_stor
+
+        if modif:
+            # indx when there is too much energy on the battery
+            indx_too_high = self._storage_current_charge > self.storage_Emax
+            if np.any(indx_too_high):
+                delta_ = (self._storage_current_charge[indx_too_high] - self.storage_Emax[indx_too_high])
+                tmp_ = 1. / coeff_p_to_E * delta_
+                if self._parameters.ACTIVATE_STORAGE_LOSS:
+                    # from the storage i need to reduce of tmp_ MW (to compensate the delta_ MWh)
+                    # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
+                    # it's a "/" because i need more energy from the grid than what the actual charge will be
+                    tmp_ /= self.storage_charging_efficiency[indx_too_high]
+                self._storage_power[indx_too_high] -= tmp_
+                self._storage_current_charge[indx_too_high] = self.storage_Emax[indx_too_high]
+
+            # indx when there is not enough energy on the battery
+            indx_too_low = self._storage_current_charge < self.storage_Emin
+            if np.any(indx_too_low):
+                delta_ = (self._storage_current_charge[indx_too_low] - self.storage_Emin[indx_too_low])
+                tmp_ = 1. / coeff_p_to_E * delta_
+                if self._parameters.ACTIVATE_STORAGE_LOSS:
+                    # from the storage i need to increase of tmp_ MW (to compensate the delta_ MWh)
+                    # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
+                    # it's a "*" because i have less power on the grid than what is removed from the battery
+                    tmp_ *= self.storage_discharging_efficiency[indx_too_low]
+                self._storage_power[indx_too_low] -= tmp_
+                self._storage_current_charge[indx_too_low] = self.storage_Emin[indx_too_low]
+
+            self._storage_current_charge[:] = np.maximum(self._storage_current_charge, self.storage_Emin)
+            # storage is "load convention", dispatch is "generator convention"
+            # i need the generator to have the same sign as the action on the batteries
+            self._amount_storage = np.sum(self._storage_power)
+        else:
+            # battery effect should be removed, so i multiply it by -1.
+            self._amount_storage = 0.
+
+        tmp = self._amount_storage
+        self._amount_storage -= self._amount_storage_prev
+        self._amount_storage_prev = tmp
+
+        # dissipated energy, it's not seen on the grid, just lost in the storage unit.
+        # this is why it should not be taken into account in self._amount_storage
+        # and NOT absorbed by the generators either
+        # NB loss in the storage unit can make it got below Emin in energy, but never below 0.
+        self._withdraw_storage_losses()
+        # end storage
+
     def step(self, action):
         """
         Run one timestep of the environment's dynamics. When end of
@@ -1284,17 +1410,21 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         is_illegal_reco = False
         except_ = []
         detailed_info = []
-        init_disp = 1.0 * action._redispatch
+        init_disp = 1.0 * action._redispatch  # dispatching action
+        action_storage_power = 1.0 * action._storage_power  # battery information
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
         conv_ = None
         init_line_status = copy.deepcopy(self.backend.get_line_status())
+        beg_step = time.time()
         try:
             beg_ = time.time()
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
                 # action is replace by do nothing
                 action = self._helper_action_player({})
+                init_disp = 1.0 * action._redispatch  # dispatching action
+                action_storage_power = 1.0 * action._storage_power  # battery information
                 except_.append(reason)
                 is_illegal = True
 
@@ -1302,6 +1432,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if ambiguous:
                 # action is replace by do nothing
                 action = self._helper_action_player({})
+                init_disp = 1.0 * action._redispatch  # dispatching action
+                action_storage_power = 1.0 * action._storage_power  # battery information
                 is_ambiguous = True
                 except_.append(except_tmp)
 
@@ -1310,7 +1442,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._env_modification._single_act = False  # because it absorbs all redispatching actions
             new_p = self._get_new_prod_setpoint(action)
 
-            if self.redispatching_unit_commitment_availble:
+            if self.n_storage > 0:
+                self._compute_storage(action_storage_power)
+
+            if self.redispatching_unit_commitment_availble or self.n_storage > 0.:
                 # remember generator that were "up" before the action
                 gen_up_before = self._gen_activeprod_t > 0.
 
@@ -1323,6 +1458,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     action = self._helper_action_player({})
                     is_illegal_redisp = True
                     except_.append(except_tmp)
+
+                    if self.n_storage > 0:
+                        self._storage_current_charge[:] = self._storage_previous_charge
+                        self._amount_storage -= self._amount_storage_prev
+
+                        # dissipated energy, it's not seen on the grid, just lost in the storage unit.
+                        # this is why it should not be taken into account in self._amount_storage
+                        # and NOT absorbed by the generators either
+                        self._withdraw_storage_losses()
+                        # end storage
 
                 valid_disp, except_tmp, info_ = self._make_redisp(already_modified_gen, new_p)
                 if not valid_disp or except_tmp is not None:
@@ -1348,9 +1493,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.
+            # same kind of limit for the storage
             action._redispatch[:] = 0.
+            action._storage_power[:] = self._storage_power
             self._backend_action += action
+            action._storage_power[:] = action_storage_power
             action._redispatch[:] = init_disp
+            # TODO storage: check the original action, even when replaced by do nothing is not modified
 
             self._backend_action += self._env_modification
             self._backend_action.set_redispatch(self._actual_dispatch)
@@ -1383,11 +1532,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.nb_time_step += 1
             try:
                 # compute the next _grid state
-                beg_ = time.time()
+                beg_pf = time.time()
                 disc_lines, detailed_info, conv_ = self.backend.next_grid_state(env=self, is_dc=self._env_dc)
-                self._time_powerflow += time.time() - beg_
+                self._time_powerflow += time.time() - beg_pf
                 if conv_ is None:
-                    beg_ = time.time()
+                    beg_res = time.time()
                     self.backend.update_thermal_limit(self)  # update the thermal limit, for DLR for example
                     overflow_lines = self.backend.get_line_overflow()
                     # save the current topology as "last" topology (for connected powerlines)
@@ -1421,9 +1570,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
                     # build the observation (it's a different one at each step, we cannot reuse the same one)
                     self.current_obs = self.get_obs()
-                    self._time_extract_obs += time.time() - beg_
+                    # TODO storage: get back the result of the storage ! with the illegal action when a storage unit
+                    # TODO is non zero and disconnected, this should be ok.
 
-                    # extract production active value at this time step (should be independant of action class)
+                    self._time_extract_obs += time.time() - beg_res
+
+                    # extract production active value at this time step (should be independent of action class)
                     self._gen_activeprod_t[:], *_ = self.backend.generators_info()
                     # problem with the gen_activeprod_t above, is that the slack bus absorbs alone all the losses
                     # of the system. So basically, when it's too high (higher than the ramp) it can
@@ -1442,6 +1594,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         except StopIteration:
             # episode is over
             is_done = True
+        end_step = time.time()
+        self._time_step += end_step - beg_step
 
         self._backend_action.reset()
         if conv_ is not None:
@@ -1466,8 +1620,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                                              is_ambiguous)
         infos["rewards"] = other_reward
         if has_error and self.current_obs is not None:
-            # update the observation so when it's plotted everything is "down"
-            # generators information
+            # update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over()
 
         # TODO documentation on all the possible way to be illegal now
@@ -1500,19 +1653,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
         """
-        self._no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
+        self._no_overflow_disconnection = self._parameters.NO_OVERFLOW_DISCONNECTION
         self._timestep_overflow[:] = 0
-        self._nb_timestep_overflow_allowed[:] = self.parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
+        self._nb_timestep_overflow_allowed[:] = self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
         self.nb_time_step = 0
-        self._hard_overflow_threshold = self.parameters.HARD_OVERFLOW_THRESHOLD
-        self._env_dc = self.parameters.ENV_DC
+        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
+        self._env_dc = self._parameters.ENV_DC
 
         self._times_before_line_status_actionable[:] = 0
-        self._max_timestep_line_status_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_LINE
+        self._max_timestep_line_status_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_LINE
 
         self._times_before_topology_actionable[:] = 0
-        self._max_timestep_topology_deactivated = self.parameters.NB_TIMESTEP_COOLDOWN_SUB
+        self._max_timestep_topology_deactivated = self._parameters.NB_TIMESTEP_COOLDOWN_SUB
 
         # reset timings
         self._time_apply_act = dt_float(0.)
@@ -1520,6 +1673,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_extract_obs = dt_float(0.)
         self._time_opponent = dt_float(0.)
         self._time_redisp = dt_float(0.)
+        self._time_step = dt_float(0.)
 
         # reward and others
         self.current_reward = self.reward_range[0]
@@ -1710,3 +1864,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             powerline_status = np.full(self.n_line, fill_value=True, dtype=dt_bool)
         # powerline_status = self._line_status
         return powerline_status
+
+    @property
+    def parameters(self):
+        """
+        return a deepcopy of the parameters used by the environment
+
+        It is a deepcopy, so modifying it will have absolutely no effect.
+
+        If you want to change the parameters of an environment, please use either
+        :func:`grid2op.Environment.BaseEnv.change_parameters` to change the parameters of this environment or
+        :func:`grid2op.Environment.BaseEnv.change_forecast_parameters` to change the parameter of the environment
+        used by `simulate`.
+        """
+        return copy.deepcopy(self._parameters)
+
+    @parameters.setter
+    def parameters(self, value):
+        raise RuntimeError("Use the env.change_parameters(new_parameters) to change the parameters. "
+                           "NB: it will only have an effect AFTER the env is reset.")

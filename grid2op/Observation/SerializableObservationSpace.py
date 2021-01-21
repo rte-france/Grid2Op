@@ -65,3 +65,13 @@ class SerializableObservationSpace(SerializableSpace):
         res = SerializableObservationSpace(gridobj=tmp,
                                            observationClass=tmp.subtype)
         return res
+
+    def get_indx_extract(self, attr_name):
+        # backward compatibility (due to consistency with previous names)
+        if attr_name == "prod_p":
+            attr_name = "gen_p"
+        elif attr_name == "prod_q":
+            attr_name = "gen_q"
+        elif attr_name == "prod_v":
+            attr_name = "gen_v"
+        return super().get_indx_extract(attr_name)

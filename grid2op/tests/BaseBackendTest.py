@@ -16,6 +16,7 @@ import numpy as np
 import copy
 from abc import ABC, abstractmethod
 import inspect
+from grid2op.Action import CompleteAction
 try:
     # this is only available starting python 3.7 or 3.8... tests are with python 3.6 :-(
     from math import comb
@@ -132,7 +133,7 @@ class BaseTestLoadingCase(MakeBackend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            p_subs, q_subs, p_bus, q_bus = backend.check_kirchoff()
+            p_subs, q_subs, p_bus, q_bus, v_bus = backend.check_kirchoff()
 
         assert np.max(np.abs(p_subs)) <= self.tolvect
         assert np.max(np.abs(p_bus.flatten())) <= self.tolvect
@@ -435,7 +436,8 @@ class BaseTestLoadingBackendFunc(MakeBackend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
+            p_subs, q_subs, p_bus, q_bus, v_bus = self.backend.check_kirchoff()
+
         # i'm in DC mode, i can't check for reactive values...
         assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
         assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
@@ -586,7 +588,7 @@ class BaseTestTopoAction(MakeBackend):
     def _check_kirchoff(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            p_subs, q_subs, p_bus, q_bus = self.backend.check_kirchoff()
+            p_subs, q_subs, p_bus, q_bus, v_bus = self.backend.check_kirchoff()
             assert np.max(np.abs(p_subs)) <= self.tolvect, "problem with active values, at substation"
             assert np.max(np.abs(p_bus.flatten())) <= self.tolvect, "problem with active values, at a bus"
 
@@ -1698,7 +1700,8 @@ class BaseTestChangeBusSlack(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make("rte_case14_realistic", test=True, backend=backend)
-        action = env.action_space({"set_bus": {"generators_id": [(-1, 2)], "lines_or_id": [(0, 2)]}})
+        action = env.action_space({"set_bus": {"generators_id": [(env.n_gen-1, 2)],
+                                               "lines_or_id": [(0, 2)]}})
         obs, reward, am_i_done, info = env.step(action)
         assert am_i_done is False
         assert np.all(obs.prod_p >= 0.)
@@ -1706,9 +1709,202 @@ class BaseTestChangeBusSlack(MakeBackend):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            p_subs, q_subs, p_bus, q_bus = env.backend.check_kirchoff()
+            p_subs, q_subs, p_bus, q_bus, v_bus = env.backend.check_kirchoff()
         assert np.all(np.abs(p_subs) <= self.tol_one)
         assert np.all(np.abs(p_bus) <= self.tol_one)
+
+
+class BaseTestStorageAction(MakeBackend):
+    def _aux_test_kirchoff(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            p_subs, q_subs, p_bus, q_bus, diff_v_bus = self.env.backend.check_kirchoff()
+        assert np.all(np.abs(p_subs) <= self.tol_one), "error with active value at some substations"
+        assert np.all(np.abs(q_subs) <= self.tol_one), "error with reactive value at some substations"
+        assert np.all(np.abs(p_bus) <= self.tol_one), "error with active value at some bus"
+        assert np.all(np.abs(q_bus) <= self.tol_one), "error with reactive value at some bus"
+        assert np.all(diff_v_bus <= self.tol_one), "error with voltage discrepency"
+
+    def test_there_are_storage(self):
+        """test the backend properly loaded the storage units"""
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
+        assert self.env.n_storage == 2
+
+    def test_storage_action_mw(self):
+        """test the actions are properly implemented in the backend"""
+        self.skip_if_needed()
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend)
+
+        array_modif = np.array([-1.5, -10.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - array_modif) <= self.tol_one)
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
+        self._aux_test_kirchoff()
+
+        array_modif = np.array([2, 8], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - array_modif) <= self.tol_one)
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
+        self._aux_test_kirchoff()
+
+        # illegal action
+        array_modif = np.array([2, 12], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert info["exception"]
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - [0., 0.]) <= self.tol_one)
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
+        self._aux_test_kirchoff()
+
+        # full discharge now
+        array_modif = np.array([-1.5, -10.], dtype=dt_float)
+        for nb_ts in range(3):
+            act = self.env.action_space({"set_storage": array_modif})
+            obs, reward, done, info = self.env.step(act)
+            assert not info["exception"]
+            storage_p, storage_q, storage_v = self.env.backend.storages_info()
+            assert np.all(np.abs(storage_p - array_modif) <= self.tol_one), f"error for P for time step {nb_ts}"
+            assert np.all(np.abs(storage_q - 0.) <= self.tol_one), f"error for Q for time step {nb_ts}"
+            self._aux_test_kirchoff()
+
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        # i have emptied second battery
+        storage_p, *_ = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - [-1.5, -4.4599934]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_charge[1] - 0.) <= self.tol_one)
+        self._aux_test_kirchoff()
+
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        # i have emptied second battery
+        storage_p, *_ = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - [-1.5, 0.]) <= self.tol_one)
+        assert np.all(np.abs(obs.storage_charge[1] - 0.) <= self.tol_one)
+        self._aux_test_kirchoff()
+
+    def test_storage_action_topo(self):
+        """test the modification of the bus of a storage unit"""
+        self.skip_if_needed()
+        param = Parameters()
+        param.NB_TIMESTEP_COOLDOWN_SUB = 0
+        param.NB_TIMESTEP_COOLDOWN_LINE = 0
+        backend = self.make_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage", test=True, backend=backend,
+                                    param=param, action_class=CompleteAction)
+
+        # test i can do a reset
+        obs = self.env.reset()
+
+        # test i can do a step
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert not done
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - 0.) <= self.tol_one)
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
+
+        # first case, standard modification
+        array_modif = np.array([-1.5, -10.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif,
+                                     "set_bus": {"storages_id": [(0, 2)],
+                                                 "lines_or_id": [(8, 2)],
+                                                 "generators_id": [(3, 2)]}}
+                                    )
+        obs, reward, done, info = self.env.step(act)
+
+        assert not info["exception"]
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - array_modif) <= self.tol_one)
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
+        assert obs.storage_bus[0] == 2
+        assert obs.line_or_bus[8] == 2
+        assert obs.gen_bus[3] == 2
+        self._aux_test_kirchoff()
+
+        # second case, still standard modification (set to orig)
+        array_modif = np.array([1.5, 10.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif,
+                                     "set_bus": {"storages_id": [(0, 1)],
+                                                 "lines_or_id": [(8, 1)],
+                                                 "generators_id": [(3, 1)]}}
+                                    )
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - array_modif) <= self.tol_one)
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
+        assert obs.storage_bus[0] == 1
+        assert obs.line_or_bus[8] == 1
+        assert obs.gen_bus[3] == 1
+        self._aux_test_kirchoff()
+
+        # fourth case: isolated storage on a busbar (so it is disconnected, but with 0. production => so thats fine)
+        array_modif = np.array([0., 7.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif,
+                                     "set_bus": {"storages_id": [(0, 2)],
+                                                 "lines_or_id": [(8, 1)],
+                                                 "generators_id": [(3, 1)]}}
+                                    )
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        assert not done
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - [0., array_modif[1]]) <= self.tol_one), \
+            "storage is not disconnected, yet alone on its busbar"
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one)
+        assert obs.storage_bus[0] == -1, "storage should be disconnected"
+        assert storage_v[0] == 0., "storage 0 should be disconnected"
+        assert obs.line_or_bus[8] == 1
+        assert obs.gen_bus[3] == 1
+        self._aux_test_kirchoff()
+
+        # check that if i don't touch it it's set to 0
+        act = self.env.action_space()
+        obs, reward, done, info = self.env.step(act)
+        assert not info["exception"]
+        storage_p, storage_q, storage_v = self.env.backend.storages_info()
+        assert np.all(np.abs(storage_p - 0.) <= self.tol_one), "storage should produce 0"
+        assert np.all(np.abs(storage_q - 0.) <= self.tol_one), "storage should produce 0"
+        assert obs.storage_bus[0] == -1, "storage should be disconnected"
+        assert storage_v[0] == 0., "storage 0 should be disconnected"
+        assert obs.line_or_bus[8] == 1
+        assert obs.gen_bus[3] == 1
+        self._aux_test_kirchoff()
+
+        # trying to act on a disconnected storage => illegal)
+        array_modif = np.array([2., 7.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif})
+        obs, reward, done, info = self.env.step(act)
+        assert info["exception"]  # action should be illegal
+        assert not done  # this is fine, as it's illegal it's replaced by do nothing
+        self._aux_test_kirchoff()
+
+        # trying to reconnect a storage alone on a bus => game over, not connected bus
+        array_modif = np.array([1., 7.], dtype=dt_float)
+        act = self.env.action_space({"set_storage": array_modif,
+                                     "set_bus": {"storages_id": [(0, 2)],
+                                                 "lines_or_id": [(8, 1)],
+                                                 "generators_id": [(3, 1)]}}
+                                    )
+        obs, reward, done, info = self.env.step(act)
+        assert info["exception"]  # this is a game over
+        assert done
 
 
 class BaseIssuesTest(MakeBackend):

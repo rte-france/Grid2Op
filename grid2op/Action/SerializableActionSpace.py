@@ -38,6 +38,7 @@ class SerializableActionSpace(SerializableSpace):
     SET_BUS = 2
     CHANGE_BUS = 3
     REDISPATCHING = 4
+    STORAGE_POWER = 5
 
     def __init__(self, gridobj, actionClass=BaseAction):
         """
@@ -95,6 +96,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(self.CHANGE_BUS)
         if "redispatch" in self.actionClass.authorized_keys:
             rnd_types.append(self.REDISPATCHING)
+        if self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys:
+            rnd_types.append(self.STORAGE_POWER)
         return rnd_types
 
     def _sample_set_line_status(self, rnd_update=None):
@@ -141,6 +144,21 @@ class SerializableActionSpace(SerializableSpace):
         rnd_disp = np.zeros(self.n_gen)
         rnd_disp[rnd_gen] = rnd_gen_disp
         rnd_update["redispatch"] = rnd_disp
+        rnd_update["redispatch"] = rnd_update["redispatch"].astype(dt_float)
+        return rnd_update
+
+    def _sample_storage_power(self, rnd_update=None):
+        if rnd_update is None:
+            rnd_update = {}
+        stor_unit = np.arange(self.n_storage)
+        rnd_sto = self.space_prng.choice(stor_unit)
+        rd = -self.storage_max_p_prod[rnd_sto]
+        ru = self.storage_max_p_absorb[rnd_sto]
+        rnd_sto_prod = (ru - rd) * self.space_prng.random() + rd
+        res = np.zeros(self.n_gen)
+        res[rnd_sto] = rnd_sto_prod
+        rnd_update["storage_power"] = res
+        rnd_update["storage_power"] = rnd_update["storage_power"].astype(dt_float)
         return rnd_update
 
     def sample(self):
@@ -212,6 +230,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = self._sample_change_bus()
         elif rnd_type == self.REDISPATCHING:
             rnd_update = self._sample_redispatch()
+        elif rnd_type == self.STORAGE_POWER:
+            rnd_update = self._sample_storage_power()
         else:
             raise Grid2OpException("Impossible to sample action of type {}".format(rnd_type))
 

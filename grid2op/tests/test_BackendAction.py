@@ -18,6 +18,8 @@ from grid2op.Runner import Runner
 from grid2op.Agent import RandomAgent, DoNothingAgent
 from grid2op.Backend import PandaPowerBackend
 
+import pdb
+
 
 class TestSuitePandaPowerBackend(PandaPowerBackend):
     """Only work for the case 14 !!! """
@@ -32,7 +34,8 @@ class TestSuitePandaPowerBackend(PandaPowerBackend):
         if backendAction is None:
             return
 
-        active_bus, (prod_p, prod_v, load_p, load_q), _, shunts__ = backendAction()
+        # TODO
+        active_bus, (prod_p, prod_v, load_p, load_q, storage), _, shunts__ = backendAction()
 
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if np.any(prod_p.changed):

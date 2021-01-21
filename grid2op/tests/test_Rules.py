@@ -119,12 +119,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
-        arr_line2[id_line2] = 2
+        arr_line2[id_line2] = 1
 
         self.helper_action.legal_action = RulesChecker(legalActClass=LookParam).legal_action
 
-        self.env.parameters.MAX_SUB_CHANGED = 2
-        self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
+        self.env._parameters.MAX_SUB_CHANGED = 2
+        self.env._parameters.MAX_LINE_STATUS_CHANGED = 2
         _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                 "set_bus": {"substations_id": [(id_2, arr2)]},
                                 "change_line_status": arr_line1,
@@ -133,8 +133,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
                                check_legal=True)
 
         try:
-            self.env.parameters.MAX_SUB_CHANGED = 1
-            self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
+            self.env._parameters.MAX_SUB_CHANGED = 1
+            self.env._parameters.MAX_LINE_STATUS_CHANGED = 2
             _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                     "set_bus": {"substations_id": [(id_2, arr2)]},
                                     "change_line_status": arr_line1,
@@ -146,8 +146,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
             pass
 
         try:
-            self.env.parameters.MAX_SUB_CHANGED = 2
-            self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
+            self.env._parameters.MAX_SUB_CHANGED = 2
+            self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
             _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                     "set_bus": {"substations_id": [(id_2, arr2)]},
                                     "change_line_status": arr_line1,
@@ -158,9 +158,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
         except IllegalAction:
             pass
 
-
-        self.env.parameters.MAX_SUB_CHANGED = 1
-        self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
+        self.env._parameters.MAX_SUB_CHANGED = 1
+        self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
         _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                 "set_line_status": arr_line2},
                                env=self.env,
@@ -177,24 +176,24 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
         arr_line1[id_line] = True
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
-        arr_line2[id_line2] = 2
+        arr_line2[id_line2] = 1
 
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
-        self.env.parameters.MAX_SUB_CHANGED = 1
-        self.env.parameters.MAX_LINE_STATUS_CHANGED = 2
+        self.env._parameters.MAX_SUB_CHANGED = 1
+        self.env._parameters.MAX_LINE_STATUS_CHANGED = 2
         act = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
-                                "set_bus": {"substations_id": [(id_2, arr2)]},
-                                "change_line_status": arr_line1,
-                                "set_line_status": arr_line2},
-                               env=self.env,
-                               check_legal=True)
+                                  "set_bus": {"substations_id": [(id_2, arr2)]},
+                                  "change_line_status": arr_line1,
+                                  "set_line_status": arr_line2},
+                                 env=self.env,
+                                 check_legal=True)
         _ = self.env.step(act)
 
         try:
-            self.env.parameters.MAX_SUB_CHANGED = 2
-            self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
+            self.env._parameters.MAX_SUB_CHANGED = 2
+            self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
             self.env._times_before_line_status_actionable[id_line] = 1
-            _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
+            _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                     "set_bus": {"substations_id": [(id_2, arr2)]},
                                     "change_line_status": arr_line1,
                                     "set_line_status": arr_line2},
@@ -205,15 +204,15 @@ class TestLoadingBackendFunc(unittest.TestCase):
             pass
 
         self.env._times_before_line_status_actionable[:] = 0
-        self.env.parameters.MAX_SUB_CHANGED = 2
-        self.env.parameters.MAX_LINE_STATUS_CHANGED = 1
+        self.env._parameters.MAX_SUB_CHANGED = 2
+        self.env._parameters.MAX_LINE_STATUS_CHANGED = 1
         self.env._times_before_line_status_actionable[1] = 1
-        _ = self.helper_action({"change_bus": {"substations": [(id_1, arr1)]},
-                                                         "set_bus": {"substations_id": [(id_2, arr2)]},
-                                                         "change_line_status": arr_line1,
-                                                         "set_line_status": arr_line2},
-                                                        env=self.env,
-                                                        check_legal=True)
+        _ = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
+                                "set_bus": {"substations_id": [(id_2, arr2)]},
+                                "change_line_status": arr_line1,
+                                "set_line_status": arr_line2},
+                               env=self.env,
+                               check_legal=True)
 
     def test_linereactionnable_throw(self):
         id_1 = 1
@@ -234,8 +233,8 @@ class TestLoadingBackendFunc(unittest.TestCase):
 
         # i act a first time on powerline 15
         act = self.helper_action({"set_line_status": arr_line2},
-                               env=self.env,
-                               check_legal=True)
+                                 env=self.env,
+                                 check_legal=True)
         self.env.step(act)
         try:
             # i try to react on it, it should throw an IllegalAction exception.
@@ -291,7 +290,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
         arr_line2[id_line2] = -1
 
         self.env._max_timestep_line_status_deactivated = 2
-        self.env.parameters.NB_TIMESTEP_LINE_STATUS_REMODIF = 2
+        self.env._parameters.NB_TIMESTEP_LINE_STATUS_REMODIF = 2
 
         self.helper_action.legal_action = RulesChecker(legalActClass=PreventReconnection).legal_action
 

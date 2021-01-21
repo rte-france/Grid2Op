@@ -76,6 +76,9 @@ class EducPandaPowerBackend(Backend):
                       "circumstances. Please use grid2op.Backend.PandaPowerBackend instead")
         self._nb_real_line_pandapower = None
 
+        # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
+        # neither shunt nor storage unit.
+
     ####### load the grid
     def load_grid(self, path=None, filename=None):
         """
@@ -181,6 +184,11 @@ class EducPandaPowerBackend(Backend):
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
         self.thermal_limit_a = self.thermal_limit_a.astype(dt_float)
 
+        # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
+        # neither shunt nor storage unit.
+        self.shunts_data_available = False
+        self.set_no_storage()
+
     ###### modify the grid
     def apply_action(self, backendAction=None):
         """
@@ -192,7 +200,7 @@ class EducPandaPowerBackend(Backend):
         if backendAction is None:
             return
 
-        active_bus, (prod_p, prod_v, load_p, load_q), _, shunts__ = backendAction()
+        active_bus, (prod_p, prod_v, load_p, load_q, storage), _, shunts__ = backendAction()
 
         for gen_id, new_p in prod_p:
             self._grid.gen["p_mw"].iloc[gen_id] = new_p
@@ -283,10 +291,10 @@ class EducPandaPowerBackend(Backend):
                     pp.rundcpp(self._grid, check_connectivity=False)
                 else:
                     pp.runpp(self._grid, check_connectivity=False)
-                return self._grid.converged
+                return self._grid.converged, None
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
-            return False
+            return False, exc_
 
     ###### getters
     def get_topo_vect(self):

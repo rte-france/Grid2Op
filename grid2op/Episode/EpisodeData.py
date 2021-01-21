@@ -257,22 +257,22 @@ class EpisodeData:
                 self.agent_path, EpisodeData.ATTACK_SPACE)
 
             if not os.path.exists(act_space_path):
-                dict_action_space = action_space.to_dict()
+                dict_action_space = action_space.cls_to_dict()
                 with open(act_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_action_space, fp=f,
                               indent=4, sort_keys=True)
             if not os.path.exists(obs_space_path):
-                dict_observation_space = observation_space.to_dict()
+                dict_observation_space = observation_space.cls_to_dict()
                 with open(obs_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_observation_space,
                               fp=f, indent=4, sort_keys=True)
             if not os.path.exists(env_modif_space_path):
-                dict_helper_action_env = helper_action_env.to_dict()
+                dict_helper_action_env = helper_action_env.cls_to_dict()
                 with open(env_modif_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_helper_action_env, fp=f,
                               indent=4, sort_keys=True)
             if not os.path.exists(attack_space_path):
-                dict_attack_space = attack_space.to_dict()
+                dict_attack_space = attack_space.cls_to_dict()
                 with open(attack_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_attack_space, fp=f,
                               indent=4, sort_keys=True)

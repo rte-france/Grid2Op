@@ -14,11 +14,14 @@ from abc import abstractmethod
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
+from scipy.sparse import csr_matrix
 
 # TODO make an action with the difference between the observation that would be an action.
 # TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
 
 # TODO fix "bug" when action not initalized, return nan in to_vect
+
+# TODO be consistent with gen_* and prod_* also in dictionaries
 
 
 class BaseObservation(GridObjects):
@@ -50,14 +53,17 @@ class BaseObservation(GridObjects):
     day_of_week: ``int``
         The current day of the week (monday = 0 and sunday = 6)
 
-    prod_p: :class:`numpy.ndarray`, dtype:float
+    gen_p: :class:`numpy.ndarray`, dtype:float
         The active production value of each generator (expressed in MW).
+        (the old name "prod_p" is still usable)
 
-    prod_q: :class:`numpy.ndarray`, dtype:float
+    gen_q: :class:`numpy.ndarray`, dtype:float
         The reactive production value of each generator (expressed in MVar).
+        (the old name "prod_q" is still usable)
 
-    prod_v: :class:`numpy.ndarray`, dtype:float
+    gen_v: :class:`numpy.ndarray`, dtype:float
         The voltage magnitude of the bus to which each generator is connected (expressed in kV).
+        (the old name "prod_v" is still usable)
 
     load_p: :class:`numpy.ndarray`, dtype:float
         The active load value of each consumption (expressed in MW).
@@ -153,11 +159,13 @@ class BaseObservation(GridObjects):
         information about all generators there, even the one that are not
         dispatchable.
 
+    # TODO storage description of the new attributes
     """
+
     _attr_eq = ["line_status",
                 "topo_vect",
                 "timestep_overflow",
-                "prod_p", "prod_q", "prod_v",
+                "gen_p", "gen_q", "gen_v",
                 "load_p", "load_q", "load_v",
                 "p_or", "q_or", "v_or", "a_or",
                 "p_ex", "q_ex", "v_ex", "a_ex",
@@ -166,7 +174,8 @@ class BaseObservation(GridObjects):
                 "time_next_maintenance",
                 "duration_next_maintenance",
                 "target_dispatch", "actual_dispatch",
-                "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"
+                "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",
+                "storage_charge", "storage_power_target", "storage_power"
                 ]
 
     attr_list_vect = None
@@ -206,9 +215,9 @@ class BaseObservation(GridObjects):
         self.topo_vect = np.zeros(shape=self.dim_topo, dtype=dt_int)
 
         # generators information
-        self.prod_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.prod_q = 1.0 * self.prod_p
-        self.prod_v = 1.0 * self.prod_p
+        self.gen_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
+        self.gen_q = 1.0 * self.gen_p
+        self.gen_v = 1.0 * self.gen_p
         # loads information
         self.load_p = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
         self.load_q = 1.0 * self.load_p
@@ -241,13 +250,19 @@ class BaseObservation(GridObjects):
         self.day_of_week = dt_int(0)
 
         # redispatching
-        self.target_dispatch = 1.0 * self.prod_p
-        self.actual_dispatch = 1.0 * self.prod_p
+        self.target_dispatch = 1.0 * self.gen_p
+        self.actual_dispatch = 1.0 * self.gen_p
+
+        # storage unit
+        self.storage_charge = np.full(shape=self.n_storage, dtype=dt_float, fill_value=np.NaN)  # in MWh
+        self.storage_power_target = 1.0 * self.storage_charge  # in MW
+        self.storage_power = 1.0 * self.storage_charge  # in MW
 
         # to save some computation time
         self._connectivity_matrix_ = None
         self._bus_connectivity_matrix_ = None
         self._dictionnarized = None
+        self._vectorized = None
 
         # for shunt (these are not stored!)
         if self.shunts_data_available:
@@ -256,7 +271,13 @@ class BaseObservation(GridObjects):
             self._shunt_v = 1.0 * self._shunt_p
             self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=1)
 
-    def state_of(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None):
+    def state_of(self,
+                 _sentinel=None,
+                 load_id=None,
+                 gen_id=None,
+                 line_id=None,
+                 storage_id=None,
+                 substation_id=None):
         """
         Return the state of this action on a give unique load, generator unit, powerline of substation.
         Only one of load, gen, line or substation should be filled.
@@ -278,8 +299,11 @@ class BaseObservation(GridObjects):
         line_id: ``int``
             ID of the powerline we want to inspect
 
-        substation_id: ``int``
-            ID of the substation we want to inspect
+        line_id: ``int``
+            ID of the powerline we want to inspect
+
+        storage_id: ``int``
+            ID of the storage unit we want to inspect
 
         Returns
         -------
@@ -321,6 +345,8 @@ class BaseObservation(GridObjects):
                 - "cooldown_time": for how many timestep i am not supposed to act on the powerline due to cooldown
                   (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_LINE` for more information)
 
+            - if a storage unit is inspected TODO storage doc
+
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
                 - "topo_vect": the representation of which object is connected where
@@ -338,12 +364,13 @@ class BaseObservation(GridObjects):
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
 
-        if load_id is None and gen_id is None and line_id is None and substation_id is None:
+        if load_id is None and gen_id is None and line_id is None and substation_id is None and storage_id is None:
             raise Grid2OpException("You ask the state of an object in a observation without specifying the object id. "
-                                   "Please provide \"load_id\", \"gen_id\", \"line_id\" or \"substation_id\"")
+                                   "Please provide \"load_id\", \"gen_id\", \"line_id\", \"storage_id\" or "
+                                   "\"substation_id\"")
 
         if load_id is not None:
-            if gen_id is not None or line_id is not None or substation_id is not None:
+            if gen_id is not None or line_id is not None or substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if load_id >= len(self.load_p):
                 raise Grid2OpException("There are no load of id \"load_id={}\" in this grid.".format(load_id))
@@ -355,21 +382,21 @@ class BaseObservation(GridObjects):
                    "sub_id": self.load_to_subid[load_id]
                    }
         elif gen_id is not None:
-            if line_id is not None or substation_id is not None:
+            if line_id is not None or substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
-            if gen_id >= len(self.prod_p):
+            if gen_id >= len(self.gen_p):
                 raise Grid2OpException("There are no generator of id \"gen_id={}\" in this grid.".format(gen_id))
 
-            res = {"p": self.prod_p[gen_id],
-                   "q": self.prod_q[gen_id],
-                   "v": self.prod_v[gen_id],
+            res = {"p": self.gen_p[gen_id],
+                   "q": self.gen_q[gen_id],
+                   "v": self.gen_v[gen_id],
                    "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
                    "sub_id": self.gen_to_subid[gen_id],
                    "target_dispatch": self.target_dispatch[gen_id],
                    "actual_dispatch": self.target_dispatch[gen_id]
                    }
         elif line_id is not None:
-            if substation_id is not None:
+            if substation_id is not None or storage_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if line_id >= len(self.p_or):
                 raise Grid2OpException("There are no powerline of id \"line_id={}\" in this grid.".format(line_id))
@@ -401,6 +428,15 @@ class BaseObservation(GridObjects):
             # cooldown
             res["cooldown_time"] = self.time_before_cooldown_line[line_id]
 
+        elif storage_id is not None:
+            if substation_id is not None:
+                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            res = {}
+            res["storage_power"] = self.storage_power[storage_id]
+            res["storage_charge"] = self.storage_charge[storage_id]
+            res["storage_power_target"] = self.storage_power_target[storage_id]
+            res["bus"] = self.topo_vect[self.storage_pos_topo_vect[storage_id]]
+            res["sub_id"] = self.storage_to_subid[storage_id]
         else:
             if substation_id >= len(self.sub_info):
                 raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
@@ -439,9 +475,9 @@ class BaseObservation(GridObjects):
         self.topo_vect[:] = 0
 
         # generators information
-        self.prod_p[:] = np.NaN
-        self.prod_q[:] = np.NaN
-        self.prod_v[:] = np.NaN
+        self.gen_p[:] = np.NaN
+        self.gen_q[:] = np.NaN
+        self.gen_v[:] = np.NaN
         # loads information
         self.load_p[:] = np.NaN
         self.load_q[:] = np.NaN
@@ -481,6 +517,11 @@ class BaseObservation(GridObjects):
         self.target_dispatch[:] = np.NaN
         self.actual_dispatch[:] = np.NaN
 
+        # storage units
+        self.storage_charge[:] = np.NaN
+        self.storage_power_target[:] = np.NaN
+        self.storage_power[:] = np.NaN
+
         # to save up computation time
         self._dictionnarized = None
         self._connectivity_matrix_ = None
@@ -501,9 +542,9 @@ class BaseObservation(GridObjects):
         - all prods are 0.
         - etc.
         """
-        self.prod_p[:] = 0.
-        self.prod_q[:] = 0.
-        self.prod_v[:] = 0.
+        self.gen_p[:] = 0.
+        self.gen_q[:] = 0.
+        self.gen_v[:] = 0.
         # loads information
         self.load_p[:] = 0.
         self.load_q[:] = 0.
@@ -532,6 +573,11 @@ class BaseObservation(GridObjects):
         # redispatching
         self.target_dispatch[:] = 0.
         self.actual_dispatch[:] = 0.
+
+        # storage
+        self.storage_charge[:] = 0.
+        self.storage_power_target[:] = 0.
+        self.storage_power[:] = 0.
 
         # cooldown
         self.time_before_cooldown_line[:] = 99999
@@ -618,29 +664,8 @@ class BaseObservation(GridObjects):
         if self.minute_of_hour != other.minute_of_hour:
             return False
 
-        # check that the _grid is the same in both instances
-        same_grid = True
-        same_grid = same_grid and self.n_gen == other.n_gen
-        same_grid = same_grid and self.n_load == other.n_load
-        same_grid = same_grid and self.n_line == other.n_line
-        same_grid = same_grid and np.all(self.sub_info == other.sub_info)
-        same_grid = same_grid and self.dim_topo == other.dim_topo
-        # to which substation is connected each element
-        same_grid = same_grid and np.all(self.load_to_subid == other.load_to_subid)
-        same_grid = same_grid and np.all(self.gen_to_subid == other.gen_to_subid)
-        same_grid = same_grid and np.all(self.line_or_to_subid == other.line_or_to_subid)
-        same_grid = same_grid and np.all(self.line_ex_to_subid == other.line_ex_to_subid)
-        # which index has this element in the substation vector
-        same_grid = same_grid and np.all(self.load_to_sub_pos == other.load_to_sub_pos)
-        same_grid = same_grid and np.all(self.gen_to_sub_pos == other.gen_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_or_to_sub_pos == other.line_or_to_sub_pos)
-        same_grid = same_grid and np.all(self.line_ex_to_sub_pos == other.line_ex_to_sub_pos)
-        # which index has this element in the topology vector
-        same_grid = same_grid and np.all(self.load_pos_topo_vect == other.load_pos_topo_vect)
-        same_grid = same_grid and np.all(self.gen_pos_topo_vect == other.gen_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_or_pos_topo_vect == other.line_or_pos_topo_vect)
-        same_grid = same_grid and np.all(self.line_ex_pos_topo_vect == other.line_ex_pos_topo_vect)
-
+        # check that the underlying grid is the same in both instances
+        same_grid = type(self).same_grid_class(type(other))
         if not same_grid:
             return False
 
@@ -652,6 +677,13 @@ class BaseObservation(GridObjects):
         return True
 
     def __sub__(self, other):
+        """
+        computes the difference between two observation, and return an observation corresponding to
+        this difference.
+
+        This can be used to easily plot the difference between two observations at different step for
+        example.
+        """
         res = copy.deepcopy(self)
         for stat_nm in self._attr_eq:
             # TODO handle the "same grid" and "same type" here!
@@ -678,6 +710,23 @@ class BaseObservation(GridObjects):
         return res
 
     def where_different(self, other):
+        """
+        Returns the difference between two observation.
+
+        Parameters
+        ----------
+        other:
+            Other action to compare
+
+        Returns
+        -------
+        diff_: :class:`grid2op.Observation.BaseObservation`
+            The observation showing the difference between `self` and `other`
+        attr_nm: ``list``
+            List of string representing the names of the different attributes. It's [] if the two observations
+            are identical.
+
+        """
         diff_ = self - other
         res = []
         for attr_nm in self._attr_eq:
@@ -686,7 +735,7 @@ class BaseObservation(GridObjects):
                 if np.any(~array_):
                     res.append(attr_nm)
             else:
-                if np.max(np.abs(array_)):
+                if (array_.shape[0] > 0) and np.max(np.abs(array_)):
                     res.append(attr_nm)
         return diff_, res
 
@@ -967,6 +1016,7 @@ class BaseObservation(GridObjects):
         nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
         prod_bus, prod_conn = self._get_bus_id(self.gen_pos_topo_vect, self.gen_to_subid)
         load_bus, load_conn = self._get_bus_id(self.load_pos_topo_vect, self.load_to_subid)
+        stor_bus, stor_conn = self._get_bus_id(self.storage_pos_topo_vect, self.storage_to_subid)
         lor_bus, lor_conn = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
         lex_bus, lex_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
 
@@ -979,22 +1029,56 @@ class BaseObservation(GridObjects):
         load_bus = tmplate[load_bus]
         lor_bus = tmplate[lor_bus]
         lex_bus = tmplate[lex_bus]
+        stor_bus = tmplate[stor_bus]
         if active_flow:
-            prod_vect = self.prod_p
+            prod_vect = self.gen_p
             load_vect = self.load_p
             or_vect = self.p_or
             ex_vect = self.p_ex
+            stor_vect = self.storage_power
         else:
-            prod_vect = self.prod_q
+            prod_vect = self.gen_q
             load_vect = self.load_q
             or_vect = self.q_or
             ex_vect = self.q_ex
+            stor_vect = np.zeros(self.n_storage, dtype=dt_float)
 
         data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
         nb_lex = np.sum(lex_conn)
-        data[prod_bus[prod_conn]] += prod_vect[prod_conn]
-        data[load_bus[load_conn]] -= load_vect[load_conn]
+
+        # if two generators / loads / storage unit are connected at the same bus
+        # this is why i go with matrix product and sparse matrices
+        nb_prod = np.sum(prod_conn)
+        if nb_prod:
+            bus_prod = np.arange(prod_bus[prod_conn].max() + 1)
+            map_mat = csr_matrix((np.ones(nb_prod), (prod_bus[prod_conn], np.arange(nb_prod))),
+                                 shape=(bus_prod.shape[0], nb_prod),
+                                 dtype=dt_float
+                                 )
+            data[bus_prod] += map_mat.dot(prod_vect[prod_conn])
+
+        # handle load
+        nb_load = np.sum(load_conn)
+        if nb_load:
+            bus_load = np.arange(load_bus[load_conn].max() + 1)
+            map_mat = csr_matrix((np.ones(nb_load), (load_bus[load_conn], np.arange(nb_load))),
+                                 shape=(bus_load.shape[0], nb_load),
+                                 dtype=dt_float
+                                 )
+            data[bus_load] -= map_mat.dot(load_vect[load_conn])
+
+        # handle storage
+        nb_stor = np.sum(stor_conn)
+        if nb_stor:
+            bus_stor = np.arange(stor_bus[stor_conn].max() + 1)
+            map_mat = csr_matrix((np.ones(nb_stor), (stor_bus[stor_conn], np.arange(nb_stor))),
+                                 shape=(bus_stor.shape[0], nb_stor),
+                                 dtype=dt_float
+                                 )
+            data[bus_stor] -= map_mat.dot(stor_vect[stor_conn])
+
+        # powerlines
         data[np.arange(nb_lor) + nb_bus] -= or_vect[lor_conn]
         data[np.arange(nb_lex) + nb_bus + nb_lor] -= ex_vect[lex_conn]
         row_ind = np.concatenate((all_indx, lor_bus[lor_conn], lex_bus[lex_conn]))
@@ -1002,11 +1086,10 @@ class BaseObservation(GridObjects):
         res = csr_matrix((data, (row_ind, col_ind)),
                          shape=(nb_bus, nb_bus),
                          dtype=dt_float)
-
         if not as_csr_matrix:
             res = res.toarray()
 
-        return res, (load_bus, prod_bus, lor_bus, lex_bus)
+        return res, (load_bus, prod_bus, stor_bus, lor_bus, lex_bus)
 
     def get_forecasted_inj(self, time_step=1):
         """
@@ -1022,9 +1105,9 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-        prod_p_f: ``numpy.ndarray``
+        gen_p_f: ``numpy.ndarray``
             The forecast generators active values
-        prod_v_f: ``numpy.ndarray``
+        gen_v_f: ``numpy.ndarray``
             The forecast generators voltage setpoins
         load_p_f: ``numpy.ndarray``
             The forecast load active consumption
@@ -1048,9 +1131,9 @@ class BaseObservation(GridObjects):
         if "load_q" in a["injection"]:
             load_q_f = a["injection"]["load_q"]
         tmp_arg = ~np.isfinite(prod_p_f)
-        prod_p_f[tmp_arg] = self.prod_p[tmp_arg]
+        prod_p_f[tmp_arg] = self.gen_p[tmp_arg]
         tmp_arg = ~np.isfinite(prod_v_f)
-        prod_v_f[tmp_arg] = self.prod_v[tmp_arg]
+        prod_v_f[tmp_arg] = self.gen_v[tmp_arg]
         tmp_arg = ~np.isfinite(load_p_f)
         load_p_f[tmp_arg] = self.load_p[tmp_arg]
         tmp_arg = ~np.isfinite(load_q_f)
@@ -1147,6 +1230,7 @@ class BaseObservation(GridObjects):
             # `simulated_info` gives extra information on this forecast state
 
         """
+        # TODO storage: check the action in the simulate case too !
         if self.action_helper is None or self._obs_env is None:
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation "
                                       "(no action_space "
@@ -1176,7 +1260,7 @@ class BaseObservation(GridObjects):
 
         sim_obs, *rest = self._obs_env.simulate(action)
         sim_obs = copy.deepcopy(sim_obs)
-        return (sim_obs, *rest)
+        return (sim_obs, *rest)  # parentheses are needed for python 3.6 at least.
 
     def copy(self):
         """
@@ -1191,8 +1275,197 @@ class BaseObservation(GridObjects):
 
         """
         obs_env = self._obs_env
-        self._obs_env = None
+        self._obs_env = None  # _obs_env is a pointer, it is not held by this !
         res = copy.deepcopy(self)
         self._obs_env = obs_env
-        res._obs_env = obs_env.copy()
+        res._obs_env = obs_env
         return res
+
+    @property
+    def line_or_bus(self):
+        """
+        Retrieve the busbar at which each origin end of powerline is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the powerline is disconnected
+        - 1 means it is connected to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.line_or_pos_topo_vect]
+
+    @property
+    def line_ex_bus(self):
+        """
+        Retrieve the busbar at which each extremity end of powerline is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the powerline is disconnected
+        - 1 means it is connected to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.line_ex_pos_topo_vect]
+
+    @property
+    def gen_bus(self):
+        """
+        Retrieve the busbar at which each generator is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the generator is disconnected
+        - 1 means it is generator to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.gen_pos_topo_vect]
+
+    @property
+    def load_bus(self):
+        """
+        Retrieve the busbar at which each load is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the load is disconnected
+        - 1 means it is load to busbar 1
+        - 2 means it is load to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.load_pos_topo_vect]
+
+    @property
+    def storage_bus(self):
+        """
+        Retrieve the busbar at which each storage unit is connected.
+
+        The result follow grid2op convention:
+
+        - -1 means the storage unit is disconnected
+        - 1 means it is storage unit to busbar 1
+        - 2 means it is connected to busbar 2
+        - etc.
+
+        Notes
+        -----
+        In a same substation, two objects are connected together if (and only if) they are connected
+        to the same busbar.
+
+        """
+        return self.topo_vect[self.storage_pos_topo_vect]
+
+    @property
+    def prod_p(self):
+        return self.gen_p
+
+    @property
+    def prod_q(self):
+        return self.gen_q
+
+    @property
+    def prod_v(self):
+        return self.gen_v
+
+    def _reset_matrices(self):
+        self._vectorized = None
+
+    def from_vect(self, vect, check_legit=True):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            To reload an observation from a vector, use the "env.observation_space.from_vect()".
+
+        Convert back an observation represented as a vector into a proper observation.
+
+        Some conversion are done silently from float to the type of the corresponding observation attribute.
+
+        Parameters
+        ----------
+        vect: ``numpy.ndarray``
+            A representation of an BaseObservation in the form of a vector that is used to convert back the current
+            observation to be equal to the vect.
+
+        """
+
+        # reset the matrices
+        self._reset_matrices()
+        # and ensure everything is reloaded properly
+        super().from_vect(vect, check_legit=check_legit)
+
+    def to_dict(self):
+        """
+        Transform this observation as a dictionary. This dictionary allows you to inspect the state of this
+        observation and is simply a shortcut of the class instance.
+
+        Returns
+        -------
+        A dictionary representing the observation.
+
+        """
+        if self._dictionnarized is None:
+            self._dictionnarized = {}
+            self._dictionnarized["timestep_overflow"] = self.timestep_overflow
+            self._dictionnarized["line_status"] = self.line_status
+            self._dictionnarized["topo_vect"] = self.topo_vect
+            self._dictionnarized["loads"] = {}
+            self._dictionnarized["loads"]["p"] = self.load_p
+            self._dictionnarized["loads"]["q"] = self.load_q
+            self._dictionnarized["loads"]["v"] = self.load_v
+            self._dictionnarized["prods"] = {}  # TODO will be removed in future versions
+            self._dictionnarized["prods"]["p"] = self.gen_p  # TODO will be removed in future versions
+            self._dictionnarized["prods"]["q"] = self.gen_q  # TODO will be removed in future versions
+            self._dictionnarized["prods"]["v"] = self.gen_v  # TODO will be removed in future versions
+            self._dictionnarized["gens"] = {}
+            self._dictionnarized["gens"]["p"] = self.gen_p
+            self._dictionnarized["gens"]["q"] = self.gen_q
+            self._dictionnarized["gens"]["v"] = self.gen_v
+            self._dictionnarized["lines_or"] = {}
+            self._dictionnarized["lines_or"]["p"] = self.p_or
+            self._dictionnarized["lines_or"]["q"] = self.q_or
+            self._dictionnarized["lines_or"]["v"] = self.v_or
+            self._dictionnarized["lines_or"]["a"] = self.a_or
+            self._dictionnarized["lines_ex"] = {}
+            self._dictionnarized["lines_ex"]["p"] = self.p_ex
+            self._dictionnarized["lines_ex"]["q"] = self.q_ex
+            self._dictionnarized["lines_ex"]["v"] = self.v_ex
+            self._dictionnarized["lines_ex"]["a"] = self.a_ex
+            self._dictionnarized["rho"] = self.rho
+
+            self._dictionnarized["maintenance"] = {}
+            self._dictionnarized["maintenance"]['time_next_maintenance'] = self.time_next_maintenance
+            self._dictionnarized["maintenance"]['duration_next_maintenance'] = self.duration_next_maintenance
+            self._dictionnarized["cooldown"] = {}
+            self._dictionnarized["cooldown"]['line'] = self.time_before_cooldown_line
+            self._dictionnarized["cooldown"]['substation'] = self.time_before_cooldown_sub
+            self._dictionnarized["redispatching"] = {}
+            self._dictionnarized["redispatching"]["target_redispatch"] = self.target_dispatch
+            self._dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
+
+        return self._dictionnarized

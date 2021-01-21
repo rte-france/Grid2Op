@@ -63,6 +63,7 @@ Main module content
    quickstart
    grid2op
    makeenv
+   modeled_elements
    gym
 
 Plotting capabilities

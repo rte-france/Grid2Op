@@ -51,10 +51,3 @@ class DontAct(PlayableAction):
 
         """
         return self
-
-    def sample(self, space_prng):
-        """
-        Sampling among the set containing only the do nothing action is rather easy. It returns always the
-        "do nothing" action.
-        """
-        return self
