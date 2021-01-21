@@ -1119,7 +1119,8 @@ class Backend(GridObjects, ABC):
             - "power_discharge_loss" (optional): power loss in the battery in MW (the capacity will decrease constantly
               of this amount). Set it to 0.0 to deactivate it. If not present, it is set to 0.
             - "charging_efficiency" (optional):
-               Float between 0. and 1. 1. means that if the grid provides 1MWh to the storage capacity, then the
+               Float between 0. and 1. 1. means that if the grid provides 1MW (for ex. 1MW for 1h) to the storage
+               capacity, then the
                state of charge of the battery will increase of 1MWh. If this efficiency is 0.5 then if 1MWh
                if provided by the grid, then only 0.5MWh will be stored.
             - "discharging_efficiency" (optional): battery efficiency when it is discharged. 1.0 means if you want to
