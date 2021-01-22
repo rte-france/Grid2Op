@@ -45,7 +45,6 @@ Change Log
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
 - [FIXED] An error in the `obs.flow_bus_matrix` when `active_flow=False` and there were shunts on the
   powergrid.
-- [FIXED] Wrong computation of the bus to which the shunts were connected in default pandapower Backend
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`

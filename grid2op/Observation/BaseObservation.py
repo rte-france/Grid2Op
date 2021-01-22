@@ -1065,6 +1065,8 @@ class BaseObservation(GridObjects):
 
         if self.shunts_data_available:
             sh_bus = self._shunt_bus
+            sh_bus[sh_bus > 0] = self.shunt_to_subid[sh_bus > 0]*(sh_bus[sh_bus > 0] - 1) + \
+                                 self.shunt_to_subid[sh_bus > 0]
             sh_conn = self._shunt_bus != -1
 
         # TODO shunts !!!
