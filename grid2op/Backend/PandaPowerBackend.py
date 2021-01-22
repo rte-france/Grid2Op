@@ -999,7 +999,7 @@ class PandaPowerBackend(Backend):
         shunt_q = self.cst_1 * self._grid.res_shunt["q_mvar"].values.astype(dt_float)
         shunt_v = self._grid.res_bus["vm_pu"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
         shunt_v *= self._grid.bus["vn_kv"].loc[self._grid.shunt["bus"].values].values.astype(dt_float)
-        shunt_bus = self._grid.shunt["bus"].values < self.__nb_bus_before
+        shunt_bus = self._grid.shunt["bus"].values
         shunt_bus = 1 * shunt_bus
         shunt_bus = shunt_bus.astype(dt_int)
         return shunt_p, shunt_q, shunt_v, shunt_bus

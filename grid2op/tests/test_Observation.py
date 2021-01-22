@@ -36,7 +36,7 @@ import warnings
 warnings.simplefilter("error")
 
 
-class TestLoadingBackendFunc(unittest.TestCase):
+class TestBasisObsBehaviour(unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
@@ -182,7 +182,7 @@ class TestLoadingBackendFunc(unittest.TestCase):
                          '_shunt_p': [0.0],
                          '_shunt_q': [-17.923625946044922],
                          '_shunt_v': [0.20202238857746124],
-                         '_shunt_bus': [1],
+                         '_shunt_bus': [8],
                          'storage_charge': [],
                          'storage_power_target': [],
                          'storage_power': []
@@ -342,68 +342,106 @@ class TestLoadingBackendFunc(unittest.TestCase):
     def test_conn_mat3_csr(self):
         self.aux_test_conn_mat3(True)
 
-    def test_flow_bus_matrix(self):
+    def test_active_flow_bus_matrix(self):
+        self.aux_flow_bus_matrix(active_flow=True)
+
+    def test_reactive_flow_bus_matrix(self):
+        self.aux_flow_bus_matrix(active_flow=False)
+
+    def aux_flow_bus_matrix(self, active_flow):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make("rte_case14_realistic", test=True)
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
-        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
         assert mat.shape == (15, 15)
         assert ind_lor[7] == 14
         assert ind_lor[8] == 14
         # check that kirchoff law is met
-        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
-        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
-        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
-        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        if active_flow:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        else:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.q_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
 
         obs, reward, done, info = env.step(env.action_space({"set_bus": {"lines_or_id": [(2, 2)],
                                                                          "lines_ex_id": [(0, 2)]}}))
-        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
         assert mat.shape == (16, 16)
         assert ind_lor[7] == 15
         assert ind_lor[8] == 15
         assert ind_lor[2] == 14
         assert ind_lex[0] == 14
         # check that kirchoff law is met
-        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
-        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
-        assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
-        assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
-        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        if active_flow:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        else:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.q_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one  # powerline 1 has not moved
         env.close()
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = make("educ_case14_storage", test=True, action_class=CompleteAction)
         obs = env.reset()
-        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
         assert mat.shape == (14, 14)
         assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
-        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
-        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
-        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
-        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+
+        if active_flow:
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        else:
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.q_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
 
         array_modif = np.array([1.5, 5.], dtype=dt_float) * 0.
         obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
                                                              "set_bus": {"lines_or_id": [(7, 2), (8, 2)]}}))
         assert not info["exception"]
-        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
         assert mat.shape == (15, 15)
         assert ind_lor[7] == 14
         assert ind_lor[8] == 14
         # check that kirchoff law is met
-        assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
-        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
-        assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
-        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
-        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        if active_flow:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.p_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one
+        else:
+            assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] + obs.q_or[0]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one
 
         obs, reward, done, info = env.step(env.action_space({"set_storage": array_modif,
                                                              "set_bus": {"lines_or_id": [(2, 2)],
                                                                          "lines_ex_id": [(0, 2)]}}))
-        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix(active_flow=active_flow,
+                                                                        as_csr_matrix=True)
         assert mat.shape == (16, 16)
         assert ind_lor[7] == 15
         assert ind_lor[8] == 15
@@ -411,10 +449,16 @@ class TestLoadingBackendFunc(unittest.TestCase):
         assert ind_lex[0] == 14
         # check that kirchoff law is met
         assert np.max(np.abs(mat.sum(axis=1))) <= self.tol_one
-        assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
-        assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
-        assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
-        assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        if active_flow:
+            assert np.abs(mat[0, 0] - obs.prod_p[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.p_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.p_or[1]) <= self.tol_one  # powerline 1 has not moved
+        else:
+            assert np.abs(mat[0, 0] - obs.prod_q[-1]) <= self.tol_one
+            assert np.abs(mat[0, 1] - 0) <= self.tol_one  # no powerline connect bus 0 to bus 1 now (because i changed the bus)
+            assert np.abs(mat[0, 14] + obs.q_or[0]) <= self.tol_one  # powerline 0 now connects bus 0 and bus 14
+            assert np.abs(mat[0, 4] + obs.q_or[1]) <= self.tol_one  # powerline 1 has not moved
 
     def test_observation_space(self):
         obs = self.env.observation_space(self.env)

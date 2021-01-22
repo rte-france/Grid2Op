@@ -271,6 +271,7 @@ test_threading_lightsim.py
 test_multiprocessing.py
 test_plot_storage.ipynb
 issue_pp_storage.py
+test_speed_obs_plus_act.py
 
 # profiling files
 **.prof

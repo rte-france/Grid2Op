@@ -129,8 +129,8 @@ class SerializableActionSpace(SerializableSpace):
             rnd_update = {}
         rnd_sub = self.space_prng.randint(self.n_sub)
         sub_size = self.sub_info[rnd_sub]
-        rnd_topo = self.space_prng.choice([0, 1], sub_size)
-        rnd_update["change_bus"] = {"substations_id": [(rnd_sub, rnd_topo)] }
+        rnd_topo = self.space_prng.choice([0, 1], sub_size).astype(dt_bool)
+        rnd_update["change_bus"] = {"substations_id": [(rnd_sub, rnd_topo)]}
         return rnd_update
 
     def _sample_redispatch(self, rnd_update=None):

@@ -25,7 +25,7 @@ Change Log
 
 [1.5.0] - 2021-xx-yy
 -------------------------
-- [BREAKING] `backend.check_kirchoff()` method now returns also the discrepency in the voltage magnitude
+- [BREAKING] `backend.check_kirchoff()` method now returns also the discrepancy in the voltage magnitude
   and not only the error in the P and Q injected at each bus.
 - [BREAKING] the class method "to_dict" used to serialize the action_space and observation_space has been
   renamed `cls_to_dict` to avoid confusion with the `to_dict` method of action and observation (that stores,
@@ -43,6 +43,11 @@ Change Log
 - [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
   at the end of an episode.
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
+- [FIXED] An error in the `obs.flow_bus_matrix` when `active_flow=False` and there were shunts on the
+  powergrid.
+- [FIXED] Wrong computation of the bus to which the shunts were connected in default pandapower Backend
+- [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
+  (`obs + act`)
 - [ADDED] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`
   instead of `prod_p`, `prod_q` and `prod_v` (old names are still accessible for backward compatibility) but
   conversion to json / dict will be affected

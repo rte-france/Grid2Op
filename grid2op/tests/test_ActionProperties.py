@@ -1520,10 +1520,73 @@ class TestSetBus(unittest.TestCase):
             act.line_or_set_bus = tmp6
         assert np.all(act.line_or_set_bus == 0), "a line (origin) unit has been modified by an illegal action"
 
+    def test_set_by_sub(self):
+        # TODO more thorough testing !!!
+        act = self.helper_action()
+        act.sub_set_bus = (1, (1, 1, -1, 1, 2, 1, -1))
+        aff_lines, aff_subs = act.get_topological_impact()
+        assert aff_subs[1]
+        assert np.sum(aff_subs) == 1
+
+        with self.assertRaises(IllegalAction):
+            act.sub_set_bus = (1, (1, 1, -1, 1, 2, 3, -1))  # one too high
+        with self.assertRaises(IllegalAction):
+            act.sub_set_bus = (1, (1, 1, -1, 1, 2, -2, -1))  # one too low
+        with self.assertRaises(IllegalAction):
+            act.sub_set_bus = (1, (1, 1, -1, 1, 2, -1))  # too short
+        with self.assertRaises(IllegalAction):
+            act.sub_set_bus = (1, (1, 1, -1, 1, 2, 1, 2, 2))  # too big
+
+        with self.assertRaises(IllegalAction):
+            act.sub_set_bus = np.zeros(act.dim_topo+1, dtype=np.int)  # too long
+        with self.assertRaises(IllegalAction):
+            act.sub_set_bus = np.zeros(act.dim_topo-1, dtype=np.int)  # too short
+
+        # ok
+        tmp = np.zeros(act.dim_topo, dtype=np.int)  # too short
+        tmp[:10] = 1
+        act.sub_set_bus = tmp
+        aff_lines, aff_subs = act.get_topological_impact()
+        assert aff_subs[0]
+        assert aff_subs[1]
+        assert np.sum(aff_subs) == 2
+
+    def test_change_by_sub(self):
+        # TODO more thorough testing !!!
+        act = self.helper_action()
+        act.sub_change_bus = (1, (True, True, True, False, False, True, False))
+        aff_lines, aff_subs = act.get_topological_impact()
+        assert aff_subs[1]
+        assert np.sum(aff_subs) == 1
+
+        with self.assertRaises(IllegalAction):
+            act.sub_change_bus = (1, (True, True, True, False, False, True))  # too short
+        with self.assertRaises(IllegalAction):
+            act.sub_change_bus = (1, (True, True, True, False, False, True, False, True))  # too big
+
+        with self.assertRaises(IllegalAction):
+            act.sub_change_bus = np.zeros(act.dim_topo+1, dtype=np.int)  # too long
+        with self.assertRaises(IllegalAction):
+            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=np.int)  # too short
+        with self.assertRaises(IllegalAction):
+            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=np.int)  # wrong type
+        with self.assertRaises(IllegalAction):
+            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=np.float)  # wrong type
+
+        # ok
+        tmp = np.zeros(act.dim_topo, dtype=np.bool)  # too short
+        tmp[:10] = True
+        act.sub_change_bus = tmp
+        aff_lines, aff_subs = act.get_topological_impact()
+        assert aff_subs[0]
+        assert aff_subs[1]
+        assert np.sum(aff_subs) == 2
+
 
 class TestSetStatus(unittest.TestCase):
     """test the property to set the status of the action"""
 
+    # TODO test the act.set_bus too here !
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.

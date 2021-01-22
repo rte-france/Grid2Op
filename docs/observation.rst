@@ -108,6 +108,31 @@ Name(s)                                                                         
 are present. If we take the example of the first row, it means that `obs.year`, `obs.month`, etc. are all valid
 attributes of the observation, they are all integers and each is of size 1.)
 
+TODO storage
+
+.. _observation_module_graph:
+
+But where is the graph ?
+--------------------------
+
+A powergrid can be represented as (at least) a graph (here: a mathematical object with nodes / vertices
+are connected by edges).
+
+Grid2op is made in a way that the observation and action do not explicitly represents such graph. This is
+motivated first by performance reasons, but also because multiple "graphs" can represent equally
+well a powergrid.
+
+The first one that come to mind is the graph where the nodes / vertices are the buses and the edges are
+the powerline. We will call this graph the "bus graph". It can be accessed in grid2op using the
+:func:`grid2op.Observation.BaseObservation.bus_connectivity_matrix` for example. This will return a matrix
+with 1 when 2 buses are connected and 0 otherwise, with the convention that a bus is always connected to
+itself. You can think of the environments in grid2op as an environment that allows you to manipulate
+this graph: split some bus in sub buses by changing at which busbar some elements are connected, or removing
+some edges from this graph when powerlines are connected / disconnected. An important feature of this
+graph is that its size changes: it can have a different number of nodes at different steps!
+
+TODO
+
 Detailed Documentation by class
 --------------------------------
 .. automodule:: grid2op.Observation

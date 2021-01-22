@@ -60,7 +60,7 @@ class BaseAction(GridObjects):
             - +1 force line reconnection
             - 0 do nothing to this line
 
-    - the third element is the switch line status vector. It is made of a vector of size :attr:`BaseAction._n_lines`
+    - the third element is the switch line status vector. It is made of a vector of size :attr:`BaseAction.n_line`
       and is
       interpreted as:
 
@@ -76,6 +76,7 @@ class BaseAction(GridObjects):
         - -1 -> disconnect the object.
 
     - the fifth element changes the buses to which the object is connected. It's a boolean vector interpreted as:
+
         - ``False``: nothing is done
         - ``True``: change the bus eg connect it to bus 1 if it was connected to bus 2 or connect it to bus 2 if it was
           connected to bus 1. NB this is only active if the system has only 2 buses per substation (that's the case for
@@ -185,7 +186,134 @@ class BaseAction(GridObjects):
         will try to implement is +20MW.
 
     _storage_power: :class:`numpy.ndarray`, dtype:float
-        TODO
+        Amount of power you want each storage units to produce / absorbs. Storage units are in "loads"
+        convention. This means that if you ask for a positive number, the storage unit will absorb
+        power from the grid (=it will charge) and if you ask for a negative number, the storage unit
+        will inject power on the grid (storage unit will discharge).
+
+    Examples
+    --------
+    Here are example on how to use the action, for more information on what will be the effect of each,
+    please refer to the explanatory notebooks.
+
+    You have two main methods to build actions, as showed here:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        # first method:
+        action_description = {...}  # see below
+        act = env.action_space(action_description)
+
+        # second method
+        act = env.action_space()
+        act.PROPERTY = MODIF
+
+    The description of action as a dictionary is the "historical" method. The method using the properties
+    has been added to simplify the API.
+
+    To connect / disconnect powerline, using the "set" action, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_line_status": [(line_id, new_status), (line_id, new_status), ...]})
+
+        # method 2
+        act = env.action_space()
+        act.line_set_status = [(line_id, new_status), (line_id, new_status), ...]
+
+    typically: 0 <= line_id <= env.n_line and new_status = 1 or -1
+
+    To connect / disconnect powerline using the "change" action type, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"change_line_status": [line_id, line_id, ...]})
+
+        # method 2
+        act = env.action_space()
+        act.line_change_status = [line_id, line_id, ...]
+
+    typically: 0 <= line_id <= env.n_line
+
+    To modify the busbar at which an element is connected you can (if using set, to use "change" instead
+    replace "set_bus" in the text below by "change_bus" **eg* `nv.action_space({"change_bus": ...})`
+    or `act.load_change_bus = ...` ):
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_bus":
+                                    {"lines_or_id": [(line_id, new_bus), (line_id, new_bus), ...],
+                                     "lines_ex_id": [(line_id, new_bus), (line_id, new_bus), ...],
+                                     "loads_id": [(load_id, new_bus), (load_id, new_bus), ...],
+                                     "generators_id": [(gen_id, new_bus), (gen_id, new_bus), ...],
+                                     "storages_id": [(storage_id, new_bus), (storage_id, new_bus), ...]
+                                     }
+                                })
+
+        # method 2
+        act = env.action_space()
+        act.line_or_set_bus = [(line_id, new_bus), (line_id, new_bus), ...]
+        act.line_ex_set_bus = [(line_id, new_bus), (line_id, new_bus), ...]
+        act.load_set_bus =  [(load_id, new_bus), (load_id, new_bus), ...]
+        act.gen_set_bus = [(gen_id, new_bus), (gen_id, new_bus), ...]
+        act.storage_set_bus = [(storage_id, new_bus), (storage_id, new_bus), ...]
+
+    Of course you can modify one type of object at a time (you don't have to specify all "lines_or_id",
+    "lines_ex_id", "loads_id", "generators_id", "storages_id"
+
+    You can also give the topologies you want at each substations with:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_bus":{
+                                "substations_id": [(sub_id, topo_sub), (sub_id, topo_sub), ...]
+                                }})
+        # method 2
+        act = env.action_space()
+        act.sub_set_bus = [(sub_id, topo_sub), (sub_id, topo_sub), ...]
+
+    In the above typically 0 <= sub_id < env.n_sub and topo_sub is a vector having the right dimension (
+    so if a substation has 4 elements, then topo_sub should have 4 elements)
+
+    It has to be noted that `act.sub_set_bus` will return a 1d vector representing the topologie
+    of the grid as "set" by the action, with the convention, -1 => disconnect, 0 => don't change,
+    1=> set to bus 1 and 2 => set object to bus 2.
+
+
+    In order to perform redispatching you can do as follow:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"redispatch": [(gen_id, amount), (gen_id, amount), ...]})
+        # method 2
+        act = env.action_space()
+        act.redispatch = [(gen_id, amount), (gen_id, amount), ...]
+
+    Typically 0<= gen_id < env.n_gen and `amount` is a floating point between gen_max_ramp_down and
+    gen_min_ramp_down for the generator modified.
+
+    Finally, in order to perform action on storage units, you can:
+
+    .. code-block:: python
+
+        # method 1
+        act = env.action_space({"set_storage": [(storage_id, amount), (storage_id, amount), ...]})
+
+        # method 2
+        act = env.action_space()
+        act.storage_p = [(storage_id, amount), (storage_id, amount), ...]
+
+    Typically `0 <= storage_id < env.n_storage` and `amount` is a floating point between the maximum
+    power and minimum power the storage unit can absorb / produce.
 
     """
     authorized_keys = {"injection",
@@ -927,16 +1055,8 @@ class BaseAction(GridObjects):
                     self.storage_set_bus = ddict_["storages_id"]
                     handled = True
                 if "substations_id" in ddict_:
+                    self.sub_set_bus = ddict_["substations_id"]
                     handled = True
-                    tmp = ddict_["substations_id"]
-                    for (s_id, arr) in tmp:
-                        if s_id >= self.sub_info.shape[0]:
-                            raise AmbiguousAction("Substation {} doesn't exist".format(s_id))
-
-                        s_id = int(s_id)
-                        beg_ = int(np.sum(self.sub_info[:s_id]))
-                        end_ = int(beg_ + self.sub_info[s_id])
-                        self._set_topo_vect[beg_:end_] = arr
                 if not handled:
                     msg = "Invalid way to set the topology. When dict_[\"set_bus\"] is a dictionary it should have"
                     msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
@@ -976,13 +1096,15 @@ class BaseAction(GridObjects):
                     self.storage_change_bus = ddict_["storages_id"]
                     handled = True
                 if "substations_id" in ddict_:
-                    tmp = ddict_["substations_id"]
-                    for (s_id, arr) in tmp:
-                        s_id = int(s_id)
-                        beg_ = int(np.sum(self.sub_info[:s_id]))
-                        end_ = int(beg_ + self.sub_info[s_id])
-                        self._change_bus_vect[beg_:end_][arr] = True
-                        handled = True
+                    self.sub_change_bus = ddict_["substations_id"]
+                    handled = True
+                    # tmp = ddict_["substations_id"]
+                    # for (s_id, arr) in tmp:
+                    #     s_id = int(s_id)
+                    #     beg_ = int(np.sum(self.sub_info[:s_id]))
+                    #     end_ = int(beg_ + self.sub_info[s_id])
+                    #     self._change_bus_vect[beg_:end_][arr] = True
+                    #     handled = True
                 if not handled:
                     msg = "Invalid way to change the topology. When dict_[\"set_bus\"] is a dictionary it should have"
                     msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
@@ -1373,15 +1495,15 @@ class BaseAction(GridObjects):
                                                     "the _grid".format(len(self._dict_inj["prod_v"]), self.n_gen))
 
         if len(self._switch_line_status) != self.n_line:
-                raise InvalidNumberOfLines("This action acts on {} lines while there are {} in "
-                                           "the _grid".format(len(self._switch_line_status), self.n_line))
+            raise InvalidNumberOfLines("This action acts on {} lines while there are {} in "
+                                       "the _grid".format(len(self._switch_line_status), self.n_line))
 
         if len(self._set_topo_vect) != self.dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
-                                                "in the _grid".format(len(self._set_topo_vect), self.dim_topo))
+            raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
+                                            "in the _grid".format(len(self._set_topo_vect), self.dim_topo))
         if len(self._change_bus_vect) != self.dim_topo:
-                raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
-                                                "in the _grid".format(len(self._change_bus_vect), self.dim_topo))
+            raise InvalidNumberOfObjectEnds("This action acts on {} ends of object while there are {} "
+                                            "in the _grid".format(len(self._change_bus_vect), self.dim_topo))
 
         if len(self._redispatch) != self.n_gen:
             raise InvalidNumberOfGenerators("This action acts on {} generators (redispatching= while "
@@ -2304,7 +2426,7 @@ class BaseAction(GridObjects):
                     raise IllegalAction(f"If input is a list, it should be a  list of pair (el_id, new_bus) "
                                         f"eg. [(0, {max_val}), (2, {min_val})]")
                 el_id, new_bus = el
-                if isinstance(el_id, str):
+                if isinstance(el_id, str) and name_els is not None:
                     tmp = np.where(name_els == el_id)[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
@@ -2315,7 +2437,7 @@ class BaseAction(GridObjects):
         elif isinstance(values, dict):
             # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
             for key, new_bus in values.items():
-                if isinstance(key, str):
+                if isinstance(key, str) and name_els is not None:
                     tmp = np.where(name_els == key)[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
@@ -2329,12 +2451,7 @@ class BaseAction(GridObjects):
 
     @property
     def load_set_bus(self):
-        # TODO doc: of all the properties
-        if "set_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
-        res = 1 * self._set_topo_vect[self.load_pos_topo_vect]
-        res.flags.writeable = False
-        return res
+        return self.set_bus[self.load_pos_topo_vect]
 
     @load_set_bus.setter
     def load_set_bus(self, values):
@@ -2353,12 +2470,7 @@ class BaseAction(GridObjects):
 
     @property
     def gen_set_bus(self):
-        # TODO doc: of all the properties
-        if "set_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
-        res = 1 * self._set_topo_vect[self.gen_pos_topo_vect]
-        res.flags.writeable = False
-        return res
+        return self.set_bus[self.gen_pos_topo_vect]
 
     @gen_set_bus.setter
     def gen_set_bus(self, values):
@@ -2378,13 +2490,9 @@ class BaseAction(GridObjects):
     @property
     def storage_set_bus(self):
         # TODO doc: of all the properties
-        if "set_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
         if "set_storage" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
-        res = 1 * self._set_topo_vect[self.storage_pos_topo_vect]
-        res.flags.writeable = False
-        return res
+        return self.set_bus[self.storage_pos_topo_vect]
 
     @storage_set_bus.setter
     def storage_set_bus(self, values):
@@ -2407,11 +2515,7 @@ class BaseAction(GridObjects):
     @property
     def line_or_set_bus(self):
         # TODO doc: of all the properties
-        if "set_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the line (origin) bus (with \"set\") with this action type.")
-        res = 1 * self._set_topo_vect[self.line_or_pos_topo_vect]
-        res.flags.writeable = False
-        return res
+        return self.set_bus[self.line_or_pos_topo_vect]
 
     @line_or_set_bus.setter
     def line_or_set_bus(self, values):
@@ -2432,11 +2536,7 @@ class BaseAction(GridObjects):
     @property
     def line_ex_set_bus(self):
         # TODO doc: of all the properties
-        if "set_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the line (ex) bus (with \"set\") with this action type.")
-        res = 1 * self._set_topo_vect[self.line_ex_pos_topo_vect]
-        res.flags.writeable = False
-        return res
+        return self.set_bus[self.line_ex_pos_topo_vect]
 
     @line_ex_set_bus.setter
     def line_ex_set_bus(self, values):
@@ -2453,7 +2553,31 @@ class BaseAction(GridObjects):
             raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
-    # TODO same sub_set_bus
+
+    @property
+    def set_bus(self):
+        # TODO doc: of all the properties
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the bus (with \"set\") with this action type.")
+        res = 1 * self._set_topo_vect
+        res.flags.writeable = False
+        return res
+
+    @set_bus.setter
+    def set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the bus (with \"set\") with this action type.")
+        orig_ = self.set_bus
+        try:
+            self.__aux_affect_object_int(values, "", self.dim_topo, None,
+                                         np.arange(self.dim_topo), self._set_topo_vect)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self.__aux_affect_object_int(orig_, "", self.dim_topo, None,
+                                         np.arange(self.dim_topo), self._set_topo_vect)
+            raise IllegalAction(f"Impossible to modify the bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
 
     @property
     def line_set_status(self):
@@ -2584,13 +2708,32 @@ class BaseAction(GridObjects):
                                 f"Please see the documentation.")
 
     @property
-    def load_change_bus(self):
+    def change_bus(self):
         # TODO doc: of all the properties
         if "change_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the load bus (with \"change\") with this action type.")
-        res = copy.deepcopy(self._change_bus_vect[self.load_pos_topo_vect])
+            raise IllegalAction("Impossible to modify the bus (with \"change\") with this action type.")
+        res = copy.deepcopy(self._change_bus_vect)
         res.flags.writeable = False
         return res
+
+    @change_bus.setter
+    def change_bus(self, values):
+        orig_ = self.change_bus
+        try:
+            self.__aux_affect_object_bool(values, "", self.dim_topo, None,
+                                          np.arange(self.dim_topo), self._change_bus_vect)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self.__aux_affect_object_bool(orig_, "", self.dim_topo, None,
+                                          np.arange(self.dim_topo), self._change_bus_vect)
+            raise IllegalAction(f"Impossible to modify the bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    @property
+    def load_change_bus(self):
+        # TODO doc: of all the properties
+        return self.change_bus[self.load_pos_topo_vect]
 
     @load_change_bus.setter
     def load_change_bus(self, values):
@@ -2608,12 +2751,7 @@ class BaseAction(GridObjects):
 
     @property
     def gen_change_bus(self):
-        # TODO doc: of all the properties
-        if "change_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the load bus (with \"change\") with this action type.")
-        res = copy.deepcopy(self._change_bus_vect[self.gen_pos_topo_vect])
-        res.flags.writeable = False
-        return res
+        return self.change_bus[self.gen_pos_topo_vect]
 
     @gen_change_bus.setter
     def gen_change_bus(self, values):
@@ -2632,13 +2770,9 @@ class BaseAction(GridObjects):
     @property
     def storage_change_bus(self):
         # TODO doc: of all the properties
-        if "change_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the storage bus (with \"change\") with this action type.")
         if "set_storage" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the storage units with this action type.")
-        res = copy.deepcopy(self._change_bus_vect[self.storage_pos_topo_vect])
-        res.flags.writeable = False
-        return res
+        return self.change_bus[self.storage_pos_topo_vect]
 
     @storage_change_bus.setter
     def storage_change_bus(self, values):
@@ -2660,11 +2794,7 @@ class BaseAction(GridObjects):
     @property
     def line_or_change_bus(self):
         # TODO doc: of all the properties
-        if "change_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the line (origin) bus (with \"change\") with this action type.")
-        res = copy.deepcopy(self._change_bus_vect[self.line_or_pos_topo_vect])
-        res.flags.writeable = False
-        return res
+        return self.change_bus[self.line_or_pos_topo_vect]
 
     @line_or_change_bus.setter
     def line_or_change_bus(self, values):
@@ -2684,11 +2814,7 @@ class BaseAction(GridObjects):
     @property
     def line_ex_change_bus(self):
         # TODO doc: of all the properties
-        if "change_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the line (ex) bus (with \"change\") with this action type.")
-        res = copy.deepcopy(self._change_bus_vect[self.line_ex_pos_topo_vect])
-        res.flags.writeable = False
-        return res
+        return self.change_bus[self.line_ex_pos_topo_vect]
 
     @line_ex_change_bus.setter
     def line_ex_change_bus(self, values):
@@ -2904,5 +3030,208 @@ class BaseAction(GridObjects):
         except Exception as exc_:
             self._storage_power[:] = orig_
             raise IllegalAction(f"Impossible to modify the storage active power with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    def __aux_aux_convert_and_check_np_array(self, array_):
+        try:
+            array_ = np.array(array_)
+        except Exception as exc_:
+            raise IllegalAction(f"When setting the topology by substation and by giving a tuple, the "
+                                f"second element of the tuple should be convertible to a numpy "
+                                f"array of type int. Error was: \"{exc_}\"")
+        if isinstance(array_.dtype, (bool, dt_bool)) or array_.dtype == dt_bool or array_.dtype == bool:
+            raise IllegalAction("To set substation topology, you need a vector of integers, and not a vector "
+                                "of bool.")
+        elif isinstance(array_.dtype, (float, dt_float)) or array_.dtype == dt_float or array_.dtype == float:
+            raise IllegalAction("To set substation topology, you need a vector of integers, and not a vector "
+                                "of float.")
+        array_ = array_.astype(dt_int)
+        if np.any(array_ < -1):
+            raise IllegalAction(f"Impossible to set element to bus {np.min(array_)}. Buses must be "
+                                f"-1, 0, 1 or 2.")
+        if np.any(array_ > 2):
+            raise IllegalAction(f"Impossible to set element to bus {np.max(array_)}. Buses must be "
+                                f"-1, 0, 1 or 2.")
+        return array_
+
+    def _aux_set_bus_sub(self, values):
+        if isinstance(values, (bool, dt_bool)):
+            raise IllegalAction("Impossible to modify bus by substation with a single bool.")
+        elif isinstance(values, (int, dt_int, np.int)):
+            raise IllegalAction("Impossible to modify bus by substation with a single integer.")
+        elif isinstance(values, (float, dt_float, np.float)):
+            raise IllegalAction("Impossible to modify bus by substation with a single float.")
+        elif isinstance(values, np.ndarray):
+            # full topo vect
+            if values.shape[0] != self.dim_topo:
+                raise IllegalAction("Impossible to modify bus when providing a full topology vector "
+                                    "that has not the right ")
+            if values.dtype == dt_bool or values.dtype == bool:
+                raise IllegalAction("When using a full vector for setting the topology, it should be "
+                                    "of integer types")
+            values = self.__aux_aux_convert_and_check_np_array(values)
+            self._set_topo_vect[:] = values
+        elif isinstance(values, tuple):
+            # should be a tuple (sub_id, new_topo)
+            sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
+            topo_repr = self.__aux_aux_convert_and_check_np_array(topo_repr)
+            start_ = np.sum(self.sub_info[:sub_id])
+            end_ = start_ + nb_el
+            self._set_topo_vect[start_:end_] = topo_repr
+        elif isinstance(values, list):
+            if len(values) == self.dim_topo:
+                # if list is the size of the full topo vect, it's a list representing it
+                values = self.__aux_aux_convert_and_check_np_array(values)
+                self._aux_set_bus_sub(values)
+                return
+            # otherwise it should be a list of tuples: [(sub_id, topo), (sub_id, topo)]
+            for el in values:
+                if not isinstance(el, tuple):
+                    raise IllegalAction("When provided a list, it should be a list of tuples: "
+                                        "[(sub_id, topo), (sub_id, topo), ... ] ")
+                self._aux_set_bus_sub(el)
+        elif isinstance(values, dict):
+            for sub_id, topo_repr in values.items():
+                sub_id = self._aux_sub_when_dict_get_id(sub_id)
+                self._aux_set_bus_sub((sub_id, topo_repr))
+        else:
+            raise IllegalAction("Impossible to set the topology by substation with your input."
+                                "Please consult the documentation.")
+
+    @property
+    def sub_set_bus(self):
+        return self.set_bus
+
+    @sub_set_bus.setter
+    def sub_set_bus(self, values):
+        if "set_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the substation bus (with \"set\") with this action type.")
+        orig_ = self.sub_set_bus
+        try:
+            self._aux_set_bus_sub(values)
+            self._modif_set_bus = True
+        except Exception as exc_:
+            self._set_topo_vect[:] = orig_
+            raise IllegalAction(f"Impossible to modify the substation bus with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
+    def __aux_aux_convert_and_check_np_array_change(self, array_):
+        try:
+            array_ = np.array(array_)
+        except Exception as exc_:
+            raise IllegalAction(f"When setting the topology by substation and by giving a tuple, the "
+                                f"second element of the tuple should be convertible to a numpy "
+                                f"array of type int. Error was: \"{exc_}\"")
+        if isinstance(array_.dtype, (int, dt_int)) or array_.dtype == dt_int or array_.dtype == int:
+            raise IllegalAction("To change substation topology, you need a vector of bools, and not a vector "
+                                "of int.")
+        elif isinstance(array_.dtype, (float, dt_float)) or array_.dtype == dt_float or array_.dtype == float:
+            raise IllegalAction("To change substation topology, you need a vector of bools, and not a vector "
+                                "of float.")
+        array_ = array_.astype(dt_bool)
+        return array_
+
+    def _check_for_right_vectors_sub(self, values):
+        if len(values) != 2:
+            raise IllegalAction("Impossible to set the topology of a substation with a tuple which "
+                                "has not a size of 2 (substation_id, topology_representation)")
+        sub_id, topo_repr = values
+        if isinstance(sub_id, (bool, dt_bool)):
+            raise IllegalAction("Substation id should be integer")
+        if isinstance(sub_id, (float, dt_float, np.float)):
+            raise IllegalAction("Substation id should be integer")
+        try:
+            el_id = int(sub_id)
+        except Exception as exc_:
+            raise IllegalAction(f"Substation id should be convertible to integer. "
+                                f"Error was \"{exc_}\"")
+        try:
+            size_ = len(topo_repr)
+        except Exception as exc_:
+            raise IllegalAction(f"Topology cannot be set with your input."
+                                f"Error was \"{exc_}\"")
+        nb_el = self.sub_info[el_id]
+        if size_ != nb_el:
+            raise IllegalAction(f"To set topology of a substation, you must provide the full list of the "
+                                f"elements you want to modify. You provided a vector with {size_} components "
+                                f"while there are {self.sub_info[el_id]} on the substation.")
+
+        return sub_id, topo_repr, nb_el
+
+    def _aux_change_bus_sub(self, values):
+        if isinstance(values, (bool, dt_bool)):
+            raise IllegalAction("Impossible to modify bus by substation with a single bool.")
+        elif isinstance(values, (int, dt_int, np.int)):
+            raise IllegalAction("Impossible to modify bus by substation with a single integer.")
+        elif isinstance(values, (float, dt_float, np.float)):
+            raise IllegalAction("Impossible to modify bus by substation with a single float.")
+        elif isinstance(values, np.ndarray):
+            # full topo vect
+            if values.shape[0] != self.dim_topo:
+                raise IllegalAction("Impossible to modify bus when providing a full topology vector "
+                                    "that has not the right size.")
+            if values.dtype == dt_int or values.dtype == int:
+                raise IllegalAction("When using a full vector for setting the topology, it should be "
+                                    "of bool types")
+            values = self.__aux_aux_convert_and_check_np_array_change(values)
+            self._change_bus_vect[:] = values
+        elif isinstance(values, tuple):
+            # should be a tuple (sub_id, new_topo)
+            sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
+
+            topo_repr = self.__aux_aux_convert_and_check_np_array_change(topo_repr)
+            start_ = np.sum(self.sub_info[:sub_id])
+            end_ = start_ + nb_el
+            self._change_bus_vect[start_:end_] = topo_repr
+        elif isinstance(values, list):
+            if len(values) == self.dim_topo:
+                # if list is the size of the full topo vect, it's a list representing it
+                values = self.__aux_aux_convert_and_check_np_array_change(values)
+                self._aux_change_bus_sub(values)
+                return
+            # otherwise it should be a list of tuples: [(sub_id, topo), (sub_id, topo)]
+            for el in values:
+                if not isinstance(el, tuple):
+                    raise IllegalAction("When provided a list, it should be a list of tuples: "
+                                        "[(sub_id, topo), (sub_id, topo), ... ] ")
+                self._aux_change_bus_sub(el)
+        elif isinstance(values, dict):
+            for sub_id, topo_repr in values.items():
+                sub_id = self._aux_sub_when_dict_get_id(sub_id)
+                self._aux_change_bus_sub((sub_id, topo_repr))
+        else:
+            raise IllegalAction("Impossible to set the topology by substation with your input."
+                                "Please consult the documentation.")
+
+    def _aux_sub_when_dict_get_id(self, sub_id):
+        if isinstance(sub_id, str):
+            tmp = np.where(self.name_sub == sub_id)[0]
+            if len(tmp) == 0:
+                raise IllegalAction(f"No substation named {sub_id}")
+            sub_id = tmp[0]
+        elif not isinstance(sub_id, int):
+            raise IllegalAction(f"When using a dictionary it should be either with key = name of the "
+                                f"substation or key = id of the substation. You provided neither string nor"
+                                f"int but {type(sub_id)}."
+                                )
+        return sub_id
+
+    @property
+    def sub_change_bus(self):
+        return self.change_bus
+
+    @sub_change_bus.setter
+    def sub_change_bus(self, values):
+        if "change_bus" not in self.authorized_keys:
+            raise IllegalAction("Impossible to modify the substation bus (with \"change\") with this action type.")
+        orig_ = self.sub_change_bus
+        try:
+            self._aux_change_bus_sub(values)
+            self._modif_change_bus = True
+        except Exception as exc_:
+            self._change_bus_vect[:] = orig_
+            raise IllegalAction(f"Impossible to modify the substation bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")

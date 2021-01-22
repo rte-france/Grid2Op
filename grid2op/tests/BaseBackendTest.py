@@ -608,7 +608,6 @@ class BaseTestTopoAction(MakeBackend):
         action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
         bk_action = self.bkact_class()
         bk_action += action
-
         # apply the action here
         self.backend.apply_action(bk_action)
         conv = self.backend.runpf()
@@ -619,7 +618,7 @@ class BaseTestTopoAction(MakeBackend):
         topo_vect_old = np.array([1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dt_int)
-        assert self.compare_vect(topo_vect, topo_vect_old) == True
+        assert self.compare_vect(topo_vect, topo_vect_old)
 
     def test_topo_set1sub(self):
         # retrieve some initial data to be sure only a subpart of the _grid is modified
@@ -683,7 +682,6 @@ class BaseTestTopoAction(MakeBackend):
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
         bk_action = self.bkact_class()
         bk_action += action
-
         # apply the action here
         self.backend.apply_action(bk_action)
 

@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import copy
 import datetime
+import warnings
 from scipy.sparse import csr_matrix
 import numpy as np
 from abc import abstractmethod
@@ -920,12 +921,29 @@ class BaseObservation(GridObjects):
 
         Returns
         -------
-        res: ``numpy.ndarray``, shape: (nb_bus,nb_bus) dtype:float
+        res: ``numpy.ndarray``, shape: (nb_bus, nb_bus) dtype:float
             The bus connectivity matrix defined above.
 
         Notes
         ------
         By convention we say that a bus is connected to itself. So the diagonal of this matrix is 1.
+
+        Examples
+        --------
+
+        Here is how you can use this function:
+
+        .. code-block:: python
+
+            bus_bus_graph, (line_or_bus, line_ex_bus) = obs.bus_connectivity_matrix(return_lines_index=True)
+
+            # bus_bus_graph is the matrix described above.
+            # line_or_bus[0] give the id of the bus to which the origin side of powerline 0 is connected
+            # line_ex_bus[0] give the id of the bus to which the extremity side of powerline 0 is connected
+            # (NB: if the powerline is disconnected, both are -1)
+            # this means that if line 0 is connected: bus_bus_graph[line_or_bus[0], line_ex_bus[0]] = 1
+            # and bus_bus_graph[line_ex_bus[0], line_or_bus[0]] = 1
+            # (of course you can replace 0 with any integer `0 <= l_id < obs.n_line`
 
         """
         if self._bus_connectivity_matrix_ is None or \
@@ -1004,11 +1022,36 @@ class BaseObservation(GridObjects):
             "as_csr_matrix".
 
         mappings: ``tuple``
-            The mapping that makes the correspondance between each object and the bus to which it is connected.
+            The mapping that makes the correspondence between each object and the bus to which it is connected.
             It is made of 4 elements: (load_bus, prod_bus, lor_bus, lex_bus).
 
             For example if `load_bus[i] = 14` it means that the load with id `i` is connected to the
             bus 14. If `load_bus[i] = -1` then the object is disconnected.
+
+        Examples
+        --------
+
+        Here is how you can use this function:
+
+        .. code-block:: python
+
+            flow_mat, (load, prod, stor, ind_lor, ind_lex) = obs.flow_bus_matrix()
+
+            # flow_mat is the matrix described above.
+
+        Lots of information can be deduce from this matrix. For example if you want to know
+        how much power goes from one bus say bus `i` to another bus (say bus `j`)
+        you can look at the associated coefficient `flow_mat[i,j]` which will also be related to the
+        flow on the origin (or extremity) side of the powerline connecting bus `i` to bus `j`
+
+        You can also know how much power
+        (total generation + total storage discharging - total load - total storage charging - )
+        is injected at each bus `i`
+        by looking at the `i`th diagonal coefficient.
+
+        Another use would be to check if the current powergrid state (as seen by grid2op) meet
+        the Kirchhoff circuit laws (conservation of energy), by doing the sum (row by row) of this
+        matrix. `flow_mat.sum(axis=1)`
 
         """
         # TODO refacto these five calls in one function that would do all and reuse it for the
@@ -1019,6 +1062,12 @@ class BaseObservation(GridObjects):
         stor_bus, stor_conn = self._get_bus_id(self.storage_pos_topo_vect, self.storage_to_subid)
         lor_bus, lor_conn = self._get_bus_id(self.line_or_pos_topo_vect, self.line_or_to_subid)
         lex_bus, lex_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
+
+        if self.shunts_data_available:
+            sh_bus = self._shunt_bus
+            sh_conn = self._shunt_bus != -1
+
+        # TODO shunts !!!
 
         # convert the bus to be "id of row or column in the matrix" instead of the bus id with
         # the "grid2op convention"
@@ -1036,12 +1085,16 @@ class BaseObservation(GridObjects):
             or_vect = self.p_or
             ex_vect = self.p_ex
             stor_vect = self.storage_power
+            if self.shunts_data_available:
+                sh_vect = self._shunt_p
         else:
             prod_vect = self.gen_q
             load_vect = self.load_q
             or_vect = self.q_or
             ex_vect = self.q_ex
             stor_vect = np.zeros(self.n_storage, dtype=dt_float)
+            if self.shunts_data_available:
+                sh_vect = self._shunt_q
 
         data = np.zeros(nb_bus + lor_bus.shape[0] + lex_bus.shape[0], dtype=dt_float)
         nb_lor = np.sum(lor_conn)
@@ -1077,6 +1130,17 @@ class BaseObservation(GridObjects):
                                  dtype=dt_float
                                  )
             data[bus_stor] -= map_mat.dot(stor_vect[stor_conn])
+
+        if self.shunts_data_available:
+            # handle shunts
+            nb_shunt = np.sum(sh_conn)
+            if nb_shunt:
+                bus_shunt = np.arange(sh_bus[sh_conn].max() + 1)
+                map_mat = csr_matrix((np.ones(nb_shunt), (sh_bus[sh_conn], np.arange(nb_shunt))),
+                                     shape=(bus_shunt.shape[0], nb_shunt),
+                                     dtype=dt_float
+                                     )
+                data[bus_shunt] -= map_mat.dot(sh_vect[sh_conn])
 
         # powerlines
         data[np.arange(nb_lor) + nb_bus] -= or_vect[lor_conn]
@@ -1469,3 +1533,179 @@ class BaseObservation(GridObjects):
             self._dictionnarized["redispatching"]["actual_dispatch"] = self.actual_dispatch
 
         return self._dictionnarized
+
+    def add_act(self, act, do_warn=True):
+        """
+        Easier access to the impact on the observation if an action were applied.
+
+        This is for now only usefull to get a topology in which the grid would be without
+        doing an expensive `obs.simuulate`
+
+        Notes
+        -----
+        This will not give the real topology of the grid in all cases for many reasons amongst:
+
+        1) past topologies are not known by the observation. If you reconnect a powerline in the action
+           without having specified on which bus, it has no way to know (but the environment does!)
+           on which bus it should be reconnected (which is the last known bus)
+        2) some "protections" are emulated in the environment. This means that the environment
+           can disconnect some powerline under certain conditions. This is absolutely not
+           taken into account here.
+        3) the environment is stochastic, for example there can be maintenance or attacks (hazards)
+           and the generators and loads change each step. This is not taken into account
+           in this function.
+        4) no checks are performed to see if the action meets the rules of the game (number of elements
+           you can modify in the action, cooldowns etc.) This method **supposes** that the action
+           is legal and non ambiguous.
+        5) It do not check for possible "game over", for example due to isolated elements or non
+           connected grid (grid with 2 or more connex components)
+
+        If these issues are important for you, you will need to use the
+        :func:`grid2op.Observation.BaseObservation.simulate` method. It can be used like
+        `obs.simulate(act, time_step=0)` but it is much more expensive.
+
+        Parameters
+        ----------
+        act: :class:`grid2op.Action.BaseAction`
+            The action you want to add to the observation
+
+        do_warn: ``bool``
+            Issue a warning when this method might not compute the proper resulting topologies.
+
+        Returns
+        -------
+        res: :class:`grid2op.Observation.Observation`
+            The resulting observation, that can only be used for
+        """
+
+        from grid2op.Action import BaseAction
+        if not isinstance(act, BaseAction):
+            raise RuntimeError("You can only add actions to observation at the moment")
+
+        act = copy.deepcopy(act)
+        res = type(self)()
+
+        res.topo_vect[:] = self.topo_vect
+        res.line_status[:] = self.line_status
+
+        ambiguous, except_tmp = act.is_ambiguous()
+        if ambiguous:
+            raise RuntimeError(f"Impossible to add an ambiguous action to an observation. Your action was "
+                               f"ambiguous because: \"{except_tmp}\"")
+
+        # if a powerline has been reconnected without specific bus, i issue a warning
+        if "set_line_status" in act.authorized_keys:
+            reco_powerline = act.line_set_status
+            if "set_bus" in act.authorized_keys:
+                line_ex_set_bus = act.line_ex_set_bus
+                line_or_set_bus = act.line_or_set_bus
+            else:
+                line_ex_set_bus = np.zeros(res.n_line, dtype=dt_int)
+                line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
+            error_no_bus_set = "You reconnected a powerline with your action but did not specify on which bus " \
+                               "to reconnect both its end. This behaviour, also perfectly fine for an environment " \
+                               "will not be accurate in the method obs + act. Consult the documentation for more " \
+                               "information. Problem arose for powerlines with id {}"
+
+            tmp = (reco_powerline == 1) & (line_ex_set_bus <= 0) & (res.topo_vect[self.line_ex_pos_topo_vect] == -1)
+            if np.any(tmp):
+                id_issue_ex = np.where(tmp)[0]
+                if do_warn:
+                    warnings.warn(error_no_bus_set.format(id_issue_ex))
+                if "set_bus" in act.authorized_keys:
+                    # assign 1 in the bus in this case
+                    act.line_ex_set_bus = [(el, 1) for el in id_issue_ex]
+            tmp = (reco_powerline == 1) & (line_or_set_bus <= 0) & (res.topo_vect[self.line_or_pos_topo_vect] == -1)
+            if np.any(tmp):
+                id_issue_or = np.where(tmp)[0]
+                if do_warn:
+                    warnings.warn(error_no_bus_set.format(id_issue_or))
+                if "set_bus" in act.authorized_keys:
+                    # assign 1 in the bus in this case
+                    act.line_or_set_bus = [(el, 1) for el in id_issue_or]
+
+        # topo vect
+        if "set_bus" in act.authorized_keys:
+            res.topo_vect[act.set_bus != 0] = act.set_bus[act.set_bus != 0]
+
+        if "change_bus" in act.authorized_keys:
+            do_change_bus_on = act.change_bus & (res.topo_vect > 0)  # change bus of elements that were on
+            res.topo_vect[do_change_bus_on] = 3 - res.topo_vect[do_change_bus_on]
+            # change bus of elements that were off : does nothing
+            # do_change_bus_off = act.change_bus & (res.topo_vect == -1)
+            # if np.any(do_change_bus_off) and do_warn:
+            #     warnings.warn("You asked to reconnect a object with the \"change_bus\" in your action. This is "
+            #                   "of course perfectly fine in the environment, but might not be computed properly "
+            #                   "by the `obs + act` method. Please have a look at the document for more "
+            #                   "information.")
+            # res.topo_vect[do_change_bus_off] = 1
+
+        # topo vect: reco of powerline that should be
+        res.line_status = (res.topo_vect[self.line_or_pos_topo_vect] >= 1) & \
+                          (res.topo_vect[self.line_ex_pos_topo_vect] >= 1)
+
+        # powerline status
+        if "set_line_status" in act.authorized_keys:
+            disco_line = (act.line_set_status == -1) & res.line_status
+            res.topo_vect[res.line_or_pos_topo_vect[disco_line]] = -1
+            res.topo_vect[res.line_ex_pos_topo_vect[disco_line]] = -1
+            res.line_status[disco_line] = False
+
+            reco_line = (act.line_set_status >= 1) & (~res.line_status)
+            # i can do that because i already "fixed" the action to have it put 1 in case it
+            # bus were not provided
+            res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = act.line_or_set_bus[reco_line]
+            res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = act.line_ex_set_bus[reco_line]
+            res.line_status[reco_line] = True
+
+        if "change_line_status" in act.authorized_keys:
+            disco_line = act.line_change_status & res.line_status
+            reco_line = act.line_change_status & (~res.line_status)
+
+            # handle disconnected powerlines
+            res.topo_vect[res.line_or_pos_topo_vect[disco_line]] = -1
+            res.topo_vect[res.line_ex_pos_topo_vect[disco_line]] = -1
+            res.line_status[disco_line] = False
+
+            # handle reconnected powerlines
+            if np.any(reco_line):
+                if "set_bus" in act.authorized_keys:
+                    line_ex_set_bus = act.line_ex_set_bus
+                    line_or_set_bus = act.line_or_set_bus
+                else:
+                    line_ex_set_bus = np.zeros(res.n_line, dtype=dt_int)
+                    line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
+
+                if do_warn and (np.any(line_or_set_bus[reco_line] == 0) or
+                                np.any(line_ex_set_bus[reco_line] == 0)):
+                    warnings.warn("A powerline has been reconnected with a \"change_status\" action without "
+                                  "specifying on which bus it was supposed to be reconnected. This is "
+                                  "perfectly fine in regular grid2op environment, but this behaviour "
+                                  "cannot be properly implemented with the only information in the "
+                                  "observation. Please see the documentation for more information."
+                                  )
+                    line_or_set_bus[reco_line & (line_or_set_bus == 0)] = 1
+                    line_ex_set_bus[reco_line & (line_ex_set_bus == 0)] = 1
+
+                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = line_or_set_bus[reco_line]
+                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = line_ex_set_bus[reco_line]
+                res.line_status[reco_line] = True
+
+        if 'redispatch' in act.authorized_keys:
+            redisp = act.redispatch
+            if np.any(redisp != 0) and do_warn:
+                warnings.warn("You did redispatching on this action. Redispatching is heavily transformed "
+                              "by the environment (consult the documentation about the modeling of the "
+                              "generators for example) so we will not even try to mimic this here.")
+
+        if 'set_storage' in act.authorized_keys:
+            storage_p = act.storage_p
+            if np.any(storage_p != 0) and do_warn:
+                warnings.warn("You did action on storage units in this action. This implies performing some "
+                              "redispatching which is heavily transformed "
+                              "by the environment (consult the documentation about the modeling of the "
+                              "generators for example) so we will not even try to mimic this here.")
+        return res
+
+    def __add__(self, act):
+        return self.add_act(act)
