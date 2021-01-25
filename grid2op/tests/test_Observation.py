@@ -182,7 +182,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          '_shunt_p': [0.0],
                          '_shunt_q': [-17.923625946044922],
                          '_shunt_v': [0.20202238857746124],
-                         '_shunt_bus': [8],
+                         '_shunt_bus': [1],
                          'storage_charge': [],
                          'storage_power_target': [],
                          'storage_power': []
