@@ -346,7 +346,13 @@ class BaseObservation(GridObjects):
                 - "cooldown_time": for how many timestep i am not supposed to act on the powerline due to cooldown
                   (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_LINE` for more information)
 
-            - if a storage unit is inspected TODO storage doc
+            - if a storage unit is inspected, information are:
+
+                - "storage_power": the power the unit actually produced / absorbed
+                - "storage_charge": the state of the charge of the storage unit
+                - "storage_power_target": the power production / absorbtion targer
+                - "bus": the bus (1 or 2) to which the storage unit is connected
+                - "sub_id" : the id of the substation to which the sotrage unit is connected
 
             - if a substation is inspected, it returns the topology to this substation in a dictionary with keys:
 
