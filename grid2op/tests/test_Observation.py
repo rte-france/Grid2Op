@@ -257,48 +257,105 @@ class TestBasisObsBehaviour(unittest.TestCase):
     def test_conn_mat(self):
         obs = self.env.observation_space(self.env)
         mat = obs.connectivity_matrix()
-        ref_mat = np.array([[0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+        ref_mat = np.array([[1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                             0., 0., 0., 0., 0., 0., 0., 0.],
-                            [1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [1., 0., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [1., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 0., 1., 1., 1., 0., 0., 0., 0., 1., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 1., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                            [0., 0., 0., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.],
-                            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0., 0.,
+                            [0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0.]
                             ])
-        assert np.all(mat[:10,:] == ref_mat)
+
+        assert np.all(mat[:10, :] == ref_mat)
+        ind_conn = obs.topo_vect > 0
+        assert np.all(mat[ind_conn, ind_conn] == 1)
+        mat2 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert np.all(mat2[:10, :] == ref_mat)
+        assert np.all(mat2[ind_conn, ind_conn] == 1)
+
+        # test disconnected element (1 disconnect)
+        disco_powerline = self.env.action_space()
+        line_id = 0
+        disco_powerline.line_set_status = [(line_id, -1)]
+        obs, reward, done, info = self.env.step(disco_powerline)
+        assert not done
+        mat3 = obs.connectivity_matrix()
+        lor_id = self.env.line_or_pos_topo_vect[line_id]
+        lex_id = self.env.line_ex_pos_topo_vect[line_id]
+        assert np.all(mat3[lor_id, :] == 0)
+        assert np.all(mat3[:, lor_id] == 0)
+        assert np.all(mat3[lex_id, :] == 0)
+        assert np.all(mat3[:, lex_id] == 0)
+        ind_conn = obs.topo_vect > 0
+        assert np.all(mat3[ind_conn, ind_conn] == 1)
+
+        mat4 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert mat4[lor_id, :].nnz == 0
+        assert mat4[:, lor_id].nnz == 0
+        assert mat4[lex_id, :].nnz == 0
+        assert mat4[:, lor_id].nnz == 0
+
+        # test 2 disconnected element (check they are not connected together)
+        disco_powerline2 = self.env.action_space()
+        line_id2 = 7
+        disco_powerline2.line_set_status = [(line_id2, -1)]
+        lor_id2 = self.env.line_or_pos_topo_vect[line_id2]
+        lex_id2 = self.env.line_ex_pos_topo_vect[line_id2]
+        obs, reward, done, info = self.env.step(disco_powerline2)
+        assert not done
+        assert np.array_equal(obs.line_status[[0, 7]], [False, False])
+        mat5 = obs.connectivity_matrix()
+        assert np.all(mat5[lor_id, :] == 0)
+        assert np.all(mat5[:, lor_id] == 0)
+        assert np.all(mat5[lex_id, :] == 0)
+        assert np.all(mat5[:, lex_id] == 0)
+        assert np.all(mat5[lor_id2, :] == 0)
+        assert np.all(mat5[:, lor_id2] == 0)
+        assert np.all(mat5[lex_id2, :] == 0)
+        assert np.all(mat5[:, lex_id2] == 0)
+
+        mat6 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert mat6[lor_id, :].nnz == 0
+        assert mat6[:, lor_id].nnz == 0
+        assert mat6[lex_id, :].nnz == 0
+        assert mat6[:, lor_id].nnz == 0
+        assert mat6[lor_id2, :].nnz == 0
+        assert mat6[:, lor_id2].nnz == 0
+        assert mat6[lex_id2, :].nnz == 0
+        assert mat6[:, lor_id2].nnz == 0
 
     def aux_test_conn_mat2(self, as_csr=False):
         # when a powerline is disconnected

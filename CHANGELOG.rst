@@ -45,6 +45,8 @@ Change Log
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
 - [FIXED] An error in the `obs.flow_bus_matrix` when `active_flow=False` and there were shunts on the
   powergrid.
+- [FIXED] `obs.connectivity_matrix` now properly takes into account when two objects are disconnected (before
+  it was as if there were connected together)
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`
@@ -65,6 +67,7 @@ Change Log
   also to `storage_p` and `redispatch` so making 12 "properties" in total)
 - [ADDED] an option to retrieve in memory the `EpisodeData` of each episode computed when using the runner.
   see `runner.run(..., add_detailed_output=True)`
+- [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
 
 [1.4.0] - 2020-12-10
 ----------------------

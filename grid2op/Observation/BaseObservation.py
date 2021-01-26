@@ -776,7 +776,7 @@ class BaseObservation(GridObjects):
         """
         pass
 
-    def connectivity_matrix(self):
+    def connectivity_matrix(self, as_csr_matrix=False):
         """
         Computes and return the "connectivity matrix" `con_mat`.
         if "dim_topo = 2 * n_line + n_prod + n_conso"
@@ -785,11 +785,11 @@ class BaseObservation(GridObjects):
 
             - if i and j are connected on the same substation:
                 - if `conn_mat[i,j] = 0` it means the objects id'ed i and j are not connected to the same bus.
-                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus, are both end
-                  of the same powerline
+                - if `conn_mat[i,j] = 1` it means the objects id'ed i and j are connected to the same bus
 
             - if i and j are not connected on the same substation then`conn_mat[i,j] = 0` except if i and j are
-              the two extremities of the same power line, in this case `conn_mat[i,j] = 1`.
+              the two extremities of the same power line, in this case `conn_mat[i,j] = 1` (if the powerline is
+              in service or 0 otherwise).
 
         By definition, the diagonal is made of 0.
 
@@ -800,7 +800,9 @@ class BaseObservation(GridObjects):
 
         Notes
         -------
-        For now this matrix is stored as a dense matrix. Support for sparse matrix will be added in the future.
+        Matrix can be either a sparse matrix or a dense matrix depending on the argument `as_csr_matrix`
+
+        An object, is not disconnected, is always connected to itself.
 
         Examples
         ---------
@@ -856,31 +858,64 @@ class BaseObservation(GridObjects):
             #     - assign bus 2 to load 0 [on substation 1]
             # -> one of them is on bus 1 [line (extremity) 0] and the other on bus 2 [load 0]
         """
-        if self._connectivity_matrix_ is None:
-            self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
+        if self._connectivity_matrix_ is None or \
+                (isinstance(self._connectivity_matrix_, csr_matrix) and not as_csr_matrix) or \
+                ((not isinstance(self._connectivity_matrix_, csr_matrix)) and as_csr_matrix ):
+            # self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
             # fill it by block for the objects
             beg_ = 0
             end_ = 0
+            row_ind = []
+            col_ind = []
             for sub_id, nb_obj in enumerate(self.sub_info):
                 # it must be a vanilla python integer, otherwise it's not handled by some backend
                 # especially if written in c++
                 nb_obj = int(nb_obj)
                 end_ += nb_obj
-                tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=dt_float)
+                # tmp = np.zeros(shape=(nb_obj, nb_obj), dtype=dt_float)
                 for obj1 in range(nb_obj):
+                    my_bus = self.topo_vect[beg_+obj1]
+                    if my_bus == -1:
+                        # object is disconnected, nothing is done
+                        continue
+                    # connect an object to itself
+                    row_ind.append(beg_ + obj1)
+                    col_ind.append(beg_ + obj1)
+
+                    # connect the other objects to it
                     for obj2 in range(obj1+1, nb_obj):
-                        if self.topo_vect[beg_+obj1] == self.topo_vect[beg_+obj2]:
+                        my_bus2 = self.topo_vect[beg_+obj2]
+                        if my_bus2 == -1:
+                            # object is disconnected, nothing is done
+                            continue
+                        if my_bus == my_bus2:
                             # objects are on the same bus
-                            tmp[obj1, obj2] = 1
-                            tmp[obj2, obj1] = 1
-
-                self._connectivity_matrix_[beg_:end_, beg_:end_] = tmp
+                            # tmp[obj1, obj2] = 1
+                            # tmp[obj2, obj1] = 1
+                            row_ind.append(beg_ + obj2)
+                            col_ind.append(beg_ + obj1)
+                            row_ind.append(beg_ + obj1)
+                            col_ind.append(beg_ + obj2)
                 beg_ += nb_obj
-            # connect the objects together with the lines (both ends of a lines are connected together)
-            for q_id in range(self.n_line):
-                self._connectivity_matrix_[self.line_or_pos_topo_vect[q_id], self.line_ex_pos_topo_vect[q_id]] = 1
-                self._connectivity_matrix_[self.line_ex_pos_topo_vect[q_id], self.line_or_pos_topo_vect[q_id]] = 1
 
+            # both ends of a line are connected together (if line is connected)
+            for q_id in range(self.n_line):
+                if self.line_status[q_id]:
+                    # if powerline is connected connect both its side
+                    row_ind.append(self.line_or_pos_topo_vect[q_id])
+                    col_ind.append(self.line_ex_pos_topo_vect[q_id])
+                    row_ind.append(self.line_ex_pos_topo_vect[q_id])
+                    col_ind.append(self.line_or_pos_topo_vect[q_id])
+            row_ind = np.array(row_ind).astype(dt_int)
+            col_ind = np.array(col_ind).astype(dt_int)
+            if not as_csr_matrix:
+                self._connectivity_matrix_ = np.zeros(shape=(self.dim_topo, self.dim_topo), dtype=dt_float)
+                self._connectivity_matrix_[row_ind.T, col_ind] = 1.0
+            else:
+                data = np.ones(row_ind.shape[0], dtype=dt_float)
+                self._connectivity_matrix_ = csr_matrix((data, (row_ind, col_ind)),
+                                                        shape=(self.dim_topo, self.dim_topo),
+                                                        dtype=dt_float)
         return self._connectivity_matrix_
 
     def _aux_fun_get_bus(self):
