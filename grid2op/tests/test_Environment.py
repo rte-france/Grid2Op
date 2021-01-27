@@ -88,10 +88,12 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         return dt_float(np.max(np.abs(pred - true))) <= self.tolvect
 
     def test_copy_env(self):
+        # first copying method
         cpy = Environment(**self.env.get_kwargs())
         obs1 = cpy.reset()
         obs2 = self.env.reset()
         assert obs1 == obs2
+        # test both coppy and not copy behave the same if we do the same
         obs1, reward1, done1, info1 = cpy.step(self.env.action_space())
         obs2, reward2, done2, info2 = self.env.step(self.env.action_space())
         assert abs(reward1 - reward2) <= self.tol_one
@@ -100,6 +102,31 @@ class TestLoadingBackendPandaPower(unittest.TestCase):
         for kk in info1.keys():
             assert np.all(info1[kk] == info2[kk])
         assert obs1 == obs2
+        # test they are different if we do different stuff
+        obs2, reward2, done2, info2 = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
+        obs1, reward1, done1, info1 = cpy.step(self.env.action_space())
+        assert obs1.line_status[0]
+        assert not obs2.line_status[0]
+        assert obs1 != obs2
+
+        # second copying method
+        self.env.reset()
+        env2 = self.env.copy()
+        # test both coppy and not copy behave the same if we do the same
+        obs1, reward1, done1, info1 = env2.step(self.env.action_space())
+        obs2, reward2, done2, info2 = self.env.step(self.env.action_space())
+        assert abs(reward1 - reward2) <= self.tol_one
+        assert done1 == done2
+        assert info1.keys() == info2.keys()
+        for kk in info1.keys():
+            assert np.all(info1[kk] == info2[kk])
+        assert obs1 == obs2
+        # test they are different if we do different stuff
+        obs2, reward2, done2, info2 = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
+        obs1, reward1, done1, info1 = env2.step(self.env.action_space())
+        assert obs1.line_status[0]
+        assert not obs2.line_status[0]
+        assert obs1 != obs2
 
     def test_step_doesnt_change_action(self):
         act = self.env.action_space()

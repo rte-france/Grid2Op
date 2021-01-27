@@ -241,7 +241,7 @@ class BaseAction(GridObjects):
     typically: 0 <= line_id <= env.n_line
 
     To modify the busbar at which an element is connected you can (if using set, to use "change" instead
-    replace "set_bus" in the text below by "change_bus" **eg* `nv.action_space({"change_bus": ...})`
+    replace "set_bus" in the text below by "change_bus" **eg** `nv.action_space({"change_bus": ...})`
     or `act.load_change_bus = ...` ):
 
     .. code-block:: python
@@ -282,7 +282,7 @@ class BaseAction(GridObjects):
     In the above typically 0 <= sub_id < env.n_sub and topo_sub is a vector having the right dimension (
     so if a substation has 4 elements, then topo_sub should have 4 elements)
 
-    It has to be noted that `act.sub_set_bus` will return a 1d vector representing the topologie
+    It has to be noted that `act.sub_set_bus` will return a 1d vector representing the topology
     of the grid as "set" by the action, with the convention, -1 => disconnect, 0 => don't change,
     1=> set to bus 1 and 2 => set object to bus 2.
 
@@ -2591,7 +2591,7 @@ class BaseAction(GridObjects):
             act.gen_set_bus([(1, 2), (0, -1)])
             # end do not run
 
-        Property cannot be set "directly", you have to use the `act.XXX = ..` syntax. For example:
+        Property cannot be set "directly", you have to use the `act.XXX = ...` syntax. For example:
 
         .. code-block:: python
 
@@ -2604,7 +2604,7 @@ class BaseAction(GridObjects):
             # end do not run
 
         .. note:: Be careful not to mix "change" and "set". For "change" you only need to provide the ID of the elements
-            you want to change, for "set" you need to provide the ID **ANDùù where you want to set them.
+            you want to change, for "set" you need to provide the ID **AND** where you want to set them.
 
         """
         res = self.set_bus[self.gen_pos_topo_vect]
@@ -3354,6 +3354,7 @@ class BaseAction(GridObjects):
         .. code-block:: python
 
             redisp = act.redispatch
+
         For each generator it will give the amount of redispatch this action wants to perform.
 
         To change the setpoint of the redispatching, you can do:

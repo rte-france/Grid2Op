@@ -51,6 +51,8 @@ Change Log
   it was as if there were connected together)
 - [FIXED] some surprising behaviour when using  `obs.simulate` just before or just after a planned
   maintenance operation.
+- [FIXED] a minimal bug in the `env.copy` method (the wrong simulated backend was used in the observation at
+  right after the copy).
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`

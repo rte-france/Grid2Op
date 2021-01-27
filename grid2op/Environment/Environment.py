@@ -674,6 +674,7 @@ class Environment(BaseEnv):
         res._helper_observation = tmp_obs_space.copy()
         res.observation_space = res._helper_observation
         res.current_obs = obs_tmp.copy()
+        res.current_obs._obs_env = res._helper_observation.obs_env  # retrieve the pointer to the proper backend
         res._voltage_controler = volt_cont.copy()
 
         if self._thermal_limit_a is not None:
