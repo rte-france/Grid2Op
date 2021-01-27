@@ -375,6 +375,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Allows to change the parameters of an environment.
 
+        Notes
+        ------
         This only affects the environment AFTER `env.reset()` has been called.
 
         This only affects the environment and NOT the forecast.
@@ -395,6 +397,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Allows to change the parameters of a "forecast environment".
 
+        Notes
+        ------
         This only affects the environment AFTER `env.reset()` has been called.
 
         This only affects the "forecast env" and NOT the env itself.
@@ -1900,8 +1904,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_reward_func:
             Either an object of class BaseReward, or a subclass of BaseReward: the new reward function to use
 
-        Returns
-        -------
+        Notes
+        ------
+        This only affects the environment AFTER `env.reset()` has been called.
 
         """
         is_ok = isinstance(new_reward_func, BaseReward) or issubclass(new_reward_func, BaseReward)
