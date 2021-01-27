@@ -16,21 +16,21 @@ from grid2op.tests.helper_path_test import *
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Observation import ObservationSpace, CompleteObservation
-from grid2op.Chronics import ChronicsHandler, GridStateFromFile
-from grid2op.Rules import RulesChecker
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridStateFromFileWithForecasts
+from grid2op.Rules import RulesChecker, DefaultRules
 from grid2op.Reward import L2RPNReward, CloseToOverflowReward, RedispReward
 from grid2op.Parameters import Parameters
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Environment import Environment
 from grid2op.MakeEnv import make
-from grid2op.Action import CompleteAction
+from grid2op.Action import CompleteAction, PlayableAction
 
 # TODO add unit test for the proper update the backend in the observation [for now there is a "data leakage" as
 # the real backend is copied when the observation is built, but i need to make a test to check that's it's properly
 # copied]
 
 # temporary deactivation of all the failing test until simulate is fixed
-DEACTIVATE_FAILING_TEST = True
+DEACTIVATE_FAILING_TEST = False
 
 import warnings
 warnings.simplefilter("error")
@@ -358,11 +358,25 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert mat6[:, lor_id2].nnz == 0
 
     def aux_test_conn_mat2(self, as_csr=False):
-        # when a powerline is disconnected
-        obs, *_ = self.env.step(self.env.action_space({"set_line_status": [(0, -1)]}))
-        assert obs.bus_connectivity_matrix(as_csr).shape == (14, 14)
+        l_id = 0
+        # check line is connected, and matrix is the right size
+        ob0 = self.env.get_obs()
+        mat0 = ob0.bus_connectivity_matrix(as_csr)
+        assert mat0.shape == (14, 14)
+        assert mat0[ob0.line_or_to_subid[l_id], ob0.line_ex_to_subid[l_id]] == 1.
+        assert mat0[ob0.line_ex_to_subid[l_id], ob0.line_or_to_subid[l_id]] == 1.
+
+        # when a powerline is disconnected, check it is disconnected
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_line_status": [(l_id, -1)]}))
+        assert not done
+        mat = obs.bus_connectivity_matrix(as_csr)
+        assert mat.shape == (14, 14)
+        assert mat[obs.line_or_to_subid[l_id], obs.line_ex_to_subid[l_id]] == 0.
+        assert mat[obs.line_ex_to_subid[l_id], obs.line_or_to_subid[l_id]] == 0.
+
         # when there is a substation counts 2 buses
-        obs, *_ = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
+        obs, reward, done, info = self.env.step(self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}}))
+        assert not done
         assert obs.bus_connectivity_matrix(as_csr).shape == (15, 15)
         assert obs.bus_connectivity_matrix(as_csr)[14, 11] == 1.  # first powerline I modified
         assert obs.bus_connectivity_matrix(as_csr)[14, 12] == 1.  # second powerline I modified
@@ -860,11 +874,6 @@ class TestObservationMaintenance(unittest.TestCase):
         The case file is a representation of the case14 as found in the ieee14 powergrid.
         :return:
         """
-        # from ADNBackend import ADNBackend
-        # self.backend = ADNBackend()
-        # self.path_matpower = "/home/donnotben/Documents/RL4Grid/RL4Grid/data"
-        # self.case_file = "ieee14_ADN.xml"
-        # self.backend.load_grid(self.path_matpower, self.case_file)
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
@@ -881,7 +890,7 @@ class TestObservationMaintenance(unittest.TestCase):
 
         # chronics
         self.path_chron = os.path.join(PATH_CHRONICS, "chronics_with_maintenance")
-        self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFile, path=self.path_chron)
+        self.chronics_handler = ChronicsHandler(chronicsClass=GridStateFromFileWithForecasts, path=self.path_chron)
 
         self.tolvect = 1e-2
         self.tol_one = 1e-5
@@ -919,7 +928,8 @@ class TestObservationMaintenance(unittest.TestCase):
                                parameters=self.env_params,
                                names_chronics_to_backend=self.names_chronics_to_backend,
                                rewardClass=self.rewardClass,
-                               name="test_obs_env2")
+                               name="test_obs_env2",
+                               legalActClass=DefaultRules)
 
     def tearDown(self) -> None:
         self.env.close()
@@ -944,6 +954,61 @@ class TestObservationMaintenance(unittest.TestCase):
                                                               -1,  -1, -1,  -1,  -1,  -1,  -1,  -1,  -1]))
         assert np.all(obs.duration_next_maintenance == np.array([ 0,  0,  0,  0, 11,  0, 12,  0,  0,  0,  0,  0,  0,
                                                                   0,  0,  0,  0, 0,  0,  0]))
+
+    def test_simulate_disco_planned_maintenance(self):
+        obs = self.env.get_obs()
+        assert obs.line_status[4]
+        assert obs.time_next_maintenance[4] == 1
+        assert obs.duration_next_maintenance[4] == 12
+
+        # line will be disconnected next time step
+        sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=1)
+        assert not sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == 0
+        assert sim_obs.duration_next_maintenance[4] == 11
+        # simulation at current step
+        sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=0)
+        assert sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == 1
+        assert sim_obs.duration_next_maintenance[4] == 12
+        # line will be disconnected next time step
+        sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=1)
+        assert not sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == 0
+        assert sim_obs.duration_next_maintenance[4] == 11
+
+        for ts in range(12):
+            obs, reward, done, info = self.env.step(self.env.action_space())
+        # maintenance will be over next time step
+        assert not obs.line_status[4]
+        assert obs.time_next_maintenance[4] == 0
+        assert obs.duration_next_maintenance[4] == 1
+
+        # if i don't do anything, it's updated properly
+        sim_obs, *_ = obs.simulate(self.env.action_space(), time_step=1)
+        assert not sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == -1
+        assert sim_obs.duration_next_maintenance[4] == 0
+
+        # i have the right to reconnect it (if i simulate in the future)
+        act = self.env.action_space()
+        act.line_set_status = [(4, +1)]
+        sim_obs, reward, done, info = obs.simulate(act, time_step=1)
+        assert not info["is_illegal"]
+        assert sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == -1
+        assert sim_obs.duration_next_maintenance[4] == 0
+
+        # i don't have the right to reconnect it if i don't simulate in the future
+        sim_obs, reward, done, info = obs.simulate(act, time_step=0)
+        assert info["is_illegal"]
+        assert not sim_obs.line_status[4]
+        assert sim_obs.time_next_maintenance[4] == 0
+        assert sim_obs.duration_next_maintenance[4] == 1
+        # TODO be careful here, if the rules allows for reconnection, then the
+        # TODO action becomes legal, and the powerline is reconnected
+        # TODO => this is because the "_obs_env" do not attempt to force the disconnection
+        # TODO of maintenance / hazards powerline
 
 
 class TestUpdateEnvironement(unittest.TestCase):
@@ -1049,12 +1114,7 @@ class TestUpdateEnvironement(unittest.TestCase):
 
 
 class TestSimulateEqualsStep(unittest.TestCase):
-    def setUp(self):
-        # Create env
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            self.env = make("rte_case14_realistic", test=True)
-
+    def _make_forecast_perfect(self):
         # Set forecasts to actual values so that simulate runs on the same numbers as step
         self.env.chronics_handler.real_data.data.prod_p_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_p, -1, axis=0)
         self.env.chronics_handler.real_data.data.prod_v_forecast = np.roll(self.env.chronics_handler.real_data.data.prod_v, -1, axis=0)
@@ -1062,6 +1122,13 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.env.chronics_handler.real_data.data.load_q_forecast = np.roll(self.env.chronics_handler.real_data.data.load_q, -1, axis=0)
         self.obs, _, _, _ = self.env.step(self.env.action_space({}))
 
+    def setUp(self):
+        # Create env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("rte_case14_realistic", test=True)
+
+        self._make_forecast_perfect()
         self.sim_obs = None
         self.step_obs = None
             
@@ -1075,7 +1142,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(donothing_act)
         self.step_obs, _, _, _ = self.env.step(donothing_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_change_line_status(self):
         # Get change status vector
@@ -1091,7 +1160,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert not done_real
         assert abs(reward_sim - reward_real) <= 1e-7
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_set_line_status(self):
         # Get set status vector
@@ -1104,7 +1175,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(set_act)
         self.step_obs, _, _, _ = self.env.step(set_act)        
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_change_bus(self):
         # Create a change bus action for all types
@@ -1144,7 +1217,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(set_act)
         self.step_obs, _, _, _ = self.env.step(set_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_redispatch(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1159,7 +1234,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(redisp_act)
         self.step_obs, _, _, _ = self.env.step(redisp_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_change_simulate_reward(self):
         """test the env.observation_space.change_other_reward function"""
@@ -1285,7 +1362,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_change_line_status(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1307,7 +1386,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
         
     def test_multi_simulate_last_set_line_status(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1328,7 +1409,10 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            pdb.set_trace()
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_change_bus(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1354,7 +1438,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_set_bus(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1384,7 +1470,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_multi_simulate_last_redispatch(self):
         if DEACTIVATE_FAILING_TEST:
@@ -1415,7 +1503,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Step with last action
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_forecasted_inj(self):
         sim_obs, _, _, _ = self.obs.simulate(self.env.action_space())
@@ -1435,7 +1525,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert np.all(np.abs(obs1.load_q - obs2.load_q) <= tol), "issue with load_q"
         assert np.all(np.abs(obs1.load_v - obs2.load_v) <= tol), "issue with load_v"
         assert np.all(np.abs(obs1.rho - obs2.rho) <= tol), "issue with rho"
-        assert np.all(np.abs(obs1.p_or - obs2.p_or) <= tol), "issue with p_or)"
+        assert np.all(np.abs(obs1.p_or - obs2.p_or) <= tol), "issue with p_or"
         assert np.all(np.abs(obs1.q_or - obs2.q_or) <= tol), "issue with q_or"
         assert np.all(np.abs(obs1.v_or - obs2.v_or) <= tol), "issue with v_or"
         assert np.all(np.abs(obs1.a_or - obs2.a_or) <= tol), "issue with a_or"
@@ -1443,6 +1533,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         assert np.all(np.abs(obs1.q_ex - obs2.q_ex) <= tol), "issue with q_ex"
         assert np.all(np.abs(obs1.v_ex - obs2.v_ex) <= tol), "issue with v_ex"
         assert np.all(np.abs(obs1.a_ex - obs2.a_ex) <= tol), "issue with a_ex"
+        assert np.all(np.abs(obs1.storage_power - obs2.storage_power) <= tol), "issue with storage_power"
 
     def test_simulate_current_ts(self):
         sim_obs, _, _, _ = self.obs.simulate(self.env.action_space(), time_step=0)
@@ -1461,7 +1552,38 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self._check_equal(sim_obs1, sim_obs3)
 
 
-## TODO test -- Add test to cover simulation vs step when there is a planned maintenance operation
+class TestSimulateEqualsStepStorage(TestSimulateEqualsStep):
+    def setUp(self):
+        # Create env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = make("educ_case14_storage", test=True, action_class=PlayableAction)
+        self._make_forecast_perfect()
+        self.sim_obs = None
+        self.step_obs = None
+
+    def test_storage_act(self):
+        """test i can do storage actions in simulate"""
+        act = self.env.action_space()
+        act.storage_power = [(0, 3)]
+        obs = self.env.get_obs()
+        sim_obs1, rew1, done1, _ = obs.simulate(act)
+        assert not done1
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        assert not done2
+        sim_obs3, rew3, done3, _ = obs.simulate(act)
+        assert not done3
+        real_obs, real_rew, real_done, _ = self.env.step(act)
+        assert not real_done
+
+        self._check_equal(sim_obs1, sim_obs3)
+        self._check_equal(sim_obs2, obs)
+        assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
+        self._check_equal(sim_obs1, sim_obs3)
+        assert abs(rew1 - real_rew) <= 1e-8, "issue with reward"
+        if real_obs != sim_obs3:
+            diff_, attr_diff = real_obs.where_different(sim_obs3)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
         
 if __name__ == "__main__":

@@ -87,7 +87,6 @@ class ObservationSpace(SerializableObservationSpace):
 
         # TODO here: have another backend maybe
         self._backend_obs = env.backend.copy()
-
         _ObsEnv_class = _ObsEnv.init_grid(self._backend_obs)
         self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
                                      obsClass=self.observationClass,

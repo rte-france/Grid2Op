@@ -1275,7 +1275,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._storage_current_charge[storage_act] += this_act_stor * coeff_p_to_E * eff_
             self._action_storage[storage_act] += action_storage_power[storage_act]
             self._storage_power[storage_act] = this_act_stor
-
         if modif:
             # indx when there is too much energy on the battery
             indx_too_high = self._storage_current_charge > self.storage_Emax

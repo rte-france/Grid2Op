@@ -102,6 +102,10 @@ class Backend(GridObjects, ABC):
     """
     env_name = "unknown"
 
+    # action to set me
+    my_bk_act_class = None
+    _complete_action_class = None
+
     def __init__(self, detailed_infos_for_cascading_failures=False):
         """
         Initialize an instance of Backend. This does nothing per se. Only the call to :func:`Backend.load_grid`
@@ -111,10 +115,6 @@ class Backend(GridObjects, ABC):
         :type detailed_infos_for_cascading_failures: :class:`bool`
 
         """
-        # lazy loading
-        from grid2op.Action import CompleteAction
-        from grid2op.Action._BackendAction import _BackendAction
-
         GridObjects.__init__(self)
 
         # the following parameter is used to control the amount of verbosity when computing a cascading failure
@@ -126,10 +126,6 @@ class Backend(GridObjects, ABC):
 
         # thermal limit setting, in ampere, at the same "side" of the powerline than self.get_line_overflow
         self.thermal_limit_a = None
-
-        # action to set me
-        self.my_bk_act_class = _BackendAction
-        self._complete_action_class = CompleteAction
 
         # for the shunt (only if supported)
         self._sh_vnkv = None  # for each shunt gives the nominal value at the bus at which it is connected
@@ -1368,6 +1364,17 @@ class Backend(GridObjects, ABC):
         backend_action += act
         self.apply_action(backend_action)
 
+    def assert_grid_correct(self):
+        # and set up the proper class and everything
+
+        # lazy loading
+        from grid2op.Action import CompleteAction
+        from grid2op.Action._BackendAction import _BackendAction
+        self.__class__ = self.init_grid(self)
+        self.my_bk_act_class = _BackendAction.init_grid(self)
+        self._complete_action_class = CompleteAction.init_grid(self)
+        super().assert_grid_correct()
+
     def assert_grid_correct_after_powerflow(self):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
@@ -1380,11 +1387,8 @@ class Backend(GridObjects, ABC):
         :return: ``None``
         :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.
         """
-        # test the results gives the proper size
-        self.__class__ = self.init_grid(self)
-        self.my_bk_act_class = self.my_bk_act_class.init_grid(self)
-        self._complete_action_class = self._complete_action_class.init_grid(self)
 
+        # test the results gives the proper size
         tmp = self.get_line_status()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines("returned by \"backend.get_line_status()\"")

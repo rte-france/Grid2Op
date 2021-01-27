@@ -17,10 +17,10 @@ from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 from scipy.sparse import csr_matrix
 
-# TODO make an action with the difference between the observation that would be an action.
-# TODO have a method that could do "forecast" by giving the _injection by the agent, if he wants to make custom forecasts
+# TODO have a method that could do "forecast" by giving the _injection by the agent,
+# TODO if he wants to make custom forecasts
 
-# TODO fix "bug" when action not initalized, return nan in to_vect
+# TODO fix "bug" when action not initalized it should return nan in to_vect
 
 # TODO be consistent with gen_* and prod_* also in dictionaries
 
@@ -160,7 +160,15 @@ class BaseObservation(GridObjects):
         information about all generators there, even the one that are not
         dispatchable.
 
-    # TODO storage description of the new attributes
+    storage_charge: :class:`numpy.ndarray`, dtype:float
+        The actual 'state of charge' of each storage unit, expressed in MWh.
+
+    storage_power_target: :class:`numpy.ndarray`, dtype:float
+        For each storage units, give the setpoint of production / consumption as given by the agent
+
+    storage_power: :class:`numpy.ndarray`, dtype:float
+        Give the actual storage production / loads at the given state.
+
     """
 
     _attr_eq = ["line_status",
@@ -381,6 +389,8 @@ class BaseObservation(GridObjects):
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if load_id >= len(self.load_p):
                 raise Grid2OpException("There are no load of id \"load_id={}\" in this grid.".format(load_id))
+            if load_id < 0:
+                raise Grid2OpException("`load_id` should be a positive integer")
 
             res = {"p": self.load_p[load_id],
                    "q": self.load_q[load_id],
@@ -393,6 +403,8 @@ class BaseObservation(GridObjects):
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if gen_id >= len(self.gen_p):
                 raise Grid2OpException("There are no generator of id \"gen_id={}\" in this grid.".format(gen_id))
+            if gen_id < 0:
+                raise Grid2OpException("`gen_id` should be a positive integer")
 
             res = {"p": self.gen_p[gen_id],
                    "q": self.gen_q[gen_id],
@@ -407,6 +419,8 @@ class BaseObservation(GridObjects):
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
             if line_id >= len(self.p_or):
                 raise Grid2OpException("There are no powerline of id \"line_id={}\" in this grid.".format(line_id))
+            if line_id < 0:
+                raise Grid2OpException("`line_id` should be a positive integer")
 
             res = {}
             # origin information
@@ -438,6 +452,11 @@ class BaseObservation(GridObjects):
         elif storage_id is not None:
             if substation_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if storage_id >= self.n_storage:
+                raise Grid2OpException("There are no storage unit with id \"storage_id={}\" in this grid.".format(line_id))
+            if storage_id < 0:
+                raise Grid2OpException("`storage_id` should be a positive integer")
+
             res = {}
             res["storage_power"] = self.storage_power[storage_id]
             res["storage_charge"] = self.storage_charge[storage_id]
@@ -656,6 +675,7 @@ class BaseObservation(GridObjects):
         Returns
         -------
         ``True`` if the action are equal, ``False`` otherwise.
+
         """
 
         if self.year != other.year:
@@ -691,12 +711,13 @@ class BaseObservation(GridObjects):
         This can be used to easily plot the difference between two observations at different step for
         example.
         """
+        same_grid = type(self).same_grid_class(type(other))
+        if not same_grid:
+            raise RuntimeError("Cannot compare to observation not coming from the same powergrid.")
         res = copy.deepcopy(self)
         for stat_nm in self._attr_eq:
-            # TODO handle the "same grid" and "same type" here!
-            diff_ = None
-            me_ = self.__getattribute__(stat_nm)
-            oth_ = other.__getattribute__(stat_nm)
+            me_ = getattr(self, stat_nm)
+            oth_ = getattr(other, stat_nm)
             if me_ is None and oth_ is None:
                 diff_ = None
             elif me_ is not None and oth_ is None:
@@ -712,7 +733,6 @@ class BaseObservation(GridObjects):
                     diff_ = ~np.logical_xor(me_, oth_)
                 else:
                     diff_ = me_ - oth_
-
             res.__setattr__(stat_nm,  diff_)
         return res
 
@@ -737,7 +757,7 @@ class BaseObservation(GridObjects):
         diff_ = self - other
         res = []
         for attr_nm in self._attr_eq:
-            array_ = diff_.__getattribute__(attr_nm)
+            array_ = getattr(diff_, attr_nm)
             if array_.dtype == dt_bool:
                 if np.any(~array_):
                     res.append(attr_nm)
@@ -1027,12 +1047,13 @@ class BaseObservation(GridObjects):
 
         - if object on bus 1, its bus is `sub_id`
         - if object on bus 2, its bus is `sub_id` + n_sub
-        - if object on bus 3, its bus is `sub_id` + n_sub
+        - if object on bus 3, its bus is `sub_id` + 2 * n_sub
         - etc.
 
         """
-        bus_id = self.topo_vect[id_topo_vect]
+        bus_id = 1 * self.topo_vect[id_topo_vect]
         connected = bus_id > 0
+        # bus_id[connected] = sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
         bus_id[connected] += sub_id[connected] + (bus_id[connected] - 1) * self.n_sub
         bus_id -= 1  # because its label 1-2 and not 0-1
         bus_id[~connected] = -1
@@ -1095,8 +1116,6 @@ class BaseObservation(GridObjects):
         matrix. `flow_mat.sum(axis=1)`
 
         """
-        # TODO refacto these five calls in one function that would do all and reuse it for the
-        # other methods of Observation (bus_connectivity_matrix)
         nb_bus, unique_bus, bus_or, bus_ex = self._aux_fun_get_bus()
         prod_bus, prod_conn = self._get_bus_id(self.gen_pos_topo_vect, self.gen_to_subid)
         load_bus, load_conn = self._get_bus_id(self.load_pos_topo_vect, self.load_to_subid)
@@ -1109,8 +1128,6 @@ class BaseObservation(GridObjects):
             sh_bus[sh_bus > 0] = self.shunt_to_subid[sh_bus > 0]*(sh_bus[sh_bus > 0] - 1) + \
                                  self.shunt_to_subid[sh_bus > 0]
             sh_conn = self._shunt_bus != -1
-
-        # TODO shunts !!!
 
         # convert the bus to be "id of row or column in the matrix" instead of the bus id with
         # the "grid2op convention"
@@ -1337,7 +1354,6 @@ class BaseObservation(GridObjects):
             # `simulated_info` gives extra information on this forecast state
 
         """
-        # TODO storage: check the action in the simulate case too !
         if self.action_helper is None or self._obs_env is None:
             raise NoForecastAvailable("No forecasts are available for this instance of BaseObservation "
                                       "(no action_space "
@@ -1618,7 +1634,35 @@ class BaseObservation(GridObjects):
         Returns
         -------
         res: :class:`grid2op.Observation.Observation`
-            The resulting observation, that can only be used for
+            The resulting observation. Note that this observation is not initialized with everything.
+            It is only relevant when you want to study the resulting topology after you applied an
+            action. Lots of `res` attributes are empty.
+
+        Examples
+        --------
+        You can use it this way, for example if you want to retrieve the topology you would get (see the restriction
+        in the above description) after applying an action:
+
+        .. code-block:: python
+
+            obs = ...  # any observation you want
+            act = ...  # any action you want
+
+            res_obs = obs + act
+
+            # and now you can inspect the topology with any method you want:
+            res_obs.topo_vect
+            res_obs.load_bus
+            bus_mat = res_obs.bus_connectivity_matrix()
+            # or even
+            elem_mat = res_obs.connectivity_matrix()
+
+            # but you cannot use
+            res_obs.prod_p
+            # or
+            res_obs.load_q
+            etc.
+
         """
 
         from grid2op.Action import BaseAction
@@ -1751,4 +1795,4 @@ class BaseObservation(GridObjects):
         return res
 
     def __add__(self, act):
-        return self.add_act(act)
+        return self.add_act(act, do_warn=False)

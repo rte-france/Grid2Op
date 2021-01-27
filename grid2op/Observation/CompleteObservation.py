@@ -77,8 +77,12 @@ class CompleteObservation(BaseObservation):
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         30. :attr:`BaseObservation.actual_dispatch` the actual dispatch for each generator
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-
-    # TODO storage doc!!
+        31. :attr:`BaseObservation.storage_charge` the actual state of charge of each storage unit
+            [:attr:`grid2op.Space.GridObjects.n_storage` elements]
+        32. :attr:`BaseObservation.storage_power_target` the production / consumption of setpoint of each storage unit
+            [:attr:`grid2op.Space.GridObjects.n_storage` elements]
+        33. :attr:`BaseObservation.storage_power` the realized production / consumption of each storage unit
+            [:attr:`grid2op.Space.GridObjects.n_storage` elements]
     """
     attr_list_vect = [
         "year", "month", "day", "hour_of_day",
@@ -135,8 +139,8 @@ class CompleteObservation(BaseObservation):
 
         # storage units
         self.storage_charge[:] = env._storage_current_charge
-        self.storage_power_target = env._action_storage
-        self.storage_power = env._storage_power
+        self.storage_power_target[:] = env._action_storage
+        self.storage_power[:] = env._storage_power
 
         # handles forecasts here
         if with_forecast:
