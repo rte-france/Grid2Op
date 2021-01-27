@@ -229,7 +229,7 @@ class _BackendAction(GridObjects):
         self.load_p.reorder(no_load)
         self.load_q.reorder(no_load)
 
-        self.storage_power.reorder(no_storage)  # TODO
+        self.storage_power.reorder(no_storage)
 
         if self.shunts_data_available:
             self.shunt_p.reorder(no_shunt)
@@ -304,7 +304,7 @@ class _BackendAction(GridObjects):
         set_topo_vect = other._set_topo_vect
         switcth_topo_vect = other._change_bus_vect
         redispatching = other._redispatch
-        storage_power = other._storage_power  # TODO
+        storage_power = other._storage_power
 
         # I deal with injections
         # Ia set the injection

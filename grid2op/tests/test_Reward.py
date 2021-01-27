@@ -178,11 +178,12 @@ class TestCombinedReward(TestLoadingReward, unittest.TestCase):
         added = cr.addReward("Gameplay", gr, 2.0)
         assert added is True
 
+        self.env.change_reward(cr)
         obs = self.env.reset()
-        cr.initialize(self.env)
-        _, r, d, i = obs.simulate(self.env.action_space({}))
-        assert d is False
-        assert r == 42.0
+        assert self.env.reward_range == (-42, 42)
+        _, reward, done, info = obs.simulate(self.env.action_space({}))
+        assert done is False
+        assert reward == 42.0
 
 
 if __name__ == "__main__":

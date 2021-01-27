@@ -14,13 +14,11 @@ from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
 
-
-# TODO code "convert_for" and "convert_from" to be able to change the backend (should be handled by the backend directly)
-# TODO have something that output a dict like "i want to change this element" (with a simpler API than the update stuff)
 # TODO time delay somewhere (eg action is implemented after xxx timestep, and not at the time where it's proposed)
 
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
 # TODO ie:  action + (rev_action) = do_nothing_action
+
 
 class BaseAction(GridObjects):
     """
@@ -388,6 +386,9 @@ class BaseAction(GridObjects):
             BaseAction.authorized_keys.add("shunt")
             BaseAction._update_value_set()
 
+        # todo could be set as a class attribute
+        self._topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
+
         self._single_act = True
 
         # change the stuff
@@ -655,9 +656,6 @@ class BaseAction(GridObjects):
         self._lines_impacted = self._switch_line_status | (self._set_line_status != 0)
         self._subs_impacted = np.full(shape=self.sub_info.shape, fill_value=False, dtype=dt_bool)
 
-        # todo could be set as a class attribute
-        _topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
-
         # compute the changes of the topo vector
         effective_change = self._change_bus_vect | (self._set_topo_vect != 0)
 
@@ -690,7 +688,7 @@ class BaseAction(GridObjects):
             effective_change[self.line_or_pos_topo_vect[disco_set_ex]] = False
             effective_change[self.line_ex_pos_topo_vect[disco_set_ex]] = False
 
-        self._subs_impacted[_topo_vect_to_sub[effective_change]] = True
+        self._subs_impacted[self._topo_vect_to_sub[effective_change]] = True
         return self._lines_impacted, self._subs_impacted
 
     def reset(self):
@@ -948,6 +946,9 @@ class BaseAction(GridObjects):
             This array, that has the same size as the number of generators indicates for each generator the amount of
             redispatching performed by the action.
 
+        storage_power: :class:`numpy.ndarray`, dtype:float
+            Indicates, for all storage units, what is the production / absorbtion setpoint
+
         shunts: ``dict``
             A dictionnary containing the shunts data, with keys: "shunt_p", "shunt_q" and "shunt_bus" and the
             convention, for "shun_p" and "shunt_q" that Nan means "don't change" and for shunt_bus: -1 => disconnect
@@ -968,7 +969,7 @@ class BaseAction(GridObjects):
         set_topo_vect = self._set_topo_vect
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
-        storage_power = self._storage_power  # TODO
+        storage_power = self._storage_power
         shunts = {}
         if self.shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
@@ -1519,7 +1520,6 @@ class BaseAction(GridObjects):
                 raise InvalidRedispatching("Trying to apply a redispatching action on a non redispatchable generator")
 
             if self._single_act:
-                # TODO check that when action is made (and check also the buses id, don't put 3 for example...)
                 if np.any(self._redispatch > self.gen_max_ramp_up):
                    raise InvalidRedispatching("Some redispatching amount are above the maximum ramp up")
                 if np.any(-self._redispatch > self.gen_max_ramp_down):
@@ -1708,8 +1708,7 @@ class BaseAction(GridObjects):
             res.append("\t - NOT change anything to the injections")
 
         # redispatch
-        # TODO use impact instead
-        if np.any(self._redispatch != 0.):
+        if self._modif_redispatch:
             for gen_idx in range(self.n_gen):
                 if self._redispatch[gen_idx] != 0.0:
                     gen_name = self.name_gen[gen_idx]
@@ -1719,7 +1718,6 @@ class BaseAction(GridObjects):
             res.append("\t - NOT perform any redispatching action")
 
         # storage
-        # TODO use impact instead
         if self._modif_storage:
             for stor_idx in range(self.n_storage):
                 tmp = self._storage_power[stor_idx]
@@ -1979,7 +1977,7 @@ class BaseAction(GridObjects):
             disconnected because of maintenance operations.
           * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
             dispatchable one) the amount of power redispatched in this action.
-          * `storage` #TODO storage doc
+          * `storage_power`: the setpoint for production / consumption for all storage units
 
 
         Returns
@@ -2055,7 +2053,7 @@ class BaseAction(GridObjects):
             res["redispatch"] = self._redispatch
 
         if self._modif_storage:
-            res["storage"] = self._modif_storage
+            res["storage_power"] = self._storage_power
 
         return res
 
@@ -2067,14 +2065,22 @@ class BaseAction(GridObjects):
         - "voltage": does this action modifies the generator voltage setpoint or the shunts
         - "topology": does this action modifies the topology of the grid (*ie* set or switch some buses)
         - "line": does this action modifies the line status
-        - "redispatching" does this action modifies the
+        - "redispatching" does this action modifies the redispatching
+        - "storage" does this action impact the production / consumption of storage units
+
+        Notes
+        ------
 
         A single action can be of multiple types.
 
-        Do nothing has no types at all.
+        The `do nothing` has no type at all.
 
-        **NB** if a line only set / change the status of a powerline then it does not count as a topological
+        If a line only set / change the status of a powerline then it does not count as a topological
         modification.
+
+        If the bus to which a storage unit is connected is modified, but there is no setpoint for
+        the production / consumption of any storage units, then the action is **NOT** taged as
+        an action on the storage units.
 
         Returns
         -------
@@ -2088,8 +2094,10 @@ class BaseAction(GridObjects):
             Does it affect the line status (line status change / switch are **NOT** counted as topology)
         redispatching: ``bool``
             Does it performs (explicitly) any redispatching
+        storage: ``bool``
+            Does it performs (explicitly) any action on the storage production / consumption
+
         """
-        # TODO storage !
         injection = "load_p" in self._dict_inj or "prod_p" in self._dict_inj
         voltage = "prod_v" in self._dict_inj
         if self.shunts_data_available:
@@ -2101,7 +2109,8 @@ class BaseAction(GridObjects):
         topology = np.any(subs_impacted)
         line = np.any(lines_impacted)
         redispatching = np.any(self._redispatch != 0.)
-        return injection, voltage, topology, line, redispatching
+        storage = self._modif_storage
+        return injection, voltage, topology, line, redispatching, storage
 
     def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None,
                   storage_id=None):
@@ -2202,6 +2211,11 @@ class BaseAction(GridObjects):
         if load_id is not None:
             if gen_id is not None or line_id is not None or storage_id is not None or substation_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if load_id >= self.n_load:
+                raise Grid2OpException(f"There are only {self.n_load} loads on the grid. Cannot check impact on "
+                                       f"`load_id={load_id}`")
+            if load_id < 0:
+                raise Grid2OpException(f"`load_id` should be positive.")
             res = {"new_p": np.NaN, "new_q": np.NaN, "change_bus": False, "set_bus": 0}
             if "load_p" in self._dict_inj:
                 res["new_p"] = self._dict_inj["load_p"][load_id]
@@ -2214,6 +2228,11 @@ class BaseAction(GridObjects):
         elif gen_id is not None:
             if line_id is not None or storage_id is not None or substation_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if gen_id >= self.n_gen:
+                raise Grid2OpException(f"There are only {self.n_gen} gens on the grid. Cannot check impact on "
+                                       f"`gen_id={gen_id}`")
+            if gen_id < 0:
+                raise Grid2OpException(f"`gen_id` should be positive.")
             res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0, "change_bus": False}
             if "prod_p" in self._dict_inj:
                 res["new_p"] = self._dict_inj["prod_p"][gen_id]
@@ -2227,6 +2246,11 @@ class BaseAction(GridObjects):
         elif line_id is not None:
             if storage_id is not None or substation_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if line_id >= self.n_line:
+                raise Grid2OpException(f"There are only {self.n_line} powerlines on the grid. Cannot check impact on "
+                                       f"`line_id={line_id}`")
+            if line_id < 0:
+                raise Grid2OpException(f"`line_id` should be positive.")
             res = {}
             # origin topology
             my_id = self.line_or_pos_topo_vect[line_id]
@@ -2243,6 +2267,12 @@ class BaseAction(GridObjects):
         elif storage_id is not None:
             if substation_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
+            if storage_id >= self.n_storage:
+                raise Grid2OpException(f"There are only {self.n_storage} storage units on the grid. "
+                                       f"Cannot check impact on "
+                                       f"`storage_id={storage_id}`")
+            if storage_id < 0:
+                raise Grid2OpException(f"`storage_id` should be positive.")
             res = {"power": np.NaN, "set_bus": 0, "change_bus": False}
             my_id = self.storage_pos_topo_vect[storage_id]
             res["change_bus"] = self._change_bus_vect[my_id]
@@ -2250,6 +2280,13 @@ class BaseAction(GridObjects):
             res["power"] = self._storage_power[storage_id]
 
         else:
+            if substation_id >= self.n_sub:
+                raise Grid2OpException(f"There are only {self.n_sub} substations on the grid. "
+                                       f"Cannot check impact on "
+                                       f"`substation_id={storage_id}`")
+            if substation_id < 0:
+                raise Grid2OpException(f"`substation_id` should be positive.")
+
             res = {}
             beg_ = int(np.sum(self.sub_info[:substation_id]))
             end_ = int(beg_ + self.sub_info[substation_id])
@@ -2274,7 +2311,7 @@ class BaseAction(GridObjects):
         """
         storage_power = 1.0 * self._storage_power
         storage_set_bus = 1 * self._set_topo_vect[self.storage_pos_topo_vect]
-        storage_change_bus = 1 * self._change_bus_vect[self.storage_pos_topo_vect]
+        storage_change_bus = copy.deepcopy(self._change_bus_vect[self.storage_pos_topo_vect])
         return storage_power, storage_set_bus, storage_change_bus
 
     def get_load_modif(self):
@@ -2299,7 +2336,7 @@ class BaseAction(GridObjects):
         if "load_q" in self._dict_inj:
             load_q[:] = self._dict_inj["load_q"]
         load_set_bus = 1 * self._set_topo_vect[self.load_pos_topo_vect]
-        load_change_bus = 1 * self._change_bus_vect[self.load_pos_topo_vect]
+        load_change_bus = copy.deepcopy(self._change_bus_vect[self.load_pos_topo_vect])
         return load_p, load_q, load_set_bus, load_change_bus
 
     def get_gen_modif(self):
@@ -2325,7 +2362,7 @@ class BaseAction(GridObjects):
         if "prod_v" in self._dict_inj:
             gen_v[:] = self._dict_inj["prod_v"]
         gen_set_bus = 1 * self._set_topo_vect[self.gen_pos_topo_vect]
-        gen_change_bus = 1 * self._change_bus_vect[self.gen_pos_topo_vect]
+        gen_change_bus = copy.deepcopy(self._change_bus_vect[self.gen_pos_topo_vect])
         return gen_p, gen_v, gen_set_bus, gen_change_bus
 
     # TODO do the get_line_modif, get_line_or_modif and get_line_ex_modif

@@ -1795,4 +1795,4 @@ class BaseObservation(GridObjects):
         return res
 
     def __add__(self, act):
-        return self.add_act(act, do_warn=False)
+        return self.add_act(act, do_warn=True)

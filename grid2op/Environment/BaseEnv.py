@@ -359,6 +359,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # to change the parameters
         self.__new_param = None
         self.__new_forecast_param = None
+        self.__new_reward_func = None
 
         # storage units
         # TODO storage: what to do when self.storage_Emin >0. and self.storage_loss > 0.
@@ -529,6 +530,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.__new_forecast_param is not None:
             self._helper_observation._change_parameters(self.__new_forecast_param)
             self.__new_forecast_param = None
+        if self.__new_reward_func is not None:
+            self._reward_helper.change_reward(self.__new_reward_func)
+            self._reward_helper.initialize(self)
+            self.reward_range = self._reward_helper.range()
+            # change also the reward used in simulate
+            self._helper_observation.change_reward(self._reward_helper.template_reward)
+            self.__new_reward_func = None
 
         self._reset_storage()
 
@@ -1882,3 +1890,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def parameters(self, value):
         raise RuntimeError("Use the env.change_parameters(new_parameters) to change the parameters. "
                            "NB: it will only have an effect AFTER the env is reset.")
+
+    def change_reward(self, new_reward_func):
+        """
+        Change the reward function used for the environment.
+
+        Parameters
+        ----------
+        new_reward_func:
+            Either an object of class BaseReward, or a subclass of BaseReward: the new reward function to use
+
+        Returns
+        -------
+
+        """
+        is_ok = isinstance(new_reward_func, BaseReward) or issubclass(new_reward_func, BaseReward)
+        if not is_ok:
+            raise EnvError(f"Impossible to change the reward function with type {type(new_reward_func)}. "
+                           f"It should be an object from a class that inherit grid2op.Reward.BaseReward "
+                           f"or a subclass of grid2op.Reward.BaseReward")
+        self.__new_reward_func = new_reward_func

@@ -74,13 +74,13 @@ class ObservationSpace(SerializableObservationSpace):
         # self.simulate_parameters.ENV_DC = self.parameters.FORECAST_DC
 
         if rewardClass is None:
-            self.rewardClass = env.rewardClass
+            self._reward_func = env._reward_helper.template_reward
         else:
-            self.rewardClass = rewardClass
+            self._reward_func = rewardClass
 
         # helpers
         self.action_helper_env = env._helper_action_env
-        self.reward_helper = RewardHelper(rewardClass=self.rewardClass)
+        self.reward_helper = RewardHelper(reward_func=self._reward_func)
         self.reward_helper.initialize(env)
 
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
@@ -158,6 +158,9 @@ class ObservationSpace(SerializableObservationSpace):
 
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(self.obs_env)
+
+    def change_reward(self, reward_func):
+        self.obs_env._reward_helper.change_reward(reward_func)
 
     def reset_space(self):
         if self.with_forecast:

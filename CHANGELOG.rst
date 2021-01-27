@@ -40,6 +40,8 @@ Change Log
 - [BREAKING] change of behaviour of the `env.parameters` attribute behaviour. It is no more possible to
   modified it with `env.parameters = ...` and the `env.parameters.PARAM_ATTRIBUTE = xxx` will have not effect
   at all.
+- [BREAKING] `env.obs_space.rewardClass` is not private and is called `env.obs_space._reward_func`. To change
+  this function, you need to call `env.change_reward(...)`
 - [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
   at the end of an episode.
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
