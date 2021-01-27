@@ -187,7 +187,10 @@ class GridObjects:
         number of loads in the powergrid. [*class attribute*]
 
     n_sub: :class:`int`
-        number of loads in the powergrid. [*class attribute*]
+        number of substations in the powergrid. [*class attribute*]
+
+    n_storage: :class:`int`
+        number of storage units in the powergrid. [*class attribute*]
 
     dim_topo: :class:`int`
         The total number of objects in the powergrid.
@@ -210,6 +213,9 @@ class GridObjects:
     line_ex_to_subid: :class:`numpy.ndarray`, dtype:int
         for each line, gives the id the substation to which its "extremity" end is connected [*class attribute*]
 
+    storage_to_subid: :class:`numpy.ndarray`, dtype:int
+        for each storage unit, gives the id the substation to which it is connected [*class attribute*]
+
     load_to_sub_pos: :class:`numpy.ndarray`, dtype:int
         Suppose you represent the topoology of the substation *s* with a vector (each component of this vector will
         represent an object connected to this substation). This vector has, by definition the size
@@ -228,6 +234,9 @@ class GridObjects:
     line_ex_to_sub_pos: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_to_sub_pos` but for "extremity" end of powerlines. [*class attribute*]
 
+    storage_to_sub_pos: :class:`numpy.ndarray`, dtype:int
+        same as :attr:`GridObjects.load_to_sub_pos` but for storage units. [*class attribute*]
+
     load_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
         The topology if the entire grid is given by a vector, say *topo_vect* of size
         :attr:`GridObjects.dim_topo`. For a given load of id *l*,
@@ -245,6 +254,9 @@ class GridObjects:
     line_ex_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
         same as :attr:`GridObjects.load_pos_topo_vect` but for "extremity" end of powerlines. [*class attribute*]
 
+    storage_pos_topo_vect: :class:`numpy.ndarray`, dtype:int
+        same as :attr:`GridObjects.load_pos_topo_vect` but for storage units. [*class attribute*]
+
     name_load: :class:`numpy.ndarray`, dtype:str
         ordered names of the loads in the grid. [*class attribute*]
 
@@ -256,6 +268,9 @@ class GridObjects:
 
     name_sub: :class:`numpy.ndarray`, dtype:str
         ordered names of the substation in the grid [*class attribute*]
+
+    name_storage: :class:`numpy.ndarray`, dtype:str
+        ordered names of the storage units in the grid [*class attribute*]
 
     attr_list_vect: ``list``, static
         List of string. It represents the attributes that will be stored to/from vector when the BaseObservation is converted
@@ -357,7 +372,34 @@ class GridObjects:
     shunt_to_subid: :class:`numpy.ndarray`, dtype:int
         for each shunt (if supported), gives the id the substation to which it is connected [*class attribute*]
 
-    # TODO storage doc of attributes here
+    storage_type:
+        type of each storage units, one of "battery" or "pumped storage"
+
+    storage_Emax:
+        maximum energy the storage unit can store, in MWh
+
+    storage_Emin:
+        minimum energy in the storage unit, in MWh
+
+    storage_max_p_prod:
+        maximum power the storage unit can produce (in MW)
+
+    storage_max_p_absorb :
+        maximum power the storage unit can absorb (in MW)
+
+    storage_marginal_cost:
+        Cost of usage of the storage unit, when charged or discharged, in $/MWh produced (or absorbed)
+
+    storage_loss:
+        The self discharged loss of each storage unit (in MW)
+
+    storage_charging_efficiency:
+        The efficiency when the storage unit is charging (how much will the capacity increase when the
+        unit is charging) between 0. and 1.
+
+    storage_discharging_efficiency:
+        The efficiency when the storage unit is discharging (how much will the capacity decrease
+        to generate a 1MWh of energy on the grid side) between 0. and 1.
 
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """
@@ -367,7 +409,7 @@ class GridObjects:
     GEN_COL = 2
     LOR_COL = 3
     LEX_COL = 4
-    STORAGE_COL = 5  # TODO
+    STORAGE_COL = 5
 
     attr_list_vect = None
     attr_list_set = {}
@@ -388,7 +430,7 @@ class GridObjects:
     n_load = -1
     n_line = -1
     n_sub = -1
-    n_storage = -1  # TODO
+    n_storage = -1
 
     sub_info = None
     dim_topo = -1
@@ -398,21 +440,21 @@ class GridObjects:
     gen_to_subid = None
     line_or_to_subid = None
     line_ex_to_subid = None
-    storage_to_subid = None  # TODO
+    storage_to_subid = None
 
     # which index has this element in the substation vector
     load_to_sub_pos = None
     gen_to_sub_pos = None
     line_or_to_sub_pos = None
     line_ex_to_sub_pos = None
-    storage_to_sub_pos = None  # TODO
+    storage_to_sub_pos = None
 
     # which index has this element in the topology vector
     load_pos_topo_vect = None
     gen_pos_topo_vect = None
     line_or_pos_topo_vect = None
     line_ex_pos_topo_vect = None
-    storage_pos_topo_vect = None  # TODO
+    storage_pos_topo_vect = None
 
     # "convenient" way to retrieve information of the grid
     grid_objects_types = None

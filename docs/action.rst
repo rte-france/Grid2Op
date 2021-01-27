@@ -32,8 +32,8 @@ understands its return type.
 The :class:`BaseAction` and all its derivatives also offer some usefull inspection utilities:
 
   - :func:`BaseAction.__str__` prints the action in a format that gives usefull information on how it will
-affect the powergrid
-  - :func:`BaseAction.effect_on` returns a dictionnary that gives information about its effect.
+    affect the powergrid
+  - :func:`BaseAction.effect_on` returns a dictionary that gives information about its effect.
 
 From :class:`BaseAction` inherit in particular the :class:`PlayableAction`, the base class of all action that
 players are allowed to play.
@@ -151,7 +151,7 @@ Now to retrieve a "graph like" object, you can :
     # method 2
     obs_add = obs + add
 
-And refer to the section :sec:`observation_module_graph` to retrieve a graph structure from these observations.
+And refer to the section :ref:`observation_module_graph` to retrieve a graph structure from these observations.
 For example:
 
 .. code-block:: python

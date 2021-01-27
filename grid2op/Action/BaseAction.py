@@ -42,6 +42,7 @@ class BaseAction(GridObjects):
     To be valid, an action should be convertible to a tuple of 5 elements:
 
     - the first element is the "injections" vector: representing the way generator units and loads are modified
+
         - It is, in turn, a dictionary with the following keys (optional)
 
             - "load_p" a vector of the same size of the load, giving the modification of the loads active consumption
@@ -2488,7 +2489,14 @@ class BaseAction(GridObjects):
 
     @property
     def load_set_bus(self):
-        return self.set_bus[self.load_pos_topo_vect]
+        """
+        Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
+        res = self.set_bus[self.load_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @load_set_bus.setter
     def load_set_bus(self, values):
@@ -2507,7 +2515,101 @@ class BaseAction(GridObjects):
 
     @property
     def gen_set_bus(self):
-        return self.set_bus[self.gen_pos_topo_vect]
+        """
+        Allows to retrieve (and affect) the busbars at which the action **set** the generator units.
+
+        Returns
+        -------
+        res:
+            A vector of integer, of size `act.n_gen` indicating what type of action is performed for
+            each generator units with the convention :
+
+            * 0 the action do not action on this storage unit
+            * -1 the action disconnect the storage unit
+            * 1 the action set the storage unit to busbar 1
+            * 2 the action set the storage unit to busbar 2
+
+        Examples
+        --------
+
+        To retrieve the impact of the action on the storage unit, you can do:
+
+        .. code-block:: python
+
+            gen_buses = act.gen_set_bus
+
+        To modify these buses with **set** you can do:
+
+        .. code-block:: python
+
+            # create an environment where i can modify everything
+            import numpy as np
+            import grid2op
+            from grid2op.Action import CompleteAction
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+
+            # create an action
+            act = env.action_space()
+
+            # method 1 : provide the full vector
+            act.gen_set_bus = np.ones(act.n_gen, dtype=int)
+
+            # method 2: provide the index of the unit you want to modify
+            act.gen_set_bus = (1, 2)
+
+            # method 3: provide a list of the units you want to modify
+            act.gen_set_bus = [(1, 2), (0, -1)]
+
+            # method 4: change the storage unit by their name with a dictionary
+            act.gen_set_bus = {"gen_1_0": 2}
+
+        .. note:: The "rule of thumb" to modify an object using "set" method it to provide always
+            the ID of an object AND its value. The ID should be an integer (or a name in some cases)
+            and the value an integer representing on which busbar to put the new element.
+
+        Notes
+        -----
+        It is a "property", you don't have to use parenthesis to access it:
+
+        .. code-block:: python
+
+            # valid code
+            gen_buses = act.gen_set_bus
+
+            # invalid code, it will crash, do not run
+            gen_buses = act.gen_set_bus()
+            # end do not run
+
+        And neither should you uses parenthesis to modify it:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_set_bus = [(1, 2), (0, -1)]
+
+            # invalid code, it will crash, do not run
+            act.gen_set_bus([(1, 2), (0, -1)])
+            # end do not run
+
+        Property cannot be set "directly", you have to use the `act.XXX = ..` syntax. For example:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_set_bus = [(1, 2), (0, -1)]
+
+            # invalid code, it will raise an error, and even if it did not it would have not effect
+            # do not run
+            act.gen_set_bus[1] = 2
+            # end do not run
+
+        .. note:: Be careful not to mix "change" and "set". For "change" you only need to provide the ID of the elements
+            you want to change, for "set" you need to provide the ID **ANDùù where you want to set them.
+
+        """
+        res = self.set_bus[self.gen_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @gen_set_bus.setter
     def gen_set_bus(self, values):
@@ -2526,10 +2628,16 @@ class BaseAction(GridObjects):
 
     @property
     def storage_set_bus(self):
-        # TODO doc: of all the properties
+        """
+        Allows to retrieve (and affect) the busbars at which each storage unit is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
         if "set_storage" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
-        return self.set_bus[self.storage_pos_topo_vect]
+        res = self.set_bus[self.storage_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @storage_set_bus.setter
     def storage_set_bus(self, values):
@@ -2551,7 +2659,11 @@ class BaseAction(GridObjects):
 
     @property
     def line_or_set_bus(self):
-        # TODO doc: of all the properties
+        """
+        Allows to retrieve (and affect) the busbars at which the origin side of each powerline is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
         return self.set_bus[self.line_or_pos_topo_vect]
 
     @line_or_set_bus.setter
@@ -2572,7 +2684,11 @@ class BaseAction(GridObjects):
 
     @property
     def line_ex_set_bus(self):
-        # TODO doc: of all the properties
+        """
+        Allows to retrieve (and affect) the busbars at which the extremity side of each powerline is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
+        """
         return self.set_bus[self.line_ex_pos_topo_vect]
 
     @line_ex_set_bus.setter
@@ -2593,7 +2709,41 @@ class BaseAction(GridObjects):
 
     @property
     def set_bus(self):
-        # TODO doc: of all the properties
+        """
+        Allows to retrieve (and affect) the busbars at which any element is **set**.
+
+        It behaves similarly as :attr:`BaseAction.gen_set_bus` and can be use to modify any elements type
+        as opposed to the more specific :attr:`BaseAction.gen_set_bus`, :attr:`BaseAction.load_set_bus`,
+        :attr:`BaseAction.line_or_set_bus`, :attr:`BaseAction.line_ex_set_bus` or
+        :attr:`BaseAction.storage_set_bus` that are specific to a certain type of objects.
+
+        Notes
+        -----
+
+        For performance reasons, it do not allow to modify the elements by there names.
+
+        The order of each elements are given in the :attr:`grid2op.Space.GridObjects.gen_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_or_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_ex_pos_topo_vect` or
+        :attr:`grid2op.Space.GridObjects.storage_pos_topo_vect`
+
+        For example:
+
+        .. code-block:: python
+
+            act.set_bus [(0,1), (1, -1), (3, 2)]
+
+        Will:
+
+          * set to bus 1 the (unique) element for which \*_pos_topo_vect is 1
+          * disconnect the (unique) element for which \*_pos_topo_vect is 2
+          * set to bus 2 the (unique) element for which \*_pos_topo_vect is 3
+
+        You can use the documentation page :ref:`modeled-elements-module` for more information about which
+        element correspond to what component of this vector.
+
+        """
         if "set_bus" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the bus (with \"set\") with this action type.")
         res = 1 * self._set_topo_vect
@@ -2618,7 +2768,21 @@ class BaseAction(GridObjects):
 
     @property
     def line_set_status(self):
-        # TODO doc: of all the properties
+        """
+        Property to set the status of the powerline.
+
+        It behave similarly than :attr:`BaseAction.gen_set_bus` but with the following convention:
+
+        * 0 still means it is not affected
+        * +1 means that we force the connection on a powerline
+        * -1 means we force the disconnection of a powerline
+
+        Notes
+        -----
+
+        Setting a status of a powerline to +2 will raise an error.
+
+        """
         if "set_line_status" not in self.authorized_keys:
             raise IllegalAction("Impossible to modify the status of powerlines (with \"set\") with this action type.")
         res = 1 * self._set_line_status
@@ -2746,9 +2910,41 @@ class BaseAction(GridObjects):
 
     @property
     def change_bus(self):
-        # TODO doc: of all the properties
-        if "change_bus" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the bus (with \"change\") with this action type.")
+        """
+        Allows to retrieve (and affect) the busbars at which any element is **change**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus` and can be use to modify any elements type
+        as opposed to the more specific :attr:`BaseAction.gen_change_bus`, :attr:`BaseAction.load_change_bus`,
+        :attr:`BaseAction.line_or_change_bus`, :attr:`BaseAction.line_ex_change_bus` or
+        :attr:`BaseAction.storage_change_bus` that are specific to a certain type of objects.
+
+        Notes
+        -----
+
+        For performance reasons, it do not allow to modify the elements by there names.
+
+        The order of each elements are given in the :attr:`grid2op.Space.GridObjects.gen_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.load_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_or_pos_topo_vect`,
+        :attr:`grid2op.Space.GridObjects.line_ex_pos_topo_vect` or
+        :attr:`grid2op.Space.GridObjects.storage_pos_topo_vect`
+
+        For example:
+
+        .. code-block:: python
+
+            act.set_bus [0, 1, 3]
+
+        Will:
+
+          * change the bus of the (unique) element for which \*_pos_topo_vect is 1
+          * change the bus of (unique) element for which \*_pos_topo_vect is 2
+          * change the bus of (unique) element for which \*_pos_topo_vect is 3
+
+        You can use the documentation page :ref:`modeled-elements-module` for more information about which
+        element correspond to what component of this "vector".
+
+        """
         res = copy.deepcopy(self._change_bus_vect)
         res.flags.writeable = False
         return res
@@ -2769,8 +2965,14 @@ class BaseAction(GridObjects):
 
     @property
     def load_change_bus(self):
-        # TODO doc: of all the properties
-        return self.change_bus[self.load_pos_topo_vect]
+        """
+        Allows to retrieve (and affect) the busbars at which the loads is **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.load_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @load_change_bus.setter
     def load_change_bus(self, values):
@@ -2788,7 +2990,101 @@ class BaseAction(GridObjects):
 
     @property
     def gen_change_bus(self):
-        return self.change_bus[self.gen_pos_topo_vect]
+        """
+        Allows to retrieve (and affect) the busbars at which the action **change** the generator units.
+
+        Returns
+        -------
+        res:
+            A vector of bool, of size `act.n_gen` indicating what type of action is performed for
+            each generator units with the convention :
+
+            * ``False`` this generator is not affected by any "change" action
+            * ``True`` this generator bus is not affected by any "change" action. If it was
+              on bus 1, it will be moved to bus 2, if it was on bus 2 it will be moved to bus 1 (
+              and if it was disconnected it will stay disconnected)
+
+        Examples
+        --------
+
+        To retrieve the impact of the action on the storage unit, you can do:
+
+        .. code-block:: python
+
+            gen_buses = act.gen_change_bus
+
+        To modify these buses you can do:
+
+        .. code-block:: python
+
+            # create an environment where i can modify everything
+            import numpy as np
+            import grid2op
+            from grid2op.Action import CompleteAction
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+
+            # create an action
+            act = env.action_space()
+
+            # method 1 : provide the full vector
+            act.gen_change_bus = np.ones(act.n_gen, dtype=bool)
+
+            # method 2: provide the index of the unit you want to modify
+            act.gen_change_bus = 1
+
+            # method 3: provide a list of the units you want to modify
+            act.gen_change_bus = [1, 2]
+
+            # method 4: change the storage unit by their name with a set
+            act.gen_change_bus = {"gen_1_0"}
+
+        .. note:: The "rule of thumb" to modify an object using "change" method it to provide always
+            the ID of an object. The ID should be an integer (or a name in some cases). It does not
+            make any sense to provide a "value" associated to an ID: either you change it, or not.
+
+        Notes
+        -----
+        It is a "property", you don't have to use parenthesis to access it:
+
+        .. code-block:: python
+
+            # valid code
+            gen_buses = act.gen_change_bus
+
+            # invalid code, it will crash, do not run
+            gen_buses = act.gen_change_bus()
+            # end do not run
+
+        And neither should you uses parenthesis to modify it:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_change_bus = [1, 2, 3]
+
+            # invalid code, it will crash, do not run
+            act.gen_change_bus([1, 2, 3])
+            # end do not run
+
+        Property cannot be set "directly", you have to use the `act.XXX = ..` syntax. For example:
+
+        .. code-block:: python
+
+            # valid code
+            act.gen_change_bus = [1, 3, 4]
+
+            # invalid code, it will raise an error, and even if it did not it would have not effect
+            # do not run
+            act.gen_change_bus[1] = True
+            # end do not run
+
+        .. note:: Be careful not to mix "change" and "set". For "change" you only need to provide the ID of the elements
+            you want to change, for "set" you need to provide the ID **AND** where you want to set them.
+
+        """
+        res = self.change_bus[self.gen_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @gen_change_bus.setter
     def gen_change_bus(self, values):
@@ -2806,10 +3102,14 @@ class BaseAction(GridObjects):
 
     @property
     def storage_change_bus(self):
-        # TODO doc: of all the properties
-        if "set_storage" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the storage units with this action type.")
-        return self.change_bus[self.storage_pos_topo_vect]
+        """
+        Allows to retrieve (and affect) the busbars at which the storage units are **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.storage_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @storage_change_bus.setter
     def storage_change_bus(self, values):
@@ -2830,8 +3130,14 @@ class BaseAction(GridObjects):
 
     @property
     def line_or_change_bus(self):
-        # TODO doc: of all the properties
-        return self.change_bus[self.line_or_pos_topo_vect]
+        """
+        Allows to retrieve (and affect) the busbars at which the origin side of powerlines are **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.line_or_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @line_or_change_bus.setter
     def line_or_change_bus(self, values):
@@ -2850,8 +3156,14 @@ class BaseAction(GridObjects):
 
     @property
     def line_ex_change_bus(self):
-        # TODO doc: of all the properties
-        return self.change_bus[self.line_ex_pos_topo_vect]
+        """
+        Allows to retrieve (and affect) the busbars at which the extremity side of powerlines are **changed**.
+
+        It behaves similarly as :attr:`BaseAction.gen_change_bus`. See the help there for more information.
+        """
+        res = self.change_bus[self.line_ex_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @line_ex_change_bus.setter
     def line_ex_change_bus(self, values):
@@ -2867,13 +3179,19 @@ class BaseAction(GridObjects):
             raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
-    # TODO same sub_set_bus
 
     @property
     def line_change_status(self):
-        # TODO doc: of all the properties
-        if "change_line_status" not in self.authorized_keys:
-            raise IllegalAction("Impossible to modify the status of powerlines (with \"change\") with this action type.")
+        """
+        Property to set the status of the powerline.
+
+        It behave similarly than :attr:`BaseAction.gen_change_bus` but with the following convention:
+
+        * ``False`` will not affect the powerline
+        * ``True`` will change the status of the powerline. If it was connected, it will attempt to
+          disconnect it, if it was disconnected, it will attempt to reconnect it.
+
+        """
         res = copy.deepcopy(self._switch_line_status)
         res.flags.writeable = False
         return res
@@ -3018,9 +3336,97 @@ class BaseAction(GridObjects):
 
     @property
     def redispatch(self):
-        # TODO doc: of all the properties
-        if "redispatch" not in self.authorized_keys:
-            raise IllegalAction("Impossible to perform redispatching with this action type.")
+        """
+        Allows to retrieve (and affect) the redispatching setpoint of the generators.
+
+        Returns
+        -------
+        res:
+            A vector of integer, of size `act.n_gen` indicating what type of action is performed for
+            each generator units. Note that these are the setpoint. The actual redispatching that will
+            be available might be different. See :ref:`generator-mod-el` for more information.
+
+        Examples
+        --------
+
+        To retrieve the impact of the action on the storage unit, you can do:
+
+        .. code-block:: python
+
+            redisp = act.redispatch
+        For each generator it will give the amount of redispatch this action wants to perform.
+
+        To change the setpoint of the redispatching, you can do:
+
+        .. code-block:: python
+
+            # create an environment where i can modify everything
+            import numpy as np
+            import grid2op
+            from grid2op.Action import CompleteAction
+            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction)
+
+            # create an action
+            act = env.action_space()
+
+            # method 1 : provide the full vector
+            act.redispatch = np.ones(act.n_gen, dtype=float)  # only floats are accepted !
+
+            # method 2: provide the index of the unit you want to modify
+            act.redispatch = (1, 2.5)
+
+            # method 3: provide a list of the units you want to modify
+            act.redispatch = [(1, 2.5), (0, -1.3)]
+
+            # method 4: change the storage unit by their name with a dictionary
+            act.redispatch = {"gen_1_0": 2.0}
+
+        .. note:: The "rule of thumb" to perform redispatching is to provide always
+            the ID of an object AND its value. The ID should be an integer (or a name in some cases)
+            and the value a float representing what amount of redispatching you want to perform on the
+            unit with the associated ID.
+
+        Notes
+        -----
+        It is a "property", you don't have to use parenthesis to access it:
+
+        .. code-block:: python
+
+            # valid code
+            redisp = act.redispatch
+
+            # invalid code, it will crash, do not run
+            redisp = act.redispatch()
+            # end do not run
+
+        And neither should you uses parenthesis to modify it:
+
+        .. code-block:: python
+
+            # valid code
+            act.redispatch = [(1, 2.5), (0, -1.3)]
+
+            # invalid code, it will crash, do not run
+            act.redispatch([(1, 2.5), (0, -1.3)])
+            # end do not run
+
+        Property cannot be set "directly", you have to use the `act.XXX = ..` syntax. For example:
+
+        .. code-block:: python
+
+            # valid code
+            act.redispatch = [(1, 2.5), (0, -1.3)]
+
+            # invalid code, it will raise an error, and even if it did not it would have not effect
+            # do not run
+            act.redispatch[1] = 2.5
+            # end do not run
+
+        .. note:: Be careful not to mix action to set something on a bus bar (where the values are integer,
+            like "set_bus" or "set_status")
+            and continuous action (where the values are float, like "redispatch" or "storage_p")
+
+        """
         res = 1.0 * self._redispatch
         res.flags.writeable = False
         return res
@@ -3042,12 +3448,23 @@ class BaseAction(GridObjects):
 
     @property
     def storage_p(self):
-        # TODO doc: of all the properties
-        if "set_storage" not in self.authorized_keys:
-            raise IllegalAction("Impossible to perform storage action with this action type.")
-        if self.n_storage == 0:
-            raise IllegalAction("Impossible to perform storage action with this grid (no storage unit"
-                                "available)")
+        """
+        Allows to modify the setpoint of the storage units.
+
+        It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
+
+        Notes
+        ------
+        The "load convention" is used for storage units. This means that:
+
+        - if you ask a positive value, the storage unit will charge, power will be "taken" from the
+          grid to the unit. The unit in this case will behave like a *load*
+        - if you ask a negative value, the storage unit will discharge, power will be injected from
+          the unit to the grid. The unit, in this case, will behave like a *generator*.
+
+        For more information, feel free to consult the documentation :ref:`storage-mod-el` where more
+        details are given about the modeling ot these storage units.
+        """
         res = 1.0 * self._storage_power
         res.flags.writeable = False
         return res
@@ -3138,7 +3555,10 @@ class BaseAction(GridObjects):
 
     @property
     def sub_set_bus(self):
-        return self.set_bus
+        # TODO doc
+        res = 1 * self.set_bus
+        res.flags.writeable = False
+        return res
 
     @sub_set_bus.setter
     def sub_set_bus(self, values):
@@ -3257,7 +3677,9 @@ class BaseAction(GridObjects):
 
     @property
     def sub_change_bus(self):
-        return self.change_bus
+        res = copy.deepcopy(self.change_bus)
+        res.flags.writeable = False
+        return res
 
     @sub_change_bus.setter
     def sub_change_bus(self, values):

@@ -1,3 +1,5 @@
+.. _modeled-elements-module:
+
 Elements modeled in this environment and their main properties
 ===============================================================
 
@@ -14,12 +16,12 @@ Any grid2op environment model different elements. In this section, we explain wh
 
 The elements modeled are (work in progress):
 
-- :ref:`generator`
-- :ref:`load`
-- :ref:`powerline`
-- :ref:`shunt`
-- :ref:`storage`
-- :ref:`substation`
+- :ref:`generator-mod-el`
+- :ref:`load-mod-el`
+- :ref:`powerline-mod-el`
+- :ref:`shunt-mod-el`
+- :ref:`storage-mod-el`
+- :ref:`substation-mod-el`
 
 Each type of elements will be described in the same way:
 
@@ -34,7 +36,7 @@ Each type of elements will be described in the same way:
   to alter them.
 - `Equations satisfied` explains the "constraint" of all of the above
 
-.. _generator:
+.. _generator-mod-el:
 
 Generators
 -----------
@@ -212,7 +214,7 @@ to be ensured optimally (if the grid had an infinite capacity). This is why:
 
     \[\forall t, \sum_{\text{gen } i} d^i_t = 0\]
 
-.. _gen_comp_redisp:
+.. _gen_comp_redisp-mod-el:
 
 Compute the redispatching vector
 +++++++++++++++++++++++++++++++++
@@ -229,13 +231,13 @@ what is possible to get while satisfying the equations :eq:`pmax`, :eq:`ramps`, 
 "SLSQP" method of the `minimize` routine in the `scipy.optimize` module.
 
 .. note:: Equation :eq:`zerosum` holds when they are no storage units on the grid. Please see the
-    :ref:`storage` section to get the "constraints" effectively implemented on the grid.
+    :ref:`storage-mod-el` section to get the "constraints" effectively implemented on the grid.
 
 .. note:: The variable that can be modified by the optimisation routine are only the turned on dispatchable
     generators. The other generators (typically solar and wind) but also the storage units,
     are not modified when solving for this problem.
 
-.. _load:
+.. _load-mod-el:
 
 Loads
 -----------
@@ -278,7 +280,7 @@ Equations satisfied
 
 TODO
 
-.. _powerline:
+.. _powerline-mod-el:
 
 Powerlines
 -----------
@@ -322,7 +324,7 @@ Satisfied equations
 TODO
 
 
-.. _shunt:
+.. _shunt-mod-el:
 
 Shunts (optional)
 -----------------
@@ -368,7 +370,7 @@ TODO
 
 
 
-.. _storage:
+.. _storage-mod-el:
 
 Storage units (optional)
 ------------------------
@@ -566,7 +568,7 @@ solving for :math:`p^j_t` the equation :math:`e^j_t + \overrightarrow{\rho} . p^
 As for the redispatching, the modification of the storage production / consumption
 is not supposed to impact the balancing between production and loads, which is ensured by "the market"
 (or a central authority). This means that, in case of presence of storage unit, the :eq:`zerosum`
-showed in the :ref:`generator` is modified as followed:
+showed in the :ref:`generator-mod-el` is modified as followed:
 
 .. math::
     :nowrap:
@@ -576,7 +578,7 @@ showed in the :ref:`generator` is modified as followed:
 
 In the current implementation, this is done by substuting the equation :eq:`storagemodif` instead of
 equation :eq:`zerosum` when solving
-the optimization routine detailed in :ref:`gen_comp_redisp`. The storage units are **NOT** modified
+the optimization routine detailed in :ref:`gen_comp_redisp-mod-el`. The storage units are **NOT** modified
 by this optimization routine.
 
 Last, but not least, the storage loss is taken into account as followed:
@@ -596,7 +598,7 @@ The equation :eq:`storageloss` supposes that :math:`\mathbf{e}_{t}` has been upd
     If that is the case, even if no action is done by the agent, then some power will be taken
     from the grid to the storage unit to restore its capacity to the minimum capacity.
 
-.. _substation:
+.. _substation-mod-el:
 
 Substations
 --------------
