@@ -44,8 +44,9 @@ class BaseHelper:
     def get_act_cls(self):
         raise NotImplementedError()
 
-    def check_all_other_nan(self, tested_obs):
+    def check_all_other_as_if_game_over(self, tested_obs):
         obs = type(self.obs)()
+        obs.set_game_over()
         for el in obs._attr_eq:
             if el == "line_status":
                 continue
@@ -61,7 +62,7 @@ class BaseHelper:
         res = self.obs + self.act
         assert np.all(res.topo_vect == res_topo_vect_1)
         assert np.all(res.line_status == res_ls_1)
-        self.check_all_other_nan(res)
+        self.check_all_other_as_if_game_over(res)
 
         self.obs = self.env.reset()
         # try to deconnect a powerline
@@ -72,6 +73,7 @@ class BaseHelper:
             res2 = obs + self.act
             assert np.all(res2.topo_vect == res_topo_vect_2)
             assert np.all(res2.line_status == res_ls_2)
+            self.check_all_other_as_if_game_over(res2)
         elif "change_line_status" in self.act.authorized_keys:
             obs, reward, done, info = self.env.step(
                 self.env.action_space({"change_line_status": [1]}))
@@ -79,6 +81,7 @@ class BaseHelper:
             res2 = obs + self.act
             assert np.all(res2.topo_vect == res_topo_vect_2)
             assert np.all(res2.line_status == res_ls_2)
+            self.check_all_other_as_if_game_over(res2)
 
         self.obs = self.env.reset()
         # try to change a substation configuration
@@ -89,6 +92,7 @@ class BaseHelper:
             res3 = obs + self.act
             assert np.all(res3.topo_vect == res_topo_vect_3)
             assert np.all(res3.line_status == res_ls_3)
+            self.check_all_other_as_if_game_over(res3)
         elif "change_bus" in self.act.authorized_keys:
             obs, reward, done, info = self.env.step(self.env.action_space(
                 {"change_bus": {"substations_id": [(5, (False, True, False, True, False, True, False, False))]}}))
@@ -96,6 +100,7 @@ class BaseHelper:
             res3 = obs + self.act
             assert np.all(res3.topo_vect == res_topo_vect_3)
             assert np.all(res3.line_status == res_ls_3)
+            self.check_all_other_as_if_game_over(res3)
 
     def test_dn_action(self):
         """test add do nothing action is properly implemented"""

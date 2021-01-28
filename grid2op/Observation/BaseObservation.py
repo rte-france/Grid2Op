@@ -1816,14 +1816,14 @@ class BaseObservation(GridObjects):
             # handle reconnected powerlines
             if np.any(reco_line):
                 if "set_bus" in act.authorized_keys:
-                    line_ex_set_bus = act.line_ex_set_bus
-                    line_or_set_bus = act.line_or_set_bus
+                    line_ex_set_bus = 1 * act.line_ex_set_bus
+                    line_or_set_bus = 1 * act.line_or_set_bus
                 else:
                     line_ex_set_bus = np.zeros(res.n_line, dtype=dt_int)
                     line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
 
                 if issue_warn and (np.any(line_or_set_bus[reco_line] == 0) or
-                                np.any(line_ex_set_bus[reco_line] == 0)):
+                                   np.any(line_ex_set_bus[reco_line] == 0)):
                     warnings.warn("A powerline has been reconnected with a \"change_status\" action without "
                                   "specifying on which bus it was supposed to be reconnected. This is "
                                   "perfectly fine in regular grid2op environment, but this behaviour "
@@ -1854,4 +1854,7 @@ class BaseObservation(GridObjects):
         return res
 
     def __add__(self, act):
-        return self.add_act(act, issue_warn=True)
+        from grid2op.Action import BaseAction
+        if isinstance(act, BaseAction):
+            return self.add_act(act, issue_warn=True)
+        raise Grid2OpException("Only grid2op action can be added to grid2op observation at the moment.")
