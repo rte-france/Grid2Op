@@ -87,21 +87,41 @@ everywhere). This includes, but is not limited to:
     types of solver could be implemented as backend. At time of writing (december 2020), only steady state powerflow are
     available.
 
-.. note:: The previous note entails that grid2op is also independent on the format used to store a powergrid. The
+.. note:: The previous note entails that grid2op is also independent on the format used to store a powergrid.
     It's expected that the "backend" fails to initialize if it cannot found any file to initialize the grid.
 
     At time of writing (december 2020), all environments are shipped with grid represented as "json" format, which is
     the default format for the default backend based on PandaPower. If you want your "Backend" to have support
-    for all previous environment, you might need to initialize it from this format though.
+    for all previous environment, you might need to initialize it from this format or convert the IEEE files to
+    the representation that suits you.
 
-.. note:: If your backend is somehow available in a c++ librarie (static or dynamic) and you can link it,
-    you can use the interface "lightsim2grid" that takes care of
-    of exposing a model of the grid and compute the value associated with grid2op. It has the advantage of being
+.. note:: If your backend is somehow available in a c++ library (static or dynamic) and you can link program against it,
+    you can use the interface "lightsim2grid" if you don't want to worry about grid2op representation (and skip this
+    entire files)
+
+    Indeed, lightsim2grid takes care of
+    of exposing a model of the grid (Ybus and Sbus) from the grid2op data and is able to directly expose the results
+    from the internal state to valid grid2op vectors.
+
+    It has the advantage of being
     able to read the data from the default grid2op backend (based on PandaPower) and to allow to focus
-    on the solver rather to focus on grid2op "representation" of the grid.
+    on the solver rather to focus on grid2op "representation" of the grid. It is also optimize for speed and
+    (work in progress) aims at not copying any data from `python -> c++ -> python` when it can be avoided.
 
-    On the other hands, this "backend" also comes with a special model (so you cannot change it) for loads, generators,
-    lines, transformers and shunts and has some limitation to what it supports.
+    The code is also relatively well organized in:
+
+    - modification of the elements
+    - generation of the Ybus (sparse) complex matrix and Sbus complex vector
+    - solving for the complex voltage `V`  (and part of the `Sbus` vector) the equation `V.(Ybus.V)* = Sbus` with the
+      "standard" "powerflow constraints"
+    - computing the active power, reactive power, flow on powerllines etc. from the `V`
+
+    So you if you have a solver that can somehow solves the equation `V.(Ybus.V)* = Sbus` (and meeting the
+    constraints of a standard powerflow) then lightsim2grid might
+    be a good way to make this solver available in grid2op easily.
+
+    On the other hands, this "backend" also comes with a special model of each powersystem elements (loads, generators,
+    lines, transformers or shunts for example) that you cannot modify and has some limitation to what it supports.
 
 Main methods to implement
 --------------------------
