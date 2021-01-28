@@ -2664,7 +2664,9 @@ class BaseAction(GridObjects):
 
         It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
         """
-        return self.set_bus[self.line_or_pos_topo_vect]
+        res = self.set_bus[self.line_or_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @line_or_set_bus.setter
     def line_or_set_bus(self, values):
@@ -2689,7 +2691,9 @@ class BaseAction(GridObjects):
 
         It behaves similarly as :attr:`BaseAction.gen_set_bus`. See the help there for more information.
         """
-        return self.set_bus[self.line_ex_pos_topo_vect]
+        res = self.set_bus[self.line_ex_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @line_ex_set_bus.setter
     def line_ex_set_bus(self, values):

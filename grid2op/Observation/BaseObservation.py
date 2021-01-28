@@ -317,7 +317,7 @@ class BaseObservation(GridObjects):
         Returns
         -------
         res: :class:`dict`
-            A dictionnary with keys and value depending on which object needs to be inspected:
+            A dictionary with keys and value depending on which object needs to be inspected:
 
             - if a load is inspected, then the keys are:
 
@@ -1422,7 +1422,10 @@ class BaseObservation(GridObjects):
         to the same busbar.
 
         """
-        return self.topo_vect[self.line_or_pos_topo_vect]
+        res = self.topo_vect[self.line_or_pos_topo_vect]
+        res.flags.writeable = False
+        return res
+
 
     @property
     def line_ex_bus(self):
@@ -1442,7 +1445,9 @@ class BaseObservation(GridObjects):
         to the same busbar.
 
         """
-        return self.topo_vect[self.line_ex_pos_topo_vect]
+        res = self.topo_vect[self.line_ex_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @property
     def gen_bus(self):
@@ -1462,7 +1467,9 @@ class BaseObservation(GridObjects):
         to the same busbar.
 
         """
-        return self.topo_vect[self.gen_pos_topo_vect]
+        res = self.topo_vect[self.gen_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @property
     def load_bus(self):
@@ -1482,7 +1489,9 @@ class BaseObservation(GridObjects):
         to the same busbar.
 
         """
-        return self.topo_vect[self.load_pos_topo_vect]
+        res = self.topo_vect[self.load_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @property
     def storage_bus(self):
@@ -1502,18 +1511,50 @@ class BaseObservation(GridObjects):
         to the same busbar.
 
         """
-        return self.topo_vect[self.storage_pos_topo_vect]
+        res = self.topo_vect[self.storage_pos_topo_vect]
+        res.flags.writeable = False
+        return res
 
     @property
     def prod_p(self):
+        """
+        As of grid2op version 1.5.0, for better consistency, the "prod_p" attribute has been renamed "gen_p".
+
+        This property is present to maintain the backward compatibility.
+
+        Returns
+        -------
+        :attr:`BaseObservation.gen_p`
+
+        """
         return self.gen_p
 
     @property
     def prod_q(self):
+        """
+        As of grid2op version 1.5.0, for better consistency, the "prod_q" attribute has been renamed "gen_q".
+
+        This property is present to maintain the backward compatibility.
+
+        Returns
+        -------
+        :attr:`BaseObservation.gen_q`
+
+        """
         return self.gen_q
 
     @property
     def prod_v(self):
+        """
+        As of grid2op version 1.5.0, for better consistency, the "prod_v" attribute has been renamed "gen_v".
+
+        This property is present to maintain the backward compatibility.
+
+        Returns
+        -------
+        :attr:`BaseObservation.gen_v`
+
+        """
         return self.gen_v
 
     def _reset_matrices(self):
@@ -1550,6 +1591,11 @@ class BaseObservation(GridObjects):
         Returns
         -------
         A dictionary representing the observation.
+
+        Notes
+        -------
+        The returned dictionary is not necessarily json serializable. To have a grid2op observation that you can
+        serialize in a json fashion, please use the :func:`grid2op.Space.GridObjects.to_json` function.
 
         """
         if self._dictionnarized is None:
@@ -1593,11 +1639,11 @@ class BaseObservation(GridObjects):
 
         return self._dictionnarized
 
-    def add_act(self, act, do_warn=True):
+    def add_act(self, act, issue_warn=True):
         """
         Easier access to the impact on the observation if an action were applied.
 
-        This is for now only usefull to get a topology in which the grid would be without
+        This is for now only useful to get a topology in which the grid would be without
         doing an expensive `obs.simuulate`
 
         Notes
@@ -1616,8 +1662,8 @@ class BaseObservation(GridObjects):
         4) no checks are performed to see if the action meets the rules of the game (number of elements
            you can modify in the action, cooldowns etc.) This method **supposes** that the action
            is legal and non ambiguous.
-        5) It do not check for possible "game over", for example due to isolated elements or non
-           connected grid (grid with 2 or more connex components)
+        5) It do not check for possible "game over", for example due to isolated elements or non-connected
+           grid (grid with 2 or more connex components)
 
         If these issues are important for you, you will need to use the
         :func:`grid2op.Observation.BaseObservation.simulate` method. It can be used like
@@ -1628,8 +1674,9 @@ class BaseObservation(GridObjects):
         act: :class:`grid2op.Action.BaseAction`
             The action you want to add to the observation
 
-        do_warn: ``bool``
-            Issue a warning when this method might not compute the proper resulting topologies.
+        issue_warn: ``bool``
+            Issue a warning when this method might not compute the proper resulting topologies. Default to ``True``:
+            it issues warning when something not supported is done in the action.
 
         Returns
         -------
@@ -1645,22 +1692,33 @@ class BaseObservation(GridObjects):
 
         .. code-block:: python
 
-            obs = ...  # any observation you want
-            act = ...  # any action you want
+            import grid2op
 
-            res_obs = obs + act
+            # create the environment
+            env_name = ...
+            env = grid2op.make(env_name)
+
+            # generate the first observation
+            obs = env.reset()
+
+            # make some action
+            act = ...  # see the dedicated page
+
+            # have a look at the impact on the action on the topology
+            partial_obs = obs + act
+            # or `partial_obs = obs.add_act(act, issue_warn=False)` if you want to silence the warnings
 
             # and now you can inspect the topology with any method you want:
-            res_obs.topo_vect
-            res_obs.load_bus
-            bus_mat = res_obs.bus_connectivity_matrix()
+            partial_obs.topo_vect
+            partial_obs.load_bus
+            bus_mat = partial_obs.bus_connectivity_matrix()
             # or even
-            elem_mat = res_obs.connectivity_matrix()
+            elem_mat = partial_obs.connectivity_matrix()
 
             # but you cannot use
-            res_obs.prod_p
+            partial_obs.prod_p
             # or
-            res_obs.load_q
+            partial_obs.load_q
             etc.
 
         """
@@ -1671,6 +1729,7 @@ class BaseObservation(GridObjects):
 
         act = copy.deepcopy(act)
         res = type(self)()
+        res.set_game_over()
 
         res.topo_vect[:] = self.topo_vect
         res.line_status[:] = self.line_status
@@ -1697,7 +1756,7 @@ class BaseObservation(GridObjects):
             tmp = (reco_powerline == 1) & (line_ex_set_bus <= 0) & (res.topo_vect[self.line_ex_pos_topo_vect] == -1)
             if np.any(tmp):
                 id_issue_ex = np.where(tmp)[0]
-                if do_warn:
+                if issue_warn:
                     warnings.warn(error_no_bus_set.format(id_issue_ex))
                 if "set_bus" in act.authorized_keys:
                     # assign 1 in the bus in this case
@@ -1705,7 +1764,7 @@ class BaseObservation(GridObjects):
             tmp = (reco_powerline == 1) & (line_or_set_bus <= 0) & (res.topo_vect[self.line_or_pos_topo_vect] == -1)
             if np.any(tmp):
                 id_issue_or = np.where(tmp)[0]
-                if do_warn:
+                if issue_warn:
                     warnings.warn(error_no_bus_set.format(id_issue_or))
                 if "set_bus" in act.authorized_keys:
                     # assign 1 in the bus in this case
@@ -1720,7 +1779,7 @@ class BaseObservation(GridObjects):
             res.topo_vect[do_change_bus_on] = 3 - res.topo_vect[do_change_bus_on]
             # change bus of elements that were off : does nothing
             # do_change_bus_off = act.change_bus & (res.topo_vect == -1)
-            # if np.any(do_change_bus_off) and do_warn:
+            # if np.any(do_change_bus_off) and issue_warn:
             #     warnings.warn("You asked to reconnect a object with the \"change_bus\" in your action. This is "
             #                   "of course perfectly fine in the environment, but might not be computed properly "
             #                   "by the `obs + act` method. Please have a look at the document for more "
@@ -1763,7 +1822,7 @@ class BaseObservation(GridObjects):
                     line_ex_set_bus = np.zeros(res.n_line, dtype=dt_int)
                     line_or_set_bus = np.zeros(res.n_line, dtype=dt_int)
 
-                if do_warn and (np.any(line_or_set_bus[reco_line] == 0) or
+                if issue_warn and (np.any(line_or_set_bus[reco_line] == 0) or
                                 np.any(line_ex_set_bus[reco_line] == 0)):
                     warnings.warn("A powerline has been reconnected with a \"change_status\" action without "
                                   "specifying on which bus it was supposed to be reconnected. This is "
@@ -1780,14 +1839,14 @@ class BaseObservation(GridObjects):
 
         if 'redispatch' in act.authorized_keys:
             redisp = act.redispatch
-            if np.any(redisp != 0) and do_warn:
+            if np.any(redisp != 0) and issue_warn:
                 warnings.warn("You did redispatching on this action. Redispatching is heavily transformed "
                               "by the environment (consult the documentation about the modeling of the "
                               "generators for example) so we will not even try to mimic this here.")
 
         if 'set_storage' in act.authorized_keys:
             storage_p = act.storage_p
-            if np.any(storage_p != 0) and do_warn:
+            if np.any(storage_p != 0) and issue_warn:
                 warnings.warn("You did action on storage units in this action. This implies performing some "
                               "redispatching which is heavily transformed "
                               "by the environment (consult the documentation about the modeling of the "
@@ -1795,4 +1854,4 @@ class BaseObservation(GridObjects):
         return res
 
     def __add__(self, act):
-        return self.add_act(act, do_warn=True)
+        return self.add_act(act, issue_warn=True)
