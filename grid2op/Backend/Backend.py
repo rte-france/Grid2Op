@@ -1365,6 +1365,11 @@ class Backend(GridObjects, ABC):
         self.apply_action(backend_action)
 
     def assert_grid_correct(self):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            This is done as it should be by the Environment
+        """
         # and set up the proper class and everything
 
         # lazy loading
@@ -1384,7 +1389,6 @@ class Backend(GridObjects, ABC):
         This method is called by the environment. It ensure that the backend remains consistent even after a powerflow
         has be run with :func:`Backend.runpf` method.
 
-        :return: ``None``
         :raise: :class:`grid2op.Exceptions.EnvError` and possibly all of its derived class.
         """
 
@@ -1434,6 +1438,14 @@ class Backend(GridObjects, ABC):
         for el in tmp:
             if el.shape[0] != self.n_line:
                 raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
+
+        if self.n_storage > 0:
+            tmp = self.storages_info()
+            if len(tmp) != 3:
+                raise EnvError("\"storages_info()\" should return a tuple with 3 elements: p, q and v")
+            for el in tmp:
+                if el.shape[0] != self.n_storage:
+                    raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
 
         tmp = self.get_topo_vect()
         if tmp.shape[0] != np.sum(self.sub_info):

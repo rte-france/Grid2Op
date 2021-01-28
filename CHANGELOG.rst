@@ -42,6 +42,10 @@ Change Log
   at all.
 - [BREAKING] `env.obs_space.rewardClass` is not private and is called `env.obs_space._reward_func`. To change
   this function, you need to call `env.change_reward(...)`
+- [BREAKING] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`
+  instead of `prod_p`, `prod_q` and `prod_v` (old names are still accessible for backward compatibility
+  in the observation space) but
+  conversion to json / dict will be affected as well as the converters (*eg* for gym compatibility)
 - [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
   at the end of an episode.
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
@@ -55,9 +59,6 @@ Change Log
   right after the copy).
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
-- [ADDED] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`
-  instead of `prod_p`, `prod_q` and `prod_v` (old names are still accessible for backward compatibility) but
-  conversion to json / dict will be affected
 - [ADDED] documentation of the main elements of the grid and their "modeling" in grid2op.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
