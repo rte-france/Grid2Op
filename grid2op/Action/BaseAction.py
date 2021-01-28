@@ -19,6 +19,8 @@ from grid2op.Space import GridObjects
 # TODO have the "reverse" action, that does the opposite of an action. Will be hard but who know ? :eyes:
 # TODO ie:  action + (rev_action) = do_nothing_action
 
+# TODO consistency in names gen_p / prod_p and in general gen_* prod_*
+
 
 class BaseAction(GridObjects):
     """

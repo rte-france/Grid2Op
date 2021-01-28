@@ -80,7 +80,6 @@ class GymActionSpace(_BaseGymSpaceConverter):
         # be digest by grid2op directly. So you need to also convert it to grid2op
         grid2op_act = IdToAct.convert_act(converter_act)
 
-
     """
     # deals with the action space (it depends how it's encoded...)
     keys_grid2op_2_human = {"prod_p": "prod_p",
@@ -94,6 +93,7 @@ class GymActionSpace(_BaseGymSpaceConverter):
                             "_change_bus_vect": "change_bus",
                             "_hazards": "hazards",
                             "_maintenance": "maintenance",
+                            "_storage_power": "storage_power"
                             }
     keys_human_2_grid2op = {v: k for k, v in keys_grid2op_2_human.items()}
 
