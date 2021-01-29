@@ -64,6 +64,19 @@ more verbose `act.update({"set_bus": {"loads_id": ...}}`
 
 .. _action-module-examples:
 
+Main action "properties"
+---------------------------
+In the table below, we present the main properties that you can use to code, using the grid2op framework, the
+action that you want to perform on the grid.
+
+TODO
+
+=============================================================================    ========= ============
+Name(s)                                                                          Type      Size (each)
+=============================================================================    ========= ============
+TODO
+=============================================================================    ========= ============
+
 Usage Examples
 --------------
 In this section, we describe how to implement some action types. For further information about the
