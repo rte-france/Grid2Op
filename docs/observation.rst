@@ -4,6 +4,7 @@
 .. _n_load: ./space.html#grid2op.Space.GridObjects.n_load
 .. _n_line: ./space.html#grid2op.Space.GridObjects.n_line
 .. _n_sub: ./space.html#grid2op.Space.GridObjects.n_sub
+.. _n_storage: ./space.html#grid2op.Space.GridObjects.n_storage
 .. _dim_topo: ./space.html#grid2op.Space.GridObjects.dim_topo
 .. _year: ./observation.html#grid2op.Observation.BaseObservation.year
 .. _month: ./observation.html#grid2op.Observation.BaseObservation.month
@@ -35,6 +36,9 @@
 .. _duration_next_maintenance: ./observation.html#grid2op.Observation.BaseObservation.duration_next_maintenance
 .. _target_dispatch: ./observation.html#grid2op.Observation.BaseObservation.target_dispatch
 .. _actual_dispatch: ./observation.html#grid2op.Observation.BaseObservation.actual_dispatch
+.. _storage_charge: ./observation.html#grid2op.Observation.BaseObservation.storage_charge
+.. _storage_power_target: ./observation.html#grid2op.Observation.BaseObservation.storage_power_target
+.. _storage_power: ./observation.html#grid2op.Observation.BaseObservation.storage_power
 
 .. _observation_module:
 
@@ -84,9 +88,9 @@ Main observation attributes
 In general, observations have the following attributes (if an attributes has name XXX [*eg* rho]  it can be accessed
 with `obs.XXX` [*eg* `obs.rho`])
 
-=============================================================================    ========= ===========
+=============================================================================    ========= ============
 Name(s)                                                                          Type      Size (each)
-=============================================================================    ========= ===========
+=============================================================================    ========= ============
 `year`_, `month`_, `day`_, `hour_of_day`_, `minute_of_hour`_, `day_of_week`_     int       1
 `prod_p`_, `prod_q`_, `prod_v`_                                                  float     `n_gen`_
 `load_p`_, `load_q`_, `load_v`_                                                  float     `n_load`_
@@ -102,13 +106,14 @@ Name(s)                                                                         
 `duration_next_maintenance`_                                                     int       `n_line`_
 `target_dispatch`_                                                               float     `n_gen`_
 `actual_dispatch`_                                                               float     `n_gen`_
-=============================================================================    ========= ===========
+`storage_charge`_                                                                float     `n_storage`_
+`storage_power_target`_                                                          float     `n_storage`_
+`storage_power`_                                                                 float     `n_storage`_
+=============================================================================    ========= ============
 
 (*NB* for concision, if a coma ("*,*") is present in the "Name(s)" part of the column, it means multiple attributes
 are present. If we take the example of the first row, it means that `obs.year`, `obs.month`, etc. are all valid
 attributes of the observation, they are all integers and each is of size 1.)
-
-TODO storage
 
 .. _observation_module_graph:
 

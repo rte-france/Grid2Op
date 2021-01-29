@@ -100,6 +100,48 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(self.STORAGE_POWER)
         return rnd_types
 
+    def supports_type(self, action_type):
+        """
+        Returns if the current action_space supports the current action type.
+
+        Parameters
+        ----------
+        action_type: ``str``
+            One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch" or "storage_power"
+            A string representing the action types you want to inspect.
+
+        Returns
+        -------
+        ``True`` if you can use the `action_type` to create an action, ``False`` otherwise.
+
+        Examples
+        ---------
+
+        To know if you can use the `act.set_bus` property to change the bus of an element, you can use:
+
+        .. code-block:: python
+
+            import grid2op
+            from grid2op.Converter import ConnectivityConverter
+
+            env = grid2op.make("rte_case14_realistic", test=True)
+            can_i_use_set_bus = env.action_space.supports_type("set_bus") # this is True
+
+            env2 = grid2op.make("educ_case14_storage", test=True)
+            can_i_use_set_bus = env2.action_space.supports_type("set_bus") # this is False
+            # this environment do not allow for topological changes but only action on storage units and redispatching
+
+        """
+        name_action_types = ["set_line_status", "change_line_status", "set_bus", "change_bus",
+                             "redispatch", "storage_power"]
+        assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
+                                                 f"You provided {action_type} which is not supported."
+
+        if action_type == "storage_power":
+            return self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys
+        else:
+            return action_type in self.actionClass.authorized_keys
+
     def _sample_set_line_status(self, rnd_update=None):
         if rnd_update is None:
             rnd_update = {}

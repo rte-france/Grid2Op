@@ -1037,9 +1037,8 @@ class BaseAction(GridObjects):
     def _digest_setbus(self, dict_):
         if "set_bus" in dict_:
             self._modif_set_bus = True
-            if isinstance(dict_["set_bus"], np.ndarray):
-                # complete nodal topology vector is already provided
-                self._set_topo_vect[:] = dict_["set_bus"]
+            if dict_["set_bus"] is None:
+                pass
             elif isinstance(dict_["set_bus"], dict):
                 ddict_ = dict_["set_bus"]
                 handled = False
@@ -1071,16 +1070,16 @@ class BaseAction(GridObjects):
                 else:
                     pass
             else:
-                self._modif_set_bus = False
-                raise AmbiguousAction(
-                    "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
+                self.set_bus = dict_["set_bus"]
+                # self._modif_set_bus = False
+                # raise AmbiguousAction(
+                #    "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
 
     def _digest_change_bus(self, dict_):
         if "change_bus" in dict_:
             self._modif_change_bus = True
-            if isinstance(dict_["change_bus"], np.ndarray):
-                # topology vector is already provided
-                self._change_bus_vect[:] = dict_["change_bus"]
+            if dict_["change_bus"] is None:
+                pass
             elif isinstance(dict_["change_bus"], dict):
                 ddict_ = dict_["change_bus"]
                 handled = False
@@ -1102,13 +1101,6 @@ class BaseAction(GridObjects):
                 if "substations_id" in ddict_:
                     self.sub_change_bus = ddict_["substations_id"]
                     handled = True
-                    # tmp = ddict_["substations_id"]
-                    # for (s_id, arr) in tmp:
-                    #     s_id = int(s_id)
-                    #     beg_ = int(np.sum(self.sub_info[:s_id]))
-                    #     end_ = int(beg_ + self.sub_info[s_id])
-                    #     self._change_bus_vect[beg_:end_][arr] = True
-                    #     handled = True
                 if not handled:
                     msg = "Invalid way to change the topology. When dict_[\"set_bus\"] is a dictionary it should have"
                     msg += " at least one of \"loads_id\", \"generators_id\", \"lines_or_id\", "
@@ -1116,12 +1108,8 @@ class BaseAction(GridObjects):
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
-            elif dict_["change_bus"] is None:
-                # nothing to do in this case
-                pass
             else:
-                raise AmbiguousAction(
-                    "Invalid way to set the topology. dict_[\"change_bus\"] should be a numpy array or a dictionnary.")
+                self.change_bus = dict_["change_bus"]
 
     def _digest_set_status(self, dict_):
         if "set_line_status" in dict_:
@@ -2370,13 +2358,13 @@ class BaseAction(GridObjects):
 
     # TODO do the get_line_modif, get_line_or_modif and get_line_ex_modif
 
-    def __aux_affect_object_int(self, values, name_el, nb_els,
-                                name_els,
-                                inner_vect,
-                                outer_vect,
-                                min_val=-1,
-                                max_val=2,
-                                ):
+    def _aux_affect_object_int(self, values, name_el, nb_els,
+                               name_els,
+                               inner_vect,
+                               outer_vect,
+                               min_val=-1,
+                               max_val=2,
+                               ):
         """
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
         This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
@@ -2455,9 +2443,9 @@ class BaseAction(GridObjects):
                 else:
                     # get back to case where it's a full vector
                     values = np.array(values)
-                    self.__aux_affect_object_int(values, name_el, nb_els, name_els,
-                                                 inner_vect=inner_vect, outer_vect=outer_vect,
-                                                 min_val=min_val, max_val=max_val)
+                    self._aux_affect_object_int(values, name_el, nb_els, name_els,
+                                                inner_vect=inner_vect, outer_vect=outer_vect,
+                                                min_val=min_val, max_val=max_val)
                     return
 
             # expected list of tuple, each tuple is a pair with load_id, new_load_bus: example: [(0, 1), (2,2)]
@@ -2471,9 +2459,9 @@ class BaseAction(GridObjects):
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
                     el_id = tmp[0]
-                self.__aux_affect_object_int((el_id, new_bus), name_el, nb_els, name_els,
-                                             inner_vect=inner_vect, outer_vect=outer_vect,
-                                             min_val=min_val, max_val=max_val)
+                self._aux_affect_object_int((el_id, new_bus), name_el, nb_els, name_els,
+                                            inner_vect=inner_vect, outer_vect=outer_vect,
+                                            min_val=min_val, max_val=max_val)
         elif isinstance(values, dict):
             # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
             for key, new_bus in values.items():
@@ -2482,9 +2470,9 @@ class BaseAction(GridObjects):
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
                     key = tmp[0]
-                self.__aux_affect_object_int((key, new_bus), name_el, nb_els, name_els,
-                                             inner_vect=inner_vect, outer_vect=outer_vect,
-                                             min_val=min_val, max_val=max_val)
+                self._aux_affect_object_int((key, new_bus), name_el, nb_els, name_els,
+                                            inner_vect=inner_vect, outer_vect=outer_vect,
+                                            min_val=min_val, max_val=max_val)
         else:
             raise IllegalAction(f"Impossible to modify the {name_el} bus with inputs {values}. "
                                 f"Please see the documentation.")
@@ -2506,12 +2494,12 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the load bus (with \"set\") with this action type.")
         orig_ = self.load_set_bus
         try:
-            self.__aux_affect_object_int(values, "load", self.n_load, self.name_load,
-                                         self.load_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(values, "load", self.n_load, self.name_load,
+                                        self.load_pos_topo_vect, self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, "load", self.n_load, self.name_load,
-                                         self.load_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(orig_, "load", self.n_load, self.name_load,
+                                        self.load_pos_topo_vect, self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the load bus with your input. Please consult the documentation. "
                                 f"The error was \"{exc_}\"")
 
@@ -2619,12 +2607,12 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the gen bus (with \"set\") with this action type.")
         orig_ = self.gen_set_bus
         try:
-            self.__aux_affect_object_int(values, "gen", self.n_gen, self.name_gen,
-                                         self.gen_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(values, "gen", self.n_gen, self.name_gen,
+                                        self.gen_pos_topo_vect, self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, "gen", self.n_gen, self.name_gen,
-                                         self.gen_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(orig_, "gen", self.n_gen, self.name_gen,
+                                        self.gen_pos_topo_vect, self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the gen bus with your input. Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
@@ -2649,12 +2637,12 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the storage bus (with \"set\") with this action type.")
         orig_ = self.storage_set_bus
         try:
-            self.__aux_affect_object_int(values, "storage", self.n_storage, self.name_storage,
-                                         self.storage_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(values, "storage", self.n_storage, self.name_storage,
+                                        self.storage_pos_topo_vect, self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, "storage", self.n_storage, self.name_storage,
-                                         self.storage_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(orig_, "storage", self.n_storage, self.name_storage,
+                                        self.storage_pos_topo_vect, self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the storage bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
@@ -2676,12 +2664,12 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (origin) bus (with \"set\") with this action type.")
         orig_ = self.line_or_set_bus
         try:
-            self.__aux_affect_object_int(values, self._line_or_str, self.n_line, self.name_line,
-                                         self.line_or_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(values, self._line_or_str, self.n_line, self.name_line,
+                                        self.line_or_pos_topo_vect, self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, self._line_or_str, self.n_line, self.name_line,
-                                         self.line_or_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(orig_, self._line_or_str, self.n_line, self.name_line,
+                                        self.line_or_pos_topo_vect, self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the line origin bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
@@ -2703,12 +2691,12 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (ex) bus (with \"set\") with this action type.")
         orig_ = self.line_ex_set_bus
         try:
-            self.__aux_affect_object_int(values, self._line_ex_str, self.n_line, self.name_line,
-                                         self.line_ex_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(values, self._line_ex_str, self.n_line, self.name_line,
+                                        self.line_ex_pos_topo_vect, self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, self._line_ex_str, self.n_line, self.name_line,
-                                         self.line_ex_pos_topo_vect, self._set_topo_vect)
+            self._aux_affect_object_int(orig_, self._line_ex_str, self.n_line, self.name_line,
+                                        self.line_ex_pos_topo_vect, self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the line extrmity bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
@@ -2762,12 +2750,12 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the bus (with \"set\") with this action type.")
         orig_ = self.set_bus
         try:
-            self.__aux_affect_object_int(values, "", self.dim_topo, None,
-                                         np.arange(self.dim_topo), self._set_topo_vect)
+            self._aux_affect_object_int(values, "", self.dim_topo, None,
+                                        np.arange(self.dim_topo), self._set_topo_vect)
             self._modif_set_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, "", self.dim_topo, None,
-                                         np.arange(self.dim_topo), self._set_topo_vect)
+            self._aux_affect_object_int(orig_, "", self.dim_topo, None,
+                                        np.arange(self.dim_topo), self._set_topo_vect)
             raise IllegalAction(f"Impossible to modify the bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
@@ -2801,23 +2789,23 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the status of powerlines (with \"set\") with this action type.")
         orig_ = 1 * self._set_line_status
         try:
-            self.__aux_affect_object_int(values, "line status", self.n_line, self.name_line,
-                                         np.arange(self.n_line), self._set_line_status,
-                                         max_val=1)
+            self._aux_affect_object_int(values, "line status", self.n_line, self.name_line,
+                                        np.arange(self.n_line), self._set_line_status,
+                                        max_val=1)
             self._modif_set_status = True
         except Exception as exc_:
-            self.__aux_affect_object_int(orig_, "line status", self.n_line, self.name_line,
-                                         np.arange(self.n_line), self._set_line_status,
-                                         max_val=1)
+            self._aux_affect_object_int(orig_, "line status", self.n_line, self.name_line,
+                                        np.arange(self.n_line), self._set_line_status,
+                                        max_val=1)
             raise IllegalAction(f"Impossible to modify the line status with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
-    def __aux_affect_object_bool(self, values, name_el, nb_els,
-                                 name_els,
-                                 inner_vect,
-                                 outer_vect
-                                 ):
+    def _aux_affect_object_bool(self, values, name_el, nb_els,
+                                name_els,
+                                inner_vect,
+                                outer_vect
+                                ):
         """
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
         This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
@@ -2903,13 +2891,13 @@ class BaseAction(GridObjects):
                     raise IllegalAction(f"If a list is provided, it is only valid with integer found "
                                         f"{type(el_id_or_name)}.")
                 el_id = int(el_id)
-                self.__aux_affect_object_bool(el_id, name_el, nb_els, name_els,
-                                              inner_vect=inner_vect, outer_vect=outer_vect)
+                self._aux_affect_object_bool(el_id, name_el, nb_els, name_els,
+                                             inner_vect=inner_vect, outer_vect=outer_vect)
         elif isinstance(values, set):
             # 2 cases: either set of load_id or set of load_name
             values = list(values)
-            self.__aux_affect_object_bool(values, name_el, nb_els, name_els,
-                                          inner_vect=inner_vect, outer_vect=outer_vect)
+            self._aux_affect_object_bool(values, name_el, nb_els, name_els,
+                                         inner_vect=inner_vect, outer_vect=outer_vect)
         else:
             raise IllegalAction(f"Impossible to modify the {name_el} with inputs {values}. "
                                 f"Please see the documentation.")
@@ -2959,12 +2947,12 @@ class BaseAction(GridObjects):
     def change_bus(self, values):
         orig_ = self.change_bus
         try:
-            self.__aux_affect_object_bool(values, "", self.dim_topo, None,
-                                          np.arange(self.dim_topo), self._change_bus_vect)
+            self._aux_affect_object_bool(values, "", self.dim_topo, None,
+                                         np.arange(self.dim_topo), self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:
-            self.__aux_affect_object_bool(orig_, "", self.dim_topo, None,
-                                          np.arange(self.dim_topo), self._change_bus_vect)
+            self._aux_affect_object_bool(orig_, "", self.dim_topo, None,
+                                         np.arange(self.dim_topo), self._change_bus_vect)
             raise IllegalAction(f"Impossible to modify the bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
@@ -2986,8 +2974,8 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the load bus (with \"change\") with this action type.")
         orig_ = self.load_change_bus
         try:
-            self.__aux_affect_object_bool(values, "load", self.n_load, self.name_load,
-                                          self.load_pos_topo_vect, self._change_bus_vect)
+            self._aux_affect_object_bool(values, "load", self.n_load, self.name_load,
+                                         self.load_pos_topo_vect, self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:
             self._change_bus_vect[self.load_pos_topo_vect] = orig_
@@ -3098,8 +3086,8 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the gen bus (with \"change\") with this action type.")
         orig_ = self.gen_change_bus
         try:
-            self.__aux_affect_object_bool(values, "gen", self.n_gen, self.name_gen,
-                                          self.gen_pos_topo_vect, self._change_bus_vect)
+            self._aux_affect_object_bool(values, "gen", self.n_gen, self.name_gen,
+                                         self.gen_pos_topo_vect, self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:
             self._change_bus_vect[self.gen_pos_topo_vect] = orig_
@@ -3125,8 +3113,8 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the storage units with this action type.")
         orig_ = self.storage_change_bus
         try:
-            self.__aux_affect_object_bool(values, "storage", self.n_storage, self.name_storage,
-                                          self.storage_pos_topo_vect, self._change_bus_vect)
+            self._aux_affect_object_bool(values, "storage", self.n_storage, self.name_storage,
+                                         self.storage_pos_topo_vect, self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:
             self._change_bus_vect[self.storage_pos_topo_vect] = orig_
@@ -3151,8 +3139,8 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (origin) bus (with \"change\") with this action type.")
         orig_ = self.line_or_change_bus
         try:
-            self.__aux_affect_object_bool(values, self._line_or_str, self.n_line, self.name_line,
-                                          self.line_or_pos_topo_vect, self._change_bus_vect)
+            self._aux_affect_object_bool(values, self._line_or_str, self.n_line, self.name_line,
+                                         self.line_or_pos_topo_vect, self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:
             self._change_bus_vect[self.line_or_pos_topo_vect] = orig_
@@ -3177,8 +3165,8 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the line (ex) bus (with \"change\") with this action type.")
         orig_ = self.line_ex_change_bus
         try:
-            self.__aux_affect_object_bool(values, self._line_ex_str, self.n_line, self.name_line,
-                                          self.line_ex_pos_topo_vect, self._change_bus_vect)
+            self._aux_affect_object_bool(values, self._line_ex_str, self.n_line, self.name_line,
+                                         self.line_ex_pos_topo_vect, self._change_bus_vect)
             self._modif_change_bus = True
         except Exception as exc_:
             self._change_bus_vect[self.line_ex_pos_topo_vect] = orig_
@@ -3208,8 +3196,8 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to modify the status of powerlines (with \"change\") with this action type.")
         orig_ = 1 * self._switch_line_status
         try:
-            self.__aux_affect_object_bool(values, "line status", self.n_line, self.name_line,
-                                          np.arange(self.n_line), self._switch_line_status)
+            self._aux_affect_object_bool(values, "line status", self.n_line, self.name_line,
+                                         np.arange(self.n_line), self._switch_line_status)
             self._modif_change_status = True
         except Exception as exc_:
             self._switch_line_status[:] = orig_
@@ -3217,11 +3205,11 @@ class BaseAction(GridObjects):
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
-    def __aux_affect_object_float(self, values, name_el, nb_els,
-                                  name_els,
-                                  inner_vect,
-                                  outer_vect,
-                                  ):
+    def _aux_affect_object_float(self, values, name_el, nb_els,
+                                 name_els,
+                                 inner_vect,
+                                 outer_vect,
+                                 ):
         """
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
         This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
@@ -3309,8 +3297,8 @@ class BaseAction(GridObjects):
                 else:
                     # get back to case where it's a full vector
                     values = np.array(values)
-                    self.__aux_affect_object_float(values, name_el, nb_els, name_els,
-                                                   inner_vect=inner_vect, outer_vect=outer_vect)
+                    self._aux_affect_object_float(values, name_el, nb_els, name_els,
+                                                  inner_vect=inner_vect, outer_vect=outer_vect)
                     return
 
             # expected list of tuple, each tuple is a pair with load_id, new_vals: example: [(0, -1.0), (2,2.7)]
@@ -3324,8 +3312,8 @@ class BaseAction(GridObjects):
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
                     el_id = tmp[0]
-                self.__aux_affect_object_float((el_id, new_val), name_el, nb_els, name_els,
-                                               inner_vect=inner_vect, outer_vect=outer_vect)
+                self._aux_affect_object_float((el_id, new_val), name_el, nb_els, name_els,
+                                              inner_vect=inner_vect, outer_vect=outer_vect)
         elif isinstance(values, dict):
             # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
             for key, new_val in values.items():
@@ -3334,8 +3322,8 @@ class BaseAction(GridObjects):
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
                     key = tmp[0]
-                self.__aux_affect_object_float((key, new_val), name_el, nb_els, name_els,
-                                               inner_vect=inner_vect, outer_vect=outer_vect)
+                self._aux_affect_object_float((key, new_val), name_el, nb_els, name_els,
+                                              inner_vect=inner_vect, outer_vect=outer_vect)
         else:
             raise IllegalAction(f"Impossible to modify the {name_el} with inputs {values}. "
                                 f"Please see the documentation.")
@@ -3444,8 +3432,8 @@ class BaseAction(GridObjects):
             raise IllegalAction("Impossible to perform redispatching with this action type.")
         orig_ = self.redispatch
         try:
-            self.__aux_affect_object_float(values, "redispatching", self.n_gen, self.name_gen,
-                                           np.arange(self.n_gen), self._redispatch)
+            self._aux_affect_object_float(values, "redispatching", self.n_gen, self.name_gen,
+                                          np.arange(self.n_gen), self._redispatch)
             self._modif_redispatch = True
         except Exception as exc_:
             self._redispatch[:] = orig_
@@ -3485,8 +3473,8 @@ class BaseAction(GridObjects):
                                 "available)")
         orig_ = self.storage_p
         try:
-            self.__aux_affect_object_float(values, "storage", self.n_storage, self.name_storage,
-                                           np.arange(self.n_storage), self._storage_power)
+            self._aux_affect_object_float(values, "storage", self.n_storage, self.name_storage,
+                                          np.arange(self.n_storage), self._storage_power)
             self._modif_storage = True
         except Exception as exc_:
             self._storage_power[:] = orig_
@@ -3494,7 +3482,7 @@ class BaseAction(GridObjects):
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
-    def __aux_aux_convert_and_check_np_array(self, array_):
+    def _aux_aux_convert_and_check_np_array(self, array_):
         try:
             array_ = np.array(array_)
         except Exception as exc_:
@@ -3531,19 +3519,19 @@ class BaseAction(GridObjects):
             if values.dtype == dt_bool or values.dtype == bool:
                 raise IllegalAction("When using a full vector for setting the topology, it should be "
                                     "of integer types")
-            values = self.__aux_aux_convert_and_check_np_array(values)
+            values = self._aux_aux_convert_and_check_np_array(values)
             self._set_topo_vect[:] = values
         elif isinstance(values, tuple):
             # should be a tuple (sub_id, new_topo)
             sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
-            topo_repr = self.__aux_aux_convert_and_check_np_array(topo_repr)
+            topo_repr = self._aux_aux_convert_and_check_np_array(topo_repr)
             start_ = np.sum(self.sub_info[:sub_id])
             end_ = start_ + nb_el
             self._set_topo_vect[start_:end_] = topo_repr
         elif isinstance(values, list):
             if len(values) == self.dim_topo:
                 # if list is the size of the full topo vect, it's a list representing it
-                values = self.__aux_aux_convert_and_check_np_array(values)
+                values = self._aux_aux_convert_and_check_np_array(values)
                 self._aux_set_bus_sub(values)
                 return
             # otherwise it should be a list of tuples: [(sub_id, topo), (sub_id, topo)]
@@ -3581,7 +3569,7 @@ class BaseAction(GridObjects):
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
-    def __aux_aux_convert_and_check_np_array_change(self, array_):
+    def _aux_aux_convert_and_check_np_array_change(self, array_):
         try:
             array_ = np.array(array_)
         except Exception as exc_:
@@ -3639,20 +3627,20 @@ class BaseAction(GridObjects):
             if values.dtype == dt_int or values.dtype == int:
                 raise IllegalAction("When using a full vector for setting the topology, it should be "
                                     "of bool types")
-            values = self.__aux_aux_convert_and_check_np_array_change(values)
+            values = self._aux_aux_convert_and_check_np_array_change(values)
             self._change_bus_vect[:] = values
         elif isinstance(values, tuple):
             # should be a tuple (sub_id, new_topo)
             sub_id, topo_repr, nb_el = self._check_for_right_vectors_sub(values)
 
-            topo_repr = self.__aux_aux_convert_and_check_np_array_change(topo_repr)
+            topo_repr = self._aux_aux_convert_and_check_np_array_change(topo_repr)
             start_ = np.sum(self.sub_info[:sub_id])
             end_ = start_ + nb_el
             self._change_bus_vect[start_:end_] = topo_repr
         elif isinstance(values, list):
             if len(values) == self.dim_topo:
                 # if list is the size of the full topo vect, it's a list representing it
-                values = self.__aux_aux_convert_and_check_np_array_change(values)
+                values = self._aux_aux_convert_and_check_np_array_change(values)
                 self._aux_change_bus_sub(values)
                 return
             # otherwise it should be a list of tuples: [(sub_id, topo), (sub_id, topo)]

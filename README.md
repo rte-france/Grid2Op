@@ -162,16 +162,27 @@ The official documentation is available at
 [https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
 ## Build the documentation
+
 A copy of the documentation can be built if the project is installed *from source*:
 you will need Sphinx, a Documentation building tool, and a nice-looking custom
- [Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/):
+[Sphinx theme similar to the one of readthedocs.io](https://sphinx-rtd-theme.readthedocs.io/en/latest/). These
+can be installed with:
 ```commandline
 pip3 install -U grid2op[docs]
 ```
-This installs both the Sphinx package and the custom template. Then, the documentation can be built with the command:
+This installs both the Sphinx package and the custom template. 
+
+Then, on systems where `make` is available (mainly gnu-linux and macos) the documentation can be built with the command:
 ```commandline
 make html
 ```
+
+For windows, or systems where `make` is not available, the command:
+```commandline
+sphinx-build -b html docs documentation
+```
+
+
 This will create a "documentation" subdirectory and the main entry point of the document will be located at 
 [index.html](documentation/html/index.html).
 
@@ -189,7 +200,7 @@ pip3 install -U grid2op[optional]
 ```
 ## Launch tests
 ```commandline
-cd Grid2Op
+cd grid2op/tests
 python3 -m unittest discover
 ```
 

@@ -85,22 +85,69 @@ Along with the topology, grid2op allows easily to manipulate (and thus control):
 
 - the voltages: by manipulating shunts, or by changing the setpoint value of the generators
 - the active generation: by the use of the "redispatching" action.
+- the storage units (batteries or pumped_storage) that allows to produce some energy / absorb some energy from the
+  powergrid when needed.
 
 Other "flexibilities" (ways to act on the grid) are coming soon (-:
 
+.. note:: We wanted to emphasize the particularity of the problem proposed in grid2Op.
+    Indeed, the objective is to act on a graph (observation space = a graph, action space = modification of this graph).
+
+    As opposed to many graph related problems addressed in the literature, we do not try to find some properties of a
+    dataset represented as one (or many) graph(s).
+
+    Controlling a powergrid rather means to find a graph that meets some properties (**eg** all weights on all
+    edges **aka** the flows on the powerlines, must be bellow some threshold **aka** the thermal limits - **NB** a
+    solver uses some physical laws to compute these "weights" from the amount of power produced / absorbed in
+    different part of the grid where generators and loads are connected).
 
 What is modeled in an grid2op environment
 -----------------------------------------
 The simulator is able to emulate a power grid (of any size or characteristics) subject to a set of
 temporal injections (productions and consumptions) or maintenance / hazards for discretized
-time-steps.
+time-steps (usually there is the equivalent of *5* minutes between two consective steps).
+
+Say a powergrid is represented as a graph with:
+
+- the edges being the powerlines (and transformers)
+- the nodes being the "bus" (a bus is the power system terminology to denotes the "things" (aka nodes) that are
+  connected by the edges)
+
+This graph has some properties:
+
+- some buses are "labeled": "generators" that produces a certain amount of power are connected to them
+- some buses are "labeled": "loads" that consumes a certain amount of power are connected to them
+- all edges have some  "weights": some physical laws (*eg* conservation of energy or more specifically
+  `Kirchoff Circuits Laws`), that cannot be altered (and are computed by the `Backend`), induced some flows on
+  the powerline that can be represented as "weights" on this graph
+- it is dynamic: at different steps, the graph can be different, for example, it is possible to have a "node" with
+  load 1, load 2, line 1 and line 2 and a given step, and to "split" this node in two to have, at another step
+  load 1 and line 2 on a "node" and "load 2" and "line 1" on a different node (and the other way around).
+
+This graph has some constraints:
+
+- the total generation (sum of production of all generator) should be exactly equal to the
+  total demand (sum of consumption of all loads) and the power losses (due to the heating of the powerlines for
+  example)
+- the generators should always be connected to the grid, otherwise this is a blackout
+- the loads should always be connected to the grid, otherwise this is a blackout
+- the graph of the grid should be `connected` (made of one unique connex component): otherwise the condition number
+  1 above (sum production = sum load + sum losses) will not be met in each of the independant subgraph, most likely.
+- there exist a solution to the `Kirchoff Circuits Laws`
+
+The whole grid2op ecosystem aims at modeling the evolution of a "controller" that is able to make sure the
+"graph of grid", at all time meets all the constraints.
 
 More concretely a grid2op environment models "out of the box":
 
-- the mechanism to "implement" a control on the grid (with a dedicated `action` module,
-  load the next chronics data (*e.g.* new loads and productions)
-  and compute the appropriate state of the power network
-- the disconnection of powerlines if there are on overflow for too long (known as "time overcurrent (TOC)" see
+- the mechanism to "implement" a control on the grid (with a dedicated `action` module) that can be used by any
+  `Agent`, which takes some decisions to maintain the grid in security
+- time series of loads and productions: which represents the evolution of the power injected / withdrawn
+  at each bus of the grid, at any time (**NB** the `Agent` do not see the future, it means that it cannot have an
+  exact value for each of the loads in the future, but can only observe the current sate)
+- a mechanism (that can be implemented using different solver) to compute the flows based on the injections (which
+  amoung of power is produced at each nodes) and the topology (graph of the grid)
+- the automatic disconnection of powerlines if there are on overflow for too long (known as "time overcurrent (TOC)" see
   this article for more information
   `overcurrent <https://en.wikipedia.org/wiki/Power_system_protection#Overload_and_back-up_for_distance_(overcurrent)>`_ )
   Conceptually this means the environment remember for how long a powergrid is in "overflow" and disconnects it
@@ -114,7 +161,7 @@ More concretely a grid2op environment models "out of the box":
   less "realistic" if you use a time domain simulator)
 - the maintenance operations: if there is a planned maintenance, the environment is able to disconnect a powerline
   for a given amount of steps and preventing its reconnection. There are information about such planned event
-  that are given to the control
+  that are given to the controller.
 - hazards / unplanned outages / attacks: another issue on power system is the fact that sometimes, some powerline
   get disconnected in a non planned manner. For example, a tree can fall on a powerline, the grid might suffer
   a cyber attack etc. This can also be modeled by grid2op.
@@ -159,8 +206,10 @@ The grid2op environments have multiple shared properties:
   constraints) the production of each generators. Knowing these information at any time steps, the powergrid state
   must satisfy the `Kirchhoff's circuit laws <https://en.wikipedia.org/wiki/Kirchhoff%27s_circuit_laws>`_ .
 - stochastic environments: in all environment, you don't know the future, which makes it a "Partially
-  Observable" environments (if you were in a maze, you would not see "from above" but rather see "at the first
-  person"). Environment can be "even more stochastic" if there are hazards / attacks on the powergrid.
+  Observable" environments (if you were in a maze, you would **not** see "from above" but rather see "at the first
+  person": only seeing in front of you).
+  Environments can be "even more stochastic" if there are hazards or even adversarial: a malicious agent can take
+  attacks targeted to endanger your policy.
 - with both **continuous and discrete observation space**: some part of the observation are continuous (for example
   the amount of flow on a given powerline, or the production of this generator) and some are discrete (
   for example the status - connected / disconnected - of a powerline, or how long this powerline
@@ -171,7 +220,9 @@ The grid2op environments have multiple shared properties:
 - dynamic graph manipulation: power network can be modeled as graphs. In these environments both the observation
   **and the action** are focused on graph. The observation contains the complete state of the grid, including
   the "topology" (you can think of it a its graph) and actions are focused on adapting this graph to make
-  the grid as robust and secure as possible.
+  the grid as robust and secure as possible. **NB** As opposed to most problem in the literature, where
+  you need to find some properties (label of of the edges or the nodes, etc.) in grid2op you need
+  to find a graph that meets some properties: find a graph that meets constraints on its edges and its nodes.
 - strong emphasis on **safety** and **security**: power system are highly critical system (who would want to
   short circuit a powerplant? Or causing a blackout preventing an hospital to cure the patients?) and as such it is
   critical that the controls keep the powergrid safe in all circumstances.
@@ -190,4 +241,3 @@ more information and a detailed tour about the issue that grid2op tries to addre
 
 .. note:: As of writing (december 2020) most of these notebooks focus on the "agent" part of grid2op. We would welcome
     any contribution to better explain the other aspect of this platform.
-
