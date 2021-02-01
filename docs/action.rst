@@ -1,4 +1,28 @@
 .. currentmodule:: grid2op.Action
+
+.. _n_gen: ./space.html#grid2op.Space.GridObjects.n_gen
+.. _n_load: ./space.html#grid2op.Space.GridObjects.n_load
+.. _n_line: ./space.html#grid2op.Space.GridObjects.n_line
+.. _n_sub: ./space.html#grid2op.Space.GridObjects.n_sub
+.. _n_storage: ./space.html#grid2op.Space.GridObjects.n_storage
+.. _dim_topo: ./space.html#grid2op.Space.GridObjects.dim_topo
+.. _set_bus: ./action.html#grid2op.Action.BaseAction.set_bus
+.. _line_or_set_bus: ./action.html#grid2op.Action.BaseAction.line_or_set_bus
+.. _line_ex_set_bus: ./action.html#grid2op.Action.BaseAction.line_ex_set_bus
+.. _load_set_bus: ./action.html#grid2op.Action.BaseAction.load_set_bus
+.. _gen_set_bus: ./action.html#grid2op.Action.BaseAction.gen_set_bus
+.. _storage_set_bus: ./action.html#grid2op.Action.BaseAction.storage_set_bus
+.. _change_bus: ./action.html#grid2op.Action.BaseAction.change_bus
+.. _line_or_change_bus: ./action.html#grid2op.Action.BaseAction.line_or_change_bus
+.. _line_ex_change_bus: ./action.html#grid2op.Action.BaseAction.line_ex_change_bus
+.. _load_change_bus: ./action.html#grid2op.Action.BaseAction.load_change_bus
+.. _gen_change_bus: ./action.html#grid2op.Action.BaseAction.gen_change_bus
+.. _storage_change_bus: ./action.html#grid2op.Action.BaseAction.storage_change_bus
+.. _line_set_status: ./action.html#grid2op.Action.BaseAction._line_set_status
+.. _line_change_status: ./action.html#grid2op.Action.BaseAction._line_change_status
+.. _redispatch: ./action.html#grid2op.Action.BaseAction.redispatch
+.. _storage_p: ./action.html#grid2op.Action.BaseAction.storage_p
+
 .. _action-module:
 
 Action
@@ -69,13 +93,60 @@ Main action "properties"
 In the table below, we present the main properties that you can use to code, using the grid2op framework, the
 action that you want to perform on the grid.
 
-TODO
+=============================================================================    =========  ============
+Name(s)                                                                          Type       Size (each)
+=============================================================================    =========  ============
+`set_bus`_                                                                       int        `dim_topo`_
+`gen_set_bus`_                                                                   int        `n_gen`_
+`load_set_bus`_                                                                  int        `n_load`_
+`line_or_set_bus`_                                                               int        `n_line`_
+`line_ex_set_bus`_                                                               int        `n_line`_
+`storage_set_bus`_                                                               int        `n_storage`_
+`change_bus`_                                                                    int        `dim_topo`_
+`gen_change_bus`_                                                                int        `n_gen`_
+`load_change_bus`_                                                               int        `n_load`_
+`line_or_change_bus`_                                                            int        `n_line`_
+`line_ex_change_bus`_                                                            int        `n_line`_
+`storage_change_bus`_                                                            int        `n_storage`_
+`line_set_status`_                                                               int        `n_line`_
+`line_change_status`_                                                            int        `n_line`_
+`redispatch`_                                                                    int        `n_gen`_
+`storage_p`_                                                                     int        `n_storage`_
+=============================================================================    =========  ============
 
-=============================================================================    ========= ============
-Name(s)                                                                          Type      Size (each)
-=============================================================================    ========= ============
-TODO
-=============================================================================    ========= ============
+All the attributes above are "properties", you don't have to use parenthesis to access them:
+
+.. code-block:: python
+
+    # valid code
+    gen_buses = act.gen_change_bus
+
+    # invalid code, it will "crash", do not run
+    gen_buses = act.gen_change_bus()
+    # end do not run
+
+And neither should you uses parenthesis to modify them:
+
+.. code-block:: python
+
+    # valid code
+    act.load_set_bus = [(1, 2) , (2, 1), (3, 1)]
+
+    # invalid code, it will crash, do not run
+    act.load_set_bus([(1, 2) , (2, 1), (3, 1)])
+    # end do not run
+
+Property cannot be set "directly", you have to use the `act.XXX = ..` syntax. For example:
+
+.. code-block:: python
+
+    # valid code
+    act.line_change_status = [1, 3, 4]
+
+    # invalid code, it will raise an error, and even if it did not it would have not effect
+    # do not run
+    act.line_change_status[1] = True
+    # end do not run
 
 Usage Examples
 --------------
@@ -84,11 +155,95 @@ impact of the action implemented, please consult the appropriate getting_started
 
 Set bus
 ++++++++
-TODO
+The "properties" concerned by this sections are: `set_bus`_, `gen_set_bus`_, `load_set_bus`_, `line_or_set_bus`_,
+`line_ex_set_bus`_ and `storage_set_bus`_. They all work in the same fashion, a detailed explanation is provided in
+the  `gen_set_bus`_ help page.
+
+Concretely, to perform a "set_bus" action you need to provide 2 elements: the id of the object you want to modify, and
+where you want to place it.
+
+For example, if you want to change the element (regardless of its type) 5, and set it to busbar 2:
+
+.. code-block:: python
+
+    act = env.action_space()  # create an action
+    act.set_bus = [(5, 2)]  # perform the desired modification
+
+You can modify as many elements as you want:
+
+.. code-block:: python
+
+    act = env.action_space()  # create an action
+    act.set_bus = [(5, 2), (6, 1)]
+    # equivalent to:
+    act2 = env.action_space()  # create an action
+    act2.set_bus = [(5, 2)]
+    act2.set_bus = [(6, 1)]
+
+And if you want to modify everything on the same action, you can do:
+
+.. code-block:: python
+
+    act = env.action_space()  # create an action
+    act_vect = ...  # for example `act_vect = np.random.choice([-1, 1, 2], size=act.dim_topo)`
+    act.set_bus = act_vect
+
+In the example above, `act_vect` can, for example, come from a neural network that is able to predict a "good"
+state of the grid, the one that it "wants".
+
+.. note:: In the example above, `act_vect` should be a vector of integer.
 
 Change bus
 ++++++++++
-TODO
+The "properties" concerned by this sections are: `change_bus`_, `gen_change_bus`_, `load_change_bus`_,
+`line_or_change_bus`_,
+`line_ex_change_bus`_ and `storage_change_bus`_. They all work in the same fashion, a detailed explanation is provided
+in the `gen_change_bus`_ help page.
+
+Concretely, to perform a "change_bus" action you need to provide 1 element: the id of the element you want
+to change.
+
+For example, if you want to change the element (regardless of its type) 5, and change the busbar on which it is connected:
+
+.. code-block:: python
+
+    act = env.action_space()  # create an action
+    act.set_bus = [5]  # perform the desired modification
+
+You can modify as many elements as you want:
+
+.. code-block:: python
+
+    act = env.action_space()  # create an action
+    act.change_bus = [5, 6]
+    # equivalent to:
+    act2 = env.action_space()  # create an action
+    act2.change_bus = [5]
+    act2.change_bus = [6]
+
+And if you want to modify everything on the same action, you can do:
+
+.. code-block:: python
+
+    act = env.action_space()  # create an action
+    act_vect = ...  # for example `act_vect = np.random.choice([0, 1], size=act.dim_topo).astype(bool)`
+    act.change_bus = act_vect
+
+In the example above, `act_vect` can, for example, come from a neural network that is able to predict a "good"
+state of the grid, the one that it "wants".
+
+.. note:: In the example above, `act_vect` should be a vector of boolean.
+
+.. note:: If an element is disconnected, performing a "change_bus" action on this element will have not effect.
+
+.. note:: Aside from reconnecting elements, which can be done only using the "set_bus" actions, the
+    "change_bus" and "set_bus" leads to equivalent grid states. For each state `obs_t`,
+    for each "change_bus" action `a_change`, there exists a "set_bus" action `a_set` such that `env.step(a_change)`
+    has exactly the same impact as `env.step(a_set)`
+
+    We introduced in grid2op the two (equivalent) representation not to limit agent. If we make the
+    parallel with oter RL environment, "change_bus" can be thought as "*turn left*" or "*turn right*" whereas "set_bus"
+    is more "*go at position (x,y)*".
 
 Set status
 +++++++++++
@@ -108,7 +263,7 @@ Storage power setpoint
 TODO
 
 Getting the resulting topology after an action
-+++++++++++++++++++++++++++++++++++++++++++++++
+------------------------------------------------
 Unfortunately, it is sometimes relatively difficult to understand what will be the exact effect of a given
 action on a powergrid.
 
@@ -150,7 +305,7 @@ As you can see, the `obs + act` method is always approximately 10 times faster t
 `obs.simulate(act, time_step=0)` [of course providing much less information] and can be up
 to 150 faster on larger grid (IEEE 118) using the default pandapower backend.
 
-We can also note that, as it don't require the use of any simulation, the time to do the `obs + act` is
+We can also note that, as it doesn't require the use of any simulation, the time to do the `obs + act` is
 more or less independent of the grid size (0.21 ms for a grid counting 14 substations and
 0.22ms for a grid with 118 substations) while the `obs.simulate` is not.
 
@@ -169,7 +324,9 @@ For example:
 
 .. code-block:: python
 
-    bus_bus_mat = obs.bus_connectivity_matrix()
+    bus_bus_mat = obs_add.bus_connectivity_matrix()  # alternatively  `sim_obs.bus_connectivity_matrix()`
+    # or
+    connect_mat = obs_add.connectivity_matrix()  # alternatively  `sim_obs.connectivity_matrix()`
 
 
 .. _Illegal-vs-Ambiguous:
@@ -269,6 +426,12 @@ action                                         original status   final status   
 =============================================  ================  ============   ==============  ========================
 
 \* means that this bus is affected: if it was on bus 1 it moves on bus 2 and vice versa.
+
+Note on random actions
+------------------------
+Sampling a "non ambiguous" legal action is a difficult task.
+
+TODO
 
 .. _action-module-converter:
 

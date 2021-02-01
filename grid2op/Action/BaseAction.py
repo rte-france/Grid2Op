@@ -2726,7 +2726,7 @@ class BaseAction(GridObjects):
 
         .. code-block:: python
 
-            act.set_bus [(0,1), (1, -1), (3, 2)]
+            act.set_bus = [(0,1), (1, -1), (3, 2)]
 
         Will:
 
@@ -2775,6 +2775,17 @@ class BaseAction(GridObjects):
         -----
 
         Setting a status of a powerline to +2 will raise an error.
+
+        Examples
+        ---------
+
+        For example:
+
+        .. code-block:: python
+
+            act.line_set_status = [(0,1), (1, -1), (3, 1)]
+
+        Will force the reconnection of line id 0 and 1 and force disconnection of line id 1.
 
         """
         if "set_line_status" not in self.authorized_keys:
@@ -3211,6 +3222,8 @@ class BaseAction(GridObjects):
                                  outer_vect,
                                  ):
         """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
         This is not set here, because it's recursive and if it fails at a point, it would be set for nothing
 

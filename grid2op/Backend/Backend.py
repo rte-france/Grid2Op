@@ -1170,8 +1170,7 @@ class Backend(GridObjects, ABC):
                                       "Emin": row["Emin"],
                                       "max_p_prod": row["max_p_prod"],
                                       "max_p_absorb": row["max_p_absorb"],
-                                      "marginal_cost": row["marginal_cost"],
-                                      "power_loss": row["power_loss"]
+                                      "marginal_cost": row["marginal_cost"]
                                       }
             if "power_loss" in row:
                 stor_info[row["name"]]["power_loss"] = row["power_loss"]
@@ -1180,11 +1179,11 @@ class Backend(GridObjects, ABC):
             if "charging_efficiency" in row:
                 stor_info[row["name"]]["charging_efficiency"] = row["charging_efficiency"]
             else:
-                stor_info[row["name"]]["charging_efficiency"] = 0.
+                stor_info[row["name"]]["charging_efficiency"] = 1.
             if "discharging_efficiency" in row:
                 stor_info[row["name"]]["discharging_efficiency"] = row["discharging_efficiency"]
             else:
-                stor_info[row["name"]]["discharging_efficiency"] = 0.
+                stor_info[row["name"]]["discharging_efficiency"] = 1.
 
         self.storage_type = np.full(self.n_storage, fill_value="aaaaaaaaaa")
         self.storage_Emax = np.full(self.n_storage, fill_value=1., dtype=dt_float)
@@ -1201,7 +1200,8 @@ class Backend(GridObjects, ABC):
                 tmp_sto = stor_info[sto_nm]
             except KeyError as exc_:
                 raise BackendError(f"Impossible to load the storage data. The storage unit {i} with name {sto_nm} "
-                                   f"could not be located on the description file \"{name}\".")
+                                   f"could not be located on the description file \"{name}\" with error : \n"
+                                   f"{exc_}.")
 
             self.storage_type[i] = str(tmp_sto["type"])
             self.storage_Emax[i] = self._aux_check_finite_float(tmp_sto["Emax"], f" for {sto_nm} and column \"Emax\"")
@@ -1228,7 +1228,7 @@ class Backend(GridObjects, ABC):
         """
         tmp = dt_float(nb_)
         if not np.isfinite(tmp):
-            raise BackendError(f"Inifinite number met for a number that should be finite. Please check your data {str_}")
+            raise BackendError(f"Infinite number met for a number that should be finite. Please check your data {str_}")
         return tmp
 
     def load_grid_layout(self, path, name='grid_layout.json'):
@@ -1317,8 +1317,6 @@ class Backend(GridObjects, ABC):
 
         Only the "line_status", "topo_vect", "prod_p", "prod_v", "load_p" and "load_q" attributes of the
         observations are used.
-
-        TODO we plan to set also the shunt information in the future.
 
         Notes
         -----
@@ -1445,7 +1443,7 @@ class Backend(GridObjects, ABC):
                 raise EnvError("\"storages_info()\" should return a tuple with 3 elements: p, q and v")
             for el in tmp:
                 if el.shape[0] != self.n_storage:
-                    raise IncorrectNumberOfLines("returned by \"backend.lines_ex_info()\"")
+                    raise IncorrectNumberOfLines("returned by \"backend.storages_info()\"")
 
         tmp = self.get_topo_vect()
         if tmp.shape[0] != np.sum(self.sub_info):
