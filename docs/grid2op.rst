@@ -146,7 +146,7 @@ More concretely a grid2op environment models "out of the box":
   at each bus of the grid, at any time (**NB** the `Agent` do not see the future, it means that it cannot have an
   exact value for each of the loads in the future, but can only observe the current sate)
 - a mechanism (that can be implemented using different solver) to compute the flows based on the injections (which
-  amoung of power is produced at each nodes) and the topology (graph of the grid)
+  among of power is produced at each nodes) and the topology (graph of the grid)
 - the automatic disconnection of powerlines if there are on overflow for too long (known as "time overcurrent (TOC)" see
   this article for more information
   `overcurrent <https://en.wikipedia.org/wiki/Power_system_protection#Overload_and_back-up_for_distance_(overcurrent)>`_ )

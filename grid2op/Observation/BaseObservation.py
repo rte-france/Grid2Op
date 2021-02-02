@@ -137,6 +137,9 @@ class BaseObservation(GridObjects):
             - `k` > 1 at position `i` it means that the powerline `i` will be disconnected for maintenance operation at
               in `k` time steps
 
+        When a powerline is "in maintenance", it cannot be reconnected by the `Agent` before the end of this
+        maintenance.
+
     duration_next_maintenance: :class:`numpy.ndarray`, dtype:int
         For each powerline, it gives the number of time step that the maintenance will last (if any). This means that,
         if at position `i` of this vector:
@@ -145,6 +148,9 @@ class BaseObservation(GridObjects):
             - there is a `1`, `2`, ... the powerline will be disconnected for at least `1`, `2`, ... timestep (**NB**
               in all case, the powerline will stay disconnected until a :class:`grid2op.BaseAgent.BaseAgent` performs the
               proper :class:`grid2op.BaseAction.BaseAction` to reconnect it).
+
+        When a powerline is "in maintenance", it cannot be reconnected by the `Agent` before the end of this
+        maintenance.
 
     target_dispatch: :class:`numpy.ndarray`, dtype:float
         For **each** generators, it gives the target redispatching, asked by the agent. This is the sum of all
@@ -279,6 +285,8 @@ class BaseObservation(GridObjects):
             self._shunt_q = 1.0 * self._shunt_p
             self._shunt_v = 1.0 * self._shunt_p
             self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=1)
+
+        self._thermal_limit = 1.0 * self.p_or
 
     def state_of(self,
                  _sentinel=None,
@@ -1858,3 +1866,24 @@ class BaseObservation(GridObjects):
         if isinstance(act, BaseAction):
             return self.add_act(act, issue_warn=True)
         raise Grid2OpException("Only grid2op action can be added to grid2op observation at the moment.")
+
+    @property
+    def thermal_limit(self):
+        """
+        Return the thermal limit of the powergrid, given in Amps (A)
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+
+            obs = env.reset()
+            thermal_limit = obs.thermal_limit
+
+        """
+        res = 1.0 * self._thermal_limit
+        res.flags.writeable = False
+        return res

@@ -59,6 +59,7 @@ Change Log
   right after the copy).
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
+- [ADDED] a poperty to retrieve the thermal limits from the observation.
 - [ADDED] documentation of the main elements of the grid and their "modeling" in grid2op.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,

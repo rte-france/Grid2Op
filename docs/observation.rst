@@ -12,9 +12,9 @@
 .. _hour_of_day: ./observation.html#grid2op.Observation.BaseObservation.hour_of_day
 .. _minute_of_hour: ./observation.html#grid2op.Observation.BaseObservation.minute_of_hour
 .. _day_of_week: ./observation.html#grid2op.Observation.BaseObservation.day_of_week
-.. _prod_p: ./observation.html#grid2op.Observation.BaseObservation.prod_p
-.. _prod_q: ./observation.html#grid2op.Observation.BaseObservation.prod_q
-.. _prod_v: ./observation.html#grid2op.Observation.BaseObservation.prod_v
+.. _gen_p: ./observation.html#grid2op.Observation.BaseObservation.prod_p
+.. _gen_q: ./observation.html#grid2op.Observation.BaseObservation.prod_q
+.. _gen_v: ./observation.html#grid2op.Observation.BaseObservation.prod_v
 .. _load_p: ./observation.html#grid2op.Observation.BaseObservation.load_p
 .. _load_q: ./observation.html#grid2op.Observation.BaseObservation.load_q
 .. _load_v: ./observation.html#grid2op.Observation.BaseObservation.load_v
@@ -92,7 +92,7 @@ with `obs.XXX` [*eg* `obs.rho`])
 Name(s)                                                                          Type      Size (each)
 =============================================================================    ========= ============
 `year`_, `month`_, `day`_, `hour_of_day`_, `minute_of_hour`_, `day_of_week`_     int       1
-`prod_p`_, `prod_q`_, `prod_v`_                                                  float     `n_gen`_
+`gen_p`_, `gen_q`_, `gen_v`_                                                     float     `n_gen`_
 `load_p`_, `load_q`_, `load_v`_                                                  float     `n_load`_
 `p_or`_, `q_or`_, `v_or`_, `a_or`_                                               float     `n_line`_
 `p_ex`_, `q_ex`_, `v_ex`_, `a_ex`_                                               float     `n_line`_

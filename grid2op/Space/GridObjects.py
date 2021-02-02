@@ -1617,6 +1617,13 @@ class GridObjects:
         if np.any(self.storage_charging_efficiency > 1.):
             tmp = np.where(self.storage_charging_efficiency > 1.)[0]
             raise BackendError(f"self.storage_charging_efficiency > 1. for storage units with ids: {tmp}")
+        if np.any(self.storage_loss > self.storage_max_p_absorb):
+            tmp = np.where(self.storage_loss > self.storage_max_p_absorb)[0]
+            raise BackendError(f"Some storage units are such that their loss (self.storage_loss) is higher "
+                               f"than the maximum power at which they can be charged (self.storage_max_p_absorb). "
+                               f"Such storage units are doomed to discharged (due to losses) without anything "
+                               f"being able to charge them back. This really un interesting behaviour is not "
+                               f"supported by grid2op. Please check storage data for units {tmp}")
 
     def _check_validity_shunt_data(self):
         if self.n_shunt is None:

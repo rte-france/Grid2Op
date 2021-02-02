@@ -176,3 +176,5 @@ class CompleteObservation(BaseObservation):
             self._shunt_q[:] = sh_q
             self._shunt_v[:] = sh_v
             self._shunt_bus[:] = sh_bus
+
+        self._thermal_limit[:] = env.get_thermal_limit()

@@ -49,6 +49,44 @@ maintaining the safety of grid in some conditions (voltage collapse).
 An a positive production means the generator produce something, so power is injected from the generator
 to the grid.
 
+Grid2op implements different information, available at different level that concerns generators.
+A summary of these information is available in the table below:
+
+==========================   =============  ============================================================
+Name                         Type            Described in
+==========================   =============  ============================================================
+n_gen                         int           static, :ref:`generator-stat`
+name_gen                      vect, string  static, :ref:`generator-stat`
+gen_to_subid                  vect, int     static, :ref:`generator-stat`
+gen_to_sub_pos                vect, int     (internal) static, :ref:`generator-stat`
+gen_pos_topo_vect             vect, int     static, :ref:`generator-stat`
+\* gen_type                   vect, string  static, :ref:`generator-stat`
+\* gen_pmin                   vect, float   static, :ref:`generator-stat`
+\* gen_pmax                   vect, float   static, :ref:`generator-stat`
+\* gen_redispatchable         vect, bool    static, :ref:`generator-stat`
+\* gen_max_ramp_up            vect, float   static, :ref:`generator-stat`
+\* gen_max_ramp_down          vect, float   static, :ref:`generator-stat`
+\* gen_min_uptime             vect, int     (currently unused) static, :ref:`generator-stat`
+\* gen_min_downtime           vect, int     (currently unused) static, :ref:`generator-stat`
+\* gen_cost_per_MW            vect, float   (will change in the near future) static, :ref:`generator-stat`
+\* gen_startup_cost           vect, float   (currently unused) static, :ref:`generator-stat`
+\* gen_shutdown_cost          vect, float   (currently unused) static, :ref:`generator-stat`
+gen_set_bus                   vect, int     action, :ref:`generator-act`
+gen_change_bus                vect, bool    action, :ref:`generator-act`
+redispatch                    vect, float   action, :ref:`generator-act`
+prod_p                        vect, float   (internal) action, :ref:`generator-act`
+prod_v                        vect, float   (internal) action, :ref:`generator-act`
+gen_p                         vect, float   observation, :ref:`generator-obs`
+gen_q                         vect, float   observation, :ref:`generator-obs`
+gen_v                         vect, float   observation, :ref:`generator-obs`
+target_dispatch               vect, float   observation, :ref:`generator-obs`
+actual_dispatch               vect, float   observation, :ref:`generator-obs`
+gen_bus                       vect, int     observation, :ref:`generator-obs`
+==========================   =============  ============================================================
+
+
+.. _generator-stat:
+
 Static properties
 ~~~~~~~~~~~~~~~~~~
 Their static properties are:
@@ -79,15 +117,22 @@ gen_pos_topo_vect             vect, int     Internal, see :ref:`create-backend-m
 .. warning:: These attributes are static, and we do not recommend to alter them in any way. They are loaded at the
     start of the environment and should not be modified.
 
+    Static attributes are accessible from most grid2op classes, including, but not limited to :
+    `env.n_gen`, `act.n_gen`, `obs.n_gen`, `env.action_space.n_gen`, `env.observation_space.n_gen`
+
+.. _generator-act:
+
 Modifiable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
 You can modify the generator in different manner, from an **action** (NB some action do not allow the modification
-of some of these attributes).
+of some of these attributes). Generators can be affected by both continuous and discrete actions.
 
-- `gen_set_bus`: set the bus to which the generator is connected. Usage: `act.gen_set_bus = [(gen_id, new_bus)]` where `gen_id` is the
+- `gen_set_bus`: set the bus to which the generator is connected. Usage: `act.gen_set_bus = [(gen_id, new_bus)]`
+  where `gen_id` is the
   id of the generator you want to modify and `new_bus` the bus to which you want to connect it.
-- `gen_change_bus`: change the bus to which the generator is connected. Usage: `act.gen_change_bus = gen_id` to change the bus of the
+- `gen_change_bus`: change the bus to which the generator is connected. Usage: `act.gen_change_bus = gen_id`
+  to change the bus of the
   generator with id `gen_id`.
 - `redispatch`: will apply some redispatching a generator. Usage: `act.redispatch = [(gen_id, amount)]` to
   apply a redispatching action of `amount` MW on generator `gen_id`
@@ -96,6 +141,8 @@ of some of these attributes).
 
 .. note:: See the :ref:`action-module` and in particular the section
     :ref:`action-module-examples` for more information about how to manipulate these properties.
+
+.. _generator-obs:
 
 Observable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -244,8 +291,38 @@ Loads
 
 Description
 ~~~~~~~~~~~~~~~~~~
-TODO
+A load is an element that consumes power from a powergrid. They are given in the following "sign convention": if a
+load is positive, it means power is consumed, if a load is negative it means power is being produced.
 
+.. note:: In case of a grid interconnected with other grids (as of writing, this is the case for the
+    "*l2rpn_neurips_2020_track1*" environment), some loads might represent "interconnection powerline". Basically,
+    we only represent the "side" of each powerline interconnecting the powergrid from "*l2rpn_neurips_2020_track1*"
+    with another non modeled powergrid as a load. This is why in some cases loads can be negative.
+
+    We plan on adding another dedicated element for that in the future, but for now this is how this is.
+
+Grid2op implements different information, available at different level that concerns loads.
+A summary of these information is available in the table below:
+
+==========================   =============  ============================================================
+Name                         Type            Described in
+==========================   =============  ============================================================
+n_load                        int           static, :ref:`load-stat`
+name_load                     vect, string  static, :ref:`load-stat`
+load_to_subid                 vect, int     static, :ref:`load-stat`
+load_to_sub_pos               vect, int     (internal) static, :ref:`load-stat`
+load_pos_topo_vect            vect, int     (internal) static, :ref:`load-stat`
+load_set_bus                  vect, int     action, :ref:`load-act`
+load_change_bus               vect, bool    action, :ref:`load-act`
+load_p                        vect, float   (internal) action, :ref:`load-act`
+load_q                        vect, float   (internal) action, :ref:`load-act`
+load_p                        vect, float   observation, :ref:`load-obs`
+load_q                        vect, float   observation, :ref:`load-obs`
+load_v                        vect, float   observation, :ref:`load-obs`
+load_bus                      vect, int     observation, :ref:`load-obs`
+==========================   =============  ============================================================
+
+.. _load-stat:
 
 Static properties
 ~~~~~~~~~~~~~~~~~~
@@ -254,7 +331,11 @@ Their static properties are:
 ===========================  =============  =======================================
 Name                          Type           Description
 ===========================  =============  =======================================
-TODO
+n_load                        int           Total number of loads on the grid
+name_load                     vect, string  Names of all the loads
+load_to_subid                 vect, int     To which substation each load is connected
+load_to_sub_pos               vect, int     Internal, see :ref:`create-backend-module`
+load_pos_topo_vect            vect, int     Internal, see :ref:`create-backend-module`
 ===========================  =============  =======================================
 
 (\* denotes optional properties available only for some environments)
@@ -262,23 +343,57 @@ TODO
 .. warning:: These attributes are static, and we do not recommend to alter them in any way. They are loaded at the
     start of the environment and should not be modified.
 
+    Static attributes are accessible from most grid2op classes, including, but not limited to :
+    `env.n_load`, `act.n_load`, `obs.n_load`, `env.action_space.n_load`, `env.observation_space.n_load`
+
+.. _load-act:
+
 Modifiable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+You can modify the loads in different manner, from an **action** (NB some action do not allow the modification
+of some of these attributes). Loads can be affected by both continuous and discrete actions, though the
+continous action on loads is for now non accessible to the agent.
+
+- `load_set_bus`: set the bus to which the load is connected. Usage: `act.load_set_bus = [(load_id, new_bus)]`
+  where `load_id` is the
+  id of the load you want to modify and `new_bus` the bus to which you want to connect it.
+- `load_change_bus`: change the bus to which the load is connected. Usage: `act.load_change_bus = load_id`
+  to change the bus of the
+  load with id `load_id`.
+- (internal) change the active consumption of a load. Usage `act.update({"injection": {"load_p": vect}}`
+- (internal) change the reactive consumption of a load. Usage `act.update({"injection": {"load_q": vect}}`
 
 .. note:: See the :ref:`action-module` and in particular the section
-    :ref:`action-module-examples` for more information about how to manipulate these properties.
+    :ref:`action-module-examples` for more information about how to manipulate these "properties".
+
+.. _load-obs:
 
 Observable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+In this section we explain the loads attributes you can access from an **observation**. These
+attributes are:
+
+- `load_p`: the current active consumption of each load, in MW. Usage: `obs.load_p[load_id]` will retrieve the
+  active production of load with id `load_id`
+- `load_q`: the current reactive consumption of each load, in MVAr. Usage: `obs.load_q[load_id]` will
+  get the reactive consumption of load with id `load_id`
+- `load_v`: the voltage of the bus at which the load is connected, in kV. Usage `obs.load_v[load_id]` will
+  get the voltage magnitude of the bus at which load with id `load_id` is connected.
+- `load_bus`: the bus to which each load is connected. Usage `obs.load_bus[load_id]` will
+  get the bus to which load with id `load_id` is connected (typically -1, 1 or 2).
 
 Equations satisfied
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+The main objective of TSO (:math:`\approx` companies operating powergrids) is to make sure the demand is met at all
+times. This is why there are no constraints on the loads. Loads can vary as much as they "want". Agents can only
+observe the variation of loads, without being able to perform any intervention on them.
+
+.. note:: More recently, some "new" methods have been developed that could allow TSO, to some extend, to have some
+    control on the demand. These methods, known as "*demand side management*" are not available yet in grid2op. Do
+    not hesitate to fill a "feature request" if this topic is relevant for you.
 
 .. _powerline-mod-el:
 
@@ -287,8 +402,73 @@ Powerlines
 
 Description
 ~~~~~~~~~~~~~~~~~~
-TODO
+Powerlines are "elements" of the grid that allow the power to flow from one part of the grid to another. They
+are connecting two different substations.
 
+In grid2op, a powerline is represented by two side: an "origin" side, in the `\*\_line_or\_\*` vectors and an
+"extremity" side whose information will be given in the `\*\_line_ex\_\*` vectors.
+
+One of the main objective of TSO, in real time, is to make sure the flows on the powerline do not exceed its capacity.
+In grid2op, two "maximum capacties" are modeled. Grid2op will (depending on the
+:class:`Parameters.Parameters` used) disconnect automatically powerlines:
+
+- if there are on overflow for too long (known as "time overcurrent (TOC)" see
+  this article for more information
+  `overcurrent <https://en.wikipedia.org/wiki/Power_system_protection#Overload_and_back-up_for_distance_(overcurrent)>`_ )
+  Conceptually this means the environment remember for how long a powergrid is in "overflow" and disconnects it
+  if needed. **NB** This is an **emulation** of what happen on the grid, in case you use a Backend that do not have
+  this feature (for example if you use static / steady state powerflow). This emulation might not be necessary (and
+  less "realistic" if you use a time domain simulator)
+- if the overflow is too high (known as "instantaneous overcurrent" see the same
+  wikipedia article). This means from one step to another, a given powerline can be disconnected if too much
+  flow goes through it. **NB** This is an **emulation** of what happen on the grid, in case you use a Backend that
+  do not have
+  this feature (for example if you use static / steady state powerflow). This emulation might not be necessary (and
+  less "realistic" if you use a time domain simulator)
+
+Grid2op implements different information, available at different level that concerns loads.
+A summary of these information is available in the table below:
+
+==========================   =============  ============================================================
+Name                         Type            Described in
+==========================   =============  ============================================================
+n_line                        int           static, :ref:`powerline-stat`
+name_line                     vect, string  static, :ref:`powerline-stat`
+line_or_to_subid              vect, int     static, :ref:`powerline-stat`
+line_ex_to_subid              vect, int     static, :ref:`powerline-stat`
+line_or_to_sub_pos            vect, int     static, :ref:`powerline-stat`
+line_ex_to_sub_pos            vect, int     static, :ref:`powerline-stat`
+line_or_pos_topo_vect         vect, int     static, :ref:`powerline-stat`
+line_ex_pos_topo_vect         vect, int     static, :ref:`powerline-stat`
+line_or_set_bus               vect, int     action, :ref:`powerline-act`
+line_ex_set_bus               vect, int     action, :ref:`powerline-act`
+line_ex_change_bus            vect, int     action, :ref:`powerline-act`
+line_or_change_bus            vect, int     action, :ref:`powerline-act`
+line_set_status               vect, int     action, :ref:`powerline-act`
+line_change_status            vect, int     action, :ref:`powerline-act`
+a_or                          vect, float   observation, :ref:`powerline-obs`
+a_ex                          vect, float   observation, :ref:`powerline-obs`
+p_or                          vect, float   observation, :ref:`powerline-obs`
+p_ex                          vect, float   observation, :ref:`powerline-obs`
+q_or                          vect, float   observation, :ref:`powerline-obs`
+q_ex                          vect, float   observation, :ref:`powerline-obs`
+v_or                          vect, float   observation, :ref:`powerline-obs`
+v_ex                          vect, float   observation, :ref:`powerline-obs`
+rho                           vect, float   observation, :ref:`powerline-obs`
+line_status                   vect, bool    observation, :ref:`powerline-obs`
+timestep_overflow             vect, int     observation, :ref:`powerline-obs`
+time_before_cooldown_line     vect, int     observation, :ref:`powerline-obs`
+time_next_maintenance         vect, int     observation, :ref:`powerline-obs`
+duration_next_maintenance     vect, int     observation, :ref:`powerline-obs`
+thermal_limit                 vect, float   observation, :ref:`powerline-obs`
+line_or_bus                   vect, int     observation, :ref:`powerline-obs`
+line_ex_bus                   vect, int     observation, :ref:`powerline-obs`
+==========================   =============  ============================================================
+
+.. note:: A "grid2op powerlines" includes both "powerlines" **and** "transformers" in power system terminology. For
+    grid2op, transformers are powerlines.
+
+.. _powerline-stat:
 
 Static properties
 ~~~~~~~~~~~~~~~~~~
@@ -297,7 +477,14 @@ Their static properties are:
 ===========================  =============  =======================================
 Name                          Type           Description
 ===========================  =============  =======================================
-TODO
+n_line                        int           Total number of lines on the grid
+name_line                     vect, string  Names of all the lines
+line_or_to_subid              vect, int     To which substation each line (origin side) is connected
+line_ex_to_subid              vect, int     To which substation each line (extremity side) is connected
+line_or_to_sub_pos            vect, int     Internal, see :ref:`create-backend-module`
+line_ex_to_sub_pos            vect, int     Internal, see :ref:`create-backend-module`
+line_or_pos_topo_vect         vect, int     Internal, see :ref:`create-backend-module`
+line_ex_pos_topo_vect         vect, int     Internal, see :ref:`create-backend-module`
 ===========================  =============  =======================================
 
 (\* denotes optional properties available only for some environments)
@@ -305,35 +492,144 @@ TODO
 .. warning:: These attributes are static, and we do not recommend to alter them in any way. They are loaded at the
     start of the environment and should not be modified.
 
+    Static attributes are accessible from most grid2op classes, including, but not limited to :
+    `env.n_line`, `act.n_line`, `obs.n_line`, `env.action_space.n_line`, `env.observation_space.n_line`
+
+.. _powerline-act:
+
 Modifiable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+You can modify the powerlines in different manner, from an **action** (NB some action do not allow the modification
+of some of these attributes). Powerlines can be affected only by discrete actions.
+
+- `line_or_set_bus`: set the bus to which the origin side of the powerline is connected.
+  Usage: `act.line_or_set_bus = [(line_id, new_bus)]`
+  where `line_id` is the id of the line (origin side) you want to modify and `new_bus` the bus
+  to which you want to connect it.
+- `line_ex_set_bus`: set the bus to which the extremity side of the powerline is connected.
+  Usage: `act.line_ex_set_bus = [(line_id, new_bus)]`
+  where `line_id` is the
+  id of the line (extremity side) you want to modify and `new_bus` the bus to which you want to connect it.
+- `line_or_change_bus`: change the bus to which the origin side of a powerline is connected.
+  Usage: `act.line_or_change_bus = line_id`
+  to change the bus of the origin side of line with id `line_id` is connected
+- `line_ex_change_bus`: change the bus to which the extremity side of a powerline is connected.
+  Usage: `act.line_ex_change_bus = line_id`
+  to change the bus of the extremity side of line with id `line_id` is connected
+- `line_set_status`: set the status (connected / disconnected) of a powerline.
+  Usage: `act.line_set_status = [(line_id, new_status)]`
+  where `line_id` is the id of the powerline you want to modify, and `new_status` (-1 or 1) is the the new target
+  status. (**NB** when a powerline is disconnected, both its "origin side" and "extremity side" are also disconnected)
+- `line_change_status`: change the status of a powerline.
+  Usage: `act.line_change_status = line_id`  where `line_id` is the id of the powerline you want to modify.
 
 .. note:: See the :ref:`action-module` and in particular the section
     :ref:`action-module-examples` for more information about how to manipulate these properties.
 
+.. _powerline-obs:
+
 Observable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+Lots of information concerning powerlines are available in the observation:
+
+- `a_or`: intensity flows (also known as current flows) at the "origin side" of the powerlines, measured
+  in Amps (A). Usage: `obs.a_or[line_id]`.
+- `a_ex`: intensity flows (also known as current flows) at the "extremity side" of the powerlines, measured
+  in Amps (A). Usage: `obs.a_ex[line_id]`.
+- `p_or`: active flows at the "origin side" of the powerlines, measured
+  in Mega Watt (MW). Usage: `obs.p_or[line_id]`.
+- `p_ex`: active flows at the "extremity side" of the powerlines, measured
+  in Mega Watt (MW). Usage: `obs.p_ex[line_id]`.
+- `q_or`: reactive flows at the "origin side" of the powerlines, measured
+  in Mega Volt Amps reactive (MVAr). Usage: `obs.q_or[line_id]`.
+- `q_ex`: reactive flows at the "extremity side" of the powerlines, measured
+  in Mega Volt Amps reactive (MVAr). Usage: `obs.q_ex[line_id]`.
+- `v_or`: voltage magnitude at the bus to which the "origin side" of the powerline is connected, measured
+  in kilo Volt (kV). Usage: `obs.v_or[line_id]`.
+- `v_ex`: voltage magnitude at the bus to which the "extremity side" of the powerline is connected, measured
+  in kilo Volt (kV). Usage: `obs.v_ex[line_id]`.
+- `rho`: relative flows on each powerlines. It is the ratio of the flow on the powerline divided by
+  its thermal limit. It has no unit (usually between 0. and 1.0. When the powerline is on overflow, then rho > 1.0)
+  Usage: `obs.rho[line_id]`.
+- `line_status`: gives the status (connected / disconnected) of each powerlines. This is a vector of boolean.
+  Usage: `obs.line_status[line_id]`.
+- `timestep_overflow`: for each powerline, returns the number of steps since this powerline is on overflow. This is
+  given in number of steps (no units). Most of the time it will be 0 meaning the powerline is not on overflow.
+  When there is an overflow, this number will increase. If it exceeds
+  :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_OVERFLOW_ALLOWED` then the powerline is automatically disconnected
+  by the environment. Usage: `obs.timestep_overflow[line_id]`.
+- `time_before_cooldown_line`: number of steps you need to wait before being able to change the status of powerline
+  again. It is usually 0, but if if `obs.time_before_cooldown_line[line_id] > 0` you cannot do an action that will
+  affect the status of a powerline (this action will be illegal). Usage: `obs.time_before_cooldown_line[line_id]`.
+- `time_next_maintenance`: indicates the next scheduled maintenance operation on each of the powerline. See the
+  description given in :attr:`grid2op.Observation.BaseObservation.time_next_maintenance` for more information.
+  Usage: `obs.time_next_maintenance[line_id]`.
+- `duration_next_maintenance`: indicates the duration of the next scheduled maintenance for each powerline. See the
+  description given in :attr:`grid2op.Observation.BaseObservation.duration_next_maintenance` for more information.
+  Usage: `obs.duration_next_maintenance[line_id]`.
+- `thermal_limit`: for each powerline, it gives its "thermal limit" (eg maximum intensity allowed on the powerline).
+  Usage: `obs.thermal_limit[line_id]`.
+- `line_or_bus`: for each powerline, it gives the busbars (usually -1, 1 or 2) at which the "origin side" of the
+  powerline is connected. Usage: `obs.line_or_bus[line_id]`.
+- `line_ex_bus`: for each powerline, it gives the busbars (usually -1, 1 or 2) at which the "extremity side" of the
+  powerline is connected. Usage: `obs.line_ex_bus[line_id]`.
+
+.. note:: By default, in most grid2op environments, the "Backend" will use an AC modeling of the powergrid.
+    This means that losses are taken into account, so most of the time, `obs.p_or + obs.p_ex` will not be 0.00.
+
+    The losses also explains why `obs.a_or` and `obs.a_ex` are not equal (for "real powerline"). They are often
+    slightly different.
+
+.. note:: By default, thermal limit are computed on the "origin side" of the powerlines. This means
+    that `obs.a_ex` can exceed the thermal limits.
 
 Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+In this section, as opposed to the equivalent description of the generators or the storage units, we will not
+write any equations. Introducing new notation made this section really unclear and we found that explaining the
+concept in english to be more efficient.
 
+Here are the attributes affected by one or more "constraints" on grid2op:
+
+- `act.line_set_status` and `act.line_change_status`:
+
+    - it is not possible to change the status of a powerline
+      too regularly. See the description of :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_LINE`
+      for more information.
+    - at a given step, it is not possible to change the status of too many powerlines. This parameters
+      is set in :attr:`grid2op.Parameters.Parameters.MAX_LINE_STATUS_CHANGED` (**NB** this is not affected by
+      maintenance or hazards nor by any modification made automatically by the environment)
+    - when a powerline is connected for safety reasons, you have to wait for a certain number of steps before
+      being able to reconnect it again (see :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_RECONNECTION`)
+    - when a powerline is "under attack" or there is a maintenance happening, this powerline will stay disconnected
+      for a given number of steps available in `obs.duration_next_maintenance` or `obs.time_before_cooldown_line`
+
+- `obs.a_or` (sometimes also `obs.a_ex`): the flows on a powerline cannot exceed the `obs.thermal_limit` for too
+  long neither become too high (see also :attr:`grid2op.Parameters.Parameters.NO_OVERFLOW_DISCONNECTION` to
+  deactivate this behaviour):
+
+     - the maximum number of consecutive steps a powerline can be on overflow is set in
+       :attr:`grid2op.Parameters.Parameters.NB_TIMESTEP_OVERFLOW_ALLOWED`
+     - the threshold above which a line is instantly disconnected is given in
+       :attr:`grid2op.Parameters.Parameters.HARD_OVERFLOW_THRESHOLD`
+
+.. note:: If the flow on a powerline falls below the thermal limit for a given step, then it will reset the
+    `obs.timestep_overflow` to 0. for this powerline, even if this does not last for long. It is then possible
+    to "play" with this feature to prevent the disconnection of powerlines (disconnect it "manually" just before
+    the protections works and reconnect if as soon as possible). This is considered (very) bad practice for
+    real time operations though.
 
 .. _shunt-mod-el:
 
 Shunts (optional)
 -----------------
 
-
 Description
 ~~~~~~~~~~~~~~~~~~
 TODO
-
 
 Static properties
 ~~~~~~~~~~~~~~~~~~
@@ -394,6 +690,37 @@ typically pumped storage or batteries for example.
 Some inspiration for the modeling of the storage units were provided by the NREL document:
 https://www.greeningthegrid.org/news/new-resource-grid-scale-battery-storage-frequently-asked-questions-1
 
+Grid2op implements different information, available at different level that concerns loads.
+A summary of these information is available in the table below:
+
+==============================   =============  ============================================================
+Name                             Type            Described in
+==============================   =============  ============================================================
+n_storage                        int            static, :ref:`storage-stat`
+name_storage                     vect, str      static, :ref:`storage-stat`
+storage_to_subid                 vect, int      static, :ref:`storage-stat`
+storage_to_sub_pos               vect, int      static, :ref:`storage-stat`
+storage_pos_topo_vect            vect, int      static, :ref:`storage-stat`
+storage_type                     vect, str      static, :ref:`storage-stat`
+storage_Emax                     vect, float    static, :ref:`storage-stat`
+storage_Emin                     vect, float    static, :ref:`storage-stat`
+storage_max_p_prod               vect, float    static, :ref:`storage-stat`
+storage_max_p_absorb             vect, float    static, :ref:`storage-stat`
+storage_marginal_cost            vect, float    static, :ref:`storage-stat`
+storage_loss                     vect, float    static, :ref:`storage-stat`
+storage_charging_efficiency      vect, float    static, :ref:`storage-stat`
+storage_discharging_efficiency   vect, float    static, :ref:`storage-stat`
+storage_set_bus                  vect, int      action, :ref:`storage-act`
+storage_change_bus               vect, int      action, :ref:`storage-act`
+storage_p                        vect, float    action, :ref:`storage-act`
+storage_power                    vect, float    observation, :ref:`storage-obs`
+storage_power_target             vect, float    observation, :ref:`storage-obs`
+storage_charge                   vect, float    observation, :ref:`storage-obs`
+storage_bus                      vect, float    observation, :ref:`storage-obs`
+==============================   =============  ============================================================
+
+.. _storage-stat:
+
 Static properties
 ~~~~~~~~~~~~~~~~~~
 Their static properties are:
@@ -431,6 +758,11 @@ efficiency was 1.0).
 .. warning:: These attributes are static, and we do not recommend to alter them in any way. They are loaded at the
     start of the environment and should not be modified.
 
+    Static attributes are accessible from most grid2op classes, including, but not limited to :
+    `env.n_storage`, `act.n_storage`, `obs.n_storage`, `env.action_space.n_storage`, `env.observation_space.n_storage`
+
+.. _storage-act:
+
 Modifiable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -451,6 +783,8 @@ of some of these attributes).
 .. note:: See the :ref:`action-module` and in particular the section
     :ref:`action-module-examples` for more information about how to manipulate these properties.
 
+.. _storage-obs:
+
 Observable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -460,6 +794,7 @@ attributes are:
 - `storage_charge`: the state of charge of each storage unit, in MWh. Usage: `obs.storage_charge[sto_id]`
 - `storage_power_target`: the power that was required from the last action of the agent, in MW
 - `storage_power`: the power that is actually produced / absorbed by every storage unit.
+- `storage_bus`: for each storage unit, it gives the busbars (usually -1, 1 or 2) at which it is connected.
 
 
 Satisfied equations
@@ -590,13 +925,25 @@ Last, but not least, the storage loss is taken into account as followed:
     \[\forall t, \mathbf{e}_{t+1} = \mathbf{e}_{t} - \mathbf{l}.\Delta t \]
 
 The equation :eq:`storageloss` supposes that :math:`\mathbf{e}_{t}` has been updated with the equations
-:eq:`storagemax`, :eq:`charging`, :eq:`storageactual` and :eq:`storagemodif`.
+:eq:`storagemax`, :eq:`charging`, :eq:`storageactual` and :eq:`storagemodif` (this means that we do not,
+for clarity, added "temporary" notations for the results of each computations in
+:eq:`storagemax`, :eq:`charging`, :eq:`storageactual` and :eq:`storagemodif`, which would have been more rigourous
+but harder to read)
 
 .. note:: This is why, in the observation, you can get a "state of charge" (`obs.storage_charge`,
-    :math:`\mathbf{e}_t`) below pmin because of the losses.
+    :math:`\mathbf{e}_t`) below `obs.storage_Emin` (*aka* :math:`\underline{\mathbf{E}}`) because of the losses.
 
-    If that is the case, even if no action is done by the agent, then some power will be taken
-    from the grid to the storage unit to restore its capacity to the minimum capacity.
+    If that is the case at one step, even if no action is done by the agent, then some power will be taken
+    from the grid to charge the storage unit until its "minimum capacity" is met.
+
+    When this happens, the storage charge will remain unchanged (and slightly below `obs.storage_Emin`) but some
+    "infinite" amount of power will be taken from the grid to the storage unit. This is consistent with reality:
+    you would need to keep the battery charged to compensate for the losses if you want to maintain it a given
+    charge.
+
+    This phenomenon explains that the losses should be lower than the maximum charging capacity of the storage
+    units. Otherwise, the storage would be "doomed" to be discharged and nothing could be done about it, which
+    would make a relatively uninteresting unit for "real" grid.
 
 .. _substation-mod-el:
 

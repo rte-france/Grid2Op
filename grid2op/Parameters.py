@@ -54,7 +54,10 @@ class Parameters:
         If a the powerflow on a line is above HARD_OVERFLOW_THRESHOLD * thermal limit (and
         :attr:`Parameters.NO_OVERFLOW_DISCONNECTION` is set to ``False``) then it is automatically disconnected,
         regardless of
-        the number of timesteps it is on overflow). This is called a "hard overflow"
+        the number of timesteps it is on overflow). This is called a "hard overflow". This is expressed in relative
+        value of the thermal limits, for example, if for a powerline the `thermal_limit` is 150 and the
+        HARD_OVERFLOW_THRESHOLD is 2.0, then if the flow on the powerline reaches 2 * 150 = 300.0 the powerline
+        the powerline is automatically disconnected.
 
     ENV_DC: ``bool``
         Whether or not making the simulations of the environment in the "direct current" approximation. This can be
@@ -72,7 +75,7 @@ class Parameters:
         :class:`grid2op.Agent.BaseAgent`. Default value is 1.
 
     MAX_LINE_STATUS_CHANGED: ``int``
-        Maximum number of powerlines statuses that can be changed between two consecutive timestetps by an
+        Maximum number of powerlines statuses that can be changed between two consecutive timesteps by an
         :class:`grid2op.Agent.BaseAgent`. Default value is 1.
 
     IGNORE_MIN_UP_DOWN_TIME: ``bool``

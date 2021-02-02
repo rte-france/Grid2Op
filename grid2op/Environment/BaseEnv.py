@@ -760,8 +760,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise Grid2OpException("Impossible to set the thermal limit to a non initialized Environment")
         try:
             tmp = np.array(thermal_limit).flatten().astype(dt_float)
-        except Exception as e:
-            raise Grid2OpException("Impossible to convert the vector as input into a 1d numpy float array.")
+        except Exception as exc_:
+            raise Grid2OpException(f"Impossible to convert the vector as input into a 1d numpy float array. "
+                                   f"Error was: \n {exc_}")
         if tmp.shape[0] != self.n_line:
             raise Grid2OpException("Attempt to set thermal limit on {} powerlines while there are {}"
                                    "on the grid".format(tmp.shape[0], self.n_line))
