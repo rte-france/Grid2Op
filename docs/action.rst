@@ -239,7 +239,8 @@ state of the grid, the one that it "wants".
 .. note:: Aside from reconnecting elements, which can be done only using the "set_bus" actions, the
     "change_bus" and "set_bus" leads to equivalent grid states. For each state `obs_t`,
     for each "change_bus" action `a_change`, there exists a "set_bus" action `a_set` such that `env.step(a_change)`
-    has exactly the same impact as `env.step(a_set)`
+    has exactly the same impact as `env.step(a_set)` (note that the `a_set` equivalent to `a_change` depends on the
+    current state of the environment, of course).
 
     We introduced in grid2op the two (equivalent) representation not to limit agent. If we make the
     parallel with oter RL environment, "change_bus" can be thought as "*turn left*" or "*turn right*" whereas "set_bus"

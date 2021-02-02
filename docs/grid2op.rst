@@ -85,7 +85,7 @@ Along with the topology, grid2op allows easily to manipulate (and thus control):
 
 - the voltages: by manipulating shunts, or by changing the setpoint value of the generators
 - the active generation: by the use of the "redispatching" action.
-- the storage units (batteries or pumped_storage) that allows to produce some energy / absorb some energy from the
+- the storage units (batteries or pumped storage) that allows to produce some energy / absorb some energy from the
   powergrid when needed.
 
 Other "flexibilities" (ways to act on the grid) are coming soon (-:
@@ -113,10 +113,19 @@ Say a powergrid is represented as a graph with:
 - the nodes being the "bus" (a bus is the power system terminology to denotes the "things" (aka nodes) that are
   connected by the edges)
 
+.. note:: Grid2op does not explicitly model the "graph" of the grid as a "graph" structure. For performances, it is
+    represented as a vector, as explained in paragraph ":ref:`topology-pb-explained`". To be exhaustive, the way to
+    map this graph to this vector is explained in the page ":ref:`create-backend-module`" (though this page is
+    really detailed and has too much information for most grid2op usage).
+
+    Some functions have been coded to retrieve the state, as a "graph" (more precisely a square matrix). These methods
+    are described in the section ":ref:`observation_module_graph`" of the Observation module.
+
 This graph has some properties:
 
-- some buses are "labeled": "generators" that produces a certain amount of power are connected to them
-- some buses are "labeled": "loads" that consumes a certain amount of power are connected to them
+- some buses are labeled "generators" that produces a certain amount of power
+- some buses are labeled "loads" that consumes a certain amount of power  (**NB** a bus can be both a generator
+  and a load, in this case both the production and the demand should be met at his node)
 - all edges have some  "weights": some physical laws (*eg* conservation of energy or more specifically
   `Kirchoff Circuits Laws`), that cannot be altered (and are computed by the `Backend`), induced some flows on
   the powerline that can be represented as "weights" on this graph

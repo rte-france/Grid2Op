@@ -1,9 +1,22 @@
+.. |5subs_grid_layout| image:: ./img/5subs_grid_layout.jpg
+.. |5subs_grid_5_sub1_graph| image:: ./img/5subs_grid_5_sub1_graph.jpg
+.. |5subs_grid_all_1| image:: ./img/5subs_grid_all_1jpg
+.. |5subs_grid_5_sub1_2_graph| image:: ./img/5subs_grid_5_sub1_2_graph.jpg
+
 .. _modeled-elements-module:
 
 Elements modeled in this environment and their main properties
 ===============================================================
 
-Any grid2op environment model different elements. In this section, we explain what is modeled and what is not.
+Any grid2op environment model different elements. In this section, we explain what is modeled and what is not. This
+page can be usefull:
+
+- if you want to better understand an element of grid. For example you don't really know
+  how to access the "production of a generator", in this case you can visit the :ref:`generator-mod-el` section
+- or if you are not sure what does "something" refer to. For example, you had a look at the
+  "topo_vect" somewhere, but are not really sure what it means. In this case, you can use the
+  "search" function of your browser (often "ctrl+f") and search for "topo_vect" that you might find here.
+  For this specific example, you can directly go to :ref:`substation-mod-el`.
 
 .. note:: Grid2Op do not assume any "power system" modeling. The backend is the only one responsible
     of maintaining the data it generates consistent from a power system point of view.
@@ -585,6 +598,8 @@ Lots of information concerning powerlines are available in the observation:
 .. note:: By default, thermal limit are computed on the "origin side" of the powerlines. This means
     that `obs.a_ex` can exceed the thermal limits.
 
+.. _lines-eq:
+
 Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -690,7 +705,7 @@ typically pumped storage or batteries for example.
 Some inspiration for the modeling of the storage units were provided by the NREL document:
 https://www.greeningthegrid.org/news/new-resource-grid-scale-battery-storage-frequently-asked-questions-1
 
-Grid2op implements different information, available at different level that concerns loads.
+Grid2op implements different information, available at different level that concerns storage units.
 A summary of these information is available in the table below:
 
 ==============================   =============  ============================================================
@@ -952,8 +967,75 @@ Substations
 
 Description
 ~~~~~~~~~~~~~~~~~~
-TODO
+A "substation" is a place where "elements" (side of a powerline, a load, a generator or
+a storage unit) belonging to the powergrid are connected all together.
 
+Substations are connected to other substation with powerlines (this is why powerline have two "sides": one for
+each substation they are connecting).
+
+In most powergrid around the world, substations are made of multiple "busbars". In grid2op we supposes that
+every "elements" connected to a substation can be connected to every busbars in the substation. This is mainly
+done for simplicity, for real powergrid it might not be the case. We also, for simplicity, assume that
+each substations counts exactly 2 distincts busbars.
+
+At the initial step, for all environment available at the time of writing (february 2021) every objects
+were connected to the busbar 1 of their substation. This is not a requirement of grid2op, but it was the case
+for every environments created.
+
+.. _topology-pb-explained:
+
+Rephrasing the topology control problem
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+Here is a representation of a powergrid with 5 substations:
+
+|5subs_grid_layout|
+
+The "graph of the grid" can be represented as a vector, given, for each element whether the element is
+connected at busbar 1 or busbar 2. This can be done by assigning to each "element" of the grid a "component"
+of the "topology vector". This "component" will then encode whether this "element" is connected
+to busbar 1 or busbar 2. For example, if everything is connected at busbar 1,
+we get the following representation
+
+|5subs_grid_5_sub1_graph|
+
+(we denoted arrow to explicitly map the "element" of the grid, to its corresponding component of the vector)
+
+Now, as an example let's consider we modify the busbar at which 2 elements were connected,
+this gives the following representation
+
+|5subs_grid_5_sub1_2_graph|
+
+As you can see, in this example, the number of "nodes" in the graph is affected. Originally there were 5 "nodes"
+on the graph, but after setting to "busbar 2" two elements, there is 6. Indeed, as we can see on substation 2 above,
+there 2 independent nodes ("buses") on this last image, whereas there is only 1
+
+The set of problems tackled in grid2op are then to find the best "topology vector" (a specific representation
+of the powergrid, as explained in this paragraph) such that the contraints exposed on *eg*
+in paragraph ":ref:`lines-eq`" of the "Lines" section are
+met at any times.
+
+.. note:: If two objects are not connected to the same substation, they cannot be connected together.
+
+Attributes of the substations
++++++++++++++++++++++++++++++++
+
+Grid2op implements different information, available at different level that concerns the substations.
+A summary of these information is available in the table below:
+
+==============================   =============  ============================================================
+Name                             Type            Described in
+==============================   =============  ============================================================
+n_sub                            int            static, :ref:`sub-stat`
+sub_info                         vect, int      static, :ref:`sub-stat`
+dim_topo                         int            static, :ref:`sub-stat`
+name_sub                         vect, str      static, :ref:`sub-stat`
+set_bus                          vect, int      action, :ref:`sub-act`
+change_bus                       vect, int      action, :ref:`sub-act`
+topo_vect                        vect, int      observation, :ref:`sub-obs`
+time_before_cooldown_sub         vect, int      observation, :ref:`sub-obs`
+==============================   =============  ============================================================
+
+.. _sub-stat:
 
 Static properties
 ~~~~~~~~~~~~~~~~~~
@@ -962,7 +1044,10 @@ Their static properties are:
 ===========================  =============  =======================================
 Name                          Type           Description
 ===========================  =============  =======================================
-TODO
+n_sub                         int            Total number of substation on the grid
+sub_info                      vect, int      For each substations, gives the number of elements (side of powerline, load, generator or storage unit) connected to it.
+dim_topo                      int            Total number of elements (side of powerline, load, generator or storage unit) on the grid
+name_sub                      vect, str      Name of each substation
 ===========================  =============  =======================================
 
 (\* denotes optional properties available only for some environments)
@@ -970,23 +1055,104 @@ TODO
 .. warning:: These attributes are static, and we do not recommend to alter them in any way. They are loaded at the
     start of the environment and should not be modified.
 
+    Static attributes are accessible from most grid2op classes, including, but not limited to :
+    `env.n_sub`, `act.n_sub`, `obs.n_sub`, `env.action_space.n_sub`, `env.observation_space.n_sub`
+
+.. _sub-act:
+
 Modifiable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+These are the attribute of the **action** you can use to affect the substation. The substation can be only
+affected by discrete action for the moment.
+
+- `set_bus`: perform an action of type `set_bus` on a given set of elements.
+  Usage: `act.set_bus = [(el_id, new_bus)]` to set the bus of the element with id `el_id` to `new_bus` (typically
+  `new_bus` is -1, 1 or 2)
+- `change_bus`: perform an action of type `change_bus` on a given set of elements.
+  Usage: `act.set_bus = [el_id]`
+
 
 .. note:: See the :ref:`action-module` and in particular the section
     :ref:`action-module-examples` for more information about how to manipulate these properties.
 
+Links with the \*\*\*_set_bus
+++++++++++++++++++++++++++++++
+In this paragraph, we explain the links there are between the `act.set_bus` and the `act.line_or_set_bus`,
+`act.line_ex_set_bus`, `act.load_set_bus`, `act.gen_set_bus` or `act.storage_set_bus`.
+
+Basically it works the same way, and all of the above allows to do the same thing, albeit a bit differently.
+
+Originally, only the `act.set_bus` was present and the others were added for convenience. Basically:
+
+- `act.line_or_set_bus = [(line_id, new_bus)]` is exactly equivalent to
+  `act.set_bus = [(act.line_or_pos_topo_vect[line_id], new_bus)]` and we also have:
+  `act.line_ex_set_bus == act.set_bus[act.line_or_pos_topo_vect]`
+- `act.line_ex_set_bus = [(line_id, new_bus)]` is exactly equivalent to
+  `act.set_bus = [(act.line_ex_pos_topo_vect[line_id], new_bus)]` and we also have:
+  `act.line_ex_set_bus == act.set_bus[act.line_ex_pos_topo_vect]`
+- `act.load_set_bus = [(load_id, new_bus)]` is exactly equivalent to
+  `act.set_bus = [(act.load_pos_topo_vect[load_id], new_bus)]` and we also have:
+  `act.load_set_bus == act.set_bus[act.load_pos_topo_vect]`
+- `act.gen_set_bus = [(gen_id, new_bus)]` is exactly equivalent to
+  `act.set_bus = [(act.gen_pos_topo_vect[gen_id], new_bus)]` and we also have:
+  `act.gen_set_bus == act.set_bus[act.gen_pos_topo_vect]`
+- `act.storage_set_bus = [(storage_id, new_bus)]` is exactly equivalent to
+  `act.set_bus = [(act.storage_pos_topo_vect[storage_id], new_bus)]` and we also have:
+  `act.storage_set_bus == act.set_bus[act.storage_pos_topo_vect]`
+
+Links with the \*\*\*_change_bus
++++++++++++++++++++++++++++++++++
+
+It is exactly the same behaviour as described in the section above, for exactly the same reason. We have:
+
+- `act.line_or_change_bus = [line_id]` is exactly equivalent to
+  `act.change_bus = [act.line_or_pos_topo_vect[line_id]]` and we also have:
+  `act.line_ex_change_bus == act.change_bus[act.line_or_pos_topo_vect]`
+- `act.line_ex_change_bus = [line_id]` is exactly equivalent to
+  `act.change_bus = [act.line_ex_pos_topo_vect[line_id]]` and we also have:
+  `act.line_ex_change_bus == act.change_bus[act.line_ex_pos_topo_vect]`
+- `act.load_change_bus = [load_id]` is exactly equivalent to
+  `act.change_bus = [act.load_pos_topo_vect[load_id]]` and we also have:
+  `act.load_change_bus == act.change_bus[act.load_pos_topo_vect]`
+- `act.gen_change_bus = [gen_id]` is exactly equivalent to
+  `act.change_bus = [act.gen_pos_topo_vect[gen_id]]` and we also have:
+  `act.gen_change_bus == act.change_bus[act.gen_pos_topo_vect]`
+- `act.storage_change_bus = [storage_id]` is exactly equivalent to
+  `act.change_bus = [act.storage_pos_topo_vect[storage_id]]` and we also have:
+  `act.storage_change_bus == act.change_bus[act.storage_pos_topo_vect]`
+
+.. _sub-obs:
+
 Observable attributes
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+- `topo_vect`: for each element of the grid, gives on which busbar this elemement is connected. The busbar "id" will
+  be `-1` if the object is disconnected, `1` if the element is connected on busbar 1, `2` if this this element
+  is connected to busbar 2. Usage: `obs.topo_vect[el_id]` to retrieve on which busbar the element of id `el_id` is
+  connected.
+- `time_before_cooldown_sub`: number of steps you need to wait before being able to change the topology of each
+  substation again. It is usually 0, but if if `obs.time_before_cooldown_sub[sub_id] > 0`
+  you cannot do an action that will
+  affect the bus (by `change_bus` or `set_bus`) to which any element connected at substation `sub_id`
+  (this action will be illegal).
+  Usage: `obs.time_before_cooldown_line[line_id]`.
+
+.. note:: Only the "vector representation" is presented by default in the observation. To convert this representation
+  to a "graph" you can consult the section ":ref:`observation_module_graph`" of the Observation description to
+  convert retrieve a graph of the grid corresponding to this sate.
 
 Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+In this section, as opposed to the equivalent description of the generators or the storage units, we will not
+write any equations. Introducing new notation made this section really unclear and we found that explaining the
+concept in english to be more efficient.
 
+Here are the attributes affected by one or more "constraints" on grid2op:
 
+- `act.set_bus` and `act.change_bus`: you cannot modify the topology too frequently (the maximum frequency is
+  given in the :class:`grid2op.Parameters.Parameters.NB_TIMESTEP_COOLDOWN_SUB`). When it is not possible to
+  change the topology of a substation, then the `obs.time_before_cooldown_sub` will be `> 0` for this substation.
 
+.. include:: final.rst
