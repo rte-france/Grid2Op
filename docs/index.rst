@@ -63,6 +63,7 @@ Main module content
    quickstart
    grid2op
    makeenv
+   available_envs
    modeled_elements
    gym
 
