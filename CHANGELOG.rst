@@ -76,6 +76,7 @@ Change Log
 - [ADDED] an option to retrieve in memory the `EpisodeData` of each episode computed when using the runner.
   see `runner.run(..., add_detailed_output=True)`
 - [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
+- [IMPROVED] simplify the interface for the gym converter.
 
 [1.4.0] - 2020-12-10
 ----------------------

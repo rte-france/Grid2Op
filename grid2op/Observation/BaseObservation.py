@@ -221,38 +221,38 @@ class BaseObservation(GridObjects):
         self._forecasted_inj = []
         self._obs_env = obs_env
 
-        self.timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
+        self.timestep_overflow = np.empty(shape=(self.n_line,), dtype=dt_int)
 
         # 0. (line is disconnected) / 1. (line is connected)
-        self.line_status = np.ones(shape=self.n_line, dtype=dt_bool)
+        self.line_status = np.empty(shape=self.n_line, dtype=dt_bool)
 
         # topological vector
-        self.topo_vect = np.zeros(shape=self.dim_topo, dtype=dt_int)
+        self.topo_vect = np.empty(shape=self.dim_topo, dtype=dt_int)
 
         # generators information
-        self.gen_p = np.full(shape=self.n_gen, dtype=dt_float, fill_value=np.NaN)
-        self.gen_q = 1.0 * self.gen_p
-        self.gen_v = 1.0 * self.gen_p
+        self.gen_p = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.gen_q = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.gen_v = np.empty(shape=self.n_gen, dtype=dt_float)
         # loads information
-        self.load_p = np.full(shape=self.n_load, dtype=dt_float, fill_value=np.NaN)
-        self.load_q = 1.0 * self.load_p
-        self.load_v = 1.0 * self.load_p
+        self.load_p = np.empty(shape=self.n_load, dtype=dt_float)
+        self.load_q = np.empty(shape=self.n_load, dtype=dt_float)
+        self.load_v = np.empty(shape=self.n_load, dtype=dt_float)
         # lines origin information
-        self.p_or = np.full(shape=self.n_line, dtype=dt_float, fill_value=np.NaN)
-        self.q_or = 1.0 * self.p_or
-        self.v_or = 1.0 * self.p_or
-        self.a_or = 1.0 * self.p_or
+        self.p_or = np.empty(shape=self.n_line, dtype=dt_float)
+        self.q_or = np.empty(shape=self.n_line, dtype=dt_float)
+        self.v_or = np.empty(shape=self.n_line, dtype=dt_float)
+        self.a_or = np.empty(shape=self.n_line, dtype=dt_float)
         # lines extremity information
-        self.p_ex = 1.0 * self.p_or
-        self.q_ex = 1.0 * self.p_or
-        self.v_ex = 1.0 * self.p_or
-        self.a_ex = 1.0 * self.p_or
+        self.p_ex = np.empty(shape=self.n_line, dtype=dt_float)
+        self.q_ex = np.empty(shape=self.n_line, dtype=dt_float)
+        self.v_ex = np.empty(shape=self.n_line, dtype=dt_float)
+        self.a_ex = np.empty(shape=self.n_line, dtype=dt_float)
         # lines relative flows
-        self.rho = 1.0 * self.p_or
+        self.rho = np.empty(shape=self.n_line, dtype=dt_float)
 
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
-        self.time_before_cooldown_line = np.full(shape=self.n_line, dtype=dt_int, fill_value=-1)
-        self.time_before_cooldown_sub = np.full(shape=self.n_sub, dtype=dt_int, fill_value=-1)
+        self.time_before_cooldown_line = np.empty(shape=self.n_line, dtype=dt_int)
+        self.time_before_cooldown_sub = np.empty(shape=self.n_sub, dtype=dt_int)
         self.time_next_maintenance = 1 * self.time_before_cooldown_line
         self.duration_next_maintenance = 1 * self.time_before_cooldown_line
 
@@ -265,13 +265,13 @@ class BaseObservation(GridObjects):
         self.day_of_week = dt_int(0)
 
         # redispatching
-        self.target_dispatch = 1.0 * self.gen_p
-        self.actual_dispatch = 1.0 * self.gen_p
+        self.target_dispatch = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.actual_dispatch = np.empty(shape=self.n_gen, dtype=dt_float)
 
         # storage unit
-        self.storage_charge = np.full(shape=self.n_storage, dtype=dt_float, fill_value=np.NaN)  # in MWh
-        self.storage_power_target = 1.0 * self.storage_charge  # in MW
-        self.storage_power = 1.0 * self.storage_charge  # in MW
+        self.storage_charge = np.empty(shape=self.n_storage, dtype=dt_float)  # in MWh
+        self.storage_power_target = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
+        self.storage_power = np.empty(shape=self.n_storage, dtype=dt_float)  # in MW
 
         # to save some computation time
         self._connectivity_matrix_ = None
@@ -281,12 +281,12 @@ class BaseObservation(GridObjects):
 
         # for shunt (these are not stored!)
         if self.shunts_data_available:
-            self._shunt_p = np.full(shape=self.n_shunt, dtype=dt_float, fill_value=np.NaN)
-            self._shunt_q = 1.0 * self._shunt_p
-            self._shunt_v = 1.0 * self._shunt_p
-            self._shunt_bus = np.full(shape=self.n_shunt, dtype=dt_int, fill_value=1)
+            self._shunt_p = np.empty(shape=self.n_shunt, dtype=dt_float)
+            self._shunt_q = np.empty(shape=self.n_shunt, dtype=dt_float)
+            self._shunt_v = np.empty(shape=self.n_shunt, dtype=dt_float)
+            self._shunt_bus = np.empty(shape=self.n_shunt, dtype=dt_int)
 
-        self._thermal_limit = 1.0 * self.p_or
+        self._thermal_limit = np.empty(shape=self.n_line, dtype=dt_float)
 
     def state_of(self,
                  _sentinel=None,
@@ -321,6 +321,9 @@ class BaseObservation(GridObjects):
 
         storage_id: ``int``
             ID of the storage unit we want to inspect
+
+        substation_id: ``int``
+            ID of the substation unit we want to inspect
 
         Returns
         -------

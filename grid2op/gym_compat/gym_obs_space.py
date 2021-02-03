@@ -99,6 +99,14 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         my_dict = self.get_dict_encoding()
         if fun is not None and not isinstance(fun, BaseGymAttrConverter):
             raise RuntimeError("Impossible to initialize a converter with a function of type {}".format(type(fun)))
+
+        if fun is not None and not fun.is_init_space():
+            if key in my_dict:
+                fun.initialize_space(my_dict[key])
+            elif key in self.spaces:
+                fun.initialize_space(self.spaces[key])
+            else:
+                raise RuntimeError(f"Impossible to find key {key} in your observation space")
         my_dict[key] = fun
         res = GymObservationSpace(self._init_env, my_dict)
         return res

@@ -87,7 +87,8 @@ represents the attribute `obs.line_status` which is a boolean vector (for each p
 more information about these attributes.
 
 We offer some convenience functions to customize these environment. They all more or less the same
-manner. We show here an example of a "converter" that will scale the data:
+manner. We show here an example of a "converter" that will scale the data (removing the value in `substract`
+and divide input data by `divide`):
 
 .. code-block:: python
 
@@ -103,14 +104,15 @@ manner. We show here an example of a "converter" that will scale the data:
     ob_space = gym_env.observation_space
     ob_space = ob_space.reencode_space("actual_dispatch",
                                        ScalerAttrConverter(substract=0.,
-                                       divide=env.gen_pmax,
-                                       init_space=ob_space["actual_dispatch"])
+                                                           divide=env.gen_pmax,
+                                                           init_space=ob_space["actual_dispatch"]
+                                                           )
                                        )
 
     gym_env.observation_space = ob_space
 
 
-A detailled list of such "converter" is documented on the section "Detailed Documentation by class". In
+A detailed list of such "converter" is documented on the section "Detailed Documentation by class". In
 the table below we describe some of them (**nb** if you notice a converter is not displayed there,
 do not hesitate to write us a "feature request" for the documentation, thanks in advance)
 
