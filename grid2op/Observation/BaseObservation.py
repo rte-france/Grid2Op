@@ -537,6 +537,7 @@ class BaseObservation(GridObjects):
         self.time_before_cooldown_sub[:] = -1
         self.time_next_maintenance[:] = -1
         self.duration_next_maintenance[:] = -1
+        self.timestep_overflow[:] = 0
 
         # calendar data
         self.year = dt_int(1970)
@@ -621,6 +622,9 @@ class BaseObservation(GridObjects):
         self.time_before_cooldown_sub[:] = 99999
         self.time_next_maintenance[:] = 99999
         self.duration_next_maintenance[:] = 99999
+
+        # overflow
+        self.timestep_overflow[:] = 0
 
         if self.shunts_data_available:
             self._shunt_p[:] = 0.
