@@ -16,6 +16,7 @@ import numpy as np
 import copy
 from abc import ABC, abstractmethod
 import inspect
+
 from grid2op.Action import CompleteAction
 try:
     # this is only available starting python 3.7 or 3.8... tests are with python 3.6 :-(
@@ -45,7 +46,7 @@ except ImportError:
 import warnings
 
 import grid2op
-from grid2op.dtypes import dt_int, dt_float
+from grid2op.dtypes import dt_bool, dt_int, dt_float
 from grid2op.Action import ActionSpace, CompleteAction
 from grid2op.Parameters import Parameters
 from grid2op.Chronics import ChronicsHandler
@@ -56,6 +57,7 @@ from grid2op.MakeEnv import make
 from grid2op.Rules import AlwaysLegal
 from grid2op.Action._BackendAction import _BackendAction
 
+import pdb
 
 class MakeBackend(ABC):
     @abstractmethod
@@ -164,6 +166,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestLoadingBackendFunc_env")
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
         self.action_env_class = ActionSpace.init_grid(self.backend)
@@ -472,7 +475,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         maintenance[19] = True
         action = self.action_env({"maintenance": maintenance})  # update the action
         bk_action = self.bkact_class()
@@ -505,7 +508,7 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         maintenance[17] = True
         action = self.action_env({"hazards": maintenance})  # update the action
         bk_action = self.bkact_class()
@@ -533,10 +536,10 @@ class BaseTestLoadingBackendFunc(MakeBackend):
         init_gp, *_ = self.backend.generators_info()
 
         # check that maintenance vector is properly taken into account
-        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        maintenance = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         maintenance[19] = True
 
-        disc = np.full((self.backend.n_line,), fill_value=False, dtype=np.bool)
+        disc = np.full((self.backend.n_line,), fill_value=False, dtype=dt_bool)
         disc[17] = True
 
         action = self.action_env({"hazards": disc, "maintenance": maintenance})  # update the action
@@ -573,6 +576,7 @@ class BaseTestTopoAction(MakeBackend):
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestTopoAction_env")
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
         as_class = ActionSpace.init_grid(self.backend)
@@ -603,7 +607,7 @@ class BaseTestTopoAction(MakeBackend):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
         id_ = 1
         action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
         bk_action = self.bkact_class()
@@ -627,7 +631,7 @@ class BaseTestTopoAction(MakeBackend):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=np.int)
+        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
         id_ = 1
         action = self.helper_action({"set_bus": {"substations_id": [(id_, arr)]}})
         bk_action = self.bkact_class()
@@ -677,7 +681,7 @@ class BaseTestTopoAction(MakeBackend):
         init_amps_flow = self.backend.get_line_flow()
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr = np.array([False, False, False, True, True, True], dtype=dt_bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
         bk_action = self.bkact_class()
@@ -724,7 +728,7 @@ class BaseTestTopoAction(MakeBackend):
         init_amps_flow = copy.deepcopy(self.backend.get_line_flow())
 
         # check that maintenance vector is properly taken into account
-        arr = np.array([False, False, False, True, True, True], dtype=np.bool)
+        arr = np.array([False, False, False, True, True, True], dtype=dt_bool)
         id_ = 1
         action = self.helper_action({"change_bus": {"substations_id": [(id_, arr)]}})
         bk_action = self.bkact_class()
@@ -781,8 +785,8 @@ class BaseTestTopoAction(MakeBackend):
     def test_topo_change_2sub(self):
         # check that maintenance vector is properly taken into account
         self.skip_if_needed()
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
@@ -1066,6 +1070,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, self.case_file)
         self.backend.set_env_name("TestEnvPerformsCorrectCascadingFailures_env")
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         self.game_rules = RulesChecker()
         self.action_env = ActionSpace(gridobj=self.backend, legal_action=self.game_rules.legal_action)
@@ -1117,6 +1122,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, case_file)
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
 
         thermal_limit = 10 * self.lines_flows_init
@@ -1146,6 +1152,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, case_file)
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         conv = self.backend.runpf()
         assert conv, "powerflow should converge at loading"
@@ -1184,6 +1191,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, case_file)
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
         conv = self.backend.runpf()
         assert conv, "powerflow should converge at loading"
@@ -1223,6 +1231,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, case_file)
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
 
         env._timestep_overflow[self.id_2nd_line_disco] = 0
@@ -1259,6 +1268,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, case_file)
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
 
         env._timestep_overflow[self.id_2nd_line_disco] = 1
@@ -1296,6 +1306,7 @@ class BaseTestEnvPerformsCorrectCascadingFailures(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.backend.load_grid(self.path_matpower, case_file)
+        type(self.backend).set_no_storage()
         self.backend.assert_grid_correct()
 
         env._timestep_overflow[self.id_2nd_line_disco] = 2

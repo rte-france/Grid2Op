@@ -6,10 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import subprocess
-import sys
 import setuptools
 from setuptools import setup
+import unittest
+
+
+def my_test_suite():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('grid2op/tests', pattern='test_*.py')
+    return test_suite
+
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -61,7 +67,8 @@ pkgs = {
             "sphinx>=2.4.4",
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
-            "autodocsumm>=0.1.13"
+            "autodocsumm>=0.1.13",
+            "gym>=0.17.2"
         ],
         "api": [
             "flask",
@@ -101,7 +108,9 @@ setup(name='Grid2Op',
           'console_scripts': [
               'grid2op.main=grid2op.command_line:main',
               'grid2op.download=grid2op.command_line:download',
-              'grid2op.replay=grid2op.command_line:replay'
+              'grid2op.replay=grid2op.command_line:replay',
+              'grid2op.testinstall=grid2op.command_line:testinstall'
           ]
-      }
+      },
+      test_suite='setup.my_test_suite'
       )

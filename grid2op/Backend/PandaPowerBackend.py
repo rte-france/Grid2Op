@@ -255,7 +255,9 @@ class PandaPowerBackend(Backend):
         i_ref = None
         self._iref_slack = None
         self._id_bus_added = None
-        pp.runpp(self._grid, numba=numba_)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            pp.runpp(self._grid, numba=numba_)
         if np.all(~self._grid.gen["slack"]):
             # there are not defined slack bus on the data, i need to hack it up a little bit
             pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
@@ -282,7 +284,9 @@ class PandaPowerBackend(Backend):
         else:
             self.slack_id = np.where(self._grid.gen["slack"])[0]
 
-        pp.runpp(self._grid, numba=numba_)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            pp.runpp(self._grid, numba=numba_)
         self.__nb_bus_before = self._grid.bus.shape[0]
         self.__nb_powerline = self._grid.line.shape[0]
         self._init_bus_load = self.cst_1 * self._grid.load["bus"].values
@@ -292,8 +296,8 @@ class PandaPowerBackend(Backend):
 
         t_for = self.cst_1 * self._grid.trafo["hv_bus"].values
         t_fex = self.cst_1 * self._grid.trafo["lv_bus"].values
-        self._init_bus_lor = np.concatenate((self._init_bus_lor, t_for)).astype(np.int)
-        self._init_bus_lex = np.concatenate((self._init_bus_lex, t_fex)).astype(np.int)
+        self._init_bus_lor = np.concatenate((self._init_bus_lor, t_for)).astype(dt_int)
+        self._init_bus_lex = np.concatenate((self._init_bus_lex, t_fex)).astype(dt_int)
 
         self._grid["ext_grid"]["va_degree"] = 0.0
 
@@ -728,6 +732,7 @@ class PandaPowerBackend(Backend):
                 # remove the warning if _grid non connex. And it that case load flow as not converged
                 warnings.filterwarnings("ignore", category=scipy.sparse.linalg.MatrixRankWarning)
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
                 if self._nb_bus_before is None:
                     self._pf_init = "dc"
                 elif nb_bus == self._nb_bus_before:

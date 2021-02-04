@@ -5,6 +5,9 @@ executors:
     docker:
       - image: bdonnot/grid2op:test
     working_directory: /Grid2Op
+  python36:
+    docker:
+        - image: python:3.6-stretch
 
 jobs:
   test:
@@ -17,9 +20,22 @@ jobs:
             cd grid2op/tests/
             python3 helper_list_test.py | circleci tests split > /tmp/tests_run
             python3 -m unittest $(cat /tmp/tests_run)
+  install36:
+    executor: python36
+    steps:
+      - run: git clone https://github.com/bdonnot/grid2op.git grid2op_dev
+      - run: python -m pip install virtualenv
+      - run: python -m virtualenv venv
+      - run: source venv/bin/activate
+      - run: pip install grid2op_dev/.[test]
+      - run: pip install -U "numpy==1.18"
+      - run: grid2op.testinstall
+      - run: pip install -U "numpy==1.19"
+      - run: grid2op.testinstall
 
 workflows:
   version: 2.1
   test:
     jobs:
       - test
+      - install36

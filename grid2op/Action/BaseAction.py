@@ -2394,7 +2394,7 @@ class BaseAction(GridObjects):
             if new_bus > max_val:
                 raise IllegalAction(f"new_bus should be between {min_val} and {max_val}")
 
-            if isinstance(el_id, (float, dt_float, np.float)):
+            if isinstance(el_id, (float, dt_float, np.float64)):
                 raise IllegalAction(f"{name_el}_id should be integers you provided float!")
             if isinstance(el_id, (bool, dt_bool)):
                 raise IllegalAction(f"{name_el}_id should be integers you provided bool!")
@@ -2416,7 +2416,7 @@ class BaseAction(GridObjects):
             outer_vect[inner_vect[el_id]] = new_bus
             return
         elif isinstance(values, np.ndarray):
-            if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float:
+            if isinstance(values.dtype, float) or values.dtype == dt_float or values.dtype == np.float64:
                 raise IllegalAction(f"{name_el}_id should be integers you provided float!")
             if isinstance(values.dtype, bool) or values.dtype == dt_bool:
                 raise IllegalAction(f"{name_el}_id should be integers you provided boolean!")
@@ -2840,7 +2840,7 @@ class BaseAction(GridObjects):
             raise IllegalAction(f"Impossible to change a {name_el} with a tuple input. Accepted inputs are:"
                                 f"int, list of int, list of string, array of int, array of bool, set of int,"
                                 f"set of string")
-        elif isinstance(values, (int, dt_int, np.int)):
+        elif isinstance(values, (int, dt_int, np.int64)):
             # i provide an int: load_id
             try:
                 el_id = int(values)
@@ -2896,7 +2896,7 @@ class BaseAction(GridObjects):
                     # somehow python considers bool are int...
                     raise IllegalAction(f"If a list is provided, it is only valid with integer found "
                                         f"{type(el_id_or_name)}.")
-                elif isinstance(el_id_or_name, (int, dt_int, np.int)):
+                elif isinstance(el_id_or_name, (int, dt_int, np.int64)):
                     el_id = el_id_or_name
                 else:
                     raise IllegalAction(f"If a list is provided, it is only valid with integer found "
@@ -3238,9 +3238,9 @@ class BaseAction(GridObjects):
         """
         if isinstance(values, (bool, dt_bool)):
             raise IllegalAction(f"Impossible to set {name_el} values with a single boolean.")
-        elif isinstance(values, (int, dt_int, np.int)):
+        elif isinstance(values, (int, dt_int, np.int64)):
             raise IllegalAction(f"Impossible to set {name_el} values with a single integer.")
-        elif isinstance(values, (float, dt_float, np.float)):
+        elif isinstance(values, (float, dt_float, np.float64)):
             raise IllegalAction(f"Impossible to set {name_el} values with a single float.")
         elif isinstance(values, tuple):
             # i provide a tuple: load_id, new_vals
@@ -3256,7 +3256,7 @@ class BaseAction(GridObjects):
             except Exception as exc_:
                 raise IllegalAction(f"new_val should be convertible to a float. Error was : \"{exc_}\"")
 
-            if isinstance(el_id, (float, dt_float, np.float)):
+            if isinstance(el_id, (float, dt_float, np.float64)):
                 raise IllegalAction(f"{name_el}_id should be integers you provided float!")
             if isinstance(el_id, (bool, dt_bool)):
                 raise IllegalAction(f"{name_el}_id should be integers you provided bool!")
@@ -3279,7 +3279,7 @@ class BaseAction(GridObjects):
                 outer_vect[inner_vect[el_id]] = new_val
             return
         elif isinstance(values, np.ndarray):
-            if isinstance(values.dtype, int) or values.dtype == dt_int or values.dtype == np.int:
+            if isinstance(values.dtype, int) or values.dtype == dt_int or values.dtype == np.int64:
                 # for this the user explicitly casted it as integer, this won't work.
                 raise IllegalAction(f"{name_el}_id should be floats you provided int!")
 
@@ -3299,9 +3299,9 @@ class BaseAction(GridObjects):
                 # or i should have converted the list to np array
                 if isinstance(values, (bool, dt_bool)):
                     raise IllegalAction(f"Impossible to set {name_el} values with a single boolean.")
-                elif isinstance(values, (int, dt_int, np.int)):
+                elif isinstance(values, (int, dt_int, np.int64)):
                     raise IllegalAction(f"Impossible to set {name_el} values with a single integer.")
-                elif isinstance(values, (float, dt_float, np.float)):
+                elif isinstance(values, (float, dt_float, np.float64)):
                     raise IllegalAction(f"Impossible to set {name_el} values with a single float.")
                 elif isinstance(values[0], tuple):
                     # list of tuple, handled below
@@ -3520,9 +3520,9 @@ class BaseAction(GridObjects):
     def _aux_set_bus_sub(self, values):
         if isinstance(values, (bool, dt_bool)):
             raise IllegalAction("Impossible to modify bus by substation with a single bool.")
-        elif isinstance(values, (int, dt_int, np.int)):
+        elif isinstance(values, (int, dt_int, np.int64)):
             raise IllegalAction("Impossible to modify bus by substation with a single integer.")
-        elif isinstance(values, (float, dt_float, np.float)):
+        elif isinstance(values, (float, dt_float, np.float64)):
             raise IllegalAction("Impossible to modify bus by substation with a single float.")
         elif isinstance(values, np.ndarray):
             # full topo vect
@@ -3605,7 +3605,7 @@ class BaseAction(GridObjects):
         sub_id, topo_repr = values
         if isinstance(sub_id, (bool, dt_bool)):
             raise IllegalAction("Substation id should be integer")
-        if isinstance(sub_id, (float, dt_float, np.float)):
+        if isinstance(sub_id, (float, dt_float, np.float64)):
             raise IllegalAction("Substation id should be integer")
         try:
             el_id = int(sub_id)
@@ -3628,9 +3628,9 @@ class BaseAction(GridObjects):
     def _aux_change_bus_sub(self, values):
         if isinstance(values, (bool, dt_bool)):
             raise IllegalAction("Impossible to modify bus by substation with a single bool.")
-        elif isinstance(values, (int, dt_int, np.int)):
+        elif isinstance(values, (int, dt_int, np.int64)):
             raise IllegalAction("Impossible to modify bus by substation with a single integer.")
-        elif isinstance(values, (float, dt_float, np.float)):
+        elif isinstance(values, (float, dt_float, np.float64)):
             raise IllegalAction("Impossible to modify bus by substation with a single float.")
         elif isinstance(values, np.ndarray):
             # full topo vect
