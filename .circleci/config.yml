@@ -23,15 +23,21 @@ jobs:
   install36:
     executor: python36
     steps:
-      - run: git clone https://github.com/bdonnot/grid2op.git grid2op_dev
+      - checkout
       - run: python -m pip install virtualenv
       - run: python -m virtualenv venv
-      - run: source venv/bin/activate
-      - run: pip install grid2op_dev/.[test]
-      - run: pip install -U "numpy==1.18"
-      - run: grid2op.testinstall
-      - run: pip install -U "numpy==1.19"
-      - run: grid2op.testinstall
+      - run:
+          command: |
+              source venv/bin/activate
+              pip install -U "numpy==1.18.5"
+              pip install grid2op_dev/.[test]
+              grid2op.testinstall
+      - run:
+         command: |
+             source venv/bin/activate
+             pip install -U "numpy==1.19.5"
+             pip install grid2op_dev/.[test]
+             grid2op.testinstall
 
 workflows:
   version: 2.1
