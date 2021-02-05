@@ -494,6 +494,8 @@ class BaseObservation(GridObjects):
 
     def reset(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Resetting a single observation is unlikely to do what you want to do.
@@ -661,6 +663,8 @@ class BaseObservation(GridObjects):
 
     def __eq__(self, other):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Test the equality of two observations.
@@ -784,6 +788,8 @@ class BaseObservation(GridObjects):
     @abstractmethod
     def update(self, env, with_forecast=True):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is carried out automatically by the environment in `env.step`
 
@@ -1117,14 +1123,14 @@ class BaseObservation(GridObjects):
             # flow_mat is the matrix described above.
 
         Lots of information can be deduce from this matrix. For example if you want to know
-        how much power goes from one bus say bus `i` to another bus (say bus `j`)
+        how much power goes from one bus say bus `i` to another bus (say bus `j` )
         you can look at the associated coefficient `flow_mat[i,j]` which will also be related to the
         flow on the origin (or extremity) side of the powerline connecting bus `i` to bus `j`
 
         You can also know how much power
         (total generation + total storage discharging - total load - total storage charging - )
         is injected at each bus `i`
-        by looking at the `i`th diagonal coefficient.
+        by looking at the `i` th diagonal coefficient.
 
         Another use would be to check if the current powergrid state (as seen by grid2op) meet
         the Kirchhoff circuit laws (conservation of energy), by doing the sum (row by row) of this
@@ -1402,15 +1408,20 @@ class BaseObservation(GridObjects):
 
     def copy(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Make a (deep) copy of the observation.
+        Make a copy of the observation.
 
         Returns
         -------
         res: :class:`BaseObservation`
             The deep copy of the observation
 
+        Notes
+        --------
+        The "obs_env" attributes
         """
         obs_env = self._obs_env
         self._obs_env = None  # _obs_env is a pointer, it is not held by this !
@@ -1577,6 +1588,8 @@ class BaseObservation(GridObjects):
 
     def from_vect(self, vect, check_legit=True):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             To reload an observation from a vector, use the "env.observation_space.from_vect()".

@@ -15,6 +15,8 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                      defaultinstance=None, defaultClass=None, build_kwargs={},
                      isclass=False):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Helper to build default parameters forwarded to :class:`grid2op.Environment.Environment` for its creation.

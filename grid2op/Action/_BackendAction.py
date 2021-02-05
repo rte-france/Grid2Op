@@ -15,6 +15,8 @@ from grid2op.Space import GridObjects
 # TODO see if it can be done in c++ easily
 class ValueStore:
     """
+    INTERNAL USE ONLY
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     """

@@ -60,6 +60,8 @@ class ObservationSpace(SerializableObservationSpace):
                  observationClass=CompleteObservation,
                  with_forecast=True):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Env: requires :attr:`grid2op.Environment.parameters` and :attr:`grid2op.Environment.backend` to be valid
@@ -109,6 +111,8 @@ class ObservationSpace(SerializableObservationSpace):
 
     def _change_parameters(self, new_param):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         change the parameter of the "simulate" environment
@@ -188,6 +192,8 @@ class ObservationSpace(SerializableObservationSpace):
 
     def get_empty_observation(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         return an empty observation, for internal use only."""
@@ -195,6 +201,8 @@ class ObservationSpace(SerializableObservationSpace):
 
     def copy(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Perform a deep copy of the Observation space.

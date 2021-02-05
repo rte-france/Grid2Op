@@ -453,6 +453,8 @@ class EpisodeData:
 
     def set_parameters(self, env):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by the Runner to serialize properly an episode
 
@@ -471,6 +473,8 @@ class EpisodeData:
 
     def set_meta(self, env, time_step, cum_reward, env_seed, agent_seed):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -512,6 +516,8 @@ class EpisodeData:
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, opp_attack, info):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -587,6 +593,8 @@ class EpisodeData:
 
     def set_episode_times(self, env, time_act, beg_, end_):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -619,6 +627,8 @@ class EpisodeData:
 
     def to_disk(self):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -668,6 +678,8 @@ class EpisodeData:
 
 class CollectionWrapper:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         Utility to make the interaction with stored actions and stored observations more pythonic
 

@@ -42,6 +42,8 @@ class SerializableActionSpace(SerializableSpace):
 
     def __init__(self, gridobj, actionClass=BaseAction):
         """
+        INTERNAL USE ONLY
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
            The :class:`grid2op.Environment.Environment` is responsible for the creation of the
@@ -65,6 +67,8 @@ class SerializableActionSpace(SerializableSpace):
     @staticmethod
     def from_dict(dict_):
         """
+        INTERNAL USE ONLY
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Allows the de-serialization of an object stored as a dictionary (for example in the case of JSON saving).

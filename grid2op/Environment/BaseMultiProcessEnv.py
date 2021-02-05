@@ -19,6 +19,8 @@ from grid2op.Action import BaseAction
 
 class RemoteEnv(Process):
     """
+    INTERNAL
+
      .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class represent the environment that is executed on a remote process.
@@ -48,6 +50,8 @@ class RemoteEnv(Process):
 
     def init_env(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Initialize the environment  that will perform all the computation of this process.

@@ -51,6 +51,7 @@ except Exception as e:
 
 class PlotMatplotlib(BasePlot):
     """
+    INTERNAL
 
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 

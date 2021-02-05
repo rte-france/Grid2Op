@@ -26,6 +26,8 @@ from grid2op.Space import GridObjects
 
 class Backend(GridObjects, ABC):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Unless if you want to code yourself a backend this is not recommend to alter it
@@ -136,6 +138,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def load_grid(self, path, filename=None):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called once at the loading of the powergrid.
@@ -162,6 +166,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def apply_action(self, action):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Don't attempt to apply an action directly to a backend. This function will modify
@@ -186,6 +192,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def runpf(self, is_dc=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called by :func:`Backend.next_grid_state` (that computes some kind of
@@ -213,6 +221,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def get_topo_vect(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
@@ -247,6 +257,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def generators_info(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.prod_p`,
@@ -270,6 +282,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def loads_info(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.load_p`,
@@ -293,6 +307,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def lines_or_info(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.p_or`,
@@ -321,6 +337,8 @@ class Backend(GridObjects, ABC):
     @abstractmethod
     def lines_ex_info(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.p_ex`,
@@ -348,6 +366,8 @@ class Backend(GridObjects, ABC):
 
     def close(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called by `env.close()` do not attempt to use it otherwise.
@@ -361,6 +381,8 @@ class Backend(GridObjects, ABC):
 
     def reset(self, grid_path, grid_filename=None):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is done in the `env.reset()` method and should be performed otherwise.
@@ -374,6 +396,8 @@ class Backend(GridObjects, ABC):
 
     def copy(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Performs a deep copy of the backend.
@@ -399,6 +423,8 @@ class Backend(GridObjects, ABC):
 
     def save_file(self, full_path):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Save the current power _grid in a human readable format supported by the backend.
@@ -415,6 +441,8 @@ class Backend(GridObjects, ABC):
 
     def get_line_status(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.line_status` instead
@@ -437,6 +465,8 @@ class Backend(GridObjects, ABC):
 
     def get_line_flow(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.a_or` or
@@ -464,6 +494,8 @@ class Backend(GridObjects, ABC):
 
     def set_thermal_limit(self, limits):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             You can set the thermal limit directly in the environment.
@@ -512,6 +544,8 @@ class Backend(GridObjects, ABC):
 
     def update_thermal_limit(self, env):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is done in a call to `env.step` in case of DLR for example.
@@ -540,6 +574,8 @@ class Backend(GridObjects, ABC):
 
     def get_thermal_limit(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Retrieve the thermal limit directly from the environment instead (with a call
@@ -562,6 +598,8 @@ class Backend(GridObjects, ABC):
 
     def get_relative_flow(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.rho`
@@ -582,6 +620,8 @@ class Backend(GridObjects, ABC):
 
     def get_line_overflow(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.rho` and
@@ -605,6 +645,8 @@ class Backend(GridObjects, ABC):
 
     def shunt_info(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method is optional. If implemented, it should return the proper information about the shunt in the
@@ -633,18 +675,29 @@ class Backend(GridObjects, ABC):
 
     def sub_from_bus_id(self, bus_id):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
 
         Optional method that allows to get the substation if the bus id is provided.
 
-        :param bus_id:
-        :return: the substation to which an object connected to bus with id `bus_id` is connected to.
+        Parameters
+        ----------
+        bus_id: ``int``
+            The id of the bus where you want to know to which substation it belongs
+
+        Returns
+        -------
+            The substation to which an object connected to bus with id `bus_id` is connected to.
+
         """
         raise BackendError("This backend doesn't allow to get the substation from the bus id.")
 
     def _disconnect_line(self, id_):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using the action space to disconnect a powerline.
@@ -672,6 +725,8 @@ class Backend(GridObjects, ABC):
 
     def _runpf_with_diverging_exception(self, is_dc):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
 
@@ -702,6 +757,8 @@ class Backend(GridObjects, ABC):
 
     def next_grid_state(self, env, is_dc=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called by `env.step`
@@ -770,6 +827,8 @@ class Backend(GridObjects, ABC):
 
     def storages_info(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.storage_power` instead.
@@ -791,6 +850,8 @@ class Backend(GridObjects, ABC):
 
     def check_kirchoff(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Check that the powergrid respects kirchhoff's law.
@@ -980,6 +1041,8 @@ class Backend(GridObjects, ABC):
 
     def load_redispacthing_data(self, path, name='prods_charac.csv'):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method will load everything needed for the redispatching and unit commitment problem.
@@ -1091,6 +1154,8 @@ class Backend(GridObjects, ABC):
 
     def load_storage_data(self, path, name='storage_units_charac.csv'):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method will load everything needed in presence of storage unit on the grid.
@@ -1223,8 +1288,12 @@ class Backend(GridObjects, ABC):
 
     def _aux_check_finite_float(self, nb_, str_=""):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
         check and returns if correct that a number is convertible to `dt_float` and that it's finite
+
         """
         tmp = dt_float(nb_)
         if not np.isfinite(tmp):
@@ -1233,6 +1302,8 @@ class Backend(GridObjects, ABC):
 
     def load_grid_layout(self, path, name='grid_layout.json'):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         We don't recommend at all to modify this function.
@@ -1364,6 +1435,8 @@ class Backend(GridObjects, ABC):
 
     def assert_grid_correct(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is done as it should be by the Environment
@@ -1380,6 +1453,8 @@ class Backend(GridObjects, ABC):
 
     def assert_grid_correct_after_powerflow(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is done as it should be by the Environment

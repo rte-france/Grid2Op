@@ -293,6 +293,8 @@ class EpisodeStatistics(object):
 
     def clear_episode_data(self):
         """
+        Has side effects
+
         .. warning:: /!\\\\ Be careful /!\\\\
 
         To save space, it clears the data for each episode.
@@ -315,6 +317,8 @@ class EpisodeStatistics(object):
 
     def clear_all(self):
         """
+        Has side effects
+
         .. warning:: /!\\\\ Be careful /!\\\\
 
         Clear the whole statistics directory.
@@ -328,6 +332,8 @@ class EpisodeStatistics(object):
     @staticmethod
     def clean_all_stats(env):
         """
+        Has possibly huge side effects
+
         .. warning:: /!\\\\ Be extremely careful /!\\\\
 
         This function cleans all the statistics that have been computed for this environment.

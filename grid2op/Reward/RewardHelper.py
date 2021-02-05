@@ -14,6 +14,8 @@ from grid2op.Exceptions import Grid2OpException
 
 class RewardHelper:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         It is a class internal to the :class:`grid2op.Environment.Environment` do not use outside
         of its purpose and do not attempt to modify it.
@@ -101,9 +103,11 @@ class RewardHelper:
 
     def change_reward(self, reward_func):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Use `env.change_reward` instead.
+            Use `env.change_reward` instead (:func:`grid2op.Environment.BaseEnv.change_reward`)
 
         """
         if isinstance(reward_func, BaseReward):

@@ -35,6 +35,8 @@ COLOR_GEN = {NUKE_ID: NUKE_COLOR, THERMAL_ID: THERMAL_COLOR, WIND_ID: WIND_COLOR
 
 class GenDraw(patches.CirclePolygon):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Empty class to handle the legend
@@ -45,6 +47,8 @@ class GenDraw(patches.CirclePolygon):
 
 class LoadDraw(patches.CirclePolygon):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Empty class to handle the legend
@@ -55,6 +59,8 @@ class LoadDraw(patches.CirclePolygon):
 
 class StorageDraw(patches.CirclePolygon):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Empty class to handle the legend

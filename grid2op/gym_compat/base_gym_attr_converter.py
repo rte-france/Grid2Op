@@ -41,11 +41,38 @@ class BaseGymAttrConverter(object):
         self._is_init_space = True
 
     def gym_to_g2op(self, gym_object):
+        """
+        Convert a gym object to a grid2op object
+
+        Parameters
+        ----------
+        gym_object:
+            An object (action or observation) represented as a gym "ordered dictionary"
+
+        Returns
+        -------
+        The same object, represented as a grid2op.Action.BaseAction or grid2op.Observation.BaseObservation.
+
+        """
         if self._my_gym_to_g2op is None:
             raise NotImplementedError("Unable to convert gym object to grid2op object with this converter")
         return self._my_gym_to_g2op(gym_object)
 
     def g2op_to_gym(self, g2op_object):
+        """
+        Convert a gym object to a grid2op object
+
+        Parameters
+        ----------
+        g2op_object:
+            An object (action or observation) represented as a grid2op.Action.BaseAction or
+            grid2op.Observation.BaseObservation
+
+        Returns
+        -------
+        The same object, represented as a gym "ordered dictionary"
+
+        """
         if self._my_g2op_to_gym is None:
             raise NotImplementedError("Unable to convert grid2op object to gym object with this converter")
         return self._my_g2op_to_gym(g2op_object)

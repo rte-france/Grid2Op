@@ -16,7 +16,6 @@ from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 
 
 class GymObservationSpace(_BaseGymSpaceConverter):
-    # deals with the observation space (rather easy)
     """
     This class allows to transform the observation space into a gym space.
 

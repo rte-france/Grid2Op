@@ -31,8 +31,7 @@ class AmbiguousAction(Grid2OpException):
 class InvalidLineStatus(AmbiguousAction):
     """
     This is a more precise exception than :class:`AmbiguousAction` indicating that the
-     :class:`grid2op.BaseAction.BaseAction` is
-    ambiguous due to powerlines manipulation.
+     :class:`grid2op.BaseAction.BaseAction` is ambiguous due to powerlines manipulation.
     """
     pass
 
@@ -40,8 +39,7 @@ class InvalidLineStatus(AmbiguousAction):
 class InvalidStorage(AmbiguousAction):
     """
     This is a more precise exception than :class:`AmbiguousAction` indicating that the
-     :class:`grid2op.BaseAction.BaseAction` is
-    ambiguous due to storage unit manipulation.
+     :class:`grid2op.BaseAction.BaseAction` is ambiguous due to storage unit manipulation.
     """
     pass
 
@@ -49,8 +47,7 @@ class InvalidStorage(AmbiguousAction):
 class UnrecognizedAction(AmbiguousAction):
     """
     This is a more precise exception than :class:`AmbiguousAction` indicating that the
-    :class:`grid2op.BaseAction.BaseAction` is
-    ambiguous due to the bad formatting of the action.
+    :class:`grid2op.BaseAction.BaseAction` is  ambiguous due to the bad formatting of the action.
     """
     pass
 
@@ -58,8 +55,7 @@ class UnrecognizedAction(AmbiguousAction):
 class InvalidNumberOfLoads(AmbiguousAction):
     """
     This is a more precise exception than :class:`AmbiguousAction` indicating that
-    the :class:`grid2op.BaseAction.BaseAction`
-    is ambiguous because an incorrect number of loads tries to be modified.
+    the :class:`grid2op.BaseAction.BaseAction` is ambiguous because an incorrect number of loads tries to be modified.
     """
     pass
 

@@ -24,6 +24,8 @@ from grid2op.Exceptions import *
 
 class EducPandaPowerBackend(Backend):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This class do not work.
@@ -277,10 +279,11 @@ class EducPandaPowerBackend(Backend):
     def runpf(self, is_dc=False):
         """
         Now we just perform a powerflow with pandapower which can be done with either `rundcpp` for dc powerflow
-        or with `runpp`for AC powerflow.
+        or with `runpp` for AC powerflow.
 
-        This is really a 2 lines code. It is a bit more versbose here because we took care of silencing some
+        This is really a 2 lines code. It is a bit more verbose here because we took care of silencing some
         warnings and try / catch some possible exceptions.
+
         """
         try:
             with warnings.catch_warnings():
@@ -419,6 +422,8 @@ class EducPandaPowerBackend(Backend):
     # other less important method that you will need to implement
     def get_line_status(self):
         """
+        you might consider implementing it
+
         .. warning::  /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
         """
@@ -426,6 +431,8 @@ class EducPandaPowerBackend(Backend):
 
     def _disconnect_line(self, id_):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
         """
@@ -436,6 +443,8 @@ class EducPandaPowerBackend(Backend):
 
     def copy(self):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
 
@@ -449,6 +458,8 @@ class EducPandaPowerBackend(Backend):
 
     def reset(self, path=None, grid_filename=None):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
 
@@ -476,6 +487,8 @@ class EducPandaPowerBackend(Backend):
 
     def close(self):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
 

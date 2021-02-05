@@ -46,6 +46,8 @@ DETAILED_REDISP_ERR_MSG = "\nThis is an attempt to explain why the dispatch did 
 
 class BaseEnv(GridObjects, RandomObject, ABC):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class represent some usefull abstraction that is re used by :class:`Environment` and
@@ -721,6 +723,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method is used for Environment specific implementation. Only use it if you know exactly what
@@ -1062,6 +1066,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _update_actions(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Retrieve the actions to perform the update of the underlying powergrid represented by
@@ -1100,6 +1106,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _update_time_reconnection_hazards_maintenance(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This supposes that :attr:`Environment.times_before_line_status_actionable` is already updated
@@ -1129,6 +1137,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
@@ -1152,6 +1162,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _handle_updown_times(self, gen_up_before, redisp_act):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Handles the up and down tims for the generators.
@@ -1649,6 +1661,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def get_reward_instance(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Returns the instance of the object that is used to compute the reward.
@@ -1661,6 +1675,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _reset_vectors_and_timings(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Maintenance are not reset, otherwise the data are not read properly (skip the first time step)
@@ -1863,6 +1879,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def get_current_line_status(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             prefer using :attr:`grid2op.BaseObservation.line_status`

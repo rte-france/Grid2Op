@@ -221,7 +221,7 @@ class AgentWithConverter(BaseAgent):
     @abstractmethod
     def my_act(self, transformed_observation, reward, done=False):
         """
-        This method should be overide if this class is used. It is an "abstract" method.
+        This method should be override if this class is used. It is an "abstract" method.
 
         If someone wants to make a agent that handles different kinds of actions an observation.
 

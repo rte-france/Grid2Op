@@ -134,6 +134,8 @@ class Environment(BaseEnv):
                       names_chronics_to_backend, actionClass, observationClass,
                       rewardClass, legalActClass):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Create a proper and valid environment.
@@ -290,6 +292,8 @@ class Environment(BaseEnv):
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update the environment action "action_env" given a possibly new voltage setpoint for the generators. This
@@ -499,6 +503,8 @@ class Environment(BaseEnv):
 
     def reset_grid(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is automatically called when using `env.reset`

@@ -86,6 +86,8 @@ _EXTRACT_DS_NAME_RECO_ERR = "Impossible to recognize the environment name from p
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
     """
     if nb_retry <= 0:
@@ -233,7 +235,8 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
     .. code-block: python
 
         import grid2op
-        env = grid2op.make("rte_case14_realistic")
+        env_name = "rte_case14_realistic"  # or any other supported environment
+        env = grid2op.make(env_name)
         # env implements the openai gym interface (env.step, env.render, env.reset etc.)
 
     **NB** the first time you type this command, the dataset (approximately 300 MB for this one) will be
@@ -242,7 +245,7 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
     """
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
-        if not el in accepted_kwargs:
+        if el not in accepted_kwargs:
             raise Grid2OpException("The keyword argument \"{}\" you provided is invalid. Possible keyword "
                                    "arguments to create environments are \"{}\"."
                                    "".format(el, sorted(accepted_kwargs)))

@@ -11,6 +11,8 @@ from grid2op.Action.PlayableAction import PlayableAction
 
 class DontAct(PlayableAction):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This type of action is only compatible with "do nothing"...
@@ -27,6 +29,8 @@ class DontAct(PlayableAction):
 
     def __init__(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing

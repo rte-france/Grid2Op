@@ -6,31 +6,17 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""
-This module presents the class that can be modified to adapt (on the fly) the setpoint of the generators with
-respect to the voltage magnitude.
-
-Voltage magnitude plays a big part in real time operation process. Bad voltages can lead to different kind of problem
-varying from:
-
-- high losses (the higher the voltages, the lower the losses in general)
-- equipment failures (typically if the voltages are too high)
-- a really bad "quality of electricity" for consumers (if voltages is too low)
-- partial or total blackout in case of voltage collapse (mainly if voltages are too low)
-
-We wanted, in this package, to treat the voltages setpoint of the generators differently from the other
-part of the game. This module exposes the main class to do this.
-"""
-
 from grid2op.VoltageControler.BaseVoltageController import BaseVoltageController
 
 
 class ControlVoltageFromFile(BaseVoltageController):
     """
-    This class is the most basic controler for the voltages. Basically, what it does is read the voltages from the
+    This class is the most basic controler for the voltages.
+
+    Basically, what it does is read the voltages from the
     chronics.
 
-    If the voltages are not on the chronics (missing files), it will not change the voltage setpoints at all.
+    If the voltages are not on the chronics (missing files), it will not change the voltage setpoint at all.
     """
     def __init__(self, gridobj, controler_backend):
         """
@@ -40,7 +26,7 @@ class ControlVoltageFromFile(BaseVoltageController):
         gridobj: :class:`grid2op.Space.GridObjects`
             Structure of the powergrid
 
-        envbackend: :class:`grid2op.Backend.Backend`
+        controler_backend: :class:`grid2op.Backend.Backend`
             An instanciated backend to perform some computation on a powergrid, before taking some actions.
 
         """

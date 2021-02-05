@@ -29,6 +29,8 @@ from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 class GridObjects:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         Almost every class inherit from this class, so they have its methods and attributes.
         Do not attempt to use it outside of grid2op environment.
@@ -509,6 +511,8 @@ class GridObjects:
     @classmethod
     def _update_value_set(cls):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update the class attribute `attr_list_vect_set` from  `attr_list_vect`
@@ -517,6 +521,8 @@ class GridObjects:
 
     def _raise_error_attr_list_none(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Raise a "NotImplementedError" if :attr:`GridObjects.attr_list_vect` is not defined.
@@ -533,6 +539,8 @@ class GridObjects:
 
     def _get_array_from_attr_name(self, attr_name):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This function returns the proper attribute vector that can be inspected in the
@@ -742,6 +750,8 @@ class GridObjects:
 
     def _assign_attr_from_name(self, attr_nm, vect):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Assign the proper attributes with name 'attr_nm' with the value of the vector vect
@@ -895,6 +905,8 @@ class GridObjects:
 
     def _aux_pos_big_topo(self, vect_to_subid, vect_to_sub_pos):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Return the proper "_pos_big_topo" vector given "to_subid" vector and "to_sub_pos" vectors.
@@ -916,6 +928,8 @@ class GridObjects:
 
     def _compute_pos_big_topo(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Compute the position of each element in the big topological vector.
@@ -1194,6 +1208,8 @@ class GridObjects:
 
     def _compute_sub_pos(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is used at the initialization of the environment.
@@ -1279,6 +1295,8 @@ class GridObjects:
 
     def _compute_sub_elements(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
 
@@ -1305,6 +1323,8 @@ class GridObjects:
 
     def assert_grid_correct(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is used at the initialization of the environment.
@@ -1775,6 +1795,8 @@ class GridObjects:
 
     def attach_layout(self, grid_layout):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             We do not recommend to "attach layout" outside of the environment. Please refer to the function
             :func:`grid2op.Environment.BaseEnv.attach_layout` for more information.
@@ -1793,6 +1815,8 @@ class GridObjects:
     @classmethod
     def set_env_name(cls, name):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Do not attempt in any case to modify the name of the environment once it has been loaded. If you
             do that, you might experience undefined behaviours, notably with the multi processing but not only.
@@ -1803,6 +1827,8 @@ class GridObjects:
     @classmethod
     def init_grid(cls, gridobj, force=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is done at the creation of the environment. Use of this class outside of this particular
             use is really dangerous and will lead to undefined behaviours. **Do not use this function**.
@@ -2283,6 +2309,8 @@ class GridObjects:
     @classmethod
     def cls_to_dict(cls):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to save action_space or observation_space for example. Do not
             attempt to use it in a different context.
@@ -2361,6 +2389,8 @@ class GridObjects:
     @staticmethod
     def from_dict(dict_):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to restore action_space or observation_space if they
             have been saved by `to_dict`. Do not

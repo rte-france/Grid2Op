@@ -334,6 +334,7 @@ class BaseAction(GridObjects):
 
     def __init__(self):
         """
+        INTERNAL USE ONLY
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -696,6 +697,7 @@ class BaseAction(GridObjects):
 
     def reset(self):
         """
+        INTERNAL USE ONLY
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -750,9 +752,6 @@ class BaseAction(GridObjects):
 
     def __iadd__(self, other):
         """
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
         Add an action to this one.
 
         Adding an action to myself is equivalent to perform myself, and then perform other (but at the
@@ -761,6 +760,29 @@ class BaseAction(GridObjects):
         Parameters
         ----------
         other: :class:`BaseAction`
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+
+            act1 = env.action_space()
+            act1.set_bus = ...  # for example
+            print("before += :")
+            print(act1)
+
+            act2 = env.action_space()
+            act2.redispatch = ... # for example
+            print(act2)
+
+            act1 += act 2
+            print("after += ")
+            print(act1)
+
         """
 
         # deal with injections
@@ -914,6 +936,7 @@ class BaseAction(GridObjects):
 
     def __call__(self):
         """
+        INTERNAL USE ONLY
 
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
@@ -1189,6 +1212,8 @@ class BaseAction(GridObjects):
 
     def _reset_vect(self):
         """
+        INTERNAL USE ONLY
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Need to be called when update is called !
@@ -3222,6 +3247,8 @@ class BaseAction(GridObjects):
                                  outer_vect,
                                  ):
         """
+        INTERNAL USE ONLY
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.

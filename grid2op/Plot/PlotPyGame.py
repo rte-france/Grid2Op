@@ -124,6 +124,7 @@ def _draw_arrow(surf, color, start_pos, end_pos, positive_flow, width=1, num_arr
 
 class PlotPyGame(BasePlot):
     """
+    INTERNAL
 
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 
@@ -218,6 +219,8 @@ class PlotPyGame(BasePlot):
 
     def change_duration_timestep_display(self, new_timestep_duration_seconds):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ This class is deprecated /!\\\\
 
         Change the duration on which the screen is displayed.
@@ -234,6 +237,8 @@ class PlotPyGame(BasePlot):
 
     def reset(self, env):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ This class is deprecated /!\\\\
 
         Parameters
@@ -287,6 +292,7 @@ class PlotPyGame(BasePlot):
 
     def _press_key_to_quit(self):
         """
+        INTERNAL
 
          .. warning:: /!\\\\ This class is deprecated /!\\\\
 
@@ -372,6 +378,7 @@ class PlotPyGame(BasePlot):
 
     def get_rgb(self, obs, reward=None, done=None, timestamp=None):
         """
+        INTERNAL
 
          .. warning:: /!\\\\ This class is deprecated /!\\\\
 
@@ -443,6 +450,7 @@ class PlotPyGame(BasePlot):
 
     def _post_process_obs(self, fig, reward, done, timestamp, subs, lines, loads, gens, topos):
         """
+        INTERNAL
 
          .. warning:: /!\\\\ This class is deprecated /!\\\\
 

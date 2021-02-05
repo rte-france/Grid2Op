@@ -437,9 +437,11 @@ class ConnectivityConverter(Converter):
 
     def _compute_disagreement(self, encoded_act, topo_vect):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        computes the disagreement between the encoded act and the proposed topo_vect
+        Computes the disagreement between the encoded act and the proposed topo_vect
 
         **NB** if encoded act is random uniform, and topo_vect is full of 1, then disagreement is, on average 0.5.
 

@@ -104,6 +104,8 @@ class RandomObject(object):
 
     def seed(self, seed):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             We do not recommend to use this function outside of the two examples given in the description of this class.
 

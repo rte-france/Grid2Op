@@ -17,6 +17,8 @@ from grid2op.Exceptions import Grid2OpException
 
 class _ObsCH(ChangeNothing):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class is reserved to internal use. Do not attempt to do anything with it.
@@ -27,6 +29,8 @@ class _ObsCH(ChangeNothing):
 
 class _ObsEnv(BaseEnv):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class is an 'Emulator' of a :class:`grid2op.Environment.Environment` used to be able to 'simulate'
@@ -150,6 +154,8 @@ class _ObsEnv(BaseEnv):
 
     def _update_actions(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Retrieve the actions to perform the update of the underlying powergrid represented by
@@ -168,6 +174,8 @@ class _ObsEnv(BaseEnv):
 
     def copy(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Implement the deep copy of this instance.
@@ -186,6 +194,8 @@ class _ObsEnv(BaseEnv):
 
     def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Initialize a "forecasted grid state" based on the new injections, possibly new topological modifications etc.
@@ -243,6 +253,8 @@ class _ObsEnv(BaseEnv):
 
     def _update_vector_with_timestep(self, time_step):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         update the value of the "time dependant" attributes
@@ -285,6 +297,8 @@ class _ObsEnv(BaseEnv):
 
     def _reset_to_orig_state(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         reset this "environment" to the state it should be
@@ -305,6 +319,8 @@ class _ObsEnv(BaseEnv):
 
     def simulate(self, action):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Prefer using `obs.simulate(action)`
 
@@ -350,6 +366,8 @@ class _ObsEnv(BaseEnv):
 
     def get_obs(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Method to retrieve the "forecasted grid" as a valid observation object.
@@ -365,6 +383,8 @@ class _ObsEnv(BaseEnv):
 
     def update_grid(self, env):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update this "emulated" environment with the real powergrid.

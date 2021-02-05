@@ -20,6 +20,8 @@ from grid2op.Space.RandomObject import RandomObject
 
 class SerializableSpace(GridObjects, RandomObject):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         This is a higher level wrapper that allows to avoid code duplicates for
         the action_space and observation_space. None of the methods here should be
@@ -110,6 +112,8 @@ class SerializableSpace(GridObjects, RandomObject):
     @staticmethod
     def from_dict(dict_):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to restore action_space or observation_space if they
             have been saved by `to_dict`. Do not
@@ -190,6 +194,8 @@ class SerializableSpace(GridObjects, RandomObject):
 
     def cls_to_dict(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to save action_space or observation_space for example. Do not
             attempt to use it in a different context.

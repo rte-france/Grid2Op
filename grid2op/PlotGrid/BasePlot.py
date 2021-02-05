@@ -21,6 +21,8 @@ from grid2op.dtypes import dt_float, dt_int
 
 class BasePlot(ABC):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Abstract interface to plot the state of the powergrid
@@ -178,6 +180,8 @@ class BasePlot(ABC):
                         sub_id, sub_name,
                         pos_x, pos_y):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update a substation into the figure
@@ -228,6 +232,8 @@ class BasePlot(ABC):
                     pos_x, pos_y,
                     sub_x, sub_y):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update a load into the figure
@@ -279,6 +285,8 @@ class BasePlot(ABC):
                    pos_x, pos_y,
                    sub_x, sub_y):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Updates a generator into the figure
@@ -333,6 +341,8 @@ class BasePlot(ABC):
                          or_bus, pos_or_x, pos_or_y,
                          ex_bus, pos_ex_x, pos_ex_y):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Draws a powerline into the figure
@@ -383,6 +393,8 @@ class BasePlot(ABC):
                        pos_x, pos_y,
                        sub_x, sub_y):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update a storage unit into the figure
@@ -406,6 +418,8 @@ class BasePlot(ABC):
     
     def update_legend(self, figure, observation):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Updates the legend for the given figure.

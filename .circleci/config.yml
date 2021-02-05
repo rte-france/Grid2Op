@@ -38,14 +38,15 @@ jobs:
             - run:
                 command: |
                     source venv_test/bin/activate
+                    pip install -U numba
                     pip install -U "numpy>=1.18,<1.19"
-                    pip install .[test]
+                    pip install -U .[test]
                     grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.19,<1.20"
-                   pip install .[test]
+                   pip install -U .[test]
                    grid2op.testinstall
     install37:
         executor: python37
@@ -56,20 +57,21 @@ jobs:
             - run:
                 command: |
                     source venv_test/bin/activate
+                    pip install -U numba
                     pip install -U "numpy>=1.18,<1.19"
-                    pip install .[test]
+                    pip install -U .[test]
                     grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.19,<1.20"
-                   pip install .[test]
+                   pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.20,<1.21"
-                   pip install .[test]
+                   pip install -U .[test]
                    grid2op.testinstall
     install38:
         executor: python38
@@ -80,20 +82,21 @@ jobs:
             - run:
                 command: |
                     source venv_test/bin/activate
+                    pip install -U numba
                     pip install -U "numpy>=1.18,<1.19"
-                    pip install .[test]
+                    pip install -U .[test]
                     grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.19,<1.20"
-                   pip install .[test]
+                   pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.20,<1.21"
-                   pip install .[test]
+                   pip install -U .[test]
                    grid2op.testinstall
     install39:
         executor: python39
@@ -104,14 +107,15 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
+                   pip install -U numba
                    pip install -U "numpy>=1.19,<1.20"
-                   pip install .[test]
+                   pip install -U .[test]
                    grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
                    pip install -U "numpy>=1.20,<1.21"
-                   pip install .[test]
+                   pip install -U .[test]
                    grid2op.testinstall
 
 workflows:
@@ -119,6 +123,8 @@ workflows:
     test:
         jobs:
           - test
+    install:
+        jobs:
           - install36
           - install37
           - install38
