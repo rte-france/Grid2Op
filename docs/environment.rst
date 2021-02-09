@@ -100,8 +100,11 @@ impact then you might consult the `Optimize the data pipeline`_ section.
 
 .. _environment-module-chronics-info:
 
+Chronics Customization
++++++++++++++++++++++++
+
 Study always the same chronics
-++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you spotted a particularly interesting chronics, or if you want, for some reason
 your agent to see only one chronics, you can do this rather easily with grid2op.
 
@@ -153,7 +156,7 @@ the call to "env.reset". This gives the following code:
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
 
 Shuffle the chronics order
-+++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In some other usecase, you might want to go through the whole set of chronics, and then loop again
 through them, but in a different order (remember that by default it will always loop in the same
 order 0, 1, 2, 3, ..., 0, 1, 2, 3, ..., 0, 1, 2, 3, ...).
@@ -201,7 +204,7 @@ that will do exactly that. You can use it like this:
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
 
 Skipping some chronics
-+++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^
 Some chronics might be too hard to start a training ("learn to walk before running") and conversely some chronics might
 be too easy after a while (you can solve them without doing nothing basically). This is why grid2op allows you to
 have some control about which chronics will be used by the environment.
@@ -252,7 +255,7 @@ chronics and should return ``True`` / ``False`` whether or not you want to keep 
 (as always added line compared to the base code are highlighted: they are "circle" with `#####`)
 
 Sampling the chronics
-+++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Finally, for even more flexibility, you can choose to sample what will be the next used chronics. To achieve
 that you can call the `chronics_handler.sample_next_chronics` This function takes a vector of probabilities
@@ -313,7 +316,7 @@ reason oversampling the 10 first chronics, and under sample the last 10:
 for example to oversample scenarios your agent is having trouble to solve during the training.
 
 Skipping some time steps
-+++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Another way to customize which data your agent will face is to make as if the chronics started at different date
 and time. This might be handy in case a scenario is hard at the beginning but less hard at the end, or if you want
