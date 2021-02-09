@@ -208,13 +208,20 @@ class Multifolder(GridValue):
         Rebuilt the :attr:`Multifolder._order`. This should be called after a call to :func:`Multifolder.set_filter`
         is performed.
 
-        **NB** This "reset" is different from the "env.reset". It should be only called after the function to set
-        the filtering function has been called.
+        .. warning:: This "reset" is different from the `env.reset`. It should be only called after the function to set
+            the filtering function has been called.
+
+            This "reset" only reset which chronics are used for the environment.
 
         Returns
         -------
         new_order: ``numpy.ndarray``, dtype: str
             The selected chronics paths after a call to this method.
+
+        Notes
+        -----
+        Except explicitly mentioned, for example by :func:`Multifolder.set_filter` you should not use this
+        function. This will erased every selection of chronics, every shuffle etc.
 
         """
         self._order = []
@@ -228,8 +235,6 @@ class Multifolder(GridValue):
             raise RuntimeError("Impossible to initialize the Multifolder. Your \"filter_fun\" filters out all the "
                                "possible scenarios.")
         self._order = np.array(self._order)
-        # TODO this shuffling there
-        # self.space_prng.shuffle(self._order)
         return self.subpaths[self._order]
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,

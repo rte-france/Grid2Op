@@ -107,7 +107,6 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   pip install -U numba
                    pip install -U "numpy>=1.19,<1.20"
                    pip install -U .[test]
                    grid2op.testinstall
