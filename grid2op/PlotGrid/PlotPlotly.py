@@ -51,9 +51,9 @@ class PlotPlotly(BasePlot):
                  grid_layout=None,
                  responsive=False,
                  scale=2000.0,
-                 sub_radius = 25,
-                 load_radius = 12,
-                 gen_radius = 12,
+                 sub_radius=25,
+                 load_radius=12,
+                 gen_radius=12,
                  show_gen_txt=False,
                  show_load_txt=False):
         super().__init__(observation_space, width, height, scale, grid_layout)

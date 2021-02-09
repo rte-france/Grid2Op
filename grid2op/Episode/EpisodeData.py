@@ -106,10 +106,12 @@ class EpisodeData:
 
         import grid2op
         from grid2op.Episode import EpisodeData
+
+        path_agent = ... # path to a directory where a runner has been saved
         # I study only the first episode saved, because... why not
-        li_episode = EpisodeData.list_episode(path_save)
+        li_episode = EpisodeData.list_episode(path_agent)
         full_path, episode_studied = li_episode[0]
-        this_episode = EpisodeData.from_disk(path_agent, episode_studied)
+        this_episode = EpisodeData.from_disk(full_path, episode_studied)
 
         # now the episode is loaded, and you can easily iterate through the observation, the actions etc.
         for act in this_episode.actions:

@@ -77,6 +77,7 @@ Change Log
   see `runner.run(..., add_detailed_output=True)`
 - [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
 - [IMPROVED] simplify the interface for the gym converter.
+- [IMPROVED] simplify the interface for the `env.train_val_split` and `env.train_val_split_random`
 
 [1.4.0] - 2020-12-10
 ----------------------

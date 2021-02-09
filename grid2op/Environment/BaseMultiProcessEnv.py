@@ -67,7 +67,7 @@ class RemoteEnv(Process):
         self.space_prng.seed(seed=self.seed_used)
         self.backend = self.env_params["_raw_backend_class"]()
         with warnings.catch_warnings():
-            # warnings have bee already sent in the main thread, no need to resend them
+            # warnings have bee already sent in the main process, no need to resend them
             warnings.filterwarnings("ignore")
             self.env = Environment(**self.env_params, backend=self.backend)
         env_seed = self.space_prng.randint(np.iinfo(dt_int).max)
@@ -80,6 +80,7 @@ class RemoteEnv(Process):
         obs._forecasted_inj = []
         obs._obs_env = None
         obs.action_helper = None
+        return obs
 
     def get_obs_ifnotconv(self):
         # warnings.warn(f"get_obs_ifnotconv is used")
@@ -170,6 +171,12 @@ class RemoteEnv(Process):
                 self.remote.send(self.env.backend.comp_time)
             elif cmd == "step_time":
                 self.remote.send(self.env._time_step)
+            elif cmd == "set_filter":
+                self.env.chronics_handler.set_filter(data)
+                self.remote.send(None)
+            elif cmd == "set_id":
+                self.env.set_id(data)
+                self.remote.send(None)
             elif hasattr(self.env, cmd):
                 tmp = getattr(self.env, cmd)
                 self.remote.send(tmp)
@@ -541,6 +548,53 @@ class BaseMultiProcessEnvironment(GridObjects):
         """
         for remote in self._remotes:
             remote.send(('step_time', None))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def set_filter(self, filter_funs):
+        """
+        Set a `filter_fun` for each of the underlying environment.
+
+        See :func:`grid2op.Chronis.MultiFolder.set_filter` for more information
+
+        Examples
+        --------
+        TODO usage example
+        """
+        if callable(filter_funs):
+            filter_funs = [filter_funs for _ in range(self.nb_env)]
+        if len(filter_funs) != self.nb_env:
+            raise RuntimeError("filter_funs should be either a single function that will be applied "
+                               "identically to each sub_env or a list of callable functions.")
+        for el in filter_funs:
+            if not callable(el):
+                raise RuntimeError("filter_funs should be composed of callable elements, such as functions "
+                                   "that can be use with `env.chronics_handler.set_filter`")
+        for sub_env_id, remote in enumerate(self._remotes):
+            remote.send(('set_filter', filter_funs[sub_env_id]))
+        res = [remote.recv() for remote in self._remotes]
+        return res
+
+    def set_id(self, id_):
+        """
+        Set a chronics id for each of the underlying environment to be used for each of the sub_env.
+
+        See :func:`grid2op.Environment.Environment.set_id` for more information
+
+        Examples
+        --------
+        TODO usage example
+        """
+        if isinstance(id_, int):
+            id_ = [id_ for _ in range(self.nb_env)]
+        if len(id_) != self.nb_env:
+            raise RuntimeError("id_ should be either a single integer or an integer that represents "
+                               "the chronics to use.")
+        for el in id_:
+            if not isinstance(el, int):
+                raise RuntimeError("id_ should be composed of integers.")
+        for sub_env_id, remote in enumerate(self._remotes):
+            remote.send(('set_id', id_[sub_env_id]))
         res = [remote.recv() for remote in self._remotes]
         return res
 

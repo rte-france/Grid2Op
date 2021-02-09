@@ -763,7 +763,8 @@ class Environment(BaseEnv):
     def train_val_split(self,
                         val_scen_id,
                         add_for_train="train",
-                        add_for_val="val"):
+                        add_for_val="val",
+                        remove_from_name=None):
         """
         This function is used as :func:`Environment.train_val_split_random`.
 
@@ -781,6 +782,9 @@ class Environment(BaseEnv):
         add_for_val: ``str``
             See :func:`Environment.train_val_split_random` for more information
 
+        remove_from_name: ``str``
+            See :func:`Environment.train_val_split_random` for more information
+
         Returns
         -------
         nm_train: ``str``
@@ -789,22 +793,82 @@ class Environment(BaseEnv):
         nm_val: ``str``
             See :func:`Environment.train_val_split_random` for more information
 
+        Examples
+        --------
+
+        A full example on a training / validation / test split with explicit specification of which
+        chronics goes in which scenarios is:
+
+        .. code-block:: python
+
+            import grid2op
+            import os
+
+            env_name = "l2rpn_case14_sandbox"  # or any other...
+            env = grid2op.make(env_name)
+
+            # retrieve the names of the chronics:
+            full_path_data = env.chronics_handler.subpaths
+            chron_names = [os.path.split(el)[-1] for el in full_path_data]
+
+            # splitting into training / test, keeping the "last" 10 chronics to the test set
+            nm_env_trainval, nm_env_test = env.train_val_split(val_scen_id=chron_names[-10:],
+                                                               add_for_val="test",
+                                                               add_for_train="trainval")
+
+            # now splitting again the training set into training and validation, keeping the last 10 chronics
+            # of this environment for validation
+            env_trainval = grid2op.make(nm_env_trainval)  # create the "trainval" environment
+            full_path_data = env_trainval.chronics_handler.subpaths
+            chron_names = [os.path.split(el)[-1] for el in full_path_data]
+            nm_env_train, nm_env_val = env_trainval.train_val_split(val_scen_id=chron_names[-10:],
+                                                                    remove_from_name="_trainval$")
+
+        For a more simple example, with less parametrization and with random assignment (recommended),
+        please refer to the help of :func:`Environment.train_val_split_random`
+
+        **NB** read the "Notes" of this section for possible "unexpected" behaviour of the code snippet above.
+
+        Notes
+        ------
+        We don't recommend you to use this function. It provides a great level of control on which
+        scenarios goes into which dataset, which is nice, but
+        "*with great power comes great responsibilities*".
+
+        Keep in mind that scenarios might be "sorted" by having some "month" in their names.
+        For example, the first k scenarios might be called "April_XXX"
+        and the last k ones having names with "September_XXX".
+
+        In general, we would not consider good practice to have all validation (or test) scenarios coming
+        from the same months. Keep that in mind if you use the code snippet above.
 
         """
         # define all the locations
-        if re.match("^[a-zA-Z0-9]*$", add_for_train) is not None:
+        if re.match("^[a-zA-Z0-9]*$", add_for_train) is None:
             raise EnvError("The suffixes you can use for training data (add_for_train) "
                            "should match the regex \"^[a-zA-Z0-9]*$\"")
-        if re.match("^[a-zA-Z0-9]*$", add_for_val) is not None:
+        if re.match("^[a-zA-Z0-9]*$", add_for_val) is None:
             raise EnvError("The suffixes you can use for validation data (add_for_val)"
                            "should match the regex \"^[a-zA-Z0-9]*$\"")
 
+        from grid2op.Chronics import MultifolderWithCache, Multifolder
+        if not isinstance(self.chronics_handler.real_data, (MultifolderWithCache, Multifolder)):
+            raise EnvError("It does not make sense to split a environment between training / validation "
+                           "if the chronics are not read from directories.")
+
         my_path = self.get_path_env()
         path_train = os.path.split(my_path)
-        nm_train = f'{path_train[1]}_{add_for_train}'
+        my_name = path_train[1]
+        if remove_from_name is not None:
+            if re.match(r"^[a-zA-Z0-9\\^\\$_]*$", remove_from_name) is None:
+                raise EnvError("The suffixes you can remove from the name of the environment (remove_from_name)"
+                               "should match the regex \"^[a-zA-Z0-9^$_]*$\"")
+            my_name = re.sub(remove_from_name, "", my_name)
+
+        nm_train = f'{my_name}_{add_for_train}'
         path_train = os.path.join(path_train[0], nm_train)
         path_val = os.path.split(my_path)
-        nm_val = f'{path_val[1]}_{add_for_val}'
+        nm_val = f'{my_name}_{add_for_val}'
         path_val = os.path.join(path_val[0], nm_val)
         chronics_dir = self._chronics_folder_name()
 
@@ -852,7 +916,8 @@ class Environment(BaseEnv):
     def train_val_split_random(self,
                                pct_val=10.,
                                add_for_train="train",
-                               add_for_val="val"):
+                               add_for_val="val",
+                               remove_from_name=None):
         """
         By default a grid2op environment contains multiple "scenarios" containing values for all the producers
         and consumers representing multiple days. In a "game like" environment, you can think of the scenarios as
@@ -888,6 +953,11 @@ class Environment(BaseEnv):
         add_for_val: ``str``
             Suffix that will be added to the name of the environment for the validation set. We don't recommend to
             modify the default value ("val")
+
+        remove_from_name: ``str``
+            If you "split" an environment multiple times, this allows you to keep "short" names (for example
+            you will be able to call `grid2op.make(env_name+"_train")` instead of
+            `grid2op.make(env_name+"_train_train")`)
 
         Returns
         -------
@@ -943,7 +1013,10 @@ class Environment(BaseEnv):
         chronics_path = os.path.join(my_path, self._chronics_folder_name())
         all_chron = sorted(os.listdir(chronics_path))
         to_val = self.space_prng.choice(all_chron, int(len(all_chron) * pct_val * 0.01))
-        return self.train_val_split(to_val, add_for_train=add_for_train, add_for_val=add_for_val)
+        return self.train_val_split(to_val,
+                                    add_for_train=add_for_train,
+                                    add_for_val=add_for_val,
+                                    remove_from_name=remove_from_name)
 
     def get_params_for_runner(self):
         """

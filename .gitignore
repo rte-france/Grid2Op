@@ -273,6 +273,7 @@ test_plot_storage.ipynb
 issue_pp_storage.py
 test_speed_obs_plus_act.py
 test_filter_act.py
+speed_up_multiproc.ods
 
 # profiling files
 **.prof

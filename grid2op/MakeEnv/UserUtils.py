@@ -27,13 +27,14 @@ def list_available_remote_env():
 
     Examples
     ---------
+    A usage example is
 
     .. code-block:: python
 
         import grid2op
         li = grid2op.list_available_remote_env()
-        li_fmt = '\n * '.join(li)
-        print(f"The available environments are: \n * {li_fmt}")
+        li_fmt = '\\n * '.join(li)
+        print(f"The available environments are: \\n * {li_fmt}")
 
     """
     avail_datasets_json = _list_available_remote_env_aux()
@@ -57,8 +58,8 @@ def list_available_local_env():
 
         import grid2op
         li = grid2op.list_available_local_env()
-        li_fmt = '\n * '.join(li)
-        print(f"The locally available environments (without downloading anything) are: \n * {li_fmt}")
+        li_fmt = '\\n + '.join(li)
+        print(f"The locally available environments (without downloading anything) are: \\n * {li_fmt}")
 
     """
     res = []
