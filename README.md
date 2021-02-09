@@ -34,7 +34,7 @@ Official documentation: the official documentation is available at
     *   [3 Training An BaseAgent](getting_started/3_TrainingAnAgent.ipynb)
     *   [4 Study Your BaseAgent](getting_started/4_StudyYourAgent.ipynb)
 *   [4 Documentation](#documentation)
-*   [5 Run the tests](#run-the-tests)
+*   [5 Test and known issues](#tests-and-known-issues)
 *   [6 License information](#license-information)
 
 # Installation
@@ -191,14 +191,37 @@ For example, the  "getting started" notebooks referenced some pages of the help.
 
 <!-- sphinx-build -b html docs documentation-->
 
-# Run the tests
+# Tests and known issues
+
+## Tests performed currently
+Grid2op is currently tested on windows, linux and macos.
+
+The unit tests includes testing, on linux machines the correct integration of grid2op with:
+
+- python 3.6
+- python 3.7
+- python 3.8
+- python 3.9
+
+Note that "numba" which accelerates the computation of the powerflow is not available for python 3.9 
+(see https://github.com/numba/numba/issues/6345) for more information.
+
+On all of these cases, we tested grid2op on all available numpy version >= 1.18.
+
+## Known issue
+
+Due to the underlying behaviour of the "multiprocessing" package on windows based python version,
+the "multiprocessing" of the grid2op runner is not supported on windows. This might change in the future, 
+but it is currently not on our priorities.
+
+## Perform tests locally
 Provided that Grid2Op is installed *from source*:
 
-## Install additional dependencies
+### Install additional dependencies
 ```commandline
 pip3 install -U grid2op[optional]
 ```
-## Launch tests
+### Launch tests
 ```commandline
 cd grid2op/tests
 python3 -m unittest discover
