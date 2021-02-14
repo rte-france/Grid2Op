@@ -70,7 +70,7 @@ class BasePlot(ABC):
 
         # Augment observation_space with dummy observation data
         # so we can use it as an observation for plotting just the layout or custom infos
-        self.observation_space.topo_vect = np.ones(self.observation_space.dim_topo, dtype=np.int)
+        self.observation_space.topo_vect = np.ones(self.observation_space.dim_topo, dtype=dt_int)
         self.observation_space.line_status = np.full(self.observation_space.n_line, True)
         self.observation_space.rho = np.full(self.observation_space.n_line, 0.0)
         self.observation_space.p_or = np.ones(self.observation_space.n_line)
@@ -834,7 +834,7 @@ class BasePlot(ABC):
 
                     observation.rho = copy.deepcopy(line_values)
                     try:
-                        observation.rho = np.array(observation.rho).astype(np.float)
+                        observation.rho = np.array(observation.rho).astype(dt_float)
                     except:
                         raise PlotError("Impossible to convert the input values (line_values) to floating point")
 
@@ -853,7 +853,7 @@ class BasePlot(ABC):
 
                     observation.prod_p = copy.deepcopy(gen_values)
                     try:
-                        observation.prod_p = np.array(observation.prod_p).astype(np.float)
+                        observation.prod_p = np.array(observation.prod_p).astype(dt_float)
                     except:
                         raise PlotError("Impossible to convert the input values (gen_values) to floating point")
 

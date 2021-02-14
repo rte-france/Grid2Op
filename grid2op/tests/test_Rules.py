@@ -77,11 +77,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         new_vect = np.random.randn(self.helper_action.n_load)
         new_vect2 = np.random.randn(self.helper_action.n_load)
 
-        change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(np.bool)
+        change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(dt_bool)
         set_status_orig = np.random.randint(-1, 2, self.helper_action.n_line)
         set_status_orig[change_status_orig] = 0
 
-        change_topo_vect_orig = np.random.randint(0, 2, self.helper_action.dim_topo).astype(np.bool)
+        change_topo_vect_orig = np.random.randint(0, 2, self.helper_action.dim_topo).astype(dt_bool)
         # powerline that are set to be reconnected, can't be moved to another bus
         change_topo_vect_orig[self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]] = False
         change_topo_vect_orig[self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]] = False
@@ -114,11 +114,11 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = 1
 
         self.helper_action.legal_action = RulesChecker(legalActClass=LookParam).legal_action
@@ -171,9 +171,9 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = 1
@@ -220,12 +220,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = -1
 
         self.env._max_timestep_line_status_deactivated = 1
@@ -251,12 +251,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = -1
 
         self.env._max_timestep_line_status_deactivated = 1
@@ -281,12 +281,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = -1
 
         self.env._max_timestep_line_status_deactivated = 2
@@ -319,12 +319,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = -1
 
         self.env._max_timestep_topology_deactivated = 1
@@ -350,12 +350,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = -1
 
         self.env._max_timestep_topology_deactivated = 1
@@ -380,12 +380,12 @@ class TestLoadingBackendFunc(unittest.TestCase):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=np.bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=np.int)
-        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=np.bool)
+        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
 
-        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=np.int)
+        arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
         arr_line2[id_line2] = -1
 
         self.env._max_timestep_topology_deactivated = 2

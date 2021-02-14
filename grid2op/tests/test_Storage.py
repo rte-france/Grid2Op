@@ -73,7 +73,7 @@ class TestStorageEnv(HelperTests):
         str_ = act.__str__()
         real_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any ' \
                    'redispatching action\n\t - set the new power produced / absorbed for storage storage_5_0 ' \
-                   'to be 1.0 MW\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - NOT ' \
+                   'to be 1.00 MW\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - NOT ' \
                    'switch anything in the topology\n\t - NOT force any particular bus configuration'
         assert str_ == real_str
 
