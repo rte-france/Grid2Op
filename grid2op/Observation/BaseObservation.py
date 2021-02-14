@@ -634,6 +634,14 @@ class BaseObservation(GridObjects):
             self._shunt_v[:] = 0.
             self._shunt_bus[:] = -1
 
+        # set an old date
+        self.year = 1970
+        self.month = 1
+        self.day = 1
+        self.hour_of_day = 0
+        self.minute_of_hour = 0
+        self.day_of_week = 1
+
     def __compare_stats(self, other, name):
         attr_me = getattr(self, name)
         attr_other = getattr(other, name)
@@ -1582,6 +1590,17 @@ class BaseObservation(GridObjects):
 
         """
         return self.gen_v
+
+    def sub_topology(self, sub_id):
+        """
+        Returns the topology of the given substation
+        Returns
+        -------
+
+        """
+        tmp = self.topo_vect[self._topo_vect_to_sub == sub_id]
+        tmp.flags.writeable = False
+        return tmp
 
     def _reset_matrices(self):
         self._vectorized = None

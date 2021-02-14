@@ -1538,12 +1538,12 @@ class TestSetBus(unittest.TestCase):
             act.sub_set_bus = (1, (1, 1, -1, 1, 2, 1, 2, 2))  # too big
 
         with self.assertRaises(IllegalAction):
-            act.sub_set_bus = np.zeros(act.dim_topo+1, dtype=np.int)  # too long
+            act.sub_set_bus = np.zeros(act.dim_topo+1, dtype=int)  # too long
         with self.assertRaises(IllegalAction):
-            act.sub_set_bus = np.zeros(act.dim_topo-1, dtype=np.int)  # too short
+            act.sub_set_bus = np.zeros(act.dim_topo-1, dtype=int)  # too short
 
         # ok
-        tmp = np.zeros(act.dim_topo, dtype=np.int)  # too short
+        tmp = np.zeros(act.dim_topo, dtype=int)  # too short
         tmp[:10] = 1
         act.sub_set_bus = tmp
         aff_lines, aff_subs = act.get_topological_impact()
@@ -1565,16 +1565,16 @@ class TestSetBus(unittest.TestCase):
             act.sub_change_bus = (1, (True, True, True, False, False, True, False, True))  # too big
 
         with self.assertRaises(IllegalAction):
-            act.sub_change_bus = np.zeros(act.dim_topo+1, dtype=np.int)  # too long
+            act.sub_change_bus = np.zeros(act.dim_topo+1, dtype=int)  # too long
         with self.assertRaises(IllegalAction):
-            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=np.int)  # too short
+            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=int)  # too short
         with self.assertRaises(IllegalAction):
-            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=np.int)  # wrong type
+            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=int)  # wrong type
         with self.assertRaises(IllegalAction):
-            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=np.float)  # wrong type
+            act.sub_change_bus = np.zeros(act.dim_topo-1, dtype=float)  # wrong type
 
         # ok
-        tmp = np.zeros(act.dim_topo, dtype=np.bool)  # too short
+        tmp = np.zeros(act.dim_topo, dtype=bool)  # too short
         tmp[:10] = True
         act.sub_change_bus = tmp
         aff_lines, aff_subs = act.get_topological_impact()
@@ -2404,7 +2404,7 @@ class TestSetValues(unittest.TestCase):
         li_orig = [1.0, -1.0] + [0. for _ in range(nb_el-2)]
         tmp = np.array(li_orig)
         tmp_dt_float = np.array(li_orig).astype(dt_float)
-        tmp_np_float = np.array(li_orig).astype(np.float)
+        tmp_np_float = np.array(li_orig).astype(float)
 
         # first set of tests, with numpy array
         act = self.helper_action()

@@ -460,6 +460,8 @@ class GridObjects:
 
     # "convenient" way to retrieve information of the grid
     grid_objects_types = None
+    # to which substation each element of the topovect is connected
+    _topo_vect_to_sub = None
 
     # list of attribute to convert it from/to a vector
     _vectorized = None
@@ -962,6 +964,7 @@ class GridObjects:
         self.line_ex_pos_topo_vect = self._aux_pos_big_topo(self.line_ex_to_subid, self.line_ex_to_sub_pos).astype(dt_int)
         self.storage_pos_topo_vect = self._aux_pos_big_topo(self.storage_to_subid, self.storage_to_sub_pos).astype(dt_int)
 
+        self._topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
         self.grid_objects_types = np.full(shape=(self.dim_topo, 6), fill_value=-1, dtype=dt_int)
         prev = 0
         for sub_id, nb_el in enumerate(self.sub_info):
@@ -1898,6 +1901,7 @@ class GridObjects:
         res.storage_pos_topo_vect = gridobj.storage_pos_topo_vect
 
         res.grid_objects_types = gridobj.grid_objects_types
+        res._topo_vect_to_sub = gridobj._topo_vect_to_sub
 
         # for redispatching / unit commitment (not available for all environment)
         res.gen_type = gridobj.gen_type

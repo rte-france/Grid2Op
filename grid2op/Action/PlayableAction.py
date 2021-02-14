@@ -23,7 +23,7 @@ class PlayableAction(BaseAction):
         "set_bus",
         "change_bus",
         "redispatch",
-        "storage_power"
+        "set_storage"
     }
 
     attr_list_vect = [
@@ -121,5 +121,3 @@ class PlayableAction(BaseAction):
                 self.authorized_keys_to_digest[kk](dict_)
 
         return self
-
-

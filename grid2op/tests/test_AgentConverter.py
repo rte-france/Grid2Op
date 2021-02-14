@@ -78,8 +78,8 @@ class TestAgent(AgentWithConverter):
         self.action_space.all_actions = all_actions
 
         # add the action "reset everything to 1 bus"
-        self.action_space.all_actions.append(action_space({"set_bus": np.ones(action_space.dim_topo, dtype=np.int),
-                                                           "set_line_status": np.ones(action_space.n_line, dtype=np.int)}))
+        self.action_space.all_actions.append(action_space({"set_bus": np.ones(action_space.dim_topo, dtype=int),
+                                                           "set_line_status": np.ones(action_space.n_line, dtype=int)}))
         self.nb_act_done = 0
         self.act_this = True
 

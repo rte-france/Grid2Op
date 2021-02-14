@@ -76,8 +76,10 @@ Change Log
 - [ADDED] an option to retrieve in memory the `EpisodeData` of each episode computed when using the runner.
   see `runner.run(..., add_detailed_output=True)`
 - [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
+- [ADDED] convenient option to get the topology of a substation from an observation (`obs.sub_topology(sub_id=...)`)
 - [IMPROVED] simplify the interface for the gym converter.
 - [IMPROVED] simplify the interface for the `env.train_val_split` and `env.train_val_split_random`
+- [IMPROVED] print of an action now limits the number of decimal for redispatching and storage units
 
 [1.4.0] - 2020-12-10
 ----------------------

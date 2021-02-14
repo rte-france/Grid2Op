@@ -390,9 +390,6 @@ class BaseAction(GridObjects):
             BaseAction.authorized_keys.add("shunt")
             BaseAction._update_value_set()
 
-        # todo could be set as a class attribute
-        self._topo_vect_to_sub = np.repeat(np.arange(self.n_sub), repeats=self.sub_info)
-
         self._single_act = True
 
         # change the stuff
@@ -1729,7 +1726,7 @@ class BaseAction(GridObjects):
                 if self._redispatch[gen_idx] != 0.0:
                     gen_name = self.name_gen[gen_idx]
                     r_amount = self._redispatch[gen_idx]
-                    res.append("\t - Redispatch {} of {}".format(gen_name, r_amount))
+                    res.append("\t - Redispatch {} of {:.2f} MW".format(gen_name, r_amount))
         else:
             res.append("\t - NOT perform any redispatching action")
 
@@ -1740,7 +1737,8 @@ class BaseAction(GridObjects):
                 if np.isfinite(tmp) and tmp != 0.:
                     name_ = self.name_storage[stor_idx]
                     amount_ = self._storage_power[stor_idx]
-                    res.append("\t - set the new power produced / absorbed for storage {} to be {} MW".format(name_, amount_))
+                    res.append("\t - set the new power produced / absorbed for storage {} to be {:.2f} MW"
+                               "".format(name_, amount_))
         else:
             res.append("\t - NOT modify any storage capacity")
 

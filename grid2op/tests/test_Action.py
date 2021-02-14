@@ -91,6 +91,8 @@ def _get_action_grid_class():
     GridObjects.storage_discharging_efficiency = np.array([1., 1.])
     GridObjects.storage_charging_efficiency = np.array([1., 1.])
 
+    GridObjects._topo_vect_to_sub = np.repeat(np.arange(GridObjects.n_sub), repeats=GridObjects.sub_info)
+
     json_ = {
         'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
         'name_load': ['load_0', 'load_1', 'load_2',

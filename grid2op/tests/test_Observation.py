@@ -214,6 +214,19 @@ class TestBasisObsBehaviour(unittest.TestCase):
         obs = self.env.observation_space(self.env)
         assert obs.size() == np.sum(obs.shape())
 
+    def test_sub_topology(self):
+        """test the sub_topology function"""
+        obs = self.env.observation_space(self.env)
+        # test in normal conditions
+        topo = obs.sub_topology(sub_id=1)
+        assert np.all(topo == 1)
+        # test if i fake a change in the topology
+        obs.topo_vect[2] = 2
+        topo = obs.sub_topology(sub_id=0)
+        assert np.array_equal(topo, [1, 1, 2])
+        topo = obs.sub_topology(sub_id=1)
+        assert np.all(topo == 1)
+
     def test_size(self):
         obs = self.env.observation_space(self.env)
         obs.size()
@@ -620,7 +633,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         for i in range(self.env.backend.n_line):
             # simulate lots of action
-            tmp = np.full(self.env.backend.n_line, fill_value=False, dtype=np.bool)
+            tmp = np.full(self.env.backend.n_line, fill_value=False, dtype=dt_bool)
             tmp[i] = True
             action = self.env.action_space({"change_line_status": tmp})
             simul_obs, simul_reward, simul_has_error, simul_info = obs_orig.simulate(action)

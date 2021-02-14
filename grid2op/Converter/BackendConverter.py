@@ -8,7 +8,7 @@
 
 import numpy as np
 import copy
-from grid2op.dtypes import dt_float
+from grid2op.dtypes import dt_float, dt_int
 from grid2op.Backend import Backend
 from grid2op.Exceptions import Grid2OpException
 
@@ -137,8 +137,8 @@ class BackendConverter(Backend):
 
         # and now init all the converting vectors
         # a) for substation
-        self._sub_tg2sr = np.full(self.n_sub, fill_value=-1, dtype=np.int)
-        self._sub_sr2tg = np.full(self.n_sub, fill_value=-1, dtype=np.int)
+        self._sub_tg2sr = np.full(self.n_sub, fill_value=-1, dtype=dt_int)
+        self._sub_sr2tg = np.full(self.n_sub, fill_value=-1, dtype=dt_int)
         if self.sub_source_target is None:
             # automatic mode
             # I can only do it if the names matches
@@ -155,8 +155,8 @@ class BackendConverter(Backend):
                 self._sub_sr2tg[id_target] = id_source
 
         # b) for load
-        self._load_tg2sr = np.full(self.n_load, fill_value=-1, dtype=np.int)
-        self._load_sr2tg = np.full(self.n_load, fill_value=-1, dtype=np.int)
+        self._load_tg2sr = np.full(self.n_load, fill_value=-1, dtype=dt_int)
+        self._load_sr2tg = np.full(self.n_load, fill_value=-1, dtype=dt_int)
         # automatic mode
         self._auto_fill_vect_load_gen_shunt(n_element=self.n_load,
                                             source_2_id_sub=self.source_backend.load_to_subid,
@@ -166,8 +166,8 @@ class BackendConverter(Backend):
                                             nm="load")
 
         # c) for generator
-        self._gen_tg2sr = np.full(self.n_gen, fill_value=-1, dtype=np.int)
-        self._gen_sr2tg = np.full(self.n_gen, fill_value=-1, dtype=np.int)
+        self._gen_tg2sr = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
+        self._gen_sr2tg = np.full(self.n_gen, fill_value=-1, dtype=dt_int)
         # automatic mode
         self._auto_fill_vect_load_gen_shunt(n_element=self.n_gen,
                                             source_2_id_sub=self.source_backend.gen_to_subid,
@@ -177,19 +177,19 @@ class BackendConverter(Backend):
                                             nm="gen")
 
         # d) for powerline
-        self._line_tg2sr = np.full(self.n_line, fill_value=-1, dtype=np.int)
-        self._line_sr2tg = np.full(self.n_line, fill_value=-1, dtype=np.int)
+        self._line_tg2sr = np.full(self.n_line, fill_value=-1, dtype=dt_int)
+        self._line_sr2tg = np.full(self.n_line, fill_value=-1, dtype=dt_int)
         # automatic
         self._auto_fill_vect_powerline()
 
         # e) and now the topology vectors.
-        self._topo_tg2sr = np.full(self.dim_topo, fill_value=-1, dtype=np.int)
-        self._topo_sr2tg = np.full(self.dim_topo, fill_value=-1, dtype=np.int)
+        self._topo_tg2sr = np.full(self.dim_topo, fill_value=-1, dtype=dt_int)
+        self._topo_sr2tg = np.full(self.dim_topo, fill_value=-1, dtype=dt_int)
         self._auto_fill_vect_topo()
 
         # f) for the storage units
-        self._storage_tg2sr = np.full(self.n_storage, fill_value=-1, dtype=np.int)
-        self._storage_sr2tg = np.full(self.n_storage, fill_value=-1, dtype=np.int)
+        self._storage_tg2sr = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
+        self._storage_sr2tg = np.full(self.n_storage, fill_value=-1, dtype=dt_int)
         # automatic mode
         self._auto_fill_vect_load_gen_shunt(n_element=self.n_storage,
                                             source_2_id_sub=self.source_backend.storage_to_subid,
@@ -201,8 +201,8 @@ class BackendConverter(Backend):
         # shunt are available if both source and target provide it
         self.shunts_data_available = self.source_backend.shunts_data_available and self.target_backend.shunts_data_available
         if self.shunts_data_available:
-            self._shunt_tg2sr = np.full(self.n_shunt, fill_value=-1, dtype=np.int)
-            self._shunt_sr2tg = np.full(self.n_shunt, fill_value=-1, dtype=np.int)
+            self._shunt_tg2sr = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
+            self._shunt_sr2tg = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
             # automatic mode
             self._auto_fill_vect_load_gen_shunt(n_element=self.n_shunt,
                                                 source_2_id_sub=self.source_backend.shunt_to_subid,
@@ -232,7 +232,7 @@ class BackendConverter(Backend):
     def _auto_fill_vect_load_gen_shunt(self, n_element, source_2_id_sub, target_2_id_sub,
                                        tg2sr, sr2tg,
                                        nm):
-        nb_load_per_sub = np.zeros(self.n_sub, dtype=np.int)
+        nb_load_per_sub = np.zeros(self.n_sub, dtype=dt_int)
         if source_2_id_sub.shape[0] != n_element:
             raise RuntimeError("Impossible to convert backend that do not have the same number of objects")
         if target_2_id_sub.shape[0] != n_element:
@@ -248,7 +248,7 @@ class BackendConverter(Backend):
 
     def _auto_fill_vect_powerline(self):
         # automatic matching
-        nb_load_per_sub = np.zeros((self.n_sub, self.n_sub), dtype=np.int)
+        nb_load_per_sub = np.zeros((self.n_sub, self.n_sub), dtype=dt_int)
         n_element = self.n_line
         source_or_2_id_sub = self.source_backend.line_or_to_subid
         target_or_2_id_sub = self.target_backend.line_or_to_subid
