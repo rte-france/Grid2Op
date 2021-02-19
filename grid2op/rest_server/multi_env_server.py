@@ -17,6 +17,8 @@ import warnings
 import subprocess
 import sys
 
+ERROR_NO_200 = "error due to not receiving 200 status"
+
 NB_SUB_ENV = 4
 ENV_NAME = "l2rpn_neurips_2020_track2_small"
 SYNCH = False
@@ -67,7 +69,7 @@ class MultiEnvServer:
         for url in self.li_urls:
             resp = self.session.get(f"{url}/make/{self.env_name}")
             answs.append(resp)
-        assert np.all(np.array([el.status_code for el in answs]) == 200), "error due to not receiving 200 status"
+        assert np.all(np.array([el.status_code for el in answs]) == 200), ERROR_NO_200
         answ_json = [el.json() for el in answs]
         return answ_json
 
@@ -77,7 +79,7 @@ class MultiEnvServer:
             for url in self.li_urls:
                 async with session.get(f"{url}/make/{self.env_name}") as resp:
                     if resp.status != 200:
-                        raise RuntimeError("error due to not receiving 200 status")
+                        raise RuntimeError(ERROR_NO_200)
                     answ_json.append(await resp.json())
         return answ_json
 
@@ -96,7 +98,7 @@ class MultiEnvServer:
                 async with session.post(f"{url}/step/{self.env_name}/{id_env}",
                                         json={"action": act.to_json()}) as resp:
                     if resp.status != 200:
-                        raise RuntimeError("error due to not receiving 200 status")
+                        raise RuntimeError(ERROR_NO_200)
                     answs.append(await resp.json())
         return answs
 

@@ -2552,10 +2552,3 @@ class GridObjects:
             if not np.array_equal(getattr(cls, attr_nm), getattr(other_cls, attr_nm)):
                 return False
         return True
-        # dict_me = cls.cls_to_dict()
-        # dict_oth = other_cls.cls_to_dict()
-        # if "env_name" in dict_me:
-        #     del dict_me["env_name"]
-        # if "env_name" in dict_oth:
-        #     del dict_oth["env_name"]
-        # return dict_me == dict_oth

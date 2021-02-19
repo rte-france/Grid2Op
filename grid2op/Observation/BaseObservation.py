@@ -504,9 +504,6 @@ class BaseObservation(GridObjects):
         value.
 
         """
-        # vecorized _grid
-        self.timestep_overflow[:] = 0
-
         # 0. (line is disconnected) / 1. (line is connected)
         self.line_status[:] = True
 

@@ -1058,8 +1058,10 @@ class BaseAction(GridObjects):
         if "set_bus" in dict_:
             self._modif_set_bus = True
             if dict_["set_bus"] is None:
-                pass
-            elif isinstance(dict_["set_bus"], dict):
+                # no real action has been made
+                return
+
+            if isinstance(dict_["set_bus"], dict):
                 ddict_ = dict_["set_bus"]
                 handled = False
                 if "loads_id" in ddict_:
@@ -1087,20 +1089,17 @@ class BaseAction(GridObjects):
                     msg += " as keys. None where found. Current used keys are: "
                     msg += "{}".format(sorted(ddict_.keys()))
                     raise AmbiguousAction(msg)
-                else:
-                    pass
             else:
                 self.set_bus = dict_["set_bus"]
-                # self._modif_set_bus = False
-                # raise AmbiguousAction(
-                #    "Invalid way to set the topology. dict_[\"set_bus\"] should be a numpy array or a dictionnary.")
 
     def _digest_change_bus(self, dict_):
         if "change_bus" in dict_:
             self._modif_change_bus = True
             if dict_["change_bus"] is None:
-                pass
-            elif isinstance(dict_["change_bus"], dict):
+                # no real action has been made
+                return
+
+            if isinstance(dict_["change_bus"], dict):
                 ddict_ = dict_["change_bus"]
                 handled = False
                 if "loads_id" in ddict_:
@@ -2126,6 +2125,88 @@ class BaseAction(GridObjects):
         storage = self._modif_storage
         return injection, voltage, topology, line, redispatching, storage
 
+    def _aux_effect_on_load(self, load_id):
+        if load_id >= self.n_load:
+            raise Grid2OpException(f"There are only {self.n_load} loads on the grid. Cannot check impact on "
+                                   f"`load_id={load_id}`")
+        if load_id < 0:
+            raise Grid2OpException(f"`load_id` should be positive.")
+        res = {"new_p": np.NaN, "new_q": np.NaN, "change_bus": False, "set_bus": 0}
+        if "load_p" in self._dict_inj:
+            res["new_p"] = self._dict_inj["load_p"][load_id]
+        if "load_q" in self._dict_inj:
+            res["new_q"] = self._dict_inj["load_q"][load_id]
+        my_id = self.load_pos_topo_vect[load_id]
+        res["change_bus"] = self._change_bus_vect[my_id]
+        res["set_bus"] = self._set_topo_vect[my_id]
+        return res
+
+    def _aux_effect_on_gen(self, gen_id):
+        if gen_id >= self.n_gen:
+            raise Grid2OpException(f"There are only {self.n_gen} gens on the grid. Cannot check impact on "
+                                   f"`gen_id={gen_id}`")
+        if gen_id < 0:
+            raise Grid2OpException(f"`gen_id` should be positive.")
+        res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0, "change_bus": False}
+        if "prod_p" in self._dict_inj:
+            res["new_p"] = self._dict_inj["prod_p"][gen_id]
+        if "prod_v" in self._dict_inj:
+            res["new_v"] = self._dict_inj["prod_v"][gen_id]
+        my_id = self.gen_pos_topo_vect[gen_id]
+        res["change_bus"] = self._change_bus_vect[my_id]
+        res["set_bus"] = self._set_topo_vect[my_id]
+        res["redispatch"] = self._redispatch[gen_id]
+        return res
+
+    def _aux_effect_on_line(self, line_id):
+        if line_id >= self.n_line:
+            raise Grid2OpException(f"There are only {self.n_line} powerlines on the grid. Cannot check impact on "
+                                   f"`line_id={line_id}`")
+        if line_id < 0:
+            raise Grid2OpException(f"`line_id` should be positive.")
+        res = {}
+        # origin topology
+        my_id = self.line_or_pos_topo_vect[line_id]
+        res["change_bus_or"] = self._change_bus_vect[my_id]
+        res["set_bus_or"] = self._set_topo_vect[my_id]
+        # extremity topology
+        my_id = self.line_ex_pos_topo_vect[line_id]
+        res["change_bus_ex"] = self._change_bus_vect[my_id]
+        res["set_bus_ex"] = self._set_topo_vect[my_id]
+        # status
+        res["set_line_status"] = self._set_line_status[line_id]
+        res["change_line_status"] = self._switch_line_status[line_id]
+        return res
+
+    def _aux_effect_on_storage(self, storage_id):
+        if storage_id >= self.n_storage:
+            raise Grid2OpException(f"There are only {self.n_storage} storage units on the grid. "
+                                   f"Cannot check impact on "
+                                   f"`storage_id={storage_id}`")
+        if storage_id < 0:
+            raise Grid2OpException(f"`storage_id` should be positive.")
+        res = {"power": np.NaN, "set_bus": 0, "change_bus": False}
+        my_id = self.storage_pos_topo_vect[storage_id]
+        res["change_bus"] = self._change_bus_vect[my_id]
+        res["set_bus"] = self._set_topo_vect[my_id]
+        res["power"] = self._storage_power[storage_id]
+        return res
+
+    def _aux_effect_on_substation(self, substation_id):
+        if substation_id >= self.n_sub:
+            raise Grid2OpException(f"There are only {self.n_sub} substations on the grid. "
+                                   f"Cannot check impact on "
+                                   f"`substation_id={storage_id}`")
+        if substation_id < 0:
+            raise Grid2OpException(f"`substation_id` should be positive.")
+
+        res = {}
+        beg_ = int(np.sum(self.sub_info[:substation_id]))
+        end_ = int(beg_ + self.sub_info[substation_id])
+        res["change_bus"] = self._change_bus_vect[beg_:end_]
+        res["set_bus"] = self._set_topo_vect[beg_:end_]
+        return res
+
     def effect_on(self, _sentinel=None, load_id=None, gen_id=None, line_id=None, substation_id=None,
                   storage_id=None):
         """
@@ -2216,6 +2297,7 @@ class BaseAction(GridObjects):
             parameters are being set.
 
         """
+        EXCEPT_TOO_MUCH_ELEMENTS = "You can only the inspect the effect of an action on one single element"
         if _sentinel is not None:
             raise Grid2OpException("action.effect_on should only be called with named argument.")
 
@@ -2224,89 +2306,26 @@ class BaseAction(GridObjects):
 
         if load_id is not None:
             if gen_id is not None or line_id is not None or storage_id is not None or substation_id is not None:
-                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
-            if load_id >= self.n_load:
-                raise Grid2OpException(f"There are only {self.n_load} loads on the grid. Cannot check impact on "
-                                       f"`load_id={load_id}`")
-            if load_id < 0:
-                raise Grid2OpException(f"`load_id` should be positive.")
-            res = {"new_p": np.NaN, "new_q": np.NaN, "change_bus": False, "set_bus": 0}
-            if "load_p" in self._dict_inj:
-                res["new_p"] = self._dict_inj["load_p"][load_id]
-            if "load_q" in self._dict_inj:
-                res["new_q"] = self._dict_inj["load_q"][load_id]
-            my_id = self.load_pos_topo_vect[load_id]
-            res["change_bus"] = self._change_bus_vect[my_id]
-            res["set_bus"] = self._set_topo_vect[my_id]
+                raise Grid2OpException(EXCEPT_TOO_MUCH_ELEMENTS)
+            res = self._aux_effect_on_load(load_id)
 
         elif gen_id is not None:
             if line_id is not None or storage_id is not None or substation_id is not None:
-                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
-            if gen_id >= self.n_gen:
-                raise Grid2OpException(f"There are only {self.n_gen} gens on the grid. Cannot check impact on "
-                                       f"`gen_id={gen_id}`")
-            if gen_id < 0:
-                raise Grid2OpException(f"`gen_id` should be positive.")
-            res = {"new_p": np.NaN, "new_v": np.NaN, "set_bus": 0, "change_bus": False}
-            if "prod_p" in self._dict_inj:
-                res["new_p"] = self._dict_inj["prod_p"][gen_id]
-            if "prod_v" in self._dict_inj:
-                res["new_v"] = self._dict_inj["prod_v"][gen_id]
-            my_id = self.gen_pos_topo_vect[gen_id]
-            res["change_bus"] = self._change_bus_vect[my_id]
-            res["set_bus"] = self._set_topo_vect[my_id]
-            res["redispatch"] = self._redispatch[gen_id]
+                raise Grid2OpException(EXCEPT_TOO_MUCH_ELEMENTS)
+            res = self._aux_effect_on_gen(gen_id)
 
         elif line_id is not None:
             if storage_id is not None or substation_id is not None:
-                raise Grid2OpException("You can only the inspect the effect of an action on one single element")
-            if line_id >= self.n_line:
-                raise Grid2OpException(f"There are only {self.n_line} powerlines on the grid. Cannot check impact on "
-                                       f"`line_id={line_id}`")
-            if line_id < 0:
-                raise Grid2OpException(f"`line_id` should be positive.")
-            res = {}
-            # origin topology
-            my_id = self.line_or_pos_topo_vect[line_id]
-            res["change_bus_or"] = self._change_bus_vect[my_id]
-            res["set_bus_or"] = self._set_topo_vect[my_id]
-            # extremity topology
-            my_id = self.line_ex_pos_topo_vect[line_id]
-            res["change_bus_ex"] = self._change_bus_vect[my_id]
-            res["set_bus_ex"] = self._set_topo_vect[my_id]
-            # status
-            res["set_line_status"] = self._set_line_status[line_id]
-            res["change_line_status"] = self._switch_line_status[line_id]
+                raise Grid2OpException(EXCEPT_TOO_MUCH_ELEMENTS)
+            res = self._aux_effect_on_line(line_id)
 
         elif storage_id is not None:
             if substation_id is not None:
                 raise Grid2OpException("You can only the inspect the effect of an action on one single element")
-            if storage_id >= self.n_storage:
-                raise Grid2OpException(f"There are only {self.n_storage} storage units on the grid. "
-                                       f"Cannot check impact on "
-                                       f"`storage_id={storage_id}`")
-            if storage_id < 0:
-                raise Grid2OpException(f"`storage_id` should be positive.")
-            res = {"power": np.NaN, "set_bus": 0, "change_bus": False}
-            my_id = self.storage_pos_topo_vect[storage_id]
-            res["change_bus"] = self._change_bus_vect[my_id]
-            res["set_bus"] = self._set_topo_vect[my_id]
-            res["power"] = self._storage_power[storage_id]
+            res = self._aux_effect_on_storage(storage_id)
 
         else:
-            if substation_id >= self.n_sub:
-                raise Grid2OpException(f"There are only {self.n_sub} substations on the grid. "
-                                       f"Cannot check impact on "
-                                       f"`substation_id={storage_id}`")
-            if substation_id < 0:
-                raise Grid2OpException(f"`substation_id` should be positive.")
-
-            res = {}
-            beg_ = int(np.sum(self.sub_info[:substation_id]))
-            end_ = int(beg_ + self.sub_info[substation_id])
-            res["change_bus"] = self._change_bus_vect[beg_:end_]
-            res["set_bus"] = self._set_topo_vect[beg_:end_]
-
+            res = self._aux_effect_on_substation(substation_id)
         return res
 
     def get_storage_modif(self):
