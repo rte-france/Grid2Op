@@ -11,12 +11,11 @@ from gym import spaces
 
 from grid2op.gym_compat.gym_space_converter import _BaseGymSpaceConverter
 from grid2op.Observation import BaseObservation
-from grid2op.dtypes import dt_int, dt_bool
+from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 
 
 class GymObservationSpace(_BaseGymSpaceConverter):
-    # deals with the observation space (rather easy)
     """
     This class allows to transform the observation space into a gym space.
 
@@ -99,6 +98,14 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         my_dict = self.get_dict_encoding()
         if fun is not None and not isinstance(fun, BaseGymAttrConverter):
             raise RuntimeError("Impossible to initialize a converter with a function of type {}".format(type(fun)))
+
+        if fun is not None and not fun.is_init_space():
+            if key in my_dict:
+                fun.initialize_space(my_dict[key])
+            elif key in self.spaces:
+                fun.initialize_space(self.spaces[key])
+            else:
+                raise RuntimeError(f"Impossible to find key {key} in your observation space")
         my_dict[key] = fun
         res = GymObservationSpace(self._init_env, my_dict)
         return res
@@ -159,11 +166,11 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 high = float("inf")
                 shape = (sh,)
                 SpaceType = spaces.Box
-                if attr_nm == "prod_p":
+                if attr_nm == "gen_p":
                     low = observation_space.gen_pmin
-                    high = observation_space.gen_pmax*1.2  # because of the slack bus... # TODO
+                    high = observation_space.gen_pmax * 1.2  # because of the slack bus... # TODO
                     shape = None
-                elif attr_nm == "prod_v" or attr_nm == "load_v" or attr_nm == "v_or" or attr_nm == "v_ex":
+                elif attr_nm == "gen_v" or attr_nm == "load_v" or attr_nm == "v_or" or attr_nm == "v_ex":
                     # voltages can't be negative
                     low = 0.
                 elif attr_nm == "a_or" or attr_nm == "a_ex" or attr_nm == "rho":
@@ -175,6 +182,13 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                                      -observation_space.gen_pmax)
                     high = np.maximum(-observation_space.gen_pmin,
                                       +observation_space.gen_pmax)
+                elif attr_nm == "storage_power" or attr_nm == "storage_power_target":
+                    low = - observation_space.storage_max_p_prod
+                    high = observation_space.storage_max_p_absorb
+                elif attr_nm == "storage_charge":
+                    low = np.zeros(observation_space.n_storage, dtype=dt_float)
+                    high = observation_space.storage_Emax
+
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 
             if my_type is None:

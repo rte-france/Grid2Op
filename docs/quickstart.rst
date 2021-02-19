@@ -12,7 +12,8 @@ Requirements
 *************
 This software uses python (at tested with version >= 3.6).
 
-To install it i's also recommended to have `git`.
+It is available on pypi (python package index) and can be installed easily (see the next section). It does not depends
+on non python package. Python requirements are installed with grid2op if you do not have them already.
 
 *************
 Installation
@@ -30,6 +31,12 @@ It should be now installed. Don't hesitate to visit the section `Start Using gri
 usage or the :ref:`grid2op-module` for a more in depth presentation of this package. If you
 would rather start directly to interact with a powergrid you can visit the :ref:`make-env-module`.
 
+.. warning:: On some platform, the above code might not work exactly like that. For example, on windows based machine,
+    when you install python, the windows os might not recognize the "pip" command. In this case you might want to try
+    `python pip install grid2op`, `python3 pip install grid2op`, `py pip install grid2op` or
+    `py3 pip install grid2op`. For more information about that, you might want to consult the documentation with
+    the python version you have installed.
+
 From source (advanced user)
 +++++++++++++++++++++++++++
 If you want to develop new grid2op module (for example a new types of Backend, or a new kind of Chronics to
@@ -40,7 +47,7 @@ First, it is recommended (but optionnal) to make a virtual environment:
 
 .. code-block:: bash
 
-    pip3 install -U virtualenv
+    pip install -U virtualenv
 
 The second step is to clone the Grid2Op package (`git` is required):
 
@@ -59,7 +66,7 @@ Then the installation script of Grid2Op can be run to install the current simula
 
     cd Grid2Op/
     source venv_grid2op/bin/activate
-    pip install -U .
+    pip install -e .
 
 
 After this, this simulator is available under the name grid2op (from a python console)
@@ -103,6 +110,9 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
             act = agent.act(obs, reward, done)
             obs, reward, done, info = env.step(act)
 
-**NB** Grid2Op environments implements the interface of any openAI gym environment, but they don't
-inherit from them. You can use the Grid2Op environment as you would any Gym environment but they are
-not strictly speaking gym environment. More information about that on the section :ref:`openai-gym`
+.. warning:: Grid2Op environments implements the interface of defined by openAI gym environment, but they don't
+    inherit from them. You can use the Grid2Op environment as you would any Gym environment but they are
+    not strictly speaking gym environment.
+
+    To make the use of grid2op alongside grid2op environment easier, we developed a module described in
+    :ref:`openai-gym`.

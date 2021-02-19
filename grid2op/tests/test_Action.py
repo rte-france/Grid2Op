@@ -30,6 +30,137 @@ import warnings
 warnings.simplefilter("error")
 
 
+def _get_action_grid_class():
+    GridObjects.env_name = "test_action_env"
+    GridObjects.n_gen = 5
+    GridObjects.name_gen = np.array(["gen_{}".format(i) for i in range(5)])
+    GridObjects.n_load = 11
+    GridObjects.name_load = np.array(["load_{}".format(i) for i in range(11)])
+    GridObjects.n_line = 20
+    GridObjects.name_line = np.array(["line_{}".format(i) for i in range(20)])
+    GridObjects.n_sub = 14
+    GridObjects.name_sub = np.array(["sub_{}".format(i) for i in range(14)])
+    GridObjects.sub_info = np.array([3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
+    GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
+    GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
+    GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
+                                             5, 6, 6, 8, 8, 9, 11, 12])
+    GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
+                                             12, 7, 8, 9, 13, 10, 12, 13])
+    GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
+    GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
+    GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1,
+                                               2, 2, 3, 0, 0, 1])
+    GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0,
+                                               1, 2, 2, 0, 0, 0])
+    GridObjects.load_pos_topo_vect = np.array([7, 12, 20, 25, 30,
+                                               41, 43, 46, 49, 53, 56])
+    GridObjects.gen_pos_topo_vect = np.array([2, 8, 13, 31, 36])
+    GridObjects.line_or_pos_topo_vect = np.array([0, 1, 4, 5, 6, 11, 17, 18, 19,
+                                                  24, 27, 28, 29, 33, 34, 39, 40,
+                                                  42, 48, 52])
+    GridObjects.line_ex_pos_topo_vect = np.array([3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
+                                                  47, 50, 54, 35, 38, 44, 57,
+                                                  45, 51, 55])
+
+    GridObjects.redispatching_unit_commitment_availble = True
+    GridObjects.gen_type = np.array(["thermal"] * 5)
+    GridObjects.gen_pmin = np.array([0.0] * 5)
+    GridObjects.gen_pmax = np.array([100.0] * 5)
+    GridObjects.gen_min_uptime = np.array([0] * 5)
+    GridObjects.gen_min_downtime = np.array([0] * 5)
+    GridObjects.gen_cost_per_MW = np.array([70.0] * 5)
+    GridObjects.gen_startup_cost = np.array([0.0] * 5)
+    GridObjects.gen_shutdown_cost = np.array([0.0] * 5)
+    GridObjects.gen_redispatchable = np.array([True, False, False, True, False])
+    GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
+    GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
+
+    GridObjects.n_storage = 2
+    GridObjects.name_storage = np.array(["storage_0", "storage_1"])
+    GridObjects.storage_to_subid = np.array([1, 2])
+    GridObjects.storage_to_sub_pos = np.array([6, 4])
+    GridObjects.storage_pos_topo_vect = np.array([9, 14])
+    GridObjects.storage_type = np.array(["battery"] * 2)
+    GridObjects.storage_Emax = np.array([100., 100.])
+    GridObjects.storage_Emin = np.array([0., 0.])
+    GridObjects.storage_max_p_prod = np.array([10., 10.])
+    GridObjects.storage_max_p_absorb = np.array([15., 15.])
+    GridObjects.storage_marginal_cost = np.array([0., 0.])
+    GridObjects.storage_loss = np.array([0., 0.])
+    GridObjects.storage_discharging_efficiency = np.array([1., 1.])
+    GridObjects.storage_charging_efficiency = np.array([1., 1.])
+
+    GridObjects._topo_vect_to_sub = np.repeat(np.arange(GridObjects.n_sub), repeats=GridObjects.sub_info)
+
+    json_ = {
+        'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
+        'name_load': ['load_0', 'load_1', 'load_2',
+                      'load_3', 'load_4', 'load_5', 'load_6',
+                      'load_7', 'load_8', 'load_9', 'load_10'],
+        'name_line': ['line_0', 'line_1', 'line_2',
+                      'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
+                      'line_8', 'line_9', 'line_10', 'line_11',
+                      'line_12', 'line_13', 'line_14',
+                      'line_15', 'line_16', 'line_17',
+                      'line_18', 'line_19'],
+        'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
+                     'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
+                     'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
+        'name_storage': ["storage_0", "storage_1"],
+        'env_name': 'test_action_env',
+        'sub_info': [3, 7, 5, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
+        'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
+        'gen_to_subid': [0, 1, 2, 5, 7],
+        'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3,
+                             3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
+        'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6,
+                             8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
+        "storage_to_subid": [1, 2],
+        'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
+        'gen_to_sub_pos': [2, 5, 3, 5, 1],
+        'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2,
+                               3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
+        'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2,
+                               0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
+        "storage_to_sub_pos": [6, 4],
+        'load_pos_topo_vect': [7, 12, 20, 25, 30,
+                               41, 43, 46, 49, 53, 56],
+        'gen_pos_topo_vect': [2, 8, 13, 31, 36],
+        'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 11, 17, 18, 19,
+                                  24, 27, 28, 29, 33, 34, 39, 40,
+                                  42, 48, 52],
+        'line_ex_pos_topo_vect': [3, 21, 10, 15, 22, 16, 23, 32, 37, 26,
+                                  47, 50, 54, 35, 38, 44, 57,
+                                  45, 51, 55],
+        "storage_pos_topo_vect": [9, 14],
+        'gen_type': ["thermal"] * 5,
+        'gen_pmin': [0.0] * 5,
+        'gen_pmax': [100.0] * 5,
+        'gen_redispatchable': [True, False, False, True, False],
+        'gen_max_ramp_up': [10., 5., 15., 7., 8.],
+        'gen_max_ramp_down': [11., 6., 16., 8., 9.],
+        'gen_min_uptime': [0] * 5,
+        'gen_min_downtime': [0] * 5,
+        'gen_cost_per_MW': [70.0] * 5,
+        'gen_startup_cost': [0.0] * 5,
+        'gen_shutdown_cost': [0.0] * 5,
+        "storage_type": ["battery"] * 2,
+        "storage_Emax": [100., 100.],
+        "storage_Emin": [0., 0.],
+        "storage_max_p_prod": [10., 10.],
+        "storage_max_p_absorb": [15., 15.],
+        "storage_marginal_cost": [0., 0.],
+        "storage_loss": [0., 0.],
+        "storage_charging_efficiency": [1., 1.],
+        "storage_discharging_efficiency": [1., 1.],
+        "grid_layout": None,
+        "shunt_to_subid": None,
+        "name_shunt": None
+    }
+    return GridObjects, json_
+
+
 class TestActionBase(ABC):
 
     @abstractmethod
@@ -38,7 +169,7 @@ class TestActionBase(ABC):
 
     def _skipMissingKey(self, key):
         if key not in self.authorized_keys:
-            unittest.TestCase.skipTest(self, "Skipped: Missing authorized_key {key}")
+            unittest.TestCase.skipTest(self, f"Skipped: Missing authorized_key {key}")
 
     def setUp(self):
         """
@@ -49,103 +180,10 @@ class TestActionBase(ABC):
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
 
-        self.n_line = 20
-        GridObjects.env_name = "test_action_env"
-        GridObjects.n_gen = 5
-        GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
-        GridObjects.n_load = 11
-        GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
-        GridObjects.n_line = self.n_line
-        GridObjects.name_line = ["line_{}".format(i) for i in range(self.n_line)]
-        GridObjects.n_sub = 14
-        GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
-        GridObjects.sub_info = np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
-        GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
-        GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
-        GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
-                                     5, 6, 6, 8, 8, 9, 11, 12])
-        GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
-                                     12, 7, 8, 9, 13, 10, 12, 13])
-        GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
-        GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
-        GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
-                                       3, 0, 0, 1])
-        GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
-                                       0, 0])
-        GridObjects.load_pos_topo_vect = np.array([7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54])
-        GridObjects.gen_pos_topo_vect = np.array([2, 8, 12, 29, 34])
-        GridObjects.line_or_pos_topo_vect = np.array([0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27,
-                                          31, 32, 37, 38, 40, 46, 50])
-        GridObjects.line_ex_pos_topo_vect = np.array([3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
-                                          33, 36, 42, 55, 43, 49, 53])
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
 
-        GridObjects.redispatching_unit_commitment_availble = True
-        GridObjects.gen_type = np.array(["thermal"] * 5)
-        GridObjects.gen_pmin = np.array([0.0] * 5)
-        GridObjects.gen_pmax = np.array([100.0] * 5)
-        GridObjects.gen_min_uptime = np.array([0] * 5)
-        GridObjects.gen_min_downtime = np.array([0] * 5)
-        GridObjects.gen_cost_per_MW = np.array([70.0] * 5)
-        GridObjects.gen_startup_cost = np.array([0.0] * 5)
-        GridObjects.gen_shutdown_cost = np.array([0.0] * 5)
-        GridObjects.gen_redispatchable = np.array([True, False, False, True, False])
-        GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
-        GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
-
-        self.gridobj = GridObjects()
-
-        self.res = {
-            'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
-            'name_load': ['load_0', 'load_1', 'load_2',
-                          'load_3', 'load_4', 'load_5', 'load_6',
-                          'load_7', 'load_8', 'load_9', 'load_10'],
-            'name_line': ['line_0', 'line_1', 'line_2',
-                          'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
-                          'line_8', 'line_9', 'line_10', 'line_11',
-                          'line_12', 'line_13', 'line_14',
-                          'line_15', 'line_16', 'line_17',
-                          'line_18', 'line_19'],
-            'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3',
-                         'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
-                         'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
-            'env_name': 'test_action_env',
-            'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-            'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
-            'gen_to_subid': [0, 1, 2, 5, 7],
-            'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3,
-                                 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-            'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6,
-                                 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
-            'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
-            'gen_to_sub_pos': [2, 5, 3, 5, 1],
-            'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2,
-                                   3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-            'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2,
-                                   0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
-            'load_pos_topo_vect': [7, 11, 18, 23, 28,
-                                   39, 41, 44, 47, 51, 54],
-            'gen_pos_topo_vect': [2, 8, 12, 29, 34],
-            'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10,
-                                      15, 16, 17, 22, 25, 26,
-                                      27, 31, 32, 37, 38, 40, 46, 50],
-            'line_ex_pos_topo_vect': [3, 19, 9, 13, 20,
-                                      14, 21, 30, 35, 24, 45,
-                                      48, 52, 33, 36, 42, 55, 43, 49, 53],
-            'gen_type': ["thermal"] * 5,
-            'gen_pmin': [0.0] * 5,
-            'gen_pmax': [100.0] * 5,
-            'gen_redispatchable': [True, False, False, True, False],
-            'gen_max_ramp_up': [10., 5., 15., 7., 8.],
-            'gen_max_ramp_down': [11., 6., 16., 8., 9.],
-            'gen_min_uptime': [0] * 5,
-            'gen_min_downtime': [0] * 5,
-            'gen_cost_per_MW': [70.0] * 5,
-            'gen_startup_cost': [0.0] * 5,
-            'gen_shutdown_cost': [0.0] * 5,
-            "grid_layout": None,
-            "shunt_to_subid": None,
-            "name_shunt": None
-        }
 
         # self.size_act = 229
         self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
@@ -156,6 +194,7 @@ class TestActionBase(ABC):
         save_to_dict(self.res, self.helper_action,
                      "_init_subtype",
                      lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
+
         self.authorized_keys = self.helper_action().authorized_keys
         self.size_act = self.helper_action.size()
 
@@ -167,7 +206,11 @@ class TestActionBase(ABC):
 
     def test_call(self):
         action = self.helper_action()
-        dict_injection, set_status, switch_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
+        dict_injection, \
+        set_status, switch_status,\
+        set_topo_vect, switcth_topo_vect, \
+        redispatching, storage, \
+        shunts = action()
 
     def test_compare(self):
         action = self.helper_action()
@@ -305,8 +348,8 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        action = self.helper_action({"set_bus": {"loads_id": [(1, 3)]}})
-        assert action.effect_on(load_id=1)["set_bus"] == 3
+        action = self.helper_action({"set_bus": {"loads_id": [(1, 2)]}})
+        assert action.effect_on(load_id=1)["set_bus"] == 2
         assert action.effect_on(load_id=1)["change_bus"] == False
         assert action.effect_on(load_id=0)["set_bus"] == 0
         assert action.effect_on(load_id=0)["change_bus"] == False
@@ -314,7 +357,7 @@ class TestActionBase(ABC):
     def test_update_set_topo_by_dict_sub(self):
         self._skipMissingKey('set_bus')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
+        arr = np.array([1, 1, 1, 2, 2, 2, 2], dtype=dt_int)
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["set_bus_or"] == 1
         assert action.effect_on(line_id=3)["set_bus_or"] == 1
@@ -322,6 +365,7 @@ class TestActionBase(ABC):
         assert action.effect_on(line_id=0)["set_bus_ex"] == 1
         assert action.effect_on(load_id=0)["set_bus"] == 2
         assert action.effect_on(gen_id=1)["set_bus"] == 2
+        assert action.effect_on(storage_id=0)["set_bus"] == 2
 
         assert action.effect_on(load_id=1)["set_bus"] == 0
         assert action.effect_on(gen_id=0)["set_bus"] == 0
@@ -329,7 +373,7 @@ class TestActionBase(ABC):
     def test_update_set_topo_by_dict_sub2(self):
         self._skipMissingKey('set_bus')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
+        arr = np.array([1, 1, 1, 2, 2, 2, 2], dtype=dt_int)
         arr3 = np.array([1, 2, 1, 2, 1, 2], dtype=dt_int)
         action = self.helper_action({"set_bus": {"substations_id": [(3, arr3), (1, arr)]}})
         assert action.effect_on(line_id=2)["set_bus_or"] == 1
@@ -388,7 +432,7 @@ class TestActionBase(ABC):
     def test_update_change_bus_by_dict_sub(self):
         self._skipMissingKey('change_bus')
 
-        arr = np.array([True, True, True, False, False, False], dtype=dt_bool)
+        arr = np.array([True, True, True, False, False, False, False], dtype=dt_bool)
         action = self.helper_action({"change_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=2)["change_bus_or"] == True
         assert action.effect_on(line_id=3)["change_bus_or"] == True
@@ -396,6 +440,7 @@ class TestActionBase(ABC):
         assert action.effect_on(line_id=0)["change_bus_ex"] == True
         assert action.effect_on(load_id=0)["change_bus"] == False
         assert action.effect_on(gen_id=1)["change_bus"] == False
+        assert action.effect_on(storage_id=0)["change_bus"] == False
 
         assert action.effect_on(load_id=1)["change_bus"] == False
         assert action.effect_on(gen_id=0)["change_bus"] == False
@@ -403,7 +448,7 @@ class TestActionBase(ABC):
     def test_update_change_bus_by_dict_sub2(self):
         self._skipMissingKey('change_bus')
 
-        arr = np.array([True, True, True, False, False, False], dtype=dt_bool)
+        arr = np.array([True, True, True, False, False, False, False], dtype=dt_bool)
         arr3 = np.array([True, False, True, False, True, False], dtype=dt_bool)
         action = self.helper_action({"change_bus": {"substations_id": [(3, arr3), (1, arr)]}})
         assert action.effect_on(line_id=2)["change_bus_or"] == True
@@ -420,8 +465,9 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        action = self.helper_action({"change_bus": {"lines_or_id": [1]}})  # i switch the bus of the origin of powerline 1
-        action.update({"set_bus": {"lines_or_id": [(1,1)]}})  # i set the origin of powerline 1 to bus 1
+        # i switch the bus of the origin of powerline 1
+        action = self.helper_action({"change_bus": {"lines_or_id": [1]}})
+        action.update({"set_bus": {"lines_or_id": [(1, 1)]}})  # i set the origin of powerline 1 to bus 1
         try:
             action()
             raise RuntimeError("This should hav thrown an InvalidBusStatus error")
@@ -432,9 +478,11 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_line_status')
         self._skipMissingKey('change_line_status')
 
-        arr = np.zeros(self.helper_action.n_line)
+        arr = np.zeros(self.helper_action.n_line, dtype=dt_int)
         arr[1] = -1
-        action = self.helper_action({"set_line_status": arr})  # i switch set the status of powerline 1 to "disconnected"
+
+        # i switch set the status of powerline 1 to "disconnected"
+        action = self.helper_action({"set_line_status": arr})
         action.update({"change_line_status": [1]})  # i asked to change this status
         try:
             action()
@@ -465,10 +513,10 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('set_line_status')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
+        arr = np.array([1, 1, 1, 2, 2, 2, 0], dtype=dt_int)
         id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
-        arr2 = np.zeros(self.helper_action.n_line)
+        arr2 = np.zeros(self.helper_action.n_line, dtype=dt_int)
         arr2[id_] = -1
         action.update({"set_line_status": arr2})
         try:
@@ -485,7 +533,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('hazards')
 
-        arr = np.array([1, 1, 1, 2, 2, 2], dtype=dt_int)
+        arr = np.array([1, 1, 1, 2, 2, 2, 2], dtype=dt_int)
         id_ = 2
         action = self.helper_action({"set_bus": {"substations_id": [(1, arr)]}})
         assert action.effect_on(line_id=id_)["set_bus_or"] == 1, "fail for {}".format(self.helper_action.actionClass)
@@ -498,27 +546,29 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
-        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching ' \
-                  'action\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - Change the bus of the ' \
-                  'following element:\n\t \t - switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of ' \
-                  'load 0 [on substation 1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t - Set the bus of ' \
-                  'the following element:\n\t \t - assign bus 1 to line (extremity) 18 [on substation 12]\n\t \t - ' \
-                  'assign bus 1 to line (origin) 19 [on substation 12]\n\t \t - assign bus 2 to load 9 ' \
-                  '[on substation 12]\n\t \t - assign bus 2 to line (extremity) 12 [on substation 12]'
+        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any ' \
+                  'redispatching action\n\t - NOT modify any storage capacity\n\t - NOT force any line ' \
+                  'status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t ' \
+                  '- switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation ' \
+                  '1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t \t - switch bus of storage 0 ' \
+                  '[on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line ' \
+                  '(extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation ' \
+                  '12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) ' \
+                  '12 [on substation 12]'
         assert res == act_str
 
     def test_to_vect(self):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr1 = np.array([False, False, False, True, True, True, False], dtype=dt_bool)
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
@@ -526,6 +576,8 @@ class TestActionBase(ABC):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
         tmp = np.zeros(self.size_act)
+        # if "_storage_power" in action.attr_list_set:
+        #     tmp[-2:] = np.NaN  # i did not modify the battery so i need to do that otherwise vectors are not equal
 
         # compute the "set_bus" vect
         id_set = np.where(np.array(action.attr_list_vect) == "_set_topo_vect")[0][0]
@@ -535,23 +587,24 @@ class TestActionBase(ABC):
             size_before += arr_.shape[0]
         tmp[size_before:(size_before+action.dim_topo)] = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 0,
-                                                                   0, 0])
-
+                                                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                   1, 1, 2, 2,
+                                                                   0, 0, 0])
         id_change = np.where(np.array(action.attr_list_vect) == "_change_bus_vect")[0][0]
         size_before = 0
         for el in action.attr_list_vect[:id_change]:
             arr_ = action._get_array_from_attr_name(el)
             size_before += arr_.shape[0]
         tmp[size_before:(size_before + action.dim_topo)] = 1.0 * np.array([False, False, False, False, False, False,
-                                                                           True,  True,  True,
-                                   False, False, False, False, False, False, False, False, False,
-                                   False, False, False, False, False, False, False, False, False,
-                                   False, False, False, False, False, False, False, False, False,
-                                   False, False, False, False, False, False, False, False, False,
-                                   False, False, False, False, False, False, False, False, False,
-                                   False, False])
-
+                                                                           True,  True,  True, False,
+                                                                           False, False, False, False, False, False,
+                                                                           False, False, False, False, False, False,
+                                                                           False, False, False, False, False, False,
+                                                                           False, False, False, False, False, False,
+                                                                           False, False, False, False, False, False,
+                                                                           False, False, False, False, False, False,
+                                                                           False, False, False, False, False, False,
+                                                                           False, False, False, False, False, False])
         assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
         assert np.all(np.isfinite(res) == np.isfinite(tmp))
 
@@ -559,7 +612,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
@@ -568,6 +621,7 @@ class TestActionBase(ABC):
         action2 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         action3 = self.helper_action()
+        test = action1.assert_grid_correct()
         assert action1 == action2
         assert action1 != action3
 
@@ -585,7 +639,7 @@ class TestActionBase(ABC):
         assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
 
     def test_from_vect_change_bus(self):
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr1 = np.array([False, False, False, True, True, True, False], dtype=dt_bool)
         id_1 = 1
 
         with warnings.catch_warnings():
@@ -669,11 +723,28 @@ class TestActionBase(ABC):
         assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
         assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
 
+    def test_from_vect_storage(self):
+        """test from vect also work with storage action"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            action1 = self.helper_action({"storage_power": [(0, -7.42)]})
+        action2 = self.helper_action({})
+
+        vect_act1 = action1.to_vect()
+        action2.from_vect(vect_act1)
+        # if i load an action with from_vect it's equal to the original one
+        assert action1 == action2
+
+        vect_act2 = action2.to_vect()
+        # if i convert it back to a vector, it's equal to the original converted vector
+        assert np.all(vect_act1[np.isfinite(vect_act2)] == vect_act2[np.isfinite(vect_act2)])
+        assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
+
     def test_from_vect(self):
         self._skipMissingKey('set_bus')
         self._skipMissingKey('change_bus')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr1 = np.array([False, False, False, True, True, True, False], dtype=dt_bool)
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
@@ -698,7 +769,7 @@ class TestActionBase(ABC):
         self._skipMissingKey('change_line_status')
         self._skipMissingKey('injection')
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
@@ -728,10 +799,15 @@ class TestActionBase(ABC):
 
         action = self.helper_action({"change_bus": change_topo_vect_orig,
                                      "set_bus": set_topo_vect_orig,
-                                      "injection": {"load_p": new_vect, "load_q": new_vect2},
+                                     "injection": {"load_p": new_vect, "load_q": new_vect2},
                                      "change_line_status": change_status_orig,
                                      "set_line_status": set_status_orig})
-        dict_injection, set_status, change_status, set_topo_vect, switcth_topo_vect, redispatching, shunts = action()
+        dict_injection, \
+            set_status, change_status, \
+            set_topo_vect, switcth_topo_vect, \
+            redispatching, storage, \
+            shunts = action()
+
         assert "load_p" in dict_injection
         assert np.all(dict_injection["load_p"] == new_vect)
         assert "load_q" in dict_injection
@@ -753,12 +829,12 @@ class TestActionBase(ABC):
         id_line = 17
         id_line2 = 15
 
-        arr1 = np.array([False, False, False, True, True, True], dtype=dt_bool)
+        arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         arr_line1 = np.full(self.helper_action.n_line, fill_value=False, dtype=dt_bool)
         arr_line1[id_line] = True
         arr_line2 = np.full(self.helper_action.n_line, fill_value=0, dtype=dt_int)
-        arr_line2[id_line2] = 2
+        arr_line2[id_line2] = 1
 
         do_nothing = self.helper_action({})
         aff_lines, aff_subs = do_nothing.get_topological_impact()
@@ -790,9 +866,9 @@ class TestActionBase(ABC):
         assert aff_subs[id_2]
 
         act_sub1_sub12_line1_line2 = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
-                                                   "set_bus": {"substations_id": [(id_2, arr2)]},
-                                                   "change_line_status": arr_line1,
-                                                   "set_line_status": arr_line2})
+                                                         "set_bus": {"substations_id": [(id_2, arr2)]},
+                                                         "change_line_status": arr_line1,
+                                                         "set_line_status": arr_line2})
         aff_lines, aff_subs = act_sub1_sub12_line1_line2.get_topological_impact()
         assert np.sum(aff_lines) == 2
         assert aff_lines[id_line] == 1
@@ -802,8 +878,7 @@ class TestActionBase(ABC):
         assert aff_subs[id_2]
 
     def test_to_dict(self):
-        dict_ = self.helper_action.to_dict()
-        self.maxDiff = None
+        dict_ = self.helper_action.cls_to_dict()
         self.assertDictEqual(dict_, self.res)
 
     def test_from_dict(self):
@@ -828,11 +903,11 @@ class TestActionBase(ABC):
         assert issubclass(res.actionClass, self.helper_action._init_subtype)
 
     def test_json_serializable(self):
-        dict_ = self.helper_action.to_dict()
+        dict_ = self.helper_action.cls_to_dict()
         res = json.dumps(obj=dict_, indent=4, sort_keys=True)
 
     def test_json_loadable(self):
-        dict_ = self.helper_action.to_dict()
+        dict_ = self.helper_action.cls_to_dict()
         tmp = json.dumps(obj=dict_, indent=4, sort_keys=True)
         res = ActionSpace.from_dict(json.loads(tmp))
 
@@ -876,9 +951,9 @@ class TestActionBase(ABC):
     def test_redispatching(self):
         self._skipMissingKey('redispatch')
 
-        act = self.helper_action({"redispatch": [1, 10]})
+        act = self.helper_action({"redispatch": (1, 10)})
         act = self.helper_action({"redispatch": [(1, 10), (2, 100)]})
-        act = self.helper_action({"redispatch": np.array([10, 20, 30, 40, 50])})
+        act = self.helper_action({"redispatch": np.array([10., 20., 30., 40., 50.])})
 
     def test_possibility_reconnect_powerlines(self):
         self._skipMissingKey('set_line_status')
@@ -921,10 +996,10 @@ class TestActionBase(ABC):
 
     def test_sample(self):
         try:
-            for i in range(10):
+            for i in range(30):
                 act = self.helper_action.sample()
-        except:
-            assert False, "sample() raised"
+        except Exception as exc_:
+            assert False, f"sample() raised error {exc_}"
 
 
 class TestAction(TestActionBase, unittest.TestCase):
@@ -1059,61 +1134,10 @@ class TestIADD:
         self.tolvect = 1e-2
         self.tol_one = 1e-5
         self.game_rules = RulesChecker()
-        GridObjects.name_gen = ["gen_{}".format(i) for i in range(5)]
-        GridObjects.name_load = ["load_{}".format(i) for i in range(11)]
-        GridObjects.name_line = ["line_{}".format(i) for i in range(20)]
-        GridObjects.name_sub = ["sub_{}".format(i) for i in range(14)]
-        GridObjects.sub_info = np.array([3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3], dtype=dt_int)
-        GridObjects.load_to_subid = np.array([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13])
-        GridObjects.gen_to_subid = np.array([0, 1, 2, 5, 7])
-        GridObjects.line_or_to_subid = np.array([0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5,
-                                     5, 6, 6, 8, 8, 9, 11, 12])
-        GridObjects.line_ex_to_subid = np.array([1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11,
-                                     12, 7, 8, 9, 13, 10, 12, 13])
-        GridObjects.load_to_sub_pos = np.array([4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1])
-        GridObjects.gen_to_sub_pos = np.array([2, 5, 3, 5, 1])
-        GridObjects.line_or_to_sub_pos = np.array([0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2,
-                                       3, 0, 0, 1])
-        GridObjects.line_ex_to_sub_pos = np.array([0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0,
-                                       0, 0])
-        GridObjects.load_pos_topo_vect = np.array([7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54])
-        GridObjects.gen_pos_topo_vect = np.array([2, 8, 12, 29, 34])
-        GridObjects.line_or_pos_topo_vect = np.array([0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27,
-                                          31, 32, 37, 38, 40, 46, 50])
-        GridObjects.line_ex_pos_topo_vect = np.array([3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52,
-                                          33, 36, 42, 55, 43, 49, 53])
-
-        self.gridobj = GridObjects()
-
-        # pdb.set_trace()
-        self.res = {'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
-                    'name_load': ['load_0', 'load_1', 'load_2', 'load_3', 'load_4', 'load_5', 'load_6',
-                                  'load_7', 'load_8', 'load_9', 'load_10'],
-                    'name_line': ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5', 'line_6', 'line_7',
-                                  'line_8', 'line_9', 'line_10', 'line_11', 'line_12', 'line_13', 'line_14',
-                                  'line_15', 'line_16', 'line_17', 'line_18', 'line_19'],
-                    'name_sub': ['sub_0', 'sub_1', 'sub_2', 'sub_3', 'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8',
-                                 'sub_9', 'sub_10', 'sub_11', 'sub_12', 'sub_13'],
-                    'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
-                    'load_to_subid': [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
-                    'gen_to_subid': [0, 1, 2, 5, 7],
-                    'line_or_to_subid': [0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 8, 8, 9, 11, 12],
-                    'line_ex_to_subid': [1, 4, 2, 3, 4, 3, 4, 6, 8, 5, 10, 11, 12, 7, 8, 9, 13, 10, 12, 13],
-                    'load_to_sub_pos': [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
-                    'gen_to_sub_pos': [2, 5, 3, 5, 1],
-                    'line_or_to_sub_pos': [0, 1, 1, 2, 3, 1, 2, 3, 4, 3, 1, 2, 3, 1, 2, 2, 3, 0, 0, 1],
-                    'line_ex_to_sub_pos': [0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0, 1, 2, 2, 0, 0, 0],
-                    'load_pos_topo_vect': [7, 11, 18, 23, 28, 39, 41, 44, 47, 51, 54],
-                    'gen_pos_topo_vect': [2, 8, 12, 29, 34],
-                    'line_or_pos_topo_vect': [0, 1, 4, 5, 6, 10, 15, 16, 17, 22, 25, 26, 27, 31, 32, 37, 38, 40, 46, 50],
-                    'line_ex_pos_topo_vect': [3, 19, 9, 13, 20, 14, 21, 30, 35, 24, 45, 48, 52, 33, 36, 42, 55, 43, 49, 53],
-                    'gen_type': None, 'gen_pmin': None, 'gen_pmax': None, 'gen_redispatchable': None,
-                    'gen_max_ramp_up': None, 'gen_max_ramp_down': None, 'gen_min_uptime': None, 'gen_min_downtime': None,
-                    'gen_cost_per_MW': None, 'gen_startup_cost': None, 'gen_shutdown_cost': None,
-                    "grid_layout": None,
-                    "shunt_to_subid": None,
-                    "name_shunt": None
-                    }
+        self.n_line = 20
+        GridObjects_cls, self.res = _get_action_grid_class()
+        self.gridobj = GridObjects_cls()
+        self.n_line = self.gridobj.n_line
 
         self.ActionSpaceClass = ActionSpace.init_grid(self.gridobj)
         # self.size_act = 229
@@ -1155,7 +1179,6 @@ class TestIADD:
         if "_change_bus_vect" in template_act.attr_list_set:
             # i dont test the line reconnection...
             dict_act["change_bus"] = np.random.choice([True, False], helper_action.dim_topo).astype(dt_bool)
-
         return helper_action(dict_act)
 
     def test_iadd_modify(self):
@@ -1310,14 +1333,13 @@ class TestIADD:
                 # it should raise a warning if i attempt to set an attribute it's not supposed to
                 with self.assertWarns(UserWarning):
                     res = act1 + act2
-
             else:
                 # i can add it i check it's properly added, without warnings
                 res = act1 + act2
                 # i now test all attributes have been modified for attributes in both
                 for attr_nm in res.attr_list_set & act2.attr_list_set:
                     assert np.any(getattr(res, attr_nm) != getattr(act1_init, attr_nm)), \
-                           "error, attr {} has not been updated".format(attr_nm)
+                           "error, attr {} has not been updated (case 0)".format(attr_nm)
 
                 # for all in act1 not in act2, nothing should have changed
                 for attr_nm in res.attr_list_set - act2.attr_list_set:
@@ -1330,7 +1352,7 @@ class TestIADD:
                         # TODO improve these tests
                         continue
                     assert np.all(getattr(res, attr_nm) == getattr(act1_init, attr_nm)), \
-                           "error, attr {} has been updated".format(attr_nm)
+                           "error, attr {} has been updated (case 1)".format(attr_nm)
 
     def test_add_change_set_status(self):
         self._skipMissingKey("change_line_status", self.action_space_1)

@@ -38,6 +38,8 @@ class ActionSpace(SerializableActionSpace):
     
     def __init__(self, gridobj, legal_action, actionClass=BaseAction):
         """
+        INTERNAL USE ONLY
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             The actions space is created by the environment. Do not attempt to create one yourself.
@@ -118,6 +120,8 @@ class ActionSpace(SerializableActionSpace):
 
     def _is_legal(self, action, env):
         """
+        INTERNAL USE ONLY
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Whether an action is legal or not is checked by the environment at each call

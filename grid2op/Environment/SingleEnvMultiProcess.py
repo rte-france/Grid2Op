@@ -73,9 +73,9 @@ class SingleEnvMultiProcess(BaseMultiProcessEnvironment):
         env.close()
 
     """
-    def __init__(self, env, nb_env):
+    def __init__(self, env, nb_env, obs_as_class=True, return_info=True):
         envs = [env for _ in range(nb_env)]
-        super().__init__(envs)
+        super().__init__(envs, obs_as_class=obs_as_class, return_info=return_info)
 
 
 if __name__ == "__main__":

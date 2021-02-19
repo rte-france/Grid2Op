@@ -7,7 +7,6 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import io
-import copy
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -18,23 +17,13 @@ from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
 import matplotlib.patches as patches
 from matplotlib.lines import Line2D
 
-NUKE_COLOR = "#e5cd00"
-THERMAL_COLOR = "#7e52a0"
-WIND_COLOR = "#71cdb8"
-SOLAR_COLOR = "#d66b0d"
-HYDRO_COLOR = "#1f73b5"
-NUKE_ID = 0
-THERMAL_ID = 1
-WIND_ID = 2
-SOLAR_ID = 3
-HYDRO_ID = 4
-TYPE_GEN = {'nuclear': NUKE_ID, 'thermal': THERMAL_ID, 'wind': WIND_ID, 'solar': SOLAR_ID, 'hydro': HYDRO_ID}
-COLOR_GEN = {NUKE_ID: NUKE_COLOR, THERMAL_ID: THERMAL_COLOR, WIND_ID: WIND_COLOR,
-             SOLAR_ID: SOLAR_COLOR, HYDRO_ID: HYDRO_COLOR}
+from grid2op.PlotGrid.config import *  # all colors
 
 
 class GenDraw(patches.CirclePolygon):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Empty class to handle the legend
@@ -45,11 +34,25 @@ class GenDraw(patches.CirclePolygon):
 
 class LoadDraw(patches.CirclePolygon):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Empty class to handle the legend
     """
     def __init__(self, *args, resolution=3, **kwargs):
+        patches.CirclePolygon.__init__(self, *args, resolution=resolution, **kwargs)
+
+
+class StorageDraw(patches.CirclePolygon):
+    """
+    INTERNAL
+
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    Empty class to handle the legend
+    """
+    def __init__(self, *args, resolution=4, **kwargs):
         patches.CirclePolygon.__init__(self, *args, resolution=resolution, **kwargs)
 
 
@@ -161,6 +164,7 @@ class PlotMatplot(BasePlot):
                  gen_name=False,
                  gen_id=False,
                  gen_resolution=5,  # number of edges of the polygon representing the generator
+                 storage_resolution=4,  # number of edges of the polygon representing the generator
                  line_name=False,
                  line_id=False):
         self.dpi = dpi
@@ -201,6 +205,18 @@ class PlotMatplot(BasePlot):
         self._display_gen_name = True
         self.restore_gen_palette()
 
+        self._storage_radius = load_radius
+        self._storage_name = load_name
+        self._storage_id = load_id  # bool : do i plot the id
+        self._storage_face_color = "w"
+        self._storage_edge_color = "purple"
+        self._storage_resolution = storage_resolution
+        self._storage_patch = self._storage_patch_default
+        self._storage_txt_color = "black"
+        self._storage_line_color = "black"
+        self._storage_line_width = 1
+        self._display_storage_name = True
+
         self._line_name = line_name
         self._line_id = line_id
         self._line_color_scheme_orig = ["blue", "orange", "red"]
@@ -233,6 +249,13 @@ class PlotMatplot(BasePlot):
         """default patch used to draw generator"""
         # TODO maybe make a better version of this
         patch = LoadDraw(xy, radius=radius, edgecolor=edgecolor, facecolor=facecolor, resolution=self._load_resolution)
+        return patch
+
+    def _storage_patch_default(self, xy, radius, edgecolor, facecolor):
+        """default patch used to draw generator"""
+        # TODO maybe make a better version of this
+        patch = StorageDraw(xy, radius=radius, edgecolor=edgecolor, facecolor=facecolor,
+                            resolution=self._storage_resolution)
         return patch
 
     def _v_textpos_from_dir(self, dirx, diry):
@@ -379,12 +402,80 @@ class PlotMatplot(BasePlot):
         load_dir_x, load_dir_y = pltu.norm_from_points(sub_x, sub_y,
                                                        pos_x, pos_y)
         self._draw_load_bus(sub_x, sub_y, load_dir_x, load_dir_y, load_bus)
-    
+
     def update_load(self, figure, observation,
                     load_id, load_name, load_bus,
                     load_value, load_unit,
                     pos_x, pos_y,
                     sub_x, sub_y):
+        pass
+
+    def draw_storage(self, figure, observation,
+                     load_id, load_name, load_bus,
+                     load_value, load_unit,
+                     pos_x, pos_y,
+                     sub_x, sub_y):
+        self.xlim[0] = min(self.xlim[0], pos_x - self._load_radius)
+        self.xlim[1] = max(self.xlim[1], pos_x + self._load_radius)
+        self.ylim[0] = min(self.ylim[0], pos_y - self._load_radius)
+        self.ylim[1] = max(self.ylim[1], pos_y + self._load_radius)
+        self._draw_storage_line(pos_x, pos_y, sub_x, sub_y)  # line from the storage to the substation
+        self._draw_storage_circle(pos_x, pos_y)  # storage element
+
+        load_txt = ""
+        if self._storage_name:
+            load_txt += "\"{}\":\n".format(load_name)
+        if self._storage_id:
+            load_txt += "id: {}\n".format(load_id)
+        if load_value is not None:
+            load_txt += pltu.format_value_unit(load_value, load_unit)
+        if load_txt:
+            self._draw_load_txt(pos_x, pos_y, sub_x, sub_y, load_txt)
+        if self._display_load_name:
+            self._draw_load_name(pos_x, pos_y, str(load_id))
+        load_dir_x, load_dir_y = pltu.norm_from_points(sub_x, sub_y,
+                                                       pos_x, pos_y)
+        self._draw_storage_bus(sub_x, sub_y, load_dir_x, load_dir_y, load_bus)
+
+    def _draw_storage_circle(self, pos_x, pos_y):
+        patch = self._storage_patch((pos_x, pos_y),
+                                    radius=self._storage_radius,
+                                    facecolor=self._storage_face_color,
+                                    edgecolor=self._storage_edge_color)
+        self.ax.add_patch(patch)
+
+    def _draw_storage_line(self, pos_x, pos_y, sub_x, sub_y):
+        codes = [
+            Path.MOVETO,
+            Path.LINETO
+        ]
+        verts = [
+            (pos_x, pos_y),
+            (sub_x, sub_y)
+        ]
+        path = Path(verts, codes)
+        patch = patches.PathPatch(path,
+                                  color=self._storage_line_color,
+                                  lw=self._storage_line_width)
+        self.ax.add_patch(patch)
+
+    def _draw_storage_bus(self,
+                       pos_x, pos_y,
+                       norm_dir_x, norm_dir_y,
+                       bus_id):
+        center_x = pos_x + norm_dir_x * self._sub_radius
+        center_y = pos_y + norm_dir_y * self._sub_radius
+        face_color = self._line_bus_face_colors[bus_id]
+        patch = patches.Circle((center_x, center_y),
+                               radius=self._line_bus_radius,
+                               facecolor=face_color)
+        self.ax.add_patch(patch)
+
+    def update_storage(self, figure, observation,
+                       storage_name, storage_id, storage_bus,
+                       storage_value, storage_unit,
+                       pos_x, pos_y,
+                       sub_x, sub_y):
         pass
     
     def _draw_gen_txt(self, pos_x, pos_y, sub_x, sub_y, text):
@@ -766,11 +857,40 @@ class PlotMatplot(BasePlot):
                 return pp_
 
         load_legend = self._load_patch((0, 0),
-                                       facecolor=self._gen_face_color,
+                                       facecolor=self._load_face_color,
                                        edgecolor=load_legend_col,
-                                       radius=self._gen_radius,
+                                       radius=self._load_radius,
                                        )
         return load_legend, LoadObjectHandler()
+
+    def _get_storage_legend(self):
+        """super complex function to display the proper shape in the legend"""
+        if isinstance(self._storage_edge_color, str):
+            storage_legend_col = self._storage_edge_color
+        else:
+            storage_legend_col = self._storage_edge_color[int(len(self._storage_edge_color) / 2)]
+        my_res = self._storage_resolution
+
+        class StorageObjectHandler:
+            def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+                xdescent, ydescent = handlebox.xdescent, handlebox.ydescent
+                width, height = handlebox.width, handlebox.height
+                center = 0.5 * width - 0.5 * xdescent, 0.5 * height - 0.5 * ydescent
+                pp_ = StorageDraw(xy=center,
+                                  radius=min(width, height),
+                                  facecolor="w",
+                                  edgecolor=storage_legend_col,
+                                  transform=handlebox.get_transform(),
+                                  resolution=my_res)
+                handlebox.add_artist(pp_)
+                return pp_
+
+        storage_legend = self._storage_patch((0, 0),
+                                             facecolor=self._storage_face_color,
+                                             edgecolor=storage_legend_col,
+                                             radius=self._storage_radius,
+                                             )
+        return storage_legend, StorageObjectHandler()
 
     def draw_legend(self, figure, observation):
         title_str = observation.env_name
@@ -785,12 +905,15 @@ class PlotMatplot(BasePlot):
         gen_legend, gen_handler = self._get_gen_legend()
         # generate the correct legend for load
         load_legend, load_handler = self._get_load_legend()
+        # generate the correct legend for storage
+        storage_legend, storage_handler = self._get_storage_legend()
 
         legend_help = [
             Line2D([0], [0], color="black", lw=1),
             Line2D([0], [0], color=self._sub_edge_color, lw=3),
             load_legend,
             gen_legend,
+            storage_legend,
             Line2D([0], [0], marker='o', color=self._line_bus_face_colors[0]),
             Line2D([0], [0], marker='o', color=self._line_bus_face_colors[1]),
             Line2D([0], [0], marker='o', color=self._line_bus_face_colors[2])
@@ -801,12 +924,15 @@ class PlotMatplot(BasePlot):
                                          "substation",
                                          "load",
                                          "generator",
+                                         "storage",
                                          "no bus",
                                          "bus 1",
                                          "bus 2"
                                      ],
                                      title=title_str,
-                                     handler_map={GenDraw: gen_handler, LoadDraw: load_handler}
+                                     handler_map={GenDraw: gen_handler,
+                                                  LoadDraw: load_handler,
+                                                  StorageDraw: storage_handler}
                                      )
         # Hide axis
         self.ax.get_xaxis().set_visible(False)

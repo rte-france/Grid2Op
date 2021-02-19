@@ -14,6 +14,8 @@ from grid2op.dtypes import dt_float
 
 class L2RPNSandBoxScore(BaseReward):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             It **must not** serve as a reward. This scored needs to be minimized,
             and a reward needs to be maximized! Also, this "reward" is not scaled or anything. Use it as your

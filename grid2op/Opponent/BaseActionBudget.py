@@ -12,6 +12,8 @@ from grid2op.Exceptions import OpponentError
 
 class BaseActionBudget:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This is the base class representing the action bugdet.
@@ -23,6 +25,8 @@ class BaseActionBudget:
 
     def __call__(self, attack):
         """
+        INTERNAL
+        
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This function takes an attack as input and compute the cost associated to it.

@@ -16,6 +16,7 @@ from grid2op.Exceptions.PlotExceptions import PyGameQuit
 
 class Plotting:
     """
+    INTERNAL
 
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 

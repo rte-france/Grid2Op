@@ -6,10 +6,19 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import subprocess
-import sys
 import setuptools
 from setuptools import setup
+import unittest
+
+
+def my_test_suite():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('grid2op/tests', pattern='test_*.py')
+    return test_suite
+
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 pkgs = {
     "required": [
@@ -58,7 +67,8 @@ pkgs = {
             "sphinx>=2.4.4",
             "sphinx-rtd-theme>=0.4.3",
             "sphinxcontrib-trio>=1.1.0",
-            "autodocsumm>=0.1.13"
+            "autodocsumm>=0.1.13",
+            "gym>=0.17.2"
         ],
         "api": [
             "flask",
@@ -71,14 +81,14 @@ pkgs = {
 setup(name='Grid2Op',
       version='1.4.0',
       description='An environment that allows to perform powergrid optimization.',
-      long_description='Built with modularity in mind, this package allows to perform the same operations '
-                       'independently of the software used to compute powerflow or method to generate grid '
-                       'states or forecasts.',
+      long_description=long_description,
+      long_description_content_type="text/markdown",
       classifiers=[
           'Development Status :: 4 - Beta',
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
           'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9',
           "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
           "Intended Audience :: Developers",
           "Intended Audience :: Education",
@@ -95,11 +105,13 @@ setup(name='Grid2Op',
       install_requires=pkgs["required"],
       extras_require=pkgs["extras"],
       zip_safe=False,
-      entry_points= {
+      entry_points={
           'console_scripts': [
               'grid2op.main=grid2op.command_line:main',
               'grid2op.download=grid2op.command_line:download',
-              'grid2op.replay=grid2op.command_line:replay'
+              'grid2op.replay=grid2op.command_line:replay',
+              'grid2op.testinstall=grid2op.command_line:testinstall'
           ]
-     }
-)
+      },
+      test_suite='setup.my_test_suite'
+      )

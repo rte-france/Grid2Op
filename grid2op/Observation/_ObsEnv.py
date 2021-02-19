@@ -17,6 +17,8 @@ from grid2op.Exceptions import Grid2OpException
 
 class _ObsCH(ChangeNothing):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class is reserved to internal use. Do not attempt to do anything with it.
@@ -27,6 +29,8 @@ class _ObsCH(ChangeNothing):
 
 class _ObsEnv(BaseEnv):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     This class is an 'Emulator' of a :class:`grid2op.Environment.Environment` used to be able to 'simulate'
@@ -94,6 +98,22 @@ class _ObsEnv(BaseEnv):
         self.opp_space_state = None
         self.opp_state = None
 
+        # storage
+        self._storage_current_charge_init = None
+        self._storage_previous_charge_init = None
+        self._action_storage_init = None
+        self._amount_storage_init = None
+        self._amount_storage_prev_init = None
+        self._storage_power_init = None
+
+        # storage unit
+        self._storage_current_charge_init = np.zeros(self.n_storage, dtype=dt_float)
+        self._storage_previous_charge_init = np.zeros(self.n_storage, dtype=dt_float)
+        self._action_storage_init = np.zeros(self.n_storage, dtype=dt_float)
+        self._storage_power_init = np.zeros(self.n_storage, dtype=dt_float)
+        self._amount_storage_init = 0.
+        self._amount_storage_prev_init = 0.
+
     def _init_backend(self,
                       init_grid_path,
                       chronics_handler,
@@ -134,6 +154,8 @@ class _ObsEnv(BaseEnv):
 
     def _update_actions(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Retrieve the actions to perform the update of the underlying powergrid represented by
@@ -152,6 +174,8 @@ class _ObsEnv(BaseEnv):
 
     def copy(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Implement the deep copy of this instance.
@@ -170,6 +194,8 @@ class _ObsEnv(BaseEnv):
 
     def init(self, new_state_action, time_stamp, timestep_overflow, topo_vect, time_step=1):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Initialize a "forecasted grid state" based on the new injections, possibly new topological modifications etc.
@@ -219,6 +245,7 @@ class _ObsEnv(BaseEnv):
                                                                            "load_q": self._load_q}
                                                              })
         self._backend_action_set += new_state_action
+        self._backend_action_set.storage_power.values[:] = 0.
         self.is_init = True
         self.current_obs.reset()
         self.time_stamp = time_stamp
@@ -226,25 +253,28 @@ class _ObsEnv(BaseEnv):
 
     def _update_vector_with_timestep(self, time_step):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         update the value of the "time dependant" attributes
         """
         self._times_before_line_status_actionable[:] = np.maximum(self._times_before_line_status_actionable - time_step,
-                                                                  0.)
+                                                                  0)
         self._times_before_topology_actionable[:] = np.maximum(self._times_before_topology_actionable - time_step,
-                                                               0.)
+                                                               0)
 
         still_in_maintenance = (self._duration_next_maintenance > time_step) & (self._time_next_maintenance == 0)
-        reconnected = (self._duration_next_maintenance < time_step) & (self._time_next_maintenance == 0)
+        reconnected = (self._duration_next_maintenance <= time_step) & (self._time_next_maintenance == 0)
         first_ts_maintenance = self._time_next_maintenance == time_step
 
         # powerline that are still in maintenance at this time step
         self._time_next_maintenance[still_in_maintenance] = 0
-        self._duration_next_maintenance[still_in_maintenance] -= 1
+        self._duration_next_maintenance[still_in_maintenance] -= time_step
 
         # powerline that will be in maintenance at this time step
         self._time_next_maintenance[first_ts_maintenance] = 0
+        self._duration_next_maintenance[first_ts_maintenance] -= time_step
 
         # powerline that won't be in maintenance at this time step
         self._time_next_maintenance[reconnected] = -1
@@ -267,6 +297,8 @@ class _ObsEnv(BaseEnv):
 
     def _reset_to_orig_state(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         reset this "environment" to the state it should be
@@ -277,8 +309,18 @@ class _ObsEnv(BaseEnv):
         self._backend_action = copy.deepcopy(self._backend_action_set)
         self._oppSpace._set_state(self.opp_space_state, self.opp_state)
 
+        # storage unit
+        self._storage_current_charge[:] = self._storage_current_charge_init
+        self._storage_previous_charge[:] = self._storage_previous_charge_init
+        self._action_storage[:] = self._action_storage_init
+        self._storage_power[:] = self._storage_power_init
+        self._amount_storage = self._amount_storage_init
+        self._amount_storage_prev = self._amount_storage_prev_init
+
     def simulate(self, action):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Prefer using `obs.simulate(action)`
 
@@ -324,6 +366,8 @@ class _ObsEnv(BaseEnv):
 
     def get_obs(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Method to retrieve the "forecasted grid" as a valid observation object.
@@ -339,6 +383,8 @@ class _ObsEnv(BaseEnv):
 
     def update_grid(self, env):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Update this "emulated" environment with the real powergrid.
@@ -352,7 +398,6 @@ class _ObsEnv(BaseEnv):
             A reference to the environment
         """
         real_backend = env.backend
-        self._reward_helper = env._reward_helper
 
         self._load_p, self._load_q, self._load_v = real_backend.loads_info()
         self._prod_p, self._prod_q, self._prod_v = real_backend.generators_info()
@@ -379,11 +424,19 @@ class _ObsEnv(BaseEnv):
         self.target_dispatch_init[:] = env._target_dispatch
         self.actual_dispatch_init[:] = env._actual_dispatch
         self.opp_space_state, self.opp_state = env._oppSpace._get_state()
-        # TODO check redispatching and simulate are working as intended
-        # TODO also update the status of hazards, maintenance etc.
-        # TODO and simulate also when a maintenance is forcasted!
-        # TODO add the opponent budget here (should decrease with the time step :scared:) -> we really need to address
-        # all that before 1.0.0
+
+        # storage units
+        # TODO this is not time independant... i set up the previous charge of the obs env to be
+        # set current charge of the simulated env on purpose
+        self._storage_current_charge_init[:] = env._storage_current_charge
+        self._storage_previous_charge_init[:] = env._storage_previous_charge
+        self._action_storage_init[:] = env._action_storage
+        self._amount_storage_init = env._amount_storage
+        self._amount_storage_prev_init = env._amount_storage_prev
+        self._storage_power_init[:] = env._storage_power
+
+        # time delta
+        self.delta_time_seconds = env.delta_time_seconds
 
     def get_current_line_status(self):
         return self._line_status == 1

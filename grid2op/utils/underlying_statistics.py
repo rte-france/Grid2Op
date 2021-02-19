@@ -98,6 +98,8 @@ class EpisodeStatistics(object):
 
 
     """
+    # TODO NB: name for generator are saved as "prod_p.npz", "prod_v.npz" and "prod_q.npz" and not
+    # TODO NB: "gen_p.npz" for backward compatibility.
     SCENARIO_IDS = "scenario_ids.npz"
     SCORES = "scores.npz"
     SCORES_CLEAN = re.sub("\\.npz", "", SCORES)
@@ -128,7 +130,14 @@ class EpisodeStatistics(object):
     def get_name_file(self, observation_attribute):
         """get the name of the file that is used to save a given attribute names"""
         if observation_attribute not in self.li_attributes:
-            raise RuntimeWarning(f"Unknonwn observation attribute: \"{observation_attribute}\"")
+            raise RuntimeWarning(f"Unknown observation attribute: \"{observation_attribute}\"")
+        # backward compatibility
+        if observation_attribute == 'gen_p':
+            observation_attribute = "prod_p"
+        elif observation_attribute == 'gen_q':
+            observation_attribute = "prod_q"
+        elif observation_attribute == 'gen_v':
+            observation_attribute = "prod_v"
         return f"obs_{observation_attribute}.npz"
 
     def _delete_if_exists(self, path_tmp, episode_name, saved_stuff):
@@ -252,6 +261,14 @@ class EpisodeStatistics(object):
             the same scenario.
 
         """
+        # backward compatibility
+        if attribute_name == "prod_p":
+            attribute_name = "gen_p"
+        elif attribute_name == "prod_q":
+            attribute_name = "gen_q"
+        elif attribute_name == "prod_v":
+            attribute_name = "gen_v"
+
         if not os.path.exists(self.path_save_stats) or not os.path.isdir(self.path_save_stats):
             raise RuntimeError("No statistics were computed for this environment. "
                                "Please use \"self.compute()\" to compute them. "
@@ -276,6 +293,8 @@ class EpisodeStatistics(object):
 
     def clear_episode_data(self):
         """
+        Has side effects
+
         .. warning:: /!\\\\ Be careful /!\\\\
 
         To save space, it clears the data for each episode.
@@ -298,6 +317,8 @@ class EpisodeStatistics(object):
 
     def clear_all(self):
         """
+        Has side effects
+
         .. warning:: /!\\\\ Be careful /!\\\\
 
         Clear the whole statistics directory.
@@ -311,6 +332,8 @@ class EpisodeStatistics(object):
     @staticmethod
     def clean_all_stats(env):
         """
+        Has possibly huge side effects
+
         .. warning:: /!\\\\ Be extremely careful /!\\\\
 
         This function cleans all the statistics that have been computed for this environment.

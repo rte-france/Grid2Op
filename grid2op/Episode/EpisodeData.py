@@ -106,10 +106,12 @@ class EpisodeData:
 
         import grid2op
         from grid2op.Episode import EpisodeData
+
+        path_agent = ... # path to a directory where a runner has been saved
         # I study only the first episode saved, because... why not
-        li_episode = EpisodeData.list_episode(path_save)
+        li_episode = EpisodeData.list_episode(path_agent)
         full_path, episode_studied = li_episode[0]
-        this_episode = EpisodeData.from_disk(path_agent, episode_studied)
+        this_episode = EpisodeData.from_disk(full_path, episode_studied)
 
         # now the episode is loaded, and you can easily iterate through the observation, the actions etc.
         for act in this_episode.actions:
@@ -257,22 +259,22 @@ class EpisodeData:
                 self.agent_path, EpisodeData.ATTACK_SPACE)
 
             if not os.path.exists(act_space_path):
-                dict_action_space = action_space.to_dict()
+                dict_action_space = action_space.cls_to_dict()
                 with open(act_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_action_space, fp=f,
                               indent=4, sort_keys=True)
             if not os.path.exists(obs_space_path):
-                dict_observation_space = observation_space.to_dict()
+                dict_observation_space = observation_space.cls_to_dict()
                 with open(obs_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_observation_space,
                               fp=f, indent=4, sort_keys=True)
             if not os.path.exists(env_modif_space_path):
-                dict_helper_action_env = helper_action_env.to_dict()
+                dict_helper_action_env = helper_action_env.cls_to_dict()
                 with open(env_modif_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_helper_action_env, fp=f,
                               indent=4, sort_keys=True)
             if not os.path.exists(attack_space_path):
-                dict_attack_space = attack_space.to_dict()
+                dict_attack_space = attack_space.cls_to_dict()
                 with open(attack_space_path, "w", encoding='utf8') as f:
                     json.dump(obj=dict_attack_space, fp=f,
                               indent=4, sort_keys=True)
@@ -453,6 +455,8 @@ class EpisodeData:
 
     def set_parameters(self, env):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by the Runner to serialize properly an episode
 
@@ -471,6 +475,8 @@ class EpisodeData:
 
     def set_meta(self, env, time_step, cum_reward, env_seed, agent_seed):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -512,6 +518,8 @@ class EpisodeData:
     def incr_store(self, efficient_storing, time_step, time_step_duration,
                    reward, env_act, act, obs, opp_attack, info):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -587,6 +595,8 @@ class EpisodeData:
 
     def set_episode_times(self, env, time_act, beg_, end_):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -619,6 +629,8 @@ class EpisodeData:
 
     def to_disk(self):
         """
+        INTERNAL
+
          .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used by he runner to serialize properly an episode
 
@@ -668,6 +680,8 @@ class EpisodeData:
 
 class CollectionWrapper:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         Utility to make the interaction with stored actions and stored observations more pythonic
 

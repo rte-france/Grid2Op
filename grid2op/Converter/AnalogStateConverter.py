@@ -65,11 +65,11 @@ class AnalogStateConverter(Converter):
                    obs.hour_of_day / 24.0, obs.minute_of_hour / 60.0]
         time_v = self.to_norm_vect(time_li)
         time_line_cd = self.to_norm_vect(obs.time_before_cooldown_line,
-                                    pad_v=-1.0, scale_v=10.0)
+                                         pad_v=-1.0, scale_v=10.0)
         time_line_nm = self.to_norm_vect(obs.time_next_maintenance,
                                          scale_v=10.0)
         time_sub_cd = self.to_norm_vect(obs.time_before_cooldown_sub,
-                                   pad_v=-1.0, scale_v=10.0)
+                                        pad_v=-1.0, scale_v=10.0)
     
         # Get generators info
         g_p = self.to_norm_vect(obs.prod_p, scale_v=1000.0)
@@ -142,32 +142,32 @@ class AnalogStateConverter(Converter):
         Parameters
         ----------
         netstate: ``tuple``
-            A tuple containning the following (3) elements:
+            A tuple containing the following (3) elements:
 
-        netbus: ``np.array``
-        A numpy array of dimension n_bus(2) x dim_topo and range [0.0; 1.0].
+            - netbus: ``np.array``
+              A numpy array of dimension n_bus(2) x dim_topo and range [0.0; 1.0].
 
-        Where the first axis represent the bus, the second the elements.
-        Then, for element i, netbus[bus_index][i] represent the probability
-        element i should be on bus_index + 1.
-        The buses are then picked using argmax across dimension 0
+              Where the first axis represent the bus, the second the elements.
+              Then, for element i, netbus[bus_index][i] represent the probability
+              element i should be on bus_index + 1.
+              The buses are then picked using argmax across dimension 0
 
-        netline: ``np.array``
-        A numpy array of dimension n_line and range [0.0; 1.0]
-        Each element representing a line status: 
-        0 meaning disconnected and > 0.0 connected
+            - netline: ``np.array``
+              A numpy array of dimension n_line and range [0.0; 1.0]
+              Each element representing a line status:
+              0 meaning disconnected and > 0.0 connected
 
-        netdisp: ``np.array``
-        A numpy array of dimension n_gen and range[-1.0;1.0]
-        Each generator redispatch setpoint is then 
-        rescaled to the range [-rdown;+rup].
-        This is cumulative over time, as per grid2op convention.
+            - netdisp: ``np.array``
+              A numpy array of dimension n_gen and range[-1.0;1.0]
+              Each generator redispatch setpoint is then
+              rescaled to the range [-rdown;+rup].
+              This is cumulative over time, as per grid2op convention.
 
         Returns
         -------
-        :class:`grid2op.Action.Action`
-        An action that will change the last observation (current state)
-        To the state described in parameters
+        res: :class:`grid2op.Action.Action`
+            An action that will change the last observation (current state)
+            To the state described in parameters
         """
         netbus = netstate[0]
         netline = netstate[1]

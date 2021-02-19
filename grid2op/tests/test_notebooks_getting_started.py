@@ -138,7 +138,7 @@ class TestNotebook(unittest.TestCase):
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook6(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "6_RedispathingAgent.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "6_RedispatchingAgent.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook7(self):

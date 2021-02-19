@@ -47,6 +47,8 @@ _IS_WINDOWS = sys.platform.startswith('win')
 
 class DoNothingLog:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     A class to emulate the behaviour of a logger, but that does absolutely nothing.
@@ -73,6 +75,8 @@ class DoNothingLog:
 
 class ConsoleLog(DoNothingLog):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     A class to emulate the behaviour of a logger, but that prints on the console
@@ -581,6 +585,8 @@ class Runner(object):
 
     def init_env(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Function used to initialized the environment and the agent.
@@ -590,6 +596,8 @@ class Runner(object):
 
     def reset(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Used to reset an environment. This method is called at the beginning of each new episode.
@@ -602,6 +610,8 @@ class Runner(object):
 
     def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None, detailed_output=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
@@ -767,6 +777,8 @@ class Runner(object):
     @staticmethod
     def _make_progress_bar(pbar, total, next_pbar):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Parameters
@@ -803,6 +815,8 @@ class Runner(object):
 
     def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None, add_detailed_output=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method is called to see how well an agent performed on a sequence of episode.
@@ -906,6 +920,8 @@ class Runner(object):
 
     def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None, add_detailed_output=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method will run in parallel, independently the nb_episode over nb_process.
@@ -1001,6 +1017,8 @@ class Runner(object):
 
     def _clean_up(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         close the environment if it has been created
@@ -1051,7 +1069,8 @@ class Runner(object):
             An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
             If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
             scenario BEFORE calling `agent.reset()`.
-        add_detailed_output: ``boolean``
+
+        add_detailed_output: ``bool``
             A flag to add an :class:`EpisodeData` object to the results, containing a lot of information about the run
 
         Returns

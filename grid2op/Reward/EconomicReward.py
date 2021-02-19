@@ -49,7 +49,7 @@ class EconomicReward(BaseReward):
         if not env.redispatching_unit_commitment_availble:
             raise Grid2OpException("Impossible to use the EconomicReward reward with an environment without generators"
                                    "cost. Please make sure env.redispatching_unit_commitment_availble is available.")
-        self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW *env.gen_pmax))
+        self.worst_cost = dt_float(np.sum(env.gen_cost_per_MW * env.gen_pmax))
 
     def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
         if has_error or is_illegal or is_ambiguous:

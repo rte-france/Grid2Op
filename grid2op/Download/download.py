@@ -19,6 +19,10 @@ from grid2op.Download.DownloadDataset import LI_VALID_ENV
 
 
 def main(args=None):
+    """
+    DEPRECATED, use the `grid2op.make(...)`  function that will automatically download an environment
+    if not present on your system already.
+    """
     if args is None:
         args = download_cli()
 

@@ -13,8 +13,8 @@ from grid2op.MakeEnv import make
 try:
     from lightsim2grid import LightSimBackend
     bkclass = LightSimBackend
-    raise ImportError()
-except ImportError as exc_:
+    # raise ImportError()
+except ImportError as excq_:
     from grid2op.Backend import PandaPowerBackend
     bkclass = PandaPowerBackend
     pass
@@ -61,7 +61,7 @@ class EnvCache(object):
         """
         TODO
         """
-        res_env = (None, None, None)
+        res_env = (None, None, None, None)
         env, (error_id, error_msg) = self._aux_get_env(env_name, env_id)
 
         if error_id is not None:

@@ -6,21 +6,16 @@ Change Log
 - [???] add multi agent
 - [???] model curtailment
 - [???] better logging
-- [???] model batteries / pumped storage in grid2op (generator but that can be charged / discharged)
 - [???] shunts in observation too, for real (but what to do when backend is not shunt compliant to prevent the
   stuff to break)
 - [???] model agent acting at different time frame
 - [???] model delay in observations
 - [???] model delay in action
-- [???] model dams in grid2op (stuff that have a given energy max, and cannot produce more than
-  the available energy)
 - [???] Code and test the "load from disk" method
 - [???] Make the redispatching data independant from the time step (eg instead of "in MW / step" have it in "MW / h"
   and have grid2op convert it to MW / step
 - [???] Extensive tests for BridgeReward
 - [???] Extensive tests for DistanceReward
-- [???] in the observation, make the possibility to retrieve the "active flow graph" (ie graph with edges having active
-  flows, and nodes the active production / consumption) and "reactive flow graph"
 - [???] add a "plot action" method
 - [???] simulate in MultiEnv
 - [???] in MultiEnv, when some converter of the observations are used, have each child process to compute
@@ -28,9 +23,63 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.4.1] - 202x-yy-zz
+[1.5.0] - 2021-xx-yy
 -------------------------
+- [BREAKING] `backend.check_kirchoff()` method now returns also the discrepancy in the voltage magnitude
+  and not only the error in the P and Q injected at each bus.
+- [BREAKING] the class method "to_dict" used to serialize the action_space and observation_space has been
+  renamed `cls_to_dict` to avoid confusion with the `to_dict` method of action and observation (that stores,
+  as dictionary the instance of the action / observation). It is now then possible to serialize the action class
+  used and the observation class used as dictionary to (using `action.cls_to_dict`)
+- [BREAKING] for backend class implementation: need to upgrade your code to take into account the storage units
+  if some are present in the grid even if you don't want to use storage units.
+- [BREAKING] the backend `runpf` method now returns a flag indicating if the simulation was successful AND (new)
+  the exception in case there are some (it now returns a tuple). This change only affect new Backends.
+- [BREAKING] rename the attribute "parameters" of the "observation_space" to `_simulate_parameters` to avoid
+  confusion with the `parameters` attributes of the environment.
+- [BREAKING] change of behaviour of the `env.parameters` attribute behaviour. It is no more possible to
+  modified it with `env.parameters = ...` and the `env.parameters.PARAM_ATTRIBUTE = xxx` will have not effect
+  at all.
+- [BREAKING] `env.obs_space.rewardClass` is not private and is called `env.obs_space._reward_func`. To change
+  this function, you need to call `env.change_reward(...)`
+- [BREAKING] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`
+  instead of `prod_p`, `prod_q` and `prod_v` (old names are still accessible for backward compatibility
+  in the observation space) but
+  conversion to json / dict will be affected as well as the converters (*eg* for gym compatibility)
+- [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
+  at the end of an episode.
+- [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
+- [FIXED] An error in the `obs.flow_bus_matrix` when `active_flow=False` and there were shunts on the
+  powergrid.
+- [FIXED] `obs.connectivity_matrix` now properly takes into account when two objects are disconnected (before
+  it was as if there were connected together)
+- [FIXED] some surprising behaviour when using  `obs.simulate` just before or just after a planned
+  maintenance operation.
+- [FIXED] a minimal bug in the `env.copy` method (the wrong simulated backend was used in the observation at
+  right after the copy).
+- [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
+  (`obs + act`)
+- [ADDED] a poperty to retrieve the thermal limits from the observation.
+- [ADDED] documentation of the main elements of the grid and their "modeling" in grid2op.
+- [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
+- [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
+  negative: power given to the grid having some energy limit and power limit). A new object if added in the substation.
 - [ADDED] Support for sparse matrices in `obs.bus_connectivity_matrix`
+- [ADDED] In the observation, it is now possible to retrieve the "active flow graph" (ie graph with edges having active
+  flows, and nodes the active production / consumption) and "reactive flow graph" (see `flow_bus_matrix`)
+- [ADDED] more consistent behaviour when using the action space across the different type of actions.
+  Now it should understand much more way to interact with it.
+- [ADDED] lots of action properties to manipulate action in a more pythonic way, for example using
+  `act.load_set_bus = ...` instead of the previously way more verbose `act.update({"set_bus": {"loads_id": ...}}`
+  (this applies for `load`, `gen`, `storage`, `line_or` and `line_ex` and to `set_bus` and `change_bus` and
+  also to `storage_p` and `redispatch` so making 12 "properties" in total)
+- [ADDED] an option to retrieve in memory the `EpisodeData` of each episode computed when using the runner.
+  see `runner.run(..., add_detailed_output=True)`
+- [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
+- [ADDED] convenient option to get the topology of a substation from an observation (`obs.sub_topology(sub_id=...)`)
+- [IMPROVED] simplify the interface for the gym converter.
+- [IMPROVED] simplify the interface for the `env.train_val_split` and `env.train_val_split_random`
+- [IMPROVED] print of an action now limits the number of decimal for redispatching and storage units
 
 [1.4.0] - 2020-12-10
 ----------------------
@@ -534,7 +583,7 @@ Change Log
 - [UPDATED] Notebook 6 to train agent more efficiently (example: prediction of actions in batch)
 - [UPDATED] PlotGraph to derive from `GridObjects` allowing to be inialized at creation and not when first
   observation is loaded (usable without observation)
-- [UPDATED] new default environment (`case14_relistic`)
+- [UPDATED] new default environment (`case14_realistic`)
 - [UPDATED] data for the new created environment.
 - [UPDATED] implement redispatching action in `obs.simulate`
 - [UPDATED] refactoring `Environment` and `ObsEnv` to inherit from the same base class.

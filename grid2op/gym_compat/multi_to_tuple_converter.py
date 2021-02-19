@@ -37,9 +37,7 @@ class MultiToTupleConverter(BaseGymAttrConverter):
             if isinstance(init_space, MultiDiscrete):
                 tmp_sz = init_space.nvec[i]
             li.append(Discrete(tmp_sz))
-        BaseGymAttrConverter.__init__(self,
-                                      space=Tuple(li),
-                                      )
+        BaseGymAttrConverter.__init__(self, space=Tuple(li))
 
     def gym_to_g2op(self, gym_object):
         return np.array(gym_object).astype(dt_int)

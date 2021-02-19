@@ -77,10 +77,11 @@ class ContinuousToDiscreteConverter(BaseGymAttrConverter):
         self._bins_size = self._bins_size[2:-1:2, :]  # the values defining the "cuts"
 
         self._gen_idx = np.arange(self._bins_size.shape[-1])
-        n_bins = np.ones(min_.shape[0]) * nb_bins
+        n_bins = np.ones(min_.shape[0], dtype=dt_int) * dt_int(nb_bins)
         n_bins[self._ignored] = 1  # if min and max are equal, i don't want to have multiple variable
+        space = MultiDiscrete(n_bins)
         BaseGymAttrConverter.__init__(self,
-                                      space=MultiDiscrete(n_bins),
+                                      space=space,
                                       )
 
     def gym_to_g2op(self, gym_object):
