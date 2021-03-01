@@ -1740,12 +1740,12 @@ class BaseAction(GridObjects):
 
         # redispatch
         if self._modif_redispatch:
-            res.append("\t - Modify the generator(s) with redispatching in the following way:")
+            res.append("\t - Modify the generators with redispatching in the following way:")
             for gen_idx in range(self.n_gen):
                 if self._redispatch[gen_idx] != 0.0:
                     gen_name = self.name_gen[gen_idx]
                     r_amount = self._redispatch[gen_idx]
-                    res.append("\t \t - Redispatch generator \"{}\" of {:.2f} MW".format(gen_name, r_amount))
+                    res.append("\t \t - Redispatch \"{}\" of {:.2f} MW".format(gen_name, r_amount))
         else:
             res.append("\t - NOT perform any redispatching action")
 
@@ -1757,7 +1757,7 @@ class BaseAction(GridObjects):
                 if np.isfinite(tmp) and tmp != 0.:
                     name_ = self.name_storage[stor_idx]
                     amount_ = self._storage_power[stor_idx]
-                    res.append("\t \t - Ask storage unit \"{}\" to {} {:.2f} MW (setpoint: {:.2f} MW)"
+                    res.append("\t \t - Ask unit \"{}\" to {} {:.2f} MW (setpoint: {:.2f} MW)"
                                "".format(name_,
                                          "absorb" if amount_ > 0. else "produce",
                                          np.abs(amount_),
@@ -1793,7 +1793,7 @@ class BaseAction(GridObjects):
         # topology
         bus_switch_impact = impact['topology']['bus_switch']
         if len(bus_switch_impact) > 0:
-            res.append("\t - Change the bus of the following element:")
+            res.append("\t - Change the bus of the following element(s):")
             for switch in bus_switch_impact:
                 res.append("\t \t - Switch bus of {} id {} [on substation {}]"
                            .format(switch['object_type'], switch['object_id'],
@@ -1804,20 +1804,23 @@ class BaseAction(GridObjects):
         assigned_bus_impact = impact['topology']['assigned_bus']
         disconnect_bus_impact = impact['topology']['disconnect_bus']
         if len(assigned_bus_impact) > 0 or len(disconnect_bus_impact) > 0:
-            res.append("\t - Set the bus of the following element:")
+            if assigned_bus_impact:
+                res.append("\t - Set the bus of the following element(s):")
             for assigned in assigned_bus_impact:
                 res.append("\t \t - Assign bus {} to {} id {} [on substation {}]"
-                           .format(assigned['bus'], assigned['object_type'], assigned['object_id'],
+                           .format(assigned['bus'],
+                                   assigned['object_type'],
+                                   assigned['object_id'],
                                    assigned['substation']))
-
+            if disconnect_bus_impact:
+                res.append("\t - Disconnect the following element(s):")
             for disconnected in disconnect_bus_impact:
                 res.append("\t - Disconnect {} id {} [on substation {}]"
-                           .format(disconnected['object_type'], disconnected['object_id'],
+                           .format(disconnected['object_type'],
+                                   disconnected['object_id'],
                                    disconnected['substation']))
-
         else:
             res.append("\t - NOT force any particular bus configuration")
-
         return "\n".join(res)
 
     def impact_on_objects(self):

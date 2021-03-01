@@ -556,12 +556,12 @@ class TestActionBase(ABC):
         act_str = 'This action will:\n\t - NOT change anything to the injections' \
                   '\n\t - NOT perform any redispatching action\n\t - NOT modify any storage capacity' \
                   '\n\t - NOT force any line status\n\t - NOT switch any line status' \
-                  '\n\t - Change the bus of the following element:' \
+                  '\n\t - Change the bus of the following element(s):' \
                   '\n\t \t - Switch bus of line (origin) id 4 [on substation 1]' \
                   '\n\t \t - Switch bus of load id 0 [on substation 1]' \
                   '\n\t \t - Switch bus of generator id 1 [on substation 1]' \
                   '\n\t \t - Switch bus of storage id 0 [on substation 1]' \
-                  '\n\t - Set the bus of the following element:' \
+                  '\n\t - Set the bus of the following element(s):' \
                   '\n\t \t - Assign bus 1 to line (extremity) id 18 [on substation 12]' \
                   '\n\t \t - Assign bus 1 to line (origin) id 19 [on substation 12]' \
                   '\n\t \t - Assign bus 2 to load id 9 [on substation 12]' \

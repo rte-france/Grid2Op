@@ -67,12 +67,14 @@ class GridObjects:
     a fixed element in it. For example, if say, the load with id 1 is connected to the first element, there would be
     a unique component saying if the load with id 1 is connected to busbar 1 or busbar 2. For the generators, this
     id in this (fictive) vector is indicated in the :attr:`GridObjects.gen_to_sub_pos` vector. For example the first
-    position of :attr:`GridObjects.gen_to_sub_pos` indicates on which component of the (fictive) vector representing the
+    position of :attr:`GridObjects.gen_to_sub_pos` indicates on which component of the (fictive) vector representing
+    the
     substation 1 to look to know on which bus the first generator is connected.
 
     We define the "topology" as the busbar to which each object is connected: each object being connected to either
     busbar 1 or busbar 2, this topology can be represented by a vector of fixed size (and it actually is in
-    :attr:`grid2op.Observation.BaseObservation.topo_vect` or in :func:`grid2op.Backend.Backend.get_topo_vect`). There are
+    :attr:`grid2op.Observation.BaseObservation.topo_vect` or in :func:`grid2op.Backend.Backend.get_topo_vect`).
+    There are
     multiple ways to make such a vector. We decided to concatenate all the (fictive) vectors described above. This
     concatenation represents the actual topology of this powergrid at a given timestep. This class doesn't store this
     information (see :class:`grid2op.Observation.BaseObservation` for such purpose).
@@ -96,7 +98,8 @@ class GridObjects:
           ii) once this substation id is known, compute which are the components of the topological vector that encodes
               information about this substation. For example, if the substation id `sub_id` is 4, we a) count the number
               of elements in substations with id 0, 1, 2 and 3 (say it's 42) we know, by definition that the substation
-              4 is encoded in ,:attr:`grid2op.Observation.BaseObservation.topo_vect` starting at component 42 and b) this
+              4 is encoded in ,:attr:`grid2op.Observation.BaseObservation.topo_vect` starting at component 42 and b)
+              this
               substations has :attr:`GridObjects.sub_info` [sub_id] elements (for the sake of the example say it's 5)
               then the end of the vector for substation 4 will be 42+5 = 47. Finally, we got the representation of the
               "local topology" of the substation 4 by looking at
@@ -139,7 +142,8 @@ class GridObjects:
     - :attr:`GridObjects.line_ex_to_subid`
     - :attr:`GridObjects.storage_to_subid`
 
-    Optionnaly, to have more control on the internal grid2op representation, you can also set:
+    Optionally, to have more control on the internal grid2op representation, you can also set:
+
     - :attr:`GridObjects.load_to_sub_pos`
     - :attr:`GridObjects.gen_to_sub_pos`
     - :attr:`GridObjects.line_or_to_sub_pos`
@@ -275,7 +279,8 @@ class GridObjects:
         ordered names of the storage units in the grid [*class attribute*]
 
     attr_list_vect: ``list``, static
-        List of string. It represents the attributes that will be stored to/from vector when the BaseObservation is converted
+        List of string. It represents the attributes that will be stored to/from vector when the BaseObservation is
+        converted
         to/from it. This parameter is also used to compute automatically :func:`GridObjects.dtype` and
         :func:`GridObjects.shape` as well as :func:`GridObjects.size`. If this class is derived, then it's really
         important that this vector is properly set. All the attributes with the name on this vector should have
@@ -283,8 +288,10 @@ class GridObjects:
 
     _vectorized: :class:`numpy.ndarray`, dtype:float
         The representation of the GridObject as a vector. See the help of :func:`GridObjects.to_vect` and
-        :func:`GridObjects.from_vect` for more information. **NB** for performance reason, the conversion of the internal
-        representation to a vector is not performed at any time. It is only performed when :func:`GridObjects.to_vect` is
+        :func:`GridObjects.from_vect` for more information. **NB** for performance reason, the conversion of the
+        internal
+        representation to a vector is not performed at any time. It is only performed when :func:`GridObjects.to_vect`
+        is
         called the first time. Otherwise, this attribute is set to ``None``. [*class attribute*]
 
     gen_type: :class:`numpy.ndarray`, dtype:str
@@ -2001,7 +2008,8 @@ class GridObjects:
             raise Grid2OpException("You ask the composition of a substation without specifying its id."
                                    "Please provide \"substation_id\"")
         if substation_id >= len(self.sub_info):
-            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid."
+                                   "".format(substation_id))
 
         res = {}
         res["loads_id"] = np.where(self.load_to_subid == substation_id)[0]
@@ -2094,7 +2102,8 @@ class GridObjects:
             raise Grid2OpException("You ask the composition of a substation without specifying its id."
                                    "Please provide \"substation_id\"")
         if substation_id >= len(self.sub_info):
-            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid.".format(substation_id))
+            raise Grid2OpException("There are no substation of id \"substation_id={}\" in this grid."
+                                   "".format(substation_id))
 
         dict_ = self.get_obj_connect_to(substation_id=substation_id)
         res = np.full((dict_["nb_elements"], 6), fill_value=-1, dtype=dt_int)
@@ -2440,8 +2449,10 @@ class GridObjects:
 
         cls.load_pos_topo_vect = extract_from_dict(dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
         cls.gen_pos_topo_vect = extract_from_dict(dict_, "gen_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        cls.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
-        cls.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+        cls.line_or_pos_topo_vect = extract_from_dict(dict_, "line_or_pos_topo_vect",
+                                                      lambda x: np.array(x).astype(dt_int))
+        cls.line_ex_pos_topo_vect = extract_from_dict(dict_, "line_ex_pos_topo_vect",
+                                                      lambda x: np.array(x).astype(dt_int))
 
         cls.n_gen = len(cls.name_gen)
         cls.n_load = len(cls.name_load)
@@ -2473,8 +2484,10 @@ class GridObjects:
             # where storage unit did not exist.
             cls.name_storage = extract_from_dict(dict_, "name_storage", lambda x: np.array(x).astype(str))
             cls.storage_to_subid = extract_from_dict(dict_, "storage_to_subid", lambda x: np.array(x).astype(dt_int))
-            cls.storage_to_sub_pos = extract_from_dict(dict_, "storage_to_sub_pos", lambda x: np.array(x).astype(dt_int))
-            cls.storage_pos_topo_vect = extract_from_dict(dict_, "storage_pos_topo_vect", lambda x: np.array(x).astype(dt_int))
+            cls.storage_to_sub_pos = extract_from_dict(dict_, "storage_to_sub_pos",
+                                                       lambda x: np.array(x).astype(dt_int))
+            cls.storage_pos_topo_vect = extract_from_dict(dict_, "storage_pos_topo_vect",
+                                                          lambda x: np.array(x).astype(dt_int))
             cls.n_storage = len(cls.name_storage)
             # storage static data
             extract_from_dict(dict_, "storage_type", lambda x: np.array(x).astype(str))
