@@ -136,7 +136,7 @@ interesting part of this framework:
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-* [6_RedispathingAgent](getting_started/6_RedispathingAgent.ipynb) explains what is the "redispatching" from the point 
+* [6_RedispatchingAgent](getting_started/6_RedispatchingAgent.ipynb) explains what is the "redispatching" from the point 
   of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
   manipulate this concept in grid2op. Redispatching allows you to perform **continuous** actions on the powergrid 
   problem.
@@ -161,7 +161,7 @@ anything with the help of mybinder:
 The official documentation is available at 
 [https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
-## Build the documentation
+## Build the documentation locally
 
 A copy of the documentation can be built if the project is installed *from source*:
 you will need Sphinx, a Documentation building tool, and a nice-looking custom
@@ -203,15 +203,15 @@ The unit tests includes testing, on linux machines the correct integration of gr
 - python 3.8
 - python 3.9
 
-Note that "numba" which accelerates the computation of the powerflow is not available for python 3.9 
-(see https://github.com/numba/numba/issues/6345) for more information.
+Note that, at time of writing, "numba" which accelerates the computation of the powerflow for the default 
+"powerflow solver" is not available for python 3.9 (more information at https://github.com/numba/numba/issues/6345).
 
 On all of these cases, we tested grid2op on all available numpy version >= 1.18.
 
 ## Known issue
 
-Due to the underlying behaviour of the "multiprocessing" package on windows based python version,
-the "multiprocessing" of the grid2op runner is not supported on windows. This might change in the future, 
+Due to the underlying behaviour of the "multiprocessing" package on windows based python versions,
+the "multiprocessing" of the grid2op "Runner" is not supported on windows. This might change in the future, 
 but it is currently not on our priorities.
 
 ## Perform tests locally

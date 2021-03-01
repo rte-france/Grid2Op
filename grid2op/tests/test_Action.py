@@ -553,15 +553,19 @@ class TestActionBase(ABC):
         action = self.helper_action({"change_bus": {"substations_id": [(id_1, arr1)]},
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
-        act_str = 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any ' \
-                  'redispatching action\n\t - NOT modify any storage capacity\n\t - NOT force any line ' \
-                  'status\n\t - NOT switch any line status\n\t - Change the bus of the following element:\n\t \t ' \
-                  '- switch bus of line (origin) 4 [on substation 1]\n\t \t - switch bus of load 0 [on substation ' \
-                  '1]\n\t \t - switch bus of generator 1 [on substation 1]\n\t \t - switch bus of storage 0 ' \
-                  '[on substation 1]\n\t - Set the bus of the following element:\n\t \t - assign bus 1 to line ' \
-                  '(extremity) 18 [on substation 12]\n\t \t - assign bus 1 to line (origin) 19 [on substation ' \
-                  '12]\n\t \t - assign bus 2 to load 9 [on substation 12]\n\t \t - assign bus 2 to line (extremity) ' \
-                  '12 [on substation 12]'
+        act_str = 'This action will:\n\t - NOT change anything to the injections' \
+                  '\n\t - NOT perform any redispatching action\n\t - NOT modify any storage capacity' \
+                  '\n\t - NOT force any line status\n\t - NOT switch any line status' \
+                  '\n\t - Change the bus of the following element:' \
+                  '\n\t \t - Switch bus of line (origin) id 4 [on substation 1]' \
+                  '\n\t \t - Switch bus of load id 0 [on substation 1]' \
+                  '\n\t \t - Switch bus of generator id 1 [on substation 1]' \
+                  '\n\t \t - Switch bus of storage id 0 [on substation 1]' \
+                  '\n\t - Set the bus of the following element:' \
+                  '\n\t \t - Assign bus 1 to line (extremity) id 18 [on substation 12]' \
+                  '\n\t \t - Assign bus 1 to line (origin) id 19 [on substation 12]' \
+                  '\n\t \t - Assign bus 2 to load id 9 [on substation 12]' \
+                  '\n\t \t - Assign bus 2 to line (extremity) id 12 [on substation 12]'
         assert res == act_str
 
     def test_to_vect(self):
