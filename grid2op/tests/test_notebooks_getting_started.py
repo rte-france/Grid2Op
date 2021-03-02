@@ -83,8 +83,8 @@ class RAII_tf_log():
     def __del__(self):
         if self.previous is not None:
             os.environ['TF_CPP_MIN_LOG_LEVEL'] = self.previous
-# # notebook names are hard coded because if i change them, i need also to change the
-# # readme and the documentation
+# notebook names are hard coded because if i change them, i need also to change the
+# readme and the documentation
 
 
 class TestNotebook(unittest.TestCase):
