@@ -57,6 +57,7 @@ Change Log
   maintenance operation.
 - [FIXED] a minimal bug in the `env.copy` method (the wrong simulated backend was used in the observation at
   right after the copy).
+- [FIXED] a bug preventing to use the `obs.XXX_matrix()` function twice
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] a poperty to retrieve the thermal limits from the observation.
@@ -77,6 +78,7 @@ Change Log
   see `runner.run(..., add_detailed_output=True)`
 - [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
 - [ADDED] convenient option to get the topology of a substation from an observation (`obs.sub_topology(sub_id=...)`)
+- [ADDED] a function to list environments available for testing / illustration purpose.
 - [IMPROVED] simplify the interface for the gym converter.
 - [IMPROVED] simplify the interface for the `env.train_val_split` and `env.train_val_split_random`
 - [IMPROVED] print of an action now limits the number of decimal for redispatching and storage units

@@ -264,6 +264,39 @@ class TestBasisObsBehaviour(unittest.TestCase):
     def test_bus_conn_mat(self):
         self.aux_test_bus_conn_mat()
 
+    def test_bus_conn_mat_twice(self):
+        """test i can call twice the bus_connectivity_matrix"""
+        obs = self.env.observation_space(self.env)
+        mat1 = obs.bus_connectivity_matrix(as_csr_matrix=False)
+        mat2 = obs.bus_connectivity_matrix(as_csr_matrix=True)
+        mat3 = obs.bus_connectivity_matrix(as_csr_matrix=False)
+        mat4 = obs.bus_connectivity_matrix(as_csr_matrix=True)
+        assert np.all(mat1 == mat3)
+        assert np.all(mat2.todense() == mat4.todense())
+        assert np.all(mat1 == mat2.todense())
+
+    def test_conn_mat_twice(self):
+        """test i can call twice the connectivity_matrix"""
+        obs = self.env.observation_space(self.env)
+        mat1 = obs.connectivity_matrix(as_csr_matrix=False)
+        mat2 = obs.connectivity_matrix(as_csr_matrix=True)
+        mat3 = obs.connectivity_matrix(as_csr_matrix=False)
+        mat4 = obs.connectivity_matrix(as_csr_matrix=True)
+        assert np.all(mat1 == mat3)
+        assert np.all(mat2.todense() == mat4.todense())
+        assert np.all(mat1 == mat2.todense())
+
+    def test_flow_bus_mat_twice(self):
+        """test i can call twice the flow_bus_matrix (it crashed before due to a bug of a copy of an array)"""
+        obs = self.env.observation_space(self.env)
+        mat1, *_ = obs.flow_bus_matrix(as_csr_matrix=False)
+        mat2, *_ = obs.flow_bus_matrix(as_csr_matrix=True)
+        mat3, *_ = obs.flow_bus_matrix(as_csr_matrix=False)
+        mat4, *_ = obs.flow_bus_matrix(as_csr_matrix=True)
+        assert np.all(mat1 == mat3)
+        assert np.all(mat2.todense() == mat4.todense())
+        assert np.all(mat1 == mat2.todense())
+
     def test_bus_conn_mat_csr(self):
         self.aux_test_bus_conn_mat(as_csr=True)
 

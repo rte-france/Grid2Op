@@ -75,6 +75,35 @@ def list_available_local_env():
     return res
 
 
+def list_available_test_env():
+    """
+    This functions list the environment available through "grid2op.make(..., test=True)", which are the environment
+    used for testing purpose, but available without the need to download any data.
+
+    The "test" environment are provided with the grid2op package.
+
+    Returns
+    -------
+    res: ``list``
+        a sorted list of available environments for testing / illustration purpose.
+
+    Examples
+    ---------
+
+    .. code-block:: python
+
+        import grid2op
+        li = grid2op.list_available_test_env()
+
+        env = grid2op.make(li[0], test=True)
+
+    """
+    from grid2op.MakeEnv.Make import TEST_DEV_ENVS
+    import re
+    res = sorted([el for el in TEST_DEV_ENVS.keys() if re.match("(^rte_.*)|(^l2rpn_.*)|(^educ_.*)", el) is not None])
+    return res
+
+
 def get_current_local_dir():
     """
     This function allows you to get the directory in which grid2op will download the datasets. This path can

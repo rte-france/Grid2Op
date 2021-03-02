@@ -410,6 +410,11 @@ class GridObjects:
         The efficiency when the storage unit is discharging (how much will the capacity decrease
         to generate a 1MWh of energy on the grid side) between 0. and 1.
 
+    grid_objects_types: ``matrix``
+        Give the information about each element of the "topo_vect" vector. It is an "easy" way to retrieve at
+        which element (side of a power, load, generator, storage units) a given component of the "topology vector"
+        is referring to. See the getting started notebook about the observation and the action for more information.
+
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """
 
