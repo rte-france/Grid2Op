@@ -297,6 +297,28 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert np.all(mat2.todense() == mat4.todense())
         assert np.all(mat1 == mat2.todense())
 
+    def test_networkx_graph(self):
+        obs = self.env.observation_space(self.env)
+        graph = obs.as_networkx()
+        for node_id in graph.nodes:
+            # retrieve power (active and reactive) produced at this node
+            p_ = graph.nodes[node_id]["p"]
+            q_ = graph.nodes[node_id]["q"]
+
+            # get the edges
+            edges = graph.edges(node_id)
+            p_line = 0
+            q_line = 0
+            for (k1, k2) in edges:
+                if k1 < k2:
+                    p_line += graph.edges[(k1, k2)]["p_or"]
+                    q_line += graph.edges[(k1, k2)]["q_or"]
+                else:
+                    p_line += graph.edges[(k1, k2)]["p_ex"]
+                    q_line += graph.edges[(k1, k2)]["q_ex"]
+            assert abs(p_line - p_) <= 1e-5, "error for kirchoff's law for graph for P"
+            assert abs(q_line - q_) <= 1e-5, "error for kirchoff's law for graph for Q"
+
     def test_bus_conn_mat_csr(self):
         self.aux_test_bus_conn_mat(as_csr=True)
 
