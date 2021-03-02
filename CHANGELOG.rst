@@ -79,6 +79,7 @@ Change Log
 - [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
 - [ADDED] convenient option to get the topology of a substation from an observation (`obs.sub_topology(sub_id=...)`)
 - [ADDED] a function to list environments available for testing / illustration purpose.
+- [ADDED] a function of the observation to convert it to a networkx graph (`obs.as_networkx()`)
 - [IMPROVED] simplify the interface for the gym converter.
 - [IMPROVED] simplify the interface for the `env.train_val_split` and `env.train_val_split_random`
 - [IMPROVED] print of an action now limits the number of decimal for redispatching and storage units
