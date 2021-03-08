@@ -1844,8 +1844,15 @@ class BaseObservation(GridObjects):
             reco_line = (act.line_set_status >= 1) & (~res.line_status)
             # i can do that because i already "fixed" the action to have it put 1 in case it
             # bus were not provided
-            res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = act.line_or_set_bus[reco_line]
-            res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = act.line_ex_set_bus[reco_line]
+            if "set_bus" in act.authorized_keys:
+                # I assign previous bus (because it could have been modified)
+                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = act.line_or_set_bus[reco_line]
+                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = act.line_ex_set_bus[reco_line]
+            else:
+                # I assign one (action do not allow me to modify the bus)
+                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = 1
+                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = 1
+
             res.line_status[reco_line] = True
 
         if "change_line_status" in act.authorized_keys:

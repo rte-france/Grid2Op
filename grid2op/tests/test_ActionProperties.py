@@ -1667,7 +1667,7 @@ class TestSetStatus(unittest.TestCase):
             tmp6 = np.array(li_orig).astype(str)
             tmp6[1] = "toto"
             act.line_ex_set_bus = tmp6
-        assert np.all(act.line_ex_set_bus == 0), "a line status has been modified by an illegal action"
+        assert np.all(act.line_set_status == 0), "a line status has been modified by an illegal action"
 
     def test_line_set_status_tuple(self):
         # second set of tests, with tuple

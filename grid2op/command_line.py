@@ -16,7 +16,9 @@ from grid2op.Download.download import main as downloadEntryPoint
 __LI_FILENAME_TESTS = ['test_Action.py',
                        "test_Action_iadd.py",
                        "test_ActionProperties.py",
+                       "test_Observation.py",
                        "test_Agent.py",
+                       "test_attached_envs.py",
                        # "test_GymConverter.py",  # requires gym
                        "test_Reward.py",
                        "test_issue_126.py",
