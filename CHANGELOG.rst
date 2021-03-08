@@ -59,6 +59,7 @@ Change Log
   right after the copy).
 - [FIXED] a bug in the serialization (as vector) of some action classes, namely: `PowerlineSetAction` and
   `PowerlineSetAndDispatchAction` and `PowerlineChangeDispatchAndStorageAction`
+- [FIXED] a bug preventing to use the `obs.XXX_matrix()` function twice
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] a poperty to retrieve the thermal limits from the observation.
@@ -79,8 +80,13 @@ Change Log
   see `runner.run(..., add_detailed_output=True)`
 - [ADDED] the option `as_csr_matrix` in `obs.connectivity_matrix` function
 - [ADDED] convenient option to get the topology of a substation from an observation (`obs.sub_topology(sub_id=...)`)
+<<<<<<< HEAD
 - [ADDED] some basic tests for the environments shipped with grid2op.
 - [ADDED] grid2op now ships with the `l2rpn_case14_sandbox` environment
+=======
+- [ADDED] a function to list environments available for testing / illustration purpose.
+- [ADDED] a function of the observation to convert it to a networkx graph (`obs.as_networkx()`)
+>>>>>>> 053a7cef8f1ae3bb46b61400131285f01deaabe0
 - [IMPROVED] simplify the interface for the gym converter.
 - [IMPROVED] simplify the interface for the `env.train_val_split` and `env.train_val_split_random`
 - [IMPROVED] print of an action now limits the number of decimal for redispatching and storage units

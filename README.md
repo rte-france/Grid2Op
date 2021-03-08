@@ -113,42 +113,42 @@ Some Jupyter notebook are provided as tutorials for the Grid2Op package. They ar
 These notebooks will help you in understanding how this framework is used and cover the most
 interesting part of this framework:
 
-* [0_Introduction](getting_started/0_Introduction.ipynb) and [0_SmallExample](getting_started/0_SmallExample.ipynb) 
+* [00_Introduction](getting_started/00_Introduction.ipynb) and [00_SmallExample](getting_started/00_SmallExample.ipynb) 
   describe what is 
   adressed by the grid2op framework (with a tiny introductions to both power systems and reinforcement learning) 
   and give and introductory example to a small powergrid manipulation.
-* [1_Grid2opFramework](getting_started/1_Grid2opFramework.ipynb) covers the basics 
+* [01_Grid2opFramework](getting_started/01_Grid2opFramework.ipynb) covers the basics 
   of the
   Grid2Op framework. It also covers how to create a valid environment and how to use the 
   `Runner` class to assess how well an agent is performing rapidly.
-* [2_Observation_Agents](getting_started/2_Observation_Agents.ipynb) details how to create 
+* [O2_Observation](getting_started/02_Observation.ipynb) details how to create 
   an "expert agent" that will take pre defined actions based on the observation it gets from 
   the environment. This Notebook also covers the functioning of the BaseObservation class.
-* [3_Action_GridManipulation](getting_started/3_Action_GridManipulation.ipynb) demonstrates 
+* [03_Action](getting_started/03_Action.ipynb) demonstrates 
   how to use the BaseAction class and how to manipulate the powergrid.
-* [4_TrainingAnAgent](getting_started/4_TrainingAnAgent.ipynb) shows how to get started with 
+* [04_TrainingAnAgent](getting_started/04_TrainingAnAgent.ipynb) shows how to get started with 
   reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
   available on [his blog](https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368) 
   or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
   be adapted (only minor changes, most of them to fit the shape of the data) 
   and a (D)DQN will be trained on this problem.
-* [5_StudyYourAgent](getting_started/5_StudyYourAgent.ipynb) shows how to study an BaseAgent, for example
+* [05_StudyYourAgent](getting_started/05_StudyYourAgent.ipynb) shows how to study an BaseAgent, for example
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-* [6_RedispathingAgent](getting_started/6_RedispathingAgent.ipynb) explains what is the "redispatching" from the point 
+* [06_RedispatchingAgent](getting_started/06_RedispatchingAgent.ipynb) explains what is the "redispatching" from the point 
   of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
   manipulate this concept in grid2op. Redispatching allows you to perform **continuous** actions on the powergrid 
   problem.
-* [7_MultiEnv](getting_started/7_MultiEnv.ipynb) details how grid2op natively support a single agent interacting
+* [07_MultiEnv](getting_started/07_MultiEnv.ipynb) details how grid2op natively support a single agent interacting
   with multiple environments at the same time. This is particularly handy to train "asynchronous" agent in the 
   Reinforcement Learning community for example.
-* [8_PlottingCapabilities](getting_started/8_PlottingCapabilities.ipynb) shows you the different ways with which you 
+* [08_PlottingCapabilities](getting_started/08_PlottingCapabilities.ipynb) shows you the different ways with which you 
   can represent (visually) the grid your agent interact with. A renderer is available like in many open AI gym 
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
   to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines. 
-* [9_nvironmentModifications](getting_started/9_EnvironmentModifications.ipynb) elaborates on the maintenance, hazards
+* [09_nvironmentModifications](getting_started/09_EnvironmentModifications.ipynb) elaborates on the maintenance, hazards
   and attacks. All three of these represents external events that can disconnect some powerlines. This notebook
   covers how to spot when such things happened and what can be done when the maintenance or the attack is over.
   
@@ -161,7 +161,7 @@ anything with the help of mybinder:
 The official documentation is available at 
 [https://grid2op.readthedocs.io/](https://grid2op.readthedocs.io/).
 
-## Build the documentation
+## Build the documentation locally
 
 A copy of the documentation can be built if the project is installed *from source*:
 you will need Sphinx, a Documentation building tool, and a nice-looking custom
@@ -203,15 +203,15 @@ The unit tests includes testing, on linux machines the correct integration of gr
 - python 3.8
 - python 3.9
 
-Note that "numba" which accelerates the computation of the powerflow is not available for python 3.9 
-(see https://github.com/numba/numba/issues/6345) for more information.
+Note that, at time of writing, "numba" which accelerates the computation of the powerflow for the default 
+"powerflow solver" is not available for python 3.9 (more information at https://github.com/numba/numba/issues/6345).
 
 On all of these cases, we tested grid2op on all available numpy version >= 1.18.
 
 ## Known issue
 
-Due to the underlying behaviour of the "multiprocessing" package on windows based python version,
-the "multiprocessing" of the grid2op runner is not supported on windows. This might change in the future, 
+Due to the underlying behaviour of the "multiprocessing" package on windows based python versions,
+the "multiprocessing" of the grid2op "Runner" is not supported on windows. This might change in the future, 
 but it is currently not on our priorities.
 
 ## Perform tests locally
