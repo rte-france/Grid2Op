@@ -136,7 +136,7 @@ interesting part of this framework:
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-* [06_RedispatchingAgent](getting_started/06_RedispatchingAgent.ipynb) explains what is the "redispatching" from the point 
+* [06_Redispatching](getting_started/06_Redispatching.ipynb) explains what is the "redispatching" from the point 
   of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
   manipulate this concept in grid2op. Redispatching allows you to perform **continuous** actions on the powergrid 
   problem.
@@ -148,7 +148,7 @@ interesting part of this framework:
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
   to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines. 
-* [09_nvironmentModifications](getting_started/09_EnvironmentModifications.ipynb) elaborates on the maintenance, hazards
+* [09_EnvironmentModifications](getting_started/09_EnvironmentModifications.ipynb) elaborates on the maintenance, hazards
   and attacks. All three of these represents external events that can disconnect some powerlines. This notebook
   covers how to spot when such things happened and what can be done when the maintenance or the attack is over.
   
@@ -234,3 +234,12 @@ Copyright 2019-2020 RTE France
 
 This Source Code is subject to the terms of the Mozilla Public License (MPL) v2 also available 
 [here](https://www.mozilla.org/en-US/MPL/2.0/)
+
+# Contributing
+
+We welcom contribution from everyone. They can take the form of pull requests for smaller changed. 
+In case of a major change (or if you have a doubt on what is "a small change"), please open an issue first 
+to discuss what you would like to change.
+
+Code in the contribution should pass all the tests, have some dedicated tests for the new feature
+and documentation.

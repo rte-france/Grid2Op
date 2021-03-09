@@ -1286,7 +1286,11 @@ class BaseAction(GridObjects):
               tuple, each tuple being 2 elements: first the generator ID, second the amount of redispatching,
               for example `[(1, -23), (12, +17)]`
 
-            - "set_storage": TODO
+            - "set_storage": the best use of this is to specify either the numpy array of the storage units vector
+              you want
+              to apply (that should have the size of the number of storage units on the grid) or to specify a list of
+              tuple, each tuple being 2 elements: first the storage ID, second the amount of power you want to
+              produce / absorb, for example `[(1, -23), (12, +17)]`
 
             **NB** the difference between "set_bus" and "change_bus" is the following:
 
