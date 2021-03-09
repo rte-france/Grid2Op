@@ -373,6 +373,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._amount_storage_prev = None
         self._storage_power = None
 
+        # curtailment
+        self._limit_curtailment = None
+        self._gen_before_curtailment = None
+        self._sum_curtailment_mw = None
+        self._sum_curtailment_mw_prev = None
+
     def change_parameters(self, new_parameters):
         """
         Allows to change the parameters of an environment.
@@ -495,6 +501,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._amount_storage = 0.
         self._amount_storage_prev = 0.
 
+        # curtailment
+        self._limit_curtailment = np.ones(self.n_gen, dtype=dt_float)  # in percent
+        self._gen_before_curtailment = np.zeros(self.n_gen, dtype=dt_float)  # in percent
+        self._sum_curtailment_mw = dt_float(0.)
+        self._sum_curtailment_mw_prev = dt_float(0.)
+
         # register this is properly initialized
         self.__is_init = True
 
@@ -545,6 +557,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.__new_reward_func = None
 
         self._reset_storage()
+        self._reset_curtailment()
 
     def _reset_storage(self):
         """reset storage capacity at the beginning of new environment if needed"""
@@ -558,6 +571,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._amount_storage = 0.
             self._amount_storage_prev = 0.
             # TODO storage: check in simulate too!
+
+    def _reset_curtailment(self):
+        self._limit_curtailment[:] = 1.0
+        self._gen_before_curtailment[:] = 0.
+        self._sum_curtailment_mw = dt_float(0.)
+        self._sum_curtailment_mw_prev = dt_float(0.)
 
     def seed(self, seed=None):
         """
@@ -871,7 +890,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         mismatch = np.abs(mismatch)
         if np.abs(np.sum(self._actual_dispatch)) >= self._tol_poly or \
            np.max(mismatch) >= self._tol_poly or \
-           np.abs(self._amount_storage) >= self._tol_poly:
+           np.abs(self._amount_storage) >= self._tol_poly or \
+           np.abs(self._sum_curtailment_mw) >= self._tol_poly:
             except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
             valid = except_ is None
         return valid, except_, info_
@@ -916,8 +936,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=dt_float)
         # this is where the storage is taken into account
         # storages are "load convention" this means that i need to sum the amount of production to sum of storage
-        # hence the "+" below
-        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage
+        # hence the "+ self._amount_storage" below
+        # self._sum_curtailment_mw is "generator convention" hence the "-" there
+        const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage - self._sum_curtailment_mw
 
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
@@ -1346,6 +1367,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._withdraw_storage_losses()
         # end storage
 
+    # def _compute_max_ramp_this_step(self, new_p):
+    #     """
+    #     compute the total "power" i can add or remove this step that takes into account
+    #     generators ramps and Pmin / Pmax
+    #
+    #     new_p: array of the (temporary) new production in the chronics
+    #     """
+    #     # TODO
+    #     return max_total_down, max_total_up
+
     def step(self, action):
         """
         Run one timestep of the environment's dynamics. When end of
@@ -1465,8 +1496,37 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._env_modification, prod_v_chronics = self._update_actions()
             self._env_modification._single_act = False  # because it absorbs all redispatching actions
             new_p = self._get_new_prod_setpoint(action)
+            # max_total_down, max_total_up = self._compute_max_ramp_this_step()
+
+            # curtailment
+            if self.redispatching_unit_commitment_availble and \
+                    (action._modif_curtailment or np.any(self._limit_curtailment != 1.)):
+                # TODO limit here if the ramps are too low !
+                # TODO in the above case, action should not be implemented !
+                curtailment_act = 1.0 * action._curtail
+                ind_curtailed_in_act = (curtailment_act != -1.) & self.gen_renewable
+                self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
+                # print(f"self._limit_curtailment[1] : {self._limit_curtailment[1]}")
+                self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
+                # print(f"self._limit_curtailment: {self._limit_curtailment}")
+                gen_curtailed = self._limit_curtailment != 1.  # curtailed either right now, or in a previous action
+                max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
+                self._gen_before_curtailment[:] = new_p
+                new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
+
+                tmp_sum_curtailment_mw = np.sum(new_p) - np.sum(self._gen_before_curtailment)
+                self._sum_curtailment_mw = tmp_sum_curtailment_mw - self._sum_curtailment_mw_prev
+                self._sum_curtailment_mw_prev = dt_float(tmp_sum_curtailment_mw)
+                # TODO curtailment: modify the env to include curtailment
+                if "prod_p" in self._env_modification._dict_inj:
+                    self._env_modification._dict_inj["prod_p"][:] = new_p
+                else:
+                    self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
+                # print(f"self._sum_curtailment_mw: {self._sum_curtailment_mw}")
 
             if self.n_storage > 0:
+                # TODO limit here if the ramps are too low !
+                # TODO in the above case, action should not be implemented !
                 self._compute_storage(action_storage_power)
 
             if self.redispatching_unit_commitment_availble or self.n_storage > 0.:
@@ -1484,6 +1544,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     except_.append(except_tmp)
 
                     if self.n_storage > 0:
+                        # TODO curtailment: cancel it here too !
                         self._storage_current_charge[:] = self._storage_previous_charge
                         self._amount_storage -= self._amount_storage_prev
 
@@ -1610,10 +1671,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self._line_status[:] = self.current_obs.line_status
 
                     has_error = False
-            except Grid2OpException as e:
-                except_.append(e)
+            except Grid2OpException as exc_:
+                except_.append(exc_)
                 if self.logger is not None:
-                    self.logger.error("Impossible to compute next _grid state with error \"{}\"".format(e))
+                    self.logger.error("Impossible to compute next _grid state with error \"{}\"".format(exc_))
 
         except StopIteration:
             # episode is over

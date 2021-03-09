@@ -1127,6 +1127,7 @@ class Backend(GridObjects, ABC):
         self.gen_cost_per_MW = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # marginal cost
         self.gen_startup_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # start cost
         self.gen_shutdown_cost = np.full(self.n_gen, fill_value=1., dtype=dt_float)  # shutdown cost
+        self.gen_renewable = np.full(self.n_gen, fill_value=False, dtype=dt_bool)
 
         for i, gen_nm in enumerate(self.name_gen):
             try:
@@ -1151,6 +1152,7 @@ class Backend(GridObjects, ABC):
             self.gen_cost_per_MW[i] = dt_float(tmp_gen["marginal_cost"])
             self.gen_startup_cost[i] = dt_float(tmp_gen["start_cost"])
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
+            self.gen_renewable[i] = dt_bool(tmp_gen["type"] in ["wind", "solar"])
 
     def load_storage_data(self, path, name='storage_units_charac.csv'):
         """

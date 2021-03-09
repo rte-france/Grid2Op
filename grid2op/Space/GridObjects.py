@@ -498,6 +498,7 @@ class GridObjects:
     gen_cost_per_MW = None  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
     gen_startup_cost = None  # start cost (in currency)
     gen_shutdown_cost = None  # shutdown cost (in currency)
+    gen_renewable = None
 
     # storage unit static data
     storage_type = None
@@ -1731,6 +1732,10 @@ class GridObjects:
         if self.gen_shutdown_cost is None:
             raise InvalidRedispatching("Impossible to recognize the shut down cost of generators "
                                        "(gen_shutdown_cost) when redispatching is supposed to be available.")
+        if self.gen_renewable is None:
+            raise InvalidRedispatching("Impossible to recognize the whether generators comes from renewable energy "
+                                       "sources "
+                                       "(gen_renewable) when redispatching is supposed to be available.")
 
         if len(self.gen_type) != self.n_gen:
             raise InvalidRedispatching("Invalid length for the type of generators (gen_type) when "
@@ -1765,6 +1770,9 @@ class GridObjects:
         if len(self.gen_shutdown_cost) != self.n_gen:
             raise InvalidRedispatching("Invalid length for the shut down cost of generators "
                                        "(gen_shutdown_cost) when redispatching is supposed to be available.")
+        if len(self.gen_renewable) != self.n_gen:
+            raise InvalidRedispatching("Invalid length for the renewable flag vector"
+                                       "(gen_renewable) when redispatching is supposed to be available.")
 
         if np.any(self.gen_min_uptime < 0):
             raise InvalidRedispatching("Minimum uptime of generator (gen_min_uptime) cannot be negative")
@@ -1790,21 +1798,22 @@ class GridObjects:
 
         for el, type_ in zip(["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
                               "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                              "gen_startup_cost", "gen_shutdown_cost"],
+                              "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"],
                              [str, dt_float, dt_float, dt_bool, dt_float,
                               dt_float, dt_int, dt_int, dt_float,
-                              dt_float, dt_float]):
+                              dt_float, dt_float, dt_bool]):
             if not isinstance(getattr(self, el), np.ndarray):
                 try:
                     setattr(self, el, getattr(self, el).astype(type_))
-                except Exception as e:
-                    raise InvalidRedispatching("{} should be convertible to a numpy array".format(el))
+                except Exception as exc_:
+                    raise InvalidRedispatching("{} should be convertible to a numpy array with error:\n \"{}\""
+                                               "".format(el, exc_))
             if not np.issubdtype(getattr(self, el).dtype, np.dtype(type_).type):
                 try:
                     setattr(self, el, getattr(self, el).astype(type_))
-                except Exception as e:
+                except Exception as exc_:
                     raise InvalidRedispatching("{} should be convertible data should be convertible to "
-                                               "{}".format(el, type_))
+                                               "{} with error: \n\"{}\"".format(el, type_, exc_))
         if np.any(self.gen_max_ramp_up[self.gen_redispatchable] > self.gen_pmax[self.gen_redispatchable]):
             raise InvalidRedispatching("Invalid maximum ramp for some generator (above pmax)")
 
@@ -1928,6 +1937,7 @@ class GridObjects:
         res.gen_startup_cost = gridobj.gen_startup_cost
         res.gen_shutdown_cost = gridobj.gen_shutdown_cost
         res.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
+        res.gen_renewable = gridobj.gen_renewable
 
         # grid layout (not available for all environment
         res.grid_layout = gridobj.grid_layout
