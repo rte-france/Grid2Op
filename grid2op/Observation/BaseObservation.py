@@ -9,6 +9,7 @@ import copy
 import datetime
 import warnings
 from scipy.sparse import csr_matrix
+import networkx
 import numpy as np
 from abc import abstractmethod
 
@@ -1150,7 +1151,7 @@ class BaseObservation(GridObjects):
         lex_bus, lex_conn = self._get_bus_id(self.line_ex_pos_topo_vect, self.line_ex_to_subid)
 
         if self.shunts_data_available:
-            sh_bus = self._shunt_bus
+            sh_bus = 1 * self._shunt_bus
             sh_bus[sh_bus > 0] = self.shunt_to_subid[sh_bus > 0]*(sh_bus[sh_bus > 0] - 1) + \
                                  self.shunt_to_subid[sh_bus > 0]
             sh_conn = self._shunt_bus != -1
@@ -1240,6 +1241,199 @@ class BaseObservation(GridObjects):
             res = res.toarray()
 
         return res, (load_bus, prod_bus, stor_bus, lor_bus, lex_bus)
+
+    def _add_edges_simple(self, vector, attr_nm, lor_bus, lex_bus, graph):
+        """add the edges, when the attributes are common for the all the powerline"""
+        dict_ = {(lor_bus[lid], lex_bus[lid]): val for lid, val in enumerate(vector)}
+        dict_2 = {}
+        for (k1, k2), val in dict_.items():
+            dict_2[(k2, k1)] = val
+        dict_.update(dict_2)
+        networkx.set_edge_attributes(graph,
+                                     dict_,
+                                     attr_nm)
+
+    def _add_edges_multi(self,
+                         vector_or,
+                         vector_ex,
+                         attr_nm,
+                         lor_bus,
+                         lex_bus,
+                         graph):
+        """
+        Utilities to add attributes of the edges of the graph in networkx, because edges are not necessarily
+        "oriented" the same way (so we need to reverse or / ex if networkx oriented it in the same way)
+        """
+        dict_or_glop = {}
+        for lid, val in enumerate(vector_or):
+            tup_ = (lor_bus[lid], lex_bus[lid])
+            if tup_ in dict_or_glop:
+                dict_or_glop[tup_] += val
+            else:
+                dict_or_glop[tup_] = val
+
+        dict_ex_glop = {}
+        for lid, val in enumerate(vector_ex):
+            tup_ = (lor_bus[lid], lex_bus[lid])
+            if tup_ in dict_ex_glop:
+                dict_ex_glop[tup_] += val
+            else:
+                dict_ex_glop[tup_] = val
+
+        dict_or = {}
+        dict_ex = {}
+        for (k1, k2), val in dict_or_glop.items():
+            if k1 < k2:
+                # networkx put it in the right "direction"
+                dict_or[(k1, k2)] = val
+            else:
+                # networkx and grid2op do not share the same "direction"
+                dict_or[(k2, k1)] = dict_ex_glop[(k1, k2)]
+
+        for (k1, k2), val in dict_ex_glop.items():
+            if k1 < k2:
+                # networkx put it in the right "direction"
+                dict_ex[(k1, k2)] = val
+            else:
+                # networkx and grid2op do not share the same "direction"
+                dict_ex[(k2, k1)] = dict_or_glop[(k1, k2)]
+
+        networkx.set_edge_attributes(graph,
+                                     dict_or,
+                                     "{}_or".format(attr_nm))
+        networkx.set_edge_attributes(graph,
+                                     dict_ex,
+                                     "{}_ex".format(attr_nm))
+
+    def as_networkx(self):
+        """
+        Convert this observation as a networkx graph.
+
+        Notes
+        ------
+        The resulting graph is "frozen" this means that you cannot add / remove attribute on nodes or edges, nor add /
+        remove edges or nodes.
+
+        This graphs has the following properties:
+
+        - it counts as many nodes as the number of buses of the grid
+        - it counts less edges than the number of lines of the grid (two lines connecting the same buses are "merged"
+          into one single edge - this is the case for parallel line, that are hence "merged" into the same edge)
+        - nodes have attributes:
+
+            - `p`: the active power produced at this node (negative means the sum of power produce minus power absorbed
+              is negative)
+            - `q`: the reactive power produced at this node
+            - `v`: the voltage magnitude at this node
+            - `cooldown`: how much longer you need to wait before being able to merge / split or change this node
+
+        - edges have attributes too:
+
+            - `rho`: the relative flow on this powerline
+            - `cooldown`: the number of step you need to wait before being able to act on this powerline
+            - `status`: whether this powerline is connected or not
+            - `thermal_limit`: maximum flow allowed on the the powerline (this is the "a_or" flow)
+            - `timestep_overflow`: number of time steps during which the powerline is on overflow
+            - `p_or`: active power injected at this node at the "origin side".
+            - `p_ex`: active power injected at this node at the "extremity side".
+            - `q_or`: reactive power injected at this node at the "origin side".
+            - `q_ex`: reactive power injected at this node at the "extremity side".
+            - `a_or`: current flow injected at this node at the "origin side".
+            - `a_ex`: current flow injected at this node at the "extremity side".
+
+        **IMPORTANT NOTE** the "origin" and "extremity" of the networkx graph is not necessarily the same as the one
+        in grid2op. The "origin" side will always be the nodes with the lowest id. For example, if an edges connects
+        the bus 6 to the bus 8, then the "origin" of this powerline is bus 6 (**eg** the active power injected at node
+        6 from this edge will be *p_or*) and the "extremity" side is bus 8 (**eg** the active power injectioned at
+        node 8 from this edge will be *p_ex*).
+
+        Returns
+        -------
+        graph:
+            A possible representation of the observation as a networkx graph
+
+        Examples
+        --------
+        The following code explains how to check that a grid meet the kirchoffs law (conservation of energy)
+
+        .. code-block:: python
+
+            # create an environment and get the observation
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+            obs = env.reset()
+
+            # retrieve the networkx graph
+            graph = obs.as_networkx()
+
+            # perform the check for every nodes
+            for node_id in graph.nodes:
+                # retrieve power (active and reactive) produced at this node
+                p_ = graph.nodes[node_id]["p"]
+                q_ = graph.nodes[node_id]["q"]
+
+                # get the edges
+                edges = graph.edges(node_id)
+                p_lines = 0
+                q_lines = 0
+                # get the power that is "evacuated" at each nodes on all the edges connecting it to the other nodes
+                # of the network
+                for (k1, k2) in edges:
+                    # now retrieve the active / reactive power injected at this node (looking at either *_or or *_ex
+                    # depending on the direction of the powerline: remember that the "origin" is always the lowest
+                    # bus id.
+                    if k1 < k2:
+                        # the current inspected node is the lowest, so on the "origin" side
+                        p_lines += graph.edges[(k1, k2)]["p_or"]
+                        q_lines += graph.edges[(k1, k2)]["q_or"]
+                    else:
+                        # the current node is the largest, so on the "extremity" side
+                        p_lines += graph.edges[(k1, k2)]["p_ex"]
+                        q_lines += graph.edges[(k1, k2)]["q_ex"]
+                assert abs(p_line - p_) <= 1e-5, "error for kirchoff's law for graph for P"
+                assert abs(q_line - q_) <= 1e-5, "error for kirchoff's law for graph for Q"
+
+        """
+        # TODO save this graph somewhere, in a self._as_networkx attributes for example
+        mat_p, (load_bus, gen_bus, stor_bus, lor_bus, lex_bus) = self.flow_bus_matrix(active_flow=True,
+                                                                                      as_csr_matrix=True)
+        mat_q, *_ = self.flow_bus_matrix(active_flow=False, as_csr_matrix=True)
+        # bus voltage
+        bus_v = np.zeros(mat_p.shape[0])
+        bus_v[lor_bus] = self.v_or
+        bus_v[lex_bus] = self.v_ex
+        # bus active injection
+        bus_p = mat_p.diagonal().copy()
+        mat_p.setdiag(0.)
+        mat_p.eliminate_zeros()
+
+        # create the graph
+        graph = networkx.from_scipy_sparse_matrix(mat_p, edge_attribute="p")
+
+        # add the nodes attributes
+        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_p)}, "p")
+        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(mat_q.diagonal())}, "q")
+        networkx.set_node_attributes(graph, {el: val for el, val in enumerate(bus_v)}, "v")
+        dict_cooldown = {el: val for el, val in enumerate(self.time_before_cooldown_sub)}
+        dict_cooldown2 = {}
+        for k, v in dict_cooldown.items():
+            dict_cooldown2[k + self.n_sub] = v
+        dict_cooldown.update(dict_cooldown2)
+        networkx.set_node_attributes(graph, dict_cooldown, "cooldown")
+
+        # add the edges attributes
+        self._add_edges_multi(self.p_or, self.p_ex, "p", lor_bus, lex_bus, graph)
+        self._add_edges_multi(self.q_or, self.q_ex, "q", lor_bus, lex_bus, graph)
+        self._add_edges_multi(self.a_or, self.a_ex, "a", lor_bus, lex_bus, graph)
+
+        self._add_edges_simple(self.rho, "rho", lor_bus, lex_bus, graph)
+        self._add_edges_simple(self.time_before_cooldown_line, "cooldown", lor_bus, lex_bus, graph)
+        self._add_edges_simple(self.line_status, "status", lor_bus, lex_bus, graph)
+        self._add_edges_simple(self.thermal_limit, "thermal_limit", lor_bus, lex_bus, graph)
+        self._add_edges_simple(self.timestep_overflow, "timestep_overflow", lor_bus, lex_bus, graph)
+        networkx.freeze(graph)
+        return graph
 
     def get_forecasted_inj(self, time_step=1):
         """
@@ -1844,8 +2038,15 @@ class BaseObservation(GridObjects):
             reco_line = (act.line_set_status >= 1) & (~res.line_status)
             # i can do that because i already "fixed" the action to have it put 1 in case it
             # bus were not provided
-            res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = act.line_or_set_bus[reco_line]
-            res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = act.line_ex_set_bus[reco_line]
+            if "set_bus" in act.authorized_keys:
+                # I assign previous bus (because it could have been modified)
+                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = act.line_or_set_bus[reco_line]
+                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = act.line_ex_set_bus[reco_line]
+            else:
+                # I assign one (action do not allow me to modify the bus)
+                res.topo_vect[res.line_or_pos_topo_vect[reco_line]] = 1
+                res.topo_vect[res.line_ex_pos_topo_vect[reco_line]] = 1
+
             res.line_status[reco_line] = True
 
         if "change_line_status" in act.authorized_keys:

@@ -28,18 +28,20 @@ TEST_DEV_ENVS = {
     "rte_case14_test": DEV_DATASET.format("rte_case14_test"),
     "rte_case5_example": DEV_DATASET.format("rte_case5_example"),
     "rte_case118_example": DEV_DATASET.format("rte_case118_example"),
-    "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
     "rte_case14_opponent": DEV_DATASET.format("rte_case14_opponent"),
+    "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     "l2rpn_neurips_2020_track1": DEV_DATASET.format("l2rpn_neurips_2020_track1"),
+    "l2rpn_case14_sandbox": DEV_DATASET.format("l2rpn_case14_sandbox"),
+    # educational files
+    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
+    "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
     # keep the old names for now
     "case14_realistic": DEV_DATASET.format("rte_case14_realistic"),
     "case14_redisp": DEV_DATASET.format("rte_case14_redisp"),
     "case14_test": DEV_DATASET.format("rte_case14_test"),
     "case5_example": DEV_DATASET.format("rte_case5_example"),
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
-    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
-    "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
 }
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \

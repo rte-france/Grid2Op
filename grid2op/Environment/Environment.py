@@ -824,6 +824,11 @@ class Environment(BaseEnv):
             nm_env_train, nm_env_val = env_trainval.train_val_split(val_scen_id=chron_names[-10:],
                                                                     remove_from_name="_trainval$")
 
+            # and now you can use the following code to load the environments:
+            env_train = grid2op.make(nm_env+"_train")
+            env_val = grid2op.make(nm_env+"_val")
+            env_test = grid2op.make(nm_env+"_test")
+
         For a more simple example, with less parametrization and with random assignment (recommended),
         please refer to the help of :func:`Environment.train_val_split_random`
 

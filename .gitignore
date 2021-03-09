@@ -275,6 +275,7 @@ test_speed_obs_plus_act.py
 test_filter_act.py
 speed_up_multiproc.ods
 test_issue_169.py
+cut_data.py
 
 # profiling files
 **.prof

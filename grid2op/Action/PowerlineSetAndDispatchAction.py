@@ -20,13 +20,13 @@ class PowerlineSetAndDispatchAction(PlayableAction):
     """
     authorized_keys = {
         "set_line_status",
-        "set_bus",
+        # "set_bus",
         "redispatch"
     }
 
     attr_list_vect = [
         "_set_line_status",
-        "_set_topo_vect",
+        # "_set_topo_vect",
         "_redispatch"
     ]
 

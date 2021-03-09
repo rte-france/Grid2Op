@@ -20,7 +20,7 @@ class PowerlineChangeDispatchAndStorageAction(PlayableAction):
     }
 
     attr_list_vect = [
-        "_change_bus_vect",
+        "_switch_line_status",
         "_redispatch",
         "_storage_power"
     ]

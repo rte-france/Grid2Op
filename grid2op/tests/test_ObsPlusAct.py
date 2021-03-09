@@ -367,6 +367,10 @@ class BaseHelper:
         """
 
         if 'set_line_status' not in self.act.authorized_keys:
+            # i need to be able to change the status of powerlines
+            return
+        if "set_bus" not in self.act.authorized_keys:
+            # i need to be able to reconnect something to bus 2
             return
 
         res_topo_vect_1, res_topo_vect_2, res_topo_vect_3, \
