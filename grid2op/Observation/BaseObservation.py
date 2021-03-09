@@ -430,7 +430,9 @@ class BaseObservation(GridObjects):
                    "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
                    "sub_id": self.gen_to_subid[gen_id],
                    "target_dispatch": self.target_dispatch[gen_id],
-                   "actual_dispatch": self.target_dispatch[gen_id]
+                   "actual_dispatch": self.target_dispatch[gen_id],
+                   "curtailment": self.curtailment[gen_id],
+                   "p_before_curtail": self.gen_p_before_curtail[gen_id],
                    }
         elif line_id is not None:
             if substation_id is not None or storage_id is not None:
