@@ -185,7 +185,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          '_shunt_bus': [1],
                          'storage_charge': [],
                          'storage_power_target': [],
-                         'storage_power': []
+                         'storage_power': [],
+                         "gen_p_before_curtail": [0.0, 0.0, 0.0, 0.0, 0.0],
+                         "curtailment": [1.0, 1.0, 1.0, 1.0, 1.0]
                          }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
@@ -196,7 +198,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 dt_float, dt_bool, dt_int, dt_int,
                                 dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
-                                dt_float, dt_float, dt_float
+                                dt_float, dt_float, dt_float,
+                                # curtailment
+                                dt_float, dt_float
                                 ],
                                dtype=object)
 
@@ -204,8 +208,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                  20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5, 0, 0, 0])
-        self.size_obs = 414
+                                 5, 5, 0, 0, 0, 5, 5])
+        self.size_obs = 424
 
     def tearDown(self):
         self.env.close()
