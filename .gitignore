@@ -276,6 +276,11 @@ test_filter_act.py
 speed_up_multiproc.ods
 test_issue_169.py
 cut_data.py
+getting_started/Dev_Curtailment.ipynb
+grid2op/tests/dict_action_space.json
+grid2op/tests/dict_attack_space.json
+grid2op/tests/dict_env_modification_space.json
+grid2op/tests/dict_observation_space.json
 
 # profiling files
 **.prof

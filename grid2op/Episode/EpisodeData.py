@@ -11,6 +11,7 @@ import os
 
 import numpy as np
 
+import grid2op
 from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
@@ -137,6 +138,7 @@ class EpisodeData:
     LINES_FAILURES = "disc_lines_cascading_failure.npz"
     ATTACK = "opponent_attack.npz"
     REWARDS = "rewards.npz"
+    GRID2OPINFO_FILE = "grid2op.info"
 
     ATTR_EPISODE = [PARAMS, META, TIMES, OTHER_REWARDS, AG_EXEC_TIMES, ACTIONS,
                     ENV_ACTIONS, OBSERVATIONS, LINES_FAILURES, ATTACK, REWARDS]
@@ -643,22 +645,22 @@ class EpisodeData:
         if self.serialize:
             parameters_path = os.path.join(
                 self.episode_path, EpisodeData.PARAMS)
-            with open(parameters_path, "w") as f:
+            with open(parameters_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.parameters, fp=f, indent=4, sort_keys=True)
 
             meta_path = os.path.join(self.episode_path, EpisodeData.META)
-            with open(meta_path, "w") as f:
+            with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.meta, fp=f, indent=4, sort_keys=True)
 
             episode_times_path = os.path.join(
                 self.episode_path, EpisodeData.TIMES)
-            with open(episode_times_path, "w") as f:
+            with open(episode_times_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.episode_times, fp=f,
                           indent=4, sort_keys=True)
 
             episode_other_rewards_path = os.path.join(
                 self.episode_path, EpisodeData.OTHER_REWARDS)
-            with open(episode_other_rewards_path, "w") as f:
+            with open(episode_other_rewards_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.other_rewards, fp=f,
                           indent=4, sort_keys=True)
 
@@ -676,6 +678,28 @@ class EpisodeData:
                 self.episode_path, EpisodeData.LINES_FAILURES), data=self.disc_lines)
             np.savez_compressed(os.path.join(self.episode_path,
                                  EpisodeData.REWARDS), data=self.rewards)
+
+            with open(os.path.join(self.episode_path, self.GRID2OPINFO_FILE),
+                      "w",
+                      encoding="utf-8") as f:
+                dict_ = {"version": f"{grid2op.__version__}"}
+                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+
+    @staticmethod
+    def get_grid2op_version(path_episode):
+        """
+        Utility function to retrieve the grid2op version used to generate this episode serialized on disk.
+
+        This is introduced in grid2op 1.5.0, with older runner version stored, this function will return "<=1.4.0"
+        otherwise it returns the grid2op version, as a string.
+        """
+        version = "<=1.4.0"
+        if os.path.exists(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE)):
+            with open(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE), "r", encoding="utf-8") as f:
+                dict_ = json.load(fp=f)
+                if "version" in dict_:
+                    version = dict_["version"]
+        return version
 
 
 class CollectionWrapper:

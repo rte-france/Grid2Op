@@ -23,7 +23,8 @@ class PlayableAction(BaseAction):
         "set_bus",
         "change_bus",
         "redispatch",
-        "set_storage"
+        "set_storage",
+        "curtail"
     }
 
     attr_list_vect = [
@@ -32,7 +33,8 @@ class PlayableAction(BaseAction):
         "_set_topo_vect",
         "_change_bus_vect",
         "_redispatch",
-        "_storage_power"
+        "_storage_power",
+        "_curtail"
     ]
     attr_list_set = set(attr_list_vect)
 
@@ -45,7 +47,8 @@ class PlayableAction(BaseAction):
             "set_bus": self._digest_setbus,
             "change_bus": self._digest_change_bus,
             "redispatch": self._digest_redispatching,
-            "set_storage": self._digest_storage
+            "set_storage": self._digest_storage,
+            "curtail": self._digest_curtailment,
         }
 
     def __call__(self):
@@ -73,7 +76,10 @@ class PlayableAction(BaseAction):
             This array is :attr:`BaseAction._change_bus_vect`
 
         redispatch: :class:`numpy.ndarray`, dtype:float
-            Thie array is :attr:`BaseAction._redispatch`
+            The array is :attr:`BaseAction._redispatch`
+
+        curtail: :class:`numpy.ndarray`, dtype:float
+            The array is :attr:`BaseAction._curtail`
 
         shunts: ``dict``
             Always empty for this class
@@ -82,6 +88,7 @@ class PlayableAction(BaseAction):
             raise AmbiguousAction("Injections actions are not playable.")
         
         self._check_for_ambiguity()
+        # TODO curtailment
         return {}, \
             self._set_line_status, self._switch_line_status, \
             self._set_topo_vect, self._change_bus_vect,\

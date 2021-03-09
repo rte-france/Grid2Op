@@ -243,7 +243,8 @@ class TestRunner(HelperTests):
         episode_studied = EpisodeData.list_episode(os.path.join(base_path, g2op_version))
         for base_path, episode_path in episode_studied:
             this_episode = EpisodeData.from_disk(base_path, episode_path)
-            with open(os.path.join(os.path.join(base_path, episode_path), "episode_meta.json"), "r",
+            full_episode_path = os.path.join(base_path, episode_path)
+            with open(os.path.join(full_episode_path, "episode_meta.json"), "r",
                       encoding="utf-8") as f:
                 meta_data = json.load(f)
             nb_ts = int(meta_data["nb_timestep_played"])
@@ -257,17 +258,23 @@ class TestRunner(HelperTests):
                                                                f"version {g2op_version}: " \
                                                                f"{len(this_episode.env_actions)} vs {nb_ts}"
             except:
-                import pdb
-                pdb.set_trace()
+                raise
+
+            if g2op_version <= "1.4.0":
+                assert EpisodeData.get_grid2op_version(full_episode_path) == "<=1.4.0", \
+                    "wrong grid2op version stored (grid2op version <= 1.4.0)"
+            else:
+                assert EpisodeData.get_grid2op_version(full_episode_path) == g2op_version, \
+                    "wrong grid2op version stored (>=1.5.0)"
 
     def test_backward_compatibility(self):
         backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0", "1.3.1",
                                  "1.4.0"]
-        curr_version = "current_version"
+        curr_version = "test_version"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case5_example", test=True) as env, \
-                 tempfile.TemporaryDirectory() as path:
+                    tempfile.TemporaryDirectory() as path:
                 runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
                 runner.run(nb_episode=2,
                            path_save=os.path.join(path, curr_version),
