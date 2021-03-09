@@ -263,6 +263,9 @@ class TestRunner(HelperTests):
             if g2op_version <= "1.4.0":
                 assert EpisodeData.get_grid2op_version(full_episode_path) == "<=1.4.0", \
                     "wrong grid2op version stored (grid2op version <= 1.4.0)"
+            elif g2op_version == "test_version":
+                assert EpisodeData.get_grid2op_version(full_episode_path) == grid2op.__version__, \
+                    "wrong grid2op version stored (test_version)"
             else:
                 assert EpisodeData.get_grid2op_version(full_episode_path) == g2op_version, \
                     "wrong grid2op version stored (>=1.5.0)"

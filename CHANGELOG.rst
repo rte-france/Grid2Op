@@ -84,6 +84,7 @@ Change Log
 - [ADDED] grid2op now ships with the `l2rpn_case14_sandbox` environment
 - [ADDED] a function to list environments available for testing / illustration purpose.
 - [ADDED] a function of the observation to convert it to a networkx graph (`obs.as_networkx()`)
+- [ADDED] support for curtailment feature in grid2op (curtailment on the generation).
 - [IMPROVED] simplify the interface for the gym converter.
 - [IMPROVED] simplify the interface for the `env.train_val_split` and `env.train_val_split_random`
 - [IMPROVED] print of an action now limits the number of decimal for redispatching and storage units
