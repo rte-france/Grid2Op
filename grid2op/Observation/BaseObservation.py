@@ -191,7 +191,10 @@ class BaseObservation(GridObjects):
                 "duration_next_maintenance",
                 "target_dispatch", "actual_dispatch",
                 "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",
-                "storage_charge", "storage_power_target", "storage_power"
+                # storage
+                "storage_charge", "storage_power_target", "storage_power",
+                # curtailment
+                "gen_p_before_curtail", "curtailment"
                 ]
 
     attr_list_vect = None
@@ -288,6 +291,9 @@ class BaseObservation(GridObjects):
             self._shunt_bus = np.empty(shape=self.n_shunt, dtype=dt_int)
 
         self._thermal_limit = np.empty(shape=self.n_line, dtype=dt_float)
+
+        self.gen_p_before_curtail = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.curtailment = np.empty(shape=self.n_gen, dtype=dt_float)
 
     def state_of(self,
                  _sentinel=None,

@@ -1367,15 +1367,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._withdraw_storage_losses()
         # end storage
 
-    # def _compute_max_ramp_this_step(self, new_p):
-    #     """
-    #     compute the total "power" i can add or remove this step that takes into account
-    #     generators ramps and Pmin / Pmax
-    #
-    #     new_p: array of the (temporary) new production in the chronics
-    #     """
-    #     # TODO
-    #     return max_total_down, max_total_up
+    def _compute_max_ramp_this_step(self, new_p):
+        """
+        compute the total "power" i can add or remove this step that takes into account
+        generators ramps and Pmin / Pmax
+
+        new_p: array of the (temporary) new production in the chronics that should happen
+        """
+        # TODO
+        # maximum value it can take
+        th_max = np.minimum(self._gen_activeprod_t_redisp[self.gen_redispatchable] +
+                            self.gen_max_ramp_up[self.gen_redispatchable],
+                            self.gen_pmax[self.gen_redispatchable])
+        # minimum value it can take
+        th_min = np.maximum(self._gen_activeprod_t_redisp[self.gen_redispatchable] -
+                            self.gen_max_ramp_down[self.gen_redispatchable],
+                            self.gen_pmin[self.gen_redispatchable])
+
+        max_total_up = np.sum(th_max - new_p[self.gen_redispatchable])
+        max_total_down = np.sum(th_min - new_p[self.gen_redispatchable])  # TODO is that it ?
+        # import pdb
+        # pdb.set_trace()
+        return max_total_down, max_total_up
 
     def step(self, action):
         """
@@ -1496,13 +1509,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._env_modification, prod_v_chronics = self._update_actions()
             self._env_modification._single_act = False  # because it absorbs all redispatching actions
             new_p = self._get_new_prod_setpoint(action)
-            # max_total_down, max_total_up = self._compute_max_ramp_this_step()
+            max_total_down, max_total_up = None, None
 
             # curtailment
             if self.redispatching_unit_commitment_availble and \
                     (action._modif_curtailment or np.any(self._limit_curtailment != 1.)):
                 # TODO limit here if the ramps are too low !
                 # TODO in the above case, action should not be implemented !
+                # max_total_down, max_total_up = self._compute_max_ramp_this_step(new_p)
                 curtailment_act = 1.0 * action._curtail
                 ind_curtailed_in_act = (curtailment_act != -1.) & self.gen_renewable
                 self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
@@ -1514,9 +1528,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._gen_before_curtailment[:] = new_p
                 new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
 
-                tmp_sum_curtailment_mw = np.sum(new_p) - np.sum(self._gen_before_curtailment)
+                tmp_sum_curtailment_mw = dt_float(np.sum(new_p) - np.sum(self._gen_before_curtailment))
+                self._gen_before_curtailment[~self.gen_renewable] = 0.
+
+                # if tmp_sum_curtailment_mw > max_total_up:
+                    # i need to "cut the action, because too much would be curtailed
+                    # TODO
+                    # pass
                 self._sum_curtailment_mw = tmp_sum_curtailment_mw - self._sum_curtailment_mw_prev
-                self._sum_curtailment_mw_prev = dt_float(tmp_sum_curtailment_mw)
+                self._sum_curtailment_mw_prev = tmp_sum_curtailment_mw
+
                 # TODO curtailment: modify the env to include curtailment
                 if "prod_p" in self._env_modification._dict_inj:
                     self._env_modification._dict_inj["prod_p"][:] = new_p
