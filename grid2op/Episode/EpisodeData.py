@@ -214,6 +214,7 @@ class EpisodeData:
 
         self.other_rewards = other_rewards
         self.observation_space = observation_space
+        self.attack_space = attack_space
         self.rewards = rewards
         self.disc_lines = disc_lines
         self.times = times
@@ -764,6 +765,7 @@ class CollectionWrapper:
             self.collection[time_step - 1, :] = values
         else:
             self.collection = np.concatenate((self.collection, values.reshape(1, -1)))
+        self.objects[time_step - 1] = self.helper.from_vect(values, check_legit=True)
 
     def save(self, path):
         np.savez_compressed(path, data=self.collection)  # do not change keyword arguments
