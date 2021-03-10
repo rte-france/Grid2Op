@@ -3932,3 +3932,57 @@ class BaseAction(GridObjects):
             raise IllegalAction(f"Impossible to modify the substation bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
+
+    def curtailment_mw_to_ratio(self, curtailment_mw):
+        """
+        Transform a "curtailment" given as maximum MW to the grid2op formalism (in ratio of gen_pmax)
+
+        Parameters
+        ----------
+        curtailment_mw:
+            Same type of inputs you can use in `act.curtail = ...`
+
+        Returns
+        -------
+        A proper input to `act.curtail` with the converted input expressed in ratio of gen_pmax
+
+        Examples
+        --------
+
+        If you want to limit the production of generator 1 (suppose its renewable) at 1.5MW
+        then you can do:
+
+        .. code-block:: python
+
+            gen_id = 1
+            amount_max = 1.5
+            act.curtail = act.curtailment_mw_to_ratio([(gen_id, amount_max)])
+
+        """
+        values = self._curtail * self.gen_pmax
+        self._aux_affect_object_float(curtailment_mw, "curtailment", self.n_gen, self.name_gen,
+                                      np.arange(self.n_gen), values)
+        values /= self.gen_pmax
+        values[values >= 1.0] = 1.0
+        values[values < 0.] = -1.0
+        return values
+
+    @property
+    def curtail_mw(self):
+        """
+        Allows to perfom some curtailment on some generators in MW (by default in grid2Op it should be expressed
+        in ratio of gen_pmax)
+
+        It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
+
+        For more information, feel free to consult the documentation :ref:`gen-mod-el` where more
+        details are given about the modeling ot these storage units.
+        """
+        res = 1.0 * self._curtail * self.gen_pmax
+        res[res < 0.] = -1.0
+        res.flags.writeable = False
+        return res
+
+    @curtail_mw.setter
+    def curtail_mw(self, values_mw):
+        self.curtail = self.curtailment_mw_to_ratio(values_mw)
