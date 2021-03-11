@@ -106,8 +106,8 @@ class CompleteObservation(BaseObservation):
         "time_before_cooldown_line", "time_before_cooldown_sub",
         "time_next_maintenance", "duration_next_maintenance",
         "target_dispatch", "actual_dispatch",
-        "storage_charge", "storage_power_target", "storage_power",
         # TODO: backward compatibility
+        "storage_charge", "storage_power_target", "storage_power",
         "gen_p_before_curtail", "curtailment"
     ]
     attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
@@ -123,6 +123,24 @@ class CompleteObservation(BaseObservation):
                                  action_helper=action_helper,
                                  seed=seed)
         self._dictionnarized = None
+
+    @classmethod
+    def process_grid2op_compat(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # oldest version: no storage and no curtailment available
+
+            # deactivate storage
+            cls.set_no_storage()
+            for el in ["storage_charge", "storage_power_target", "storage_power"]:
+                if el in cls.attr_list_vect:
+                    cls.attr_list_vect.remove(el)
+
+            # remove the curtailment
+            for el in ["gen_p_before_curtail", "curtailment"]:
+                if el in cls.attr_list_vect:
+                    cls.attr_list_vect.remove(el)
+
+            cls.attr_list_set = set(cls.attr_list_vect)
 
     def update(self, env, with_forecast=True):
         # reset the matrices

@@ -405,6 +405,25 @@ class BaseAction(GridObjects):
         self._modif_storage = False
         self._modif_curtailment = False
 
+    @classmethod
+    def process_grid2op_compat(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # oldest version: no storage and no curtailment available
+            # deactivate storage
+            cls.set_no_storage()
+            if "set_storage" in cls.authorized_keys:
+                cls.authorized_keys.remove("set_storage")
+            if "_storage_power" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("_storage_power")
+                cls.attr_list_set = set(cls.attr_list_vect)
+
+            # remove the curtailment
+            if "curtail" in cls.authorized_keys:
+                cls.authorized_keys.remove("curtail")
+            if "_curtail" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("_curtail")
+                cls.attr_list_set = set(cls.attr_list_vect)
+
     def _reset_modified_flags(self):
         self._modif_inj = False
         self._modif_set_bus = False

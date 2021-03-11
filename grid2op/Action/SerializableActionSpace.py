@@ -40,7 +40,7 @@ class SerializableActionSpace(SerializableSpace):
     REDISPATCHING = 4
     STORAGE_POWER = 5
 
-    def __init__(self, gridobj, actionClass=BaseAction):
+    def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True):
         """
         INTERNAL USE ONLY
 
@@ -59,9 +59,10 @@ class SerializableActionSpace(SerializableSpace):
             :class:`BaseAction`.
 
         """
-        SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass)
+        SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass, _init_grid=_init_grid)
 
-        self.actionClass = actionClass.init_grid(gridobj)
+        # self.actionClass = actionClass.init_grid(gridobj)
+        self.actionClass = self.subtype
         self._template_act = self.actionClass()
 
     @staticmethod
@@ -85,7 +86,13 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-        res = SerializableActionSpace(gridobj=tmp, actionClass=tmp.subtype)
+
+        class CLS(SerializableActionSpace):
+            pass
+        CLS.__name__ = SerializableActionSpace.__name__
+        CLS.__qualname__ = SerializableActionSpace.__qualname__
+        CLS = SerializableActionSpace.init_grid(tmp)
+        res = CLS(gridobj=tmp, actionClass=tmp.subtype, _init_grid=False)
         return res
 
     def _get_possible_action_types(self):

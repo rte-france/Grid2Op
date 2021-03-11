@@ -83,15 +83,13 @@ class SerializableSpace(GridObjects, RandomObject):
 
         GridObjects.__init__(self)
         RandomObject.__init__(self)
-        self.init_grid(gridobj)
 
         self._init_subtype = subtype  # do not use, use to save restore only !!!
-        # print(f"gridobj : {gridobj}")
         if _init_grid:
             self.subtype = subtype.init_grid(gridobj)
         else:
             self.subtype = subtype
-        # print(f"subtype : {self.subtype}")
+
         self._template_obj = self.subtype()
         self.n = self._template_obj.size()
 
@@ -126,7 +124,7 @@ class SerializableSpace(GridObjects, RandomObject):
         dict_: ``dict``
             Representation of an BaseObservation Space (aka :class:`grid2op.BaseObservation.ObservartionHelper`)
             or the BaseAction Space (aka :class:`grid2op.BaseAction.ActionSpace`)
-            as a dictionnary.
+            as a dictionary.
 
         Returns
         -------
@@ -141,8 +139,6 @@ class SerializableSpace(GridObjects, RandomObject):
                 raise Grid2OpException("Unable to find the file \"{}\" to load the ObservationSpace".format(path))
             with open(path, "r", encoding="utf-8") as f:
                 dict_ = json.load(fp=f)
-
-        # print("beginning from dict")
 
         gridobj = GridObjects.from_dict(dict_)
 
@@ -187,9 +183,20 @@ class SerializableSpace(GridObjects, RandomObject):
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
 
-        res = SerializableSpace(gridobj=gridobj,
-                                subtype=subtype,
-                                _init_grid=False)
+        # create the proper SerializableSpace class for this environment
+        CLS = SerializableSpace.init_grid(gridobj)
+
+        # create a dedicated class for the "subtype" (typically Observation or Action)
+        # not to mess with the grid2op base class
+        class CLSSUBTYPE(subtype):
+            pass
+        CLSSUBTYPE.__name__ = subtype.__name__
+        CLSSUBTYPE.__qualname__ = subtype.__qualname__
+
+        CLSSUBTYPE = CLSSUBTYPE.init_grid(gridobj)
+        res = CLS(gridobj=gridobj,
+                  subtype=CLSSUBTYPE,
+                  _init_grid=False)
         return res
 
     def cls_to_dict(self):

@@ -18,8 +18,10 @@ to manipulate.
 
 """
 import warnings
+import grid2op
 import numpy as np
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
@@ -417,6 +419,8 @@ class GridObjects:
 
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """
+    BEFORE_COMPAT_VERSION = "neurips_2020_compat"
+    glop_version = grid2op.__version__
 
     SUB_COL = 0
     LOA_COL = 1
@@ -841,15 +845,15 @@ class GridObjects:
 
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while load a GridObjects "
-                                            "from a vector. Found {} elements instead of {}".format(
-                vect.shape[0], self.size()))
+                                            "from a vector. Found {} elements instead of {}"
+                                            "".format(vect.shape[0], self.size()))
 
         try:
             vect = np.array(vect).astype(dt_float)
         except Exception as exc_:
             raise EnvError("Impossible to convert the input vector to a floating point numpy array "
-                                            "with error:\n"
-                                            "\"{}\".".format(exc_))
+                           "with error:\n"
+                           "\"{}\".".format(exc_))
 
         self._raise_error_attr_list_none()
         prev_ = 0
@@ -1011,8 +1015,9 @@ class GridObjects:
             try:
                 self.line_ex_to_subid = np.array(self.line_ex_to_subid)
                 self.line_ex_to_subid = self.line_ex_to_subid.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_ex_to_subid should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError("self.line_ex_to_subid should be convertible to a numpy array"
+                               f"It fails with error \"{exc_}\"")
 
         if not isinstance(self.storage_to_subid, np.ndarray):
             try:
@@ -1874,6 +1879,8 @@ class GridObjects:
         """
         # nothing to do now that the value are class member
         name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
+        if gridobj.glop_version != grid2op.__version__:
+            name_res += f"_{gridobj.glop_version}"
         if name_res in globals():
             if not force:
                 # no need to recreate the class, it already exists
@@ -1884,6 +1891,7 @@ class GridObjects:
 
         class res(cls):
             pass
+        res.glop_version = gridobj.glop_version
 
         res.name_gen = gridobj.name_gen
         res.name_load = gridobj.name_load
@@ -1962,8 +1970,16 @@ class GridObjects:
 
         res.__name__ = name_res
         res.__qualname__ = "{}_{}".format(cls.__qualname__, gridobj.env_name)
+
+        if res.glop_version != grid2op.__version__:
+            res.process_grid2op_compat()
+
         globals()[name_res] = res
         return res
+
+    @classmethod
+    def process_grid2op_compat(cls):
+        pass
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
@@ -2352,6 +2368,7 @@ class GridObjects:
             The representation of the object as a dictionary that can be json serializable.
         """
         res = {}
+        save_to_dict(res, cls, "glop_version", str)
         save_to_dict(res, cls, "name_gen", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_load", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_line", lambda li: [str(el) for el in li])
@@ -2411,7 +2428,6 @@ class GridObjects:
         save_to_dict(res, cls, "storage_loss", lambda li: [float(el) for el in li])
         save_to_dict(res, cls, "storage_charging_efficiency", lambda li: [float(el) for el in li])
         save_to_dict(res, cls, "storage_discharging_efficiency", lambda li: [float(el) for el in li])
-
         return res
 
     @staticmethod
@@ -2438,14 +2454,21 @@ class GridObjects:
             The object of the proper class that were initially represented as a dictionary.
 
         """
+        class res(GridObjects):
+            pass
 
-        cls = GridObjects
+        cls = res
+        if "glop_version" in dict_:
+            cls.glop_version = dict_["glop_version"]
+        else:
+            cls.glop_version = cls.BEFORE_COMPAT_VERSION
+
         cls.name_gen = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
         cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
         cls.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
         if "env_name" in dict_:
-             # new saved in version >= 1.2.4
+            # new saved in version >= 1.3.0
             cls.env_name = str(dict_["env_name"])
         else:
             # environment name was not stored, this make the task to retrieve this impossible
@@ -2518,10 +2541,17 @@ class GridObjects:
             # backward compatibility: no storage were supported
             cls.set_no_storage()
 
+        if cls.glop_version != grid2op.__version__:
+            # change name of the environment, this is done in Environment.py for regular environment
+            # see `self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")`
+            cls.set_env_name(f"{cls.env_name}_{cls.glop_version}")
+            # and now post process the class attributes for that
+            cls.process_grid2op_compat()
+
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo()
-        cls.init_grid(obj_, force=True)
+        cls = cls.init_grid(obj_, force=True)
         return cls()
 
     @classmethod

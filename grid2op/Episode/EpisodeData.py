@@ -8,11 +8,12 @@
 
 import json
 import os
+import warnings
 
 import numpy as np
 
 import grid2op
-from grid2op.Exceptions import Grid2OpException, EnvError
+from grid2op.Exceptions import Grid2OpException, EnvError, IncorrectNumberOfElements
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
@@ -428,14 +429,15 @@ class EpisodeData:
         except FileNotFoundError as ex:
             raise Grid2OpException(f"EpisodeData file not found \n {str(ex)}")
 
-        observation_space = ObservationSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.OBS_SPACE))
-        action_space = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ACTION_SPACE))
-        helper_action_env = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
-        attack_space = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
+        observation_space = ObservationSpace.from_dict(os.path.join(agent_path, EpisodeData.OBS_SPACE))
+        action_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ACTION_SPACE))
+        helper_action_env = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
+        attack_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
+        if observation_space.glop_version != grid2op.__version__:
+            warnings.warn("You are using a \"grid2op compatibility\" feature (the data you saved "
+                          "have been saved with a previous grid2op version). When we loaded your data, we attempted "
+                          "to not include most recent grid2op features. This is feature is not well tested. It would "
+                          "be wise to regenerate the data with the latest grid2Op version.")
         return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
@@ -757,7 +759,7 @@ class CollectionWrapper:
         self.collection = collection
         if not hasattr(helper, "from_vect"):
             raise Grid2OpException(f"Object {helper} must implement a "
-                                   f"from_vect methode.")
+                                   f"from_vect method.")
         self.helper = helper
         self.collection_name = collection_name
         self.elem_name = self.collection_name[:-1]
@@ -768,6 +770,12 @@ class CollectionWrapper:
             try:
                 collection_obj = self.helper.from_vect(self.collection[i, :], check_legit=check_legit)
                 self.objects.append(collection_obj)
+            except IncorrectNumberOfElements as exc_:
+                # grid2op does not allow to load the object: there is a mismatch between what has been stored
+                # and what is currently used.
+                import pdb
+                pdb.set_trace()
+                raise
             except EnvError as exc_:
                 self._game_over = i
                 break

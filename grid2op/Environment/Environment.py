@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 import re
 
+import grid2op
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
@@ -78,7 +79,8 @@ class Environment(BaseEnv):
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
                  kwargs_opponent={},
-                 _raw_backend_class=None
+                 _raw_backend_class=None,
+                 _compat_glop_version=None,
                  ):
         BaseEnv.__init__(self,
                          parameters=parameters,
@@ -113,6 +115,8 @@ class Environment(BaseEnv):
             self._raw_backend_class = type(backend)
         else:
             self._raw_backend_class = _raw_backend_class
+
+        self._compat_glop_version = _compat_glop_version
 
         # for plotting
         self._init_backend(init_grid_path, chronics_handler, backend,
@@ -156,8 +160,8 @@ class Environment(BaseEnv):
         self._init_grid_path = os.path.abspath(init_grid_path)
 
         if not isinstance(backend, Backend):
-            raise Grid2OpException( "Parameter \"backend\" used to build the Environment should derived form the "
-                                    "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
+            raise Grid2OpException("Parameter \"backend\" used to build the Environment should derived form the "
+                                   "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
         self.backend = backend
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
@@ -167,6 +171,15 @@ class Environment(BaseEnv):
         self.backend.load_storage_data(self.get_path_env())
         self.backend.load_grid_layout(self.get_path_env())
         self.backend.assert_grid_correct()
+        if self._compat_glop_version is not None and self._compat_glop_version != grid2op.__version__:
+            warnings.warn("You are using a grid2op \"compatibility\" environment. This means that some "
+                          "feature will not be available. This feature is absolutely NOT recommended except to "
+                          "read back data (for example with EpisodeData) that were stored with previous "
+                          "grid2op version.")
+            self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
+            type(self.backend).glop_version = self._compat_glop_version
+            # TODO compat version here !
+
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
