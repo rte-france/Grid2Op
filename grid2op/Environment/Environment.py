@@ -152,9 +152,6 @@ class Environment(BaseEnv):
         if not issubclass(rewardClass, BaseReward):
             raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
                                    "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
-        self._rewardClass = rewardClass
-        self._actionClass = actionClass
-        self._observationClass = observationClass
 
         # backend
         self._init_grid_path = os.path.abspath(init_grid_path)
@@ -172,6 +169,7 @@ class Environment(BaseEnv):
         self.backend.load_grid_layout(self.get_path_env())
         self.backend.assert_grid_correct()
         self._handle_compat_glop_version()
+
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
@@ -218,20 +216,26 @@ class Environment(BaseEnv):
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent
-        bk_type = type(self.backend)  # be carefull here: you need to initialize from the class, and not from the object
+        bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
+        self._rewardClass = rewardClass
+        self._actionClass = actionClass.init_grid(gridobj=bk_type)
+        self._observationClass = observationClass.init_grid(gridobj=bk_type)
+        self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
+
         self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
         self._helper_action_player = self._helper_action_class(gridobj=bk_type,
-                                                               actionClass=actionClass,
+                                                               actionClass=self._actionClass,
                                                                legal_action=self._game_rules.legal_action)
         # action that affect the grid made by the environment.
         self._helper_action_env = self._helper_action_class(gridobj=bk_type,
-                                                            actionClass=CompleteAction,
+                                                            actionClass=self._complete_action_cls,
                                                             legal_action=self._game_rules.legal_action)
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
         self._helper_observation = self._helper_observation_class(gridobj=bk_type,
-                                                                  observationClass=observationClass,
+                                                                  observationClass=self._observationClass,
                                                                   rewardClass=rewardClass,
                                                                   env=self)
+
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(

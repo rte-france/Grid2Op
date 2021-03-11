@@ -84,11 +84,6 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-
-        class CLS(SerializableActionSpace):
-            pass
-        CLS.__name__ = SerializableActionSpace.__name__
-        CLS.__qualname__ = SerializableActionSpace.__qualname__
         CLS = SerializableActionSpace.init_grid(tmp)
         res = CLS(gridobj=tmp, actionClass=tmp.subtype, _init_grid=False)
         return res

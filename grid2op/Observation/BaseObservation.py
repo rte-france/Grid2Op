@@ -501,6 +501,29 @@ class BaseObservation(GridObjects):
 
         return res
 
+
+    @classmethod
+    def process_grid2op_compat(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # oldest version: no storage and no curtailment available
+
+            # this is really important, otherwise things from grid2op base types will be affected
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            # deactivate storage
+            cls.set_no_storage()
+            for el in ["storage_charge", "storage_power_target", "storage_power"]:
+                if el in cls.attr_list_vect:
+                    cls.attr_list_vect.remove(el)
+
+            # remove the curtailment
+            for el in ["gen_p_before_curtail", "curtailment"]:
+                if el in cls.attr_list_vect:
+                    cls.attr_list_vect.remove(el)
+
+            cls.attr_list_set = set(cls.attr_list_vect)
+
     def reset(self):
         """
         INTERNAL

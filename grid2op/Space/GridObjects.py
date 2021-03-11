@@ -2543,7 +2543,7 @@ class GridObjects:
         if cls.glop_version != grid2op.__version__:
             # change name of the environment, this is done in Environment.py for regular environment
             # see `self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")`
-            cls.set_env_name(f"{cls.env_name}_{cls.glop_version}")
+            # cls.set_env_name(f"{cls.env_name}_{cls.glop_version}")
             # and now post process the class attributes for that
             cls.process_grid2op_compat()
 

@@ -8,6 +8,7 @@
 
 import warnings
 import tempfile
+import json
 import pdb
 
 from grid2op.tests.helper_path_test import *
@@ -23,8 +24,8 @@ from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
 from grid2op.Episode import EpisodeData
-import json
-import warnings
+from grid2op.Observation import CompleteObservation
+from grid2op.Action import TopologyAction
 warnings.simplefilter("error")
 
 
@@ -242,7 +243,11 @@ class TestRunner(HelperTests):
     def _aux_backward(self, base_path, g2op_version_txt, g2op_version):
         episode_studied = EpisodeData.list_episode(os.path.join(base_path, g2op_version_txt))
         for base_path, episode_path in episode_studied:
+            assert 'curtailment' in CompleteObservation.attr_list_vect, f"error after the legacy version " \
+                                                                        f"{g2op_version}"
             this_episode = EpisodeData.from_disk(base_path, episode_path)
+            assert 'curtailment' in CompleteObservation.attr_list_vect, f"error after the legacy version " \
+                                                                        f"{g2op_version}"
             full_episode_path = os.path.join(base_path, episode_path)
             with open(os.path.join(full_episode_path, "episode_meta.json"), "r",
                       encoding="utf-8") as f:
@@ -274,19 +279,22 @@ class TestRunner(HelperTests):
         backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0", "1.3.1",
                                  "1.4.0"]
         curr_version = "test_version"
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make("rte_case5_example", test=True) as env, \
-                    tempfile.TemporaryDirectory() as path:
-                runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
-                runner.run(nb_episode=2,
-                           path_save=os.path.join(path, curr_version),
-                           pbar=False,
-                           max_iter=100,
-                           env_seeds=[1, 0],
-                           agent_seeds=[42, 69])
-                # check that i can read this data generate for this runner
-                self._aux_backward(path, curr_version, curr_version)
+        assert 'curtailment' in CompleteObservation.attr_list_vect, "error at the beginning"
+        # with warnings.catch_warnings():
+        #     warnings.filterwarnings("ignore")
+        #     with make("rte_case5_example", test=True) as env, \
+        #             tempfile.TemporaryDirectory() as path:
+        #         runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+        #         runner.run(nb_episode=2,
+        #                    path_save=os.path.join(path, curr_version),
+        #                    pbar=False,
+        #                    max_iter=100,
+        #                    env_seeds=[1, 0],
+        #                    agent_seeds=[42, 69])
+        #         # check that i can read this data generate for this runner
+        #         self._aux_backward(path, curr_version, curr_version)
+
+        assert 'curtailment' in CompleteObservation.attr_list_vect, "error after the first runner"
 
         # check that it raises a warning if loaded on the compatibility version
         grid2op_version = backward_comp_version[0]
@@ -303,6 +311,8 @@ class TestRunner(HelperTests):
                 self._aux_backward(PATH_PREVIOUS_RUNNER,
                                    f"res_agent_{grid2op_version}",
                                    grid2op_version)
+            assert 'curtailment' in CompleteObservation.attr_list_vect, f"error after the legacy version " \
+                                                                        f"{grid2op_version}"
 
 
 if __name__ == "__main__":

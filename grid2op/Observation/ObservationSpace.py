@@ -70,10 +70,7 @@ class ObservationSpace(SerializableObservationSpace):
         SerializableObservationSpace.__init__(self, gridobj, observationClass=observationClass)
 
         self.with_forecast = with_forecast
-        # print("ObservationSpace init with rewardClass: {}".format(rewardClass))
         self._simulate_parameters = copy.deepcopy(env.parameters)
-        # # for the observation, I switch between the _parameters for the environment and for the simulation
-        # self.simulate_parameters.ENV_DC = self.parameters.FORECAST_DC
 
         if rewardClass is None:
             self._reward_func = env._reward_helper.template_reward
@@ -105,8 +102,7 @@ class ObservationSpace(SerializableObservationSpace):
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(env)
 
-        self._empty_obs = self.observationClass(obs_env=self.obs_env,
-                                                action_helper=self.action_helper_env)
+        self._empty_obs = self._template_obj
         self._update_env_time = 0.
 
     def _change_parameters(self, new_param):

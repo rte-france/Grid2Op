@@ -603,7 +603,10 @@ class TestStorageEnv(HelperTests):
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction, param=param)
+            env = grid2op.make("educ_case14_storage",
+                               test=True,
+                               action_class=CompleteAction,
+                               param=param)
         self.env.close()
         self.env = env
         obs = self.env.reset()

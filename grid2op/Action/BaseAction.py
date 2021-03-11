@@ -409,6 +409,12 @@ class BaseAction(GridObjects):
     def process_grid2op_compat(cls):
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             # oldest version: no storage and no curtailment available
+
+            # this is really important, otherwise things from grid2op base types will be affected
+            cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
             # deactivate storage
             cls.set_no_storage()
             if "set_storage" in cls.authorized_keys:

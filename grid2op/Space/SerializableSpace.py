@@ -89,7 +89,6 @@ class SerializableSpace(GridObjects, RandomObject):
             self.subtype = subtype.init_grid(gridobj)
         else:
             self.subtype = subtype
-
         self._template_obj = self.subtype()
         self.n = self._template_obj.size()
 
@@ -97,12 +96,12 @@ class SerializableSpace(GridObjects, RandomObject):
 
         self.shape = self._template_obj.shape()
         self.dtype = self._template_obj.dtype()
-        self.attr_list_vect = self._template_obj.attr_list_vect
+        self.attr_list_vect = copy.deepcopy(self._template_obj.attr_list_vect)
 
         self._to_extract_vect = {}  # key: attr name, value: tuple: (beg_, end_, dtype)
         beg_ = 0
         end_ = 0
-        for attr, size, dtype_ in zip(self._template_obj.attr_list_vect, self.shape, self.dtype):
+        for attr, size, dtype_ in zip(self.attr_list_vect, self.shape, self.dtype):
             end_ += size
             self._to_extract_vect[attr] = (beg_, end_, dtype_)
             beg_ += size
@@ -141,7 +140,6 @@ class SerializableSpace(GridObjects, RandomObject):
                 dict_ = json.load(fp=f)
 
         gridobj = GridObjects.from_dict(dict_)
-
         actionClass_str = extract_from_dict(dict_, "_init_subtype", str)
         actionClass_li = actionClass_str.split('.')
 
@@ -182,18 +180,9 @@ class SerializableSpace(GridObjects, RandomObject):
                                    "(the module is found but not the class in it)"
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
-
         # create the proper SerializableSpace class for this environment
         CLS = SerializableSpace.init_grid(gridobj)
-
-        # create a dedicated class for the "subtype" (typically Observation or Action)
-        # not to mess with the grid2op base class
-        class CLSSUBTYPE(subtype):
-            pass
-        CLSSUBTYPE.__name__ = subtype.__name__
-        CLSSUBTYPE.__qualname__ = subtype.__qualname__
-
-        CLSSUBTYPE = CLSSUBTYPE.init_grid(gridobj)
+        CLSSUBTYPE = subtype.init_grid(gridobj)
         res = CLS(gridobj=gridobj,
                   subtype=CLSSUBTYPE,
                   _init_grid=False)

@@ -48,7 +48,8 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1310
+        assert self.env.observation_space.n == 1310, f"obs space size is {self.env.observation_space.n}," \
+                                                     f"should be {1310}"
 
     def test_random_action(self):
         """test i can perform some step (random)"""

@@ -12,9 +12,9 @@ import re
 import warnings
 import unittest
 import numpy as np
-import pdb
 from abc import ABC, abstractmethod
 
+import grid2op
 from grid2op.tests.helper_path_test import *
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -26,8 +26,8 @@ from grid2op.Space.space_utils import save_to_dict
 
 # TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
 
-import warnings
-warnings.simplefilter("error")
+
+import pdb
 
 
 def _get_action_grid_class():
@@ -93,8 +93,10 @@ def _get_action_grid_class():
     GridObjects.storage_charging_efficiency = np.array([1., 1.])
 
     GridObjects._topo_vect_to_sub = np.repeat(np.arange(GridObjects.n_sub), repeats=GridObjects.sub_info)
+    GridObjects.glop_version = grid2op.__version__
 
     json_ = {
+        'glop_version': grid2op.__version__,
         'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
         'name_load': ['load_0', 'load_1', 'load_2',
                       'load_3', 'load_4', 'load_5', 'load_6',
@@ -586,7 +588,9 @@ class TestActionBase(ABC):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
         tmp = np.zeros(self.size_act)
-        tmp[-action.n_gen:] = -1  # for curtailment, at the end, and by default its -1
+        if "curtail" in action.authorized_keys:
+            # for curtailment, at the end, and by default its -1
+            tmp[-action.n_gen:] = -1
         # if "_storage_power" in action.attr_list_set:
         #     tmp[-2:] = np.NaN  # i did not modify the battery so i need to do that otherwise vectors are not equal
 
@@ -617,6 +621,7 @@ class TestActionBase(ABC):
                                                                            False, False, False, False, False, False,
                                                                            False, False, False, False, False, False,
                                                                            ])
+
         assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
         assert np.all(np.isfinite(res) == np.isfinite(tmp))
 

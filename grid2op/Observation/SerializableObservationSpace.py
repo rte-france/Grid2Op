@@ -64,13 +64,7 @@ class SerializableObservationSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-
-        class CLS(SerializableObservationSpace):
-            pass
-        CLS.__name__ = SerializableObservationSpace.__name__
-        CLS.__qualname__ = SerializableObservationSpace.__qualname__
         CLS = SerializableObservationSpace.init_grid(tmp)
-
         res = CLS(gridobj=tmp,
                   observationClass=tmp.subtype,
                   _init_grid=False)
