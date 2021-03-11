@@ -199,7 +199,11 @@ def _aux_make_multimix(dataset_path, **kwargs):
     return MultiMixEnvironment(dataset_path, **kwargs)
 
 
-def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
+def make(dataset="rte_case14_realistic",
+         test=False,
+         _add_to_name="",
+         _compat_glop_version=None,
+         **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -222,7 +226,10 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
         the Parameters information of the :func:`make_from_dataset_path`.
 
     _add_to_name:
-        Internal, do not use
+        Internal, do not use (and can only be used when setting "test=True")
+
+    _compat_glop_version:
+        Internal, do not use (and can only be used when setting "test=True")
 
     Returns
     -------
@@ -281,7 +288,10 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
         if _aux_is_multimix(ds_path):
             make_from_path_fn = _aux_make_multimix
 
-        return make_from_path_fn(dataset_path=ds_path, _add_to_name=_add_to_name, **kwargs)
+        return make_from_path_fn(dataset_path=ds_path,
+                                 _add_to_name=_add_to_name,
+                                 _compat_glop_version=_compat_glop_version,
+                                 **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):

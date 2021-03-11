@@ -848,6 +848,23 @@ class Backend(GridObjects, ABC):
         if self.n_storage > 0:
             raise BackendError("storages_info method is not implemented yet there is batteries on the grid.")
 
+    def storage_deact_for_backward_comaptibility(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This function is called under a very specific condition: an old environment has been loaded that
+        do not take into account the storage units, even though they were possibly some modeled by the backend.
+
+        This function is supposed to "remove" from the backend any reference to the storage units.
+
+        Overloading this function is not necessary (when developing a new backend). If it is not overloaded however,
+        some "backward compatibility" (for grid2op <= 1.4.0) might not be working properly depending on
+        your backend.
+        """
+        pass
+
     def check_kirchoff(self):
         """
         INTERNAL

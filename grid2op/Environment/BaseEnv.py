@@ -459,7 +459,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _has_been_initialized(self):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
-        self.__class__ = self.init_grid(self.backend)  # create the proper environment class for this specific environment
+        bk_type = type(self.backend)  # be carefull here: you need to initialize from the class, and not from the object
+        self.__class__ = self.init_grid(bk_type)  # create the proper environment class for this specific environment
         if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
             raise EnvironmentError("Environment has not been initialized properly")
         self._backend_action_class = _BackendAction.init_grid(self.backend)
@@ -1520,9 +1521,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 curtailment_act = 1.0 * action._curtail
                 ind_curtailed_in_act = (curtailment_act != -1.) & self.gen_renewable
                 self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
-                # print(f"self._limit_curtailment[1] : {self._limit_curtailment[1]}")
                 self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
-                # print(f"self._limit_curtailment: {self._limit_curtailment}")
                 gen_curtailed = self._limit_curtailment != 1.  # curtailed either right now, or in a previous action
                 max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
                 self._gen_before_curtailment[:] = new_p
@@ -1621,6 +1620,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack, attack_duration = self._oppSpace.attack(observation=self.current_obs,
                                                             agent_action=action,
                                                             env_action=self._env_modification)
+
             if attack is not None:
                 # the opponent choose to attack
                 # i update the "cooldown" on these things

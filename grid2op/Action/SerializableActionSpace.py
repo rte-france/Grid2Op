@@ -60,8 +60,6 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         SerializableSpace.__init__(self, gridobj=gridobj, subtype=actionClass, _init_grid=_init_grid)
-
-        # self.actionClass = actionClass.init_grid(gridobj)
         self.actionClass = self.subtype
         self._template_act = self.actionClass()
 

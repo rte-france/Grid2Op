@@ -1450,8 +1450,9 @@ class GridObjects:
         if np.sum(self.sub_info) != self.n_load + self.n_gen + 2*self.n_line + self.n_storage:
             err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
             err_msg += "{} elements connected to all substations and the number of load, generators and lines in " \
-                       "the _grid."
-            err_msg = err_msg.format(np.sum(self.sub_info))
+                       "the _grid ({})."
+            err_msg = err_msg.format(np.sum(self.sub_info),
+                                     self.n_load + self.n_gen + 2*self.n_line + self.n_storage)
             raise IncorrectNumberOfElements(err_msg)
 
         if len(self.name_load) != self.n_load:
@@ -1528,8 +1529,6 @@ class GridObjects:
                                      self.line_ex_pos_topo_vect.flatten(),
                                      self.storage_pos_topo_vect.flatten()))
         if len(np.unique(concat_topo)) != np.sum(self.sub_info):
-            import pdb
-            pdb.set_trace()
             raise EnvError("2 different objects would have the same id in the topology vector, or there would be"
                            "an empty component in this vector.")
 
@@ -2563,21 +2562,25 @@ class GridObjects:
         -------
 
         """
-        cls.n_storage = 0
-        cls.name_storage = np.array([], dtype=str)
-        cls.storage_to_subid = np.array([], dtype=dt_int)
-        cls.storage_pos_topo_vect = np.array([], dtype=dt_int)
-        cls.storage_to_sub_pos = np.array([], dtype=dt_int)
+        GridObjects.deactivate_storage(cls)
 
-        cls.storage_type = np.array([], dtype=str)
-        cls.storage_Emax = np.array([], dtype=dt_float)
-        cls.storage_Emin = np.array([], dtype=dt_float)
-        cls.storage_max_p_prod = np.array([], dtype=dt_float)
-        cls.storage_max_p_absorb = np.array([], dtype=dt_float)
-        cls.storage_marginal_cost = np.array([], dtype=dt_float)
-        cls.storage_loss = np.array([], dtype=dt_float)
-        cls.storage_charging_efficiency = np.array([], dtype=dt_float)
-        cls.storage_discharging_efficiency = np.array([], dtype=dt_float)
+    @staticmethod
+    def deactivate_storage(obj):
+        obj.n_storage = 0
+        obj.name_storage = np.array([], dtype=str)
+        obj.storage_to_subid = np.array([], dtype=dt_int)
+        obj.storage_pos_topo_vect = np.array([], dtype=dt_int)
+        obj.storage_to_sub_pos = np.array([], dtype=dt_int)
+
+        obj.storage_type = np.array([], dtype=str)
+        obj.storage_Emax = np.array([], dtype=dt_float)
+        obj.storage_Emin = np.array([], dtype=dt_float)
+        obj.storage_max_p_prod = np.array([], dtype=dt_float)
+        obj.storage_max_p_absorb = np.array([], dtype=dt_float)
+        obj.storage_marginal_cost = np.array([], dtype=dt_float)
+        obj.storage_loss = np.array([], dtype=dt_float)
+        obj.storage_charging_efficiency = np.array([], dtype=dt_float)
+        obj.storage_discharging_efficiency = np.array([], dtype=dt_float)
 
     @classmethod
     def same_grid_class(cls, other_cls) -> bool:
