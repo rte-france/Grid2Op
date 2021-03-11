@@ -93,7 +93,7 @@ class TestNotebook(unittest.TestCase):
         with open(notebook_filename) as f:
             nb = nbformat.read(f, as_version=4)
         try:
-            ep = ExecutePreprocessor(timeout=600, store_widget_state=True)
+            ep = ExecutePreprocessor(timeout=60, store_widget_state=True)
             try:
                 ep.preprocess(nb, {'metadata': {'path': NOTEBOOK_PATHS}})
             except CellExecutionError as exc_:
