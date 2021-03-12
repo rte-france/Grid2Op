@@ -364,6 +364,15 @@ class PandaPowerBackend(Backend):
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)
 
+        # "hack" to handle topological changes, for now only 2 buses per substation
+        add_topo = copy.deepcopy(self._grid.bus)
+        add_topo.index += add_topo.shape[0]
+        add_topo["in_service"] = False
+        self._grid.bus = pd.concat((self._grid.bus, add_topo))
+
+        self._init_private_attrs()
+
+    def _init_private_attrs(self):
         #  number of elements per substation
         self.sub_info = np.zeros(self.n_sub, dtype=dt_int)
 
@@ -377,17 +386,12 @@ class PandaPowerBackend(Backend):
         self.line_or_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
         self.line_ex_to_sub_pos = np.zeros(self.n_line, dtype=dt_int)
 
-        if need_init_storage:
+        if self.n_storage > 0:
             self.storage_to_subid = np.zeros(self.n_storage, dtype=dt_int)
             self.storage_to_sub_pos = np.zeros(self.n_storage, dtype=dt_int)
 
         pos_already_used = np.zeros(self.n_sub, dtype=dt_int)
         self._what_object_where = [[] for _ in range(self.n_sub)]
-
-        # self._grid.line.sort_index(inplace=True)
-        # self._grid.trafo.sort_index(inplace=True)
-        # self._grid.gen.sort_index(inplace=True)
-        # self._grid.load.sort_index(inplace=True)
 
         for i, (_, row) in enumerate(self._grid.line.iterrows()):
             sub_or_id = int(row["from_bus"])
@@ -441,7 +445,7 @@ class PandaPowerBackend(Backend):
 
             self._what_object_where[sub_id].append(("load", "bus", i))
 
-        if need_init_storage:
+        if self.n_storage > 0:
             for i, (_, row) in enumerate(self._grid.storage.iterrows()):
                 sub_id = int(row["bus"])
                 self.sub_info[sub_id] += 1
@@ -458,16 +462,10 @@ class PandaPowerBackend(Backend):
         self._corresp_name_fun = {}
 
         self._get_vector_inj = {}
-        self._get_vector_inj["load_p"] = self._load_grid_load_p_mw #lambda grid: grid.load["p_mw"]
-        self._get_vector_inj["load_q"] = self._load_grid_load_q_mvar #lambda grid: grid.load["q_mvar"]
-        self._get_vector_inj["prod_p"] = self._load_grid_gen_p_mw #lambda grid: grid.gen["p_mw"]
-        self._get_vector_inj["prod_v"] = self._load_grid_gen_vm_pu #lambda grid: grid.gen["vm_pu"]
-
-        # "hack" to handle topological changes, for now only 2 buses per substation
-        add_topo = copy.deepcopy(self._grid.bus)
-        add_topo.index += add_topo.shape[0]
-        add_topo["in_service"] = False
-        self._grid.bus = pd.concat((self._grid.bus, add_topo))
+        self._get_vector_inj["load_p"] = self._load_grid_load_p_mw  # lambda grid: grid.load["p_mw"]
+        self._get_vector_inj["load_q"] = self._load_grid_load_q_mvar  # lambda grid: grid.load["q_mvar"]
+        self._get_vector_inj["prod_p"] = self._load_grid_gen_p_mw  # lambda grid: grid.gen["p_mw"]
+        self._get_vector_inj["prod_v"] = self._load_grid_gen_vm_pu  # lambda grid: grid.gen["vm_pu"]
 
         self.load_pu_to_kv = self._grid.bus["vn_kv"][self.load_to_subid].values.astype(dt_float)
         self.prod_pu_to_kv = self._grid.bus["vn_kv"][self.gen_to_subid].values.astype(dt_float)
@@ -544,14 +542,16 @@ class PandaPowerBackend(Backend):
                 self._big_topo_to_backend[pos_big_topo] = (l_id, l_id - self.__nb_powerline, 5)
 
         self._topo_vect = self._get_topo_vect()
-        # Create a deep copy of itself in the initial state
-        pp_backend_initial_state = copy.deepcopy(self)
-
         self.tol = 1e-5  # this is NOT the pandapower tolerance !!!! this is used to check if a storage unit
         # produce / absorbs anything
 
+        # Create a deep copy of itself in the initial state
+        pp_backend_initial_state = copy.deepcopy(self)
         # Store it under super private attribute
         self.__pp_backend_initial_state = pp_backend_initial_state
+
+    def storage_deact_for_backward_comaptibility(self):
+        self._init_private_attrs()
 
     def _convert_id_topo(self, id_big_topo):
         """
@@ -979,14 +979,16 @@ class PandaPowerBackend(Backend):
             res[self.load_pos_topo_vect[i]] = 1 if bus_id == self.load_to_subid[i] else 2
             i += 1
 
-        i = 0
-        for bus_id in self._grid.storage["bus"].values:
-            status = self._grid.storage["in_service"].values[i]
-            if status:
-                res[self.storage_pos_topo_vect[i]] = 1 if bus_id == self.storage_to_subid[i] else 2
-            else:
-                res[self.storage_pos_topo_vect[i]] = -1
-            i += 1
+        if self.n_storage:
+            # storage can be deactivated by the environment for backward compatibility
+            i = 0
+            for bus_id in self._grid.storage["bus"].values:
+                status = self._grid.storage["in_service"].values[i]
+                if status:
+                    res[self.storage_pos_topo_vect[i]] = 1 if bus_id == self.storage_to_subid[i] else 2
+                else:
+                    res[self.storage_pos_topo_vect[i]] = -1
+                i += 1
 
         return res
 
@@ -1035,9 +1037,16 @@ class PandaPowerBackend(Backend):
         return self.cst_1 * self.storage_p, self.cst_1 * self.storage_q, self.cst_1 * self.storage_v
 
     def _storages_info(self):
-        p_storage = self._grid.res_storage["p_mw"].values.astype(dt_float)
-        q_storage = self._grid.res_storage["q_mvar"].values.astype(dt_float)
-        v_storage = self._grid.res_bus.loc[self._grid.storage["bus"].values]["vm_pu"].values.astype(dt_float) * self.storage_pu_to_kv
+        if self.n_storage:
+            # this is because we support "backward comaptibility" feature. So the storage can be
+            # deactivated from the Environment...
+            p_storage = self._grid.res_storage["p_mw"].values.astype(dt_float)
+            q_storage = self._grid.res_storage["q_mvar"].values.astype(dt_float)
+            v_storage = self._grid.res_bus.loc[self._grid.storage["bus"].values]["vm_pu"].values.astype(dt_float) * self.storage_pu_to_kv
+        else:
+            p_storage = np.zeros(shape=0, dtype=dt_float)
+            q_storage = np.zeros(shape=0, dtype=dt_float)
+            v_storage = np.zeros(shape=0, dtype=dt_float)
         return p_storage, q_storage, v_storage
 
     def sub_from_bus_id(self, bus_id):

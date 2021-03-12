@@ -83,6 +83,15 @@ class CompleteObservation(BaseObservation):
             [:attr:`grid2op.Space.GridObjects.n_storage` elements]
         33. :attr:`BaseObservation.storage_power` the realized production / consumption of each storage unit
             [:attr:`grid2op.Space.GridObjects.n_storage` elements]
+        34. :attr:`BaseObservation.gen_p_before_curtail` : the theoretical generation that would have happened
+            if no generator from renewable energy sources have been performed
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        35. :attr:`BaseObservation.gen_p_before_curtail` : the theoretical generation that would have happened
+            if no generator from renewable energy sources have been performed (in MW)
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        35. :attr:`BaseObservation.curtailment` : the current curtailment applied
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+
     """
     attr_list_vect = [
         "year", "month", "day", "hour_of_day",
@@ -97,7 +106,9 @@ class CompleteObservation(BaseObservation):
         "time_before_cooldown_line", "time_before_cooldown_sub",
         "time_next_maintenance", "duration_next_maintenance",
         "target_dispatch", "actual_dispatch",
-        "storage_charge", "storage_power_target", "storage_power"
+        # TODO: backward compatibility
+        "storage_charge", "storage_power_target", "storage_power",
+        "gen_p_before_curtail", "curtailment"
     ]
     attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
     attr_list_set = set(attr_list_vect)
@@ -178,3 +189,6 @@ class CompleteObservation(BaseObservation):
             self._shunt_bus[:] = sh_bus
 
         self._thermal_limit[:] = env.get_thermal_limit()
+
+        self.gen_p_before_curtail[:] = env._gen_before_curtailment
+        self.curtailment[:] = env._limit_curtailment

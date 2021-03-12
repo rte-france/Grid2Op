@@ -276,6 +276,19 @@ test_filter_act.py
 speed_up_multiproc.ods
 test_issue_169.py
 cut_data.py
+getting_started/Dev_Curtailment.ipynb
+grid2op/tests/dict_action_space.json
+grid2op/tests/dict_attack_space.json
+grid2op/tests/dict_env_modification_space.json
+grid2op/tests/dict_observation_space.json
+grid2op/tests/test_before_push
+getting_started/saved_agent2_DDDQN_75/
+getting_started/saved_agent2_DDDQN_75_results/
+getting_started/saved_agent_DDDQN_50/
+getting_started/saved_agent_DDDQN_50_results/
+getting_started/saved_agent_DDDQN_BDA_60/
+getting_started/saved_agent_DDDQN_BDA_60_results/
+getting_started/path_agents/awesome_agent_logs/000/episode.gif
 
 # profiling files
 **.prof

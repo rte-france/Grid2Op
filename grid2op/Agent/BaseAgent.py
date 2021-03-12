@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import copy
+
 from abc import ABC, abstractmethod
 from grid2op.Space import RandomObject
 
@@ -27,7 +29,7 @@ class BaseAgent(RandomObject, ABC):
     """
     def __init__(self, action_space):
         RandomObject.__init__(self)
-        self.action_space = action_space
+        self.action_space = copy.deepcopy(action_space)
 
     def reset(self, obs):
         """
@@ -64,7 +66,7 @@ class BaseAgent(RandomObject, ABC):
             a tuple of seed used
         """
 
-        return super().seed(seed)
+        return super().seed(seed), self.action_space.seed(seed)
 
     @abstractmethod
     def act(self, observation, reward, done=False):

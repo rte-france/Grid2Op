@@ -18,8 +18,10 @@ to manipulate.
 
 """
 import warnings
+import grid2op
 import numpy as np
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
@@ -417,6 +419,8 @@ class GridObjects:
 
     # TODO specify the unit of redispatching data MWh, $/MW etc.
     """
+    BEFORE_COMPAT_VERSION = "neurips_2020_compat"
+    glop_version = grid2op.__version__
 
     SUB_COL = 0
     LOA_COL = 1
@@ -498,6 +502,7 @@ class GridObjects:
     gen_cost_per_MW = None  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
     gen_startup_cost = None  # start cost (in currency)
     gen_shutdown_cost = None  # shutdown cost (in currency)
+    gen_renewable = None
 
     # storage unit static data
     storage_type = None
@@ -840,15 +845,15 @@ class GridObjects:
 
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements("Incorrect number of elements found while load a GridObjects "
-                                            "from a vector. Found {} elements instead of {}".format(
-                vect.shape[0], self.size()))
+                                            "from a vector. Found {} elements instead of {}"
+                                            "".format(vect.shape[0], self.size()))
 
         try:
             vect = np.array(vect).astype(dt_float)
         except Exception as exc_:
             raise EnvError("Impossible to convert the input vector to a floating point numpy array "
-                                            "with error:\n"
-                                            "\"{}\".".format(exc_))
+                           "with error:\n"
+                           "\"{}\".".format(exc_))
 
         self._raise_error_attr_list_none()
         prev_ = 0
@@ -1010,8 +1015,9 @@ class GridObjects:
             try:
                 self.line_ex_to_subid = np.array(self.line_ex_to_subid)
                 self.line_ex_to_subid = self.line_ex_to_subid.astype(dt_int)
-            except Exception as e:
-                raise EnvError("self.line_ex_to_subid should be convertible to a numpy array")
+            except Exception as exc_:
+                raise EnvError("self.line_ex_to_subid should be convertible to a numpy array"
+                               f"It fails with error \"{exc_}\"")
 
         if not isinstance(self.storage_to_subid, np.ndarray):
             try:
@@ -1444,8 +1450,9 @@ class GridObjects:
         if np.sum(self.sub_info) != self.n_load + self.n_gen + 2*self.n_line + self.n_storage:
             err_msg = "The number of elements of elements is not consistent between self.sub_info where there are "
             err_msg += "{} elements connected to all substations and the number of load, generators and lines in " \
-                       "the _grid."
-            err_msg = err_msg.format(np.sum(self.sub_info))
+                       "the _grid ({})."
+            err_msg = err_msg.format(np.sum(self.sub_info),
+                                     self.n_load + self.n_gen + 2*self.n_line + self.n_storage)
             raise IncorrectNumberOfElements(err_msg)
 
         if len(self.name_load) != self.n_load:
@@ -1522,8 +1529,6 @@ class GridObjects:
                                      self.line_ex_pos_topo_vect.flatten(),
                                      self.storage_pos_topo_vect.flatten()))
         if len(np.unique(concat_topo)) != np.sum(self.sub_info):
-            import pdb
-            pdb.set_trace()
             raise EnvError("2 different objects would have the same id in the topology vector, or there would be"
                            "an empty component in this vector.")
 
@@ -1731,6 +1736,10 @@ class GridObjects:
         if self.gen_shutdown_cost is None:
             raise InvalidRedispatching("Impossible to recognize the shut down cost of generators "
                                        "(gen_shutdown_cost) when redispatching is supposed to be available.")
+        if self.gen_renewable is None:
+            raise InvalidRedispatching("Impossible to recognize the whether generators comes from renewable energy "
+                                       "sources "
+                                       "(gen_renewable) when redispatching is supposed to be available.")
 
         if len(self.gen_type) != self.n_gen:
             raise InvalidRedispatching("Invalid length for the type of generators (gen_type) when "
@@ -1765,6 +1774,9 @@ class GridObjects:
         if len(self.gen_shutdown_cost) != self.n_gen:
             raise InvalidRedispatching("Invalid length for the shut down cost of generators "
                                        "(gen_shutdown_cost) when redispatching is supposed to be available.")
+        if len(self.gen_renewable) != self.n_gen:
+            raise InvalidRedispatching("Invalid length for the renewable flag vector"
+                                       "(gen_renewable) when redispatching is supposed to be available.")
 
         if np.any(self.gen_min_uptime < 0):
             raise InvalidRedispatching("Minimum uptime of generator (gen_min_uptime) cannot be negative")
@@ -1790,21 +1802,22 @@ class GridObjects:
 
         for el, type_ in zip(["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
                               "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                              "gen_startup_cost", "gen_shutdown_cost"],
+                              "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"],
                              [str, dt_float, dt_float, dt_bool, dt_float,
                               dt_float, dt_int, dt_int, dt_float,
-                              dt_float, dt_float]):
+                              dt_float, dt_float, dt_bool]):
             if not isinstance(getattr(self, el), np.ndarray):
                 try:
                     setattr(self, el, getattr(self, el).astype(type_))
-                except Exception as e:
-                    raise InvalidRedispatching("{} should be convertible to a numpy array".format(el))
+                except Exception as exc_:
+                    raise InvalidRedispatching("{} should be convertible to a numpy array with error:\n \"{}\""
+                                               "".format(el, exc_))
             if not np.issubdtype(getattr(self, el).dtype, np.dtype(type_).type):
                 try:
                     setattr(self, el, getattr(self, el).astype(type_))
-                except Exception as e:
+                except Exception as exc_:
                     raise InvalidRedispatching("{} should be convertible data should be convertible to "
-                                               "{}".format(el, type_))
+                                               "{} with error: \n\"{}\"".format(el, type_, exc_))
         if np.any(self.gen_max_ramp_up[self.gen_redispatchable] > self.gen_pmax[self.gen_redispatchable]):
             raise InvalidRedispatching("Invalid maximum ramp for some generator (above pmax)")
 
@@ -1865,6 +1878,8 @@ class GridObjects:
         """
         # nothing to do now that the value are class member
         name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
+        if gridobj.glop_version != grid2op.__version__:
+            name_res += f"_{gridobj.glop_version}"
         if name_res in globals():
             if not force:
                 # no need to recreate the class, it already exists
@@ -1875,6 +1890,7 @@ class GridObjects:
 
         class res(cls):
             pass
+        res.glop_version = gridobj.glop_version
 
         res.name_gen = gridobj.name_gen
         res.name_load = gridobj.name_load
@@ -1928,6 +1944,7 @@ class GridObjects:
         res.gen_startup_cost = gridobj.gen_startup_cost
         res.gen_shutdown_cost = gridobj.gen_shutdown_cost
         res.redispatching_unit_commitment_availble = gridobj.redispatching_unit_commitment_availble
+        res.gen_renewable = gridobj.gen_renewable
 
         # grid layout (not available for all environment
         res.grid_layout = gridobj.grid_layout
@@ -1952,8 +1969,21 @@ class GridObjects:
 
         res.__name__ = name_res
         res.__qualname__ = "{}_{}".format(cls.__qualname__, gridobj.env_name)
+
+        if res.glop_version != grid2op.__version__:
+            res.process_grid2op_compat()
+
         globals()[name_res] = res
         return res
+
+    @classmethod
+    def process_grid2op_compat(cls):
+        """
+        This function can be overloaded.
+
+        This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
+        """
+        pass
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):
         """
@@ -2342,6 +2372,7 @@ class GridObjects:
             The representation of the object as a dictionary that can be json serializable.
         """
         res = {}
+        save_to_dict(res, cls, "glop_version", str)
         save_to_dict(res, cls, "name_gen", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_load", lambda li: [str(el) for el in li])
         save_to_dict(res, cls, "name_line", lambda li: [str(el) for el in li])
@@ -2401,7 +2432,6 @@ class GridObjects:
         save_to_dict(res, cls, "storage_loss", lambda li: [float(el) for el in li])
         save_to_dict(res, cls, "storage_charging_efficiency", lambda li: [float(el) for el in li])
         save_to_dict(res, cls, "storage_discharging_efficiency", lambda li: [float(el) for el in li])
-
         return res
 
     @staticmethod
@@ -2428,14 +2458,21 @@ class GridObjects:
             The object of the proper class that were initially represented as a dictionary.
 
         """
+        class res(GridObjects):
+            pass
 
-        cls = GridObjects
+        cls = res
+        if "glop_version" in dict_:
+            cls.glop_version = dict_["glop_version"]
+        else:
+            cls.glop_version = cls.BEFORE_COMPAT_VERSION
+
         cls.name_gen = extract_from_dict(dict_, "name_gen", lambda x: np.array(x).astype(str))
         cls.name_load = extract_from_dict(dict_, "name_load", lambda x: np.array(x).astype(str))
         cls.name_line = extract_from_dict(dict_, "name_line", lambda x: np.array(x).astype(str))
         cls.name_sub = extract_from_dict(dict_, "name_sub", lambda x: np.array(x).astype(str))
         if "env_name" in dict_:
-             # new saved in version >= 1.2.4
+            # new saved in version >= 1.3.0
             cls.env_name = str(dict_["env_name"])
         else:
             # environment name was not stored, this make the task to retrieve this impossible
@@ -2508,10 +2545,17 @@ class GridObjects:
             # backward compatibility: no storage were supported
             cls.set_no_storage()
 
+        if cls.glop_version != grid2op.__version__:
+            # change name of the environment, this is done in Environment.py for regular environment
+            # see `self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")`
+            # cls.set_env_name(f"{cls.env_name}_{cls.glop_version}")
+            # and now post process the class attributes for that
+            cls.process_grid2op_compat()
+
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo()
-        cls.init_grid(obj_, force=True)
+        cls = cls.init_grid(obj_, force=True)
         return cls()
 
     @classmethod
@@ -2523,21 +2567,25 @@ class GridObjects:
         -------
 
         """
-        cls.n_storage = 0
-        cls.name_storage = np.array([], dtype=str)
-        cls.storage_to_subid = np.array([], dtype=dt_int)
-        cls.storage_pos_topo_vect = np.array([], dtype=dt_int)
-        cls.storage_to_sub_pos = np.array([], dtype=dt_int)
+        GridObjects.deactivate_storage(cls)
 
-        cls.storage_type = np.array([], dtype=str)
-        cls.storage_Emax = np.array([], dtype=dt_float)
-        cls.storage_Emin = np.array([], dtype=dt_float)
-        cls.storage_max_p_prod = np.array([], dtype=dt_float)
-        cls.storage_max_p_absorb = np.array([], dtype=dt_float)
-        cls.storage_marginal_cost = np.array([], dtype=dt_float)
-        cls.storage_loss = np.array([], dtype=dt_float)
-        cls.storage_charging_efficiency = np.array([], dtype=dt_float)
-        cls.storage_discharging_efficiency = np.array([], dtype=dt_float)
+    @staticmethod
+    def deactivate_storage(obj):
+        obj.n_storage = 0
+        obj.name_storage = np.array([], dtype=str)
+        obj.storage_to_subid = np.array([], dtype=dt_int)
+        obj.storage_pos_topo_vect = np.array([], dtype=dt_int)
+        obj.storage_to_sub_pos = np.array([], dtype=dt_int)
+
+        obj.storage_type = np.array([], dtype=str)
+        obj.storage_Emax = np.array([], dtype=dt_float)
+        obj.storage_Emin = np.array([], dtype=dt_float)
+        obj.storage_max_p_prod = np.array([], dtype=dt_float)
+        obj.storage_max_p_absorb = np.array([], dtype=dt_float)
+        obj.storage_marginal_cost = np.array([], dtype=dt_float)
+        obj.storage_loss = np.array([], dtype=dt_float)
+        obj.storage_charging_efficiency = np.array([], dtype=dt_float)
+        obj.storage_discharging_efficiency = np.array([], dtype=dt_float)
 
     @classmethod
     def same_grid_class(cls, other_cls) -> bool:

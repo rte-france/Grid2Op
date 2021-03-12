@@ -192,14 +192,21 @@ def _aux_is_multimix(dataset_path):
     return False
 
 
-def _aux_make_multimix(dataset_path, **kwargs):
+def _aux_make_multimix(dataset_path, test=False, _add_to_name="", _compat_glop_version=None, **kwargs):
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
+    return MultiMixEnvironment(dataset_path,
+                               _test=test,
+                               _add_to_name=_add_to_name,
+                               _compat_glop_version=_compat_glop_version,
+                               **kwargs)
 
-    return MultiMixEnvironment(dataset_path, **kwargs)
 
-
-def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
+def make(dataset="rte_case14_realistic",
+         test=False,
+         _add_to_name="",
+         _compat_glop_version=None,
+         **kwargs):
     """
     This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.
 
@@ -222,7 +229,10 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
         the Parameters information of the :func:`make_from_dataset_path`.
 
     _add_to_name:
-        Internal, do not use
+        Internal, do not use (and can only be used when setting "test=True")
+
+    _compat_glop_version:
+        Internal, do not use (and can only be used when setting "test=True")
 
     Returns
     -------
@@ -245,6 +255,7 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
     downloaded from the internet, sizes vary per dataset.
 
     """
+
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
@@ -257,10 +268,29 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
 
     # dataset arg is a valid path: load it
     if os.path.exists(dataset):
+        # check if its a test environment
+        if test:
+            _add_to_name_tmp = _add_to_name
+            _compat_glop_version_tmp = _compat_glop_version
+            test_tmp = True
+        else:
+            _add_to_name_tmp = ""
+            _compat_glop_version_tmp = None
+            test_tmp = False
+
         # Check if multimix from path
-        if _aux_is_multimix(dataset):
+        if _aux_is_multimix(dataset) and not test_tmp:
             make_from_path_fn = _aux_make_multimix
-        return make_from_path_fn(dataset_path=dataset, **kwargs)
+        elif _aux_is_multimix(dataset) and test_tmp:
+            def make_from_path_fn_(*args, **kwargs):
+                return _aux_make_multimix(*args, test=True, **kwargs)
+
+            make_from_path_fn = make_from_path_fn_
+
+        return make_from_path_fn(dataset_path=dataset,
+                                 _add_to_name=_add_to_name_tmp,
+                                 _compat_glop_version=_compat_glop_version_tmp,
+                                 **kwargs)
 
     # Not a path: get the dataset name and cache path
     dataset_name = _extract_ds_name(dataset)
@@ -279,9 +309,15 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
         ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
-            make_from_path_fn = _aux_make_multimix
+            def make_from_path_fn_(*args, **kwargs):
+                return _aux_make_multimix(*args, test=True, **kwargs)
 
-        return make_from_path_fn(dataset_path=ds_path, _add_to_name=_add_to_name, **kwargs)
+            make_from_path_fn = make_from_path_fn_
+
+        return make_from_path_fn(dataset_path=ds_path,
+                                 _add_to_name=_add_to_name,
+                                 _compat_glop_version=_compat_glop_version,
+                                 **kwargs)
 
     # Env directory is present in the DEFAULT_PATH_DATA
     if os.path.exists(real_ds_path):

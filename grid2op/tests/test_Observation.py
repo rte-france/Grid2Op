@@ -13,6 +13,7 @@ import pdb
 
 from grid2op.tests.helper_path_test import *
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import *
 from grid2op.Observation import ObservationSpace, CompleteObservation
@@ -57,6 +58,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                       'name_sub': ['sub_0', 'sub_1', 'sub_10', 'sub_11', 'sub_12', 'sub_13', 'sub_2', 'sub_3',
                                    'sub_4', 'sub_5', 'sub_6', 'sub_7', 'sub_8', 'sub_9'],
                       'name_storage': [],
+                      'glop_version': grid2op.__version__,
                       'env_name': 'rte_case14_test',
                       'sub_info': [3, 6, 4, 6, 5, 6, 3, 2, 5, 3, 3, 3, 4, 3],
                       'load_to_subid': [1, 2, 13, 3, 4, 5, 8, 9, 10, 11, 12],
@@ -185,7 +187,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          '_shunt_bus': [1],
                          'storage_charge': [],
                          'storage_power_target': [],
-                         'storage_power': []
+                         'storage_power': [],
+                         "gen_p_before_curtail": [0.0, 0.0, 0.0, 0.0, 0.0],
+                         "curtailment": [1.0, 1.0, 1.0, 1.0, 1.0]
                          }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
@@ -196,7 +200,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 dt_float, dt_bool, dt_int, dt_int,
                                 dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
-                                dt_float, dt_float, dt_float
+                                dt_float, dt_float, dt_float,
+                                # curtailment
+                                dt_float, dt_float
                                 ],
                                dtype=object)
 
@@ -204,8 +210,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                  20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5, 0, 0, 0])
-        self.size_obs = 414
+                                 5, 5, 0, 0, 0, 5, 5])
+        self.size_obs = 424
 
     def tearDown(self):
         self.env.close()
@@ -1262,7 +1268,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(change_act)
         self.step_obs, _, _, _ = self.env.step(change_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_set_bus(self):
         # Increment buses from current topology
@@ -1478,7 +1486,6 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
         if self.sim_obs != self.step_obs:
-            pdb.set_trace()
             diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
             raise AssertionError(f"Following attributes are different: {attr_diff}")
 

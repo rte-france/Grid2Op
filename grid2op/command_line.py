@@ -14,22 +14,23 @@ import unittest
 from grid2op.main import main_cli as mainEntryPoint
 from grid2op.Download.download import main as downloadEntryPoint
 __LI_FILENAME_TESTS = ['test_Action.py',
-                       "test_Action_iadd.py",
+                       # "test_Action_iadd.py",
                        "test_ActionProperties.py",
                        "test_Observation.py",
-                       "test_Agent.py",
+                       "test_AgentsFast.py",
+                       "test_RunnerFast.py",
                        "test_attached_envs.py",
                        # "test_GymConverter.py",  # requires gym
-                       "test_Reward.py",
-                       "test_issue_126.py",
-                       "test_issue_131.py",
-                       "test_issue_140.py",
-                       "test_issue_146.py",
-                       "test_issue_147.py",
-                       # "test_issue_148.py",  # requires additional data
-                       "test_issue_151.py",
-                       "test_issue_153.py",
-                       "test_issue_164.py",
+                       # "test_Reward.py",
+                       # "test_issue_126.py",
+                       # "test_issue_131.py",
+                       # "test_issue_140.py",
+                       # "test_issue_146.py",
+                       # "test_issue_147.py",
+                       # # "test_issue_148.py",  # requires additional data
+                       # "test_issue_151.py",
+                       # "test_issue_153.py",
+                       # "test_issue_164.py",
                        ]
 
 
@@ -52,7 +53,11 @@ def replay():
 
 
 def testinstall():
-    """performs all the tests that do not depends on other data than usually installed with grid2op"""
+    """
+    Performs aperforms basic tests to make sure grid2op is properly installed and working.
+
+    It's not because these tests pass that grid2op will be fully functional however.
+    """
     test_loader = unittest.TestLoader()
     this_directory = os.path.abspath(os.path.dirname(__file__))
     test_suite = test_loader.discover(os.path.join(this_directory, 'tests'),

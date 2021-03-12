@@ -191,7 +191,10 @@ class BaseObservation(GridObjects):
                 "duration_next_maintenance",
                 "target_dispatch", "actual_dispatch",
                 "_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus",
-                "storage_charge", "storage_power_target", "storage_power"
+                # storage
+                "storage_charge", "storage_power_target", "storage_power",
+                # curtailment
+                "gen_p_before_curtail", "curtailment"
                 ]
 
     attr_list_vect = None
@@ -288,6 +291,9 @@ class BaseObservation(GridObjects):
             self._shunt_bus = np.empty(shape=self.n_shunt, dtype=dt_int)
 
         self._thermal_limit = np.empty(shape=self.n_line, dtype=dt_float)
+
+        self.gen_p_before_curtail = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.curtailment = np.empty(shape=self.n_gen, dtype=dt_float)
 
     def state_of(self,
                  _sentinel=None,
@@ -424,7 +430,9 @@ class BaseObservation(GridObjects):
                    "bus": self.topo_vect[self.gen_pos_topo_vect[gen_id]],
                    "sub_id": self.gen_to_subid[gen_id],
                    "target_dispatch": self.target_dispatch[gen_id],
-                   "actual_dispatch": self.target_dispatch[gen_id]
+                   "actual_dispatch": self.target_dispatch[gen_id],
+                   "curtailment": self.curtailment[gen_id],
+                   "p_before_curtail": self.gen_p_before_curtail[gen_id],
                    }
         elif line_id is not None:
             if substation_id is not None or storage_id is not None:
@@ -492,6 +500,29 @@ class BaseObservation(GridObjects):
                    }
 
         return res
+
+
+    @classmethod
+    def process_grid2op_compat(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # oldest version: no storage and no curtailment available
+
+            # this is really important, otherwise things from grid2op base types will be affected
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            # deactivate storage
+            cls.set_no_storage()
+            for el in ["storage_charge", "storage_power_target", "storage_power"]:
+                if el in cls.attr_list_vect:
+                    cls.attr_list_vect.remove(el)
+
+            # remove the curtailment
+            for el in ["gen_p_before_curtail", "curtailment"]:
+                if el in cls.attr_list_vect:
+                    cls.attr_list_vect.remove(el)
+
+            cls.attr_list_set = set(cls.attr_list_vect)
 
     def reset(self):
         """
@@ -616,6 +647,10 @@ class BaseObservation(GridObjects):
         self.storage_charge[:] = 0.
         self.storage_power_target[:] = 0.
         self.storage_power[:] = 0.
+
+        # curtailment
+        self.curtailment[:] = 0.
+        self.gen_p_before_curtail[:] = 0.
 
         # cooldown
         self.time_before_cooldown_line[:] = 99999

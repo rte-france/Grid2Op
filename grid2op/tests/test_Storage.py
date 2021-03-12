@@ -71,9 +71,12 @@ class TestStorageEnv(HelperTests):
         """test a storage action is supported (basic test)"""
         act = self.env.action_space({"set_storage": [(0, 1)]})
         str_ = act.__str__()
-        real_str = 'This action will:\n\t - NOT change anything to the injections\n\t - ' \
-                   'NOT perform any redispatching action\n\t - Modify the storage units in the following way:\n' \
+        real_str = 'This action will:\n' \
+                   '\t - NOT change anything to the injections\n' \
+                   '\t - NOT perform any redispatching action\n' \
+                   '\t - Modify the storage units in the following way:\n' \
                    '\t \t - Ask unit "storage_5_0" to absorb 1.00 MW (setpoint: 1.00 MW)\n' \
+                   '\t - NOT perform any curtailment\n' \
                    '\t - NOT force any line status\n' \
                    '\t - NOT switch any line status\n\t - NOT switch anything in the topology\n' \
                    '\t - NOT force any particular bus configuration'
@@ -600,7 +603,10 @@ class TestStorageEnv(HelperTests):
         param.NB_TIMESTEP_COOLDOWN_LINE = 0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_storage", test=True, action_class=CompleteAction, param=param)
+            env = grid2op.make("educ_case14_storage",
+                               test=True,
+                               action_class=CompleteAction,
+                               param=param)
         self.env.close()
         self.env = env
         obs = self.env.reset()

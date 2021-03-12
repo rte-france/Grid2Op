@@ -62,6 +62,7 @@ class _ObsEnv(BaseEnv):
         self._helper_action_class = helper_action_class
         self._reward_helper = reward_helper
         self._obsClass = None
+        self._obsClass = obsClass.init_grid(type(backend_instanciated))
 
         self.gen_activeprod_t_init = np.zeros(self.n_gen, dtype=dt_float)
         self.gen_activeprod_t_redisp_init = np.zeros(self.n_gen, dtype=dt_float)
@@ -77,7 +78,7 @@ class _ObsEnv(BaseEnv):
                            backend=backend_instanciated,
                            names_chronics_to_backend=None,
                            actionClass=action_helper.actionClass,
-                           observationClass=obsClass,
+                           observationClass=self._obsClass,
                            rewardClass=None,
                            legalActClass=legalActClass)
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
@@ -126,7 +127,6 @@ class _ObsEnv(BaseEnv):
         self.chronics_handler = chronics_handler
         self.backend = backend
         self._has_been_initialized()
-        self._obsClass = observationClass
 
         if not issubclass(legalActClass, BaseRules):
             raise Grid2OpException(

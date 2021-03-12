@@ -8,6 +8,7 @@
 
 import warnings
 import tempfile
+import json
 import pdb
 
 from grid2op.tests.helper_path_test import *
@@ -23,8 +24,8 @@ from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 from grid2op.Agent import RandomAgent
 from grid2op.Episode import EpisodeData
-import json
-import warnings
+from grid2op.Observation import CompleteObservation
+from grid2op.Action import TopologyAction
 warnings.simplefilter("error")
 
 
@@ -68,17 +69,12 @@ class TestRunner(HelperTests):
                              max_iter=self.max_iter,
                              name_env="test_runner_env")
 
-    def test_one_episode(self):
-        _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter)
-        assert int(timestep) == self.max_iter
-        assert np.abs(cum_reward - self.real_reward) <= self.tol_one
-
-    def test_one_episode_detailed(self):
-        _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter, detailed_output=True)
-        assert int(timestep) == self.max_iter
-        assert np.abs(cum_reward - self.real_reward) <= self.tol_one
-        for j in range(len(self.all_real_rewards)):
-            assert np.abs(episode_data.rewards[j] - self.all_real_rewards[j]) <= self.tol_one
+    # def test_one_episode(self):  # tested in the runner fast
+    # def test_one_episode_detailed(self):  # tested in the runner fast
+    # def test_2episode(self):  # tested in the runner fast
+    # def test_init_from_env(self):  # tested in the runner fast
+    # def test_seed_seq(self):  # tested in the runner fast
+    # def test_seed_par(self):  # tested in the runner fast
 
     def test_one_process_par(self):
         with warnings.catch_warnings():
@@ -90,13 +86,6 @@ class TestRunner(HelperTests):
         assert np.abs(el2 - self.real_reward) <= self.tol_one
         assert el3 == 10
         assert el4 == 10
-
-    def test_2episode(self):
-        res = self.runner._run_sequential(nb_episode=2, max_iter=self.max_iter)
-        assert len(res) == 2
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-            assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_2episode_2process(self):
         with warnings.catch_warnings():
@@ -135,39 +124,12 @@ class TestRunner(HelperTests):
             test_.add(name_chron)
         assert len(test_) == nb_episode
 
-    def test_init_from_env(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=1, max_iter=self.max_iter)
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-
     def test_init_from_env_with_other_reward(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True, other_rewards={"test": L2RPNReward}) as env:
                 runner = Runner(**env.get_params_for_runner())
         res = runner.run(nb_episode=1, max_iter=self.max_iter)
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-
-    def test_seed_seq(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=1, max_iter=self.max_iter, env_seeds=[1], agent_seeds=[2])
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-
-    def test_seed_par(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=2, nb_process=2, max_iter=self.max_iter, env_seeds=[1, 2], agent_seeds=[3, 4])
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
 
@@ -239,35 +201,50 @@ class TestRunner(HelperTests):
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 2*self.max_iter
 
-    def _aux_backward(self, base_path, g2op_version):
-        episode_studied = EpisodeData.list_episode(os.path.join(base_path, g2op_version))
+    def _aux_backward(self, base_path, g2op_version_txt, g2op_version):
+        episode_studied = EpisodeData.list_episode(os.path.join(base_path, g2op_version_txt))
         for base_path, episode_path in episode_studied:
+            assert 'curtailment' in CompleteObservation.attr_list_vect, f"error after the legacy version " \
+                                                                        f"{g2op_version}"
             this_episode = EpisodeData.from_disk(base_path, episode_path)
-            with open(os.path.join(os.path.join(base_path, episode_path), "episode_meta.json"), "r",
+            assert 'curtailment' in CompleteObservation.attr_list_vect, f"error after the legacy version " \
+                                                                        f"{g2op_version}"
+            full_episode_path = os.path.join(base_path, episode_path)
+            with open(os.path.join(full_episode_path, "episode_meta.json"), "r",
                       encoding="utf-8") as f:
                 meta_data = json.load(f)
             nb_ts = int(meta_data["nb_timestep_played"])
             try:
                 assert len(this_episode.actions) == nb_ts, f"wrong number of elements for actions for version " \
-                                                           f"{g2op_version}: {len(this_episode.actions)} vs {nb_ts}"
+                                                           f"{g2op_version_txt}: {len(this_episode.actions)} vs {nb_ts}"
                 assert len(this_episode.observations) == nb_ts + 1, f"wrong number of elements for observations " \
-                                                                    f"for version {g2op_version}: " \
+                                                                    f"for version {g2op_version_txt}: " \
                                                                     f"{len(this_episode.observations)} vs {nb_ts}"
                 assert len(this_episode.env_actions) == nb_ts, f"wrong number of elements for env_actions for " \
-                                                               f"version {g2op_version}: " \
+                                                               f"version {g2op_version_txt}: " \
                                                                f"{len(this_episode.env_actions)} vs {nb_ts}"
             except:
-                import pdb
-                pdb.set_trace()
+                raise
+
+            if g2op_version <= "1.4.0":
+                assert EpisodeData.get_grid2op_version(full_episode_path) == "<=1.4.0", \
+                    "wrong grid2op version stored (grid2op version <= 1.4.0)"
+            elif g2op_version == "test_version":
+                assert EpisodeData.get_grid2op_version(full_episode_path) == grid2op.__version__, \
+                    "wrong grid2op version stored (test_version)"
+            else:
+                assert EpisodeData.get_grid2op_version(full_episode_path) == g2op_version, \
+                    "wrong grid2op version stored (>=1.5.0)"
 
     def test_backward_compatibility(self):
         backward_comp_version = ["1.0.0", "1.1.0", "1.1.1", "1.2.0", "1.2.1", "1.2.2", "1.2.3", "1.3.0", "1.3.1",
                                  "1.4.0"]
-        curr_version = "current_version"
+        curr_version = "test_version"
+        assert 'curtailment' in CompleteObservation.attr_list_vect, "error at the beginning"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case5_example", test=True) as env, \
-                 tempfile.TemporaryDirectory() as path:
+                    tempfile.TemporaryDirectory() as path:
                 runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
                 runner.run(nb_episode=2,
                            path_save=os.path.join(path, curr_version),
@@ -276,11 +253,27 @@ class TestRunner(HelperTests):
                            env_seeds=[1, 0],
                            agent_seeds=[42, 69])
                 # check that i can read this data generate for this runner
-                self._aux_backward(path, curr_version)
+                self._aux_backward(path, curr_version, curr_version)
+
+        assert 'curtailment' in CompleteObservation.attr_list_vect, "error after the first runner"
+
+        # check that it raises a warning if loaded on the compatibility version
+        grid2op_version = backward_comp_version[0]
+        with self.assertWarns(UserWarning):
+            self._aux_backward(PATH_PREVIOUS_RUNNER,
+                               f"res_agent_{grid2op_version}",
+                               grid2op_version)
 
         for grid2op_version in backward_comp_version:
             # check that i can read previous data stored from previous grid2Op version
-            self._aux_backward(PATH_PREVIOUS_RUNNER, f"res_agent_{grid2op_version}")
+            # can be loaded properly
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                self._aux_backward(PATH_PREVIOUS_RUNNER,
+                                   f"res_agent_{grid2op_version}",
+                                   grid2op_version)
+            assert 'curtailment' in CompleteObservation.attr_list_vect, f"error after the legacy version " \
+                                                                        f"{grid2op_version}"
 
 
 if __name__ == "__main__":
