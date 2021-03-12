@@ -1268,7 +1268,9 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.sim_obs, _, _, _ = self.obs.simulate(change_act)
         self.step_obs, _, _, _ = self.env.step(change_act)
         # Test observations are the same
-        assert self.sim_obs == self.step_obs
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_set_bus(self):
         # Increment buses from current topology
@@ -1484,7 +1486,6 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self.step_obs, _, _, _ = self.env.step(actions[-1])
         # Test observations are the same
         if self.sim_obs != self.step_obs:
-            pdb.set_trace()
             diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
             raise AssertionError(f"Following attributes are different: {attr_diff}")
 

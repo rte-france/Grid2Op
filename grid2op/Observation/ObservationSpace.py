@@ -88,7 +88,7 @@ class ObservationSpace(SerializableObservationSpace):
         self._backend_obs = env.backend.copy()
         _ObsEnv_class = _ObsEnv.init_grid(type(self._backend_obs))
         self.obs_env = _ObsEnv_class(backend_instanciated=self._backend_obs,
-                                     obsClass=self.observationClass,
+                                     obsClass=observationClass,  # do not put self.observationClass otherwise it's initialized twice
                                      parameters=self._simulate_parameters,
                                      reward_helper=self.reward_helper,
                                      action_helper=self.action_helper_env,

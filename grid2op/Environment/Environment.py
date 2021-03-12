@@ -122,6 +122,8 @@ class Environment(BaseEnv):
         self._init_backend(init_grid_path, chronics_handler, backend,
                            names_chronics_to_backend, actionClass, observationClass,
                            rewardClass, legalActClass)
+        self._actionClass_orig = actionClass
+        self._observationClass_orig = observationClass
 
     def get_path_env(self):
         """
@@ -220,6 +222,7 @@ class Environment(BaseEnv):
         self._rewardClass = rewardClass
         self._actionClass = actionClass.init_grid(gridobj=bk_type)
         self._observationClass = observationClass.init_grid(gridobj=bk_type)
+
         self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
 
         self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
@@ -232,7 +235,7 @@ class Environment(BaseEnv):
                                                             legal_action=self._game_rules.legal_action)
         self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
         self._helper_observation = self._helper_observation_class(gridobj=bk_type,
-                                                                  observationClass=self._observationClass,
+                                                                  observationClass=observationClass,
                                                                   rewardClass=rewardClass,
                                                                   env=self)
 
@@ -1117,8 +1120,8 @@ class Environment(BaseEnv):
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self._parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
-        res["actionClass"] = self._actionClass
-        res["observationClass"] = self._observationClass
+        res["actionClass"] = self._actionClass_orig
+        res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
         res["legalActClass"] = self._legalActClass
         res["envClass"] = Environment
