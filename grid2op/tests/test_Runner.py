@@ -69,17 +69,12 @@ class TestRunner(HelperTests):
                              max_iter=self.max_iter,
                              name_env="test_runner_env")
 
-    def test_one_episode(self):
-        _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter)
-        assert int(timestep) == self.max_iter
-        assert np.abs(cum_reward - self.real_reward) <= self.tol_one
-
-    def test_one_episode_detailed(self):
-        _, cum_reward, timestep, episode_data = self.runner.run_one_episode(max_iter=self.max_iter, detailed_output=True)
-        assert int(timestep) == self.max_iter
-        assert np.abs(cum_reward - self.real_reward) <= self.tol_one
-        for j in range(len(self.all_real_rewards)):
-            assert np.abs(episode_data.rewards[j] - self.all_real_rewards[j]) <= self.tol_one
+    # def test_one_episode(self):  # tested in the runner fast
+    # def test_one_episode_detailed(self):  # tested in the runner fast
+    # def test_2episode(self):  # tested in the runner fast
+    # def test_init_from_env(self):  # tested in the runner fast
+    # def test_seed_seq(self):  # tested in the runner fast
+    # def test_seed_par(self):  # tested in the runner fast
 
     def test_one_process_par(self):
         with warnings.catch_warnings():
@@ -91,13 +86,6 @@ class TestRunner(HelperTests):
         assert np.abs(el2 - self.real_reward) <= self.tol_one
         assert el3 == 10
         assert el4 == 10
-
-    def test_2episode(self):
-        res = self.runner._run_sequential(nb_episode=2, max_iter=self.max_iter)
-        assert len(res) == 2
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-            assert np.abs(cum_reward - self.real_reward) <= self.tol_one
 
     def test_2episode_2process(self):
         with warnings.catch_warnings():
@@ -136,39 +124,12 @@ class TestRunner(HelperTests):
             test_.add(name_chron)
         assert len(test_) == nb_episode
 
-    def test_init_from_env(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=1, max_iter=self.max_iter)
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-
     def test_init_from_env_with_other_reward(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True, other_rewards={"test": L2RPNReward}) as env:
                 runner = Runner(**env.get_params_for_runner())
         res = runner.run(nb_episode=1, max_iter=self.max_iter)
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-
-    def test_seed_seq(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=1, max_iter=self.max_iter, env_seeds=[1], agent_seeds=[2])
-        for i, _, cum_reward, timestep, total_ts in res:
-            assert int(timestep) == self.max_iter
-
-    def test_seed_par(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with make("rte_case14_test", test=True) as env:
-                runner = Runner(**env.get_params_for_runner())
-        res = runner.run(nb_episode=2, nb_process=2, max_iter=self.max_iter, env_seeds=[1, 2], agent_seeds=[3, 4])
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == self.max_iter
 
@@ -280,19 +241,19 @@ class TestRunner(HelperTests):
                                  "1.4.0"]
         curr_version = "test_version"
         assert 'curtailment' in CompleteObservation.attr_list_vect, "error at the beginning"
-        # with warnings.catch_warnings():
-        #     warnings.filterwarnings("ignore")
-        #     with make("rte_case5_example", test=True) as env, \
-        #             tempfile.TemporaryDirectory() as path:
-        #         runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
-        #         runner.run(nb_episode=2,
-        #                    path_save=os.path.join(path, curr_version),
-        #                    pbar=False,
-        #                    max_iter=100,
-        #                    env_seeds=[1, 0],
-        #                    agent_seeds=[42, 69])
-        #         # check that i can read this data generate for this runner
-        #         self._aux_backward(path, curr_version, curr_version)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            with make("rte_case5_example", test=True) as env, \
+                    tempfile.TemporaryDirectory() as path:
+                runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+                runner.run(nb_episode=2,
+                           path_save=os.path.join(path, curr_version),
+                           pbar=False,
+                           max_iter=100,
+                           env_seeds=[1, 0],
+                           agent_seeds=[42, 69])
+                # check that i can read this data generate for this runner
+                self._aux_backward(path, curr_version, curr_version)
 
         assert 'curtailment' in CompleteObservation.attr_list_vect, "error after the first runner"
 

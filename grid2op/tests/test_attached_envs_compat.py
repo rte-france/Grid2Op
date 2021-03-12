@@ -91,6 +91,7 @@ class TestL2RPNNEURIPS2020_Track2Compat(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
+        assert 'curtailment' not in self.env.observation_space.subtype.attr_list_vect, "curtailment should not be there"
         assert self.env.observation_space.n == 3868
 
     def test_random_action(self):
