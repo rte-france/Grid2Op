@@ -1046,7 +1046,7 @@ class BaseAction(GridObjects):
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
         storage_power = self._storage_power
-        curtailment = self._curtail   # TODO curtailment
+        # remark: curtailment is handled by an algorithm in the environment, so don't need to be returned here
         shunts = {}
         if self.shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
@@ -2296,8 +2296,8 @@ class BaseAction(GridObjects):
         line = np.any(lines_impacted)
         redispatching = np.any(self._redispatch != 0.)
         storage = self._modif_storage
-        curtailment = self._modif_curtailment  # TODO curtailment
-        return injection, voltage, topology, line, redispatching, storage
+        curtailment = self._modif_curtailment
+        return injection, voltage, topology, line, redispatching, storage, curtailment
 
     def _aux_effect_on_load(self, load_id):
         if load_id >= self.n_load:

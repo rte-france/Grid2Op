@@ -1978,6 +1978,11 @@ class GridObjects:
 
     @classmethod
     def process_grid2op_compat(cls):
+        """
+        This function can be overloaded.
+
+        This is called when the class is initialized, with `init_grid` to broadcast grid2op compatibility feature.
+        """
         pass
 
     def get_obj_connect_to(self, _sentinel=None, substation_id=None):

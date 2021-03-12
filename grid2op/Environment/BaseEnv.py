@@ -1387,8 +1387,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         max_total_up = np.sum(th_max - new_p[self.gen_redispatchable])
         max_total_down = np.sum(th_min - new_p[self.gen_redispatchable])  # TODO is that it ?
-        # import pdb
-        # pdb.set_trace()
         return max_total_down, max_total_up
 
     def step(self, action):
@@ -1520,7 +1518,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # max_total_down, max_total_up = self._compute_max_ramp_this_step(new_p)
                 curtailment_act = 1.0 * action._curtail
                 ind_curtailed_in_act = (curtailment_act != -1.) & self.gen_renewable
-                self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
                 self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
                 gen_curtailed = self._limit_curtailment != 1.  # curtailed either right now, or in a previous action
                 max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]

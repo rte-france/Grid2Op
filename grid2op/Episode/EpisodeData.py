@@ -773,8 +773,6 @@ class CollectionWrapper:
             except IncorrectNumberOfElements as exc_:
                 # grid2op does not allow to load the object: there is a mismatch between what has been stored
                 # and what is currently used.
-                import pdb
-                pdb.set_trace()
                 raise
             except EnvError as exc_:
                 self._game_over = i
