@@ -51,9 +51,9 @@ class PlotPlotly(BasePlot):
                  grid_layout=None,
                  responsive=False,
                  scale=2000.0,
-                 sub_radius = 25,
-                 load_radius = 12,
-                 gen_radius = 12,
+                 sub_radius=25,
+                 load_radius=12,
+                 gen_radius=12,
                  show_gen_txt=False,
                  show_load_txt=False):
         super().__init__(observation_space, width, height, scale, grid_layout)
@@ -537,7 +537,7 @@ class PlotPlotly(BasePlot):
                          ex_bus, pos_ex_x, pos_ex_y):
         color_scheme = self.line_color_scheme
         capacity = min(observation.rho[line_id], 1.0)
-        color_idx = int(capacity  * (len(color_scheme) - 1))
+        color_idx = int(capacity * (len(color_scheme) - 1))
         color = color_scheme[color_idx]
         if capacity == 0.0:
             color = "black"
@@ -569,3 +569,13 @@ class PlotPlotly(BasePlot):
         
     def draw_legend(self, figure, observation):
         figure.update_layout(showlegend=False)
+
+    def draw_storage(self, figure, observation,
+                     storage_name, storage_id, storage_bus,
+                     storage_value, storage_unit,
+                     pos_x, pos_y,
+                     sub_x, sub_y):
+        # TODO storage doc
+        # TODO storage plot
+        # TODO update the plotly with storage units
+        pass

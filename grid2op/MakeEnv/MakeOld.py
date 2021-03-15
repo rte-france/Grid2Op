@@ -93,6 +93,8 @@ ERR_MSG_KWARGS = {
 
 def make_old(name_env="case14_realistic", **kwargs):
     """
+    INTERNAL USE ONLY
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     (DEPRECATED) This function is a shortcut to rapidly create some (pre defined) environments within the grid2op Framework.

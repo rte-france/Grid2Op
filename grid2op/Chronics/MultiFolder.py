@@ -208,13 +208,20 @@ class Multifolder(GridValue):
         Rebuilt the :attr:`Multifolder._order`. This should be called after a call to :func:`Multifolder.set_filter`
         is performed.
 
-        **NB** This "reset" is different from the "env.reset". It should be only called after the function to set
-        the filtering function has been called.
+        .. warning:: This "reset" is different from the `env.reset`. It should be only called after the function to set
+            the filtering function has been called.
+
+            This "reset" only reset which chronics are used for the environment.
 
         Returns
         -------
         new_order: ``numpy.ndarray``, dtype: str
             The selected chronics paths after a call to this method.
+
+        Notes
+        -----
+        Except explicitly mentioned, for example by :func:`Multifolder.set_filter` you should not use this
+        function. This will erased every selection of chronics, every shuffle etc.
 
         """
         self._order = []
@@ -228,8 +235,6 @@ class Multifolder(GridValue):
             raise RuntimeError("Impossible to initialize the Multifolder. Your \"filter_fun\" filters out all the "
                                "possible scenarios.")
         self._order = np.array(self._order)
-        # TODO this shuffling there
-        # self.space_prng.shuffle(self._order)
         return self.subpaths[self._order]
 
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
@@ -373,23 +378,91 @@ class Multifolder(GridValue):
 
         .. code-block:: python
 
+            # create an environment
             import numpy as np
-            data = Multifolder(path=".")
-            data.shuffle(shuffler=lambda x: x[np.random.choice(len(x), size=len(x), replace=False)])
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+
+            # shuffle the chronics (uniformly at random, without duplication)
+            env.chronics_handler.shuffle()
+            # use the environment as you want, here do 10 episode with the selected data
+            for i in range(10):
+                obs = env.reset()
+                print(f"Path of the chronics used: {env.chronics_handler.data.path}")
+                done = False
+                while not done:
+                    act = ...
+                    obs, reward, done, info = env.step(act)
+
+            # re shuffle them (still uniformly at random, without duplication)
+            env.chronics_handler.shuffle()
+
+            # use the environment as you want, here do 10 episode with the selected data
+            for i in range(10):
+                obs = env.reset()
+                print(f"Path of the chronics used: {env.chronics_handler.data.path}")
+                done = False
+                while not done:
+                    act = ...
+                    obs, reward, done, info = env.step(act)
+
 
         If you want to use only a subset of the path, say for example the path with index 1, 5, and 6
 
         .. code-block:: python
 
-            data = Multifolder(path=".")
-            data.shuffle(shuffler=lambda x: x[1, 5, 6])
+            # create an environment
+            import numpy as np
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+
+            # select the chronics (here 5 at random amongst the 10 "last" chronics of the environment)
+            nb_chron = len(env.chronics_handler.chronics_used)
+            chron_id_to_keep = np.random.choice(np.arange(nb_chron - 10, nb_chron), size=5, replace=True)
+            env.chronics_handler.shuffle(lambda x: chron_id_to_keep)
+
+            # use the environment as you want, here do 10 episode with the selected data
+            for i in range(10):
+                obs = env.reset()
+                print(f"Path of the chronics used: {env.chronics_handler.data.path}")
+                done = False
+                while not done:
+                    act = ...
+                    obs, reward, done, info = env.step(act)
+
+            # re shuffle them (uniformly at random, without duplication, among the chronics "selected" above.)
+            env.chronics_handler.shuffle()
+
+            # use the environment as you want, here do 10 episode with the selected data
+            for i in range(10):
+                obs = env.reset()
+                print(f"Path of the chronics used: {env.chronics_handler.data.path}")
+                done = False
+                while not done:
+                    act = ...
+                    obs, reward, done, info = env.step(act)
+
+        .. warning:: Though it is possible to use this "shuffle" function to only use some chronics, we highly
+            recommend you to have a look at the sections :sec:`environment-module-chronics-info` or
+            :sec:`environment-module-train-val-test`. It is likely that you will find better way to do
+            what you want to do there. Use this last example with care then.
+
+        .. warning:: As stated on the :func:`MultiFolder.reset`, any call to `env.chronics_handler.reset`
+            will remove anything related to shuffling, including the selection of chronics !
 
         """
         if shuffler is None:
             def shuffler(x):
                 return x[self.space_prng.choice(len(x), size=len(x), replace=False)]
 
-        self._order = shuffler(self._order)
+        self._order = 1 * shuffler(self._order)
+        return self.subpaths[self._order]
+
+    @property
+    def chronics_used(self):
+        """return the full path of the chronics currently in use."""
         return self.subpaths[self._order]
 
     def set_chunk_size(self, new_chunk_size):

@@ -83,12 +83,13 @@ class RAII_tf_log():
     def __del__(self):
         if self.previous is not None:
             os.environ['TF_CPP_MIN_LOG_LEVEL'] = self.previous
-# # notebook names are hard coded because if i change them, i need also to change the
-# # readme and the documentation
+# notebook names are hard coded because if i change them, i need also to change the
+# readme and the documentation
 
 
 class TestNotebook(unittest.TestCase):
     def _aux_funct_notebook(self, notebook_filename):
+        assert os.path.exists(notebook_filename), f"{notebook_filename} do not exists!"
         with open(notebook_filename) as f:
             nb = nbformat.read(f, as_version=4)
         try:
@@ -112,47 +113,47 @@ class TestNotebook(unittest.TestCase):
             self.skipTest("l2rpn baseline is not available")
 
     def test_notebook0_1(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "0_SmallExample.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "00_SmallExample.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook1(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "1_Grid2opFramework.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "01_Grid2opFramework.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook2(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "2_Observation_Agents.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "02_Observation.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook3(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "3_Action_GridManipulation.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "03_Action.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook4(self):
         self._check_for_baselines()
         raii_ = RAII_tf_log()
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "4_TrainingAnAgent.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "04_TrainingAnAgent.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook5(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "5_StudyYourAgent.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "05_StudyYourAgent.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook6(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "6_RedispathingAgent.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "06_Redispatching.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook7(self):
         self._check_for_baselines()
         raii_ = RAII_tf_log()
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "7_MultiEnv.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "07_MultiEnv.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook8(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "8_PlottingCapabilities.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "08_PlottingCapabilities.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook9(self):
-        notebook_filename = os.path.join(NOTEBOOK_PATHS, "9_EnvironmentModifications.ipynb")
+        notebook_filename = os.path.join(NOTEBOOK_PATHS, "09_EnvironmentModifications.ipynb")
         self._aux_funct_notebook(notebook_filename)
 
     def test_notebook_aub(self):

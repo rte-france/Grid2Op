@@ -26,6 +26,8 @@ from grid2op.Episode.EpisodeData import EpisodeData
 
 class _GridFromLog(GridValue):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     """
@@ -92,6 +94,8 @@ class _GridFromLog(GridValue):
 
 class OpponentFromLog(BaseOpponent):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     """
@@ -100,6 +104,8 @@ class OpponentFromLog(BaseOpponent):
 
 class EpisodeReboot:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         This is a first implementation to serve as "what can be done".
 

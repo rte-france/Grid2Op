@@ -58,6 +58,7 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
     sub_w = 0 if use_initial else 100
     load_w = 25
     gen_w = 25
+    stor_w = 25
 
     # Set lines edges
     for line_idx in range(obs.n_line):
@@ -91,6 +92,15 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
         # Register edge
         G.add_edge(left_v, right_v, weight=gen_w)
 
+    # Set edges for storages
+    stor_offset = obs.n_sub + obs.n_load + obs.n_gen
+    for stor_idx in range(obs.n_storage):
+        stor_sub = obs.storage_to_subid[stor_idx]
+        left_v = stor_sub
+        right_v = stor_offset + stor_idx
+        # Register edge
+        G.add_edge(left_v, right_v, weight=stor_w)
+
     # Convert our layout to nx format
     layout_keys = list(obs.name_sub)
     if use_initial:
@@ -117,7 +127,17 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
             gen_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
             gen_pos[0] += math.cos(gen_sub_pos) * gen_w
             gen_pos[1] += math.sin(gen_sub_pos) * gen_w
-            initial_layout[gen_offset + gen_idx] = gen_pos        
+            initial_layout[gen_offset + gen_idx] = gen_pos
+
+        for stor_idx, stor_subid in enumerate(obs.storage_to_subid):
+            sub_name = layout_keys[stor_subid]
+            stor_sub_pos = obs.storage_to_sub_pos[stor_idx]
+            stor_sub_pos /= obs.sub_info[stor_subid]
+            stor_sub_pos *= (2.0 * math.pi)
+            stor_pos = list(copy.deepcopy(obs.grid_layout[sub_name]))
+            stor_pos[0] += math.cos(stor_sub_pos) * gen_w
+            stor_pos[1] += math.sin(stor_sub_pos) * gen_w
+            initial_layout[stor_offset + stor_idx] = stor_pos
     else:
         initial_layout = None
 
@@ -149,6 +169,12 @@ def layout_obs_sub_load_and_gen(obs, scale=1000.0, use_initial=False):
     for gen_idx, gen_subid in enumerate(obs.gen_to_subid):
         key = obs.name_gen[gen_idx]
         v = kkl[gen_offset + gen_idx]
+        vx = np.round(v[0])
+        vy = np.round(v[1])
+        improved_layout[key] = [vx, vy]
+    for stor_idx, stor_subid in enumerate(obs.storage_to_subid):
+        key = obs.name_storage[stor_idx]
+        v = kkl[stor_offset + stor_idx]
         vx = np.round(v[0])
         vy = np.round(v[1])
         improved_layout[key] = [vx, vy]

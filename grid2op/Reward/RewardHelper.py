@@ -5,13 +5,17 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+import copy
 
 from grid2op.Reward.BaseReward import BaseReward
 from grid2op.Reward.ConstantReward import ConstantReward
+from grid2op.Exceptions import Grid2OpException
 
 
 class RewardHelper:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         It is a class internal to the :class:`grid2op.Environment.Environment` do not use outside
         of its purpose and do not attempt to modify it.
@@ -31,9 +35,10 @@ class RewardHelper:
         An object of class :attr:`RewardHelper.rewardClass` used to compute the rewards.
 
     """
-    def __init__(self, rewardClass=ConstantReward):
-        self.rewardClass = rewardClass
-        self.template_reward = rewardClass()
+    def __init__(self, reward_func=ConstantReward):
+        self.rewardClass = None
+        self.template_reward = None
+        self.change_reward(reward_func)
 
     def initialize(self, env):
         """
@@ -95,3 +100,26 @@ class RewardHelper:
         """
         res = self.template_reward(action, env, has_error, is_done, is_illegal, is_ambiguous)
         return res
+
+    def change_reward(self, reward_func):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+            Use `env.change_reward` instead (:func:`grid2op.Environment.BaseEnv.change_reward`)
+
+        """
+        if isinstance(reward_func, BaseReward):
+            # reward object given directly
+            self.rewardClass = type(reward_func)
+            self.template_reward = copy.deepcopy(reward_func)
+        elif issubclass(reward_func, BaseReward):
+            # reward is provided as a class
+            self.rewardClass = reward_func
+            self.template_reward = reward_func()
+        else:
+            raise Grid2OpException(f"Impossible to build a reward with input reward_func={reward_func}. "
+                                   f"NB `reward_func` should be either an object of type `BaseReward` (or "
+                                   f"one of its derivative) "
+                                   f"or a class that inherit from `BaseReward`")

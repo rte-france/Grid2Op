@@ -20,6 +20,8 @@ from grid2op.Space.RandomObject import RandomObject
 
 class SerializableSpace(GridObjects, RandomObject):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         This is a higher level wrapper that allows to avoid code duplicates for
         the action_space and observation_space. None of the methods here should be
@@ -110,6 +112,8 @@ class SerializableSpace(GridObjects, RandomObject):
     @staticmethod
     def from_dict(dict_):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to restore action_space or observation_space if they
             have been saved by `to_dict`. Do not
@@ -188,8 +192,10 @@ class SerializableSpace(GridObjects, RandomObject):
                                 _init_grid=False)
         return res
 
-    def to_dict(self):
+    def cls_to_dict(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             This is used internally only to save action_space or observation_space for example. Do not
             attempt to use it in a different context.
@@ -199,10 +205,11 @@ class SerializableSpace(GridObjects, RandomObject):
         Returns
         -------
         res: ``dict``
-            A dictionnary representing this object content. It can be loaded back with
+            A dictionary representing this object content. It can be loaded back with
              :func:`SerializableObservationSpace.from_dict`
         """
-        res = super().to_dict()
+        # TODO this is super weird that this is a regular method, but inherit from a class method !
+        res = super().cls_to_dict()
 
         save_to_dict(res, self, "_init_subtype",
                      lambda x: re.sub("(<class ')|(\\.init_grid\\.<locals>\\.res)|('>)", "", "{}".format(x)))
@@ -226,7 +233,8 @@ class SerializableSpace(GridObjects, RandomObject):
 
     def from_vect(self, obj_as_vect, check_legit=True):
         """
-        Convert an action, represented as a vector to a valid :class:`BaseAction` instance. It works the
+        Convert an space (action space or observation space),
+        represented as a vector to a valid :class:`BaseAction` instance. It works the
         same way for observations.
 
         Parameters

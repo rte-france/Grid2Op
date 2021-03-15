@@ -161,10 +161,12 @@ getting_started/saved_experiment_donothing/
 Doxyfile
 documentation
 **(copie).zip
+**(copy).json
 grid2op/data/*/*.csv
 !grid2op/data/test_PandaPower/prods_charac.csv
 !grid2op/data/case14_redisp/prods_charac.csv
 !grid2op/data/*/prods_charac.csv
+!grid2op/data/*/storage_units_charac.csv
 **token.json
 getting_started/study_agent_getting_started/
 **Untitled.ipynb
@@ -261,6 +263,19 @@ test_weights_focus.jpg
 test_weights_full.jpg
 times_api.txt
 new 1.txt
+test_*_weigths.h5
+test_saving_spektral.h5
+tf_logs_gnn/
+test_weigths.h5
+test_threading_lightsim.py
+test_multiprocessing.py
+test_plot_storage.ipynb
+issue_pp_storage.py
+test_speed_obs_plus_act.py
+test_filter_act.py
+speed_up_multiproc.ods
+test_issue_169.py
+cut_data.py
 
 # profiling files
 **.prof

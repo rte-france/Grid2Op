@@ -29,6 +29,8 @@ class RandomLineOpponent(BaseOpponent):
 
     def init(self, partial_env, lines_attacked=[], **kwargs):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             Used when the opponent is created.
 

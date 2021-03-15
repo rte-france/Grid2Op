@@ -19,12 +19,10 @@ class PowerlineSetAction(PlayableAction):
 
     """
     authorized_keys = {
-        "set_line_status",
-        "set_bus"
+        "set_line_status"
     }
     attr_list_vect = [
-        "_set_line_status",
-        "_set_topo_vect"
+        "_set_line_status"
     ]
     attr_list_set = set(attr_list_vect)
 

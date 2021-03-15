@@ -24,6 +24,8 @@ from grid2op.Exceptions import *
 
 class EducPandaPowerBackend(Backend):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This class do not work.
@@ -75,6 +77,9 @@ class EducPandaPowerBackend(Backend):
         warnings.warn("This backend is used for demonstration purpose only, you should not use it under any "
                       "circumstances. Please use grid2op.Backend.PandaPowerBackend instead")
         self._nb_real_line_pandapower = None
+
+        # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
+        # neither shunt nor storage unit.
 
     ####### load the grid
     def load_grid(self, path=None, filename=None):
@@ -181,6 +186,11 @@ class EducPandaPowerBackend(Backend):
                                                       self._grid.trafo["sn_mva"].values / (np.sqrt(3) * self._grid.trafo["vn_hv_kv"].values)))
         self.thermal_limit_a = self.thermal_limit_a.astype(dt_float)
 
+        # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
+        # neither shunt nor storage unit.
+        self.shunts_data_available = False
+        self.set_no_storage()
+
     ###### modify the grid
     def apply_action(self, backendAction=None):
         """
@@ -192,7 +202,7 @@ class EducPandaPowerBackend(Backend):
         if backendAction is None:
             return
 
-        active_bus, (prod_p, prod_v, load_p, load_q), _, shunts__ = backendAction()
+        active_bus, (prod_p, prod_v, load_p, load_q, storage), _, shunts__ = backendAction()
 
         for gen_id, new_p in prod_p:
             self._grid.gen["p_mw"].iloc[gen_id] = new_p
@@ -269,10 +279,11 @@ class EducPandaPowerBackend(Backend):
     def runpf(self, is_dc=False):
         """
         Now we just perform a powerflow with pandapower which can be done with either `rundcpp` for dc powerflow
-        or with `runpp`for AC powerflow.
+        or with `runpp` for AC powerflow.
 
-        This is really a 2 lines code. It is a bit more versbose here because we took care of silencing some
+        This is really a 2 lines code. It is a bit more verbose here because we took care of silencing some
         warnings and try / catch some possible exceptions.
+
         """
         try:
             with warnings.catch_warnings():
@@ -283,10 +294,10 @@ class EducPandaPowerBackend(Backend):
                     pp.rundcpp(self._grid, check_connectivity=False)
                 else:
                     pp.runpp(self._grid, check_connectivity=False)
-                return self._grid.converged
+                return self._grid.converged, None
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
-            return False
+            return False, exc_
 
     ###### getters
     def get_topo_vect(self):
@@ -411,6 +422,8 @@ class EducPandaPowerBackend(Backend):
     # other less important method that you will need to implement
     def get_line_status(self):
         """
+        you might consider implementing it
+
         .. warning::  /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
         """
@@ -418,6 +431,8 @@ class EducPandaPowerBackend(Backend):
 
     def _disconnect_line(self, id_):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
         """
@@ -428,6 +443,8 @@ class EducPandaPowerBackend(Backend):
 
     def copy(self):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
 
@@ -441,6 +458,8 @@ class EducPandaPowerBackend(Backend):
 
     def reset(self, path=None, grid_filename=None):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
 
@@ -468,6 +487,8 @@ class EducPandaPowerBackend(Backend):
 
     def close(self):
         """
+        you might consider implementing it
+
         .. warning:: /!\\\\ This is a not a "main method" but you might want to implement
             it for a new backend (default implementation most likely not efficient at all). /!\\\\
 

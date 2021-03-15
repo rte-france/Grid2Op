@@ -5,6 +5,7 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import numbers
 
 from grid2op.Exceptions import *
@@ -15,6 +16,8 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
                      defaultinstance=None, defaultClass=None, build_kwargs={},
                      isclass=False):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     Helper to build default parameters forwarded to :class:`grid2op.Environment.Environment` for its creation.
@@ -54,6 +57,7 @@ def _get_default_aux(name, kwargs, defaultClassApp, _sentinel=None,
           * if ``defaultinstance`` is not None, then this should be empty
           * This parameter should allow to create a valid object of type ``defaultClass``: it's key must be
             proper keys accepted by the class
+
 
     isclass: ``bool``
         Whether to build an instance of a class, or just return the class.

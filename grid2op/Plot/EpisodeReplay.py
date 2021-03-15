@@ -35,6 +35,7 @@ except:
 
 class EpisodeReplay(object):
     """
+    INTERNAL
 
     .. warning:: /!\\\\ This class is deprecated /!\\\\
 

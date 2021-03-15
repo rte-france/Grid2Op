@@ -52,14 +52,17 @@ class BaseTestGymConverter:
             assert k in obj2  # make sure every keys of obj are in obj2
 
 
-class TestWithoutConverter(unittest.TestCase, BaseTestGymConverter):
+class TestWithoutConverterWCCI(unittest.TestCase, BaseTestGymConverter):
     def setUp(self) -> None:
         BaseTestGymConverter.__init__(self)
+
+    def get_env_name(self):
+        return "l2rpn_wcci_2020"
 
     def test_creation(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("l2rpn_wcci_2020", test=True) as env:
+            with make(self.get_env_name(), test=True) as env:
                 # test i can create
                 obs_space = GymObservationSpace(env)
                 act_space = GymActionSpace(env)
@@ -67,7 +70,7 @@ class TestWithoutConverter(unittest.TestCase, BaseTestGymConverter):
     def test_json(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("l2rpn_wcci_2020", test=True) as env:
+            with make(self.get_env_name(), test=True) as env:
                 # test i can create
                 obs_space = GymObservationSpace(env)
                 act_space = GymActionSpace(env)
@@ -81,7 +84,7 @@ class TestWithoutConverter(unittest.TestCase, BaseTestGymConverter):
     def test_to_from_gym_obs(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("l2rpn_wcci_2020", test=True) as env:
+            with make(self.get_env_name(), test=True) as env:
                 obs_space = GymObservationSpace(env)
 
                 obs = env.reset()
@@ -112,7 +115,7 @@ class TestWithoutConverter(unittest.TestCase, BaseTestGymConverter):
     def test_to_from_gym_act(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            with make("l2rpn_wcci_2020", test=True) as env:
+            with make(self.get_env_name(), test=True) as env:
                 act_space = GymActionSpace(env)
 
                 act = env.action_space()
@@ -340,3 +343,12 @@ class TestContinuousToDiscrete(unittest.TestCase):
             assert np.all(res == [2, 0, 0, 0, 0, 2])
             res2 = act_space._keys_encoding["_redispatch"].gym_to_g2op(res)
             assert np.all(np.abs(res2 - [0., -6.666666, 0., 0., 0., 0.]) <= self.tol)
+
+
+class TestWithoutConverterStorage(TestWithoutConverterWCCI):
+    def get_env_name(self):
+        return "educ_case14_storage"
+
+
+if __name__ == "__main__":
+    unittest.main()

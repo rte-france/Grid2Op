@@ -54,7 +54,10 @@ class Parameters:
         If a the powerflow on a line is above HARD_OVERFLOW_THRESHOLD * thermal limit (and
         :attr:`Parameters.NO_OVERFLOW_DISCONNECTION` is set to ``False``) then it is automatically disconnected,
         regardless of
-        the number of timesteps it is on overflow). This is called a "hard overflow"
+        the number of timesteps it is on overflow). This is called a "hard overflow". This is expressed in relative
+        value of the thermal limits, for example, if for a powerline the `thermal_limit` is 150 and the
+        HARD_OVERFLOW_THRESHOLD is 2.0, then if the flow on the powerline reaches 2 * 150 = 300.0 the powerline
+        the powerline is automatically disconnected.
 
     ENV_DC: ``bool``
         Whether or not making the simulations of the environment in the "direct current" approximation. This can be
@@ -72,12 +75,30 @@ class Parameters:
         :class:`grid2op.Agent.BaseAgent`. Default value is 1.
 
     MAX_LINE_STATUS_CHANGED: ``int``
-        Maximum number of powerlines statuses that can be changed between two consecutive timestetps by an
+        Maximum number of powerlines statuses that can be changed between two consecutive timesteps by an
         :class:`grid2op.Agent.BaseAgent`. Default value is 1.
 
     IGNORE_MIN_UP_DOWN_TIME: ``bool``
         Whether or not to ignore the attributes `gen_min_uptime` and `gen_min_downtime`. Basically setting this
         parameter to ``True``
+
+    INIT_STORAGE_CAPACITY: ``float``
+        Between 0. and 1. Specify, at the beginning of each episode, what is the storage capacity of each storage unit.
+        The storage capacity will be expressed as fraction of storage_Emax. For example, if `INIT_STORAGE_CAPACITY` is
+        0.5 then at the beginning of every episode, all storage unit will have a storage capacity of
+        0.5 * `storage_Emax`. By default: `0.5`
+
+    ACTIVATE_STORAGE_LOSS: ``bool``
+        You can set it to ``False`` to not take into account the loss in the storage units.
+        This deactivates the "loss amount per time step" (`storage_loss`) and has also the effect to set
+        to do **as if** the
+        storage units were perfect (as if `storage_charging_efficiency=1.` and `storage_discharging_efficiency=1.`.
+
+        **NB** it does **as if** it were the case. But the parameters `storage_loss`, `storage_charging_efficiency`
+        and storage_discharging_efficiency` are not affected by this.
+
+        Default: ``True``
+
     """
     def __init__(self, parameters_path=None):
         """
@@ -106,7 +127,7 @@ class Parameters:
         # this is expressed in relative value of the thermal limits
         # for example setting "HARD_OVERFLOW_THRESHOLD = 2" is equivalent, if a powerline has a thermal limit of
         # 243 A, to disconnect it instantly if it has a powerflow higher than 2 * 243 = 486 A
-        self.HARD_OVERFLOW_THRESHOLD = dt_int(2)
+        self.HARD_OVERFLOW_THRESHOLD = dt_float(2.)
 
         # are the powerflow performed by the environment in DC mode (dc powerflow) or AC (ac powerflow)
         self.ENV_DC = False
@@ -126,6 +147,12 @@ class Parameters:
 
         # allow dispatch on turned off generator (if ``True`` you can actually dispatch a turned on geenrator)
         self.ALLOW_DISPATCH_GEN_SWITCH_OFF = True
+
+        # storage capacity (NOT in pct)
+        self.INIT_STORAGE_CAPACITY = 0.5
+
+        # do i take into account the storage loss in the step function
+        self.ACTIVATE_STORAGE_LOSS = True
 
         if parameters_path is not None:
             if os.path.isfile(parameters_path):
@@ -214,6 +241,12 @@ class Parameters:
         if "NB_TIMESTEP_COOLDOWN_LINE" in dict_:
             self.NB_TIMESTEP_COOLDOWN_LINE = dt_int(dict_["NB_TIMESTEP_COOLDOWN_LINE"])
 
+        # storage parameters
+        if "INIT_STORAGE_CAPACITY" in dict_:
+            self.INIT_STORAGE_CAPACITY = dt_float(dict_["INIT_STORAGE_CAPACITY"])
+        if "ACTIVATE_STORAGE_LOSS" in dict_:
+            self.ACTIVATE_STORAGE_LOSS = Parameters._isok_txt(dict_["ACTIVATE_STORAGE_LOSS"])
+
         authorized_keys = set(self.__dict__.keys())
         authorized_keys = authorized_keys | {'NB_TIMESTEP_POWERFLOW_ALLOWED',
                                              'NB_TIMESTEP_TOPOLOGY_REMODIF',
@@ -246,6 +279,8 @@ class Parameters:
         res["MAX_LINE_STATUS_CHANGED"] = int(self.MAX_LINE_STATUS_CHANGED)
         res["NB_TIMESTEP_COOLDOWN_LINE"] = int(self.NB_TIMESTEP_COOLDOWN_LINE)
         res["NB_TIMESTEP_COOLDOWN_SUB"] = int(self.NB_TIMESTEP_COOLDOWN_SUB)
+        res["INIT_STORAGE_CAPACITY"] = float(self.INIT_STORAGE_CAPACITY)
+        res["ACTIVATE_STORAGE_LOSS"] = bool(self.ACTIVATE_STORAGE_LOSS)
         return res
 
     def init_from_json(self, json_path):
@@ -261,10 +296,10 @@ class Parameters:
             with open(json_path) as f:
                 dict_ = json.load(f)
             self.init_from_dict(dict_)
-        except:
+        except Exception as exc_:
             warn_msg = "Could not load from {}\n" \
-                       "Continuing with default parameters"
-            warnings.warn(warn_msg.format(json_path))
+                       "Continuing with default parameters. \n\nThe error was \"{}\""
+            warnings.warn(warn_msg.format(json_path, exc_))
         
     @staticmethod
     def from_json(json_path):
@@ -284,3 +319,110 @@ class Parameters:
         """
         res = Parameters(json_path)
         return res
+
+    def check_valid(self):
+        """
+
+        check the parameter is valid (ie it checks that all the values are of correct types and within the
+        correct range.
+
+        Raises
+        -------
+        An exception if the parameter is not valid
+        """
+        try:
+            if not isinstance(self.NO_OVERFLOW_DISCONNECTION, (bool, dt_bool)):
+                raise RuntimeError("NO_OVERFLOW_DISCONNECTION should be a boolean")
+            self.NO_OVERFLOW_DISCONNECTION = dt_bool(self.NO_OVERFLOW_DISCONNECTION)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert NO_OVERFLOW_DISCONNECTION to bool with error \n:\"{exc_}\"")
+
+        try:
+            self.NB_TIMESTEP_OVERFLOW_ALLOWED = int(self.NB_TIMESTEP_OVERFLOW_ALLOWED)  # to raise if numpy array
+            self.NB_TIMESTEP_OVERFLOW_ALLOWED = dt_int(self.NB_TIMESTEP_OVERFLOW_ALLOWED)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert NB_TIMESTEP_OVERFLOW_ALLOWED to int with error \n:\"{exc_}\"")
+
+        if self.NB_TIMESTEP_OVERFLOW_ALLOWED < 0:
+            raise RuntimeError("NB_TIMESTEP_OVERFLOW_ALLOWED < 0., this should be >= 0.")
+        try:
+            self.NB_TIMESTEP_RECONNECTION = int(self.NB_TIMESTEP_RECONNECTION)  # to raise if numpy array
+            self.NB_TIMESTEP_RECONNECTION = dt_int(self.NB_TIMESTEP_RECONNECTION)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert NB_TIMESTEP_RECONNECTION to int with error \n:\"{exc_}\"")
+        if self.NB_TIMESTEP_RECONNECTION < 0:
+            raise RuntimeError("NB_TIMESTEP_RECONNECTION < 0., this should be >= 0.")
+        try:
+            self.NB_TIMESTEP_COOLDOWN_LINE = int(self.NB_TIMESTEP_COOLDOWN_LINE)
+            self.NB_TIMESTEP_COOLDOWN_LINE = dt_int(self.NB_TIMESTEP_COOLDOWN_LINE)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert NB_TIMESTEP_COOLDOWN_LINE to int with error \n:\"{exc_}\"")
+        if self.NB_TIMESTEP_COOLDOWN_LINE < 0:
+            raise RuntimeError("NB_TIMESTEP_COOLDOWN_LINE < 0., this should be >= 0.")
+        try:
+            self.NB_TIMESTEP_COOLDOWN_SUB = int(self.NB_TIMESTEP_COOLDOWN_SUB)  # to raise if numpy array
+            self.NB_TIMESTEP_COOLDOWN_SUB = dt_int(self.NB_TIMESTEP_COOLDOWN_SUB)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert NB_TIMESTEP_COOLDOWN_SUB to int with error \n:\"{exc_}\"")
+        if self.NB_TIMESTEP_COOLDOWN_SUB < 0:
+            raise RuntimeError("NB_TIMESTEP_COOLDOWN_SUB < 0., this should be >= 0.")
+        try:
+            self.HARD_OVERFLOW_THRESHOLD = float(self.HARD_OVERFLOW_THRESHOLD)  # to raise if numpy array
+            self.HARD_OVERFLOW_THRESHOLD = dt_float(self.HARD_OVERFLOW_THRESHOLD)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert HARD_OVERFLOW_THRESHOLD to float with error \n:\"{exc_}\"")
+        if self.HARD_OVERFLOW_THRESHOLD < 1.:
+            raise RuntimeError("HARD_OVERFLOW_THRESHOLD < 1., this should be >= 1. (use env.set_thermal_limit "
+                               "to modify the thermal limit)")
+        try:
+            if not isinstance(self.ENV_DC, (bool, dt_bool)):
+                raise RuntimeError("NO_OVERFLOW_DISCONNECTION should be a boolean")
+            self.ENV_DC = dt_bool(self.ENV_DC)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert ENV_DC to bool with error \n:\"{exc_}\"")
+        try:
+            self.MAX_SUB_CHANGED = int(self.MAX_SUB_CHANGED)  # to raise if numpy array
+            self.MAX_SUB_CHANGED = dt_int(self.MAX_SUB_CHANGED)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert MAX_SUB_CHANGED to int with error \n:\"{exc_}\"")
+        if self.MAX_SUB_CHANGED < 0:
+            raise RuntimeError("MAX_SUB_CHANGED should be >=0 (or -1 if you want to be able to change every "
+                               "substation at once)")
+        try:
+            self.MAX_LINE_STATUS_CHANGED = int(self.MAX_LINE_STATUS_CHANGED)  # to raise if numpy array
+            self.MAX_LINE_STATUS_CHANGED = dt_int(self.MAX_LINE_STATUS_CHANGED)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert MAX_LINE_STATUS_CHANGED to int with error \n:\"{exc_}\"")
+        if self.MAX_LINE_STATUS_CHANGED < 0:
+            raise RuntimeError("MAX_LINE_STATUS_CHANGED should be >=0 "
+                               "(or -1 if you want to be able to change every powerline at once)")
+        try:
+            if not isinstance(self.IGNORE_MIN_UP_DOWN_TIME, (bool, dt_bool)):
+                raise RuntimeError("IGNORE_MIN_UP_DOWN_TIME should be a boolean")
+            self.IGNORE_MIN_UP_DOWN_TIME = dt_bool(self.IGNORE_MIN_UP_DOWN_TIME)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert IGNORE_MIN_UP_DOWN_TIME to bool with error \n:\"{exc_}\"")
+        try:
+            if not isinstance(self.ALLOW_DISPATCH_GEN_SWITCH_OFF, (bool, dt_bool)):
+                raise RuntimeError("ALLOW_DISPATCH_GEN_SWITCH_OFF should be a boolean")
+            self.ALLOW_DISPATCH_GEN_SWITCH_OFF = dt_bool(self.ALLOW_DISPATCH_GEN_SWITCH_OFF)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert ALLOW_DISPATCH_GEN_SWITCH_OFF to bool with error \n:\"{exc_}\"")
+
+        try:
+            self.INIT_STORAGE_CAPACITY = float(self.INIT_STORAGE_CAPACITY)  # to raise if numpy array
+            self.INIT_STORAGE_CAPACITY = dt_float(self.INIT_STORAGE_CAPACITY)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert INIT_STORAGE_CAPACITY to float with error \n:\"{exc_}\"")
+
+        if self.INIT_STORAGE_CAPACITY < 0.:
+            raise RuntimeError("INIT_STORAGE_CAPACITY < 0., this should be within range [0., 1.]")
+        if self.INIT_STORAGE_CAPACITY > 1.:
+            raise RuntimeError("INIT_STORAGE_CAPACITY > 1., this should be within range [0., 1.]")
+
+        try:
+            if not isinstance(self.ACTIVATE_STORAGE_LOSS, (bool, dt_bool)):
+                raise RuntimeError("ACTIVATE_STORAGE_LOSS should be a boolean")
+            self.ACTIVATE_STORAGE_LOSS = dt_bool(self.ACTIVATE_STORAGE_LOSS)
+        except Exception as exc_:
+            raise RuntimeError(f"Impossible to convert ACTIVATE_STORAGE_LOSS to bool with error \n:\"{exc_}\"")

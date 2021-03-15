@@ -22,6 +22,8 @@ from grid2op.Chronics.GridValue import GridValue
 
 class GridStateFromFile(GridValue):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Do not attempt to create an object of this class. This is initialized by the environment
@@ -110,6 +112,8 @@ class GridStateFromFile(GridValue):
                  start_datetime=datetime(year=2019, month=1, day=1),
                  chunk_size=None):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Do not attempt to create an object of this class. This is initialized by the environment
@@ -321,6 +325,8 @@ class GridStateFromFile(GridValue):
     def initialize(self, order_backend_loads, order_backend_prods, order_backend_lines, order_backend_subs,
                    names_chronics_to_backend=None):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Called at the creation of the environment.
@@ -544,6 +550,8 @@ class GridStateFromFile(GridValue):
 
     def done(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Compare to :func:`GridValue.done` an episode can be over for 2 main reasons:

@@ -45,46 +45,50 @@ Observation space and action space customization
 By default, the action space and observation space are `gym.spaces.Dict` with the keys being the attribute
 to modify.
 
-For example, an observation space, for the environment "l2rpn_case14_sandbox" will look like:
+For example, an observation space will look like:
 
-- "a_ex": Box(20,)
-- "a_or": Box(20,)
-- "actual_dispatch": Box(6,)
+- "a_ex": Box(`env.n_line`,) [type: float, low: 0, high: inf]
+- "a_or": Box(`env.n_line`,) [type: float, low: 0, high: inf]
+- "actual_dispatch": Box(`env.n_gen`,)
+- "gen_p": Box(`env.n_gen`,)  [type: float, low: `env.gen_pmin`, high: `env.gen_pmax * 1.2`]
+- "gen_q": Box(`env.n_gen`,)  [type: float, low: -inf, high: inf]
+- "gen_v": Box(`env.n_gen`,)  [type: float, low: 0, high: inf]
 - "day": Discrete(32)
 - "day_of_week": Discrete(8)
-- "duration_next_maintenance": Box(20,)
+- "duration_next_maintenance": Box(`env.n_line`,)  [type: int, low: -1, high: inf]
 - "hour_of_day": Discrete(24)
-- "line_status": MultiBinary(20)
-- "load_p": Box(11,)
-- "load_q": Box(11,)
-- "load_v": Box(11,)
+- "line_status": MultiBinary(`env.n_line`)
+- "load_p": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
+- "load_q": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
+- "load_v": Box(`env.n_load`,) [type: float, low: -inf, high: inf]
 - "minute_of_hour": Discrete(60)
 - "month": Discrete(13)
-- "p_ex": Box(20,)
-- "p_or": Box(20,)
-- "prod_p": Box(6,)
-- "prod_q": Box(6,)
-- "prod_v": Box(6,)
-- "q_ex": Box(20,)
-- "q_or": Box(20,)
-- "rho": Box(20,)
-- "target_dispatch": Box(6,)
-- "time_before_cooldown_line": Box(20,)
-- "time_before_cooldown_sub": Box(14,)
-- "time_next_maintenance": Box(20,)
-- "timestep_overflow": Box(20,)
-- "topo_vect": Box(57,)
-- "v_ex": Box(20,)
-- "v_or": Box(20,)
+- "p_ex": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "p_or": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "q_ex": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "q_or": Box(`env.n_line`,)  [type: float, low: -inf, high: inf]
+- "rho": Box(`env.n_line`,)  [type: float, low: 0., high: inf]
+- "storage_charge": Box(`env.n_storage`,)  [type: float, low: 0., high: `env.storage_Emax`]
+- "storage_power": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
+- "storage_power_target": Box(`env.n_storage`,)  [type: float, low: `-env.storage_max_p_prod`, high: `env.storage_max_p_absorb`]
+- "target_dispatch": Box(`env.n_gen`,)
+- "time_before_cooldown_line": Box(`env.n_line`,) [type: int, low: 0, high: depending on parameters]
+- "time_before_cooldown_sub": Box(`env.n_sub`,)  [type: int, low: 0, high: depending on parameters]
+- "time_next_maintenance": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
+- "timestep_overflow": Box(`env.n_line`,)  [type: int, low: 0, high: inf]
+- "topo_vect": Box(`env.dim_topo`,)  [type: int, low: -1, high: 2]
+- "v_ex": Box(`env.n_line`,)  [type: float, low: 0, high: inf]
+- "v_or": Box(`env.n_line`,)  [type: flaot, low: 0, high: inf]
 - "year": Discrete(2100)
 
-each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
+Each keys correspond to an attribute of the observation. In this example `"line_status": MultiBinary(20)`
 represents the attribute `obs.line_status` which is a boolean vector (for each powerline
 `True` encodes for "connected" and `False` for "disconnected") See the chapter :ref:`observation_module` for
-more information
+more information about these attributes.
 
 We offer some convenience functions to customize these environment. They all more or less the same
-manner. We show here an example of a "converter" that will scale the data:
+manner. We show here an example of a "converter" that will scale the data (removing the value in `substract`
+and divide input data by `divide`):
 
 .. code-block:: python
 
@@ -100,14 +104,15 @@ manner. We show here an example of a "converter" that will scale the data:
     ob_space = gym_env.observation_space
     ob_space = ob_space.reencode_space("actual_dispatch",
                                        ScalerAttrConverter(substract=0.,
-                                       divide=env.gen_pmax,
-                                       init_space=ob_space["actual_dispatch"])
+                                                           divide=env.gen_pmax,
+                                                           init_space=ob_space["actual_dispatch"]
+                                                           )
                                        )
 
     gym_env.observation_space = ob_space
 
 
-A detailled list of such "converter" is documented on the section "Detailed Documentation by class". In
+A detailed list of such "converter" is documented on the section "Detailed Documentation by class". In
 the table below we describe some of them (**nb** if you notice a converter is not displayed there,
 do not hesitate to write us a "feature request" for the documentation, thanks in advance)
 

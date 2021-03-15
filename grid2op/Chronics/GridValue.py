@@ -431,6 +431,8 @@ class GridValue(RandomObject, ABC):
     @abstractmethod
     def load_next(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is automatically called by the "env.step" function. It loads the next information
@@ -482,6 +484,8 @@ class GridValue(RandomObject, ABC):
     @abstractmethod
     def check_validity(self, backend):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is called at the creation of the environment to ensure the Backend and the chronics
@@ -500,6 +504,8 @@ class GridValue(RandomObject, ABC):
 
     def done(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Use the :class:`ChroncisHandler` for such purpose
@@ -520,6 +526,8 @@ class GridValue(RandomObject, ABC):
 
     def forecasts(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Use the :class:`ChroncisHandler` for such purpose
@@ -542,6 +550,8 @@ class GridValue(RandomObject, ABC):
     @abstractmethod
     def next_chronics(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Move to the next "chronics", representing the next "level" if we make the parallel
@@ -633,8 +643,85 @@ class GridValue(RandomObject, ABC):
         selected: ``int``
             The integer that was selected.
 
+        Examples
+        --------
+
+        Let's assume in your chronics, the folder names are "Scenario_august_dummy", and
+        "Scenario_february_dummy". For the sake of the example, we want the environment to loop
+        75% of the time to the month of february and 25% of the time to the month of august.
+
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_neurips_2020_track1", test=True)  # don't add "test=True" if
+            # you don't want to perform a test.
+
+            # check at which month will belong each observation
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always alternatively prints "8" (if chronics if from august) or
+                # "2" if chronics is from february) with a probability of 50% / 50%
+
+            env.seed(0)  # for reproducible experiment
+            for i in range(10):
+                _ = env.chronics_handler.sample_next_chronics([0.25, 0.75])
+                obs = env.reset()
+                print(obs.month)
+                # it prints "2" with probability 0.75 and "8" with probability 0.25
+
         """
+
         return -1
+
+    def set_filter(self, filter_fun):
+        """
+        Assign a filtering function to remove some chronics from the next time a call to "reset_cache" is called.
+
+        **NB** filter_fun is applied to all element of :attr:`Multifolder.subpaths`. If ``True`` then it will
+        be put in cache, if ``False`` this data will NOT be put in the cache.
+
+        **NB** this has no effect until :attr:`Multifolder.reset` is called.
+
+        Notes
+        ------
+        As of now, this has no effect unless the chronics are generated using :class:`Multifolder`
+        or :class:`MultifolderWithCache`
+
+        Examples
+        --------
+        Let's assume in your chronics, the folder names are "Scenario_august_dummy", and
+        "Scenario_february_dummy". For the sake of the example, we want the environment to loop
+        only through the month of february, because why not. Then we can do the following:
+
+        .. code-block:: python
+
+            import re
+            import grid2op
+            env = grid2op.make("l2rpn_neurips_2020_track1", test=True)  # don't add "test=True" if
+            # you don't want to perform a test.
+
+            # check at which month will belong each observation
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always alternatively prints "8" (if chronics if from august) or
+                # "2" if chronics is from february)
+
+            # to see where the chronics are located
+            print(env.chronics_handler.subpaths)
+
+            # keep only the month of february
+            env.chronics_handler.set_filter(lambda path: re.match(".*february.*", path) is not None)
+            env.chronics_handler.reset()  # if you don't do that it will not have any effect
+
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always prints "2" (representing february)
+
+        """
+        warnings.warn(f"Calling this function has no effect for chronics generated from \"{type(self)}\"")
 
     def set_chunk_size(self, new_chunk_size):
         """
@@ -651,6 +738,8 @@ class GridValue(RandomObject, ABC):
 
     def fast_forward(self, nb_timestep):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :func:`grid2op.Environment.BaseEnv.fast_forward_chronics`

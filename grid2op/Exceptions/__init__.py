@@ -5,10 +5,12 @@ __all__ = [
     "IncorrectNumberOfGenerators",
     "IncorrectNumberOfLines",
     "IncorrectNumberOfSubstation",
+    "IncorrectNumberOfStorages",
     "IncorrectNumberOfElements",
     "IncorrectPositionOfLoads",
     "IncorrectPositionOfGenerators",
     "IncorrectPositionOfLines",
+    "IncorrectPositionOfStorages",
     "UnknownEnv",
     "MultiEnvException",
     "IllegalAction",
@@ -31,6 +33,7 @@ __all__ = [
     "InvalidNumberOfLoads",
     "UnrecognizedAction",
     "InvalidLineStatus",
+    "InvalidStorage",
     "AmbiguousAction",
     "DivergingPowerFlow",
     "NoForecastAvailable",
@@ -49,10 +52,12 @@ from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfLoads
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfGenerators
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfLines
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfSubstation
+from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfStorages
 from grid2op.Exceptions.EnvExceptions import IncorrectNumberOfElements
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfLoads
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfGenerators
 from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfLines
+from grid2op.Exceptions.EnvExceptions import IncorrectPositionOfStorages
 from grid2op.Exceptions.EnvExceptions import UnknownEnv
 from grid2op.Exceptions.EnvExceptions import MultiEnvException
 
@@ -77,6 +82,7 @@ from grid2op.Exceptions.AmbiguousActionExceptions import InvalidNumberOfGenerato
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidNumberOfLoads
 from grid2op.Exceptions.AmbiguousActionExceptions import UnrecognizedAction
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidLineStatus
+from grid2op.Exceptions.AmbiguousActionExceptions import InvalidStorage
 from grid2op.Exceptions.AmbiguousActionExceptions import AmbiguousAction
 
 from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow

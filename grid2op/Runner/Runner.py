@@ -37,7 +37,8 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 _IS_WINDOWS = sys.platform.startswith('win')
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
-# at the same time. This might require a lot of work, but would be totally worth it! (especially for Neural Net based agents)
+# at the same time. This might require a lot of work, but would be totally worth it!
+# (especially for Neural Net based agents)
 
 # TODO add a more suitable logging strategy
 
@@ -47,6 +48,8 @@ _IS_WINDOWS = sys.platform.startswith('win')
 
 class DoNothingLog:
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     A class to emulate the behaviour of a logger, but that does absolutely nothing.
@@ -73,6 +76,8 @@ class DoNothingLog:
 
 class ConsoleLog(DoNothingLog):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
     A class to emulate the behaviour of a logger, but that prints on the console
@@ -280,7 +285,8 @@ class Runner(object):
                  legalActClass=AlwaysLegal,
                  envClass=Environment,
                  gridStateclass=GridStateFromFile,
-                 # type of chronics to use. For example GridStateFromFile if forecasts are not used, or GridStateFromFileWithForecasts otherwise
+                 # type of chronics to use. For example GridStateFromFile if forecasts are not used,
+                 # or GridStateFromFileWithForecasts otherwise
                  backendClass=PandaPowerBackend,
                  agentClass=DoNothingAgent,  # class used to build the agent
                  agentInstance=None,
@@ -443,14 +449,16 @@ class Runner(object):
                     "(an instance of a class). It is currently \"{}\"".format(
                         type(agentClass)))
             if not issubclass(agentClass, BaseAgent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.BaseAgent. "
+                raise RuntimeError("Impossible to create a runner without an agent class derived from "
+                                   "grid2op.BaseAgent. "
                                    "Please modify \"agentClass\" parameter.")
             self.agentClass = agentClass
             self._useclass = True
             self.agent = None
         elif agentInstance is not None:
             if not isinstance(agentInstance, BaseAgent):
-                raise RuntimeError("Impossible to create a runner without an agent class derived from grid2op.BaseAgent. "
+                raise RuntimeError("Impossible to create a runner without an agent class derived from "
+                                   "grid2op.BaseAgent. "
                                    "Please modify \"agentInstance\" parameter.")
             self.agentClass = None
             self._useclass = False
@@ -513,7 +521,8 @@ class Runner(object):
 
         # for opponent (should be defined here) after the initialization of BaseEnv
         if not issubclass(opponent_action_class, BaseAction):
-            raise EnvError("Impossible to make an environment with an opponent action class not derived from BaseAction")
+            raise EnvError("Impossible to make an environment with an opponent action class not "
+                           "derived from BaseAction")
         try:
             self.opponent_init_budget = dt_float(opponent_init_budget)
         except Exception as e:
@@ -581,6 +590,8 @@ class Runner(object):
 
     def init_env(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Function used to initialized the environment and the agent.
@@ -590,6 +601,8 @@ class Runner(object):
 
     def reset(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Used to reset an environment. This method is called at the beginning of each new episode.
@@ -600,8 +613,11 @@ class Runner(object):
         else:
             self.env.reset()
 
-    def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None, detailed_output=False):
+    def run_one_episode(self, indx=0, path_save=None, pbar=False, env_seed=None, max_iter=None, agent_seed=None,
+                        detailed_output=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Function used to run one episode of the :attr:`Runner.agent` and see how it performs in the :attr:`Runner.env`.
@@ -628,7 +644,8 @@ class Runner(object):
         """
         self.reset()
         res = self._run_one_episode(self.env, self.agent, self.logger, indx, path_save,
-                                    pbar=pbar, env_seed=env_seed, max_iter=max_iter, agent_seed=agent_seed, detailed_output=detailed_output)
+                                    pbar=pbar, env_seed=env_seed, max_iter=max_iter, agent_seed=agent_seed,
+                                    detailed_output=detailed_output)
         return res
 
     @staticmethod
@@ -767,6 +784,8 @@ class Runner(object):
     @staticmethod
     def _make_progress_bar(pbar, total, next_pbar):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Parameters
@@ -801,8 +820,11 @@ class Runner(object):
             pbar_ = pbar
         return pbar_
 
-    def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None, add_detailed_output=False):
+    def _run_sequential(self, nb_episode, path_save=None, pbar=False, env_seeds=None, agent_seeds=None, max_iter=None,
+                        add_detailed_output=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method is called to see how well an agent performed on a sequence of episode.
@@ -857,13 +879,14 @@ class Runner(object):
                 agt_seed = None
                 if agent_seeds is not None:
                     agt_seed = agent_seeds[i]
-                name_chron, cum_reward, nb_time_step, episode_data = self.run_one_episode(path_save=path_save,
-                                                                                          indx=i,
-                                                                                          pbar=next_pbar[0],
-                                                                                          env_seed=env_seed,
-                                                                                          agent_seed=agt_seed,
-                                                                                          max_iter=max_iter,
-                                                                                          detailed_output=add_detailed_output)
+                name_chron, cum_reward, nb_time_step, episode_data = \
+                    self.run_one_episode(path_save=path_save,
+                                         indx=i,
+                                         pbar=next_pbar[0],
+                                         env_seed=env_seed,
+                                         agent_seed=agt_seed,
+                                         max_iter=max_iter,
+                                         detailed_output=add_detailed_output)
                 id_chron = self.chronics_handler.get_id()
                 max_ts = self.chronics_handler.max_timestep()
                 if add_detailed_output:
@@ -904,8 +927,11 @@ class Runner(object):
                 res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
         return res
 
-    def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None, add_detailed_output=False):
+    def _run_parrallel(self, nb_episode, nb_process=1, path_save=None, env_seeds=None, agent_seeds=None, max_iter=None,
+                       add_detailed_output=False):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         This method will run in parallel, independently the nb_episode over nb_process.
@@ -965,7 +991,8 @@ class Runner(object):
             # if i start using parallel i need to continue using parallel
             # so i force the usage of the sequential mode
             self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds, add_detailed_output=add_detailed_output)
+            return self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds,
+                                        add_detailed_output=add_detailed_output)
         else:
             self._clean_up()
             self.backend = self.backendClass()
@@ -994,13 +1021,16 @@ class Runner(object):
             res = []
             with Pool(nb_process) as p:
                 tmp = p.starmap(Runner._one_process_parrallel,
-                                [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output) for i, pn in enumerate(process_ids)])
+                                [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+                                 for i, pn in enumerate(process_ids)])
             for el in tmp:
                 res += el
         return res
 
     def _clean_up(self):
         """
+        INTERNAL
+
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         close the environment if it has been created
@@ -1010,7 +1040,8 @@ class Runner(object):
             self.env.close()
         self.env = None
 
-    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None, agent_seeds=None, add_detailed_output=False):
+    def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None,
+            agent_seeds=None, add_detailed_output=False):
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner.run_sequential` if "nb_process" is
         1 or :func:`Runner.run_parrallel` if nb_process >= 2.
@@ -1051,7 +1082,8 @@ class Runner(object):
             An iterable that contains the seed used for the environment. By default ``None`` means no seeds are set.
             If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
             scenario BEFORE calling `agent.reset()`.
-        add_detailed_output: ``boolean``
+
+        add_detailed_output: ``bool``
             A flag to add an :class:`EpisodeData` object to the results, containing a lot of information about the run
 
         Returns
@@ -1140,11 +1172,13 @@ class Runner(object):
                 if nb_process == 1 or _IS_WINDOWS:
                     self.logger.info("Sequential runner used.")
                     res = self._run_sequential(nb_episode, path_save=path_save, pbar=pbar,
-                                               env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds, add_detailed_output=add_detailed_output)
+                                               env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
+                                               add_detailed_output=add_detailed_output)
                 else:
                     self.logger.info("Parallel runner used.")
                     res = self._run_parrallel(nb_episode, nb_process=nb_process, path_save=path_save,
-                                              env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds, add_detailed_output=add_detailed_output)
+                                              env_seeds=env_seeds, max_iter=max_iter, agent_seeds=agent_seeds,
+                                              add_detailed_output=add_detailed_output)
             finally:
                 self._clean_up()
         return res

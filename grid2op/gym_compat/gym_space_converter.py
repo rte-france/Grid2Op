@@ -15,6 +15,8 @@ from grid2op.dtypes import dt_int, dt_bool, dt_float
 
 class _BaseGymSpaceConverter(spaces.Dict):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
         Used as a base class to convert grid2op state to gym state (wrapper for some useful function
         for both the action space and the observation space).

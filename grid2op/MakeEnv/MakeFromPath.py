@@ -89,9 +89,12 @@ def _check_path(path, info):
 
 def make_from_dataset_path(dataset_path="/", _add_to_name="", **kwargs):
     """
+    INTERNAL USE ONLY
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Prefer using the :func:`grid2op.make` function.
+
 
     This function is a shortcut to rapidly create environments within the grid2op Framework. We don't
     recommend using directly this function. Prefer using the :func:`make` function.

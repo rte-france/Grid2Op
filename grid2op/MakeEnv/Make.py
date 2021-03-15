@@ -28,17 +28,20 @@ TEST_DEV_ENVS = {
     "rte_case14_test": DEV_DATASET.format("rte_case14_test"),
     "rte_case5_example": DEV_DATASET.format("rte_case5_example"),
     "rte_case118_example": DEV_DATASET.format("rte_case118_example"),
-    "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
     "rte_case14_opponent": DEV_DATASET.format("rte_case14_opponent"),
+    "l2rpn_wcci_2020": DEV_DATASET.format("l2rpn_wcci_2020"),
     "l2rpn_neurips_2020_track2": DEV_DATASET.format("l2rpn_neurips_2020_track2"),
     "l2rpn_neurips_2020_track1": DEV_DATASET.format("l2rpn_neurips_2020_track1"),
+    "l2rpn_case14_sandbox": DEV_DATASET.format("l2rpn_case14_sandbox"),
+    # educational files
+    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
+    "educ_case14_storage": DEV_DATASET.format("educ_case14_storage"),
     # keep the old names for now
     "case14_realistic": DEV_DATASET.format("rte_case14_realistic"),
     "case14_redisp": DEV_DATASET.format("rte_case14_redisp"),
     "case14_test": DEV_DATASET.format("rte_case14_test"),
     "case5_example": DEV_DATASET.format("rte_case5_example"),
     "case14_fromfile": DEV_DATASET.format("rte_case14_test"),
-    "educ_case14_redisp": DEV_DATASET.format("educ_case14_redisp"),
 }
 
 _REQUEST_FAIL_EXHAUSTED_ERR = "Impossible to retrieve data at \"{}\".\n" \
@@ -85,6 +88,8 @@ _EXTRACT_DS_NAME_RECO_ERR = "Impossible to recognize the environment name from p
 
 def _send_request_retry(url, nb_retry=10, gh_session=None):
     """
+    INTERNAL
+
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
     """
     if nb_retry <= 0:
@@ -232,7 +237,8 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
     .. code-block: python
 
         import grid2op
-        env = grid2op.make("rte_case14_realistic")
+        env_name = "rte_case14_realistic"  # or any other supported environment
+        env = grid2op.make(env_name)
         # env implements the openai gym interface (env.step, env.render, env.reset etc.)
 
     **NB** the first time you type this command, the dataset (approximately 300 MB for this one) will be
@@ -241,7 +247,7 @@ def make(dataset="rte_case14_realistic", test=False, _add_to_name="", **kwargs):
     """
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
-        if not el in accepted_kwargs:
+        if el not in accepted_kwargs:
             raise Grid2OpException("The keyword argument \"{}\" you provided is invalid. Possible keyword "
                                    "arguments to create environments are \"{}\"."
                                    "".format(el, sorted(accepted_kwargs)))
