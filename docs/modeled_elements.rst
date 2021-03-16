@@ -74,6 +74,7 @@ gen_to_subid                  vect, int     static, :ref:`generator-stat`
 gen_to_sub_pos                vect, int     (internal) static, :ref:`generator-stat`
 gen_pos_topo_vect             vect, int     static, :ref:`generator-stat`
 \* gen_type                   vect, string  static, :ref:`generator-stat`
+\* gen_renewable              vect, bool    static, :ref:`generator-stat`
 \* gen_pmin                   vect, float   static, :ref:`generator-stat`
 \* gen_pmax                   vect, float   static, :ref:`generator-stat`
 \* gen_redispatchable         vect, bool    static, :ref:`generator-stat`
@@ -87,6 +88,7 @@ gen_pos_topo_vect             vect, int     static, :ref:`generator-stat`
 gen_set_bus                   vect, int     action, :ref:`generator-act`
 gen_change_bus                vect, bool    action, :ref:`generator-act`
 redispatch                    vect, float   action, :ref:`generator-act`
+curtail                       vect, float   action, :ref:`generator-act`
 prod_p                        vect, float   (internal) action, :ref:`generator-act`
 prod_v                        vect, float   (internal) action, :ref:`generator-act`
 gen_p                         vect, float   observation, :ref:`generator-obs`
@@ -95,6 +97,8 @@ gen_v                         vect, float   observation, :ref:`generator-obs`
 target_dispatch               vect, float   observation, :ref:`generator-obs`
 actual_dispatch               vect, float   observation, :ref:`generator-obs`
 gen_bus                       vect, int     observation, :ref:`generator-obs`
+curtailment                   vect, int     observation, :ref:`generator-obs`
+gen_p_before_curtail          vect, int     observation, :ref:`generator-obs`
 ==========================   =============  ============================================================
 
 
@@ -113,6 +117,7 @@ gen_to_subid                  vect, int     To which substation each generator i
 gen_to_sub_pos                vect, int     Internal, see :ref:`create-backend-module`
 gen_pos_topo_vect             vect, int     Internal, see :ref:`create-backend-module`
 \* gen_type                   vect, string  Type of generator, among "nuclear", "hydro", "solar", "wind" or "thermal"
+\* gen_renewable              vect, bool    Is the generator "renewable"
 \* gen_pmin                   vect, float   Minimum production physically possible for each generator, in MW
 \* gen_pmax                   vect, float   Maximum production physically possible for each generator, in MW
 \* gen_redispatchable         vect, bool    For each generator, indicates if it can be "dispatched" see the subsection about the action for more information on dispatch
@@ -151,6 +156,9 @@ of some of these attributes). Generators can be affected by both continuous and 
   apply a redispatching action of `amount` MW on generator `gen_id`
 - (internal) change the active production of a generator. Usage `act.update({"injection": {"prod_p": vect}}`
 - (internal) change the voltage setpoint of a generator. Usage `act.update({"injection": {"prod_v": vect}}`
+- `curtail`: will apply some curtailment on a generator. Usage: `act.curtail = [(gen_id, amount)]` to
+  apply a curtailment action of `amount` on generator `gen_id` (**NB** you can also use `curtail_MW` to apply
+  some curtailment of a certain MW instead of expressing it as a ratio of `gen_pmax`)
 
 .. note:: See the :ref:`action-module` and in particular the section
     :ref:`action-module-examples` for more information about how to manipulate these properties.
@@ -175,6 +183,11 @@ attributes are:
   `act.redispatch`), in MW. Usage: `obs.target_dispatch[gen_id]`. More information in the "Equations" section.
 - `actual_dispatch`: actual dispatch: the values the environment was able to provide as redispatching, in MW.
   Usage: `obs.actual_dispatch[gen_id]`. More information in the "Equations" section.
+- `gen_p_before_curtail`: give the amount of production for each renewable generators if no curtailment were applied.
+  **NB** by convention it will be 0.0 for non renewable generator
+- `curtailment`: give the ratio of curtailment for each generator. **NB** it will always be 0.0 for non
+  renewable generator. **NB** the property `curtailment_mw` also exists if you want to convert the curtailment,
+  normally expressed in ratio of `gen_pmax` as a curtailment in MW.
 
 Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -194,8 +207,11 @@ Let's denote by:
     \mathbf{r}_t &: \text{vector of all redispatching asked by the agent at step t}  \\
     \mathbf{u}_t &: \text{vector of all active setpoint of all generators at step t}  \\
     \mathbf{h}_t &: \text{vector of all "target dispatch" at step t}  \\
+    \mathbf{v}_t &: \text{vector of all "target curtailment" at step t}  \\
     \mathbf{g}_t &: \text{vector of all active productions at step t} \\
     \mathbf{d}_t &: \text{vector of all actual redispatching at step t}  \\
+    \mathbf{c}_t &: \text{applied curtailment at step t in MW}  \\
+    \mathbf{e}_t &: \text{production of renewable generator if no curtailment is applied}  \\
     \end{align*}
 
 Using the above notation, these vector are accessible in grid2op with:
@@ -207,8 +223,11 @@ Using the above notation, these vector are accessible in grid2op with:
 - :math:`\mathbf{r}_t` = `act.redispatch`
 - :math:`\mathbf{u}_t` = `act.prod_p` [typically read from the chronics]
 - :math:`\mathbf{h}_t` = `obs.target_dispatch`
+- :math:`\mathbf{v}_t` = `act.curtail_mw`
 - :math:`\mathbf{g}_t` = `obs.prod_p`  [the production in the observation]
 - :math:`\mathbf{d}_t` = `obs.actual_dispatch`
+- :math:`\mathbf{c}_t` = `obs.curtailment_mw`
+- :math:`\mathbf{e}_t` = `obs.gen_p_before_curtail`
 
 .. note:: Vector are denoted with bold font, like :math:`\mathbf{g}_t` and we will denote the ith component
     of this vector with :math:`g^i_t` (here representing then the active production of generator i at step t).
@@ -219,7 +238,7 @@ Using the above notation, these vector are accessible in grid2op with:
 .. warning:: Unless told otherwise, the letters used here to write the equation are only relevant for the
     generators.
 
-    It can happen the same letter is used multiple times for different element.
+    The same letter is used multiple times for different elements described.
 
 Equations
 ++++++++++
@@ -240,7 +259,24 @@ entails that:
 
     \[\forall t , - \mathbf{\underline{\delta p}} \leq \mathbf{g}_{t+1} - \mathbf{g}_t \leq \mathbf{\overline{\delta p}}\]
 
-The dispatch actions are cumulated in the "target_dispatch":
+Non dispatchable generators cannot be dispatched:
+
+.. math::
+    :nowrap:
+    :label: nondispatchable
+
+    \[\forall t, \forall \text{generator } i, "\text{gen. } i \text{ non dispatchable}" \Rightarrow d^i_t = 0\]
+
+Non renewable generators cannot be curtailed:
+
+.. math::
+    :nowrap:
+    :label: nonrenewable
+
+    \[\forall t, \forall \text{generator } i, "\text{gen. } i \text{ non renewable}" \Rightarrow c^i_t = 0\]
+
+
+The dispatch actions are added in the "target_dispatch":
 
 .. math::
     :nowrap:
@@ -255,9 +291,10 @@ The dispatch actions are cumulated in the "target_dispatch":
         \right.
     \]
 
+
 The total generation is the generation decided by the market (or a central authority) which
 the agent modified with redispatching (for example because what the market / central authority decided
-violate some security rules):
+violate some security rules) or by curtailment:
 
 .. math::
     :nowrap:
@@ -265,14 +302,35 @@ violate some security rules):
 
     \[\forall t, \mathbf{g}_t = \mathbf{u}_t + \mathbf{d}_t\]
 
+The production of a renewable generator takes into account the curtailment that will limit its production. So the
+equation :eq:`updateg` is modified as followed:
+
+.. math::
+    :nowrap:
+    :label: curtailment_limit
+
+    \[ \forall t,  \forall i,  g^i_t = min \{ v^i_t, g^i_t \} \]
+
+And it is possible to retrieve the amount of MW that has been "curtailed" with:
+
+.. math::
+    :nowrap:
+    :label: curtailmentamount2
+
+    \[ \forall t,  \forall i,  "\text{gen. } i \text{ non renewable}" \Rightarrow
+        g^i_t + c^i_t = e^i_t
+    \]
+
+
 The redispatching is not supposed to impact the balancing between production and loads, which is supposed
-to be ensured optimally (if the grid had an infinite capacity). This is why:
+to be ensured optimally (if the grid had an infinite capacity, by either a market or a central authority) and
+neither should this equilibrium be affected by the curtailment. This is why:
 
 .. math::
     :nowrap:
     :label: zerosum
 
-    \[\forall t, \sum_{\text{gen } i} d^i_t = 0\]
+    \[\forall t, \sum_{\text{gen } i} d^i_t - \sum_{\text{gen } i} c^i_t = 0\]
 
 .. _gen_comp_redisp-mod-el:
 
@@ -293,8 +351,8 @@ what is possible to get while satisfying the equations :eq:`pmax`, :eq:`ramps`, 
 .. note:: Equation :eq:`zerosum` holds when they are no storage units on the grid. Please see the
     :ref:`storage-mod-el` section to get the "constraints" effectively implemented on the grid.
 
-.. note:: The variable that can be modified by the optimisation routine are only the turned on dispatchable
-    generators. The other generators (typically solar and wind) but also the storage units,
+.. note:: The variable that can be modified wby the optimisation routine are only the turned on dispatchable
+    generators. The other generators (typically solar and ind) but also the storage units,
     are not modified when solving for this problem.
 
 .. _load-mod-el:
@@ -924,7 +982,7 @@ showed in the :ref:`generator-mod-el` is modified as followed:
     :nowrap:
     :label: storagemodif
 
-    \[\forall t, \sum_{\text{gen } i} d^i_t + \sum_{\text{storage } j} p^j_t = 0\]
+    \[\forall t, \sum_{\text{gen } i} d^i_t - \sum_{\text{gen } i} c^i_t + \sum_{\text{storage } j} p^j_t = 0\]
 
 In the current implementation, this is done by substuting the equation :eq:`storagemodif` instead of
 equation :eq:`zerosum` when solving

@@ -191,4 +191,5 @@ class CompleteObservation(BaseObservation):
         self._thermal_limit[:] = env.get_thermal_limit()
 
         self.gen_p_before_curtail[:] = env._gen_before_curtailment
-        self.curtailment[:] = env._limit_curtailment
+        self.curtailment[:] = (self.gen_p_before_curtail - self.gen_p) / self.gen_pmax
+        self.curtailment[~self.gen_renewable] = 0.

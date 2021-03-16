@@ -39,6 +39,8 @@
 .. _storage_charge: ./observation.html#grid2op.Observation.BaseObservation.storage_charge
 .. _storage_power_target: ./observation.html#grid2op.Observation.BaseObservation.storage_power_target
 .. _storage_power: ./observation.html#grid2op.Observation.BaseObservation.storage_power
+.. _gen_p_before_curtail: ./observation.html#grid2op.Observation.BaseObservation.gen_p_before_curtail
+.. _curtailment: ./observation.html#grid2op.Observation.BaseObservation.curtailment
 
 .. _observation_module:
 
@@ -109,6 +111,8 @@ Name(s)                                                                         
 `storage_charge`_                                                                float     `n_storage`_
 `storage_power_target`_                                                          float     `n_storage`_
 `storage_power`_                                                                 float     `n_storage`_
+`gen_p_before_curtail`_                                                          float     `n_gen`_
+`curtailment`_                                                                   float     `n_gen`_
 =============================================================================    ========= ============
 
 (*NB* for concision, if a coma ("*,*") is present in the "Name(s)" part of the column, it means multiple attributes

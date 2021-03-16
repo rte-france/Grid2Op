@@ -176,6 +176,15 @@ class BaseObservation(GridObjects):
     storage_power: :class:`numpy.ndarray`, dtype:float
         Give the actual storage production / loads at the given state.
 
+    gen_p_before_curtail:  :class:`numpy.ndarray`, dtype:float
+        Give the production of renewable generator there would have been
+        if no curtailment were applied (**NB** it returns 0.0 for non renewable
+        generators that cannot be curtailed)
+
+    curtailment: :class:`numpy.ndarray`, dtype:float
+        Give the actual curtailment setpoint for generator using renewable energy sources (1.0 means no curtailment).
+        This is the results of all curtailment actions applied up to the
+
     """
 
     _attr_eq = ["line_status",
@@ -2159,3 +2168,22 @@ class BaseObservation(GridObjects):
         res = 1.0 * self._thermal_limit
         res.flags.writeable = False
         return res
+
+    @property
+    def curtailment_mw(self):
+        """
+        return the curtailment, expressed in MW rather than in ratio of pmax.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+
+            obs = env.reset()
+            curtailment_mw = obs.curtailment_mw
+
+        """
+        return self.curtailment * self.gen_pmax

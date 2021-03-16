@@ -2005,10 +2005,11 @@ class GridObjects:
 
               - "loads_id": a vector giving the id of the loads connected to this substation, empty if none
               - "generators_id": a vector giving the id of the generators connected to this substation, empty if none
-              - "lines_or_id": a vector giving the id of the origin end of the powerlines connected to this substation,
+              - "lines_or_id": a vector giving the id of the origin side of the powerlines connected to this substation,
                 empty if none
-              - "lines_ex_id": a vector giving the id of the extermity end of the powerlines connected to this
+              - "lines_ex_id": a vector giving the id of the extermity side of the powerlines connected to this
                 substation, empty if none.
+              - "storages_id": a vector giving the id of the storage units connected at this substation.
               - "nb_elements" : number of elements connected to this substation
 
         Examples
