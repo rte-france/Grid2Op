@@ -503,10 +503,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._amount_storage_prev = 0.
 
         # curtailment
-        self._limit_curtailment = np.ones(self.n_gen, dtype=dt_float)  # in percent
-        self._gen_before_curtailment = np.zeros(self.n_gen, dtype=dt_float)  # in percent
+        self._limit_curtailment = np.ones(self.n_gen, dtype=dt_float)  # in ratio of pmax
+        self._gen_before_curtailment = np.zeros(self.n_gen, dtype=dt_float)  # in MW
         self._sum_curtailment_mw = dt_float(0.)
         self._sum_curtailment_mw_prev = dt_float(0.)
+        self._reset_curtailment()
 
         # register this is properly initialized
         self.__is_init = True
@@ -574,7 +575,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # TODO storage: check in simulate too!
 
     def _reset_curtailment(self):
-        self._limit_curtailment[:] = 1.0
+        self._limit_curtailment[self.gen_renewable] = 1.0
         self._gen_before_curtailment[:] = 0.
         self._sum_curtailment_mw = dt_float(0.)
         self._sum_curtailment_mw_prev = dt_float(0.)

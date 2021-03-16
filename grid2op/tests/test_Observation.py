@@ -189,7 +189,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          'storage_power_target': [],
                          'storage_power': [],
                          "gen_p_before_curtail": [0.0, 0.0, 0.0, 0.0, 0.0],
-                         "curtailment": [1.0, 1.0, 1.0, 1.0, 1.0]
+                         "curtailment": [0.0, 0.0, 0.0, -0.10857142508029938, 0.0],
+                         "curtailment_limit": [1.0, 1.0, 1.0, 1.0, 1.0]
                          }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
                                 dt_int, dt_int, dt_float, dt_float,
@@ -202,7 +203,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                                 dt_int, dt_int, dt_float, dt_float,
                                 dt_float, dt_float, dt_float,
                                 # curtailment
-                                dt_float, dt_float
+                                dt_float, dt_float, dt_float
                                 ],
                                dtype=object)
 
@@ -210,8 +211,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         self.shapes = np.array([ 1,  1,  1,  1,  1,  1,  5,  5,  5, 11, 11, 11, 20, 20, 20, 20, 20,
                                  20, 20, 20, 20, 20, 20, 56, 20, 14, 20, 20,
-                                 5, 5, 0, 0, 0, 5, 5])
-        self.size_obs = 424
+                                 5, 5, 0, 0, 0, 5, 5, 5])
+        self.size_obs = 429
 
     def tearDown(self):
         self.env.close()
@@ -840,7 +841,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
         # test that the right dictionary is returned
         for k in dict_:
-            assert dict_[k] == self.json_ref[k], f"error for key {k} (in dict_)"
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in dict_): {dict_[k]} vs {self.json_ref[k]} "
         for k in self.json_ref:
             assert dict_[k] == self.json_ref[k], f"error for key {k} (in self.json_ref)"
         self.assertDictEqual(dict_, self.json_ref)

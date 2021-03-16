@@ -196,3 +196,4 @@ class CompleteObservation(BaseObservation):
         self.curtailment[:] = (self.gen_p_before_curtail - self.gen_p) / self.gen_pmax
         self.curtailment[~self.gen_renewable] = 0.
         self.curtailment_limit[:] = env._limit_curtailment
+        self.curtailment_limit[self.curtailment_limit >= 1.] = 1.0

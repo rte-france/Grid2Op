@@ -185,6 +185,9 @@ class BaseObservation(GridObjects):
         Give the actual curtailment setpoint for generator using renewable energy sources (1.0 means no curtailment).
         This is the results of all curtailment actions applied up to the
 
+    curtailment_limit: :class:`numpy.ndarray`, dtype:float
+        Limit (in ratio of gen_pmax) imposed on each renewable generator.
+
     """
 
     _attr_eq = ["line_status",
@@ -529,7 +532,7 @@ class BaseObservation(GridObjects):
                     cls.attr_list_vect.remove(el)
 
             # remove the curtailment
-            for el in ["gen_p_before_curtail", "curtailment"]:
+            for el in ["gen_p_before_curtail", "curtailment", "curtailment_limit"]:
                 if el in cls.attr_list_vect:
                     cls.attr_list_vect.remove(el)
 
