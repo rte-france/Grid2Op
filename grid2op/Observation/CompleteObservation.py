@@ -91,6 +91,8 @@ class CompleteObservation(BaseObservation):
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         35. :attr:`BaseObservation.curtailment` : the current curtailment applied
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
+        36. :attr:`BaseObservation.curtailment_limit` : the current curtailment limit (if any)
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
 
     """
     attr_list_vect = [
@@ -108,7 +110,7 @@ class CompleteObservation(BaseObservation):
         "target_dispatch", "actual_dispatch",
         # TODO: backward compatibility
         "storage_charge", "storage_power_target", "storage_power",
-        "gen_p_before_curtail", "curtailment"
+        "gen_p_before_curtail", "curtailment", "curtailment_limit"
     ]
     attr_list_json = ["_shunt_p", "_shunt_q", "_shunt_v", "_shunt_bus"]
     attr_list_set = set(attr_list_vect)
@@ -193,3 +195,4 @@ class CompleteObservation(BaseObservation):
         self.gen_p_before_curtail[:] = env._gen_before_curtailment
         self.curtailment[:] = (self.gen_p_before_curtail - self.gen_p) / self.gen_pmax
         self.curtailment[~self.gen_renewable] = 0.
+        self.curtailment_limit[:] = env._limit_curtailment

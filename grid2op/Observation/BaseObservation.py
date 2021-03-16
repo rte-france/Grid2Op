@@ -203,7 +203,7 @@ class BaseObservation(GridObjects):
                 # storage
                 "storage_charge", "storage_power_target", "storage_power",
                 # curtailment
-                "gen_p_before_curtail", "curtailment"
+                "gen_p_before_curtail", "curtailment", "curtailment_limit"
                 ]
 
     attr_list_vect = None
@@ -303,6 +303,7 @@ class BaseObservation(GridObjects):
 
         self.gen_p_before_curtail = np.empty(shape=self.n_gen, dtype=dt_float)
         self.curtailment = np.empty(shape=self.n_gen, dtype=dt_float)
+        self.curtailment_limit = np.empty(shape=self.n_gen, dtype=dt_float)
 
     def state_of(self,
                  _sentinel=None,
@@ -441,6 +442,7 @@ class BaseObservation(GridObjects):
                    "target_dispatch": self.target_dispatch[gen_id],
                    "actual_dispatch": self.target_dispatch[gen_id],
                    "curtailment": self.curtailment[gen_id],
+                   "curtailment_limit": self.curtailment_limit[gen_id],
                    "p_before_curtail": self.gen_p_before_curtail[gen_id],
                    }
         elif line_id is not None:
@@ -659,6 +661,7 @@ class BaseObservation(GridObjects):
 
         # curtailment
         self.curtailment[:] = 0.
+        self.curtailment_limit[:] = 1.
         self.gen_p_before_curtail[:] = 0.
 
         # cooldown
@@ -2187,3 +2190,22 @@ class BaseObservation(GridObjects):
 
         """
         return self.curtailment * self.gen_pmax
+
+    @property
+    def curtailment_limit_mw(self):
+        """
+        return the limit of production of a generator in MW rather in ratio
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import grid2op
+            env_name = ...
+            env = grid2op.make(env_name)
+
+            obs = env.reset()
+            curtailment_limit_mw = obs.curtailment_limit_mw
+
+        """
+        return self.curtailment_limit * self.gen_pmax

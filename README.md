@@ -121,7 +121,7 @@ interesting part of this framework:
   of the
   Grid2Op framework. It also covers how to create a valid environment and how to use the 
   `Runner` class to assess how well an agent is performing rapidly.
-* [O2_Observation](getting_started/02_Observation.ipynb) details how to create 
+* [02_Observation](getting_started/02_Observation.ipynb) details how to create 
   an "expert agent" that will take pre defined actions based on the observation it gets from 
   the environment. This Notebook also covers the functioning of the BaseObservation class.
 * [03_Action](getting_started/03_Action.ipynb) demonstrates 
@@ -136,9 +136,11 @@ interesting part of this framework:
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-* [06_Redispatching](getting_started/06_Redispatching.ipynb) explains what is the "redispatching" from the point 
+* [06_Redispatching_Curtailment](getting_started/06_Redispatching_Curtailment.ipynb) explains what is the 
+  "redispatching" and curtailment from the point 
   of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
-  manipulate this concept in grid2op. Redispatching allows you to perform **continuous** actions on the powergrid 
+  manipulate this concept in grid2op. Redispatching (and curtailment) allows you to perform **continuous** 
+  actions on the powergrid 
   problem.
 * [07_MultiEnv](getting_started/07_MultiEnv.ipynb) details how grid2op natively support a single agent interacting
   with multiple environments at the same time. This is particularly handy to train "asynchronous" agent in the 
@@ -148,7 +150,8 @@ interesting part of this framework:
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
   to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines. 
-* [09_EnvironmentModifications](getting_started/09_EnvironmentModifications.ipynb) elaborates on the maintenance, hazards
+* [09_EnvironmentModifications](getting_started/09_EnvironmentModifications.ipynb) elaborates on the maintenance, 
+  hazards
   and attacks. All three of these represents external events that can disconnect some powerlines. This notebook
   covers how to spot when such things happened and what can be done when the maintenance or the attack is over.
   

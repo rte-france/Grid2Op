@@ -97,8 +97,9 @@ gen_v                         vect, float   observation, :ref:`generator-obs`
 target_dispatch               vect, float   observation, :ref:`generator-obs`
 actual_dispatch               vect, float   observation, :ref:`generator-obs`
 gen_bus                       vect, int     observation, :ref:`generator-obs`
-curtailment                   vect, int     observation, :ref:`generator-obs`
-gen_p_before_curtail          vect, int     observation, :ref:`generator-obs`
+curtailment                   vect, float   observation, :ref:`generator-obs`
+gen_p_before_curtail          vect, float   observation, :ref:`generator-obs`
+curtailment_limit             vect, float   observation, :ref:`generator-obs`
 ==========================   =============  ============================================================
 
 
@@ -188,6 +189,9 @@ attributes are:
 - `curtailment`: give the ratio of curtailment for each generator. **NB** it will always be 0.0 for non
   renewable generator. **NB** the property `curtailment_mw` also exists if you want to convert the curtailment,
   normally expressed in ratio of `gen_pmax` as a curtailment in MW.
+- `gen_p_before_curtail`: give the generation that would occur if there is not curtailment
+- `curtailment_limit`: add the limits of all the past curtailment actions. (This is given in ration of gen_pmax,
+  if you want it in MW you can use `curtailment_limit_mw`)
 
 Satisfied equations
 ~~~~~~~~~~~~~~~~~~~~~~
