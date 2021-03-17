@@ -34,6 +34,7 @@ __all__ = [
     "UnrecognizedAction",
     "InvalidLineStatus",
     "InvalidStorage",
+    "InvalidCurtailment",
     "AmbiguousAction",
     "DivergingPowerFlow",
     "NoForecastAvailable",
@@ -80,6 +81,7 @@ from grid2op.Exceptions.AmbiguousActionExceptions import InvalidNumberOfObjectEn
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidNumberOfLines
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidNumberOfGenerators
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidNumberOfLoads
+from grid2op.Exceptions.AmbiguousActionExceptions import InvalidCurtailment
 from grid2op.Exceptions.AmbiguousActionExceptions import UnrecognizedAction
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidLineStatus
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidStorage

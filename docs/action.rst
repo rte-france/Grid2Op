@@ -22,6 +22,7 @@
 .. _line_change_status: ./action.html#grid2op.Action.BaseAction._line_change_status
 .. _redispatch: ./action.html#grid2op.Action.BaseAction.redispatch
 .. _storage_p: ./action.html#grid2op.Action.BaseAction.storage_p
+.. _curtail: ./action.html#grid2op.Action.BaseAction.curtail
 
 .. _action-module:
 
@@ -53,9 +54,9 @@ and should
 understands its return type.
 
 
-The :class:`BaseAction` and all its derivatives also offer some usefull inspection utilities:
+The :class:`BaseAction` and all its derivatives also offer some useful inspection utilities:
 
-  - :func:`BaseAction.__str__` prints the action in a format that gives usefull information on how it will
+  - :func:`BaseAction.__str__` prints the action in a format that gives useful information on how it will
     affect the powergrid
   - :func:`BaseAction.effect_on` returns a dictionary that gives information about its effect.
 
@@ -102,16 +103,17 @@ Name(s)                                                                         
 `line_or_set_bus`_                                                               int        `n_line`_
 `line_ex_set_bus`_                                                               int        `n_line`_
 `storage_set_bus`_                                                               int        `n_storage`_
-`change_bus`_                                                                    int        `dim_topo`_
-`gen_change_bus`_                                                                int        `n_gen`_
-`load_change_bus`_                                                               int        `n_load`_
-`line_or_change_bus`_                                                            int        `n_line`_
-`line_ex_change_bus`_                                                            int        `n_line`_
-`storage_change_bus`_                                                            int        `n_storage`_
+`change_bus`_                                                                    bool       `dim_topo`_
+`gen_change_bus`_                                                                bool       `n_gen`_
+`load_change_bus`_                                                               bool       `n_load`_
+`line_or_change_bus`_                                                            bool       `n_line`_
+`line_ex_change_bus`_                                                            bool       `n_line`_
+`storage_change_bus`_                                                            bool       `n_storage`_
 `line_set_status`_                                                               int        `n_line`_
-`line_change_status`_                                                            int        `n_line`_
-`redispatch`_                                                                    int        `n_gen`_
-`storage_p`_                                                                     int        `n_storage`_
+`line_change_status`_                                                            bool       `n_line`_
+`redispatch`_                                                                    float      `n_gen`_
+`storage_p`_                                                                     float      `n_storage`_
+`curtail`_                                                                       float      `n_gen`_
 =============================================================================    =========  ============
 
 All the attributes above are "properties", you don't have to use parenthesis to access them:
@@ -121,6 +123,7 @@ All the attributes above are "properties", you don't have to use parenthesis to 
     # valid code
     gen_buses = act.gen_change_bus
 
+    # do not run
     # invalid code, it will "crash", do not run
     gen_buses = act.gen_change_bus()
     # end do not run

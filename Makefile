@@ -19,4 +19,5 @@ help:
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-#cmd windows: sphinx-build -M html docs documentation
+#cmd windows: > sphinx-build -M html docs documentation
+# cmd for pdf > make latexpdf
