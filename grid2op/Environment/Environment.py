@@ -54,6 +54,9 @@ class Environment(BaseEnv):
         Used to display the powergrid. Currently not supported.
 
     """
+
+    REGEX_SPLIT = r"^[a-zA-Z0-9]*$"
+
     def __init__(self,
                  init_grid_path: str,
                  chronics_handler,
@@ -919,12 +922,12 @@ class Environment(BaseEnv):
 
         """
         # define all the locations
-        if re.match("^[a-zA-Z0-9]*$", add_for_train) is None:
-            raise EnvError("The suffixes you can use for training data (add_for_train) "
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
-        if re.match("^[a-zA-Z0-9]*$", add_for_val) is None:
-            raise EnvError("The suffixes you can use for validation data (add_for_val)"
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+        if re.match(self.REGEX_SPLIT, add_for_train) is None:
+            raise EnvError(f"The suffixes you can use for training data (add_for_train) "
+                           f"should match the regex \"{self.REGEX_SPLIT}\"")
+        if re.match(self.REGEX_SPLIT, add_for_val) is None:
+            raise EnvError(f"The suffixes you can use for validation data (add_for_val)"
+                           f"should match the regex \"{self.REGEX_SPLIT}\"")
 
         from grid2op.Chronics import MultifolderWithCache, Multifolder
         if not isinstance(self.chronics_handler.real_data, (MultifolderWithCache, Multifolder)):
@@ -1076,13 +1079,12 @@ class Environment(BaseEnv):
         to the training environment or the validation environment.
 
         """
-
-        if re.match("^[a-zA-Z0-9]*$", add_for_train) is not None:
+        if re.match(self.REGEX_SPLIT, add_for_train) is None:
             raise EnvError("The suffixes you can use for training data (add_for_train) "
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
-        if re.match("^[a-zA-Z0-9]*$", add_for_val) is not None:
+                           "should match the regex \"{self.REGEX_SPLIT}\"")
+        if re.match(self.REGEX_SPLIT, add_for_val) is None:
             raise EnvError("The suffixes you can use for validation data (add_for_val)"
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+                           "should match the regex \"{self.REGEX_SPLIT}\"")
 
         my_path = self.get_path_env()
         chronics_path = os.path.join(my_path, self._chronics_folder_name())
