@@ -179,7 +179,10 @@ interesting part of this framework:
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/10_StorageUnits.ipynb)
   details the usage and behaviour of the storage units
   in grid2op.
-  
+* [11_IntegrationWithExistingRLFrameworks](getting_started/11_IntegrationWithExistingRLFrameworks.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/11_IntegrationWithExistingRLFrameworks.ipynb)
+  explains how to use grid2op with other reinforcement learning framework.
+    
 Try them out in your own browser without installing 
 anything with the help of mybinder: 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)

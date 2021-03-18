@@ -468,7 +468,10 @@ class BaseAction(GridObjects):
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
+            if attr_nm not in type(self).attr_list_set:
+                raise AmbiguousAction(f"Impossible to modify attribute {attr_nm} with this action type.")
             super()._assign_attr_from_name(attr_nm, vect)
+            self._post_process_from_vect()
         else:
             if np.any(np.isfinite(vect)):
                 if np.any(vect != 0.):
