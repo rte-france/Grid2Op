@@ -113,51 +113,78 @@ Some Jupyter notebook are provided as tutorials for the Grid2Op package. They ar
 These notebooks will help you in understanding how this framework is used and cover the most
 interesting part of this framework:
 
-* [00_Introduction](getting_started/00_Introduction.ipynb) and [00_SmallExample](getting_started/00_SmallExample.ipynb) 
+* [00_Introduction](getting_started/00_Introduction.ipynb) 
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/00_Introduction.ipynb)
+  and [00_SmallExample](getting_started/00_SmallExample.ipynb) 
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/00_SmallExample.ipynb)
   describe what is 
   adressed by the grid2op framework (with a tiny introductions to both power systems and reinforcement learning) 
   and give and introductory example to a small powergrid manipulation.
-* [01_Grid2opFramework](getting_started/01_Grid2opFramework.ipynb) covers the basics 
+* [01_Grid2opFramework](getting_started/01_Grid2opFramework.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/01_Grid2opFramework.ipynb)
+  covers the basics 
   of the
   Grid2Op framework. It also covers how to create a valid environment and how to use the 
   `Runner` class to assess how well an agent is performing rapidly.
-* [02_Observation](getting_started/02_Observation.ipynb) details how to create 
+* [02_Observation](getting_started/02_Observation.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/02_Observation.ipynb)
+  details how to create 
   an "expert agent" that will take pre defined actions based on the observation it gets from 
   the environment. This Notebook also covers the functioning of the BaseObservation class.
-* [03_Action](getting_started/03_Action.ipynb) demonstrates 
+* [03_Action](getting_started/03_Action.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/03_Action.ipynb)
+  demonstrates 
   how to use the BaseAction class and how to manipulate the powergrid.
-* [04_TrainingAnAgent](getting_started/04_TrainingAnAgent.ipynb) shows how to get started with 
+* [04_TrainingAnAgent](getting_started/04_TrainingAnAgent.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/04_TrainingAnAgent.ipynb)
+  shows how to get started with 
   reinforcement learning in the Grid2Op framework. It will use the code provided by Abhinav Sagar
   available on [his blog](https://towardsdatascience.com/deep-reinforcement-learning-tutorial-with-open-ai-gym-c0de4471f368) 
   or on [his github repository](https://github.com/abhinavsagar/Reinforcement-Learning-Tutorial). This code will
   be adapted (only minor changes, most of them to fit the shape of the data) 
   and a (D)DQN will be trained on this problem.
-* [05_StudyYourAgent](getting_started/05_StudyYourAgent.ipynb) shows how to study an BaseAgent, for example
+* [05_StudyYourAgent](getting_started/05_StudyYourAgent.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/05_StudyYourAgent.ipynb)
+  shows how to study an BaseAgent, for example
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
-* [06_Redispatching_Curtailment](getting_started/06_Redispatching_Curtailment.ipynb) explains what is the 
+* [06_Redispatching_Curtailment](getting_started/06_Redispatching_Curtailment.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/06_Redispatching_Curtailment.ipynb)
+  explains what is the 
   "redispatching" and curtailment from the point 
   of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to 
   manipulate this concept in grid2op. Redispatching (and curtailment) allows you to perform **continuous** 
   actions on the powergrid 
   problem.
-* [07_MultiEnv](getting_started/07_MultiEnv.ipynb) details how grid2op natively support a single agent interacting
+* [07_MultiEnv](getting_started/07_MultiEnv.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/07_MultiEnv.ipynb)
+  details how grid2op natively support a single agent interacting
   with multiple environments at the same time. This is particularly handy to train "asynchronous" agent in the 
   Reinforcement Learning community for example.
-* [08_PlottingCapabilities](getting_started/08_PlottingCapabilities.ipynb) shows you the different ways with which you 
+* [08_PlottingCapabilities](getting_started/08_PlottingCapabilities.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/08_PlottingCapabilities.ipynb)
+  shows you the different ways with which you 
   can represent (visually) the grid your agent interact with. A renderer is available like in many open AI gym 
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
   to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines. 
-* [09_EnvironmentModifications](getting_started/09_EnvironmentModifications.ipynb) elaborates on the maintenance, 
+* [09_EnvironmentModifications](getting_started/09_EnvironmentModifications.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/09_EnvironmentModifications.ipynb)
+  elaborates on the maintenance, 
   hazards
   and attacks. All three of these represents external events that can disconnect some powerlines. This notebook
   covers how to spot when such things happened and what can be done when the maintenance or the attack is over.
+* [10_StorageUnits](getting_started/10_StorageUnits.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/10_StorageUnits.ipynb)
+  details the usage and behaviour of the storage units
+  in grid2op.
   
 Try them out in your own browser without installing 
 anything with the help of mybinder: 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
+
+Or thanks to google colab (all links are provided near the notebook description)
 
 # Documentation
 

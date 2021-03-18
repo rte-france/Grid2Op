@@ -60,9 +60,11 @@ Change Log
 - [FIXED] a bug in the serialization (as vector) of some action classes, namely: `PowerlineSetAction` and
   `PowerlineSetAndDispatchAction` and `PowerlineChangeDispatchAndStorageAction`
 - [FIXED] a bug preventing to use the `obs.XXX_matrix()` function twice
+- [FIXED] issue `Issue #172 <https://github.com/rte-france/Grid2Op/issues/172>`_: wrong assertion was made preventing
+  the use of `env.train_val_split_random()`
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
-- [ADDED] a poperty to retrieve the thermal limits from the observation.
+- [ADDED] a property to retrieve the thermal limits from the observation.
 - [ADDED] documentation of the main elements of the grid and their "modeling" in grid2op.
 - [ADDED] parameters are now checked and refused if not valid (a RuntimeError is raised)
 - [ADDED] support for storage unit in grid2op (analog as a "load" convention positive: power absorbed from the grid,
