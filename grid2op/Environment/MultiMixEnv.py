@@ -153,15 +153,17 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     def __init__(self,
                  envs_dir,
                  _add_to_name="",  # internal, for test only, do not use !
+                 _compat_glop_version=None,  # internal, for test only, do not use !
+                 _test=False,
                  **kwargs):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
-
         self.current_env = None
         self.env_index = None
         self.mix_envs = []
 
-        # Special case handling for backend 
+        # Special case handling for backend
+        # TODO: with backend.copy() instead !
         backendClass = None
         if "backend" in kwargs:
             backendClass = type(kwargs["backend"])
@@ -170,6 +172,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         # Inline import to prevent cyclical import
         from grid2op.MakeEnv.Make import make
 
+        # TODO reuse same observation_space and action_space in all the envs maybe ?
         try:
             for env_dir in sorted(os.listdir(envs_dir)):
                 env_path = os.path.join(envs_dir, env_dir)            
@@ -180,13 +183,18 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                     env = make(env_path,
                                backend=backendClass(),
                                _add_to_name=_add_to_name,
+                               _compat_glop_version=_compat_glop_version,
+                               test=_test,
                                **kwargs)
                 else:
-                    env = make(env_path, **kwargs)
-                
+                    env = make(env_path,
+                               _add_to_name=_add_to_name,
+                               _compat_glop_version=_compat_glop_version,
+                               test=_test,
+                               **kwargs)
                 self.mix_envs.append(env)
-        except Exception as e:
-            err_msg = "MultiMix environment creation failed: {}".format(e)
+        except Exception as exc_:
+            err_msg = "MultiMix environment creation failed: {}".format(exc_)
             raise EnvError(err_msg)
 
         if len(self.mix_envs) == 0:
@@ -240,6 +248,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             raise StopIteration
 
     def __getattr__(self, name):
+        # TODO what if name is an integer ? make it possible to loop with integer here
         return getattr(self.current_env, name)
 
     def keys(self):
@@ -264,7 +273,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         res = cls.__new__(cls)
         for k in self.__dict__:
             if k == "mix_envs" or k == "current_env":
-                # this is handled elswhere
+                # this is handled elsewhere
                 continue
             setattr(res, k, copy.deepcopy(getattr(self, k)))
         res.mix_envs = [mix.copy() for mix in mix_envs]

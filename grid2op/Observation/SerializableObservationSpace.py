@@ -26,7 +26,7 @@ class SerializableObservationSpace(SerializableSpace):
         An instance of the "*observationClass*" provided used to provide higher level utilities
 
     """
-    def __init__(self, gridobj, observationClass=CompleteObservation):
+    def __init__(self, gridobj, observationClass=CompleteObservation, _init_grid=True):
         """
 
         Parameters
@@ -38,7 +38,7 @@ class SerializableObservationSpace(SerializableSpace):
             Type of action used to build :attr:`Space.SerializableSpace._template_obj`
 
         """
-        SerializableSpace.__init__(self, gridobj=gridobj, subtype=observationClass)
+        SerializableSpace.__init__(self, gridobj=gridobj, subtype=observationClass, _init_grid=_init_grid)
         self.observationClass = self.subtype
         self._empty_obs = self._template_obj
 
@@ -64,8 +64,10 @@ class SerializableObservationSpace(SerializableSpace):
 
         """
         tmp = SerializableSpace.from_dict(dict_)
-        res = SerializableObservationSpace(gridobj=tmp,
-                                           observationClass=tmp.subtype)
+        CLS = SerializableObservationSpace.init_grid(tmp)
+        res = CLS(gridobj=tmp,
+                  observationClass=tmp.subtype,
+                  _init_grid=False)
         return res
 
     def get_indx_extract(self, attr_name):

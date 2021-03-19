@@ -255,6 +255,5 @@ class TestRecoPowerlineAgent(HelperTests):
                 assert ddict4["set_line_status"]["connected_id"][0] == 2
 
 
-
 if __name__ == "__main__":
     unittest.main()

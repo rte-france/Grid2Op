@@ -319,12 +319,12 @@ class BaseAction(GridObjects):
     """
     authorized_keys = {"injection",
                        "hazards", "maintenance", "set_line_status", "change_line_status",
-                       "set_bus", "change_bus", "redispatch", "set_storage"}
+                       "set_bus", "change_bus", "redispatch", "set_storage", "curtail"}
 
     attr_list_vect = ["prod_p", "prod_v", "load_p", "load_q", "_redispatch",
                       "_set_line_status", "_switch_line_status",
                       "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
-                      "_storage_power"
+                      "_storage_power", "_curtail"
                       ]
     attr_list_set = set(attr_list_vect)
     shunt_added = False
@@ -370,6 +370,9 @@ class BaseAction(GridObjects):
         # storage unit vector
         self._storage_power = np.full(shape=self.n_storage, fill_value=0., dtype=dt_float)
 
+        # curtailment of renewable energy
+        self._curtail = np.full(shape=self.n_gen, fill_value=-1., dtype=dt_float)
+
         self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
@@ -400,6 +403,32 @@ class BaseAction(GridObjects):
         self._modif_change_status = False
         self._modif_redispatch = False
         self._modif_storage = False
+        self._modif_curtailment = False
+
+    @classmethod
+    def process_grid2op_compat(cls):
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # oldest version: no storage and no curtailment available
+
+            # this is really important, otherwise things from grid2op base types will be affected
+            cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+            cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+            cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
+
+            # deactivate storage
+            cls.set_no_storage()
+            if "set_storage" in cls.authorized_keys:
+                cls.authorized_keys.remove("set_storage")
+            if "_storage_power" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("_storage_power")
+                cls.attr_list_set = set(cls.attr_list_vect)
+
+            # remove the curtailment
+            if "curtail" in cls.authorized_keys:
+                cls.authorized_keys.remove("curtail")
+            if "_curtail" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("_curtail")
+                cls.attr_list_set = set(cls.attr_list_vect)
 
     def _reset_modified_flags(self):
         self._modif_inj = False
@@ -409,6 +438,7 @@ class BaseAction(GridObjects):
         self._modif_change_status = False
         self._modif_redispatch = False
         self._modif_storage = False
+        self._modif_curtailment = False
 
     def _get_array_from_attr_name(self, attr_name):
         if hasattr(self, attr_name):
@@ -434,6 +464,7 @@ class BaseAction(GridObjects):
         self._modif_change_status = np.any(self._switch_line_status)
         self._modif_redispatch = np.any(np.isfinite(self._redispatch) & (self._redispatch != 0.))
         self._modif_storage = np.any(np.isfinite(self._storage_power))
+        self._modif_curtailment = np.any(self._curtail != -1.)
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -583,6 +614,11 @@ class BaseAction(GridObjects):
                 not np.all(me_inj[tmp_me] == other_inj[tmp_other]):
             return False
 
+        # curtailment
+        if (self._modif_curtailment != other._modif_curtailment) or \
+                not np.array_equal(self._curtail, other._curtail):
+            return False
+
         # same topology changes
         if (self._modif_set_bus != other._modif_set_bus) or \
                 not np.all(self._set_topo_vect == other._set_topo_vect):
@@ -722,6 +758,9 @@ class BaseAction(GridObjects):
         # storage
         self._storage_power[:] = 0.
 
+        # storage
+        self._curtail[:] = -1.
+
         self._vectorized = None
         self._lines_impacted = None
         self._subs_impacted = None
@@ -816,6 +855,16 @@ class BaseAction(GridObjects):
             else:
                 self._storage_power[ok_ind] += set_storage[ok_ind]
 
+        # storage
+        curtailment = other._curtail
+        ok_ind = np.isfinite(curtailment) & np.any(curtailment != -1.)
+        if np.any(ok_ind):
+            if "_curtail" not in self.attr_list_set:
+                warnings.warn("The action added to me will be cut, because i don't support modification of \"{}\""
+                              "".format("_curtail"))
+            else:
+                self._curtail[ok_ind] = curtailment[ok_ind]
+
         # set and change status
         other_set = other._set_line_status
         other_change = other._switch_line_status
@@ -905,6 +954,7 @@ class BaseAction(GridObjects):
         self._modif_inj = self._modif_inj or other._modif_inj
         self._modif_redispatch = self._modif_redispatch or other._modif_redispatch
         self._modif_storage = self._modif_storage or other._modif_storage
+        self._modif_curtailment = self._modif_curtailment or other._modif_curtailment
 
         return self
 
@@ -972,8 +1022,11 @@ class BaseAction(GridObjects):
         storage_power: :class:`numpy.ndarray`, dtype:float
             Indicates, for all storage units, what is the production / absorbtion setpoint
 
+        curtailment: :class:`numpy.ndarray`, dtype:float TODO
+            Indicates, for all generators, which curtailment is applied (if any)
+
         shunts: ``dict``
-            A dictionnary containing the shunts data, with keys: "shunt_p", "shunt_q" and "shunt_bus" and the
+            A dictionary containing the shunts data, with keys: "shunt_p", "shunt_q" and "shunt_bus" and the
             convention, for "shun_p" and "shunt_q" that Nan means "don't change" and for shunt_bus: -1 => disconnect
             0 don't change, and 1 / 2 connect to bus 1 / 2
 
@@ -993,6 +1046,7 @@ class BaseAction(GridObjects):
         change_bus_vect = self._change_bus_vect
         redispatch = self._redispatch
         storage_power = self._storage_power
+        # remark: curtailment is handled by an algorithm in the environment, so don't need to be returned here
         shunts = {}
         if self.shunts_data_available:
             shunts["shunt_p"] = self.shunt_p
@@ -1206,6 +1260,10 @@ class BaseAction(GridObjects):
         if "set_storage" in dict_:
             self.storage_p = dict_["set_storage"]
 
+    def _digest_curtailment(self, dict_):
+        if "curtail" in dict_:
+            self.curtail = dict_["curtail"]
+
     def _reset_vect(self):
         """
         INTERNAL USE ONLY
@@ -1393,6 +1451,16 @@ class BaseAction(GridObjects):
             storage_act = env.action_space({"set_storage": [(0, -1.5)]})
             print(storage_act)
 
+        *Example 8*: apply a action of type curtailment: limit the production to a renewable energy unit
+        (in the example the generator with id 2)
+        at 80% of its maximum capacity
+
+        .. code-block:: python
+
+            renewable_energy_source = 2
+            storage_act = env.action_space({"curtail": [(renewable_energy_source, 0.8)]})
+            print(storage_act)
+
         Returns
         -------
         self: :class:`BaseAction`
@@ -1412,6 +1480,7 @@ class BaseAction(GridObjects):
             self._digest_injection(dict_)
             self._digest_redispatching(dict_)
             self._digest_storage(dict_)  # ADDED for battery
+            self._digest_curtailment(dict_)  # ADDED for curtailment
             self._digest_setbus(dict_)
             self._digest_change_bus(dict_)
             self._digest_set_status(dict_)
@@ -1537,6 +1606,8 @@ class BaseAction(GridObjects):
 
         # redispatching specific check
         if self._modif_redispatch:
+            if "redispatch" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"redispatch\" are not supported by this action type")
             if not self.redispatching_unit_commitment_availble:
                 raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
                                                            "environment. Please set up the proper costs for generator")
@@ -1563,6 +1634,9 @@ class BaseAction(GridObjects):
 
         # storage specific checks:
         self._is_storage_ambiguous()
+
+        # curtailment specific checks:
+        self._is_curtailment_ambiguous()
 
         # topological action
         if self._modif_set_bus and self._modif_change_bus and np.any(self._set_topo_vect[self._change_bus_vect] != 0):
@@ -1608,11 +1682,15 @@ class BaseAction(GridObjects):
             id_disc = np.where(idx)[0]
 
         if self._modif_set_bus:
+            if "set_bus" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"set_bus\" are not supported by this action type")
             if np.any(self._set_topo_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                     np.any(self._set_topo_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
                 raise InvalidLineStatus("You ask to disconnect a powerline but also to connect it "
                                         "to a certain bus.")
         if self._modif_change_bus:
+            if "change_bus" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"change_bus\" are not supported by this action type")
             if np.any(self._change_bus_vect[self.line_or_pos_topo_vect[id_disc]] > 0) or \
                     np.any(self._change_bus_vect[self.line_ex_pos_topo_vect[id_disc]] > 0):
                 raise InvalidLineStatus("You ask to disconnect a powerline but also to change its bus.")
@@ -1643,11 +1721,14 @@ class BaseAction(GridObjects):
             if self.shunt_q is not None:
                 raise AmbiguousAction("Attempt to modify a shunt (shunt_q) while shunt data is not handled by backend")
             if self.shunt_bus is not None:
-                raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled by backend")
+                raise AmbiguousAction("Attempt to modify a shunt (shunt_bus) while shunt data is not handled "
+                                      "by backend")
 
     def _is_storage_ambiguous(self):
         """check if storage actions are ambiguous"""
         if self._modif_storage:
+            if "set_storage" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"set_storage\" are not supported by this action type")
             if self.n_storage == 0:
                 raise InvalidStorage("Attempt to modify a storage unit while there is none on the grid")
             if self._storage_power.shape[0] != self.n_storage:
@@ -1658,15 +1739,43 @@ class BaseAction(GridObjects):
                 raise InvalidStorage(f"you asked a storage unit to absorb more than what it can: "
                                      f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
             if np.any(self._storage_power > self.storage_max_p_absorb):
-                where_bug = np.where(self._storage_power < -self.storage_max_p_prod)[0]
+                where_bug = np.where(self._storage_power > self.storage_max_p_absorb)[0]
                 raise InvalidStorage(f"you asked a storage unit to produce more than what it can: "
-                                     f"self._storage_power[{where_bug}] < -self.storage_max_p_prod[{where_bug}].")
+                                     f"self._storage_power[{where_bug}] > self.storage_max_p_absorb[{where_bug}].")
 
         if "_storage_power" not in self.attr_list_set:
             if np.any(self._set_topo_vect[self.storage_pos_topo_vect] > 0):
                 raise InvalidStorage("Attempt to modify bus (set) of a storage unit")
             if np.any(self._change_bus_vect[self.storage_pos_topo_vect]):
                 raise InvalidStorage("Attempt to modify bus (change) of a storage unit")
+
+    def _is_curtailment_ambiguous(self):
+        """check if curtailment action is ambiguous"""
+        if self._modif_curtailment:
+            if "curtail" not in self.authorized_keys:
+                raise AmbiguousAction("Action of type \"curtail\" are not supported by this action type")
+
+            if not self.redispatching_unit_commitment_availble:
+                raise UnitCommitorRedispachingNotAvailable("Impossible to use a redispatching action in this "
+                                                           "environment. Please set up the proper costs for generator. "
+                                                           "This also means curtailment feature is not available.")
+
+            if self._curtail.shape[0] != self.n_gen:
+                raise InvalidCurtailment("self._curtail.shape[0] != self.n_gen: wrong number of generator "
+                                         "units affected")
+
+            if np.any((self._curtail < 0.) & (self._curtail != -1.)):
+                where_bug = np.where((self._curtail < 0.) & (self._curtail != -1.))[0]
+                raise InvalidCurtailment(f"you asked to perform a negative curtailment: "
+                                         f"self._curtail[{where_bug}] < 0. "
+                                         f"Curtailment should be a real number between 0.0 and 1.0")
+            if np.any(self._curtail > 1.):
+                where_bug = np.where(self._curtail > 1.)[0]
+                raise InvalidCurtailment(f"you asked a storage unit to produce more than what it can: "
+                                         f"self._curtail[{where_bug}] > 1. "
+                                         f"Curtailment should be a real number between 0.0 and 1.0")
+            if np.any(self._curtail[~self.gen_renewable] != -1.):
+                raise InvalidCurtailment("Trying to apply a curtailment on a non renewable generator")
 
     def _ignore_topo_action_if_disconnection(self, sel_):
         # force ignore of any topological actions
@@ -1757,10 +1866,9 @@ class BaseAction(GridObjects):
         if self._modif_storage:
             res.append("\t - Modify the storage units in the following way:")
             for stor_idx in range(self.n_storage):
-                tmp = self._storage_power[stor_idx]
-                if np.isfinite(tmp) and tmp != 0.:
+                amount_ = self._storage_power[stor_idx]
+                if np.isfinite(amount_) and amount_ != 0.:
                     name_ = self.name_storage[stor_idx]
-                    amount_ = self._storage_power[stor_idx]
                     res.append("\t \t - Ask unit \"{}\" to {} {:.2f} MW (setpoint: {:.2f} MW)"
                                "".format(name_,
                                          "absorb" if amount_ > 0. else "produce",
@@ -1769,6 +1877,19 @@ class BaseAction(GridObjects):
                                )
         else:
             res.append("\t - NOT modify any storage capacity")
+
+        # curtailment
+        if self._modif_curtailment:
+            res.append("\t - Perform the following curtailment:")
+            for gen_idx in range(self.n_gen):
+                amount_ = self._curtail[gen_idx]
+                if np.isfinite(amount_) and amount_ != -1.:
+                    name_ = self.name_gen[gen_idx]
+                    res.append("\t \t - Limit unit \"{}\" to {:.1f}% of its Pmax (setpoint: {:.3f})"
+                               "".format(name_, 100. * amount_, amount_)
+                               )
+        else:
+            res.append("\t - NOT perform any curtailment")
 
         # force line status
         force_line_impact = impact['force_line']
@@ -1960,6 +2081,21 @@ class BaseAction(GridObjects):
             storage["changed"] = True
             has_impact = True
 
+        curtailment = {"changed": False, "limit": []}
+        if self._modif_curtailment:
+            for gen_idx in range(self.n_gen):
+                tmp = self._curtail[gen_idx]
+                if np.isfinite(tmp) and tmp != -1:
+                    name_ = self.name_gen[gen_idx]
+                    new_max = tmp
+                    curtailment["limit"].append({
+                        "generator_id": gen_idx,
+                        "generator_name": name_,
+                        "amount": new_max
+                    })
+            storage["changed"] = True
+            has_impact = True
+
         return {
             'has_impact': has_impact,
             'injection': inject_detail,
@@ -1967,7 +2103,8 @@ class BaseAction(GridObjects):
             'switch_line': switch_line_status,
             'topology': topology,
             'redispatch': redispatch,
-            "storage": storage
+            "storage": storage,
+            "curtailment": curtailment
         }
 
     def as_dict(self):
@@ -2024,7 +2161,7 @@ class BaseAction(GridObjects):
           * `redispatch` the redispatching action (if any). It gives, for each generator (all generator, not just the
             dispatchable one) the amount of power redispatched in this action.
           * `storage_power`: the setpoint for production / consumption for all storage units
-
+          * `curtailment`: the curtailment performed on all generator
 
         Returns
         -------
@@ -2101,6 +2238,9 @@ class BaseAction(GridObjects):
         if self._modif_storage:
             res["storage_power"] = self._storage_power
 
+        if self._modif_curtailment:
+            res["curtailment"] = self._curtail
+
         return res
 
     def get_types(self):
@@ -2156,7 +2296,8 @@ class BaseAction(GridObjects):
         line = np.any(lines_impacted)
         redispatching = np.any(self._redispatch != 0.)
         storage = self._modif_storage
-        return injection, voltage, topology, line, redispatching, storage
+        curtailment = self._modif_curtailment
+        return injection, voltage, topology, line, redispatching, storage, curtailment
 
     def _aux_effect_on_load(self, load_id):
         if load_id >= self.n_load:
@@ -2189,6 +2330,7 @@ class BaseAction(GridObjects):
         res["change_bus"] = self._change_bus_vect[my_id]
         res["set_bus"] = self._set_topo_vect[my_id]
         res["redispatch"] = self._redispatch[gen_id]
+        res["curtailment"] = self._curtail[gen_id]
         return res
 
     def _aux_effect_on_line(self, line_id):
@@ -2229,7 +2371,7 @@ class BaseAction(GridObjects):
         if substation_id >= self.n_sub:
             raise Grid2OpException(f"There are only {self.n_sub} substations on the grid. "
                                    f"Cannot check impact on "
-                                   f"`substation_id={storage_id}`")
+                                   f"`substation_id={substation_id}`")
         if substation_id < 0:
             raise Grid2OpException(f"`substation_id` should be positive.")
 
@@ -2291,6 +2433,7 @@ class BaseAction(GridObjects):
                 - "change_bus" whether or not this load will be moved from one bus to another (for example is an action
                   asked it to go from bus 1 to bus 2)
                 - "redispatch" the amount of power redispatched for this generator.
+                - "curtailment": the amount of curtailment on this generator
 
             - if a powerline is inspected then the keys are:
 
@@ -2408,6 +2551,8 @@ class BaseAction(GridObjects):
     def get_gen_modif(self):
         """
         Retrieve the modification that will be performed on all the generators
+
+        TODO add curtailment and redispatching
 
         Returns
         -------
@@ -3572,6 +3717,39 @@ class BaseAction(GridObjects):
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
+    @property
+    def curtail(self):
+        """
+        Allows to perfom some curtailment on some generators
+
+        It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
+
+        For more information, feel free to consult the documentation :ref:`gen-mod-el` where more
+        details are given about the modeling ot these storage units.
+        """
+        res = 1.0 * self._curtail
+        res.flags.writeable = False
+        return res
+
+    @curtail.setter
+    def curtail(self, values):
+        if "curtail" not in self.authorized_keys:
+            raise IllegalAction("Impossible to perform curtailment action with this action type.")
+        if not self.redispatching_unit_commitment_availble:
+            raise IllegalAction("Impossible to perform curtailment as it is not possible to compute redispatching. "
+                                "Your backend do not support \"redispatching_unit_commitment_availble\"")
+
+        orig_ = self.curtail
+        try:
+            self._aux_affect_object_float(values, "curtailment", self.n_gen, self.name_gen,
+                                          np.arange(self.n_gen), self._curtail)
+            self._modif_curtailment = True
+        except Exception as exc_:
+            self._curtail[:] = orig_
+            raise IllegalAction(f"Impossible to perform curtailment with your input. "
+                                f"Please consult the documentation. "
+                                f"The error was:\n\"{exc_}\"")
+
     def _aux_aux_convert_and_check_np_array(self, array_):
         try:
             array_ = np.array(array_)
@@ -3779,3 +3957,57 @@ class BaseAction(GridObjects):
             raise IllegalAction(f"Impossible to modify the substation bus with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
+
+    def curtailment_mw_to_ratio(self, curtailment_mw):
+        """
+        Transform a "curtailment" given as maximum MW to the grid2op formalism (in ratio of gen_pmax)
+
+        Parameters
+        ----------
+        curtailment_mw:
+            Same type of inputs you can use in `act.curtail = ...`
+
+        Returns
+        -------
+        A proper input to `act.curtail` with the converted input expressed in ratio of gen_pmax
+
+        Examples
+        --------
+
+        If you want to limit the production of generator 1 (suppose its renewable) at 1.5MW
+        then you can do:
+
+        .. code-block:: python
+
+            gen_id = 1
+            amount_max = 1.5
+            act.curtail = act.curtailment_mw_to_ratio([(gen_id, amount_max)])
+
+        """
+        values = self._curtail * self.gen_pmax
+        self._aux_affect_object_float(curtailment_mw, "curtailment", self.n_gen, self.name_gen,
+                                      np.arange(self.n_gen), values)
+        values /= self.gen_pmax
+        values[values >= 1.0] = 1.0
+        values[values < 0.] = -1.0
+        return values
+
+    @property
+    def curtail_mw(self):
+        """
+        Allows to perfom some curtailment on some generators in MW (by default in grid2Op it should be expressed
+        in ratio of gen_pmax)
+
+        It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
+
+        For more information, feel free to consult the documentation :ref:`gen-mod-el` where more
+        details are given about the modeling ot these storage units.
+        """
+        res = 1.0 * self._curtail * self.gen_pmax
+        res[res < 0.] = -1.0
+        res.flags.writeable = False
+        return res
+
+    @curtail_mw.setter
+    def curtail_mw(self, values_mw):
+        self.curtail = self.curtailment_mw_to_ratio(values_mw)

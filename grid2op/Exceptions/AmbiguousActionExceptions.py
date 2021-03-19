@@ -105,6 +105,15 @@ class InvalidRedispatching(AmbiguousAction):
     pass
 
 
+class InvalidCurtailment(AmbiguousAction):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that
+    the :class:`grid2op.BaseAction.BaseAction`
+    try to apply an invalid curtailment strategy.
+    """
+    pass
+
+
 class GeneratorTurnedOnTooSoon(InvalidRedispatching):
     """
     This is a more precise exception than :class:`AmbiguousAction` indicating that a generator has been turned on

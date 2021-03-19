@@ -56,6 +56,7 @@ class BaseHelper:
                 continue
             assert np.array_equal(getattr(obs, el), getattr(tested_obs, el), equal_nan=True), f"error for {el}"
 
+
     def aux_test_action(self,
                         res_topo_vect_1, res_topo_vect_2, res_topo_vect_3,
                         res_ls_1, res_ls_2, res_ls_3,

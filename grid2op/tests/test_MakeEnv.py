@@ -361,8 +361,8 @@ class TestMakeFromPathConfig(unittest.TestCase):
         with make_from_dataset_path(dataset_path) as env:
             # Check config is loaded from config.py
             assert env._rewardClass == L2RPNReward
-            assert env._actionClass == TopologyAction
-            assert env._observationClass == CompleteObservation
+            assert issubclass(env._actionClass, TopologyAction)
+            assert issubclass(env._observationClass, CompleteObservation)
             assert isinstance(env.backend, PandaPowerBackend)
             assert env._legalActClass == DefaultRules
             assert isinstance(env._voltage_controler, ControlVoltageFromFile)
@@ -382,8 +382,8 @@ class TestMakeFromPathConfig(unittest.TestCase):
         with make_from_dataset_path(dataset_path) as env:
             # Check config is loaded from config.py
             assert env._rewardClass == RedispReward
-            assert env._actionClass == TopologyAndDispatchAction
-            assert env._observationClass == CompleteObservation
+            assert issubclass(env._actionClass, TopologyAndDispatchAction)
+            assert issubclass(env._observationClass, CompleteObservation)
             assert isinstance(env.backend, PandaPowerBackend)
             assert env._legalActClass == DefaultRules
             assert isinstance(env._voltage_controler, ControlVoltageFromFile)
@@ -404,8 +404,8 @@ class TestMakeFromPathConfig(unittest.TestCase):
         with make_from_dataset_path(dataset_path) as env:
             # Check config is loaded from config.py
             assert env._rewardClass == RedispReward
-            assert env._actionClass == TopologyAndDispatchAction
-            assert env._observationClass == CompleteObservation
+            assert issubclass(env._actionClass, TopologyAndDispatchAction)
+            assert issubclass(env._observationClass, CompleteObservation)
             assert isinstance(env.backend, PandaPowerBackend)
             assert env._legalActClass == DefaultRules
             assert isinstance(env._voltage_controler, ControlVoltageFromFile)
@@ -455,18 +455,18 @@ class TestMakeFromPathConfigOverride(unittest.TestCase):
     def test_case5_override_action(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")
         with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert env._actionClass == VoltageOnlyAction
+            assert issubclass(env._actionClass, VoltageOnlyAction)
 
     def test_case14_test_override_action(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case14_test")
         with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert env._actionClass == VoltageOnlyAction
+            assert issubclass(env._actionClass, VoltageOnlyAction)
 
     def test_l2rpn19_override_action(self):
         self.skipTest("l2rpn has been removed")
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "l2rpn_2019")
         with make_from_dataset_path(dataset_path, action_class=VoltageOnlyAction) as env:
-            assert env._actionClass == VoltageOnlyAction
+            assert issubclass(env._actionClass, VoltageOnlyAction)
 
     def test_case5_override_chronics(self):
         dataset_path = os.path.join(PATH_CHRONICS_Make2, "rte_case5_example")

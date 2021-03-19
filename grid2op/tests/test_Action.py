@@ -12,9 +12,9 @@ import re
 import warnings
 import unittest
 import numpy as np
-import pdb
 from abc import ABC, abstractmethod
 
+import grid2op
 from grid2op.tests.helper_path_test import *
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -26,8 +26,8 @@ from grid2op.Space.space_utils import save_to_dict
 
 # TODO check that if i set the element of a powerline to -1, then it's working as intended (disconnect both ends)
 
-import warnings
-warnings.simplefilter("error")
+
+import pdb
 
 
 def _get_action_grid_class():
@@ -75,6 +75,7 @@ def _get_action_grid_class():
     GridObjects.gen_redispatchable = np.array([True, False, False, True, False])
     GridObjects.gen_max_ramp_up = np.array([10., 5., 15., 7., 8.])
     GridObjects.gen_max_ramp_down = np.array([11., 6., 16., 8., 9.])
+    GridObjects.gen_renewable = ~GridObjects.gen_redispatchable
 
     GridObjects.n_storage = 2
     GridObjects.name_storage = np.array(["storage_0", "storage_1"])
@@ -92,8 +93,10 @@ def _get_action_grid_class():
     GridObjects.storage_charging_efficiency = np.array([1., 1.])
 
     GridObjects._topo_vect_to_sub = np.repeat(np.arange(GridObjects.n_sub), repeats=GridObjects.sub_info)
+    GridObjects.glop_version = grid2op.__version__
 
     json_ = {
+        'glop_version': grid2op.__version__,
         'name_gen': ['gen_0', 'gen_1', 'gen_2', 'gen_3', 'gen_4'],
         'name_load': ['load_0', 'load_1', 'load_2',
                       'load_3', 'load_4', 'load_5', 'load_6',
@@ -297,7 +300,8 @@ class TestActionBase(ABC):
             disco[i] = 1
             action = self.helper_action({"set_line_status": disco})
             for j in range(self.helper_action.n_line):
-                assert action.effect_on(line_id=j)["set_line_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
+                assert action.effect_on(line_id=j)["set_line_status"] == disco[j], \
+                    "problem with line {} if line {} is disconnected".format(j, i)
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_disconnection_m1(self):
@@ -312,7 +316,8 @@ class TestActionBase(ABC):
             disco[i] = -1
             action = self.helper_action({"set_line_status": disco})
             for j in range(self.helper_action.n_line):
-                assert action.effect_on(line_id=j)["set_line_status"] == disco[j], "problem with line {} if line {} is disconnected".format(j, i)
+                assert action.effect_on(line_id=j)["set_line_status"] == disco[j], \
+                    "problem with line {} if line {} is disconnected".format(j, i)
                 assert action.effect_on(line_id=j)["change_line_status"] == False
 
     def test_update_hazard(self):
@@ -554,8 +559,11 @@ class TestActionBase(ABC):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.__str__()
         act_str = 'This action will:\n\t - NOT change anything to the injections' \
-                  '\n\t - NOT perform any redispatching action\n\t - NOT modify any storage capacity' \
-                  '\n\t - NOT force any line status\n\t - NOT switch any line status' \
+                  '\n\t - NOT perform any redispatching action\n' \
+                  '\t - NOT modify any storage capacity\n' \
+                  '\t - NOT perform any curtailment' \
+                  '\n\t - NOT force any line status\n' \
+                  '\t - NOT switch any line status' \
                   '\n\t - Change the bus of the following element(s):' \
                   '\n\t \t - Switch bus of line (origin) id 4 [on substation 1]' \
                   '\n\t \t - Switch bus of load id 0 [on substation 1]' \
@@ -580,6 +588,9 @@ class TestActionBase(ABC):
                                      "set_bus": {"substations_id": [(id_2, arr2)]}})
         res = action.to_vect()
         tmp = np.zeros(self.size_act)
+        if "curtail" in action.authorized_keys:
+            # for curtailment, at the end, and by default its -1
+            tmp[-action.n_gen:] = -1
         # if "_storage_power" in action.attr_list_set:
         #     tmp[-2:] = np.NaN  # i did not modify the battery so i need to do that otherwise vectors are not equal
 
@@ -608,7 +619,9 @@ class TestActionBase(ABC):
                                                                            False, False, False, False, False, False,
                                                                            False, False, False, False, False, False,
                                                                            False, False, False, False, False, False,
-                                                                           False, False, False, False, False, False])
+                                                                           False, False, False, False, False, False,
+                                                                           ])
+
         assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
         assert np.all(np.isfinite(res) == np.isfinite(tmp))
 

@@ -8,10 +8,12 @@
 
 import json
 import os
+import warnings
 
 import numpy as np
 
-from grid2op.Exceptions import Grid2OpException, EnvError
+import grid2op
+from grid2op.Exceptions import Grid2OpException, EnvError, IncorrectNumberOfElements
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
@@ -137,6 +139,7 @@ class EpisodeData:
     LINES_FAILURES = "disc_lines_cascading_failure.npz"
     ATTACK = "opponent_attack.npz"
     REWARDS = "rewards.npz"
+    GRID2OPINFO_FILE = "grid2op.info"
 
     ATTR_EPISODE = [PARAMS, META, TIMES, OTHER_REWARDS, AG_EXEC_TIMES, ACTIONS,
                     ENV_ACTIONS, OBSERVATIONS, LINES_FAILURES, ATTACK, REWARDS]
@@ -427,14 +430,15 @@ class EpisodeData:
         except FileNotFoundError as ex:
             raise Grid2OpException(f"EpisodeData file not found \n {str(ex)}")
 
-        observation_space = ObservationSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.OBS_SPACE))
-        action_space = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ACTION_SPACE))
-        helper_action_env = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
-        attack_space = ActionSpace.from_dict(
-            os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
+        observation_space = ObservationSpace.from_dict(os.path.join(agent_path, EpisodeData.OBS_SPACE))
+        action_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ACTION_SPACE))
+        helper_action_env = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ENV_MODIF_SPACE))
+        attack_space = ActionSpace.from_dict(os.path.join(agent_path, EpisodeData.ATTACK_SPACE))
+        if observation_space.glop_version != grid2op.__version__:
+            warnings.warn("You are using a \"grid2op compatibility\" feature (the data you saved "
+                          "have been saved with a previous grid2op version). When we loaded your data, we attempted "
+                          "to not include most recent grid2op features. This is feature is not well tested. It would "
+                          "be wise to regenerate the data with the latest grid2Op version.")
         return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
@@ -644,22 +648,22 @@ class EpisodeData:
         if self.serialize:
             parameters_path = os.path.join(
                 self.episode_path, EpisodeData.PARAMS)
-            with open(parameters_path, "w") as f:
+            with open(parameters_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.parameters, fp=f, indent=4, sort_keys=True)
 
             meta_path = os.path.join(self.episode_path, EpisodeData.META)
-            with open(meta_path, "w") as f:
+            with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.meta, fp=f, indent=4, sort_keys=True)
 
             episode_times_path = os.path.join(
                 self.episode_path, EpisodeData.TIMES)
-            with open(episode_times_path, "w") as f:
+            with open(episode_times_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.episode_times, fp=f,
                           indent=4, sort_keys=True)
 
             episode_other_rewards_path = os.path.join(
                 self.episode_path, EpisodeData.OTHER_REWARDS)
-            with open(episode_other_rewards_path, "w") as f:
+            with open(episode_other_rewards_path, "w", encoding="utf-8") as f:
                 json.dump(obj=self.other_rewards, fp=f,
                           indent=4, sort_keys=True)
 
@@ -677,6 +681,28 @@ class EpisodeData:
                 self.episode_path, EpisodeData.LINES_FAILURES), data=self.disc_lines)
             np.savez_compressed(os.path.join(self.episode_path,
                                  EpisodeData.REWARDS), data=self.rewards)
+
+            with open(os.path.join(self.episode_path, self.GRID2OPINFO_FILE),
+                      "w",
+                      encoding="utf-8") as f:
+                dict_ = {"version": f"{grid2op.__version__}"}
+                json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
+
+    @staticmethod
+    def get_grid2op_version(path_episode):
+        """
+        Utility function to retrieve the grid2op version used to generate this episode serialized on disk.
+
+        This is introduced in grid2op 1.5.0, with older runner version stored, this function will return "<=1.4.0"
+        otherwise it returns the grid2op version, as a string.
+        """
+        version = "<=1.4.0"
+        if os.path.exists(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE)):
+            with open(os.path.join(path_episode, EpisodeData.GRID2OPINFO_FILE), "r", encoding="utf-8") as f:
+                dict_ = json.load(fp=f)
+                if "version" in dict_:
+                    version = dict_["version"]
+        return version
 
 
 class CollectionWrapper:
@@ -734,7 +760,7 @@ class CollectionWrapper:
         self.collection = collection
         if not hasattr(helper, "from_vect"):
             raise Grid2OpException(f"Object {helper} must implement a "
-                                   f"from_vect methode.")
+                                   f"from_vect method.")
         self.helper = helper
         self.collection_name = collection_name
         self.elem_name = self.collection_name[:-1]
@@ -745,6 +771,10 @@ class CollectionWrapper:
             try:
                 collection_obj = self.helper.from_vect(self.collection[i, :], check_legit=check_legit)
                 self.objects.append(collection_obj)
+            except IncorrectNumberOfElements as exc_:
+                # grid2op does not allow to load the object: there is a mismatch between what has been stored
+                # and what is currently used.
+                raise
             except EnvError as exc_:
                 self._game_over = i
                 break

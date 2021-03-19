@@ -10,7 +10,9 @@
 import warnings
 import unittest
 import grid2op
+import numpy as np
 
+from grid2op.Space import GridObjects
 from grid2op.Action.PowerlineSetAction import PowerlineSetAction
 from grid2op.Action.PlayableAction import PlayableAction
 from grid2op.Observation.CompleteObservation import CompleteObservation
@@ -25,7 +27,9 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_neurips_2020_track1", test=True)
+            self.env = grid2op.make("l2rpn_neurips_2020_track1",
+                                    test=True)
+            self.env.seed(0)
 
     def test_elements(self):
         assert self.env.n_sub == 36
@@ -44,14 +48,28 @@ class TestL2RPNNEURIPS2020_Track1(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 1266
+        assert self.env.observation_space.n == 1332, f"obs space size is {self.env.observation_space.n}," \
+                                                     f"should be {1332}"
+
+    def test_random_action(self):
+        """test i can perform some step (random)"""
+        i = 0
+        for i in range(10):
+            act = self.env.action_space.sample()
+            obs, reward, done, info = self.env.step(act)
+            if done:
+                break
+        assert i >= 1, "could not perform the random action test because it games over first time step. " \
+                       "Please fix the test and try again"
 
 
 class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_neurips_2020_track2", test=True)
+            self.env = grid2op.make("l2rpn_neurips_2020_track2",
+                                    test=True)
+            self.env.seed(0)
 
     def test_elements(self):
         assert self.env.n_sub == 118
@@ -70,14 +88,27 @@ class TestL2RPNNEURIPS2020_Track2(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 3868
+        assert self.env.observation_space.n == 4054
+
+    def test_random_action(self):
+        """test i can perform some step (random)"""
+        i = 0
+        for i in range(10):
+            act = self.env.action_space.sample()
+            obs, reward, done, info = self.env.step(act)
+            if done:
+                break
+        assert i >= 1, "could not perform the random action test because it games over first time step. " \
+                       "Please fix the test and try again"
 
 
 class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("l2rpn_case14_sandbox", test=True)
+            self.env = grid2op.make("l2rpn_case14_sandbox",
+                                    test=True)
+            self.env.seed(42)
 
     def test_elements(self):
         assert self.env.n_sub == 14
@@ -96,14 +127,27 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 420
+        assert self.env.observation_space.n == 438
+
+    def test_random_action(self):
+        """test i can perform some step (random)"""
+        i = 0
+        for i in range(10):
+            act = self.env.action_space.sample()
+            obs, reward, done, info = self.env.step(act)
+            if done:
+                break
+        assert i >= 1, "could not perform the random action test because it games over first time step. " \
+                       "Please fix the test and try again"
 
 
 class TestEDUC_CASE14_REDISP(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_redisp", test=True)
+            self.env = grid2op.make("educ_case14_redisp",
+                                    test=True)
+            self.env.seed(0)
 
     def test_elements(self):
         assert self.env.n_sub == 14
@@ -122,14 +166,27 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 420
+        assert self.env.observation_space.n == 438
+
+    def test_random_action(self):
+        """test i can perform some step (random)"""
+        i = 0
+        for i in range(10):
+            act = self.env.action_space.sample()
+            obs, reward, done, info = self.env.step(act)
+            if done:
+                break
+        assert i >= 1, "could not perform the random action test because it games over first time step. " \
+                       "Please fix the test and try again"
 
 
-class TestEDUC_CASE14_STORAGE(unittest.TestCase):
+class TestEDUC_STORAGE(unittest.TestCase):
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make("educ_case14_storage", test=True)
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True)
+            self.env.seed(0)
 
     def test_elements(self):
         assert self.env.n_sub == 14
@@ -148,7 +205,19 @@ class TestEDUC_CASE14_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        assert self.env.observation_space.n == 428
+        assert self.env.observation_space.n == 446
+
+    def test_random_action(self):
+        """test i can perform some step (random)"""
+        i = 0
+        for i in range(10):
+            act = self.env.action_space.sample()
+            obs, reward, done, info = self.env.step(act)
+            if done:
+                pdb.set_trace()
+                break
+        assert i >= 1, "could not perform the random action test because it games over first time step. " \
+                       "Please fix the test and try again"
 
 
 if __name__ == "__main__":

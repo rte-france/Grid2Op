@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 import re
 
+import grid2op
 from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.Action import ActionSpace, BaseAction, TopologyAction, DontAct, CompleteAction
 from grid2op.Exceptions import *
@@ -53,6 +54,9 @@ class Environment(BaseEnv):
         Used to display the powergrid. Currently not supported.
 
     """
+
+    REGEX_SPLIT = r"^[a-zA-Z0-9]*$"
+
     def __init__(self,
                  init_grid_path: str,
                  chronics_handler,
@@ -78,7 +82,8 @@ class Environment(BaseEnv):
                  opponent_attack_duration=0,
                  opponent_attack_cooldown=99999,
                  kwargs_opponent={},
-                 _raw_backend_class=None
+                 _raw_backend_class=None,
+                 _compat_glop_version=None,
                  ):
         BaseEnv.__init__(self,
                          parameters=parameters,
@@ -114,10 +119,14 @@ class Environment(BaseEnv):
         else:
             self._raw_backend_class = _raw_backend_class
 
+        self._compat_glop_version = _compat_glop_version
+
         # for plotting
         self._init_backend(init_grid_path, chronics_handler, backend,
                            names_chronics_to_backend, actionClass, observationClass,
                            rewardClass, legalActClass)
+        self._actionClass_orig = actionClass
+        self._observationClass_orig = observationClass
 
     def get_path_env(self):
         """
@@ -148,16 +157,13 @@ class Environment(BaseEnv):
         if not issubclass(rewardClass, BaseReward):
             raise Grid2OpException("Parameter \"rewardClass\" used to build the Environment should derived form "
                                    "the grid2op.BaseReward class, type provided is \"{}\"".format(type(rewardClass)))
-        self._rewardClass = rewardClass
-        self._actionClass = actionClass
-        self._observationClass = observationClass
 
         # backend
         self._init_grid_path = os.path.abspath(init_grid_path)
 
         if not isinstance(backend, Backend):
-            raise Grid2OpException( "Parameter \"backend\" used to build the Environment should derived form the "
-                                    "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
+            raise Grid2OpException("Parameter \"backend\" used to build the Environment should derived form the "
+                                   "grid2op.Backend class, type provided is \"{}\"".format(type(backend)))
         self.backend = backend
         # all the above should be done in this exact order, otherwise some weird behaviour might occur
         # this is due to the class attribute
@@ -167,6 +173,8 @@ class Environment(BaseEnv):
         self.backend.load_storage_data(self.get_path_env())
         self.backend.load_grid_layout(self.get_path_env())
         self.backend.assert_grid_correct()
+        self._handle_compat_glop_version()
+
         self._has_been_initialized()  # really important to include this piece of code! and just here after the
         # backend has loaded everything
         self._line_status = np.ones(shape=self.n_line, dtype=dt_bool)
@@ -213,20 +221,27 @@ class Environment(BaseEnv):
                     type(observationClass)))
 
         # action affecting the grid that will be made by the agent
-        self._helper_action_class = ActionSpace.init_grid(gridobj=self.backend)
-        self._helper_action_player = self._helper_action_class(gridobj=self.backend,
-                                                               actionClass=actionClass,
-                                                               legal_action=self._game_rules.legal_action)
+        bk_type = type(self.backend)  # be careful here: you need to initialize from the class, and not from the object
+        self._rewardClass = rewardClass
+        self._actionClass = actionClass.init_grid(gridobj=bk_type)
+        self._observationClass = observationClass.init_grid(gridobj=bk_type)
 
+        self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
+
+        self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
+        self._helper_action_player = self._helper_action_class(gridobj=bk_type,
+                                                               actionClass=self._actionClass,
+                                                               legal_action=self._game_rules.legal_action)
         # action that affect the grid made by the environment.
-        self._helper_action_env = self._helper_action_class(gridobj=self.backend,
-                                                            actionClass=CompleteAction,
+        self._helper_action_env = self._helper_action_class(gridobj=bk_type,
+                                                            actionClass=self._complete_action_cls,
                                                             legal_action=self._game_rules.legal_action)
-        self._helper_observation_class = ObservationSpace.init_grid(gridobj=self.backend)
-        self._helper_observation = self._helper_observation_class(gridobj=self.backend,
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
+        self._helper_observation = self._helper_observation_class(gridobj=bk_type,
                                                                   observationClass=observationClass,
                                                                   rewardClass=rewardClass,
                                                                   env=self)
+
         # handles input data
         if not isinstance(chronics_handler, ChronicsHandler):
             raise Grid2OpException(
@@ -254,7 +269,7 @@ class Environment(BaseEnv):
         if not issubclass(self._voltagecontrolerClass, BaseVoltageController):
             raise Grid2OpException("Parameter \"voltagecontrolClass\" should derive from \"ControlVoltageFromFile\".")
 
-        self._voltage_controler = self._voltagecontrolerClass(gridobj=self.backend,
+        self._voltage_controler = self._voltagecontrolerClass(gridobj=bk_type,
                                                               controler_backend=self.backend)
 
         # create the opponent
@@ -289,6 +304,64 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
+
+    def _handle_compat_glop_version(self):
+        if self._compat_glop_version is not None and self._compat_glop_version != grid2op.__version__:
+            warnings.warn("You are using a grid2op \"compatibility\" environment. This means that some "
+                          "feature will not be available. This feature is absolutely NOT recommended except to "
+                          "read back data (for example with EpisodeData) that were stored with previous "
+                          "grid2op version.")
+            self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
+            cls_bk = type(self.backend)
+            cls_bk.glop_version = self._compat_glop_version
+            if cls_bk.glop_version == cls_bk.BEFORE_COMPAT_VERSION:
+                # oldest version: no storage and no curtailment available
+                # deactivate storage
+                # recompute the topology vector (more or less everything need to be adjusted...
+                stor_locs = [pos for pos in cls_bk.storage_pos_topo_vect]
+                for stor_loc in sorted(stor_locs, reverse=True):
+                    for vect in [cls_bk.load_pos_topo_vect, cls_bk.gen_pos_topo_vect,
+                                 cls_bk.line_or_pos_topo_vect, cls_bk.line_ex_pos_topo_vect]:
+                        vect[vect >= stor_loc] -= 1
+
+                # deals with the "sub_pos" vector
+                for sub_id in range(cls_bk.n_sub):
+                    if np.any(cls_bk.storage_to_subid == sub_id):
+                        stor_ids = np.where(cls_bk.storage_to_subid == sub_id)[0]
+                        stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
+                        for stor_loc in sorted(stor_locs, reverse=True):
+                            for vect, sub_id_me in zip([cls_bk.load_to_sub_pos, cls_bk.gen_to_sub_pos,
+                                                        cls_bk.line_or_to_sub_pos, cls_bk.line_ex_to_sub_pos],
+                                                       [cls_bk.load_to_subid, cls_bk.gen_to_subid,
+                                                        cls_bk.line_or_to_subid, cls_bk.line_ex_to_subid]):
+                                vect[(vect >= stor_loc) & (sub_id_me == sub_id)] -= 1
+
+                # remove storage from the number of element in the substation
+                for sub_id in range(cls_bk.n_sub):
+                    cls_bk.sub_info[sub_id] -= np.sum(cls_bk.storage_to_subid == sub_id)
+                # remove storage from the total number of element
+                cls_bk.dim_topo -= cls_bk.n_storage
+
+                # recompute this private member
+                cls_bk._topo_vect_to_sub = np.repeat(np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info)
+                self.backend._topo_vect_to_sub = np.repeat(np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info)
+
+                new_grid_objects_types = cls_bk.grid_objects_types
+                new_grid_objects_types = new_grid_objects_types[new_grid_objects_types[:, cls_bk.STORAGE_COL] == -1,:]
+                cls_bk.grid_objects_types = 1 * new_grid_objects_types
+                self.backend.grid_objects_types = 1 * new_grid_objects_types
+
+                # erase all trace of storage units
+                cls_bk.set_no_storage()
+                Environment.deactivate_storage(self.backend)
+
+                # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
+                self.backend.storage_deact_for_backward_comaptibility()
+
+                # and recomputes everything while making sure everything is consistent
+                self.backend.assert_grid_correct()
+                type(self.backend)._topo_vect_to_sub = np.repeat(np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info)
+                type(self.backend).grid_objects_types = new_grid_objects_types
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
@@ -360,9 +433,9 @@ class Environment(BaseEnv):
 
         try:
             new_chunk_size = int(new_chunk_size)
-        except Exception as e:
+        except Exception as exc_:
             raise Grid2OpException("Impossible to set the chunk size. It should be convertible a integer, and not"
-                                   "{}".format(new_chunk_size))
+                                   "{}. The error was: \n\"{}\"".format(new_chunk_size, exc_))
 
         if new_chunk_size <= 0:
             raise Grid2OpException("Impossible to read less than 1 data at a time. Please make sure \"new_chunk_size\""
@@ -849,12 +922,12 @@ class Environment(BaseEnv):
 
         """
         # define all the locations
-        if re.match("^[a-zA-Z0-9]*$", add_for_train) is None:
-            raise EnvError("The suffixes you can use for training data (add_for_train) "
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
-        if re.match("^[a-zA-Z0-9]*$", add_for_val) is None:
-            raise EnvError("The suffixes you can use for validation data (add_for_val)"
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+        if re.match(self.REGEX_SPLIT, add_for_train) is None:
+            raise EnvError(f"The suffixes you can use for training data (add_for_train) "
+                           f"should match the regex \"{self.REGEX_SPLIT}\"")
+        if re.match(self.REGEX_SPLIT, add_for_val) is None:
+            raise EnvError(f"The suffixes you can use for validation data (add_for_val)"
+                           f"should match the regex \"{self.REGEX_SPLIT}\"")
 
         from grid2op.Chronics import MultifolderWithCache, Multifolder
         if not isinstance(self.chronics_handler.real_data, (MultifolderWithCache, Multifolder)):
@@ -1006,13 +1079,12 @@ class Environment(BaseEnv):
         to the training environment or the validation environment.
 
         """
-
-        if re.match("^[a-zA-Z0-9]*$", add_for_train) is not None:
+        if re.match(self.REGEX_SPLIT, add_for_train) is None:
             raise EnvError("The suffixes you can use for training data (add_for_train) "
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
-        if re.match("^[a-zA-Z0-9]*$", add_for_val) is not None:
+                           "should match the regex \"{self.REGEX_SPLIT}\"")
+        if re.match(self.REGEX_SPLIT, add_for_val) is None:
             raise EnvError("The suffixes you can use for validation data (add_for_val)"
-                           "should match the regex \"^[a-zA-Z0-9]*$\"")
+                           "should match the regex \"{self.REGEX_SPLIT}\"")
 
         my_path = self.get_path_env()
         chronics_path = os.path.join(my_path, self._chronics_folder_name())
@@ -1050,8 +1122,8 @@ class Environment(BaseEnv):
         res["path_chron"] = self.chronics_handler.path
         res["parameters_path"] = self._parameters.to_dict()
         res["names_chronics_to_backend"] = self.names_chronics_to_backend
-        res["actionClass"] = self._actionClass
-        res["observationClass"] = self._observationClass
+        res["actionClass"] = self._actionClass_orig
+        res["observationClass"] = self._observationClass_orig
         res["rewardClass"] = self._rewardClass
         res["legalActClass"] = self._legalActClass
         res["envClass"] = Environment
