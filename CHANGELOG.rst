@@ -39,7 +39,10 @@ Change Log
   confusion with the `parameters` attributes of the environment.
 - [BREAKING] change of behaviour of the `env.parameters` attribute behaviour. It is no more possible to
   modified it with `env.parameters = ...` and the `env.parameters.PARAM_ATTRIBUTE = xxx` will have not effect
-  at all.
+  at all. Use `env.change_parameters(new_parameters)` for changing the environment parameters and
+  `env.change_forecast_parameters(new_param_for_simulate)` for changing the parameters used for simulate.
+  (**NB** in both case you need to perform a "env.reset()" for the new parameters to be used. Any attempt to use
+  an environment without a call to 'env.reset()' will lead to undefined behaviour).
 - [BREAKING] `env.obs_space.rewardClass` is not private and is called `env.obs_space._reward_func`. To change
   this function, you need to call `env.change_reward(...)`
 - [BREAKING] more consistency in the observation attribute names, they are now `gen_p`, `gen_q` and `gen_v`
