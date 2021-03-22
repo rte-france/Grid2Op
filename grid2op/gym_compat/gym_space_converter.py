@@ -70,6 +70,8 @@ class _BaseGymSpaceConverter(spaces.Dict):
                 if converter is not None:
                     # for converting the names between internal names and "human readable names"
                     conv_k = converter[k]
+                else:
+                    conv_k = k
 
                 obj_raw = obj._get_array_from_attr_name(conv_k)
                 if conv_k in self._keys_encoding:

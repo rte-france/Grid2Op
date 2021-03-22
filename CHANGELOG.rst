@@ -62,6 +62,9 @@ Change Log
 - [FIXED] a bug preventing to use the `obs.XXX_matrix()` function twice
 - [FIXED] issue `Issue #172 <https://github.com/rte-france/Grid2Op/issues/172>`_: wrong assertion was made preventing
   the use of `env.train_val_split_random()`
+- [FIXED] issue `Issue #173 <https://github.com/rte-france/Grid2Op/issues/173>`_: a full nan vector could be
+  converted to action or observation without any issue if it had the proper dimension. This was due to a conversion
+  to integer from float.
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] a property to retrieve the thermal limits from the observation.

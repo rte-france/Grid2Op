@@ -389,13 +389,14 @@ class BaseAction(GridObjects):
             self.shunt_q = None
             self.shunt_bus = None
 
-        if type(self).shunt_added is False and type(self).shunts_data_available:
-            type(self).shunt_added = True
-            type(self).attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
-            type(self).authorized_keys.add("shunt")
-            type(self)._update_value_set()
-            type(self).attr_nan_list_set.add("shunt_p")
-            type(self).attr_nan_list_set.add("shunt_q")
+        mycls = BaseAction  # this should not be "type(self)" as it is for all action type !
+        if mycls.shunt_added is False and mycls.shunts_data_available:
+            mycls.shunt_added = True
+            mycls.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            mycls.authorized_keys.add("shunt")
+            mycls._update_value_set()
+            mycls.attr_nan_list_set.add("shunt_p")
+            mycls.attr_nan_list_set.add("shunt_q")
 
         self._single_act = True
 

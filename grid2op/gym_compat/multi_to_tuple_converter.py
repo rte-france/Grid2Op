@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import copy
 import numpy as np
 from gym.spaces import Tuple, MultiBinary, MultiDiscrete, Discrete
 
@@ -32,10 +31,13 @@ class MultiToTupleConverter(BaseGymAttrConverter):
         if init_space is not None:
             self.initialize_space(init_space)
 
-    def previous_fun(self, x):
+        self.previous_fun = self._previous_fun
+        self.after_fun = self._after_fun
+
+    def _previous_fun(self, x):
         return x
 
-    def after_fun(self, x):
+    def _after_fun(self, x):
         return x
 
     def initialize_space(self, init_space):
@@ -48,7 +50,6 @@ class MultiToTupleConverter(BaseGymAttrConverter):
                 init_space = init_space.my_space
             else:
                 raise RuntimeError("Bad converter used. It should be of type MultiBinary or MultiDiscrete")
-
         else:
             raise RuntimeError("Impossible to convert a gym space of type {} to a Tuple (it should be of "
                                "type space.MultiBinary or space.MultiDiscrete)"
