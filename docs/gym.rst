@@ -124,6 +124,18 @@ Converter name                           Objective
 :class:`ScalerAttrConverter`             TODO
 ======================================   ============================================================
 
+Recommended usage of grid2op with other framework
+--------------------------------------------------
+
+Reinforcement learning frameworks
+*********************************
+
+TODO
+
+Other frameworks
+**********************
+Any contribution is welcome here
+
 
 Legacy version
 ---------------

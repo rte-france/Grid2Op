@@ -54,8 +54,11 @@ class BaseHelper:
                 continue
             if el == "topo_vect":
                 continue
-            assert np.array_equal(getattr(obs, el), getattr(tested_obs, el), equal_nan=True), f"error for {el}"
-
+            if getattr(obs, el).dtype == dt_float:
+                # TODO equal_nan throw an error now !
+                assert np.array_equal(getattr(obs, el), getattr(tested_obs, el)), f"error for {el}"
+            else:
+                assert np.array_equal(getattr(obs, el), getattr(tested_obs, el)), f"error for {el}"
 
     def aux_test_action(self,
                         res_topo_vect_1, res_topo_vect_2, res_topo_vect_3,

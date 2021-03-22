@@ -103,6 +103,7 @@ class PandaPowerBackendDefault(PandaPowerBackend):
 
         return res
 
+
 class TestNames(HelperTests, BaseTestNames):
     def make_backend(self, detailed_infos_for_cascading_failures=False):
         return PandaPowerBackendDefault(detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures)

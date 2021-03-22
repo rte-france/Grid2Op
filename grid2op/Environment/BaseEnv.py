@@ -807,6 +807,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_activeprod_t_redisp[:] = 0.
 
     def _get_new_prod_setpoint(self, action):
+        """
+        NB this is overidden in _ObsEnv where the data are read from the action to set this environment
+        instead
+        """
         # get the modification of generator active setpoint from the action
         new_p = 1. * self._gen_activeprod_t
         if "prod_p" in action._dict_inj:
@@ -941,7 +945,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # hence the "+ self._amount_storage" below
         # self._sum_curtailment_mw is "generator convention" hence the "-" there
         const_sum_0_no_turn_on = np.zeros(1, dtype=dt_float) + self._amount_storage - self._sum_curtailment_mw
-
         # gen increase in the chronics
         new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
         incr_in_chronics = new_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
@@ -1512,6 +1515,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             max_total_down, max_total_up = None, None
 
             # curtailment
+            self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
             if self.redispatching_unit_commitment_availble and \
                     (action._modif_curtailment or np.any(self._limit_curtailment != 1.)):
                 # TODO limit here if the ramps are too low !
@@ -1522,16 +1526,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[ind_curtailed_in_act]
                 gen_curtailed = self._limit_curtailment != 1.  # curtailed either right now, or in a previous action
                 max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
-                self._gen_before_curtailment[:] = new_p
+                # self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
                 new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
 
-                tmp_sum_curtailment_mw = dt_float(np.sum(new_p) - np.sum(self._gen_before_curtailment))
-                self._gen_before_curtailment[~self.gen_renewable] = 0.
-
-                # if tmp_sum_curtailment_mw > max_total_up:
-                    # i need to "cut the action, because too much would be curtailed
-                    # TODO
-                    # pass
+                tmp_sum_curtailment_mw = dt_float(np.sum(new_p[gen_curtailed]) -
+                                                  np.sum(self._gen_before_curtailment[gen_curtailed]))
                 self._sum_curtailment_mw = tmp_sum_curtailment_mw - self._sum_curtailment_mw_prev
                 self._sum_curtailment_mw_prev = tmp_sum_curtailment_mw
 
@@ -1540,7 +1539,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self._env_modification._dict_inj["prod_p"][:] = new_p
                 else:
                     self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
-                # print(f"self._sum_curtailment_mw: {self._sum_curtailment_mw}")
+                    self._env_modification._modif_inj = True
+            else:
+                self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
+                self._sum_curtailment_mw_prev = dt_float(0.)
 
             if self.n_storage > 0:
                 # TODO limit here if the ramps are too low !

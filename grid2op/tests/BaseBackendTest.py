@@ -1484,12 +1484,16 @@ class BaseTestShuntAction(MakeBackend):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_ref = make("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
-                           action_class=CompleteAction, backend=backend1)
+                           action_class=CompleteAction, backend=backend1,
+                           _add_to_name="BaseTestShuntAction")
             env_change_q = make("rte_case14_realistic", test=True, gamerules_class=AlwaysLegal,
-                                action_class=CompleteAction, backend=backend2)
-
+                                action_class=CompleteAction, backend=backend2,
+                                _add_to_name="BaseTestShuntAction")
         obs_ref, *_ = env_ref.step(env_ref.action_space())
-        obs_change_p_down, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, -30)]}}))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            act = env_change_q.action_space({"shunt": {"shunt_q": [(0, -30)]}})
+        obs_change_p_down, *_ = env_change_q.step(act)
         assert obs_ref.v_or[10] < obs_change_p_down.v_or[10] - self.tol_one
         obs_change_p_up, *_ = env_change_q.step(env_change_q.action_space({"shunt": {"shunt_q": [(0, +30)]}}))
         obs_ref, *_ = env_ref.step(env_ref.action_space())

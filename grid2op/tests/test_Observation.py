@@ -188,8 +188,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
                          'storage_charge': [],
                          'storage_power_target': [],
                          'storage_power': [],
-                         "gen_p_before_curtail": [0.0, 0.0, 0.0, 0.0, 0.0],
-                         "curtailment": [0.0, 0.0, 0.0, -0.10857142508029938, 0.0],
+                         "gen_p_before_curtail": [0.0, 0.0, 0.0, 7.599999904632568, 0.0],
+                         "curtailment": [0.0, 0.0, 0.0, 0.0, 0.0],
                          "curtailment_limit": [1.0, 1.0, 1.0, 1.0, 1.0]
                          }
         self.dtypes = np.array([dt_int, dt_int, dt_int, dt_int,
@@ -1570,7 +1570,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         # Create valid ramp up
         redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
         # Create redispatch action
-        redisp_act = self.env.action_space({"redispatch": [(gen_id,redisp_val)]})
+        redisp_act = self.env.action_space({"redispatch": [(gen_id, redisp_val)]})
         actions.append(redisp_act)
 
         # Simulate all actions
@@ -1628,7 +1628,7 @@ class TestSimulateEqualsStep(unittest.TestCase):
         self._check_equal(sim_obs1, sim_obs3)
 
 
-class TestSimulateEqualsStepStorage(TestSimulateEqualsStep):
+class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
     def setUp(self):
         # Create env
         with warnings.catch_warnings():
@@ -1657,6 +1657,31 @@ class TestSimulateEqualsStepStorage(TestSimulateEqualsStep):
         assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
         self._check_equal(sim_obs1, sim_obs3)
         assert abs(rew1 - real_rew) <= 1e-8, "issue with reward"
+        if real_obs != sim_obs3:
+            diff_, attr_diff = real_obs.where_different(sim_obs3)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
+
+    def test_curtail_act(self):
+        """test i can do a curtailment actions in simulate"""
+        act = self.env.action_space()
+        act.curtail = [(2, 0.1)]
+        obs = self.env.get_obs()
+        sim_obs1, rew1, done1, _ = obs.simulate(act)
+        assert not done1
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        assert not done2
+        sim_obs3, rew3, done3, _ = obs.simulate(act)
+        assert not done3
+        real_obs, real_rew, real_done, _ = self.env.step(act)
+        assert not real_done
+
+        self._check_equal(sim_obs1, sim_obs3)
+        self._check_equal(sim_obs2, obs)
+        assert abs(rew1 - rew3) <= 1e-8, "issue with reward between the two simulated actions"
+        self._check_equal(sim_obs1, sim_obs3)
+        assert abs(rew1 - real_rew) <= 1e-8, "issue with reward between simulate (first curtail) " \
+                                             "and step (with curtail)"
+
         if real_obs != sim_obs3:
             diff_, attr_diff = real_obs.where_different(sim_obs3)
             raise AssertionError(f"Following attributes are different: {attr_diff}")

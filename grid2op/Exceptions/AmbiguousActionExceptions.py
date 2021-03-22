@@ -136,3 +136,12 @@ class NotEnoughGenerators(InvalidRedispatching):
     generators to meet the demand.
     """
     pass
+
+
+class NonFiniteElement(InvalidRedispatching):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that an action / observation
+    non initialized (full of Nan)
+    has been loaded by the "from_vect" method.
+    """
+    pass

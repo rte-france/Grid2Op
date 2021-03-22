@@ -37,6 +37,13 @@ class TestCurtailmentEnv(HelperTests):
         self.env1.close()
         self.env2.close()
 
+    def test_reset(self):
+        """test curtailment is ok when env is reset"""
+        obs = self.env1.reset()
+        assert np.all(obs.curtailment >= 0.)
+        assert np.all(obs.curtailment <= 1.)
+        assert np.all(obs.curtailment[~obs.gen_renewable] == 0.)
+
     def test_action_ok(self):
         """test a storage action is supported (basic test)"""
         act = self.env1.action_space({"curtail": [(2, 0.5)]})
@@ -93,6 +100,8 @@ class TestCurtailmentEnv(HelperTests):
                 # test that redispatch goes back to all O when no curtailment is done
                 assert np.max(np.abs(obs1_3.actual_dispatch)) <= 1e-4,  f"for step {step}"
                 tested = True
+            assert np.all(obs1_3.curtailment[~obs1_3.gen_renewable] == 0.)
+
         if not tested:
             raise RuntimeError("the case where no curtailment have been used could not be tested. Please consider "
                                "making another test")
@@ -135,6 +144,7 @@ class TestCurtailmentEnv(HelperTests):
                 # test that redispatch goes back to all O when no curtailment is done
                 assert np.max(np.abs(obs1_3.actual_dispatch)) <= 1e-4,  f"for step {step}"
                 tested = True
+            assert np.all(obs1_3.curtailment[~obs1_3.gen_renewable] == 0.)
         if not tested:
             raise RuntimeError("the case where no curtailment have been used could not be tested. Please consider "
                                "making another test")

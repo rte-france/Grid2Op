@@ -93,7 +93,8 @@ class GymActionSpace(_BaseGymSpaceConverter):
                             "_change_bus_vect": "change_bus",
                             "_hazards": "hazards",
                             "_maintenance": "maintenance",
-                            "_storage_power": "storage_power"
+                            "_storage_power": "storage_power",
+                            "": "shunt_p"
                             }
     keys_human_2_grid2op = {v: k for k, v in keys_grid2op_2_human.items()}
 
@@ -278,7 +279,12 @@ class GymActionSpace(_BaseGymSpaceConverter):
             # case where the action space is a "simple" action space
             res = self.initial_act_space()
             for k, v in gymlike_action.items():
-                res._assign_attr_from_name(self.keys_human_2_grid2op[k], v)
+                internal_k = self.keys_human_2_grid2op[k]
+                if internal_k in self._keys_encoding:
+                    tmp = self._keys_encoding[internal_k].gym_to_g2op(v)
+                else:
+                    tmp = v
+                res._assign_attr_from_name(internal_k, tmp)
         return res
 
     def to_gym(self, action: object) -> spaces.dict.OrderedDict:
@@ -302,6 +308,8 @@ class GymActionSpace(_BaseGymSpaceConverter):
         else:
             # in that case action should be an instance of grid2op BaseAction
             assert isinstance(action, BaseAction), "impossible to convert an action not coming from grid2op"
+            # TODO this do not work in case of multiple converter,
+            #  TODO this should somehow call tmp = self._keys_encoding[internal_k].g2op_to_gym(v)
             gym_action = self._base_to_gym(self.spaces.keys(),
                                            action,
                                            dtypes={k: self.spaces[k].dtype for k in self.spaces},
