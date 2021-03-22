@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 
 import grid2op
-from grid2op.Exceptions import Grid2OpException, EnvError, IncorrectNumberOfElements
+from grid2op.Exceptions import Grid2OpException, EnvError, IncorrectNumberOfElements, NonFiniteElement
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
@@ -166,24 +166,27 @@ class EpisodeData:
                  name="EpisodeData",
                  get_dataframes=None,
                  force_detail=False,
-                 other_rewards=[]):
+                 other_rewards=[],
+                 _init_collections=False):
         self.parameters = None
-
         self.actions = CollectionWrapper(actions,
                                          action_space,
                                          "actions",
-                                         check_legit=False)
+                                         check_legit=False,
+                                         init_me=_init_collections)
         self.observations = CollectionWrapper(observations,
                                               observation_space,
-                                              "observations")
+                                              "observations",
+                                              init_me=_init_collections)
         self.env_actions = CollectionWrapper(env_actions,
                                              helper_action_env,
                                              "env_actions",
-                                             check_legit=False)
-
+                                             check_legit=False,
+                                             init_me=_init_collections)
         self.attacks = CollectionWrapper(attack,
                                          attack_space,
-                                         "attacks")
+                                         "attacks",
+                                         init_me=_init_collections)
 
         self.meta = meta
         # gives a unique game over for everyone
@@ -191,6 +194,7 @@ class EpisodeData:
         action_go = self.actions._game_over
         obs_go = self.observations._game_over
         env_go = self.env_actions._game_over
+        # raise RuntimeError("Add the attaks game over too !")
         real_go = action_go
         if self.meta is not None:
             # when initialized by the runner, meta is None
@@ -438,6 +442,7 @@ class EpisodeData:
                           "have been saved with a previous grid2op version). When we loaded your data, we attempted "
                           "to not include most recent grid2op features. This is feature is not well tested. It would "
                           "be wise to regenerate the data with the latest grid2Op version.")
+
         return cls(actions=actions,
                    env_actions=env_actions,
                    observations=observations,
@@ -455,7 +460,8 @@ class EpisodeData:
                    attack_space=attack_space,
                    name=name,
                    get_dataframes=True,
-                   other_rewards=other_rewards)
+                   other_rewards=other_rewards,
+                   _init_collections=True)
 
     def set_parameters(self, env):
         """
@@ -755,7 +761,7 @@ class CollectionWrapper:
 
     """
 
-    def __init__(self, collection, helper, collection_name, check_legit=True):
+    def __init__(self, collection, helper, collection_name, check_legit=True, init_me=True):
         self.collection = collection
         if not hasattr(helper, "from_vect"):
             raise Grid2OpException(f"Object {helper} must implement a "
@@ -766,6 +772,12 @@ class CollectionWrapper:
         self.i = 0
         self._game_over = None
         self.objects = []
+
+        if not init_me:
+            # the runner just has been created, so i don't need to update this collection
+            # from previous data
+            return
+
         for i, elem in enumerate(self.collection):
             try:
                 collection_obj = self.helper.from_vect(self.collection[i, :], check_legit=check_legit)
@@ -774,6 +786,9 @@ class CollectionWrapper:
                 # grid2op does not allow to load the object: there is a mismatch between what has been stored
                 # and what is currently used.
                 raise
+            except NonFiniteElement:
+                self._game_over = i
+                break
             except EnvError as exc_:
                 self._game_over = i
                 break

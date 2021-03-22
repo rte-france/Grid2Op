@@ -432,6 +432,7 @@ class GridObjects:
     attr_list_vect = None
     attr_list_set = {}
     attr_list_json = []
+    attr_nan_list_set = set()
 
     # class been init
     # __is_init = False
@@ -859,6 +860,15 @@ class GridObjects:
         prev_ = 0
         for attr_nm, sh, dt in zip(self.attr_list_vect, self.shape(), self.dtype()):
             tmp = vect[prev_:(prev_ + sh)]
+
+            #TODO a flag that says "default Nan" for example for when attributes are initialized with
+            # nan
+            # if np.any(~np.isfinite(tmp)) and default_nan:
+            #     raise NonFiniteElement("None finite number in from_vect detected")
+
+            if attr_nm not in type(self).attr_nan_list_set and np.any(~np.isfinite(tmp)):
+                raise NonFiniteElement("None finite number in from_vect detected")
+
             try:
                 tmp = tmp.astype(dt)
             except Exception as exc_:
