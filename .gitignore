@@ -292,6 +292,7 @@ getting_started/path_agents/awesome_agent_logs/000/episode.gif
 grid2op/data/update_envs_ls.py
 grid2op/data_save
 test_rllib2.py
+grid2op/tests/res_test
 
 # profiling files
 **.prof

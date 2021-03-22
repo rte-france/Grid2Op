@@ -115,6 +115,12 @@ class _ObsEnv(BaseEnv):
         self._amount_storage_init = 0.
         self._amount_storage_prev_init = 0.
 
+        # curtailment
+        self._limit_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
+        self._gen_before_curtailment_init = np.zeros(self.n_gen, dtype=dt_float)
+        self._sum_curtailment_mw_init = 0.
+        self._sum_curtailment_mw_prev_init = 0.
+
     def _init_backend(self,
                       init_grid_path,
                       chronics_handler,
@@ -245,11 +251,29 @@ class _ObsEnv(BaseEnv):
                                                                            "load_q": self._load_q}
                                                              })
         self._backend_action_set += new_state_action
+        # for storage unit
         self._backend_action_set.storage_power.values[:] = 0.
+
         self.is_init = True
         self.current_obs.reset()
         self.time_stamp = time_stamp
         self._timestep_overflow[:] = timestep_overflow
+
+    def _get_new_prod_setpoint(self, action):
+        new_p = 1. * self._backend_action_set.prod_p.values
+        if "prod_p" in action._dict_inj:
+            tmp = action._dict_inj["prod_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+
+        # modification of the environment always override the modification of the agents (if any)
+        # TODO have a flag there if this is the case.
+        if "prod_p" in self._env_modification._dict_inj:
+            # modification of the production setpoint value
+            tmp = self._env_modification._dict_inj["prod_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+        return new_p
 
     def _update_vector_with_timestep(self, time_step):
         """
@@ -316,6 +340,12 @@ class _ObsEnv(BaseEnv):
         self._storage_power[:] = self._storage_power_init
         self._amount_storage = self._amount_storage_init
         self._amount_storage_prev = self._amount_storage_prev_init
+
+        # curtailment
+        self._limit_curtailment[:] = self._limit_curtailment_init
+        self._gen_before_curtailment[:] = self._gen_before_curtailment_init
+        self._sum_curtailment_mw = self._sum_curtailment_mw_init
+        self._sum_curtailment_mw_prev = self._sum_curtailment_mw_prev_init
 
     def simulate(self, action):
         """
@@ -434,6 +464,12 @@ class _ObsEnv(BaseEnv):
         self._amount_storage_init = env._amount_storage
         self._amount_storage_prev_init = env._amount_storage_prev
         self._storage_power_init[:] = env._storage_power
+
+        # curtailment
+        self._limit_curtailment_init[:] = env._limit_curtailment
+        self._gen_before_curtailment_init[:] = env._gen_before_curtailment
+        self._sum_curtailment_mw_init = env._sum_curtailment_mw
+        self._sum_curtailment_mw_prev_init = env._sum_curtailment_mw_prev
 
         # time delta
         self.delta_time_seconds = env.delta_time_seconds
