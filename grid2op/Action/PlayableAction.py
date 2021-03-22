@@ -37,6 +37,7 @@ class PlayableAction(BaseAction):
         "_curtail"
     ]
     attr_list_set = set(attr_list_vect)
+    shunt_added = True  # no shunt here
 
     def __init__(self):
         super().__init__()

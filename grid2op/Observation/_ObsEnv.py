@@ -254,6 +254,10 @@ class _ObsEnv(BaseEnv):
         # for storage unit
         self._backend_action_set.storage_power.values[:] = 0.
 
+        # for curtailment
+        if self._env_modification is not None:
+            self._env_modification._dict_inj = {}
+
         self.is_init = True
         self.current_obs.reset()
         self.time_stamp = time_stamp

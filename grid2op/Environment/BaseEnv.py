@@ -1539,6 +1539,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self._env_modification._dict_inj["prod_p"][:] = new_p
                 else:
                     self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
+                    self._env_modification._modif_inj = True
             else:
                 self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
                 self._sum_curtailment_mw_prev = dt_float(0.)
@@ -1594,11 +1595,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     action = self._helper_action_player({})
                     except_.append(except_tmp)
                 self._time_redisp += time.time() - beg__redisp
-
-
-            # print(f'\t gen_p {self.backend._grid.res_gen["p_mw"]}')
-            print(f'\t new_p {new_p}')
-            print(f'\t self._actual_dispatch {self._actual_dispatch}')
 
             # make sure the dispatching action is not implemented "as is" by the backend.
             # the environment must make sure it's a zero-sum action.

@@ -389,14 +389,14 @@ class BaseAction(GridObjects):
             self.shunt_q = None
             self.shunt_bus = None
 
-        mycls = BaseAction  # this should not be "type(self)" as it is for all action type !
+        mycls = type(self)
         if mycls.shunt_added is False and mycls.shunts_data_available:
             mycls.shunt_added = True
             mycls.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
             mycls.authorized_keys.add("shunt")
-            mycls._update_value_set()
             mycls.attr_nan_list_set.add("shunt_p")
             mycls.attr_nan_list_set.add("shunt_q")
+            mycls._update_value_set()
 
         self._single_act = True
 
@@ -1030,7 +1030,7 @@ class BaseAction(GridObjects):
         storage_power: :class:`numpy.ndarray`, dtype:float
             Indicates, for all storage units, what is the production / absorbtion setpoint
 
-        curtailment: :class:`numpy.ndarray`, dtype:float TODO
+        curtailment: :class:`numpy.ndarray`, dtype:float
             Indicates, for all generators, which curtailment is applied (if any)
 
         shunts: ``dict``
@@ -1069,6 +1069,7 @@ class BaseAction(GridObjects):
     def _digest_shunt(self, dict_):
         if not self.shunts_data_available:
             return
+
         if "shunt" in dict_:
             ddict_ = dict_["shunt"]
 
@@ -1100,7 +1101,7 @@ class BaseAction(GridObjects):
                         pass
                     else:
                         raise AmbiguousAction("Invalid way to modify {} for shunts. It should be a numpy array or a "
-                                               "dictionnary.".format(key_n))
+                                              "dictionary.".format(key_n))
 
     def _digest_injection(self, dict_):
         # I update the action

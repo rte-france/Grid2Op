@@ -1664,19 +1664,14 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
     def test_curtail_act(self):
         """test i can do a curtailment actions in simulate"""
         act = self.env.action_space()
-        # act.curtail = [(2, 0.1)]
-        print("step")
+        act.curtail = [(2, 0.1)]
         obs = self.env.get_obs()
-        print("simulate (curtail 1)")
         sim_obs1, rew1, done1, _ = obs.simulate(act)
         assert not done1
-        print("simulate (dn)")
         sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
         assert not done2
-        print("simulate (curtail 2)")
         sim_obs3, rew3, done3, _ = obs.simulate(act)
         assert not done3
-        print("step")
         real_obs, real_rew, real_done, _ = self.env.step(act)
         assert not real_done
 
@@ -1686,6 +1681,7 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
         self._check_equal(sim_obs1, sim_obs3)
         assert abs(rew1 - real_rew) <= 1e-8, "issue with reward between simulate (first curtail) " \
                                              "and step (with curtail)"
+
         if real_obs != sim_obs3:
             diff_, attr_diff = real_obs.where_different(sim_obs3)
             raise AssertionError(f"Following attributes are different: {attr_diff}")
