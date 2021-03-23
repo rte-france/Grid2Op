@@ -19,6 +19,7 @@ from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import EnvError, DivergingPowerFlow, IncorrectNumberOfElements, IncorrectNumberOfLoads
 from grid2op.Exceptions import IncorrectNumberOfGenerators, BackendError, IncorrectNumberOfLines
 from grid2op.Space import GridObjects
+from grid2op.Exceptions import Grid2OpException
 
 
 # TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
@@ -747,12 +748,15 @@ class Backend(GridObjects, ABC):
         exc_me = None
         try:
             conv, exc_me = self.runpf(is_dc=is_dc)  # run powerflow
-        except Exception as exc_:
+        except Grid2OpException as exc_:
             exc_me = exc_
+        except Exception as exc_:
+            exc_me = DivergingPowerFlow(f" An unexpected error occurred during the computation of the powerflow."
+                                        f"The error is: \n {exc_} \n. This is game over")
 
         if not conv and exc_me is None:
             exc_me = DivergingPowerFlow("GAME OVER: Powerflow has diverged during computation "
-                                     "or a load has been disconnected or a generator has been disconnected.")
+                                        "or a load has been disconnected or a generator has been disconnected.")
         return exc_me
 
     def next_grid_state(self, env, is_dc=False):
@@ -792,8 +796,7 @@ class Backend(GridObjects, ABC):
         if env._no_overflow_disconnection or conv_ is not None:
             return disconnected_during_cf, infos, conv_
 
-        # the environment disconnect some
-
+        # the environment disconnect some powerlines
         init_time_step_overflow = copy.deepcopy(env._timestep_overflow)
         while True:
             # simulate the cascading failure
@@ -805,7 +808,7 @@ class Backend(GridObjects, ABC):
             to_disc = lines_flows > env._hard_overflow_threshold * thermal_limits
 
             # b) deals with soft overflow
-            init_time_step_overflow[ (lines_flows >= thermal_limits) & (lines_status)] += 1
+            init_time_step_overflow[(lines_flows >= thermal_limits) & (lines_status)] += 1
             to_disc[init_time_step_overflow > env._nb_timestep_overflow_allowed] = True
 
             # disconnect the current power lines
@@ -816,6 +819,7 @@ class Backend(GridObjects, ABC):
 
             # perform the disconnection action
             [self._disconnect_line(i) for i, el in enumerate(to_disc) if el]
+
             # start a powerflow on this new state
             conv_ = self._runpf_with_diverging_exception(is_dc)
             if self.detailed_infos_for_cascading_failures:
