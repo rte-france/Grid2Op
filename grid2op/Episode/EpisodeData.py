@@ -776,7 +776,8 @@ class CollectionWrapper:
 
         if not init_me:
             # the runner just has been created, so i don't need to update this collection
-            # from previous data
+            # from previous data, but we need to initialize the list holder
+            self.objects = [None]*len(self.collection)
             return
 
         for i, elem in enumerate(self.collection):
