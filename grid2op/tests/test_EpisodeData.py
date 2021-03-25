@@ -11,6 +11,7 @@ import warnings
 import pdb
 
 import grid2op
+from Agent import OneChangeThenNothing, RandomAgent
 from grid2op.tests.helper_path_test import *
 from grid2op.Exceptions import *
 from grid2op.Chronics import Multifolder
@@ -123,6 +124,23 @@ class TestEpisodeData(unittest.TestCase):
         for other, real in zip(episode_data.other_rewards, episode_data.rewards):
             assert dt_float(np.abs(other["test"] - real)) <= self.tol_one
         assert np.abs(dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward) <= self.tol_one
+
+    def test_collection_wrapper_after_run(self):
+        OneChange = OneChangeThenNothing.gen_next({"set_bus": {"lines_or_id": [(1,-1)]}})
+        runner = Runner(init_grid_path=self.init_grid_path,
+                        path_chron=self.path_chron,
+                        parameters_path=self.parameters_path,
+                        names_chronics_to_backend=self.names_chronics_to_backend,
+                        gridStateclass=self.gridStateclass,
+                        backendClass=self.backendClass,
+                        rewardClass=L2RPNReward,
+                        other_rewards={"test": L2RPNReward},
+                        max_iter=self.max_iter,
+                        name_env="test_episodedata_env",
+                        agentClass=OneChange)
+        _, cum_reward, timestep, episode_data = runner.run_one_episode(max_iter=self.max_iter, detailed_output=True)
+        # Check that the type of first action is set bus
+        assert episode_data.actions[0].get_types()[2]
 
     def test_len(self):
         """test i can use the function "len" of the episode data"""
