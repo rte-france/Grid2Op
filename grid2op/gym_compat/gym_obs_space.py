@@ -115,6 +115,8 @@ class GymObservationSpace(_BaseGymSpaceConverter):
         for attr_nm, sh, dt in zip(observation_space.attr_list_vect,
                                    observation_space.shape,
                                    observation_space.dtype):
+            if sh == 0:
+                continue
             my_type = None
             shape = (sh,)
             if attr_nm in dict_variables:
@@ -144,7 +146,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                     my_type = spaces.Box(low=0,
                                          high=max(env_params.NB_TIMESTEP_COOLDOWN_LINE,
                                                   env_params.NB_TIMESTEP_RECONNECTION,
-                                                  opponent_space.attack_cooldown
+                                                  opponent_space.attack_duration
                                                   ),
                                          shape=shape,
                                          dtype=dt)
@@ -166,7 +168,7 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 high = float("inf")
                 shape = (sh,)
                 SpaceType = spaces.Box
-                if attr_nm == "gen_p":
+                if attr_nm == "gen_p" or attr_nm == "gen_p_before_curtail":
                     low = observation_space.gen_pmin
                     high = observation_space.gen_pmax * 1.2  # because of the slack bus... # TODO
                     shape = None
@@ -188,6 +190,10 @@ class GymObservationSpace(_BaseGymSpaceConverter):
                 elif attr_nm == "storage_charge":
                     low = np.zeros(observation_space.n_storage, dtype=dt_float)
                     high = observation_space.storage_Emax
+                elif attr_nm == "curtailment" or attr_nm == "curtailment_limit":
+                    low = 0.
+                    high = 1.0
+                # curtailment, curtailment_limit, gen_p_before_curtail
 
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 

@@ -326,6 +326,8 @@ class BaseAction(GridObjects):
                       "_set_topo_vect", "_change_bus_vect", "_hazards", "_maintenance",
                       "_storage_power", "_curtail"
                       ]
+    attr_nan_list_set = set()
+
     attr_list_set = set(attr_list_vect)
     shunt_added = False
 
@@ -387,11 +389,14 @@ class BaseAction(GridObjects):
             self.shunt_q = None
             self.shunt_bus = None
 
-        if BaseAction.shunt_added is False and self.shunts_data_available:
-            BaseAction.shunt_added = True
-            BaseAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
-            BaseAction.authorized_keys.add("shunt")
-            BaseAction._update_value_set()
+        mycls = type(self)
+        if mycls.shunt_added is False and mycls.shunts_data_available:
+            mycls.shunt_added = True
+            mycls.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]
+            mycls.authorized_keys.add("shunt")
+            mycls.attr_nan_list_set.add("shunt_p")
+            mycls.attr_nan_list_set.add("shunt_q")
+            mycls._update_value_set()
 
         self._single_act = True
 
@@ -463,12 +468,15 @@ class BaseAction(GridObjects):
         self._modif_set_status = np.any(self._set_line_status != 0)
         self._modif_change_status = np.any(self._switch_line_status)
         self._modif_redispatch = np.any(np.isfinite(self._redispatch) & (self._redispatch != 0.))
-        self._modif_storage = np.any(np.isfinite(self._storage_power))
+        self._modif_storage = np.any(self._storage_power != 0.)
         self._modif_curtailment = np.any(self._curtail != -1.)
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
+            if attr_nm not in type(self).attr_list_set:
+                raise AmbiguousAction(f"Impossible to modify attribute {attr_nm} with this action type.")
             super()._assign_attr_from_name(attr_nm, vect)
+            self._post_process_from_vect()
         else:
             if np.any(np.isfinite(vect)):
                 if np.any(vect != 0.):
@@ -1022,7 +1030,7 @@ class BaseAction(GridObjects):
         storage_power: :class:`numpy.ndarray`, dtype:float
             Indicates, for all storage units, what is the production / absorbtion setpoint
 
-        curtailment: :class:`numpy.ndarray`, dtype:float TODO
+        curtailment: :class:`numpy.ndarray`, dtype:float
             Indicates, for all generators, which curtailment is applied (if any)
 
         shunts: ``dict``
@@ -1061,6 +1069,7 @@ class BaseAction(GridObjects):
     def _digest_shunt(self, dict_):
         if not self.shunts_data_available:
             return
+
         if "shunt" in dict_:
             ddict_ = dict_["shunt"]
 
@@ -1092,7 +1101,7 @@ class BaseAction(GridObjects):
                         pass
                     else:
                         raise AmbiguousAction("Invalid way to modify {} for shunts. It should be a numpy array or a "
-                                               "dictionnary.".format(key_n))
+                                              "dictionary.".format(key_n))
 
     def _digest_injection(self, dict_):
         # I update the action

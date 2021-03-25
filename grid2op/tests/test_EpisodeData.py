@@ -112,6 +112,8 @@ class TestEpisodeData(unittest.TestCase):
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.actions) == self.max_iter
         assert len(episode_data.observations) == self.max_iter + 1
+        assert len(episode_data.env_actions) == self.max_iter
+        assert len(episode_data.attacks) == self.max_iter
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()

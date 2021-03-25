@@ -28,6 +28,7 @@ class _BaseGymSpaceConverter(spaces.Dict):
         if dict_variables is not None:
             for k, v in dict_variables.items():
                 self._keys_encoding[k] = v
+        self.__func = {}
 
     @staticmethod
     def _generic_gym_space(dt, sh, low=None, high=None):
@@ -60,25 +61,98 @@ class _BaseGymSpaceConverter(spaces.Dict):
         return res
 
     def _base_to_gym(self, keys, obj, dtypes, converter=None):
+        """convert the obj (grid2op object) into a gym observation / action space"""
         res = spaces.dict.OrderedDict()
         for k in keys:
-            conv_k = k
-            if converter is not None:
-                # for converting the names between internal names and "human readable names"
-                conv_k = converter[k]
-
-            obj_raw = obj._get_array_from_attr_name(conv_k)
-            if k in self._keys_encoding:
-                if self._keys_encoding[k] is None:
-                    # keys is deactivated
-                    continue
-                else:
-                    # i need to process the "function" part in the keys
-                    obj_json_cleaned = self._keys_encoding[k].g2op_to_gym(obj_raw)
+            if k in self.__func:
+                obj_json_cleaned = self.__func[k](obj)
             else:
-                obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k])
+                if converter is not None:
+                    # for converting the names between internal names and "human readable names"
+                    conv_k = converter[k]
+                else:
+                    conv_k = k
+
+                obj_raw = obj._get_array_from_attr_name(conv_k)
+                if conv_k in self._keys_encoding:
+                    if self._keys_encoding[conv_k] is None:
+                        # keys is deactivated
+                        continue
+                    else:
+                        # i need to process the "function" part in the keys
+                        obj_json_cleaned = self._keys_encoding[conv_k].g2op_to_gym(obj_raw)
+                else:
+                    obj_json_cleaned = self._extract_obj_grid2op(obj_raw, dtypes[k])
             res[k] = obj_json_cleaned
         return res
+
+    def add_key(self, key_name, function, return_type):
+        """
+
+        Allows to add arbitrary function to the representation, as a gym environment of
+        the action space of the observation space.
+
+        See the example for more information.
+
+
+        Parameters
+        ----------
+        key_name:
+            The name you want to get
+
+        function:
+            A function that takes as input
+
+        return_type
+
+        Returns
+        -------
+
+
+        Examples
+        ---------
+        In the example below, we explain how to add the "connectivity_matrix" as part of the observation space
+        (when converted to gym). The new key "connectivity matrix" will be added to the gym observation.
+
+        .. code-block:: python
+
+
+            # create a grid2op environment
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env_glop = grid2op.make(env_name)
+
+            # convert it to gym
+            import gym
+            import numpy as np
+            from grid2op.gym_compat import GymEnv
+            env_gym = GymEnv(env_glop)
+
+            # default gym environment, the connectivity matrix is not computed
+            obs_gym = env_gym.reset()
+            print(f"Is the connectivity matrix part of the observation in gym: {'connectivity_matrix' in obs_gym}")
+
+            # add the "connectivity matrix" as part of the observation in gym
+            from gym.spaces import Box
+            shape_ = (env_glop.dim_topo, env_glop.dim_topo)
+            env_gym.observation_space.add_key("connectivity_matrix",
+                                              lambda obs: obs.connectivity_matrix(),
+                                              Box(shape=shape_,
+                                                  low=np.zeros(shape_),
+                                                  high=np.ones(shape_),
+                                                )
+                                              )
+
+            # we highly recommend to "reset" the environment after setting up the observation space
+
+            obs_gym = env_gym.reset()
+            print(f"Is the connectivity matrix part of the observation in gym: {'connectivity_matrix' in obs_gym}")
+
+
+        """
+
+        self.spaces[key_name] = return_type
+        self.__func[key_name] = function
 
     def get_dict_encoding(self):
         return copy.deepcopy(self._keys_encoding)

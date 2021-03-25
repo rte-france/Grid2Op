@@ -36,6 +36,7 @@ __all__ = [
     "InvalidStorage",
     "InvalidCurtailment",
     "AmbiguousAction",
+    "NonFiniteElement",
     "DivergingPowerFlow",
     "NoForecastAvailable",
     "ChronicsError",
@@ -86,6 +87,7 @@ from grid2op.Exceptions.AmbiguousActionExceptions import UnrecognizedAction
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidLineStatus
 from grid2op.Exceptions.AmbiguousActionExceptions import InvalidStorage
 from grid2op.Exceptions.AmbiguousActionExceptions import AmbiguousAction
+from grid2op.Exceptions.AmbiguousActionExceptions import NonFiniteElement
 
 from grid2op.Exceptions.PowerflowExceptions import DivergingPowerFlow
 

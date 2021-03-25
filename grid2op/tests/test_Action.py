@@ -204,6 +204,19 @@ class TestActionBase(ABC):
     def tearDown(self):
         self.authorized_keys = {}
 
+    def test_from_vect_nan(self):
+        """test of the issue https://github.com/rte-france/Grid2Op/issues/173"""
+        # import pdb
+        # pdb.set_trace()
+        vect = np.full(self.helper_action.n, fill_value=np.NaN, dtype=float)
+        if self.helper_action.n > 0:
+            with self.assertRaises(NonFiniteElement):
+                act = self.helper_action.from_vect(vect)
+        else:
+            act = self.helper_action.from_vect(vect)
+            dn_act = self.helper_action()
+            assert act == dn_act
+
     def compare_vect(self, pred, true):
         return np.max(np.abs(pred - true)) <= self.tolvect
 
