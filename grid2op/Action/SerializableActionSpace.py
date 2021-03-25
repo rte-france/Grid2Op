@@ -137,12 +137,17 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         name_action_types = ["set_line_status", "change_line_status", "set_bus", "change_bus",
-                             "redispatch", "storage_power"]
+                             "redispatch", "storage_power", "set_storage",
+                             "curtail", "curtail_mw"]
         assert action_type in name_action_types, f"The action type provided should be in {name_action_types}. " \
                                                  f"You provided {action_type} which is not supported."
 
         if action_type == "storage_power":
             return self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys
+        elif action_type == "set_storage":
+            return self.n_storage > 0 and "storage_power" in self.actionClass.authorized_keys
+        elif action_type == "curtail_mw":
+            return "curtail" in self.actionClass.authorized_keys
         else:
             return action_type in self.actionClass.authorized_keys
 

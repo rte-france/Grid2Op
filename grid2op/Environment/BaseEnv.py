@@ -440,9 +440,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not issubclass(self._opponent_class, BaseOpponent):
             raise EnvError("Impossible to make an opponent with a type that does not inherit from BaseOpponent.")
 
-        self._opponent_action_space = self._helper_action_class(gridobj=self.backend,
+        opp_act_cls = self._opponent_action_class.init_grid(type(self.backend))
+        self._opponent_action_space = self._helper_action_class(gridobj=type(self.backend),
                                                                 legal_action=AlwaysLegal,
-                                                                actionClass=self._opponent_action_class)
+                                                                actionClass=opp_act_cls
+                                                                )
 
         self._compute_opp_budget = self._opponent_budget_class(self._opponent_action_space)
         self._opponent = self._opponent_class(self._opponent_action_space)

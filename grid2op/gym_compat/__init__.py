@@ -11,7 +11,9 @@ __all__ = ["BaseGymAttrConverter",
            "GymActionSpace",
            "ScalerAttrConverter",
            "MultiToTupleConverter",
-           "ContinuousToDiscreteConverter"]
+           "ContinuousToDiscreteConverter",
+           "BoxGymObsSpace",
+           "BoxGymActSpace"]
 
 from grid2op.gym_compat.base_gym_attr_converter import BaseGymAttrConverter
 from grid2op.gym_compat.gymenv import GymEnv
@@ -21,3 +23,5 @@ from grid2op.gym_compat.gym_obs_space import GymObservationSpace
 from grid2op.gym_compat.scaler_attr_converter import ScalerAttrConverter
 from grid2op.gym_compat.multi_to_tuple_converter import MultiToTupleConverter
 from grid2op.gym_compat.continuous_to_discrete import ContinuousToDiscreteConverter
+from grid2op.gym_compat.box_gym_obsspace import BoxGymObsSpace
+from grid2op.gym_compat.box_gym_actspace import BoxGymActSpace

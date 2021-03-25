@@ -92,6 +92,11 @@ class _BaseGymSpaceConverter(spaces.Dict):
         Allows to add arbitrary function to the representation, as a gym environment of
         the action space of the observation space.
 
+
+        TODO
+        **NB** this key is not used when converted back to grid2Op object, as of now we don't recommend to
+        use it for the action space !
+
         See the example for more information.
 
 

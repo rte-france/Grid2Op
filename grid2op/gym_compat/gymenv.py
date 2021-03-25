@@ -38,29 +38,29 @@ class GymEnv(gym.Env):
 
     """
     def __init__(self, env_init):
-        self._init_env = env_init.copy()
-        self.action_space = GymActionSpace(self._init_env)
-        self.observation_space = GymObservationSpace(self._init_env)
-        self.reward_range = self._init_env.reward_range
-        self.metadata = self._init_env.metadata
+        self.init_env = env_init.copy()
+        self.action_space = GymActionSpace(self.init_env)
+        self.observation_space = GymObservationSpace(self.init_env)
+        self.reward_range = self.init_env.reward_range
+        self.metadata = self.init_env.metadata
 
     def step(self, gym_action):
         g2op_act = self.action_space.from_gym(gym_action)
-        g2op_obs, reward, done, info = self._init_env.step(g2op_act)
+        g2op_obs, reward, done, info = self.init_env.step(g2op_act)
         gym_obs = self.observation_space.to_gym(g2op_obs)
-        return gym_obs, reward, done, info
+        return gym_obs, float(reward), done, info
 
     def reset(self):
-        g2op_obs = self._init_env.reset()
+        g2op_obs = self.init_env.reset()
         gym_obs = self.observation_space.to_gym(g2op_obs)
         return gym_obs
 
     def render(self, mode='human'):
-        self._init_env.render(mode=mode)
+        self.init_env.render(mode=mode)
 
     def close(self):
-        self._init_env.close()
+        self.init_env.close()
 
     def seed(self, seed=None):
-        self._init_env.seed()
+        self.init_env.seed(seed)
         # TODO seed also env space and observation space

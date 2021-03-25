@@ -84,9 +84,6 @@ class CompleteObservation(BaseObservation):
         33. :attr:`BaseObservation.storage_power` the realized production / consumption of each storage unit
             [:attr:`grid2op.Space.GridObjects.n_storage` elements]
         34. :attr:`BaseObservation.gen_p_before_curtail` : the theoretical generation that would have happened
-            if no generator from renewable energy sources have been performed
-            [:attr:`grid2op.Space.GridObjects.n_gen` elements]
-        35. :attr:`BaseObservation.gen_p_before_curtail` : the theoretical generation that would have happened
             if no generator from renewable energy sources have been performed (in MW)
             [:attr:`grid2op.Space.GridObjects.n_gen` elements]
         35. :attr:`BaseObservation.curtailment` : the current curtailment applied

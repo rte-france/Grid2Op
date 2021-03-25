@@ -3041,6 +3041,24 @@ class BaseAction(GridObjects):
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
 
+    @property
+    def set_line_status(self):
+        """another name for :func:`BaseAction.line_set_status`"""
+        return self.line_set_status
+
+    @set_line_status.setter
+    def set_line_status(self, values):
+        self.line_set_status = values
+
+    @property
+    def change_line_status(self):
+        """another name for :func:`BaseAction.change_line_status`"""
+        return self.line_change_status
+
+    @change_line_status.setter
+    def change_line_status(self, values):
+        self.line_change_status = values
+
     def _aux_affect_object_bool(self, values, name_el, nb_els,
                                 name_els,
                                 inner_vect,
@@ -3725,6 +3743,15 @@ class BaseAction(GridObjects):
             raise IllegalAction(f"Impossible to modify the storage active power with your input. "
                                 f"Please consult the documentation. "
                                 f"The error was:\n\"{exc_}\"")
+
+    @property
+    def set_storage(self):
+        """Another name for the property :func:`BaseAction.storage_p`"""
+        return self.storage_p
+
+    @set_storage.setter
+    def set_storage(self, values):
+        self.storage_p = values
 
     @property
     def curtail(self):
