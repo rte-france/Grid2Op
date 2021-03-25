@@ -51,6 +51,8 @@ Change Log
   conversion to json / dict will be affected as well as the converters (*eg* for gym compatibility)
 - [FIXED] `Issue #164 <https://github.com/rte-france/Grid2Op/issues/164>`_: reward is now properly computed
   at the end of an episode.
+- [FIXED] A bug where after running a Runner, the corresponding EpisodeData's CollectionWrapper where not properly updated,
+  and did not contain any objects.
 - [FIXED] A bug when the opponent should chose an attack with all lines having flow 0, but one being still connected.
 - [FIXED] An error in the `obs.flow_bus_matrix` when `active_flow=False` and there were shunts on the
   powergrid.
