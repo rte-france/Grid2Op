@@ -554,14 +554,14 @@ class EpisodeData:
         """
 
         if self.force_detail or self.serialize:
-            self.actions.update(time_step, act.to_vect(), efficient_storing)
+            self.actions.update(time_step, act, efficient_storing)
             self.env_actions.update(
-                time_step, env_act.to_vect(), efficient_storing)
+                time_step, env_act, efficient_storing)
             self.observations.update(
-                time_step + 1, obs.to_vect(), efficient_storing)
+                time_step + 1, obs, efficient_storing)
             if opp_attack is not None:
                 self.attacks.update(
-                    time_step, opp_attack.to_vect(), efficient_storing)
+                    time_step, opp_attack, efficient_storing)
             else:
                 if efficient_storing:
                     self.attacks.collection[time_step - 1, :] = 0.
@@ -820,12 +820,12 @@ class CollectionWrapper:
         else:
             raise StopIteration
 
-    def update(self, time_step, values, efficient_storage):
+    def update(self, time_step, value, efficient_storage):
         if efficient_storage:
-            self.collection[time_step - 1, :] = values
+            self.collection[time_step - 1, :] = value.to_vect()
         else:
-            self.collection = np.concatenate((self.collection, values.reshape(1, -1)))
-        self.objects[time_step - 1] = self.helper.from_vect(values, check_legit=True)
+            self.collection = np.concatenate((self.collection, value.to_vect().reshape(1, -1)))
+        self.objects[time_step - 1] = value
 
     def save(self, path):
         np.savez_compressed(path, data=self.collection)  # do not change keyword arguments
