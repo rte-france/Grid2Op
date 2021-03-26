@@ -110,7 +110,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
                 raise RuntimeError(f"Unknown action attributes \"{el}\". Supported attributes are: "
                                    f"\n{li_keys}")
 
-            # TODO
+            # TODO code that
             if nvec is not None:
                 nvec += nvec_
             else:
@@ -132,11 +132,7 @@ class MultiDiscreteActSpace(MultiDiscrete):
         -------
 
         """
-        if attr_nm in self._multiply:
-            gym_act_this *= self._multiply[attr_nm]
-        if attr_nm in self._add:
-            gym_act_this += self._add[attr_nm]
-        setattr(res, attr_nm, gym_act_this)
+        # TODO code that !
         return res
 
     def from_gym(self, gym_act):
@@ -153,22 +149,9 @@ class MultiDiscreteActSpace(MultiDiscrete):
         """
         res = self._act_space()
         prev = 0
-        for attr_nm, where_to_put, dtype in zip(self._attr_to_keep, self._dims, self._dtypes):
+        for attr_nm, where_to_put in zip(self._attr_to_keep, self._dims):
             this_part = 1 * gym_act[prev:where_to_put]
-            if attr_nm in self.__func:
-                glop_act_tmp = self.__func[attr_nm](this_part)
-                res += glop_act_tmp
-            elif hasattr(res, attr_nm):
-                glop_dtype = self._key_dict_to_proptype[attr_nm]
-                if glop_dtype == dt_int:
-                    # convert floating point actions to integer.
-                    # NB: i round first otherwise it is cut.
-                    this_part = np.round(this_part, 0).astype(dtype)
-                elif glop_dtype == dt_bool:
-                    # convert floating point actions to bool.
-                    # NB: i suppose here the numbers are between 0 and 1
-                    this_part = (this_part >= 0.5).astype(dt_bool)
-
+            if attr_nm in self.dict_properties:
                 self._handle_attribute(res, this_part, attr_nm)
             else:
                 raise RuntimeError(f"Unknown attribute \"{attr_nm}\".")

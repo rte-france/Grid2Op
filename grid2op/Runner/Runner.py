@@ -35,6 +35,8 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 # if i start using parallel i need to continue using parallel
 # so i force the usage of the "starmap" stuff even if there is one process on windows
 _IS_WINDOWS = sys.platform.startswith('win')
+_IS_WINDOWS = False
+_IS_LINUX = sys.platform.startswith("linux")
 
 # TODO have a vectorized implementation of everything in case the agent is able to act on multiple environment
 # at the same time. This might require a lot of work, but would be totally worth it!
@@ -395,7 +397,6 @@ class Runner(object):
             raise RuntimeError("Impossible to create a runner without an observation class derived from "
                                "grid2op.BaseObservation. Please modify \"observationClass\" parameter.")
         self.observationClass = observationClass
-
         if not isinstance(rewardClass, type):
             raise Grid2OpException(
                 "Parameter \"rewardClass\" used to build the Runner should be a type (a class) and not an object "
@@ -541,12 +542,12 @@ class Runner(object):
         self.opponent_attack_duration = opponent_attack_duration
         self.opponent_attack_cooldown = opponent_attack_cooldown
         self.opponent_kwargs = opponent_kwargs
-
         self.grid_layout = grid_layout
 
         # otherwise on windows it sometimes fail in the runner in multi process
-        self.init_env()
-        self.env = None
+        if _IS_LINUX:
+            self.init_env()
+            self.env = None
 
     def _new_env(self, chronics_handler, backend, parameters):
         res = self.envClass(init_grid_path=self.init_grid_path,
@@ -969,7 +970,6 @@ class Runner(object):
             scenario BEFORE calling `agent.reset()`.
         add_detailed_output: see Runner.run method
 
-
         Returns
         -------
         res: ``list``
@@ -991,7 +991,10 @@ class Runner(object):
             # if i start using parallel i need to continue using parallel
             # so i force the usage of the sequential mode
             self.logger.warn("Runner.run_parrallel: number of process set to 1. Failing back into sequential mod.")
-            return self._run_sequential(nb_episode, path_save=path_save, env_seeds=env_seeds, agent_seeds=agent_seeds,
+            return self._run_sequential(nb_episode,
+                                        path_save=path_save,
+                                        env_seeds=env_seeds,
+                                        agent_seeds=agent_seeds,
                                         add_detailed_output=add_detailed_output)
         else:
             self._clean_up()

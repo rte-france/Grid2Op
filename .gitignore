@@ -293,6 +293,7 @@ grid2op/data/update_envs_ls.py
 grid2op/data_save
 test_rllib2.py
 grid2op/tests/res_test
+test_bug_macos.py
 
 # profiling files
 **.prof
