@@ -11,9 +11,8 @@ import warnings
 import pdb
 
 import grid2op
-from Agent import OneChangeThenNothing, RandomAgent
+from grid2op.Agent import OneChangeThenNothing, RandomAgent
 from grid2op.tests.helper_path_test import *
-from grid2op.Exceptions import *
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
@@ -160,8 +159,9 @@ class TestEpisodeData(unittest.TestCase):
 
     def test_3_episode_3process_with_saving(self):
         f = tempfile.mkdtemp()
-        res = self.runner._run_parrallel(nb_episode=3, nb_process=2, path_save=f)
-        assert len(res) == 3
+        nb_episode = 2
+        res = self.runner._run_parrallel(nb_episode=nb_episode, nb_process=2, path_save=f)
+        assert len(res) == nb_episode
         for i, episode_name, cum_reward, timestep, total_ts in res:
             episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter

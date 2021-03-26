@@ -443,7 +443,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         opp_act_cls = self._opponent_action_class.init_grid(type(self.backend))
         self._opponent_action_space = self._helper_action_class(gridobj=type(self.backend),
                                                                 legal_action=AlwaysLegal,
-                                                                actionClass=opp_act_cls
+                                                                actionClass=self._opponent_action_class
                                                                 )
 
         self._compute_opp_budget = self._opponent_budget_class(self._opponent_action_space)

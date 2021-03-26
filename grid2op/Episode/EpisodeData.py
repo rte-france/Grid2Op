@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 
 import grid2op
+from grid2op.Space import GridObjects
 from grid2op.Exceptions import Grid2OpException, EnvError, IncorrectNumberOfElements, NonFiniteElement
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
@@ -555,10 +556,8 @@ class EpisodeData:
 
         if self.force_detail or self.serialize:
             self.actions.update(time_step, act, efficient_storing)
-            self.env_actions.update(
-                time_step, env_act, efficient_storing)
-            self.observations.update(
-                time_step + 1, obs, efficient_storing)
+            self.env_actions.update(time_step, env_act, efficient_storing)
+            self.observations.update(time_step + 1, obs, efficient_storing)
             if opp_attack is not None:
                 self.attacks.update(
                     time_step, opp_attack, efficient_storing)

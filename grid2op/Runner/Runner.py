@@ -217,7 +217,8 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
         observations = np.full((0, env.observation_space.n), fill_value=np.NaN, dtype=dt_float)
         disc_lines = np.full((0, env.backend.n_line), fill_value=np.NaN, dtype=dt_bool)
         attack = np.full((0, env._opponent_action_space.n), fill_value=0., dtype=dt_float)
-
+    # print(f"env._helper_action_env.n: {env._helper_action_env.n}")
+    # print(f"env._helper_action_env._template_obj: {type(env._helper_action_env._template_obj)}")
     if path_save is not None:
         # store observation at timestep 0
         if efficient_storing:
@@ -243,7 +244,6 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
                           name=env.chronics_handler.get_name(),
                           force_detail=detailed_output,
                           other_rewards=[])
-
     episode.set_parameters(env)
 
     beg_ = time.time()
@@ -264,10 +264,15 @@ def _aux_run_one_episode(env, agent, logger, indx, path_save=None,
             time_step += 1
             pbar_.update(1)
             opp_attack = env._oppSpace.last_attack
-            episode.incr_store(efficient_storing, time_step, end__ - beg__,
-                               float(reward), env._env_modification,
+            # print(f"env._env_modification: {type(env._env_modification)}")
+            episode.incr_store(efficient_storing,
+                               time_step,
+                               end__ - beg__,
+                               float(reward),
+                               env._env_modification,
                                act, obs, opp_attack,
                                info)
+            # raise RuntimeError("")
         end_ = time.time()
 
     episode.set_meta(env, time_step, float(cum_reward), env_seed, agent_seed)

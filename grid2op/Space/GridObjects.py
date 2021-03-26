@@ -486,9 +486,9 @@ class GridObjects:
     # for redispatching / unit commitment
     _li_attr_disp = ["gen_type", "gen_pmin", "gen_pmax", "gen_redispatchable", "gen_max_ramp_up",
                      "gen_max_ramp_down", "gen_min_uptime", "gen_min_downtime", "gen_cost_per_MW",
-                     "gen_startup_cost", "gen_shutdown_cost"]
+                     "gen_startup_cost", "gen_shutdown_cost", "gen_renewable"]
 
-    _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float]
+    _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float, bool]
 
     # redispatch data, not available in all environment
     redispatching_unit_commitment_availble = False
@@ -2519,7 +2519,7 @@ class GridObjects:
         else:
             cls.redispatching_unit_commitment_availble = True
             type_attr_disp = [str, dt_float, dt_float, dt_bool, dt_float, dt_float,
-                              dt_int, dt_int, dt_float, dt_float, dt_float]
+                              dt_int, dt_int, dt_float, dt_float, dt_float, dt_bool]
             for nm_attr, type_attr in zip(cls._li_attr_disp, type_attr_disp):
                 setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr, lambda x: np.array(x).astype(type_attr)))
 
