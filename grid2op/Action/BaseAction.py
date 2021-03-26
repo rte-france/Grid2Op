@@ -3760,7 +3760,7 @@ class BaseAction(GridObjects):
 
         It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
 
-        For more information, feel free to consult the documentation :ref:`gen-mod-el` where more
+        For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
         details are given about the modeling ot these storage units.
         """
         res = 1.0 * self._curtail
@@ -4036,7 +4036,7 @@ class BaseAction(GridObjects):
 
         It behaves similarly as :attr:`BaseAction.redispatch`. See the help there for more information.
 
-        For more information, feel free to consult the documentation :ref:`gen-mod-el` where more
+        For more information, feel free to consult the documentation :ref:`generator-mod-el` where more
         details are given about the modeling ot these storage units.
         """
         res = 1.0 * self._curtail * self.gen_pmax

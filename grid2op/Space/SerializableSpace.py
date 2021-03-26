@@ -201,7 +201,8 @@ class SerializableSpace(GridObjects, RandomObject):
         -------
         res: ``dict``
             A dictionary representing this object content. It can be loaded back with
-             :func:`SerializableObservationSpace.from_dict`
+            :func:`SerializableObservationSpace.cls_from_dict`
+
         """
         # TODO this is super weird that this is a regular method, but inherit from a class method !
         res = super().cls_to_dict()

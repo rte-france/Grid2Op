@@ -1,5 +1,5 @@
 .. currentmodule:: grid2op.PlotGrid
-.. |replaygif| image:: ../getting_started/path_agents/awesome_agent_logs/000/episode.gif
+.. |replaygif| image:: ./img/random_agent.gif
 .. |14bus_1| image:: ./img/14bus_1.png
 .. |14bus_2| image:: ./img/14bus_2.png
 .. |14bus_th_lim| image:: ./img/14bus_th_lim.png

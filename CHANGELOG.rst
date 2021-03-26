@@ -70,6 +70,8 @@ Change Log
   converted to action or observation without any issue if it had the proper dimension. This was due to a conversion
   to integer from float.
 - [FIXED] an issue preventing to load the grid2op.utils submodule when installed not in "develop" mode
+- [FIXED] some issue with the multiprocessing of the runner on windows
+- [ADDED] more complete documentation for the runner.
 - [ADDED] a convenient function to evaluate the impact (especially on topology) of an action on a state
   (`obs + act`)
 - [ADDED] a property to retrieve the thermal limits from the observation.

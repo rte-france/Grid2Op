@@ -6,12 +6,11 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import time
+import os
 import warnings
-
 import sys
 import numpy as np
 import copy
-
 from multiprocessing import Pool
 
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -335,8 +334,10 @@ def _aux_make_progress_bar(pbar, total, next_pbar):
 
 class Runner(object):
     """
-    A runner is a utilitary tool that allows to run simulations more easily. It is a more convenient way to execute the
-     following loops:
+    A runner is a utilitary tool that allows to run simulations more easily.
+
+    It is a more convenient way to execute the
+    following loops:
 
     .. code-block:: python
 
@@ -363,8 +364,8 @@ class Runner(object):
         res = runner.run(nb_episode=nn_episode)
 
 
-    This specific class as for main purpose to evaluate the performance of a trained :class:`grid2op.BaseAgent`,
-    rather than to train it.
+    This specific class as for main purpose to evaluate the performance of a trained
+    :class:`grid2op.Agent.BaseAgent` rather than to train it.
 
     It has also the good property to be able to save the results of a experiment in a standardized
     manner described in the :class:`grid2op.Episode.EpisodeData`.
@@ -490,7 +491,16 @@ class Runner(object):
     --------
     Different examples are showed in the description of the main method :func:`Runner.run`
 
+    Notes
+    -----
+
+    Runner does not necessarily behave normally when "nb_process" is not 1 on some platform (windows and some
+    version of macos). Please read the documentation, and especially the :ref:`runner-multi-proc-warning`
+    for more information and possible way to disable this feature.
+
     """
+    FORCE_SEQUENTIAL = "GRID2OP_RUNNER_FORCE_SEQUENTIAL"
+
     def __init__(self,
                  init_grid_path: str,
                  path_chron,  # path where chronics of injections are stored
@@ -720,14 +730,7 @@ class Runner(object):
                                                 path=self.path_chron,
                                                 **self.gridStateclass_kwargs)
 
-        # the backend, used to compute powerflows
-        # self.backend = self.backendClass()
-
-        # build the environment
-        # self.env = None
-
         self.verbose = verbose
-
         self.thermal_limit_a = thermal_limit_a
 
         # controler for voltage
@@ -761,9 +764,11 @@ class Runner(object):
         self.grid_layout = grid_layout
 
         # otherwise on windows / macos it sometimes fail in the runner in multi process
+        # on linux like OS i prefer to generate all the proper classes accordingly
         if _IS_LINUX:
             env = self.init_env()
-            # self.env = None
+            env.close()
+
         self.__used = False
 
     def _new_env(self, chronics_handler, parameters):
@@ -828,10 +833,6 @@ class Runner(object):
         If the environment is not initialized, then it initializes it with :func:`Runner.make_env`.
         """
         return
-        if self.env is None:
-            self.init_env()
-        else:
-            self.env.reset()
 
     def run_one_episode(self,
                         indx=0,
@@ -869,13 +870,17 @@ class Runner(object):
 
         """
         self.reset()
-        env = self.init_env()
-        try:
-            res = _aux_run_one_episode(env, self.agent, self.logger, indx, path_save,
-                                       pbar=pbar, env_seed=env_seed, max_iter=max_iter, agent_seed=agent_seed,
+        with self.init_env() as env:
+            res = _aux_run_one_episode(env,
+                                       self.agent,
+                                       self.logger,
+                                       indx,
+                                       path_save,
+                                       pbar=pbar,
+                                       env_seed=env_seed,
+                                       max_iter=max_iter,
+                                       agent_seed=agent_seed,
                                        detailed_output=detailed_output)
-        finally:
-            env.close()
         return res
 
     def _run_sequential(self,
@@ -1018,7 +1023,11 @@ class Runner(object):
         if nb_process <= 0:
             raise RuntimeError(
                 "Runner: you need at least 1 process to run episodes")
-        if nb_process == 1 or (not self.__can_copy_agent):
+        force_sequential = False
+        tmp = os.getenv(Runner.FORCE_SEQUENTIAL)
+        if tmp is not None:
+            force_sequential = int(tmp) > 0
+        if nb_process == 1 or (not self.__can_copy_agent) or force_sequential:
             # on windows if i start using sequential, i need to continue using sequential
             # if i start using parallel i need to continue using parallel
             # so i force the usage of the sequential mode
@@ -1054,8 +1063,12 @@ class Runner(object):
                     seeds_agt_res[i % nb_process].append(agent_seeds[i])
 
             res = []
-            lists = [(Runner(**self._get_params()), pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
-                     for i, pn in enumerate(process_ids)]
+            if _IS_LINUX:
+                lists = [(self, pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+                         for i, pn in enumerate(process_ids)]
+            else:
+                lists = [(Runner(**self._get_params()), pn, i, path_save, seeds_res[i], max_iter, add_detailed_output)
+                         for i, pn in enumerate(process_ids)]
             with Pool(nb_process) as p:
                 tmp = p.starmap(_aux_one_process_parrallel,
                                 lists)
@@ -1107,9 +1120,6 @@ class Runner(object):
 
         """
         return
-        if self.env is not None:
-            self.env.close()
-        # self.env = None
 
     def run(self, nb_episode, nb_process=1, path_save=None, max_iter=None, pbar=False, env_seeds=None,
             agent_seeds=None, add_detailed_output=False):

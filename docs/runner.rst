@@ -78,6 +78,49 @@ you can also use the Runner pretty easily by passing it an instance of your agen
 Other tools are available for this runner class, for example the easy integration of progress bars. See bellow for
 more information.
 
+.. _runner-multi-proc-warning:
+
+Note on parallel processing
+----------------------------
+The "Runner" class allows for parallel execution of the same agent on different scenarios. In this case, each
+scenario will be run in independent process.
+
+Depending on the platform and python version, you might end up with some bugs and error like
+
+.. pull-quote::
+    AttributeError: Can't get attribute 'ActionSpace_l2rpn_case14_sandbox' on <module 'grid2op.Space.GridObjects'
+    from '/lib/python3.8/site-packages/grid2op/Space/GridObjects.py'> Process SpawnPoolWorker-4:
+
+or like:
+
+.. pull-quote::
+    File "/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/multiprocessing/pool.py", line 125, in worker
+    result = (True, func(\*args, \*\*kwds))
+
+    File "/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/multiprocessing/pool.py", line 51, in
+    starmapstar return list(itertools.starmap(args[0], args[1]))
+
+In this case this means grid2op has a hard time dealing with the multi processing part. In that case, it
+is recommended to disable it completely, for example by using, before any call to "runner.run" the following code:
+
+.. code-block:: python
+
+    import os
+    from grid2op.Runner import Runner
+
+    os.environ[Runner.FORCE_SEQUENTIAL] = "1"
+
+This will force (starting grid2op >= 1.5) grid2op to use the sequential runner and not deal with the added
+complexity of multi processing.
+
+This is especially handy for "windows" system in case of trouble.
+
+For information, as of writing (march 2021):
+
+- macOS with python <= 3.7 will behave like any python version on linux
+- windows and macOS with python >=3.8 will behave differently than linux but similarly to one another
+
+
 Detailed Documentation by class
 -------------------------------
 .. automodule:: grid2op.Runner
