@@ -294,6 +294,8 @@ grid2op/data_save
 test_rllib2.py
 grid2op/tests/res_test
 test_bug_macos.py
+pp_error_non_connected_grid.py
+test_issue174.py
 
 # profiling files
 **.prof
