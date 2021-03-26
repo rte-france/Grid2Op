@@ -82,7 +82,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                       'gen_pmin': [0.0, 0.0, 0.0, 0.0, 0.0],
                       'gen_pmax': [200.0, 200.0, 40.0, 70.0, 400.0],
                       'gen_redispatchable': [True, True, False, False, True],
-                      'gen_renewable': [False, True, True, False, True],
+                      'gen_renewable': [False, False, True, True, False],
                       'gen_max_ramp_up': [5.0, 10.0, 0.0, 0.0, 10.0],
                       'gen_max_ramp_down': [5.0, 10.0, 0.0, 0.0, 10.0],
                       'gen_min_uptime': [96, 4, 0, 0, 4],
