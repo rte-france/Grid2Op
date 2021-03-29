@@ -6,5 +6,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-ALL_ATTR = ("set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch", "set_storage", "curtail")
-ATTR_DISCRETE = ("set_line_status", "change_line_status", "set_bus", "change_bus")
+ALL_ATTR = ("set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch", 
+            "set_storage", "curtail")
+
+ATTR_DISCRETE = ("set_line_status", "change_line_status", "set_bus", "change_bus",
+                 "sub_set_bus", "sub_change_bus", "one_sub_set", "one_sub_change"
+                )

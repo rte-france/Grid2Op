@@ -58,7 +58,6 @@ class BoxGymActSpace(Box):
         high_gen = 1.0 * act_sp.gen_max_ramp_up
         low_gen[~act_sp.gen_redispatchable] = 0.
         high_gen[~act_sp.gen_redispatchable] = 0.
-
         self.dict_properties = {
             "set_line_status": (np.full(shape=(act_sp.n_line,), fill_value=-1, dtype=dt_int),
                                 np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
@@ -89,10 +88,9 @@ class BoxGymActSpace(Box):
                         (act_sp.n_gen,),
                         dt_float),
             "curtail_mw": (np.full(shape=(act_sp.n_gen,), fill_value=0., dtype=dt_float),
-                           np.full(shape=(act_sp.n_gen,), fill_value=1., dtype=dt_float),
+                           1.0 * act_sp.gen_pmax,
                            (act_sp.n_gen,),
                            dt_float),
-
         }
         self._key_dict_to_proptype = {"set_line_status": dt_int,
                                       "change_line_status": dt_bool,
