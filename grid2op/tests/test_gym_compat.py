@@ -493,14 +493,14 @@ class TestBoxGymObsSpace(unittest.TestCase):
 
         # third step: center and reduce too
         observation_space = BoxGymObsSpace(self.env.observation_space,
-                                    attr_to_keep=kept_attr,
-                                    divide={"gen_p": self.env.gen_pmax,
-                                            "load_p": self.obs_env.load_p},
-                                    substract={"gen_p": 90.,
-                                                "load_p": 100.},
-                                    )
+                                           attr_to_keep=kept_attr,
+                                           divide={"gen_p": self.env.gen_pmax,
+                                                   "load_p": self.obs_env.load_p},
+                                           subtract={"gen_p": 90.,
+                                                     "load_p": 100.},
+                                           )
         self.env_gym.observation_space = observation_space
-        obs_gym =  self.env_gym.reset()
+        obs_gym = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
