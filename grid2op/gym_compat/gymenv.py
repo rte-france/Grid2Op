@@ -36,6 +36,7 @@ class GymEnv(gym.Env):
         env = grid2op.make(env_name)
         gym_env = GymEnv(env)  # is a gym environment properly inheriting from gym.Env !
 
+
     """
     def __init__(self, env_init):
         self.init_env = env_init.copy()
@@ -56,6 +57,8 @@ class GymEnv(gym.Env):
         return gym_obs
 
     def render(self, mode='human'):
+        """for compatibility with open ai gym render function"""
+        super(GymEnv, self).render(mode=mode)
         self.init_env.render(mode=mode)
 
     def close(self):

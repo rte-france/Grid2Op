@@ -98,19 +98,19 @@ class BoxGymObsSpace(Box):
 
     In this case, "functs" should be a dictionary, the "keys" should be string (keys should also be
     present in the `attr_to_keep` list) and the values should count 5 elements
-    (callable_, low_, high_, shape_, dtype_) with:
+    (callable, low, high, shape, dtype) with:
 
-    - `callable_` a function taking as input a grid2op observation and returning a numpy array
-    - `low_` (optional) (put None if you don't want to specify it, defaults to `-np.inf`) the lowest value
-       your numpy array can take. It can be a single number or an array with the same shape
-       as the return value of your function.
-    - `high_` (optional) (put None if you don't want to specify it, defaults to `np.inf`) the highest value
-       your numpy array can take. It can be a single number or an array with the same shape
-       as the return value of your function.
-    - `shape_` (optional) (put None if you don't want to specify it) the shape of the return value
-       of your function. It should be a tuple (and not a single number). By default it is computed
-       with by applying your function to an observation.
-    - `dtype_` (optional, put None if you don't want to change it, defaults to np.float32) the type of
+    - `callable` a function taking as input a grid2op observation and returning a numpy array
+    - `low` (optional) (put None if you don't want to specify it, defaults to `-np.inf`) the lowest value
+      your numpy array can take. It can be a single number or an array with the same shape
+      as the return value of your function.
+    - `high` (optional) (put None if you don't want to specify it, defaults to `np.inf`) the highest value
+      your numpy array can take. It can be a single number or an array with the same shape
+      as the return value of your function.
+    - `shape` (optional) (put None if you don't want to specify it) the shape of the return value
+      of your function. It should be a tuple (and not a single number). By default it is computed
+      with by applying your function to an observation.
+    - `dtype` (optional, put None if you don't want to change it, defaults to np.float32) the type of
       the numpy array as output of your function.
 
     """
@@ -400,9 +400,9 @@ class BoxGymObsSpace(Box):
 
         Returns
         -------
-        res:
+        res: :class:`numpy.ndarray`
             A numpy array compatible with the openAI gym Box that represents the action space.
-            
+
         """
         res = np.empty(shape=self.shape, dtype=self.dtype)
         prev = 0

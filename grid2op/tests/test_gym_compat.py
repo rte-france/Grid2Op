@@ -484,7 +484,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                                                   "load_p": self.obs_env.load_p},
                                            )
         self.env_gym.observation_space = observation_space
-        obs_gym =  self.env_gym.reset()
+        obs_gym = self.env_gym.reset()
         assert obs_gym in observation_space
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
@@ -617,6 +617,7 @@ class TestBoxGymObsSpace(unittest.TestCase):
                                                             None, 10., None, None)
                                                         }
                                                    )
+
 
 if __name__ == "__main__":
     unittest.main()
