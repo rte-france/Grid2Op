@@ -223,7 +223,6 @@ class MultiDiscreteActSpace(MultiDiscrete):
                 raise RuntimeError(f"Unknown action attributes \"{el}\". Supported attributes are: "
                                    f"\n\t- {li_keys}")
             dim += dim_
-            # TODO code that
             if nvec is not None:
                 nvec += nvec_
             else:
