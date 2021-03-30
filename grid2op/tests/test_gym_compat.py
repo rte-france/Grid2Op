@@ -14,6 +14,7 @@ from grid2op.dtypes import dt_float, dt_bool, dt_int
 from grid2op.tests.helper_path_test import *
 from grid2op.MakeEnv import make
 from grid2op.Converter import IdToAct, ToVect
+from grid2op.Action import PlayableAction
 
 try:
     import gym
@@ -23,6 +24,7 @@ try:
     from grid2op.gym_compat import ContinuousToDiscreteConverter
     from grid2op.gym_compat import ScalerAttrConverter
     from grid2op.gym_compat import MultiToTupleConverter
+    from grid2op.gym_compat import BoxGymObsSpace
     GYM_AVAIL = True
 except ImportError:
     GYM_AVAIL = False
@@ -412,6 +414,209 @@ class TestGymCompatModule(unittest.TestCase):
         assert np.array_equal(env_gym.observation_space[key].low, low), f"issue for {key}"
         assert np.array_equal(env_gym.observation_space[key].high, high), f"issue for {key}"
 
+
+class TestBoxGymObsSpace(unittest.TestCase):
+    def _skip_if_no_gym(self):
+        if not GYM_AVAIL:
+            self.skipTest("Gym is not available")
+
+    def setUp(self) -> None:
+        self._skip_if_no_gym()
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    action_class=PlayableAction,
+                                    _add_to_name="TestBoxGymObsSpace")
+        self.obs_env = self.env.reset()
+        self.env_gym = GymEnv(self.env)
+
+    def test_assert_raises_creation(self):
+        with self.assertRaises(RuntimeError):
+             self.env_gym.observation_space = BoxGymObsSpace(self.env_gym.observation_space)
+    
+    def test_can_create(self):
+        kept_attr = ["gen_p", "load_p", "topo_vect", "rho", "actual_dispatch", "connectivity_matrix"]
+        self.env_gym.observation_space = BoxGymObsSpace(self.env.observation_space,
+                                                        attr_to_keep=kept_attr,
+                                                divide={"gen_p": self.env.gen_pmax,
+                                                        "load_p": self.obs_env.load_p,
+                                                        "actual_dispatch": self.env.gen_pmax},
+                                                functs={"connectivity_matrix": (
+                                                            lambda grid2obs: grid2obs.connectivity_matrix().flatten(),
+                                                            0., 1., None, None,
+                                                            )
+                                                        }
+                                                )
+        obs_gym =  self.env_gym.reset()
+        assert obs_gym in self.env_gym.observation_space
+        assert self.env_gym.observation_space._attr_to_keep == kept_attr
+        assert len(obs_gym) == 3583
+
+    def test_can_create_int(self):
+        kept_attr = [ "topo_vect", "line_status"]
+        self.env_gym.observation_space = BoxGymObsSpace(self.env.observation_space,
+                                                        attr_to_keep=kept_attr
+                                                        )
+        obs_gym =  self.env_gym.reset()
+        assert obs_gym in self.env_gym.observation_space
+        assert self.env_gym.observation_space._attr_to_keep == kept_attr
+        assert len(obs_gym) == 79   
+        assert obs_gym.dtype == dt_int
+
+    def test_scaling(self):
+        kept_attr = ["gen_p", "load_p"]
+        # first test, with nothing
+        observation_space = BoxGymObsSpace(self.env.observation_space,
+                                           attr_to_keep=kept_attr)
+        self.env_gym.observation_space = observation_space
+        obs_gym =  self.env_gym.reset()
+        assert obs_gym in observation_space
+        assert observation_space._attr_to_keep == kept_attr
+        assert len(obs_gym) == 17
+        assert np.abs(obs_gym).max() >= 80
+
+        # second test: just scaling (divide)
+        observation_space = BoxGymObsSpace(self.env.observation_space,
+                                           attr_to_keep=kept_attr,
+                                           divide={"gen_p": self.env.gen_pmax,
+                                                  "load_p": self.obs_env.load_p},
+                                           )
+        self.env_gym.observation_space = observation_space
+        obs_gym =  self.env_gym.reset()
+        assert obs_gym in observation_space
+        assert observation_space._attr_to_keep == kept_attr
+        assert len(obs_gym) == 17
+        assert np.abs(obs_gym).max() <= 2
+        assert np.abs(obs_gym).max() >= 1.
+
+        # third step: center and reduce too
+        observation_space = BoxGymObsSpace(self.env.observation_space,
+                                    attr_to_keep=kept_attr,
+                                    divide={"gen_p": self.env.gen_pmax,
+                                            "load_p": self.obs_env.load_p},
+                                    substract={"gen_p": 90.,
+                                                "load_p": 100.},
+                                    )
+        self.env_gym.observation_space = observation_space
+        obs_gym =  self.env_gym.reset()
+        assert obs_gym in observation_space
+        assert observation_space._attr_to_keep == kept_attr
+        assert len(obs_gym) == 17
+        # the substract are calibrated so that the maximum is really close to 0
+        assert obs_gym.max() <= 0  
+        assert obs_gym.max() >= -0.5
+
+    def test_functs(self):
+        """test the functs keyword argument"""
+        # test i can make something with a funct keyword
+        kept_attr = ["gen_p", "load_p", "topo_vect", "rho", "actual_dispatch", "connectivity_matrix"]
+        self.env_gym.observation_space = BoxGymObsSpace(self.env.observation_space,
+                                                        attr_to_keep=kept_attr,
+                                                divide={"gen_p": self.env.gen_pmax,
+                                                        "load_p": self.obs_env.load_p,
+                                                        "actual_dispatch": self.env.gen_pmax},
+                                                functs={"connectivity_matrix": (
+                                                            lambda grid2obs: grid2obs.connectivity_matrix().flatten(),
+                                                            0., 1., None, None,
+                                                            )
+                                                        }
+                                                )
+        obs_gym = self.env_gym.reset()
+        assert obs_gym in self.env_gym.observation_space
+        assert self.env_gym.observation_space._attr_to_keep == kept_attr
+        assert len(obs_gym) == 3583
+
+        # test the stuff crashes if not used properly
+        # bad shape provided
+        with self.assertRaises(RuntimeError):
+            tmp = BoxGymObsSpace(self.env.observation_space,
+                                 attr_to_keep=kept_attr,
+                                 divide={"gen_p": self.env.gen_pmax,
+                                         "load_p": self.obs_env.load_p,
+                                         "actual_dispatch": self.env.gen_pmax},
+                                 functs={"connectivity_matrix": (
+                                         lambda grid2obs: grid2obs.connectivity_matrix().flatten(),
+                                          None, None, 22, None)
+                                        }
+                                )
+        # wrong input (tuple too short)
+        with self.assertRaises(RuntimeError):
+            tmp = BoxGymObsSpace(self.env.observation_space,
+                                 attr_to_keep=kept_attr,
+                                 divide={"gen_p": self.env.gen_pmax,
+                                         "load_p": self.obs_env.load_p,
+                                         "actual_dispatch": self.env.gen_pmax},
+                                 functs={"connectivity_matrix": (
+                                         lambda grid2obs: grid2obs.connectivity_matrix().flatten(),
+                                          None, None, 22)
+                                        }
+                                )
+                                
+        # function cannot be called
+        with self.assertRaises(RuntimeError):
+            tmp = BoxGymObsSpace(self.env.observation_space,
+                                 attr_to_keep=kept_attr,
+                                 divide={"gen_p": self.env.gen_pmax,
+                                         "load_p": self.obs_env.load_p,
+                                         "actual_dispatch": self.env.gen_pmax},
+                                 functs={"connectivity_matrix": (
+                                          self.obs_env.connectivity_matrix().flatten(),
+                                          None, None, None, None)
+                                        }
+                                )
+
+        # low not correct
+        with self.assertRaises(RuntimeError):
+            tmp = BoxGymObsSpace(self.env.observation_space,
+                                 attr_to_keep=kept_attr,
+                                 divide={"gen_p": self.env.gen_pmax,
+                                         "load_p": self.obs_env.load_p,
+                                         "actual_dispatch": self.env.gen_pmax},
+                                 functs={"connectivity_matrix": (
+                                          lambda grid2obs: grid2obs.connectivity_matrix().flatten(),
+                                          0.5, 1.0, None, None)
+                                        }
+                                )
+
+        # high not correct
+        with self.assertRaises(RuntimeError):
+            tmp = BoxGymObsSpace(self.env.observation_space,
+                                 attr_to_keep=kept_attr,
+                                 divide={"gen_p": self.env.gen_pmax,
+                                         "load_p": self.obs_env.load_p,
+                                         "actual_dispatch": self.env.gen_pmax},
+                                 functs={"connectivity_matrix": (
+                                          lambda grid2obs: grid2obs.connectivity_matrix().flatten(),
+                                          0., 0.9, None, None)
+                                        }
+                                )
+
+        # not added in attr_to_keep
+        with self.assertRaises(RuntimeError):
+            tmp = BoxGymObsSpace(self.env.observation_space,
+                                 attr_to_keep=["gen_p", "load_p", "topo_vect", "rho", "actual_dispatch"],
+                                 divide={"gen_p": self.env.gen_pmax,
+                                         "load_p": self.obs_env.load_p,
+                                         "actual_dispatch": self.env.gen_pmax},
+                                 functs={"connectivity_matrix": (
+                                          lambda grid2obs: grid2obs.connectivity_matrix().flatten(),
+                                          0., 1.0, None, None)
+                                        }
+                                )
+
+        # another normal function
+        self.env_gym.observation_space = BoxGymObsSpace(self.env.observation_space,
+                                                   attr_to_keep=["connectivity_matrix", "log_load"],
+                                                   functs={"connectivity_matrix":
+                                                              (lambda grid2opobs: grid2opobs.connectivity_matrix().flatten(),
+                                                               0., 1.0, None, None),
+                                                           "log_load":
+                                                            (lambda grid2opobs: np.log(grid2opobs.load_p),
+                                                            None, 10., None, None)
+                                                        }
+                                                   )
 
 if __name__ == "__main__":
     unittest.main()

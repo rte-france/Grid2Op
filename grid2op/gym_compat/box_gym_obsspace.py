@@ -11,28 +11,123 @@ import numpy as np
 from gym.spaces import Box
 
 from grid2op.dtypes import dt_int, dt_bool, dt_float
+from grid2op.Observation import ObservationSpace
 
-# TODO test that it works normally
-# TODO test the casting in dt_int or dt_float depending on the data
-# TODO test the scaling
 # TODO doc
-# TODO test the function part
+
+
+ALL_ATTR_OBS = ("year", "month", "day", "hour_of_day", "minute_of_hour",
+                "day_of_week",
+                "gen_p", "gen_q", "gen_v",
+                "load_p", "load_q", "load_v",
+                "p_or", "q_or", "v_or", "a_or",
+                "p_ex", "q_ex", "v_ex", "a_ex",
+                "rho", "line_status",
+                "timestep_overflow", "topo_vect", "time_before_cooldown_line",
+                "time_before_cooldown_sub", "time_next_maintenance",
+                "duration_next_maintenance", "target_dispatch", "actual_dispatch",
+                "storage_charge", "storage_power_target", "storage_power", "curtailment",
+                "curtailment_limit", "thermal_limit"
+                )
 
 
 class BoxGymObsSpace(Box):
     """
-    TODO
+    This class allows to convert a grid2op observation space into a gym "Box" which is
+    a regular Box in R^d.
+
+    It also allows to customize which part of the observation you want to use and offer capacity to
+    center / reduce the data or to use more complex function from the observation.
+
+    Examples
+    --------
+    If you simply want to use it you can do:
+
+    .. code-block:: python
+
+        import grid2op
+        env_name = ...
+        env = grid2op.make(env_name)
+
+        from grid2op.gym_compat import GymEnv, BoxGymObsSpace
+        gym_env = GymEnv(env)
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space)
+
+    In this case it will extract all the features in all the observation (a detailed list is given
+    in the documentation at :ref:`observation_module`.
+
+    You can select the attribute you want to keep, for example:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=['load_p', "gen_p", "rho])
+
+    You can also apply some basic transformation to the attribute of the observation before building
+    the resulting gym observation (which in this case is a vector). This can be done with:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=['load_p', "gen_p", "rho],
+                                                   divide={"gen_p": self.env.gen_pmax},
+                                                   substract={"gen_p": 0.5 * self.env.gen_pmax})
+
+    In the above example, the resulting "gen_p" part of the vector will be given by the following
+    formula: gym_obs = (grid2op_obs - substract) / divide.
+
+    Hint: you can use: divide being the standard deviation and subtract being the average of the attribute
+    on a few episodes for example. This can be done with :class:`grid2op.utils.EpisodeStatistics` for example.
+
+    Finally, you can also modify more the attribute of the observation and add it to your box. This
+    can be done rather easily with the "functs" argument like:
+
+    .. code-block:: python
+
+        gym_env.observation_space = BoxGymObsSpace(env.observation_space,
+                                                   attr_to_keep=["connectivity_matrix", "log_load"],
+                                                   functs={"connectivity_matrix":
+                                                              (lambda grid2opobs: grid2opobs.connectivity_matrix().flatten(),
+                                                               0., 1.0, None, None),
+                                                           "log_load":
+                                                            (lambda grid2opobs: np.log(grid2opobs.load_p),
+                                                            None, 10., None, None)
+                                                        }
+                                                   )
+
+    In this case, "functs" should be a dictionary, the "keys" should be string (keys should also be
+    present in the `attr_to_keep` list) and the values should count 5 elements
+    (callable_, low_, high_, shape_, dtype_) with:
+
+    - `callable_` a function taking as input a grid2op observation and returning a numpy array
+    - `low_` (optional) (put None if you don't want to specify it, defaults to `-np.inf`) the lowest value
+       your numpy array can take. It can be a single number or an array with the same shape
+       as the return value of your function.
+    - `high_` (optional) (put None if you don't want to specify it, defaults to `np.inf`) the highest value
+       your numpy array can take. It can be a single number or an array with the same shape
+       as the return value of your function.
+    - `shape_` (optional) (put None if you don't want to specify it) the shape of the return value
+       of your function. It should be a tuple (and not a single number). By default it is computed
+       with by applying your function to an observation.
+    - `dtype_` (optional, put None if you don't want to change it, defaults to np.float32) the type of
+      the numpy array as output of your function.
 
     """
     def __init__(self,
                  grid2op_observation_space,
-                 attr_to_keep=("gen_p", "load_p", "topo_vect"),
-                 substract={},
+                 attr_to_keep=ALL_ATTR_OBS,
+                 subtract={},
                  divide={},
                  functs={}):
+        if not isinstance(grid2op_observation_space, ObservationSpace):
+            raise RuntimeError(f"Impossible to create a BoxGymSPace without providing a "
+                               f"grid2op action_space. You provided {type(grid2op_observation_space)}"
+                               f"as the \"grid2op_observation_space\" attribute.")
         self._attr_to_keep = attr_to_keep
 
         ob_sp = grid2op_observation_space
+
         self.dict_properties = {
             "year": (0, 2200, (1,), dt_int),
             "month": (0, 12, (1,), dt_int),
@@ -163,13 +258,24 @@ class BoxGymObsSpace(Box):
             "curtailment_limit_mw": (np.full(shape=(ob_sp.n_gen,), fill_value=0., dtype=dt_float),
                                      1.0 * ob_sp.gen_pmax,
                                      (ob_sp.n_gen,),
-                                     dt_float)
+                                     dt_float),
+            "thermal_limit": (np.full(shape=(ob_sp.n_line,), fill_value=0., dtype=dt_float),
+                              np.full(shape=(ob_sp.n_line,), fill_value=np.inf, dtype=dt_float),
+                              (ob_sp.n_line,),
+                              dt_float),
         }
         self.dict_properties["prod_p"] = self.dict_properties["gen_p"]
         self.dict_properties["prod_q"] = self.dict_properties["gen_q"]
         self.dict_properties["prod_v"] = self.dict_properties["gen_v"]
 
-        self._substract = substract
+        for key in functs.keys():
+            if key not in self._attr_to_keep:
+                raise RuntimeError(f"The key {key} is present in the \"functs\" dictionary but not in the "
+                                   f"\"attr_to_keep\". This is not consistent: either ignore this function, "
+                                   f"in that case remove \"{key}\" from \"functs\" or you want to add "
+                                   f"something to your observation, in that case add it to \"attr_to_keep\"")
+
+        self._subtract = subtract
         self._divide = divide
 
         # handle the "functional" part
@@ -191,17 +297,33 @@ class BoxGymObsSpace(Box):
         for el in self._attr_to_keep:
             if el in functs:
                 # the attribute name "el" has been put in the functs
-                callable_, low_, high_, shape_, dtype_ = functs[el]
+                try:
+                    callable_, low_, high_, shape_, dtype_ = functs[el]
+                except Exception as exc_:
+                    raise RuntimeError(f"When using keyword argument \"functs\" you need to provide something "
+                                       f"like: (callable_, low_, high_, shape_, dtype_) for each key. "
+                                       f"There was an error with \"{el}\"."
+                                       f"The error was:\n {exc_}")
+
                 try:
                     tmp = callable_(self._template_obs.copy())
                 except Exception as exc_:
-                    raise RuntimeError(f"Error for the function your provided with key \"{el}\". "
+                    raise RuntimeError(f"Error for the function your provided with key \"{el}\" (using the"
+                                       f"\"functs\" dictionary) "
                                        f"The error was :\n {exc_}")
+                if not isinstance(tmp, np.ndarray):
+                    raise RuntimeError(f"The result of the function you provided as part of the \"functs\""
+                                       f"dictionary for key {el}"
+                                       f"do not return a numpy array. This is not supported.")
                 self.__func[el] = callable_
                 if dtype_ is None:
                     dtype_ = dt_float
                 if shape_ is None:
                     shape_ = tmp.shape
+
+                if not isinstance(shape_, tuple):
+                    raise RuntimeError("You need to provide a tuple as a shape of the output of your data")
+
                 if low_ is None:
                     low_ = np.full(shape_, fill_value=-np.inf, dtype=dtype_)
                 elif isinstance(low_, float):
@@ -211,6 +333,10 @@ class BoxGymObsSpace(Box):
                     high_ = np.full(shape_, fill_value=np.inf, dtype=dtype_)
                 elif isinstance(high_, float):
                     high_ = np.full(shape_, fill_value=high_, dtype=dtype_)
+
+                if np.any((tmp < low_) | (tmp > high_)):
+                    raise RuntimeError(f"Wrong value for low / high in the functs argument for key {el}. Please"
+                                       f"fix the low_ / high_ in the tuple ( callable_, low_, high_, shape_, dtype_).")
 
             elif el in self.dict_properties:
                 # el is an attribute of an observation, for example "load_q" or "topo_vect"
@@ -236,9 +362,9 @@ class BoxGymObsSpace(Box):
                 shape = (shape[0] + shape_[0],)
 
             # handle low / high
-            if el in self._substract:
-                low_ -= self._substract[el]
-                high_ -= self._substract[el]
+            if el in self._subtract:
+                low_ -= self._subtract[el]
+                high_ -= self._subtract[el]
             if el in self._divide:
                 low_ /= self._divide[el]
                 high_ /= self._divide[el]
@@ -256,22 +382,27 @@ class BoxGymObsSpace(Box):
 
     def _handle_attribute(self, grid2op_observation, attr_nm):
         res = getattr(grid2op_observation, attr_nm).astype(self.dtype)
-        if attr_nm in self._substract:
-            res -= self._substract[attr_nm]
+        if attr_nm in self._subtract:
+            res -= self._subtract[attr_nm]
         if attr_nm in self._divide:
             res /= self._divide[attr_nm]
         return res
 
     def to_gym(self, grid2op_observation):
         """
-        TODO
+        This is the function that is called to transform a grid2Op observation, sent by the grid2op environment
+        and convert it to a numpy array (an element of a gym Box)
+
         Parameters
         ----------
-        grid2op_observation
+        grid2op_observation:
+            The grid2op observation (as a grid2op object)
 
         Returns
         -------
-
+        res:
+            A numpy array compatible with the openAI gym Box that represents the action space.
+            
         """
         res = np.empty(shape=self.shape, dtype=self.dtype)
         prev = 0

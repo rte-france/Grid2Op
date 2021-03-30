@@ -259,7 +259,8 @@ class TestIdToAct(HelperTests):
         param.init_from_dict({"NO_OVERFLOW_DISCONNECTION": True})
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = make("educ_case14_storage", test=True, param=param,
+            self.env = make("educ_case14_storage",
+                            test=True, param=param,
                             action_class=PlayableAction)
         np.random.seed(0)
 
@@ -283,6 +284,32 @@ class TestIdToAct(HelperTests):
         act2_ = converter2.convert_act(-1)
         assert act == act2
         assert act_ == act2_
+
+    def test_specific_attr(self):
+        dict_orig = {"set_line_status": False,
+                     "change_line_status": False,
+                     "set_topo_vect": False,
+                     "change_bus_vect": False,
+                     "redispatch": False,
+                     "curtail": False,
+                     "storage": False}
+
+        dims = {"set_line_status": 101,
+                "change_line_status": 21,
+                "set_topo_vect": 235,
+                "change_bus_vect": 255,
+                "redispatch": 25,
+                "curtail": 31,
+                "storage": 17}
+
+        for attr in dict_orig.keys():
+            kwargs = dict_orig.copy()
+            kwargs[attr] = True
+            converter = IdToAct(self.env.action_space)
+            converter.init_converter(**kwargs)
+            assert converter.n == dims[attr], f"dim for \"{attr}\" should be {dims[attr]} but is " \
+                                              f"{converter.n}"
+
 
 
 if __name__ == "__main__":
